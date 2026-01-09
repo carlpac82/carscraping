@@ -1,0 +1,1126 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Vehicle Names Editor</title>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="/static/i18n.js"></script>
+    <script src="/static/notifications.js"></script>
+    <script>
+      // Listen for language changes from parent window
+      window.addEventListener('message', function(e) {
+        console.log('Message received in vehicle editor:', e.data);
+        if (e.data && e.data.type === 'languageChange') {
+          console.log('Language change message received, new language:', e.data.language);
+          localStorage.setItem('siteLanguage', e.data.language);
+          window.location.reload();
+        }
+      });
+      
+      // Log current language on load
+      console.log('Vehicle editor loaded with language:', localStorage.getItem('siteLanguage') || 'pt');
+    </script>
+</head>
+<body class="bg-gray-50">
+    <!-- Header -->
+    <header class="bg-[#009cb6] border-b sticky top-0 z-50">
+        <div class="mx-auto max-w-7xl px-4 py-3 flex items-center justify-between">
+            <h1 class="text-white text-xl font-bold" data-i18n="vehicles.vehicleNamesEditor">Vehicle Names Editor</h1>
+            <div class="flex items-center gap-3 text-white text-sm">
+                <span id="totalVehicles">0</span> <span data-i18n="vehicles.vehicles">vehicles</span>
+                
+                <!-- Botão Refresh Vehicles - Atualiza lista do CarJet -->
+                <button onclick="refreshVehiclesFromCarjet()" class="p-2 hover:bg-white/10 transition-all rounded" title="Refresh Vehicles from CarJet" id="btnRefreshVehicles">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/>
+                    </svg>
+                </button>
+                
+                <!-- Botão Download Photos - Baixa fotos do CarJet -->
+                <button onclick="downloadAllPhotosFromCarjet()" class="p-2 hover:bg-white/10 transition-all rounded" title="Download All Photos from CarJet" id="btnDownloadPhotos">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"/>
+                    </svg>
+                </button>
+                
+                <!-- Separador -->
+                <div class="h-6 w-px bg-white/20"></div>
+                
+                <!-- Botão Export - Exportar configuração com fotos -->
+                <button onclick="exportConfiguration()" class="p-2 hover:bg-white/10 transition-all rounded" title="Export Config (with photos)">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"/>
+                    </svg>
+                </button>
+                
+                <!-- Botão Import - Importar configuração com fotos -->
+                <button onclick="document.getElementById('importFile').click()" class="p-2 hover:bg-white/10 transition-all rounded" title="Import Config (with photos)">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/>
+                    </svg>
+                </button>
+                <input type="file" id="importFile" accept=".json" style="display:none" onchange="importConfiguration(event)">
+            </div>
+        </div>
+    </header>
+    
+    <main class="mx-auto max-w-7xl px-4 py-6 space-y-6">
+        <!-- Abas -->
+        <div class="bg-white rounded-lg shadow">
+            <div class="border-b">
+                <nav class="flex space-x-4 px-4">
+                    <button onclick="switchTab('all')" id="tabAll" 
+                            class="border-b-2 border-[#009cb6] text-[#009cb6] py-3 px-4 font-semibold">
+                        <span data-i18n="vehicles.allVehicles">All Vehicles</span>
+                    </button>
+                    <button onclick="switchTab('uncategorized')" id="tabUncategorized" 
+                            class="border-b-2 border-transparent text-gray-500 hover:text-gray-700 py-3 px-4">
+                        <span data-i18n="vehicles.uncategorized">Uncategorized</span> <span id="uncategorizedCount" class="ml-1 bg-red-100 text-red-800 px-2 py-1 rounded-full text-xs"></span>
+                    </button>
+                </nav>
+            </div>
+        </div>
+        
+        <!-- Botões de Gestão -->
+        <div class="bg-gradient-to-r from-blue-50 to-yellow-50 border-2 border-[#009cb6] rounded-lg shadow-lg p-4">
+            <div class="flex items-center justify-between">
+                <div>
+                    <h3 class="text-lg font-bold text-[#009cb6]" data-i18n="vehicles.categoryManagement">Category & Group Management</h3>
+                    <p class="text-sm text-gray-600" data-i18n="vehicles.categoryManagementDesc">Create and manage vehicle categories and groups</p>
+                </div>
+                <div class="flex gap-3">
+                    <button onclick="showNewCategoryModal()" 
+                            class="px-6 py-3 bg-[#009cb6] text-white rounded-lg hover:bg-[#007a8e] font-semibold">
+                        <span data-i18n="vehicles.newCategory">+ New Category</span>
+                    </button>
+                    <button onclick="showNewGroupModal()" 
+                            class="px-6 py-3 bg-[#f4ad0f] text-gray-900 rounded-lg hover:bg-[#e39e0e] font-semibold">
+                        <span data-i18n="vehicles.newGroup">+ New Group</span>
+                    </button>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Filtros -->
+        <div class="bg-white rounded-lg shadow p-4">
+            <div class="grid grid-cols-1 md:grid-cols-4 gap-3">
+                <input type="text" id="searchInput" placeholder="🔍 Search..." 
+                       class="px-4 py-2 border rounded-lg" onkeyup="filterVehicles()">
+                
+                <select id="filterBrand" class="px-4 py-2 border rounded-lg" onchange="filterVehicles()">
+                    <option value="" data-i18n="vehicles.allBrands">All brands</option>
+                </select>
+                
+                <select id="filterCategory" class="px-4 py-2 border rounded-lg" onchange="filterVehicles()">
+                    <option value="" data-i18n="vehicles.allCategories">All categories</option>
+                </select>
+                
+                <button onclick="loadVehicles()" class="p-2 text-[#009cb6] hover:bg-gray-100 rounded-lg">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/>
+                    </svg>
+                </button>
+            </div>
+        </div>
+        
+        <!-- Tabela de Veículos -->
+        <div class="bg-white rounded-lg shadow overflow-hidden">
+            <div class="overflow-x-auto">
+                <div id="vehiclesContainer">
+                    <div class="p-8 text-center text-gray-500">
+                        Loading vehicles...
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+    
+    <!-- Custom Notification Container -->
+    <div id="notificationContainer" class="fixed top-4 right-4 z-[100] space-y-2"></div>
+    
+    <!-- Custom Confirm Modal -->
+    <div id="customConfirmModal" class="hidden fixed inset-0 bg-black bg-opacity-50 z-[100] flex items-center justify-center p-4">
+        <div class="bg-white rounded-lg max-w-md w-full p-6 shadow-xl">
+            <div class="flex items-start gap-3 mb-4">
+                <div id="confirmIcon" class="flex-shrink-0"></div>
+                <div class="flex-1">
+                    <h3 id="confirmTitle" class="text-lg font-semibold text-gray-900 mb-2"></h3>
+                    <p id="confirmMessage" class="text-sm text-gray-600 whitespace-pre-line"></p>
+                </div>
+            </div>
+            <div class="flex gap-3 justify-end">
+                <button onclick="resolveConfirm(false)" class="px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors">
+                    Cancel
+                </button>
+                <button onclick="resolveConfirm(true)" id="confirmButton" class="px-4 py-2 bg-[#009cb6] text-white rounded-lg hover:bg-[#007a91] transition-colors">
+                    Confirm
+                </button>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Progress Modal -->
+    <div id="progressModal" class="hidden fixed inset-0 bg-black bg-opacity-50 z-[100] flex items-center justify-center p-4">
+        <div class="bg-white rounded-lg max-w-md w-full p-6 shadow-xl">
+            <div class="flex items-start gap-3 mb-4">
+                <svg class="w-8 h-8 text-[#009cb6] animate-spin" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/>
+                </svg>
+                <div class="flex-1">
+                    <h3 class="text-lg font-semibold text-gray-900 mb-2">Fetching Car Photos</h3>
+                    <p id="progressMessage" class="text-sm text-gray-600 mb-3">Searching CarJet...</p>
+                    
+                    <!-- Progress Bar -->
+                    <div class="w-full bg-gray-200 rounded-full h-2.5 mb-2">
+                        <div id="progressBar" class="bg-[#009cb6] h-2.5 rounded-full transition-all duration-300" style="width: 0%"></div>
+                    </div>
+                    
+                    <div class="flex justify-between text-xs text-gray-500">
+                        <span id="progressCurrent">0 / 42</span>
+                        <span id="progressPercent">0%</span>
+                    </div>
+                    
+                    <div class="mt-3 text-xs text-gray-600">
+                        <div class="flex justify-between">
+                            <span>Photos found:</span>
+                            <span id="photosFound" class="font-semibold text-[#009cb6]">0</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Modal Nova Categoria -->
+    <div id="newCategoryModal" class="hidden fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4">
+        <div class="bg-white rounded-lg max-w-md w-full p-6">
+            <h2 class="text-xl font-bold mb-4 text-[#009cb6]">Create New Category</h2>
+            <div class="space-y-4">
+                <div>
+                    <label class="block text-sm font-medium mb-2">Category Name</label>
+                    <input type="text" id="newCategoryName" placeholder="Ex: Compact Premium" 
+                           class="w-full px-3 py-2 border rounded-lg">
+                </div>
+                <div class="flex gap-3">
+                    <button onclick="saveNewCategory()" class="flex-1 px-4 py-2 bg-[#009cb6] text-white rounded-lg">
+                        Create
+                    </button>
+                    <button onclick="closeNewCategoryModal()" class="px-4 py-2 border rounded-lg">
+                        Cancel
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Modal Novo Grupo -->
+    <div id="newGroupModal" class="hidden fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4">
+        <div class="bg-white rounded-lg max-w-md w-full p-6">
+            <h2 class="text-xl font-bold mb-4 text-[#009cb6]">Create New Group</h2>
+            <div class="space-y-4">
+                <div>
+                    <label class="block text-sm font-medium mb-2">Group Code</label>
+                    <input type="text" id="newGroupCode" placeholder="Ex: P3" maxlength="3"
+                           class="w-full px-3 py-2 border rounded-lg uppercase">
+                </div>
+                <div>
+                    <label class="block text-sm font-medium mb-2">Group Name</label>
+                    <input type="text" id="newGroupName" placeholder="Ex: Premium Plus" 
+                           class="w-full px-3 py-2 border rounded-lg">
+                </div>
+                <div class="flex gap-3">
+                    <button onclick="saveNewGroup()" class="flex-1 px-4 py-2 bg-[#f4ad0f] text-gray-900 rounded-lg">
+                        Create
+                    </button>
+                    <button onclick="closeNewGroupModal()" class="px-4 py-2 border rounded-lg">
+                        Cancel
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Modal de Edição -->
+    <div id="editModal" class="hidden fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4">
+        <div class="bg-white rounded-lg max-w-3xl w-full max-h-[90vh] overflow-y-auto">
+            <div class="p-6">
+                <div class="flex justify-between items-center mb-4">
+                    <h2 class="text-xl font-bold">Edit Vehicle</h2>
+                    <button onclick="closeEditModal()" class="text-gray-500 hover:text-gray-700 text-2xl">✕</button>
+                </div>
+                
+                <div class="space-y-4">
+                    <div class="bg-gray-50 p-4 rounded-lg">
+                        <label class="block text-sm font-medium mb-1">Original Name</label>
+                        <input type="text" id="editOriginalName" readonly 
+                               class="w-full px-3 py-2 border rounded-lg bg-gray-100" />
+                    </div>
+                    
+                    <div>
+                        <label class="block text-sm font-medium mb-1">Clean Name *</label>
+                        <input type="text" id="editCleanName" 
+                               class="w-full px-3 py-2 border rounded-lg" />
+                    </div>
+                    
+                    <div class="grid grid-cols-3 gap-4">
+                        <div>
+                            <label class="block text-sm font-medium mb-1">Category</label>
+                            <select id="editCategory" class="w-full px-3 py-2 border rounded-lg" onchange="updateGroupFromCategory()">
+                                <option value="MINI 4 Lugares">MINI 4 Lugares</option>
+                                <option value="MINI 5 Lugares">MINI 5 Lugares</option>
+                                <option value="MINI Auto">MINI Auto</option>
+                                <option value="ECONOMY">ECONOMY</option>
+                                <option value="ECONOMY Auto">ECONOMY Auto</option>
+                                <option value="SUV">SUV</option>
+                                <option value="SUV Auto">SUV Auto</option>
+                                <option value="Crossover">Crossover</option>
+                                <option value="Station Wagon">Station Wagon</option>
+                                <option value="Station Wagon Auto">Station Wagon Auto</option>
+                                <option value="Cabrio">Cabrio</option>
+                                <option value="Premium">Premium</option>
+                                <option value="Luxury">Luxury</option>
+                                <option value="7 Lugares">7 Lugares</option>
+                                <option value="7 Lugares Auto">7 Lugares Auto</option>
+                                <option value="9 Lugares">9 Lugares</option>
+                            </select>
+                        </div>
+                        
+                        <div>
+                            <label class="block text-sm font-medium mb-1">Group</label>
+                            <select id="editGroup" class="w-full px-3 py-2 border rounded-lg">
+                                <option value="B1">B1 - Mini 4 Doors</option>
+                                <option value="B2">B2 - Mini</option>
+                                <option value="D">D - Economy</option>
+                                <option value="E1">E1 - Mini Auto</option>
+                                <option value="E2">E2 - Economy Auto</option>
+                                <option value="F">F - SUV</option>
+                                <option value="G">G - Cabrio</option>
+                                <option value="X">X - Premium/Luxury</option>
+                                <option value="J1">J1 - Crossover</option>
+                                <option value="J2">J2 - Station Wagon</option>
+                                <option value="L1">L1 - SUV Auto</option>
+                                <option value="L2">L2 - Station Wagon Auto</option>
+                                <option value="M1">M1 - 7 Seater</option>
+                                <option value="M2">M2 - 7 Seater Auto</option>
+                                <option value="N">N - 9 Seater</option>
+                            </select>
+                        </div>
+                        
+                        <div>
+                            <label class="block text-sm font-medium mb-1">Transmission</label>
+                            <select id="editTransmission" class="w-full px-3 py-2 border rounded-lg">
+                                <option value="Manual">Manual</option>
+                                <option value="Automatic">Automatic</option>
+                            </select>
+                        </div>
+                    </div>
+                    
+                    <!-- Upload/Download Foto -->
+                    <div class="border-t pt-4">
+                        <label class="block text-sm font-medium mb-2">Vehicle Photo</label>
+                        
+                        <!-- Preview -->
+                        <div id="photoPreview" class="mb-3 hidden">
+                            <img id="photoPreviewImage" src="" alt="Preview" class="h-32 w-auto rounded border">
+                        </div>
+                        
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+                            <!-- Upload -->
+                            <div>
+                                <label class="block text-xs text-gray-600 mb-1">Upload File</label>
+                                <input type="file" id="photoFile" accept="image/*" 
+                                       class="w-full text-sm border rounded-lg p-2"
+                                       onchange="handlePhotoUpload(event)">
+                            </div>
+                            
+                            <!-- URL -->
+                            <div>
+                                <label class="block text-xs text-gray-600 mb-1">Or paste URL</label>
+                                <div class="flex gap-2">
+                                    <input type="url" id="photoUrl" 
+                                           placeholder="https://..." 
+                                           class="flex-1 px-3 py-2 border rounded-lg text-sm">
+                                    <button type="button" onclick="downloadPhotoFromUrl()" 
+                                            class="px-3 py-2 bg-[#009cb6] text-white rounded-lg hover:bg-[#007a8e] text-sm">
+                                        📥
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="flex gap-3 pt-4">
+                        <button onclick="saveEdit()" class="flex-1 px-4 py-2 bg-[#009cb6] text-white rounded-lg">
+                            💾 Save
+                        </button>
+                        <button onclick="closeEditModal()" class="px-4 py-2 border rounded-lg">
+                            Cancel
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <script>
+        let allVehicles = [];
+        let uncategorizedVehicles = [];
+        let currentTab = 'all';
+        let photoTimestamp = Date.now(); // Global timestamp for cache busting
+        let editingVehicle = null;
+        
+        // Notification functions are loaded from /static/notifications.js
+        
+        const categoryToGroup = {
+            'MINI 4 Lugares': 'B1',
+            'MINI 5 Lugares': 'B2',
+            'MINI Auto': 'E1',
+            'ECONOMY': 'D',
+            'ECONOMY Auto': 'E2',
+            'SUV': 'F',
+            'SUV Auto': 'L1',
+            'Crossover': 'J1',
+            'Station Wagon': 'J2',
+            'Station Wagon Auto': 'L2',
+            'Cabrio': 'G',
+            'Premium': 'X',
+            'Luxury': 'X',
+            '7 Lugares': 'M1',
+            '7 Lugares Auto': 'M2',
+            '9 Lugares': 'N'
+        };
+        
+        async function loadVehicles() {
+            try {
+                const response = await fetch('/api/vehicles/with-originals');
+                const data = await response.json();
+                
+                if (!data.ok) throw new Error(data.error);
+                
+                allVehicles = Object.entries(data.vehicles).map(([clean, info]) => {
+                    const parts = clean.split(' ');
+                    const brand = parts[0] || '';
+                    const model = parts.slice(1).join(' ') || '';
+                    return {
+                        clean: clean,
+                        original: info.original || clean,
+                        category: info.category || 'Unknown',
+                        brand: brand,
+                        model: model
+                    };
+                });
+                
+                document.getElementById('totalVehicles').textContent = allVehicles.length;
+                populateFilters();
+                await loadUncategorized();
+                renderVehicles();
+                
+            } catch (error) {
+                console.error('Error:', error);
+                showNotification('Error loading vehicles: ' + error.message, 'error');
+            }
+        }
+        
+        async function loadUncategorized() {
+            try {
+                const response = await fetch('/api/vehicles/uncategorized');
+                const data = await response.json();
+                
+                if (data.ok) {
+                    uncategorizedVehicles = data.uncategorized || [];
+                    document.getElementById('uncategorizedCount').textContent = uncategorizedVehicles.length || '';
+                }
+            } catch (error) {
+                console.error('Error loading uncategorized:', error);
+            }
+        }
+        
+        function populateFilters() {
+            const brands = [...new Set(allVehicles.map(v => v.brand))].sort();
+            const brandSelect = document.getElementById('filterBrand');
+            brandSelect.innerHTML = `<option value="">${t('vehicles.allBrands', 'All brands')}</option>`;
+            brands.forEach(brand => {
+                brandSelect.innerHTML += `<option value="${brand}">${brand.charAt(0).toUpperCase() + brand.slice(1)}</option>`;
+            });
+            
+            const categories = [...new Set(allVehicles.map(v => v.category))].sort();
+            const catSelect = document.getElementById('filterCategory');
+            catSelect.innerHTML = `<option value="">${t('vehicles.allCategories', 'All categories')}</option>`;
+            categories.forEach(cat => {
+                catSelect.innerHTML += `<option value="${cat}">${cat}</option>`;
+            });
+        }
+        
+        function filterVehicles() {
+            renderVehicles();
+        }
+        
+        function renderVehicles() {
+            const container = document.getElementById('vehiclesContainer');
+            let vehicles = currentTab === 'all' ? allVehicles : uncategorizedVehicles;
+            
+            // Aplicar filtros
+            const search = document.getElementById('searchInput').value.toLowerCase();
+            const brandFilter = document.getElementById('filterBrand').value;
+            const catFilter = document.getElementById('filterCategory').value;
+            
+            vehicles = vehicles.filter(v => {
+                if (search && !v.clean.includes(search) && !v.category.toLowerCase().includes(search)) return false;
+                if (brandFilter && v.brand !== brandFilter) return false;
+                if (catFilter && v.category !== catFilter) return false;
+                return true;
+            });
+            
+            // Agrupar por marca
+            const byBrand = {};
+            vehicles.forEach(v => {
+                if (!byBrand[v.brand]) byBrand[v.brand] = [];
+                byBrand[v.brand].push(v);
+            });
+            
+            // Renderizar
+            container.innerHTML = '';
+            Object.keys(byBrand).sort().forEach(brand => {
+                const brandVehicles = byBrand[brand];
+                const brandDiv = document.createElement('div');
+                brandDiv.className = 'mb-6';
+                brandDiv.innerHTML = `
+                    <div class="bg-[#009cb6] px-6 py-3 rounded-t-lg">
+                        <h3 class="text-lg font-bold capitalize text-white">${brand} <span class="text-sm font-normal bg-[#f4ad0f] text-gray-900 px-3 py-1 rounded-full ml-2">${brandVehicles.length}</span></h3>
+                    </div>
+                    <div class="bg-white rounded-b-lg border border-gray-200 divide-y divide-gray-200">
+                        ${brandVehicles.map(v => {
+                            const group = categoryToGroup[v.category] || '—';
+                            const photoUrl = '/api/vehicles/' + encodeURIComponent(v.clean) + '/photo?t=' + photoTimestamp;
+                            const cleanNameCapitalized = v.clean.split(' ').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ');
+                            return `
+                                <div class="p-4 hover:bg-gray-50 transition-colors">
+                                    <div class="flex items-start gap-4">
+                                        <!-- Photo -->
+                                        <div class="flex-shrink-0">
+                                            <img src="${photoUrl}" 
+                                                 onerror="this.onerror=null; this.src='/api/vehicles/placeholder.svg'" 
+                                                 alt="${v.clean}" 
+                                                 class="h-20 w-28 object-cover rounded-lg border shadow-sm">
+                                        </div>
+                                        
+                                        <!-- Info -->
+                                        <div class="flex-1 min-w-0">
+                                            <div class="flex items-start justify-between">
+                                                <div class="flex-1">
+                                                    <h4 class="text-base font-semibold text-gray-900">${cleanNameCapitalized}</h4>
+                                                    <p class="text-xs text-gray-500 mt-1">${v.original}</p>
+                                                    <div class="flex items-center gap-3 mt-2">
+                                                        <span class="px-2 py-1 text-xs font-mono rounded bg-[#f4ad0f] text-gray-900 font-bold">${group}</span>
+                                                        <span class="text-sm text-gray-600">${v.category}</span>
+                                                    </div>
+                                                </div>
+                                                
+                                                <!-- Action -->
+                                                <button onclick='editVehicle(${JSON.stringify(v).replace(/'/g, "&#39;")})' class="p-2 text-[#009cb6] hover:bg-[#009cb6]/10 rounded transition-colors" title="Edit">
+                                                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/>
+                                                    </svg>
+                                                </button>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            `;
+                        }).join('')}
+                    </div>
+                `;
+                container.appendChild(brandDiv);
+            });
+        }
+        
+        function switchTab(tab) {
+            currentTab = tab;
+            document.getElementById('tabAll').className = tab === 'all' 
+                ? 'border-b-2 border-[#009cb6] text-[#009cb6] py-3 px-4 font-semibold'
+                : 'border-b-2 border-transparent text-gray-500 hover:text-gray-700 py-3 px-4';
+            document.getElementById('tabUncategorized').className = tab === 'uncategorized' 
+                ? 'border-b-2 border-[#009cb6] text-[#009cb6] py-3 px-4 font-semibold'
+                : 'border-b-2 border-transparent text-gray-500 hover:text-gray-700 py-3 px-4';
+            renderVehicles();
+        }
+        
+        function editVehicle(vehicle) {
+            console.log('🔧 editVehicle called:', vehicle);
+            editingVehicle = vehicle;
+            
+            try {
+                document.getElementById('editOriginalName').value = vehicle.original || '';
+                document.getElementById('editCleanName').value = vehicle.clean || '';
+                document.getElementById('editCategory').value = vehicle.category || 'Unknown';
+                document.getElementById('editGroup').value = categoryToGroup[vehicle.category] || 'D';
+                
+                // Detectar transmission baseado na categoria ou nome
+                const categoryLower = (vehicle.category || '').toLowerCase();
+                const cleanLower = (vehicle.clean || '').toLowerCase();
+                const isAuto = categoryLower.includes('auto') || cleanLower.includes('auto');
+                document.getElementById('editTransmission').value = isAuto ? 'Automatic' : 'Manual';
+                
+                // Carregar foto se existir
+                loadVehiclePhoto(vehicle.clean);
+                
+                const modal = document.getElementById('editModal');
+                console.log('📦 Modal element:', modal);
+                modal.classList.remove('hidden');
+                console.log('✅ Modal should be visible now');
+            } catch (error) {
+                console.error('❌ Error in editVehicle:', error);
+                showNotification('Error opening edit modal: ' + error.message, 'error');
+            }
+        }
+        
+        async function loadVehiclePhoto(vehicleName) {
+            const photoUrl = `/api/vehicles/${encodeURIComponent(vehicleName)}/photo?t=${Date.now()}`;
+            const preview = document.getElementById('photoPreview');
+            const previewImage = document.getElementById('photoPreviewImage');
+            const urlInput = document.getElementById('photoUrl');
+            
+            try {
+                const response = await fetch(photoUrl);
+                if (response.ok) {
+                    previewImage.src = photoUrl;
+                    preview.classList.remove('hidden');
+                    
+                    // Tentar obter URL original
+                    try {
+                        const metaResponse = await fetch(`/api/vehicles/${encodeURIComponent(vehicleName)}/photo/metadata`);
+                        if (metaResponse.ok) {
+                            const metadata = await metaResponse.json();
+                            if (metadata.ok && metadata.source_url) {
+                                urlInput.value = metadata.source_url;
+                            }
+                        }
+                    } catch (err) {
+                        console.log('No metadata');
+                    }
+                } else {
+                    preview.classList.add('hidden');
+                    urlInput.value = '';
+                }
+            } catch (error) {
+                preview.classList.add('hidden');
+                urlInput.value = '';
+            }
+        }
+        
+        async function handlePhotoUpload(event) {
+            const file = event.target.files[0];
+            if (!file || !editingVehicle) return;
+            
+            const formData = new FormData();
+            formData.append('file', file);
+            
+            try {
+                const response = await fetch(`/api/vehicles/${encodeURIComponent(editingVehicle.clean)}/photo/upload`, {
+                    method: 'POST',
+                    body: formData
+                });
+                
+                const data = await response.json();
+                if (data.ok) {
+                    showNotification('Photo uploaded successfully!', 'success');
+                    await loadVehiclePhoto(editingVehicle.clean);
+                    renderVehicles(); // Atualizar tabela
+                } else {
+                    showNotification('Error: ' + data.error, 'error');
+                }
+            } catch (error) {
+                showNotification('Error: ' + error.message, 'error');
+            }
+        }
+        
+        async function downloadPhotoFromUrl() {
+            const url = document.getElementById('photoUrl').value.trim();
+            if (!url || !editingVehicle) {
+                showNotification('Enter a valid URL!', 'error');
+                return;
+            }
+            
+            try {
+                const response = await fetch(`/api/vehicles/${encodeURIComponent(editingVehicle.clean)}/photo/from-url`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ url: url })
+                });
+                
+                const data = await response.json();
+                if (data.ok) {
+                    showNotification('Photo downloaded successfully!', 'success');
+                    await loadVehiclePhoto(editingVehicle.clean);
+                    renderVehicles(); // Atualizar tabela
+                } else {
+                    showNotification('Error: ' + data.error, 'error');
+                }
+            } catch (error) {
+                showNotification('Error: ' + error.message, 'error');
+            }
+        }
+        
+        function updateGroupFromCategory() {
+            const category = document.getElementById('editCategory').value;
+            const group = categoryToGroup[category] || 'D';
+            document.getElementById('editGroup').value = group;
+        }
+        
+        function closeEditModal() {
+            document.getElementById('editModal').classList.add('hidden');
+            editingVehicle = null;
+            
+            // Atualizar timestamp para forçar reload das fotos
+            photoTimestamp = Date.now();
+            
+            // Recarregar lista para mostrar foto atualizada
+            loadVehicles();
+        }
+        
+        async function saveEdit() {
+            const cleanName = document.getElementById('editCleanName').value.toLowerCase().trim();
+            const category = document.getElementById('editCategory').value;
+            
+            if (!cleanName || !category) {
+                showNotification('Fill in clean name and category!', 'error');
+                return;
+            }
+            
+            try {
+                const response = await fetch('/api/vehicles/save', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        original_name: editingVehicle.original,
+                        clean_name: cleanName,
+                        category: category
+                    })
+                });
+                
+                const data = await response.json();
+                
+                if (data.ok) {
+                    showNotification('Vehicle saved successfully! Changes will appear in next search.', 'success');
+                    closeEditModal();
+                    await loadVehicles();
+                } else {
+                    showNotification('Error: ' + data.error, 'error');
+                }
+            } catch (error) {
+                showNotification('Error: ' + error.message, 'error');
+            }
+        }
+        
+        function showNewCategoryModal() {
+            document.getElementById('newCategoryModal').classList.remove('hidden');
+        }
+        
+        function closeNewCategoryModal() {
+            document.getElementById('newCategoryModal').classList.add('hidden');
+        }
+        
+        function saveNewCategory() {
+            const name = document.getElementById('newCategoryName').value.trim();
+            if (!name) {
+                showNotification('Enter a category name!', 'error');
+                return;
+            }
+            
+            const select = document.getElementById('editCategory');
+            const option = document.createElement('option');
+            option.value = name;
+            option.textContent = name;
+            select.appendChild(option);
+            
+            showNotification(`Category "${name}" created successfully!`, 'success');
+            closeNewCategoryModal();
+        }
+        
+        function showNewGroupModal() {
+            document.getElementById('newGroupModal').classList.remove('hidden');
+        }
+        
+        function closeNewGroupModal() {
+            document.getElementById('newGroupModal').classList.add('hidden');
+        }
+        
+        function saveNewGroup() {
+            const code = document.getElementById('newGroupCode').value.trim().toUpperCase();
+            const name = document.getElementById('newGroupName').value.trim();
+            
+            if (!code || !name) {
+                showNotification('Fill in code and name!', 'error');
+                return;
+            }
+            
+            const select = document.getElementById('editGroup');
+            const option = document.createElement('option');
+            option.value = code;
+            option.textContent = `${code} - ${name}`;
+            select.appendChild(option);
+            
+            showNotification(`Group "${code} - ${name}" created successfully!`, 'success');
+            closeNewGroupModal();
+        }
+        
+        // Fetch Car Photos from CarJet (replaces downloadAllPhotos)
+        async function fetchCarPhotos() {
+            const confirmed = await customConfirm(
+                'Fetch Car Photos',
+                'This will search CarJet for car photos across multiple locations and dates.\n\nThis may take 5-10 minutes. Continue?',
+                'search'
+            );
+            
+            if (!confirmed) {
+                return;
+            }
+            
+            // Show progress modal
+            const progressModal = document.getElementById('progressModal');
+            const progressBar = document.getElementById('progressBar');
+            const progressMessage = document.getElementById('progressMessage');
+            const progressCurrent = document.getElementById('progressCurrent');
+            const progressPercent = document.getElementById('progressPercent');
+            const photosFound = document.getElementById('photosFound');
+            
+            progressModal.classList.remove('hidden');
+            
+            // Simulate progress (2 locations × 7 dates × 3 periods = 42 searches)
+            const totalSearches = 42;
+            let currentSearch = 0;
+            let foundPhotos = 0;
+            
+            // Update progress every 7 seconds (42 searches × 7s ≈ 5 minutes)
+            const progressInterval = setInterval(() => {
+                currentSearch++;
+                const percent = Math.round((currentSearch / totalSearches) * 100);
+                
+                progressBar.style.width = `${percent}%`;
+                progressCurrent.textContent = `${currentSearch} / ${totalSearches}`;
+                progressPercent.textContent = `${percent}%`;
+                progressMessage.textContent = `Searching location ${Math.ceil(currentSearch / 21)} of 2...`;
+                
+                if (currentSearch >= totalSearches) {
+                    clearInterval(progressInterval);
+                }
+            }, 7000);
+            
+            try {
+                const response = await fetch('/api/fetch-car-photos', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    }
+                });
+                
+                const data = await response.json();
+                
+                // Clear interval and set to 100%
+                clearInterval(progressInterval);
+                progressBar.style.width = '100%';
+                progressCurrent.textContent = `${totalSearches} / ${totalSearches}`;
+                progressPercent.textContent = '100%';
+                
+                // Hide progress modal
+                progressModal.classList.add('hidden');
+                
+                if (data.ok) {
+                    const totalPhotos = (data.downloaded || 0) + (data.skipped || 0);
+                    showNotification(
+                        `Photo fetch completed! Found ${totalPhotos} car photos (${data.downloaded || 0} downloaded, ${data.skipped || 0} already existed).`,
+                        'success'
+                    );
+                    
+                    console.log('📸 Photos result:', data);
+                    
+                    // Update photo timestamp to force reload of all images
+                    photoTimestamp = Date.now();
+                    
+                    // Reload vehicles with new photos
+                    await loadVehicles();
+                } else {
+                    showNotification('Error: ' + data.error, 'error');
+                }
+            } catch (error) {
+                clearInterval(progressInterval);
+                progressModal.classList.add('hidden');
+                showNotification('Error: ' + error.message, 'error');
+            }
+        }
+        
+        async function exportConfiguration() {
+            try {
+                const response = await fetch('/api/export/config');
+                
+                if (!response.ok) {
+                    throw new Error('Export failed');
+                }
+                
+                // Download do ficheiro
+                const blob = await response.blob();
+                const url = window.URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                
+                // Obter nome do ficheiro do header
+                const contentDisposition = response.headers.get('Content-Disposition');
+                const filename = contentDisposition 
+                    ? contentDisposition.split('filename=')[1]?.replace(/"/g, '') 
+                    : 'vehicles_config.json';
+                
+                a.download = filename;
+                document.body.appendChild(a);
+                a.click();
+                window.URL.revokeObjectURL(url);
+                document.body.removeChild(a);
+                
+                showNotification('Configuration exported successfully! Includes: vehicles, photos, categories', 'success');
+            } catch (error) {
+                showNotification('Export error: ' + error.message, 'error');
+            }
+        }
+        
+        async function importConfiguration(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+            
+            if (!confirm('⚠️ Import configuration?\n\nThis will update vehicles and photos.')) {
+                event.target.value = '';
+                return;
+            }
+            
+            const formData = new FormData();
+            formData.append('file', file);
+            
+            try {
+                const response = await fetch('/api/import/config', {
+                    method: 'POST',
+                    body: formData
+                });
+                
+                const data = await response.json();
+                
+                if (data.ok) {
+                    showNotification(`Import completed! Vehicles: ${data.vehicles_count}, Photos: ${data.photos_imported || 0}`, 'success');
+                    
+                    // Recarregar dados
+                    await loadVehicles();
+                } else {
+                    showNotification('Error: ' + data.error, 'error');
+                }
+            } catch (error) {
+                showNotification('Import error: ' + error.message, 'error');
+            } finally {
+                event.target.value = '';
+            }
+        }
+        
+        // NOVAS FUNÇÕES - Refresh Vehicles e Download Photos
+        async function refreshVehiclesFromCarjet() {
+            console.log('[REFRESH] Iniciando...');
+            
+            // Criar modal de progresso
+            const modal = document.createElement('div');
+            modal.className = 'fixed inset-0 bg-black/50 flex items-center justify-center z-[9999]';
+            modal.innerHTML = `
+                <div class="bg-white rounded-lg shadow-2xl p-6 max-w-md w-full mx-4 border-2 border-[#f4ad0f]">
+                    <div class="flex items-center gap-3 mb-4">
+                        <svg class="w-8 h-8 text-[#f4ad0f] animate-spin" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/>
+                        </svg>
+                        <h3 class="text-xl font-bold text-gray-800">Refreshing Vehicles</h3>
+                    </div>
+                    <p class="text-gray-600 mb-4">Fetching latest vehicle data from CarJet...</p>
+                    <div class="w-full bg-gray-200 rounded-full h-2">
+                        <div class="bg-[#f4ad0f] h-2 rounded-full animate-pulse" style="width: 100%"></div>
+                    </div>
+                    <p class="text-sm text-gray-500 mt-3 text-center">This may take a few moments</p>
+                </div>
+            `;
+            document.body.appendChild(modal);
+            
+            try {
+                const response = await fetch('/api/vehicles/refresh', {
+                    method: 'POST',
+                    credentials: 'same-origin'
+                });
+                
+                const data = await response.json();
+                
+                // Remover modal de progresso
+                modal.remove();
+                
+                if (data.ok) {
+                    // Mostrar modal de sucesso
+                    const successModal = document.createElement('div');
+                    successModal.className = 'fixed inset-0 bg-black/50 flex items-center justify-center z-[9999]';
+                    successModal.innerHTML = `
+                        <div class="bg-white rounded-lg shadow-2xl p-6 max-w-md w-full mx-4 border-2 border-green-500">
+                            <div class="flex items-center gap-3 mb-4">
+                                <svg class="w-8 h-8 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>
+                                </svg>
+                                <h3 class="text-xl font-bold text-gray-800">Refresh Complete</h3>
+                            </div>
+                            <div class="space-y-2 mb-4">
+                                <p class="text-gray-700"><strong>Total vehicles:</strong> ${data.total_scraped || 0}</p>
+                                <p class="text-gray-700"><strong>New vehicles:</strong> ${data.new_cars_count || 0}</p>
+                            </div>
+                            <button onclick="this.closest('.fixed').remove()" class="w-full px-4 py-2 bg-[#f4ad0f] text-white rounded-lg hover:bg-[#e39e0e] font-semibold">
+                                Close
+                            </button>
+                        </div>
+                    `;
+                    document.body.appendChild(successModal);
+                    
+                    // FORÇAR RELOAD COMPLETO DA LISTA
+                    console.log('[REFRESH] Recarregando lista e fotos...');
+                    await loadVehicles(); // Recarregar lista
+                    
+                    // Forçar reload de TODAS as imagens
+                    setTimeout(() => {
+                        const allImages = document.querySelectorAll('img[src*="/api/vehicles/"]');
+                        console.log(`[REFRESH] Recarregando ${allImages.length} imagens...`);
+                        allImages.forEach(img => {
+                            const originalSrc = img.src.split('?')[0];
+                            img.src = originalSrc + '?t=' + Date.now();
+                        });
+                        console.log('[REFRESH] Lista e fotos atualizadas!');
+                    }, 1000);
+                } else {
+                    showNotification('Error: ' + (data.error || 'Failed to refresh'), 'error');
+                }
+            } catch (error) {
+                modal.remove();
+                console.error('[REFRESH] Erro:', error);
+                showNotification('Error: ' + error.message, 'error');
+            }
+        }
+        
+        async function downloadAllPhotosFromCarjet() {
+            console.log('[DOWNLOAD PHOTOS] Iniciando...');
+            
+            // Criar modal de confirmação
+            const confirmModal = document.createElement('div');
+            confirmModal.className = 'fixed inset-0 bg-black/50 flex items-center justify-center z-[9999]';
+            confirmModal.innerHTML = `
+                <div class="bg-white rounded-lg shadow-2xl p-6 max-w-md w-full mx-4 border-2 border-[#009cb6]">
+                    <div class="flex items-center gap-3 mb-4">
+                        <svg class="w-8 h-8 text-[#009cb6]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"/>
+                        </svg>
+                        <h3 class="text-xl font-bold text-gray-800">Download All Photos</h3>
+                    </div>
+                    <p class="text-gray-600 mb-6">This will scrape and download ALL car photos from CarJet. This may take 2-5 minutes. Continue?</p>
+                    <div class="flex gap-3">
+                        <button id="cancelDownload" class="flex-1 px-4 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 font-semibold">
+                            Cancel
+                        </button>
+                        <button id="confirmDownload" class="flex-1 px-4 py-2 bg-[#009cb6] text-white rounded-lg hover:bg-[#007a8f] font-semibold">
+                            Continue
+                        </button>
+                    </div>
+                </div>
+            `;
+            document.body.appendChild(confirmModal);
+            
+            // Aguardar confirmação
+            const confirmed = await new Promise(resolve => {
+                document.getElementById('confirmDownload').onclick = () => resolve(true);
+                document.getElementById('cancelDownload').onclick = () => resolve(false);
+            });
+            
+            confirmModal.remove();
+            
+            if (!confirmed) {
+                return;
+            }
+            
+            // Criar modal de progresso
+            const modal = document.createElement('div');
+            modal.className = 'fixed inset-0 bg-black/50 flex items-center justify-center z-[9999]';
+            modal.innerHTML = `
+                <div class="bg-white rounded-lg shadow-2xl p-6 max-w-md w-full mx-4 border-2 border-[#009cb6]">
+                    <div class="flex items-center gap-3 mb-4">
+                        <svg class="w-8 h-8 text-[#009cb6] animate-spin" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/>
+                        </svg>
+                        <h3 class="text-xl font-bold text-gray-800">Downloading Photos</h3>
+                    </div>
+                    <p class="text-gray-600 mb-4">Scraping and downloading car photos from CarJet...</p>
+                    <div class="w-full bg-gray-200 rounded-full h-2">
+                        <div class="bg-[#009cb6] h-2 rounded-full animate-pulse" style="width: 100%"></div>
+                    </div>
+                    <p class="text-sm text-gray-500 mt-3 text-center">This may take 2-5 minutes</p>
+                </div>
+            `;
+            document.body.appendChild(modal);
+            
+            try {
+                const response = await fetch('/api/vehicles/download-all-photos', {
+                    method: 'POST',
+                    credentials: 'same-origin'
+                });
+                
+                const data = await response.json();
+                
+                // Remover modal de progresso
+                modal.remove();
+                
+                if (data.ok) {
+                    // Mostrar modal de sucesso
+                    const successModal = document.createElement('div');
+                    successModal.className = 'fixed inset-0 bg-black/50 flex items-center justify-center z-[9999]';
+                    successModal.innerHTML = `
+                        <div class="bg-white rounded-lg shadow-2xl p-6 max-w-md w-full mx-4 border-2 border-green-500">
+                            <div class="flex items-center gap-3 mb-4">
+                                <svg class="w-8 h-8 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>
+                                </svg>
+                                <h3 class="text-xl font-bold text-gray-800">Download Complete</h3>
+                            </div>
+                            <div class="space-y-2 mb-4">
+                                <p class="text-gray-700"><strong>Total cars:</strong> ${data.total_cars || 0}</p>
+                                <p class="text-gray-700"><strong>Photos downloaded:</strong> ${data.photos_downloaded || 0}</p>
+                                <p class="text-gray-700"><strong>Failed:</strong> ${data.photos_failed || 0}</p>
+                            </div>
+                            <button onclick="this.closest('.fixed').remove()" class="w-full px-4 py-2 bg-[#009cb6] text-white rounded-lg hover:bg-[#007a8f] font-semibold">
+                                Close
+                            </button>
+                        </div>
+                    `;
+                    document.body.appendChild(successModal);
+                    
+                    // FORÇAR RELOAD COMPLETO DAS FOTOS
+                    console.log('[DOWNLOAD PHOTOS] Recarregando fotos...');
+                    
+                    // 1. Recarregar lista de veículos
+                    await loadVehicles();
+                    
+                    // 2. Forçar reload de TODAS as imagens (adicionar timestamp para evitar cache)
+                    setTimeout(() => {
+                        const allImages = document.querySelectorAll('img[src*="/api/vehicles/"]');
+                        console.log(`[DOWNLOAD PHOTOS] Recarregando ${allImages.length} imagens...`);
+                        allImages.forEach(img => {
+                            const originalSrc = img.src.split('?')[0]; // Remover query string antiga
+                            img.src = originalSrc + '?t=' + Date.now(); // Adicionar timestamp novo
+                        });
+                        console.log('[DOWNLOAD PHOTOS] Fotos atualizadas!');
+                    }, 1000);
+                } else {
+                    showNotification('Error: ' + (data.error || 'Failed to download photos'), 'error');
+                }
+            } catch (error) {
+                modal.remove();
+                console.error('[DOWNLOAD PHOTOS] Erro:', error);
+                showNotification('Error: ' + error.message, 'error');
+            }
+        }
+        
+        // Load on start
+        window.addEventListener('DOMContentLoaded', loadVehicles);
+    </script>
+</body>
+</html>

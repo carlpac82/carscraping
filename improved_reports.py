@@ -1,0 +1,890 @@
+"""
+🎨 RELATÓRIOS MELHORADOS - Diários e Semanais
+✅ Header igual ao DR (barra turquesa + logo)
+✅ Cores: Azul #009cb6 e Amarelo #fbbf24
+✅ TODOS os dias selecionados nas definições
+✅ 2 emails separados (Albufeira e Aeroporto)
+"""
+
+from datetime import datetime
+import os
+import re
+
+# Mapeamento de códigos de suppliers para nomes reais (extraído do CarJet)
+SUPPLIER_CODE_MAP = {
+    # TODOS os 51 suppliers do CarJet (extraídos do atributo title)
+    'ABB': 'Abbycar',
+    'ABB1': 'Abbycar',
+    'ACE': 'Ace Rent a Car',
+    'ADA': 'Ada',
+    'AIR': 'Airauto',
+    'ALM': 'Alamo',
+    'AMI': 'Amigoautos',
+    'AMI1': 'Amigoautos',
+    'ATR': 'Autorent',
+    'AUP': 'Auto Prudente',
+    'AUU': 'Auto Union',
+    'AVX': 'Avis',
+    'BGX': 'Budget',
+    'BSD': 'Best Deal',
+    'CAE': 'Cael',
+    'CEN': 'Centauro',
+    'D4F': 'Drive4fun',
+    'DOH': 'Drive on Holidays',
+    'DTG': 'Dollar',
+    'DTG1': 'Rent a Car',
+    'DVM': 'Drive4move',
+    'ECR': 'Europcar',
+    'ENT': 'Enterprise',
+    'EPI': 'Epi',
+    'EU2': 'Goldcar',
+    'EUK': 'Goldcar Keyn Go',
+    'EUR': 'Goldcar',
+    'FFX': 'Firefly',
+    'FLZ': 'Flizzr by Sixt',
+    'GMO': 'Green Motion',
+    'GMO1': 'Green Motion',
+    'GUE': 'Guerin',
+    'HER': 'Hertz',
+    'ICT': 'Interrent',
+    'KED': 'Keddy by Europcar',
+    'KLA': 'Klass Wagen',
+    'LOC': 'Million',
+    'MVY': 'Movyng',
+    'NAT': 'National',
+    'OKR': 'OK Mobility',
+    'OKR1': 'OK Mobility',
+    'PAR': 'Paa',
+    'REC': 'Record',
+    'RNA': 'Rentauto',
+    'SAD': 'Drivalia',
+    'SUR': 'Surprice',
+    'SVN': 'Sevens',
+    'SXT': 'Sixt',
+    'TAN': 'Tangerine',
+    'TAN1': 'Rent a Car',
+    'THR': 'Thrifty',
+    'YES': 'Yescar',
+    'YNO': 'Ynot',
+    # Aliases e variantes
+    'DGT': 'Dollar', 'DGT1': 'Rent a Car',
+    'GRE': 'Green Motion', 'GRM': 'Green Motion',
+    'YNOT': 'Ynot',
+    'CAL': 'Caleche', 'CAR': 'Carnect', 'CLA': 'Caldera',
+    'LOZ': 'Millioncarhire', 'LCR': 'Localcar', 'MIL': 'Millioncarhire',
+    'SEV': 'Sevenseas'
+}
+
+def display_supplier_name(supplier_raw):
+    """
+    Traduz código/URL de supplier para o nome real.
+    Suporta: códigos simples (AUU), URLs CDN (/cdn/img/.../logo_AUU.png)
+    
+    Args:
+        supplier_raw: Código do supplier ou URL do logo CDN
+        
+    Returns:
+        Nome legível do supplier
+    """
+    if not supplier_raw:
+        return 'Unknown'
+    
+    s = str(supplier_raw).strip()
+    if not s:
+        return 'Unknown'
+    
+    # Extrair código do path do logo (ex: /cdn/img/prv/flat/lrg/logo_AUU.png → AUU)
+    img_match = re.search(r'logo_([A-Z0-9]+)\.(png|jpg|avif|webp)', s, re.IGNORECASE)
+    if img_match:
+        code = img_match.group(1).upper()
+        if code in SUPPLIER_CODE_MAP:
+            return SUPPLIER_CODE_MAP[code]
+        # Se não encontrar, retorna o código formatado
+        return code
+    
+    # Se já é um código simples
+    upper = s.upper()
+    if upper in SUPPLIER_CODE_MAP:
+        return SUPPLIER_CODE_MAP[upper]
+    
+    # Verificar se contém algum código conhecido
+    for code, name in SUPPLIER_CODE_MAP.items():
+        if code in upper:
+            return name
+    
+    # Normalizar nomes conhecidos
+    lower = s.lower()
+    if 'autoprudente' in lower or 'auto prudente' in lower:
+        return 'Auto Prudente'
+    if 'europcar' in lower:
+        return 'Europcar'
+    if 'hertz' in lower:
+        return 'Hertz'
+    if 'sixt' in lower:
+        return 'Sixt'
+    if 'budget' in lower:
+        return 'Budget'
+    if 'centauro' in lower:
+        return 'Centauro'
+    if 'thrifty' in lower:
+        return 'Thrifty'
+    if 'surprice' in lower:
+        return 'Surprice'
+    if 'ok mobility' in lower or 'ok rent' in lower:
+        return 'OK Mobility'
+    
+    # Fallback: retorna o original
+    return s
+
+def get_base_url():
+    """Get base URL of the server (Render or local)"""
+    render_host = os.environ.get('RENDER_EXTERNAL_HOSTNAME')
+    if render_host:
+        return f"https://{render_host}"  # Render uses HTTPS
+    else:
+        return "http://localhost:8000"  # Local development
+
+def fix_photo_url_for_email(photo_url, car_name=None):
+    """
+    Fix photo URLs for email compatibility
+    PRIORITY:
+    1. Use vehicle_images from database (via /api/vehicles/{name}/photo)
+    2. Fallback to CarJet CDN URLs (if no local photo)
+    3. Return None for invalid placeholders
+    
+    Args:
+        photo_url: Original photo URL from search results
+        car_name: Name of the car (used to lookup in vehicle_images)
+    
+    Returns:
+        Absolute URL to photo or None
+    """
+    # Filter invalid placeholders
+    invalid_patterns = ['loading-car.png', 'placeholder', 'no-image', 'noimage', 'loading-car']
+    if photo_url and any(pattern in photo_url.lower() for pattern in invalid_patterns):
+        photo_url = None  # Invalidate placeholder URLs
+    
+    # PRIORITY 1: Use vehicle_images from database
+    if car_name:
+        # Normalize car name for lookup
+        vehicle_key = car_name.lower().strip()
+        base_url = get_base_url()
+        
+        # Construct URL to internal photo endpoint
+        # This endpoint serves photos from vehicle_images table
+        internal_photo_url = f"{base_url}/api/vehicles/{vehicle_key}/photo"
+        
+        # Return internal URL - the endpoint will handle fallbacks internally
+        # (tries vehicle_images, then vehicle_photos, then variations)
+        return internal_photo_url
+    
+    # PRIORITY 2: Fallback to CarJet CDN (if we have a valid URL)
+    if photo_url:
+        # If already absolute URL, return as-is
+        if photo_url.startswith('http://') or photo_url.startswith('https://'):
+            return photo_url
+        
+        # Convert relative CDN URLs to absolute
+        if photo_url.startswith('/cdn/'):
+            return f'https://www.carjet.pt{photo_url}'
+    
+    # PRIORITY 3: No valid photo available
+    return None
+
+# Cores oficiais
+COLOR_PRIMARY = "#009cb6"      # Turquesa (Auto Prudente)
+COLOR_YELLOW = "#fbbf24"       # Amarelo
+COLOR_GREEN = "#10b981"        # Verde (melhor preço)
+COLOR_ORANGE = "#f59e0b"       # Laranja (competitivo)
+COLOR_RED = "#ef4444"          # Vermelho (alerta)
+COLOR_GRAY = "#94a3b8"         # Cinza
+
+def generate_report_header(title, subtitle=""):
+    """Header padrão para todos os relatórios (igual ao DR)"""
+    return f"""
+    <!DOCTYPE html>
+    <html>
+    <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <style>
+            body {{
+                font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+                margin: 0;
+                padding: 0;
+                background-color: #f5f5f5;
+            }}
+            .email-container {{
+                max-width: 800px;
+                margin: 0 auto;
+                background-color: #fff;
+            }}
+            .header {{
+                background-color: {COLOR_PRIMARY};
+                padding: 15px 20px;
+            }}
+            .header-content {{
+                display: flex;
+                justify-content: space-between;
+                align-items: center;
+            }}
+            .logo img {{
+                height: 35px;
+            }}
+            .header-info {{
+                text-align: right;
+                color: #fff;
+            }}
+            .header-title {{
+                font-size: 16px;
+                font-weight: bold;
+                margin: 0;
+            }}
+            .header-subtitle {{
+                font-size: 12px;
+                margin: 5px 0 0 0;
+                opacity: 0.9;
+            }}
+            .content {{
+                padding: 30px 20px;
+            }}
+            .group-card {{
+                background: #fff;
+                border: 1px solid #e2e8f0;
+                border-radius: 8px;
+                padding: 20px;
+                margin-bottom: 20px;
+            }}
+            .group-header {{
+                display: flex;
+                justify-content: space-between;
+                align-items: center;
+                margin-bottom: 15px;
+                padding-bottom: 15px;
+                border-bottom: 2px solid {COLOR_PRIMARY};
+            }}
+            .group-name {{
+                font-size: 18px;
+                font-weight: bold;
+                color: #1e293b;
+            }}
+            .location-badge {{
+                background: {COLOR_YELLOW};
+                color: #92400e;
+                padding: 4px 12px;
+                border-radius: 12px;
+                font-size: 12px;
+                font-weight: 600;
+            }}
+            .price-comparison {{
+                background: #f8fafc;
+                border-radius: 6px;
+                padding: 15px;
+                margin-bottom: 10px;
+            }}
+            .competitor {{
+                display: flex;
+                align-items: flex-start;
+                padding: 16px 12px;
+                margin: 8px 0;
+                background: #fff;
+                border: 1px solid #e2e8f0;
+                border-radius: 6px;
+                gap: 20px;
+            }}
+            .competitor.autoprudente {{
+                background: #e0f7fa;
+                border: 2px solid {COLOR_PRIMARY};
+            }}
+            .position-badge {{
+                display: inline-flex;
+                align-items: center;
+                gap: 5px;
+                padding: 4px 10px;
+                border-radius: 12px;
+                font-size: 13px;
+                font-weight: 600;
+            }}
+            .position-1 {{ background: {COLOR_GREEN}; color: #fff; }}
+            .position-2 {{ background: {COLOR_YELLOW}; color: #92400e; }}
+            .position-3 {{ background: {COLOR_ORANGE}; color: #fff; }}
+            .position-bad {{ background: {COLOR_RED}; color: #fff; }}
+            .stats-box {{
+                display: flex;
+                justify-content: space-around;
+                background: #f8fafc;
+                padding: 20px;
+                border-radius: 8px;
+                margin-bottom: 25px;
+            }}
+            .stat {{
+                text-align: center;
+            }}
+            .stat-value {{
+                font-size: 32px;
+                font-weight: bold;
+                color: {COLOR_PRIMARY};
+            }}
+            .stat-label {{
+                font-size: 13px;
+                color: #64748b;
+                margin-top: 5px;
+            }}
+            .footer {{
+                background: #f8fafc;
+                padding: 20px;
+                text-align: center;
+                border-top: 1px solid #e2e8f0;
+                font-size: 12px;
+                color: #94a3b8;
+            }}
+        </style>
+    </head>
+    <body>
+        <div class="email-container">
+            <div class="header">
+                <div class="header-content">
+                    <div class="logo">
+                        <img src="https://carrental-api-5f8q.onrender.com/static/ap-heather.png" alt="Auto Prudente" style="height:35px"/>
+                    </div>
+                    <div class="header-info">
+                        <div class="header-title">{title}</div>
+                        {f'<div class="header-subtitle">{subtitle}</div>' if subtitle else ''}
+                    </div>
+                </div>
+            </div>
+            <div class="content">
+    """
+
+def generate_report_footer():
+    """Footer padrão - BARRA AZUL + texto ABAIXO (fora da barra)"""
+    return f"""
+            </div>
+            <!-- Footer: Barra azul -->
+            <div style="background: {COLOR_PRIMARY}; padding: 20px; text-align: center;">
+                <p style="margin: 0; font-size: 14px; color: #fff; font-weight: 500;">
+                    Auto Prudente © {datetime.now().year}
+                </p>
+            </div>
+            <!-- Texto ABAIXO da barra azul (fora) -->
+            <div style="background: #f8fafc; padding: 20px; text-align: center;">
+                <p style="margin: 0; font-size: 12px; color: #64748b; font-weight: 500;">
+                    Sistema de Monitorização de Preços
+                </p>
+                <p style="margin: 10px 0 0 0; font-size: 11px; color: #94a3b8;">
+                    Dados baseados na última pesquisa • Atualizado automaticamente
+                </p>
+            </div>
+        </div>
+    </body>
+    </html>
+    """
+
+def generate_daily_report_html_by_location(search_data, location):
+    """
+    Generate visual HTML report for ONE location only
+    Shows ALL selected days from settings
+    ORGANIZED BY DAYS FIRST (1 day → all groups, 2 days → all groups, etc)
+    """
+    # SVG Icons (monocromáticos)
+    icon_car = '<svg width="18" height="18" fill="currentColor" viewBox="0 0 24 24"><path d="M18.92 6.01C18.72 5.42 18.16 5 17.5 5h-11c-.66 0-1.21.42-1.42 1.01L3 12v8c0 .55.45 1 1 1h1c.55 0 1-.45 1-1v-1h12v1c0 .55.45 1 1 1h1c.55 0 1-.45 1-1v-8l-2.08-5.99zM6.5 16c-.83 0-1.5-.67-1.5-1.5S5.67 13 6.5 13s1.5.67 1.5 1.5S7.33 16 6.5 16zm11 0c-.83 0-1.5-.67-1.5-1.5s.67-1.5 1.5-1.5 1.5.67 1.5 1.5-.67 1.5-1.5 1.5zM5 11l1.5-4.5h11L19 11H5z"/></svg>'
+    icon_trophy = '<svg width="18" height="18" fill="currentColor" viewBox="0 0 24 24"><path d="M20 7h-2V5c0-1.1-.9-2-2-2H8c-1.1 0-2 .9-2 2v2H4c-1.1 0-2 .9-2 2v3c0 2.5 1.5 4.7 3.8 5.7.5 1.7 1.8 3 3.5 3.7V23h5v-1.6c1.7-.7 3-2 3.5-3.7 2.3-1 3.8-3.2 3.8-5.7V9c0-1.1-.9-2-2-2zm0 5c0 1.9-1.2 3.5-2.9 4.1-.2-1.3-.8-2.4-1.7-3.3l-1.4 1.4c.6.6 1 1.5 1 2.4 0 1.9-1.6 3.5-3.5 3.5S8 18.5 8 16.6c0-.9.4-1.8 1-2.4L7.6 12.8c-.9.9-1.5 2-1.7 3.3C4.2 15.5 3 13.9 3 12V9h3V5h12v4h3v3z"/></svg>'
+    icon_calendar = '<svg width="16" height="16" fill="currentColor" viewBox="0 0 24 24"><path d="M19 4h-1V2h-2v2H8V2H6v2H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2zm0 16H5V10h14v10zM5 8V6h14v2H5z"/></svg>'
+    icon_location = '<svg width="16" height="16" fill="currentColor" viewBox="0 0 24 24"><path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z"/></svg>'
+    
+    if not search_data or not search_data.get('results'):
+        html = generate_report_header(
+            f"Relatório Diário - {location}",
+            datetime.now().strftime('%d de %B de %Y')
+        )
+        html += """
+        <div style="text-align: center; padding: 40px;">
+            <p style="color: #ef4444; font-size: 16px;">Sem dados de pesquisa disponíveis</p>
+            <p style="color: #94a3b8; font-size: 14px;">Execute uma pesquisa para gerar relatórios</p>
+        </div>
+        """
+        html += generate_report_footer()
+        return html
+    
+    # Filter results by location
+    results = [r for r in search_data['results'] if r.get('location', '').lower() == location.lower()]
+    
+    if not results:
+        html = generate_report_header(
+            f"Relatório Diário - {location}",
+            datetime.now().strftime('%d de %B de %Y')
+        )
+        html += f"""
+        <div style="text-align: center; padding: 40px;">
+            <p style="color: #94a3b8; font-size: 16px;">Sem dados para {location}</p>
+        </div>
+        """
+        html += generate_report_footer()
+        return html
+    
+    # Group by DAYS first, then by GROUP
+    data_by_days = {}
+    for car in results:
+        days = car.get('days', 1)
+        group = car.get('group', 'Unknown')
+        
+        if days not in data_by_days:
+            data_by_days[days] = {}
+        
+        if group not in data_by_days[days]:
+            data_by_days[days][group] = []
+        
+        data_by_days[days][group].append(car)
+    
+    # Find the lowest price PER DAY (not global)
+    lowest_price_per_day = {}
+    for days, groups in data_by_days.items():
+        all_prices_for_day = []
+        for group, cars in groups.items():
+            for car in cars:
+                all_prices_for_day.append(float(car.get('price_num', 999999)))
+        lowest_price_per_day[days] = min(all_prices_for_day) if all_prices_for_day else 999999
+    
+    # Stats
+    ap_best_price = 0
+    ap_competitive = 0
+    total_searches = 0
+    
+    # Generate HTML
+    html = generate_report_header(
+        f"Relatório Diário - {location}",
+        datetime.now().strftime('%d de %B de %Y')
+    )
+    
+    # Sort days
+    sorted_days = sorted(data_by_days.keys())
+    
+    content_html = ""
+    
+    for days in sorted_days:
+        groups = data_by_days[days]
+        
+        # BARRA AZUL - Separador de dias
+        content_html += f"""
+        <div style="background: {COLOR_PRIMARY}; padding: 15px 20px; margin: 30px 0 20px 0; border-radius: 6px;">
+            <div style="color: #fff; font-size: 18px; font-weight: bold; display: flex; align-items: center; gap: 8px;">
+                {icon_calendar} {days} dia{'s' if days > 1 else ''}
+            </div>
+        </div>
+        """
+        
+        # Sort groups
+        for group in sorted(groups.keys()):
+            cars = groups[group]
+            total_searches += 1
+            
+            # Sort cars by price
+            sorted_cars = sorted(cars, key=lambda x: float(x.get('price_num', 999999)))
+            
+            # Find Auto Prudente position
+            ap_position = None
+            for idx, car in enumerate(sorted_cars, 1):
+                supplier_raw = (car.get('supplier', '') or '')
+                supplier_name = display_supplier_name(supplier_raw).lower()
+                if 'auto prudente' in supplier_name or 'autoprudente' in supplier_raw.lower() or supplier_raw.upper() == 'AUP':
+                    ap_position = idx
+                    break
+            
+            if ap_position == 1:
+                ap_best_price += 1
+                position_bg = COLOR_PRIMARY  # AZUL do website em vez de verde
+                position_text = "1º"
+                position_icon = icon_trophy
+            elif ap_position == 2:
+                ap_competitive += 1
+                position_bg = COLOR_ORANGE
+                position_text = "2º"
+                position_icon = icon_trophy
+            elif ap_position == 3:
+                ap_competitive += 1
+                position_bg = COLOR_YELLOW
+                position_text = "3º"
+                position_icon = icon_trophy
+            elif ap_position and ap_position <= 5:
+                position_bg = COLOR_GRAY
+                position_text = f"{ap_position}º"
+                position_icon = ""
+            elif ap_position:
+                position_bg = COLOR_RED
+                position_text = f"{ap_position}º"
+                position_icon = ""
+            else:
+                position_bg = COLOR_GRAY
+                position_text = "N/A"
+                position_icon = ""
+            
+            # Cor do texto (branco ou escuro)
+            text_color = "#fff" if position_bg not in [COLOR_YELLOW] else "#92400e"
+            
+            # BARRA AMARELA pequena - Separador de grupos
+            content_html += f"""
+            <div style="background: {COLOR_YELLOW}; height: 3px; margin: 15px 0 15px 0;"></div>
+            """
+            
+            # Group card
+            content_html += f"""
+            <div class="group-card">
+                <div class="group-header">
+                    <div style="display: flex; align-items: center; gap: 10px;">
+                        {icon_car}
+                        <span class="group-name">{group}</span>
+                    </div>
+                    <div style="display: flex; align-items: center; gap: 8px; background: {position_bg}; color: {text_color}; padding: 8px 16px; border-radius: 6px; font-size: 14px; font-weight: 600; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
+                        {position_icon}
+                        <span>{position_text}</span>
+                    </div>
+                </div>
+                <div class="price-comparison">
+            """
+            
+            # Top 5 competitors
+            for idx, car in enumerate(sorted_cars[:5], 1):
+                supplier_raw = car.get('supplier', 'Unknown')
+                supplier = display_supplier_name(supplier_raw)  # Traduzir código para nome real
+                price = float(car.get('price_num', 0))
+                is_ap = 'auto prudente' in supplier.lower() or 'autoprudente' in supplier_raw.lower()
+                
+                # Imagem REAL do carro (campo 'photo' do CarJet)
+                car_photo = car.get('photo', '')
+                car_name = car.get('car', 'Unknown')
+                
+                # Fix photo URL for email - PRIORITY: vehicle_images DB, then CarJet CDN
+                # Pass car_name to lookup in vehicle_images table
+                fixed_photo = fix_photo_url_for_email(car_photo, car_name=car_name)
+                
+                # Usar imagem REAL se disponível
+                if fixed_photo:
+                    car_visual = f'<img src="{fixed_photo}" alt="{car_name}" style="width: 85px; max-height: 60px; object-fit: contain; border-radius: 8px; box-shadow: 0 2px 6px rgba(0,0,0,0.15);">'
+                else:
+                    # Fallback: ícone SVG pequeno
+                    car_visual = icon_car
+                
+                # Check if this is the lowest price FOR THIS DAY
+                is_lowest = abs(price - lowest_price_per_day[days]) < 0.01
+                
+                # Badge for lowest price - below price
+                price_badge = ''
+                if is_lowest:
+                    price_badge = '<div style="margin-top: 4px;"><span style="display: inline-block; background: #f4ad0f; color: #fff; padding: 3px 8px; border-radius: 4px; font-size: 10px; font-weight: bold;">MELHOR</span></div>'
+                
+                content_html += f"""
+                <div class="competitor {'autoprudente' if is_ap else ''}">
+                    <!-- Foto à esquerda -->
+                    <div style="flex-shrink: 0; width: 90px; display: flex; align-items: flex-start; justify-content: center;">
+                        {car_visual}
+                    </div>
+                    
+                    <!-- Info do supplier e carro (grow) -->
+                    <div style="flex: 1; min-width: 0;">
+                        <div style="font-weight: {'bold' if is_ap else '600'}; color: {'#009cb6' if is_ap else '#1e293b'}; font-size: 13px; margin-bottom: 4px; line-height: 1.4;">
+                            {idx}. {supplier}
+                        </div>
+                        <div style="font-size: 12px; color: #64748b; line-height: 1.4;">
+                            {car_name}
+                        </div>
+                    </div>
+                    
+                    <!-- Preço centralizado verticalmente -->
+                    <div style="flex-shrink: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; min-width: 100px;">
+                        <div style="font-size: 14px; font-weight: bold; color: {'#009cb6' if is_ap else '#1e293b'}; white-space: nowrap; text-align: center;">
+                            {price:.2f}€
+                        </div>
+                        {price_badge}
+                    </div>
+                </div>
+                """
+            
+            content_html += """
+                </div>
+            </div>
+            """
+    
+    # Calculate percentage
+    ap_percentage = (ap_best_price / total_searches * 100) if total_searches > 0 else 0
+    
+    # Add stats
+    stats_html = f"""
+    <div class="stats-box">
+        <div class="stat">
+            <div class="stat-value" style="color: {COLOR_PRIMARY};">{ap_best_price}</div>
+            <div class="stat-label">Melhores Preços</div>
+        </div>
+        <div class="stat">
+            <div class="stat-value" style="color: #92400e;">{ap_competitive}</div>
+            <div class="stat-label">Competitivos</div>
+        </div>
+        <div class="stat">
+            <div class="stat-value">{ap_percentage:.0f}%</div>
+            <div class="stat-label">Taxa de Liderança</div>
+        </div>
+    </div>
+    """
+    
+    html += stats_html + content_html + generate_report_footer()
+    return html
+
+def generate_weekly_report_html_by_location(search_data, location):
+    """
+    Relatório SEMANAL - Estrutura: MÊS → dias → grupos
+    Igual ao diário mas com um nível extra (mês)
+    """
+    # SVG Icons
+    icon_car = '<svg width="18" height="18" fill="currentColor" viewBox="0 0 24 24"><path d="M18.92 6.01C18.72 5.42 18.16 5 17.5 5h-11c-.66 0-1.21.42-1.42 1.01L3 12v8c0 .55.45 1 1 1h1c.55 0 1-.45 1-1v-1h12v1c0 .55.45 1 1 1h1c.55 0 1-.45 1-1v-8l-2.08-5.99zM6.5 16c-.83 0-1.5-.67-1.5-1.5S5.67 13 6.5 13s1.5.67 1.5 1.5S7.33 16 6.5 16zm11 0c-.83 0-1.5-.67-1.5-1.5s.67-1.5 1.5-1.5 1.5.67 1.5 1.5-.67 1.5-1.5 1.5zM5 11l1.5-4.5h11L19 11H5z"/></svg>'
+    icon_trophy = '<svg width="18" height="18" fill="currentColor" viewBox="0 0 24 24"><path d="M20 7h-2V5c0-1.1-.9-2-2-2H8c-1.1 0-2 .9-2 2v2H4c-1.1 0-2 .9-2 2v3c0 2.5 1.5 4.7 3.8 5.7.5 1.7 1.8 3 3.5 3.7V23h5v-1.6c1.7-.7 3-2 3.5-3.7 2.3-1 3.8-3.2 3.8-5.7V9c0-1.1-.9-2-2-2zm0 5c0 1.9-1.2 3.5-2.9 4.1-.2-1.3-.8-2.4-1.7-3.3l-1.4 1.4c.6.6 1 1.5 1 2.4 0 1.9-1.6 3.5-3.5 3.5S8 18.5 8 16.6c0-.9.4-1.8 1-2.4L7.6 12.8c-.9.9-1.5 2-1.7 3.3C4.2 15.5 3 13.9 3 12V9h3V5h12v4h3v3z"/></svg>'
+    icon_calendar = '<svg width="16" height="16" fill="currentColor" viewBox="0 0 24 24"><path d="M19 4h-1V2h-2v2H8V2H6v2H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2zm0 16H5V10h14v10zM5 8V6h14v2H5z"/></svg>'
+    
+    if not search_data or not search_data.get('results'):
+        html = generate_report_header(
+            f"Relatório Semanal - {location}",
+            f"Semana {datetime.now().strftime('%W/%Y')}"
+        )
+        html += """
+        <div style="text-align: center; padding: 40px;">
+            <p style="color: #ef4444; font-size: 16px;">Sem dados de pesquisa disponíveis</p>
+        </div>
+        """
+        html += generate_report_footer()
+        return html
+    
+    # Filter by location
+    results = [r for r in search_data['results'] if r.get('location', '').lower() == location.lower()]
+    
+    if not results:
+        html = generate_report_header(
+            f"Relatório Semanal - {location}",
+            f"Semana {datetime.now().strftime('%W/%Y')}"
+        )
+        html += f"""
+        <div style="text-align: center; padding: 40px;">
+            <p style="color: #94a3b8; font-size: 16px;">Sem dados para {location}</p>
+        </div>
+        """
+        html += generate_report_footer()
+        return html
+    
+    # Group by MONTH first, then by DAYS, then by GROUP
+    # Estrutura: MÊS → dias → grupos (igual ao diário mas com mês no topo)
+    from collections import defaultdict
+    from datetime import datetime as dt
+    
+    data_by_month = defaultdict(lambda: defaultdict(dict))
+    
+    for car in results:
+        days = car.get('days', 1)
+        group = car.get('group', 'Unknown')
+        
+        # Determinar mês (assumir pesquisa para próximo mês para simplificar)
+        month_key = datetime.now().strftime('%B %Y')
+        
+        if days not in data_by_month[month_key]:
+            data_by_month[month_key][days] = {}
+        
+        if group not in data_by_month[month_key][days]:
+            data_by_month[month_key][days][group] = []
+        
+        data_by_month[month_key][days][group].append(car)
+    
+    # Find the lowest price PER DAY (not global)
+    lowest_price_per_day = {}
+    for month, days_data in data_by_month.items():
+        for days, groups in days_data.items():
+            all_prices_for_day = []
+            for group, cars in groups.items():
+                for car in cars:
+                    all_prices_for_day.append(float(car.get('price_num', 999999)))
+            lowest_price_per_day[days] = min(all_prices_for_day) if all_prices_for_day else 999999
+    
+    # Stats
+    ap_best_price = 0
+    ap_competitive = 0
+    total_searches = 0
+    
+    # Generate HTML
+    html = generate_report_header(
+        f"Relatório Semanal - {location}",
+        f"Semana {datetime.now().strftime('%W/%Y')}"
+    )
+    
+    content_html = ""
+    
+    # Iterar por meses
+    for month in sorted(data_by_month.keys()):
+        days_data = data_by_month[month]
+        
+        # BARRA AZUL GRANDE - Mês
+        content_html += f"""
+        <div style="background: {COLOR_PRIMARY}; padding: 20px 20px; margin: 30px 0 20px 0; border-radius: 6px;">
+            <div style="color: #fff; font-size: 22px; font-weight: bold; display: flex; align-items: center; gap: 8px;">
+                {icon_calendar} {month}
+            </div>
+        </div>
+        """
+        
+        # Dentro do mês: dias → grupos (igual ao diário)
+        sorted_days = sorted(days_data.keys())
+        
+        for days in sorted_days:
+            groups = days_data[days]
+            
+            # BARRA AZUL média - Dias
+            content_html += f"""
+            <div style="background: {COLOR_PRIMARY}; padding: 15px 20px; margin: 25px 0 15px 0; border-radius: 6px; opacity: 0.9;">
+                <div style="color: #fff; font-size: 18px; font-weight: bold; display: flex; align-items: center; gap: 8px;">
+                    {icon_calendar} {days} dia{'s' if days > 1 else ''}
+                </div>
+            </div>
+            """
+            
+            # Grupos
+            for group in sorted(groups.keys()):
+                cars = groups[group]
+                total_searches += 1
+                
+                sorted_cars = sorted(cars, key=lambda x: float(x.get('price_num', 999999)))
+                
+                # Find AP position
+                ap_position = None
+                for idx, car in enumerate(sorted_cars, 1):
+                    supplier_raw = (car.get('supplier', '') or '')
+                    supplier_name = display_supplier_name(supplier_raw).lower()
+                    if 'auto prudente' in supplier_name or 'autoprudente' in supplier_raw.lower() or supplier_raw.upper() == 'AUP':
+                        ap_position = idx
+                        break
+                
+                if ap_position == 1:
+                    ap_best_price += 1
+                    position_bg = COLOR_PRIMARY
+                    position_text = "1º"
+                    position_icon = icon_trophy
+                elif ap_position == 2:
+                    ap_competitive += 1
+                    position_bg = COLOR_ORANGE
+                    position_text = "2º"
+                    position_icon = icon_trophy
+                elif ap_position == 3:
+                    ap_competitive += 1
+                    position_bg = COLOR_YELLOW
+                    position_text = "3º"
+                    position_icon = icon_trophy
+                elif ap_position and ap_position <= 5:
+                    position_bg = COLOR_GRAY
+                    position_text = f"{ap_position}º"
+                    position_icon = ""
+                elif ap_position:
+                    position_bg = COLOR_RED
+                    position_text = f"{ap_position}º"
+                    position_icon = ""
+                else:
+                    position_bg = COLOR_GRAY
+                    position_text = "N/A"
+                    position_icon = ""
+                
+                text_color = "#fff" if position_bg not in [COLOR_YELLOW] else "#92400e"
+                
+                # BARRA AMARELA - Grupo
+                content_html += f"""
+                <div style="background: {COLOR_YELLOW}; height: 3px; margin: 15px 0 15px 0;"></div>
+                """
+                
+                # Group card
+                content_html += f"""
+                <div class="group-card">
+                    <div class="group-header">
+                        <div style="display: flex; align-items: center; gap: 10px;">
+                            {icon_car}
+                            <span class="group-name">{group}</span>
+                        </div>
+                        <div style="display: flex; align-items: center; gap: 8px; background: {position_bg}; color: {text_color}; padding: 8px 16px; border-radius: 6px; font-size: 14px; font-weight: 600; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
+                            {position_icon}
+                            <span>{position_text}</span>
+                        </div>
+                    </div>
+                    <div class="price-comparison">
+                """
+                
+                # Top 5 competitors
+                for idx, car in enumerate(sorted_cars[:5], 1):
+                    supplier_raw = car.get('supplier', 'Unknown')
+                    supplier = display_supplier_name(supplier_raw)  # Traduzir código para nome real
+                    price = float(car.get('price_num', 0))
+                    is_ap = 'auto prudente' in supplier.lower() or 'autoprudente' in supplier_raw.lower()
+                    
+                    car_photo = car.get('photo', '')
+                    car_name = car.get('car', 'Unknown')
+                    
+                    # Fix photo URL for email - PRIORITY: vehicle_images DB, then CarJet CDN
+                    # Pass car_name to lookup in vehicle_images table
+                    fixed_photo = fix_photo_url_for_email(car_photo, car_name=car_name)
+                    
+                    if fixed_photo:
+                        car_visual = f'<img src="{fixed_photo}" alt="{car_name}" style="width: 85px; max-height: 60px; object-fit: contain; border-radius: 8px; box-shadow: 0 2px 6px rgba(0,0,0,0.15);">'
+                    else:
+                        car_visual = icon_car
+                    
+                    # Check if this is the lowest price FOR THIS DAY
+                    is_lowest = abs(price - lowest_price_per_day[days]) < 0.01
+                    
+                    # Badge for lowest price - below price
+                    price_badge = ''
+                    if is_lowest:
+                        price_badge = '<div style="margin-top: 4px;"><span style="display: inline-block; background: #f4ad0f; color: #fff; padding: 3px 8px; border-radius: 4px; font-size: 10px; font-weight: bold;">MELHOR</span></div>'
+                    
+                    content_html += f"""
+                    <div class="competitor {'autoprudente' if is_ap else ''}">
+                        <!-- Foto à esquerda -->
+                        <div style="flex-shrink: 0; width: 90px; display: flex; align-items: flex-start; justify-content: center;">
+                            {car_visual}
+                        </div>
+                        
+                        <!-- Info do supplier e carro (grow) -->
+                        <div style="flex: 1; min-width: 0;">
+                            <div style="font-weight: {'bold' if is_ap else '600'}; color: {'#009cb6' if is_ap else '#1e293b'}; font-size: 13px; margin-bottom: 4px; line-height: 1.4;">
+                                {idx}. {supplier}
+                            </div>
+                            <div style="font-size: 12px; color: #64748b; line-height: 1.4;">
+                                {car_name}
+                            </div>
+                        </div>
+                        
+                        <!-- Preço centralizado verticalmente -->
+                        <div style="flex-shrink: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; min-width: 100px;">
+                            <div style="font-size: 14px; font-weight: bold; color: {'#009cb6' if is_ap else '#1e293b'}; white-space: nowrap; text-align: center;">
+                                {price:.2f}€
+                            </div>
+                            {price_badge}
+                        </div>
+                    </div>
+                    """
+                
+                content_html += """
+                    </div>
+                </div>
+                """
+    
+    # Stats
+    ap_percentage = (ap_best_price / total_searches * 100) if total_searches > 0 else 0
+    
+    stats_html = f"""
+    <div class="stats-box">
+        <div class="stat">
+            <div class="stat-value" style="color: {COLOR_PRIMARY};">{ap_best_price}</div>
+            <div class="stat-label">Melhores Preços</div>
+        </div>
+        <div class="stat">
+            <div class="stat-value" style="color: #92400e;">{ap_competitive}</div>
+            <div class="stat-label">Competitivos</div>
+        </div>
+        <div class="stat">
+            <div class="stat-value">{ap_percentage:.0f}%</div>
+            <div class="stat-label">Taxa de Liderança</div>
+        </div>
+    </div>
+    """
+    
+    html += stats_html + content_html + generate_report_footer()
+    return html

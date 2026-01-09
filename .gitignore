@@ -1,0 +1,40 @@
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+*.sqlite3
+.env
+.venv/
+venv/
+.vscode/
+.idea/
+.DS_Store
+node_modules/
+static/debug/
+data.db
+car_images.db
+*.db
+uploads/
+
+# Backups (não commitar arquivos de backup)
+backups/*.tar.gz
+backups/backup_*/
+!backups/README.md
+backups_local/
+backup_FULL_10_*.json
+
+# Logs
+logs/
+*.log
+
+# Cache
+cache/
+__pycache__/
+backups/
+WHATSAPP_CREDENTIALS.txt
+
+# Ficheiros de teste local
+teste_visual.py
+teste_visual_novo.py
+chrome_profile/
+screenshots/
