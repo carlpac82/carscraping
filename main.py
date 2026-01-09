@@ -29984,11 +29984,31 @@ async def load_recent_searches(request: Request):
                 searches = []
                 
                 for row in rows:
+                    results = json.loads(row[3]) if row[3] else []
+                    
+                    # FIX: Detectar e corrigir preços multiplicados por 100
+                    # Alguns dados antigos podem ter preços em centavos em vez de euros
+                    for car in results:
+                        if 'price_num' in car and car['price_num'] is not None:
+                            price = float(car['price_num'])
+                            # Se o preço for > 100 e não for um carro de luxo, provavelmente está multiplicado por 100
+                            # Carros de luxo (Mercedes S Class, Porsche, etc.) podem ter preços > 1000€
+                            is_luxury = any(brand in str(car.get('car', '')).lower() 
+                                          for brand in ['mercedes s', 'porsche', 's class', 'cayenne'])
+                            
+                            # Se preço > 100 e não é luxo, dividir por 100
+                            if price > 100 and not is_luxury:
+                                # Verificar se faz sentido dividir (resultado seria razoável)
+                                corrected_price = price / 100
+                                if 5 <= corrected_price <= 500:  # Preço razoável para rent-a-car
+                                    car['price_num'] = corrected_price
+                                    logging.debug(f"Corrected price for {car.get('car')}: {price}€ → {corrected_price}€")
+                    
                     searches.append({
                         'location': row[0],
                         'startDate': row[1],
                         'days': row[2],
-                        'results': json.loads(row[3]) if row[3] else [],
+                        'results': results,
                         'timestamp': row[4],
                         'source': row[5] if len(row) > 5 else 'manual',  # 'automated' or 'manual'
                         'user': row[6] if len(row) > 6 else username  # Show who created it
