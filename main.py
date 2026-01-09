@@ -1412,7 +1412,7 @@ class PostgreSQLConnectionWrapper:
         
         # Convert SQLite AUTOINCREMENT to PostgreSQL SERIAL
         if 'AUTOINCREMENT' in query.upper():
-            query = query.replace('INTEGER PRIMARY KEY AUTOINCREMENT', 'SERIAL PRIMARY KEY')
+            query = query.replace('SERIAL PRIMARY KEY', 'SERIAL PRIMARY KEY')
             query = query.replace('AUTOINCREMENT', '')
         
         # Convert SQLite datetime('now') to PostgreSQL NOW()
@@ -1551,7 +1551,7 @@ def _ensure_users_table():
         try:
             con.execute("""
                 CREATE TABLE IF NOT EXISTS users (
-                  id INTEGER PRIMARY KEY AUTOINCREMENT,
+                  id SERIAL PRIMARY KEY,
                   username TEXT UNIQUE NOT NULL,
                   password_hash TEXT NOT NULL,
                   first_name TEXT,
@@ -1665,7 +1665,7 @@ def _ensure_activity_table():
             con.execute(
                 """
                 CREATE TABLE IF NOT EXISTS activity_log (
-                  id INTEGER PRIMARY KEY AUTOINCREMENT,
+                  id SERIAL PRIMARY KEY,
                   ts_utc TEXT NOT NULL,
                   username TEXT,
                   action TEXT NOT NULL,
@@ -3142,7 +3142,7 @@ def init_db():
             conn.execute(
                 """
                 CREATE TABLE IF NOT EXISTS price_snapshots (
-                  id INTEGER PRIMARY KEY AUTOINCREMENT,
+                  id SERIAL PRIMARY KEY,
                   ts TEXT NOT NULL,
                   location TEXT NOT NULL,
                   pickup_date TEXT NOT NULL,
@@ -3164,7 +3164,7 @@ def init_db():
             conn.execute(
                 """
                 CREATE TABLE IF NOT EXISTS automated_price_rules (
-                  id INTEGER PRIMARY KEY AUTOINCREMENT,
+                  id SERIAL PRIMARY KEY,
                   location TEXT NOT NULL,
                   grupo TEXT NOT NULL,
                   month INTEGER,
@@ -3189,7 +3189,7 @@ def init_db():
             conn.execute(
                 """
                 CREATE TABLE IF NOT EXISTS pricing_strategies (
-                  id INTEGER PRIMARY KEY AUTOINCREMENT,
+                  id SERIAL PRIMARY KEY,
                   location TEXT NOT NULL,
                   grupo TEXT NOT NULL,
                   month INTEGER,
@@ -3208,7 +3208,7 @@ def init_db():
             conn.execute(
                 """
                 CREATE TABLE IF NOT EXISTS automated_prices_history (
-                  id INTEGER PRIMARY KEY AUTOINCREMENT,
+                  id SERIAL PRIMARY KEY,
                   location TEXT NOT NULL,
                   grupo TEXT NOT NULL,
                   dias INTEGER NOT NULL,
@@ -3244,7 +3244,7 @@ def init_db():
             conn.execute(
                 """
                 CREATE TABLE IF NOT EXISTS system_logs (
-                  id INTEGER PRIMARY KEY AUTOINCREMENT,
+                  id SERIAL PRIMARY KEY,
                   level TEXT NOT NULL,
                   message TEXT NOT NULL,
                   module TEXT,
@@ -3274,7 +3274,7 @@ def init_db():
             conn.execute(
                 """
                 CREATE TABLE IF NOT EXISTS file_storage (
-                  id INTEGER PRIMARY KEY AUTOINCREMENT,
+                  id SERIAL PRIMARY KEY,
                   filename TEXT NOT NULL,
                   filepath TEXT NOT NULL UNIQUE,
                   file_data BYTEA NOT NULL,
@@ -3291,7 +3291,7 @@ def init_db():
             conn.execute(
                 """
                 CREATE TABLE IF NOT EXISTS export_history (
-                  id INTEGER PRIMARY KEY AUTOINCREMENT,
+                  id SERIAL PRIMARY KEY,
                   filename TEXT NOT NULL,
                   broker TEXT NOT NULL,
                   location TEXT NOT NULL,
@@ -3314,7 +3314,7 @@ def init_db():
             conn.execute(
                 """
                 CREATE TABLE IF NOT EXISTS downloads_history (
-                  id INTEGER PRIMARY KEY AUTOINCREMENT,
+                  id SERIAL PRIMARY KEY,
                   filename TEXT NOT NULL,
                   format TEXT NOT NULL,
                   location TEXT NOT NULL,
@@ -3330,7 +3330,7 @@ def init_db():
             conn.execute(
                 """
                 CREATE TABLE IF NOT EXISTS ai_learning_data (
-                  id INTEGER PRIMARY KEY AUTOINCREMENT,
+                  id SERIAL PRIMARY KEY,
                   grupo TEXT NOT NULL,
                   days INTEGER NOT NULL,
                   location TEXT NOT NULL,
@@ -3361,7 +3361,7 @@ def init_db():
             conn.execute(
                 """
                 CREATE TABLE IF NOT EXISTS vans_pricing (
-                  id INTEGER PRIMARY KEY AUTOINCREMENT,
+                  id SERIAL PRIMARY KEY,
                   c3_1day REAL DEFAULT 112.00,
                   c3_2days REAL DEFAULT 144.00,
                   c3_3days REAL DEFAULT 180.00,
@@ -3381,7 +3381,7 @@ def init_db():
             conn.execute(
                 """
                 CREATE TABLE IF NOT EXISTS automated_price_rules (
-                  id INTEGER PRIMARY KEY AUTOINCREMENT,
+                  id SERIAL PRIMARY KEY,
                   location TEXT NOT NULL,
                   grupo TEXT NOT NULL,
                   month INTEGER NOT NULL,
@@ -3413,7 +3413,7 @@ def init_db():
             conn.execute(
                 """
                 CREATE TABLE IF NOT EXISTS custom_days (
-                  id INTEGER PRIMARY KEY AUTOINCREMENT,
+                  id SERIAL PRIMARY KEY,
                   days_array TEXT NOT NULL,
                   updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
                 )
@@ -3424,7 +3424,7 @@ def init_db():
             conn.execute(
                 """
                 CREATE TABLE IF NOT EXISTS oauth_tokens (
-                  id INTEGER PRIMARY KEY AUTOINCREMENT,
+                  id SERIAL PRIMARY KEY,
                   provider TEXT NOT NULL,
                   user_email TEXT NOT NULL,
                   access_token TEXT NOT NULL,
@@ -3444,7 +3444,7 @@ def init_db():
             conn.execute(
                 """
                 CREATE TABLE IF NOT EXISTS price_validation_rules (
-                  id INTEGER PRIMARY KEY AUTOINCREMENT,
+                  id SERIAL PRIMARY KEY,
                   rules_json TEXT NOT NULL,
                   updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
                   updated_by TEXT DEFAULT 'admin'
@@ -3456,7 +3456,7 @@ def init_db():
             conn.execute(
                 """
                 CREATE TABLE IF NOT EXISTS price_history (
-                  id INTEGER PRIMARY KEY AUTOINCREMENT,
+                  id SERIAL PRIMARY KEY,
                   history_type TEXT NOT NULL,
                   year INTEGER NOT NULL,
                   month INTEGER NOT NULL,
@@ -3473,7 +3473,7 @@ def init_db():
             conn.execute(
                 """
                 CREATE TABLE IF NOT EXISTS search_history (
-                  id INTEGER PRIMARY KEY AUTOINCREMENT,
+                  id SERIAL PRIMARY KEY,
                   location TEXT NOT NULL,
                   start_date TEXT NOT NULL,
                   end_date TEXT NOT NULL,
@@ -3494,7 +3494,7 @@ def init_db():
             conn.execute(
                 """
                 CREATE TABLE IF NOT EXISTS automated_search_history (
-                  id INTEGER PRIMARY KEY AUTOINCREMENT,
+                  id SERIAL PRIMARY KEY,
                   location TEXT NOT NULL,
                   search_type TEXT NOT NULL,
                   search_date TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
@@ -3515,7 +3515,7 @@ def init_db():
             conn.execute(
                 """
                 CREATE TABLE IF NOT EXISTS car_groups (
-                  id INTEGER PRIMARY KEY AUTOINCREMENT,
+                  id SERIAL PRIMARY KEY,
                   code TEXT UNIQUE NOT NULL,
                   name TEXT,
                   model TEXT,
@@ -3540,7 +3540,7 @@ def init_db():
             conn.execute(
                 """
                 CREATE TABLE IF NOT EXISTS notification_rules (
-                  id INTEGER PRIMARY KEY AUTOINCREMENT,
+                  id SERIAL PRIMARY KEY,
                   rule_name TEXT NOT NULL,
                   rule_type TEXT NOT NULL,
                   condition_json TEXT NOT NULL,
@@ -3559,7 +3559,7 @@ def init_db():
             conn.execute(
                 """
                 CREATE TABLE IF NOT EXISTS notification_history (
-                  id INTEGER PRIMARY KEY AUTOINCREMENT,
+                  id SERIAL PRIMARY KEY,
                   rule_id INTEGER,
                   notification_type TEXT NOT NULL,
                   recipient TEXT NOT NULL,
@@ -5567,7 +5567,7 @@ async def admin_save_whatsapp_config(request: Request):
                     # Create contacts table (separate from conversations)
                     con.execute("""
                         CREATE TABLE IF NOT EXISTS whatsapp_contacts (
-                            id INTEGER PRIMARY KEY AUTOINCREMENT,
+                            id SERIAL PRIMARY KEY,
                             name TEXT NOT NULL,
                             phone_number TEXT NOT NULL UNIQUE,
                             has_whatsapp INTEGER,
@@ -5578,7 +5578,7 @@ async def admin_save_whatsapp_config(request: Request):
                     
                     con.execute("""
                         CREATE TABLE IF NOT EXISTS whatsapp_conversations (
-                            id INTEGER PRIMARY KEY AUTOINCREMENT,
+                            id SERIAL PRIMARY KEY,
                             contact_id INTEGER,
                             phone_number TEXT NOT NULL UNIQUE,
                             last_message_at TEXT DEFAULT CURRENT_TIMESTAMP,
@@ -5604,7 +5604,7 @@ async def admin_save_whatsapp_config(request: Request):
                     """)
                     con.execute("""
                         CREATE TABLE IF NOT EXISTS whatsapp_templates (
-                            id INTEGER PRIMARY KEY AUTOINCREMENT,
+                            id SERIAL PRIMARY KEY,
                             name TEXT NOT NULL,
                             category TEXT NOT NULL,
                             language_code TEXT NOT NULL,
@@ -5621,7 +5621,7 @@ async def admin_save_whatsapp_config(request: Request):
                     """)
                     con.execute("""
                         CREATE TABLE IF NOT EXISTS whatsapp_quick_replies (
-                            id INTEGER PRIMARY KEY AUTOINCREMENT,
+                            id SERIAL PRIMARY KEY,
                             shortcut TEXT NOT NULL UNIQUE,
                             category TEXT,
                             content_pt TEXT NOT NULL,
@@ -5816,7 +5816,7 @@ async def force_create_whatsapp_tables(request: Request):
                     print("[WHATSAPP] Creating whatsapp_contacts table...")
                     con.execute("""
                         CREATE TABLE IF NOT EXISTS whatsapp_contacts (
-                            id INTEGER PRIMARY KEY AUTOINCREMENT,
+                            id SERIAL PRIMARY KEY,
                             name TEXT NOT NULL,
                             phone_number TEXT NOT NULL UNIQUE,
                             has_whatsapp INTEGER,
@@ -5827,7 +5827,7 @@ async def force_create_whatsapp_tables(request: Request):
                     
                     con.execute("""
                         CREATE TABLE IF NOT EXISTS whatsapp_conversations (
-                            id INTEGER PRIMARY KEY AUTOINCREMENT,
+                            id SERIAL PRIMARY KEY,
                             contact_id INTEGER,
                             phone_number TEXT NOT NULL UNIQUE,
                             last_message_at TEXT DEFAULT CURRENT_TIMESTAMP,
@@ -5853,7 +5853,7 @@ async def force_create_whatsapp_tables(request: Request):
                     """)
                     con.execute("""
                         CREATE TABLE IF NOT EXISTS whatsapp_templates (
-                            id INTEGER PRIMARY KEY AUTOINCREMENT,
+                            id SERIAL PRIMARY KEY,
                             name TEXT NOT NULL,
                             category TEXT NOT NULL,
                             language_code TEXT NOT NULL,
@@ -5870,7 +5870,7 @@ async def force_create_whatsapp_tables(request: Request):
                     """)
                     con.execute("""
                         CREATE TABLE IF NOT EXISTS whatsapp_quick_replies (
-                            id INTEGER PRIMARY KEY AUTOINCREMENT,
+                            id SERIAL PRIMARY KEY,
                             shortcut TEXT NOT NULL UNIQUE,
                             category TEXT,
                             content_pt TEXT NOT NULL,
@@ -9048,7 +9048,7 @@ async def create_whatsapp_contacts_table(request: Request):
                     # SQLite
                     conn.execute("""
                         CREATE TABLE IF NOT EXISTS whatsapp_contacts (
-                            id INTEGER PRIMARY KEY AUTOINCREMENT,
+                            id SERIAL PRIMARY KEY,
                             name TEXT NOT NULL,
                             phone_number TEXT NOT NULL UNIQUE,
                             has_whatsapp INTEGER,
@@ -19147,7 +19147,7 @@ async def startup_vehicle_inspections():
             # SQLite
             conn.execute("""
                 CREATE TABLE IF NOT EXISTS vehicle_inspections (
-                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    id SERIAL PRIMARY KEY,
                     inspection_number TEXT UNIQUE,
                     inspection_type TEXT,
                     vehicle_plate TEXT,
@@ -19175,7 +19175,7 @@ async def startup_vehicle_inspections():
             
             conn.execute("""
                 CREATE TABLE IF NOT EXISTS inspection_photos (
-                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    id SERIAL PRIMARY KEY,
                     inspection_id INTEGER,
                     photo_type TEXT,
                     photo_order INTEGER,
@@ -21516,7 +21516,7 @@ async def upload_damage_report_template(request: Request, file: UploadFile = Fil
             try:
                 conn.execute("""
                     CREATE TABLE IF NOT EXISTS damage_report_templates (
-                        id INTEGER PRIMARY KEY AUTOINCREMENT,
+                        id SERIAL PRIMARY KEY,
                         filename TEXT NOT NULL,
                         file_data BYTEA NOT NULL,
                         content_type TEXT,
@@ -22459,7 +22459,7 @@ async def create_damage_report(request: Request):
                     logging.error("💾 Executando CREATE TABLE (SQLite)...")
                     conn.execute("""
                         CREATE TABLE IF NOT EXISTS damage_reports (
-                            id INTEGER PRIMARY KEY AUTOINCREMENT,
+                            id SERIAL PRIMARY KEY,
                             dr_number TEXT UNIQUE,
                             ra_number TEXT,
                             contract_number TEXT,
@@ -24773,7 +24773,7 @@ async def setup_car_groups_table():
                     # SQLite
                     conn.execute("""
                         CREATE TABLE IF NOT EXISTS car_groups (
-                            id INTEGER PRIMARY KEY AUTOINCREMENT,
+                            id SERIAL PRIMARY KEY,
                             code TEXT UNIQUE NOT NULL,
                             name TEXT,
                             model TEXT,
@@ -27538,7 +27538,7 @@ async def create_vehicle_inspection(request: Request):
                     # SQLite - create tables if needed
                     conn.execute("""
                         CREATE TABLE IF NOT EXISTS vehicle_inspections (
-                            id INTEGER PRIMARY KEY AUTOINCREMENT,
+                            id SERIAL PRIMARY KEY,
                             inspection_number TEXT UNIQUE,
                             inspection_type TEXT,
                             vehicle_plate TEXT,
@@ -27566,7 +27566,7 @@ async def create_vehicle_inspection(request: Request):
                     
                     conn.execute("""
                         CREATE TABLE IF NOT EXISTS inspection_photos (
-                            id INTEGER PRIMARY KEY AUTOINCREMENT,
+                            id SERIAL PRIMARY KEY,
                             inspection_id INTEGER,
                             photo_type TEXT,
                             photo_order INTEGER,
@@ -29111,7 +29111,7 @@ async def save_search_history(request: Request):
                 else:
                     conn.execute("""
                         CREATE TABLE IF NOT EXISTS search_history (
-                            id INTEGER PRIMARY KEY AUTOINCREMENT,
+                            id SERIAL PRIMARY KEY,
                             location TEXT NOT NULL,
                             search_date TEXT NOT NULL,
                             prices_data TEXT NOT NULL,
@@ -29265,7 +29265,7 @@ def _ensure_recent_searches_table():
                     # SQLite syntax
                     conn.execute("""
                         CREATE TABLE IF NOT EXISTS recent_searches (
-                            id INTEGER PRIMARY KEY AUTOINCREMENT,
+                            id SERIAL PRIMARY KEY,
                             location TEXT NOT NULL,
                             start_date TEXT NOT NULL,
                             days INTEGER NOT NULL,
@@ -29404,7 +29404,7 @@ def _ensure_suppliers_table():
                 else:
                     conn.execute("""
                         CREATE TABLE IF NOT EXISTS suppliers (
-                            id INTEGER PRIMARY KEY AUTOINCREMENT,
+                            id SERIAL PRIMARY KEY,
                             name TEXT NOT NULL,
                             logo_path TEXT,
                             active INTEGER DEFAULT 1,
@@ -29849,7 +29849,7 @@ async def save_recent_searches(request: Request):
                 else:
                     conn.execute("""
                         CREATE TABLE IF NOT EXISTS recent_searches (
-                            id INTEGER PRIMARY KEY AUTOINCREMENT,
+                            id SERIAL PRIMARY KEY,
                             location TEXT NOT NULL,
                             start_date TEXT NOT NULL,
                             days INTEGER NOT NULL,
@@ -30018,7 +30018,7 @@ async def save_vans_pricing(request: Request):
                 # Ensure table exists
                 conn.execute("""
                     CREATE TABLE IF NOT EXISTS vans_pricing (
-                        id INTEGER PRIMARY KEY AUTOINCREMENT,
+                        id SERIAL PRIMARY KEY,
                         c3_1day REAL,
                         c3_2days REAL,
                         c3_3days REAL,
