@@ -1030,7 +1030,7 @@ async def startup_event():
             else:
                 conn = _db_connect()
                 try:
-                    conn.execute("ALTER TABLE damage_reports ADD COLUMN vehicle_damage_image BLOB")
+                    conn.execute("ALTER TABLE damage_reports ADD COLUMN vehicle_damage_image BYTEA")
                     conn.commit()
                     print(f"   ✅ Added vehicle_damage_image column (SQLite)", flush=True)
                 except Exception as e:
@@ -1559,7 +1559,7 @@ def _ensure_users_table():
                   mobile TEXT,
                   email TEXT,
                   profile_picture_path TEXT,
-                  profile_picture_data BLOB,
+                  profile_picture_data BYTEA,
                   is_admin INTEGER DEFAULT 0,
                   enabled INTEGER DEFAULT 1,
                   created_at TEXT,
@@ -1596,7 +1596,7 @@ def _ensure_users_table():
             
             # Migration: Add profile_picture_data column if it doesn't exist
             try:
-                con.execute("ALTER TABLE users ADD COLUMN profile_picture_data BLOB")
+                con.execute("ALTER TABLE users ADD COLUMN profile_picture_data BYTEA")
                 con.commit()
                 logging.info("✅ Added profile_picture_data column to users table")
             except Exception as e:
@@ -3277,7 +3277,7 @@ def init_db():
                   id INTEGER PRIMARY KEY AUTOINCREMENT,
                   filename TEXT NOT NULL,
                   filepath TEXT NOT NULL UNIQUE,
-                  file_data BLOB NOT NULL,
+                  file_data BYTEA NOT NULL,
                   content_type TEXT,
                   file_size INTEGER,
                   uploaded_by TEXT,
@@ -18989,7 +18989,7 @@ def _ensure_vehicle_photos_table():
                 con.execute("""
                     CREATE TABLE IF NOT EXISTS vehicle_photos (
                         vehicle_name TEXT PRIMARY KEY,
-                        photo_data BLOB,
+                        photo_data BYTEA,
                         photo_url TEXT,
                         content_type TEXT,
                         uploaded_at TEXT DEFAULT CURRENT_TIMESTAMP
@@ -19049,7 +19049,7 @@ def _ensure_vehicle_images_table():
                 con.execute("""
                     CREATE TABLE IF NOT EXISTS vehicle_images (
                         vehicle_key TEXT PRIMARY KEY,
-                        image_data BLOB NOT NULL,
+                        image_data BYTEA NOT NULL,
                         content_type TEXT DEFAULT 'image/jpeg',
                         source_url TEXT,
                         downloaded_at TEXT DEFAULT CURRENT_TIMESTAMP
@@ -19179,7 +19179,7 @@ async def startup_vehicle_inspections():
                     inspection_id INTEGER,
                     photo_type TEXT,
                     photo_order INTEGER,
-                    image_data BLOB,
+                    image_data BYTEA,
                     image_filename TEXT,
                     image_size INTEGER,
                     image_format TEXT,
@@ -21518,7 +21518,7 @@ async def upload_damage_report_template(request: Request, file: UploadFile = Fil
                     CREATE TABLE IF NOT EXISTS damage_report_templates (
                         id INTEGER PRIMARY KEY AUTOINCREMENT,
                         filename TEXT NOT NULL,
-                        file_data BLOB NOT NULL,
+                        file_data BYTEA NOT NULL,
                         content_type TEXT,
                         uploaded_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
                         uploaded_by TEXT
@@ -27570,7 +27570,7 @@ async def create_vehicle_inspection(request: Request):
                             inspection_id INTEGER,
                             photo_type TEXT,
                             photo_order INTEGER,
-                            image_data BLOB,
+                            image_data BYTEA,
                             image_filename TEXT,
                             image_size INTEGER,
                             image_format TEXT,
