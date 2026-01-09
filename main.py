@@ -30745,7 +30745,123 @@ async def oauth_gmail_authorize(request: Request):
     
     # Check if credentials are configured
     if GOOGLE_CLIENT_ID == 'YOUR_CLIENT_ID_HERE':
-        # Show setup instructions if not configured
+        # Check if there are existing valid tokens in the database
+        try:
+            with _db_lock:
+                conn = _db_connect()
+                try:
+                    cursor = conn.execute("""
+                        SELECT provider, user_email, access_token, expires_at
+                        FROM oauth_tokens
+                        WHERE provider IN ('google', 'gmail')
+                        ORDER BY created_at DESC
+                        LIMIT 1
+                    """)
+                    existing_token = cursor.fetchone()
+                    
+                    if existing_token:
+                        # Use existing token
+                        html = f"""
+    <!DOCTYPE html>
+    <html>
+    <head>
+        <title>Gmail OAuth</title>
+        <style>
+            body {{
+                font-family: 'Outfit', sans-serif;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                height: 100vh;
+                margin: 0;
+                background: #f0f9fb;
+            }}
+            .container {{
+                text-align: center;
+                padding: 2rem;
+                background: white;
+                border-radius: 8px;
+                box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+                max-width: 500px;
+            }}
+            .icon {{
+                width: 64px;
+                height: 64px;
+                margin: 0 auto 1rem;
+                color: #009cb6;
+            }}
+            h1 {{
+                color: #009cb6;
+                margin-bottom: 1rem;
+            }}
+            p {{
+                color: #666;
+                margin-bottom: 1.5rem;
+            }}
+            button {{
+                background: #009cb6;
+                color: white;
+                border: none;
+                padding: 12px 24px;
+                border-radius: 6px;
+                cursor: pointer;
+                font-size: 16px;
+                margin: 0.5rem;
+            }}
+            button:hover {{
+                background: #007a91;
+            }}
+            .email {{
+                background: #f0f9fb;
+                padding: 0.5rem 1rem;
+                border-radius: 4px;
+                font-weight: bold;
+                color: #009cb6;
+                margin: 1rem 0;
+            }}
+        </style>
+    </head>
+    <body>
+        <div class="container">
+            <svg class="icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
+            </svg>
+            <h1>Conta Gmail Encontrada</h1>
+            <p>Encontrámos uma conta Gmail já conectada:</p>
+            <div class="email">{existing_token[1]}</div>
+            <p style="font-size: 14px;">Deseja reconectar esta conta?</p>
+            <button onclick="reconnectExisting()">✓ Reconectar</button>
+            <button onclick="window.close()" style="background: #ccc; color: #666;">Cancelar</button>
+        </div>
+        <script>
+            function reconnectExisting() {{
+                const data = {{
+                    type: 'oauth-success',
+                    provider: 'gmail',
+                    email: '{existing_token[1]}',
+                    token: 'existing_token',
+                    refreshToken: 'existing_refresh',
+                    expiresAt: {existing_token[3]}
+                }};
+                
+                if (window.opener) {{
+                    window.opener.postMessage(data, '*');
+                    window.close();
+                }} else {{
+                    alert('Erro: Janela pai não encontrada');
+                }}
+            }}
+        </script>
+    </body>
+    </html>
+        """
+                        return HTMLResponse(content=html)
+                finally:
+                    conn.close()
+        except Exception as e:
+            logging.error(f"Error checking existing tokens: {e}")
+        
+        # Show setup instructions if not configured and no existing tokens
         html = """
     <!DOCTYPE html>
     <html>
@@ -30802,41 +30918,12 @@ async def oauth_gmail_authorize(request: Request):
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"/>
             </svg>
             <h1>Conectar Gmail</h1>
-            <p>Esta é uma <strong>demonstração</strong> do fluxo OAuth2.</p>
-            <p style="font-size: 14px; color: #666; margin: 1rem 0;">Para conectar ao Gmail real, é necessário:</p>
-            <ul style="text-align: left; font-size: 13px; color: #666; margin: 0 auto; max-width: 400px; line-height: 1.8;">
-                <li>Registar app no <a href="https://console.cloud.google.com" target="_blank" style="color: #009cb6;">Google Cloud Console</a></li>
-                <li>Obter Client ID e Client Secret</li>
-                <li>Configurar OAuth2 redirect URLs</li>
-                <li>Implementar fluxo OAuth completo</li>
-            </ul>
-            <p style="font-size: 12px; color: #999; margin-top: 1rem;">Por agora, clique abaixo para simular a conexão:</p>
-            <button onclick="simulateOAuth()">Simular Conexão Gmail</button>
+            <p>OAuth não configurado. Contacte o administrador.</p>
+            <button onclick="window.close()">Fechar</button>
         </div>
-        <script>
-            function simulateOAuth() {
-                // Simulate successful OAuth
-                const data = {
-                    type: 'oauth-success',
-                    provider: 'gmail',
-                    email: 'seu-email@gmail.com',
-                    token: 'mock_access_token_' + Date.now(),
-                    refreshToken: 'mock_refresh_token',
-                    expiresAt: Date.now() + 3600000
-                };
-                
-                // Send message to parent window
-                if (window.opener) {
-                    window.opener.postMessage(data, '*');
-                    window.close();
-                } else {
-                    alert('Erro: Janela pai não encontrada');
-                }
-            }
-        </script>
     </body>
     </html>
-    """
+        """
         return HTMLResponse(content=html)
     
     # Real OAuth2 flow - redirect to Google
