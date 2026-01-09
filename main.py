@@ -35360,6 +35360,41 @@ async def get_search_version(version_id: int):
                     supplier_data_parsed = {}
                     logging.warning(f"⚠️ [VERSION-LOAD] No supplier_data column available for ID {version_id}")
                 
+                # FIX: Corrigir preços multiplicados por 100 no supplier_data
+                # Percorrer todos os dias e carros para corrigir preços
+                if supplier_data_parsed:
+                    for day_or_group_key in supplier_data_parsed:
+                        day_data = supplier_data_parsed[day_or_group_key]
+                        
+                        # Pode ser formato DAY→CARS ou GROUP→DAY→CARS
+                        if isinstance(day_data, dict):
+                            # Formato GROUP→DAY→CARS
+                            for inner_key in day_data:
+                                cars = day_data[inner_key]
+                                if isinstance(cars, list):
+                                    for car in cars:
+                                        if isinstance(car, dict) and 'price_num' in car and car['price_num'] is not None:
+                                            price = float(car['price_num'])
+                                            is_luxury = any(brand in str(car.get('car', '')).lower() 
+                                                          for brand in ['mercedes s', 'porsche', 's class', 'cayenne'])
+                                            if price > 100 and not is_luxury:
+                                                corrected_price = price / 100
+                                                if 5 <= corrected_price <= 500:
+                                                    car['price_num'] = corrected_price
+                                                    logging.debug(f"Corrected supplier price: {price}€ → {corrected_price}€")
+                        elif isinstance(day_data, list):
+                            # Formato DAY→CARS
+                            for car in day_data:
+                                if isinstance(car, dict) and 'price_num' in car and car['price_num'] is not None:
+                                    price = float(car['price_num'])
+                                    is_luxury = any(brand in str(car.get('car', '')).lower() 
+                                                  for brand in ['mercedes s', 'porsche', 's class', 'cayenne'])
+                                    if price > 100 and not is_luxury:
+                                        corrected_price = price / 100
+                                        if 5 <= corrected_price <= 500:
+                                            car['price_num'] = corrected_price
+                                            logging.debug(f"Corrected supplier price: {price}€ → {corrected_price}€")
+                
                 version_data = {
                     'id': row_id,
                     'location': row_location,
