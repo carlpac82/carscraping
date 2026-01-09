@@ -12,6 +12,8 @@ import logging
 # Check if we're in production (Render) or local development
 DATABASE_URL = os.getenv("DATABASE_URL")  # Render PostgreSQL URL
 
+print(f"🔍 [DATABASE.PY] DATABASE_URL from env: {DATABASE_URL[:30] if DATABASE_URL else 'None'}...", flush=True)
+
 # Fix for Render environment variable issue
 if not DATABASE_URL:
     # Try to extract from printenv output (Render stores it as Key/Value)
@@ -28,6 +30,12 @@ if not DATABASE_URL:
         logging.warning(f"Could not extract DATABASE_URL: {e}")
 
 USE_POSTGRES = DATABASE_URL is not None
+
+print(f"🔍 [DATABASE.PY] USE_POSTGRES: {USE_POSTGRES}", flush=True)
+if USE_POSTGRES:
+    print(f"🐘 [DATABASE.PY] PostgreSQL mode enabled", flush=True)
+else:
+    print(f"📁 [DATABASE.PY] SQLite mode (DATABASE_URL not found)", flush=True)
 
 if USE_POSTGRES:
     import psycopg2
