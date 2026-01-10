@@ -34673,6 +34673,123 @@ async def load_ai_learning_data(request: Request):
         logging.error(traceback.format_exc())
         return JSONResponse({"ok": False, "error": str(e)}, status_code=500)
 
+@app.get("/api/ai/learning/analyze")
+async def analyze_ai_learning_patterns(request: Request, location: str = None):
+    """
+    Analisa histórico de preços editados e gera sugestões inteligentes
+    baseadas nos padrões reais do user
+    """
+    require_auth(request)
+    try:
+        from ai_learning_endpoint import analyze_pricing_patterns, generate_smart_suggestions
+        
+        if not location:
+            location = 'Albufeira'
+        
+        logging.info(f"🧠 Analyzing AI learning patterns for {location}...")
+        
+        with _db_lock:
+            conn = _db_connect()
+            try:
+                # Analisar padrões de preços editados
+                patterns = analyze_pricing_patterns(conn, location, min_samples=2)
+                
+                # Gerar sugestões inteligentes
+                suggestions = generate_smart_suggestions(patterns, location)
+                
+                logging.info(f"✅ AI analysis complete: {len(suggestions)} suggestions generated")
+                
+                return JSONResponse({
+                    "ok": True,
+                    "data": {
+                        "location": location,
+                        "patterns": patterns,
+                        "suggestions": suggestions,
+                        "totalSuggestions": len(suggestions),
+                        "analyzedGroups": list(patterns.keys())
+                    }
+                })
+            finally:
+                conn.close()
+    except Exception as e:
+        logging.error(f"❌ Error analyzing AI learning patterns: {str(e)}")
+        import traceback
+        logging.error(traceback.format_exc())
+        return JSONResponse({"ok": False, "error": str(e)}, status_code=500)
+
+@app.post("/api/ai/learning/apply-suggestions")
+async def apply_ai_suggestions(request: Request):
+    """
+    Aplica sugestões de AI learning às regras de preços automatizados
+    """
+    require_auth(request)
+    try:
+        data = await request.json()
+        location = data.get('location', 'Albufeira')
+        suggestions = data.get('suggestions', [])
+        
+        logging.info(f"🤖 Applying {len(suggestions)} AI suggestions to {location}...")
+        
+        with _db_lock:
+            conn = _db_connect()
+            try:
+                applied_count = 0
+                
+                for suggestion in suggestions:
+                    grupo = suggestion.get('grupo')
+                    day = suggestion.get('day')
+                    month = suggestion.get('month', 1)  # Usar mês da sugestão
+                    strategy = suggestion.get('strategy', {})
+                    min_price = suggestion.get('minPrice')
+                    
+                    # Criar config para a regra
+                    config = {
+                        'strategies': [strategy],
+                        'minPriceDay': min_price,
+                        'minPriceMonth': None
+                    }
+                    
+                    # Verificar se já existe regra
+                    cursor = conn.execute("""
+                        SELECT id FROM automated_price_rules
+                        WHERE location = ? AND grupo = ? AND month = ? AND day = ?
+                    """, (location, grupo, month, day))
+                    
+                    existing = cursor.fetchone()
+                    
+                    if existing:
+                        # Atualizar regra existente
+                        conn.execute("""
+                            UPDATE automated_price_rules
+                            SET config = ?, updated_at = CURRENT_TIMESTAMP
+                            WHERE id = ?
+                        """, (json.dumps(config), existing[0]))
+                    else:
+                        # Criar nova regra
+                        conn.execute("""
+                            INSERT INTO automated_price_rules
+                            (location, grupo, month, day, strategy_type, config, priority)
+                            VALUES (?, ?, ?, ?, ?, ?, ?)
+                        """, (location, grupo, 1, day, None, json.dumps(config), 1))
+                    
+                    applied_count += 1
+                
+                conn.commit()
+                logging.info(f"✅ Applied {applied_count} AI suggestions to automated rules")
+                
+                return JSONResponse({
+                    "ok": True,
+                    "message": f"Applied {applied_count} suggestions",
+                    "appliedCount": applied_count
+                })
+            finally:
+                conn.close()
+    except Exception as e:
+        logging.error(f"❌ Error applying AI suggestions: {str(e)}")
+        import traceback
+        logging.error(traceback.format_exc())
+        return JSONResponse({"ok": False, "error": str(e)}, status_code=500)
+
 # ============================================================
 # PRICE SNAPSHOTS - Save automatically when scraping
 # ============================================================
