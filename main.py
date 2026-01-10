@@ -33569,7 +33569,18 @@ def save_automated_searches_to_history():
                                 })
                         
                         # Prepare data for saving
-                        dias_list = sorted(list(dias_set))
+                        # Build dias_list from supplier_data to include ALL searched days, not just those with valid prices
+                        dias_from_supplier = set()
+                        for grupo_data in supplier_data_by_group.values():
+                            if isinstance(grupo_data, dict):
+                                for day_key in grupo_data.keys():
+                                    try:
+                                        dias_from_supplier.add(int(day_key))
+                                    except (ValueError, TypeError):
+                                        pass
+                        
+                        # Use supplier data dias if available (includes all searched days), otherwise fall back to dias_set
+                        dias_list = sorted(list(dias_from_supplier)) if dias_from_supplier else sorted(list(dias_set))
                         price_count = sum(len(group_prices) for group_prices in prices_by_group.values())
                         
                         if not prices_by_group or price_count == 0:
