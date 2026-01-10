@@ -3711,7 +3711,8 @@ def save_file_to_db(filename: str, filepath: str, file_data: bytes, content_type
                         (filename, filepath, file_data, content_type, file_size, uploaded_by)
                     )
                 conn.commit()
-                log_to_db("INFO", f"File saved to DB: {filepath} ({file_size} bytes)", "main", "save_file_to_db")
+                # Log movido para fora para evitar deadlock com _db_lock
+                logging.info(f"File saved to DB: {filepath} ({file_size} bytes)")
             finally:
                 conn.close()
     except Exception as e:
