@@ -5082,9 +5082,9 @@ async def admin_users_edit_post(
         with _db_lock:
             con = _db_connect()
             try:
-                # Converter para boolean (PostgreSQL) ou integer (SQLite)
-                is_admin_val = True if is_admin in ("1","true","on") else False
-                enabled_val = True if enabled in ("1","true","on") else False
+                # Converter para integer (0 ou 1) para compatibilidade PostgreSQL/SQLite
+                is_admin_val = 1 if is_admin in ("1","true","on") else 0
+                enabled_val = 1 if enabled in ("1","true","on") else 0
                 
                 if pic_data:
                     print(f"[UPLOAD] 💾 Saving to DB: user_id={user_id}, blob_size={len(pic_data)}", file=sys.stderr, flush=True)
