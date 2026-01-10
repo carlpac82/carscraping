@@ -34817,6 +34817,174 @@ async def apply_ai_suggestions(request: Request):
         return JSONResponse({"ok": False, "error": str(e)}, status_code=500)
 
 # ============================================================
+# CURRENT PRICES MANAGEMENT - Gestão de Preços Atuais
+# ============================================================
+
+@app.get("/admin/current-prices", response_class=HTMLResponse)
+async def admin_current_prices(request: Request):
+    """Página de gestão de preços atuais"""
+    require_auth(request)
+    html_path = os.path.join(os.path.dirname(__file__), "templates", "current_prices.html")
+    try:
+        with open(html_path, 'r', encoding='utf-8') as f:
+            return HTMLResponse(content=f.read())
+    except Exception as e:
+        return HTMLResponse(content=f"<h1>Erro ao carregar página: {str(e)}</h1>", status_code=500)
+
+@app.get("/api/current-prices/load")
+async def load_current_prices(request: Request, location: str, month: int, year: int):
+    """Carregar preços atuais da base de dados"""
+    require_auth(request)
+    try:
+        from current_prices_module import load_prices_from_db, create_current_prices_table
+        
+        with _db_lock:
+            conn = _db_connect()
+            try:
+                # Criar tabela se não existir
+                create_current_prices_table(conn)
+                
+                # Carregar preços
+                prices = load_prices_from_db(conn, location, month, year)
+                
+                if prices:
+                    return JSONResponse({"ok": True, "prices": prices})
+                else:
+                    return JSONResponse({"ok": False, "message": "No prices found"})
+            finally:
+                conn.close()
+    except Exception as e:
+        logging.error(f"Error loading current prices: {e}")
+        return JSONResponse({"ok": False, "error": str(e)}, status_code=500)
+
+@app.post("/api/current-prices/save")
+async def save_current_prices(request: Request):
+    """Guardar preços atuais na base de dados"""
+    require_auth(request)
+    try:
+        from current_prices_module import save_prices_to_db, create_current_prices_table
+        
+        data = await request.json()
+        location = data.get('location')
+        month = data.get('month')
+        year = data.get('year')
+        prices = data.get('prices')
+        
+        with _db_lock:
+            conn = _db_connect()
+            try:
+                # Criar tabela se não existir
+                create_current_prices_table(conn)
+                
+                # Guardar preços
+                success = save_prices_to_db(conn, location, month, year, prices)
+                
+                if success:
+                    return JSONResponse({"ok": True, "message": "Prices saved successfully"})
+                else:
+                    return JSONResponse({"ok": False, "error": "Failed to save prices"}, status_code=500)
+            finally:
+                conn.close()
+    except Exception as e:
+        logging.error(f"Error saving current prices: {e}")
+        return JSONResponse({"ok": False, "error": str(e)}, status_code=500)
+
+@app.post("/api/current-prices/upload")
+async def upload_current_prices(request: Request):
+    """Upload de ficheiro Excel com preços"""
+    require_auth(request)
+    try:
+        from current_prices_module import import_from_brokers_excel
+        
+        form = await request.form()
+        file = form.get('file')
+        
+        if not file:
+            return JSONResponse({"ok": False, "error": "No file provided"}, status_code=400)
+        
+        # Salvar temporariamente
+        temp_path = f"/tmp/upload_{datetime.now().timestamp()}.xlsx"
+        with open(temp_path, 'wb') as f:
+            f.write(await file.read())
+        
+        # Importar preços
+        prices = import_from_brokers_excel(temp_path)
+        
+        # Remover ficheiro temporário
+        os.remove(temp_path)
+        
+        return JSONResponse({"ok": True, "prices": prices})
+    except Exception as e:
+        logging.error(f"Error uploading prices: {e}")
+        return JSONResponse({"ok": False, "error": str(e)}, status_code=500)
+
+@app.post("/api/current-prices/download/abbycar")
+async def download_abbycar_prices(request: Request, location: str, month: int, year: int):
+    """Download de preços no formato Abbycar"""
+    require_auth(request)
+    try:
+        from current_prices_module import generate_abbycar_excel
+        from starlette.responses import Response
+        
+        data = await request.json()
+        prices = data.get('prices', {})
+        
+        excel_file, filename = generate_abbycar_excel(location, month, year, prices)
+        
+        return Response(
+            content=excel_file.getvalue(),
+            media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+            headers={"Content-Disposition": f'attachment; filename="{filename}"'}
+        )
+    except Exception as e:
+        logging.error(f"Error generating Abbycar Excel: {e}")
+        return JSONResponse({"ok": False, "error": str(e)}, status_code=500)
+
+@app.post("/api/current-prices/download/brokers")
+async def download_brokers_prices(request: Request, location: str, month: int, year: int):
+    """Download de preços no formato Brokers"""
+    require_auth(request)
+    try:
+        from current_prices_module import generate_brokers_excel
+        from starlette.responses import Response
+        
+        data = await request.json()
+        prices = data.get('prices', {})
+        
+        excel_file, filename = generate_brokers_excel(location, month, year, prices)
+        
+        return Response(
+            content=excel_file.getvalue(),
+            media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+            headers={"Content-Disposition": f'attachment; filename="{filename}"'}
+        )
+    except Exception as e:
+        logging.error(f"Error generating Brokers Excel: {e}")
+        return JSONResponse({"ok": False, "error": str(e)}, status_code=500)
+
+@app.post("/api/current-prices/download/website")
+async def download_website_prices(request: Request, location: str, month: int, year: int):
+    """Download de preços no formato Website"""
+    require_auth(request)
+    try:
+        from current_prices_module import generate_website_excel
+        from starlette.responses import Response
+        
+        data = await request.json()
+        prices = data.get('prices', {})
+        
+        excel_file, filename = generate_website_excel(location, month, year, prices)
+        
+        return Response(
+            content=excel_file.getvalue(),
+            media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+            headers={"Content-Disposition": f'attachment; filename="{filename}"'}
+        )
+    except Exception as e:
+        logging.error(f"Error generating Website Excel: {e}")
+        return JSONResponse({"ok": False, "error": str(e)}, status_code=500)
+
+# ============================================================
 # PRICE SNAPSHOTS - Save automatically when scraping
 # ============================================================
 
