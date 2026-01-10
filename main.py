@@ -17075,6 +17075,8 @@ async def save_vehicle(request: Request):
             import importlib
             import re
             
+            logging.info(f"[VEHICLE-SAVE] Updating carjet_direct.py: '{clean_name}' -> '{category}'")
+            
             # Ler o arquivo atual
             carjet_path = os.path.join(os.path.dirname(__file__), 'carjet_direct.py')
             with open(carjet_path, 'r', encoding='utf-8') as f:
@@ -17094,36 +17096,59 @@ async def save_vehicle(request: Request):
             if vehicles_start == -1 or vehicles_end == -1:
                 raise Exception("Could not find VEHICLES dictionary")
             
-            # Verificar se o veículo já existe
-            vehicle_pattern = f"    '{re.escape(clean_name)}':"
+            logging.info(f"[VEHICLE-SAVE] VEHICLES dict found: lines {vehicles_start} to {vehicles_end}")
+            
+            # Verificar se o veículo já existe (busca mais robusta)
             vehicle_exists = False
             vehicle_line_idx = -1
             
-            for i in range(vehicles_start, vehicles_end):
-                if vehicle_pattern in lines[i]:
-                    vehicle_exists = True
-                    vehicle_line_idx = i
-                    break
+            # Tentar diferentes padrões de matching
+            patterns = [
+                f"    '{clean_name}':",  # Padrão exato
+                f'    "{clean_name}":',  # Com aspas duplas
+            ]
+            
+            for i in range(vehicles_start + 1, vehicles_end):
+                line_lower = lines[i].lower().strip()
+                # Extrair o nome do veículo da linha
+                if ':' in line_lower:
+                    # Formato: '    'nome': 'categoria',
+                    parts = line_lower.split(':', 1)
+                    if parts:
+                        vehicle_in_line = parts[0].strip().strip("'\"")
+                        if vehicle_in_line == clean_name:
+                            vehicle_exists = True
+                            vehicle_line_idx = i
+                            logging.info(f"[VEHICLE-SAVE] Found existing entry at line {i}: {lines[i].strip()}")
+                            break
             
             if vehicle_exists:
                 # Atualizar entrada existente
+                old_line = lines[vehicle_line_idx].strip()
                 lines[vehicle_line_idx] = f"    '{clean_name}': '{category}',\n"
+                logging.info(f"[VEHICLE-SAVE] Updated line {vehicle_line_idx}: '{old_line}' -> '{clean_name}': '{category}'")
             else:
                 # Adicionar nova entrada antes do }
                 new_entry = f"    '{clean_name}': '{category}',\n"
                 lines.insert(vehicles_end, new_entry)
+                logging.info(f"[VEHICLE-SAVE] Added new entry at line {vehicles_end}: '{clean_name}': '{category}'")
             
             # Escrever de volta
             with open(carjet_path, 'w', encoding='utf-8') as f:
                 f.writelines(lines)
             
+            logging.info(f"[VEHICLE-SAVE] File written successfully")
+            
             # Recarregar o módulo
             importlib.reload(carjet_direct)
+            logging.info(f"[VEHICLE-SAVE] Module reloaded successfully")
             
             message = "Vehicle saved and carjet_direct.py updated automatically!"
         except Exception as e:
             import traceback
-            message = f"Vehicle saved but failed to update carjet_direct.py: {str(e)}\n{traceback.format_exc()}"
+            error_trace = traceback.format_exc()
+            logging.error(f"[VEHICLE-SAVE] Failed to update carjet_direct.py: {str(e)}\n{error_trace}")
+            message = f"Vehicle saved but failed to update carjet_direct.py: {str(e)}\n{error_trace}"
         
         # Calcular grupo baseado na categoria
         group = map_category_to_group(category, clean_name)
