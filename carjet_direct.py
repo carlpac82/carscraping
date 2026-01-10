@@ -422,10 +422,10 @@ VEHICLES = {
     'skoda kamiq': 'Crossover',
     'skoda karoq': 'Crossover',
     'toyota yaris cross': 'SUV Auto',
-    'volkswagen tcross': 'Crossover',
-    'volkswagen t-cross': 'Crossover',
-    'vw tcross': 'Crossover',
-    'vw t-cross': 'Crossover',
+    'volkswagen tcross': 'SUV',
+    'volkswagen t-cross': 'SUV',
+    'vw tcross': 'SUV',
+    'vw t-cross': 'SUV',
 
     # ========== J2: Station Wagon ==========
     'citroen elysee': 'Station Wagon',

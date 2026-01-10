@@ -18924,7 +18924,7 @@ async def get_vehicles_with_originals(request: Request):
                     query = """
                         SELECT DISTINCT car 
                         FROM price_snapshots 
-                        WHERE ts >= datetime('now', '-7 days')
+                        WHERE ts >= NOW() - INTERVAL '7 days'
                         ORDER BY car
                     """
                     rows = conn.execute(query).fetchall()
@@ -19563,7 +19563,7 @@ async def get_uncategorized_vehicles(request: Request):
                     query = """
                         SELECT DISTINCT car 
                         FROM price_snapshots 
-                        WHERE ts >= datetime('now', '-30 days')
+                        WHERE ts >= NOW() - INTERVAL '30 days'
                         ORDER BY car
                     """
                     rows = conn.execute(query).fetchall()
@@ -31417,7 +31417,7 @@ async def test_daily_report(request: Request):
                         """
                         SELECT location, start_date, days, results_data, timestamp
                         FROM recent_searches
-                        WHERE timestamp >= datetime('now', '-7 days')
+                        WHERE timestamp >= NOW() - INTERVAL '7 days'
                         ORDER BY timestamp DESC
                         LIMIT 50
                         """
@@ -32268,7 +32268,7 @@ async def test_weekly_report(request: Request):
                         """
                         SELECT location, start_date, days, results_data, timestamp
                         FROM recent_searches
-                        WHERE timestamp >= datetime('now', '-7 days')
+                        WHERE timestamp >= NOW() - INTERVAL '7 days'
                         ORDER BY timestamp DESC
                         LIMIT 50
                         """
