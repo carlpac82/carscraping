@@ -9801,20 +9801,43 @@ Continue?`);
                     // Método 2: Procurar nas tabelas visíveis (histórico carregado)
                     const tables = document.querySelectorAll('table');
                     tables.forEach(table => {
-                        const rows = table.querySelectorAll('tr');
+                        // Primeiro, ler o header para saber quais dias estão presentes
+                        const headerRow = table.querySelector('thead tr');
+                        const dayMapping = {}; // colIndex -> dia
+                        
+                        if (headerRow) {
+                            const headerCells = headerRow.querySelectorAll('th');
+                            headerCells.forEach((th, colIndex) => {
+                                const text = th.textContent.trim();
+                                // Headers são tipo "1d NET", "1d REAL", "2d NET", etc
+                                const match = text.match(/(\d+)d\s+(NET|REAL)/);
+                                if (match) {
+                                    const dia = parseInt(match[1]);
+                                    const tipo = match[2];
+                                    if (tipo === 'NET') {
+                                        dayMapping[colIndex] = dia;
+                                    }
+                                }
+                            });
+                        }
+                        
+                        console.log('[UPDATE] Day mapping from table headers:', dayMapping);
+                        
+                        // Agora processar as linhas de dados
+                        const rows = table.querySelectorAll('tbody tr');
                         rows.forEach(row => {
                             const cells = row.querySelectorAll('td');
                             if (cells.length > 0) {
                                 const firstCell = cells[0];
                                 const grupo = firstCell.textContent.trim();
                                 
-                                // Para cada dia
-                                dias.forEach((dia, idx) => {
-                                    // Cada grupo tem 2 colunas por dia (NET e REAL)
-                                    // NET está nas colunas ímpares (1, 3, 5, ...)
-                                    const netCellIndex = 1 + (idx * 2);
-                                    if (cells[netCellIndex]) {
-                                        const input = cells[netCellIndex].querySelector('input');
+                                // Para cada coluna NET identificada no header
+                                Object.keys(dayMapping).forEach(colIndex => {
+                                    const dia = dayMapping[colIndex];
+                                    const cell = cells[colIndex];
+                                    
+                                    if (cell) {
+                                        const input = cell.querySelector('input');
                                         if (input && input.value) {
                                             const netPrice = parseFloat(input.value);
                                             if (netPrice > 0) {
