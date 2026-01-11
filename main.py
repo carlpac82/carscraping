@@ -35328,7 +35328,7 @@ async def save_current_prices(request: Request):
         day_start = data.get('day_start', 1)
         day_end = data.get('day_end', 31)
         
-        logging.info(f"🔥🔥🔥 INLINE SAVE VERSION 2026-01-11-15:50 🔥🔥🔥")
+        logging.info(f"🔥🔥🔥 INLINE SAVE VERSION 2026-01-11-15:55 🔥🔥🔥")
         logging.info(f"🔥 Location: {location}, Month: {month}, Year: {year}, Days: {day_start}-{day_end}")
         
         prices_json = json.dumps(prices)
@@ -35343,6 +35343,30 @@ async def save_current_prices(request: Request):
                 
                 logging.info(f"🔥 Database module: {conn_module}")
                 logging.info(f"🔥 Is PostgreSQL: {is_postgres}")
+                
+                if is_postgres:
+                    # GARANTIR que colunas day_start e day_end existem
+                    with conn.cursor() as cur:
+                        logging.info("🔧 Verificando se colunas day_start/day_end existem...")
+                        cur.execute("""
+                            SELECT column_name 
+                            FROM information_schema.columns 
+                            WHERE table_name = 'current_prices'
+                              AND column_name IN ('day_start', 'day_end')
+                        """)
+                        existing_cols = [row[0] for row in cur.fetchall()]
+                        logging.info(f"🔍 Colunas encontradas: {existing_cols}")
+                        
+                        if 'day_start' not in existing_cols:
+                            logging.info("➕ AUTO-ADDING day_start column...")
+                            cur.execute("ALTER TABLE current_prices ADD COLUMN day_start INTEGER DEFAULT 1")
+                        
+                        if 'day_end' not in existing_cols:
+                            logging.info("➕ AUTO-ADDING day_end column...")
+                            cur.execute("ALTER TABLE current_prices ADD COLUMN day_end INTEGER DEFAULT 31")
+                        
+                        conn.commit()
+                        logging.info("✅ Colunas verificadas/adicionadas")
                 
                 if is_postgres:
                     # PostgreSQL - SELECT + UPDATE/INSERT (SEM ON CONFLICT)
