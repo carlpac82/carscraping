@@ -163,17 +163,7 @@ def save_prices_to_db(conn, location, month, year, prices_data, day_start=1, day
         logging.info(f"🔍 save_prices_to_db - module: {conn_module}, class: {conn_class}, is_postgres: {is_postgres}")
         
         if is_postgres:
-            # PostgreSQL - garantir que colunas day_start e day_end existem
-            with conn.cursor() as cur:
-                try:
-                    cur.execute("ALTER TABLE current_prices ADD COLUMN IF NOT EXISTS day_start INTEGER DEFAULT 1")
-                    cur.execute("ALTER TABLE current_prices ADD COLUMN IF NOT EXISTS day_end INTEGER DEFAULT 31")
-                    conn.commit()
-                except Exception as e:
-                    logging.warning(f"Colunas day_start/day_end já existem ou erro: {e}")
-                    conn.rollback()
-            
-            # PostgreSQL
+            # PostgreSQL - usar SELECT + UPDATE/INSERT (colunas day_start/day_end já existem)
             with conn.cursor() as cur:
                 # Verificar se já existe este período
                 cur.execute("""
