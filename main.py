@@ -35469,17 +35469,23 @@ async def save_current_prices(request: Request):
         with _db_lock:
             conn = _db_connect()
             try:
-                # Detectar tipo de base de dados
-                conn_module = conn.__class__.__module__
-                is_postgres = 'psycopg' in conn_module
-                
-                logging.info(f"🔍 Database: {'PostgreSQL' if is_postgres else 'SQLite'} (module: {conn_module})")
+                # Detectar tipo de base de dados e obter conexão real
+                if hasattr(conn, '_conn'):
+                    # É o wrapper - pegar conexão real
+                    real_conn = conn._conn
+                    is_postgres = True
+                    logging.info(f"🔍 Database: PostgreSQL (wrapper detected)")
+                else:
+                    # É SQLite direto
+                    real_conn = conn
+                    is_postgres = False
+                    logging.info(f"🔍 Database: SQLite")
                 
                 prices_json = json.dumps(prices)
                 
                 if is_postgres:
-                    # PostgreSQL - usar cursor diretamente (não conn.execute que passa por wrapper)
-                    with conn.cursor() as cur:
+                    # PostgreSQL - usar conexão real, não wrapper
+                    with real_conn.cursor() as cur:
                         # 1. Verificar se colunas existem
                         cur.execute("""
                             SELECT column_name 
@@ -35501,7 +35507,7 @@ async def save_current_prices(request: Request):
                             cur.execute("ALTER TABLE current_prices ADD COLUMN day_end INTEGER DEFAULT 31")
                             logging.info("✅ day_end added")
                         
-                        conn.commit()
+                        real_conn.commit()
                         
                         # 3. Verificar se período já existe
                         cur.execute("""
@@ -35527,7 +35533,7 @@ async def save_current_prices(request: Request):
                                 VALUES (%s, %s, %s, %s, %s, %s, CURRENT_TIMESTAMP)
                             """, (location, month, year, day_start, day_end, prices_json))
                     
-                    conn.commit()
+                    real_conn.commit()
                     logging.info(f"✅ PostgreSQL save successful")
                 else:
                     # SQLite - usar cursor diretamente para evitar wrapper
