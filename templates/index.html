@@ -551,12 +551,26 @@
                 const response = await fetch(`/api/current-prices/load?location=${encodeURIComponent(location)}&month=${month}&year=${year}`);
                 const result = await response.json();
                 
-                if (result.ok && result.prices) {
-                    console.log('✅ Preços carregados da base de dados');
-                    
+                // Suportar tanto a estrutura nova (periods) quanto a antiga (prices)
+                let pricesByGroup = null;
+                let updatedAt = null;
+                
+                if (result.ok && result.periods && result.periods.length > 0) {
+                    // Nova estrutura: lista de períodos
+                    console.log('✅ Preços carregados da base de dados (períodos)');
+                    pricesByGroup = result.periods[0].prices;
+                    updatedAt = result.periods[0].updated_at;
+                } else if (result.ok && result.prices) {
+                    // Estrutura antiga: preços diretos
+                    console.log('✅ Preços carregados da base de dados (legado)');
+                    pricesByGroup = result.prices;
+                    updatedAt = result.updated_at;
+                }
+                
+                if (pricesByGroup) {
                     // Atualizar data/hora da última alteração
-                    if (result.updated_at) {
-                        const date = new Date(result.updated_at);
+                    if (updatedAt) {
+                        const date = new Date(updatedAt);
                         const formattedDate = date.toLocaleString('pt-PT', {
                             day: '2-digit',
                             month: '2-digit', 
@@ -572,8 +586,6 @@
                     // Criar cards com os preços carregados
                     const container = document.getElementById('cardsContainer');
                     container.innerHTML = '';
-                    
-                    const pricesByGroup = result.prices;
                     
                     // Definir dias
                     const diasMap = [1, 2, 3, 4, 5, 6, 7, 8, 9, 14, 22, 28, 31, 60];
