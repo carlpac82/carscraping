@@ -35026,6 +35026,7 @@ async def fix_current_prices_constraint(request: Request):
             conn = _db_connect()
             try:
                 is_postgres = conn.__class__.__module__ in ['psycopg2.extensions', 'psycopg2._psycopg']
+                logging.info(f"🔍 Database type: {'PostgreSQL' if is_postgres else 'SQLite'}")
                 
                 if is_postgres:
                     with conn.cursor() as cur:
