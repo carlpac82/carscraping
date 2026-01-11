@@ -303,13 +303,13 @@
             });
         }
 
-        // Popular anos dinamicamente (atual + 3 à frente + histórico)
+        // Popular anos dinamicamente (atual + 3 à frente)
         function populateYears() {
             const yearSelect = document.getElementById('yearSelect');
             const currentYear = new Date().getFullYear();
             
-            // Anos: histórico (desde 2020) até atual + 3
-            const startYear = 2020; // Início do histórico
+            // Anos: 2026 até atual + 3
+            const startYear = 2026; // Programa iniciado em 2026
             const endYear = currentYear + 3;
             
             for (let year = startYear; year <= endYear; year++) {
