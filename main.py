@@ -28961,9 +28961,15 @@ async def export_automated_prices_excel(request: Request):
         # Price calculation logic based on periods
         def calculate_price_for_day(group_prices, day):
             """
-            Calculate price based on day period:
-            - Days 1-7: NET fixed prices (no division)
-            - Days 8+: Daily prices (price / days)
+            Calculate price based on day period (matches Automated Prices exactly):
+            - Days 1-7: NET total prices (ex: 100€ for 7 days)
+            - Day 8 (8-10 daily): NET daily price (ex: 15€/day)
+            - Day 9 (11-12 daily): NET daily price (ex: 14€/day)
+            - Day 14 (13-14 daily): NET daily price (ex: 13€/day)
+            - Day 22 (15-21 daily): NET daily price (ex: 12€/day)
+            - Day 28 (22-28 daily): NET daily price (ex: 11€/day)
+            
+            All prices are used directly as entered in Automated Prices.
             """
             # Try both string and integer keys (frontend sends integers)
             price = group_prices.get(day) or group_prices.get(str(day), '')
@@ -28971,36 +28977,10 @@ async def export_automated_prices_excel(request: Request):
             if not price:
                 return ''
             
-            price = float(price)
-            
-            # Days 1-7: Fixed NET prices (no division)
-            if day <= 7:
-                return price
-            
-            # Days 8+: Daily prices (divide by days)
-            # 8-10 daily: use day 9 price / 9
-            # 11-12 daily: use day 9 price / 9
-            # 13-14 daily: use day 14 price / 14
-            # 15-21 daily: use day 22 price / 22
-            # 22-28 daily: use day 28 price / 28
-            
-            if day == 8:  # 8-10 daily
-                # Use day 9 price / 9
-                price_9 = group_prices.get(9) or group_prices.get('9', '')
-                if price_9:
-                    return float(price_9) / 9
-                return price / 8
-            elif day == 9:  # 11-12 daily
-                # Use day 9 price / 9
-                return price / 9
-            elif day == 14:  # 13-14 daily
-                return price / 14
-            elif day == 22:  # 15-21 daily
-                return price / 22
-            elif day == 28:  # 22-28 daily
-                return price / 28
-            
-            return price
+            # Return price directly - no division needed
+            # Days 1-7: total NET prices
+            # Days 8+: daily NET prices (already daily in Automated Prices)
+            return float(price)
         
         # Get Abbycar price adjustments
         abbycar_adjustment = _get_abbycar_adjustment()
