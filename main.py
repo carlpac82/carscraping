@@ -18211,6 +18211,21 @@ async def load_pricing_strategies(request: Request):
         with _db_lock:
             conn = _db_connect()
             try:
+                # Criar tabela se não existir
+                conn.execute("""
+                    CREATE TABLE IF NOT EXISTS pricing_strategies (
+                        id INTEGER PRIMARY KEY AUTOINCREMENT,
+                        location TEXT NOT NULL,
+                        grupo TEXT NOT NULL,
+                        month INTEGER NOT NULL,
+                        day INTEGER NOT NULL,
+                        priority INTEGER NOT NULL,
+                        config TEXT NOT NULL,
+                        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+                    )
+                """)
+                conn.commit()
+                
                 cursor = conn.execute(
                     "SELECT location, grupo, month, day, priority, config FROM pricing_strategies ORDER BY location, grupo, month, day, priority"
                 )
@@ -18233,6 +18248,7 @@ async def load_pricing_strategies(request: Request):
             finally:
                 conn.close()
     except Exception as e:
+        logging.error(f"Error loading pricing strategies: {e}")
         return JSONResponse({"ok": False, "error": str(e)}, status_code=500)
 
 @app.post("/api/price-automation/history/save")
