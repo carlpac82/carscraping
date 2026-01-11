@@ -777,6 +777,81 @@
                 createBtn.setAttribute('onclick', 'createNewPeriod()');
             }
             
+            closeNewPeriodDialog();
+            
+            console.log('✅ Período atualizado:', allPeriods.map(p => `${p.day_start}-${p.day_end}`));
+        }
+        
+        function deletePeriod() {
+            if (allPeriods.length <= 1) {
+                alert('Não podes eliminar o último período!');
+                return;
+            }
+            
+            const periodToDelete = allPeriods[currentPeriodIndex];
+            const month = parseInt(document.getElementById('monthSelect').value);
+            const year = parseInt(document.getElementById('yearSelect').value);
+            const lastDayOfMonth = new Date(year, month, 0).getDate();
+            
+            if (!confirm(`Eliminar período ${periodToDelete.day_start}-${periodToDelete.day_end}?`)) {
+                return;
+            }
+            
+            console.log(`🗑️ Eliminando período ${periodToDelete.day_start}-${periodToDelete.day_end}`);
+            
+            // Remover período
+            allPeriods.splice(currentPeriodIndex, 1);
+            
+            // Expandir períodos adjacentes para preencher o espaço
+            allPeriods.forEach(period => {
+                // Se período termina antes do eliminado, expandir até o início do eliminado
+                if (period.day_end === periodToDelete.day_start - 1) {
+                    // Verificar se há outro período depois
+                    const nextPeriod = allPeriods.find(p => p.day_start === periodToDelete.day_end + 1);
+                    if (nextPeriod) {
+                        period.day_end = nextPeriod.day_start - 1;
+                    } else {
+                        period.day_end = lastDayOfMonth;
+                    }
+                    console.log(`📅 Expandindo período para ${period.day_start}-${period.day_end}`);
+                }
+                // Se período começa depois do eliminado, expandir até o fim do eliminado
+                if (period.day_start === periodToDelete.day_end + 1) {
+                    // Verificar se há outro período antes
+                    const prevPeriod = allPeriods.find(p => p.day_end === periodToDelete.day_start - 1);
+                    if (prevPeriod) {
+                        period.day_start = prevPeriod.day_end + 1;
+                    } else {
+                        period.day_start = 1;
+                    }
+                    console.log(`📅 Expandindo período para ${period.day_start}-${period.day_end}`);
+                }
+            });
+            
+            // Se não há períodos adjacentes, criar um período completo
+            if (allPeriods.length === 0) {
+                allPeriods.push({
+                    prices: {},
+                    updated_at: new Date().toISOString(),
+                    day_start: 1,
+                    day_end: lastDayOfMonth
+                });
+            }
+            
+            // Ordenar períodos
+            allPeriods.sort((a, b) => a.day_start - b.day_start);
+            
+            // Atualizar UI
+            currentPeriodIndex = Math.max(0, currentPeriodIndex - 1);
+            updatePeriodSelector();
+            loadPeriodByIndex(currentPeriodIndex);
+            
+            console.log('✅ Período eliminado e períodos ajustados:', allPeriods.map(p => `${p.day_start}-${p.day_end}`));
+        }
+        
+        function loadPeriodByIndex(index) {
+            if (index < 0 || index >= allPeriods.length) return;
+            
             currentPeriodIndex = index;
             const period = allPeriods[index];
             
