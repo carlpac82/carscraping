@@ -6704,6 +6704,15 @@
             // Switch to automated prices tab
             switchTab('automated');
             
+            // Preencher campo de localização se disponível
+            if (historyData.location) {
+                const locationSelect = document.getElementById('locationAuto');
+                if (locationSelect) {
+                    locationSelect.value = historyData.location;
+                    console.log('[HISTORY] 📍 Localização definida:', historyData.location);
+                }
+            }
+            
             // Load search parameters
             const dias = historyData.dias;
             const prices = historyData.prices;
