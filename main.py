@@ -35025,7 +35025,12 @@ async def check_current_prices_table(request: Request):
         with _db_lock:
             conn = _db_connect()
             try:
-                is_postgres = conn.__class__.__module__ in ['psycopg2.extensions', 'psycopg2._psycopg']
+                # Melhor detecção de PostgreSQL
+                conn_module = conn.__class__.__module__
+                conn_class = conn.__class__.__name__
+                is_postgres = 'psycopg' in conn_module or conn_class == 'connection'
+                
+                logging.info(f"🔍 Connection module: {conn_module}, class: {conn_class}, is_postgres: {is_postgres}")
                 
                 if is_postgres:
                     with conn.cursor() as cur:
@@ -35057,10 +35062,15 @@ async def check_current_prices_table(request: Request):
                     cursor = conn.execute("PRAGMA table_info(current_prices)")
                     columns = cursor.fetchall()
                     
+                    # Verificar constraints SQLite
+                    cursor2 = conn.execute("SELECT sql FROM sqlite_master WHERE type='table' AND name='current_prices'")
+                    table_sql = cursor2.fetchone()
+                    
                     return JSONResponse({
                         "ok": True,
                         "database": "SQLite",
-                        "columns": [{"cid": c[0], "name": c[1], "type": c[2], "notnull": c[3], "default": c[4]} for c in columns]
+                        "columns": [{"cid": c[0], "name": c[1], "type": c[2], "notnull": c[3], "default": c[4]} for c in columns],
+                        "create_sql": table_sql[0] if table_sql else None
                     })
             finally:
                 conn.close()

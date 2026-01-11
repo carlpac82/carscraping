@@ -25,12 +25,11 @@ def calculate_commission(net_price):
     return round(net_price * (1 + COMMISSION_RATE), 2)
 
 def load_prices_from_db(conn, location, month, year, day_start=None, day_end=None):
-    """Carrega preços da base de dados
-    Se day_start/day_end não forem especificados, retorna todos os períodos do mês
-    """
+    """Carrega preços da base de dados para um período específico ou todos os períodos de um mês"""
     try:
         # Detectar se é PostgreSQL ou SQLite
-        is_postgres = conn.__class__.__module__ in ['psycopg2.extensions', 'psycopg2._psycopg']
+        conn_module = conn.__class__.__module__
+        is_postgres = 'psycopg' in conn_module or conn.__class__.__name__ == 'connection'
         
         if is_postgres:
             # PostgreSQL
@@ -156,7 +155,11 @@ def save_prices_to_db(conn, location, month, year, prices_data, day_start=1, day
         prices_json = json.dumps(prices_data)
         
         # Detectar se é PostgreSQL ou SQLite
-        is_postgres = conn.__class__.__module__ in ['psycopg2.extensions', 'psycopg2._psycopg']
+        conn_module = conn.__class__.__module__
+        conn_class = conn.__class__.__name__
+        is_postgres = 'psycopg' in conn_module or conn_class == 'connection'
+        
+        logging.info(f"🔍 save_prices_to_db - module: {conn_module}, class: {conn_class}, is_postgres: {is_postgres}")
         
         if is_postgres:
             # PostgreSQL - garantir que colunas day_start e day_end existem
