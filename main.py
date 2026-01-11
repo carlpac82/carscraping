@@ -28961,15 +28961,23 @@ async def export_automated_prices_excel(request: Request):
         # Price calculation logic based on periods
         def calculate_price_for_day(group_prices, day):
             """
-            Calculate price based on day period (matches Automated Prices exactly):
-            - Days 1-7: NET total prices (ex: 100€ for 7 days)
-            - Day 8 (8-10 daily): NET daily price (ex: 15€/day)
-            - Day 9 (11-12 daily): NET daily price (ex: 14€/day)
-            - Day 14 (13-14 daily): NET daily price (ex: 13€/day)
-            - Day 22 (15-21 daily): NET daily price (ex: 12€/day)
-            - Day 28 (22-28 daily): NET daily price (ex: 11€/day)
+            Calculate price based on day period (matches Automated Prices logic):
             
-            All prices are used directly as entered in Automated Prices.
+            - Days 1-7: NET total prices (ex: 100€ for 7 days)
+              → Use directly
+            
+            - Day 8 (8-10 daily): NET total price ÷ 8 days
+              → Ex: 100€ ÷ 8 = 12.5€/day
+              → Then Current Prices applies % (ex: +5%)
+              → Then Admin Settings applies % (ex: +25%)
+            
+            - Day 9 (11-12 daily): NET total price ÷ 9 days
+            - Day 14 (13-14 daily): NET total price ÷ 14 days
+            - Day 22 (15-21 daily): NET total price ÷ 22 days
+            - Day 28 (22-28 daily): NET total price ÷ 28 days
+            
+            The % from Current Prices is already applied in the price received.
+            We only need to apply Admin Settings % (Abbycar adjustment).
             """
             # Try both string and integer keys (frontend sends integers)
             price = group_prices.get(day) or group_prices.get(str(day), '')
@@ -28977,10 +28985,15 @@ async def export_automated_prices_excel(request: Request):
             if not price:
                 return ''
             
-            # Return price directly - no division needed
-            # Days 1-7: total NET prices
-            # Days 8+: daily NET prices (already daily in Automated Prices)
-            return float(price)
+            price = float(price)
+            
+            # Days 1-7: Use NET total prices directly
+            if day <= 7:
+                return price
+            
+            # Days 8+: Price received already includes division by days + Current Prices %
+            # Just return it (Admin Settings % will be applied later)
+            return price
         
         # Get Abbycar price adjustments
         abbycar_adjustment = _get_abbycar_adjustment()
