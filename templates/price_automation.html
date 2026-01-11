@@ -9782,42 +9782,77 @@ Continue?`);
                     detectedEndDay = temp;
                 }
                 
-                console.log(`📅 Período detectado: ${detectedStartDay}-${detectedEndDay}`);
+                console.log(`Período detectado: ${detectedStartDay}-${detectedEndDay}`);
                 
-                // Criar popup personalizado com seleção de período
+                // Carregar períodos existentes da API
+                let existingPeriods = [];
+                try {
+                    const periodsResponse = await fetch(`/api/current-prices/load?location=${encodeURIComponent(location)}&month=${month}&year=${year}`);
+                    const periodsResult = await periodsResponse.json();
+                    if (periodsResult.ok && periodsResult.periods && periodsResult.periods.length > 0) {
+                        existingPeriods = periodsResult.periods;
+                        console.log(`Períodos existentes carregados: ${existingPeriods.length}`);
+                    }
+                } catch (err) {
+                    console.warn('Não foi possível carregar períodos existentes:', err);
+                }
+                
+                // Criar opções do dropdown
+                let periodOptionsHtml = '<option value="new">Criar novo período</option>';
+                existingPeriods.forEach((period, idx) => {
+                    const isDetected = period.day_start === detectedStartDay && period.day_end === detectedEndDay;
+                    periodOptionsHtml += `<option value="${idx}" ${isDetected ? 'selected' : ''}>${period.day_start}-${period.day_end}</option>`;
+                });
+                
+                // Criar popup personalizado com design clean e minimalista
                 const periodPopupHtml = `
-                    <div style="background: white; padding: 24px; border-radius: 12px; max-width: 450px; box-shadow: 0 10px 40px rgba(0,0,0,0.2);">
-                        <h3 style="margin: 0 0 16px 0; font-size: 18px; font-weight: 600; color: #1f2937;">
-                            🔄 Atualizar Current Prices
-                        </h3>
-                        <div style="margin-bottom: 20px; padding: 12px; background: #f3f4f6; border-radius: 8px;">
-                            <div style="font-size: 14px; color: #6b7280; margin-bottom: 4px;">Localização e Mês:</div>
-                            <div style="font-size: 16px; font-weight: 600; color: #1f2937;">${location} - ${monthNames[month]}/${year}</div>
+                    <div style="background: white; padding: 32px; border-radius: 8px; max-width: 480px; box-shadow: 0 20px 60px rgba(0,0,0,0.15); font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;">
+                        <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 24px; padding-bottom: 16px; border-bottom: 1px solid #e5e7eb;">
+                            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="color: #009cb6;">
+                                <path d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/>
+                            </svg>
+                            <h3 style="margin: 0; font-size: 20px; font-weight: 600; color: #111827; letter-spacing: -0.02em;">
+                                Atualizar Current Prices
+                            </h3>
                         </div>
-                        <div style="margin-bottom: 20px;">
-                            <label style="display: block; font-size: 14px; font-weight: 500; color: #374151; margin-bottom: 8px;">
-                                Período a atualizar:
+                        
+                        <div style="margin-bottom: 24px;">
+                            <div style="font-size: 13px; color: #6b7280; margin-bottom: 6px; text-transform: uppercase; letter-spacing: 0.05em; font-weight: 500;">Localização e Mês</div>
+                            <div style="font-size: 16px; font-weight: 500; color: #111827;">${location} · ${monthNames[month]}/${year}</div>
+                        </div>
+                        
+                        <div style="margin-bottom: 24px;">
+                            <label style="display: block; font-size: 13px; font-weight: 500; color: #374151; margin-bottom: 8px;">
+                                Selecionar Período
+                            </label>
+                            <select id="popup_period_select" style="width: 100%; padding: 10px 12px; border: 1px solid #d1d5db; border-radius: 6px; font-size: 14px; color: #111827; background: white; cursor: pointer; outline: none; transition: border-color 0.2s;">
+                                ${periodOptionsHtml}
+                            </select>
+                        </div>
+                        
+                        <div id="custom_period_inputs" style="margin-bottom: 24px; display: none;">
+                            <label style="display: block; font-size: 13px; font-weight: 500; color: #374151; margin-bottom: 8px;">
+                                Definir Período Personalizado
                             </label>
                             <div style="display: flex; align-items: center; gap: 12px;">
                                 <div style="flex: 1;">
-                                    <label style="display: block; font-size: 12px; color: #6b7280; margin-bottom: 4px;">Dia Início</label>
-                                    <input type="number" id="popup_start_day" min="1" max="31" value="${detectedStartDay}" 
-                                           style="width: 100%; padding: 8px 12px; border: 2px solid #d1d5db; border-radius: 6px; font-size: 14px; text-align: center;">
+                                    <input type="number" id="popup_start_day" min="1" max="31" value="${detectedStartDay}" placeholder="Início"
+                                           style="width: 100%; padding: 10px 12px; border: 1px solid #d1d5db; border-radius: 6px; font-size: 14px; text-align: center; outline: none; transition: border-color 0.2s;">
                                 </div>
-                                <div style="padding-top: 20px; color: #9ca3af;">→</div>
+                                <div style="color: #9ca3af; font-weight: 300;">—</div>
                                 <div style="flex: 1;">
-                                    <label style="display: block; font-size: 12px; color: #6b7280; margin-bottom: 4px;">Dia Fim</label>
-                                    <input type="number" id="popup_end_day" min="1" max="31" value="${detectedEndDay}" 
-                                           style="width: 100%; padding: 8px 12px; border: 2px solid #d1d5db; border-radius: 6px; font-size: 14px; text-align: center;">
+                                    <input type="number" id="popup_end_day" min="1" max="31" value="${detectedEndDay}" placeholder="Fim"
+                                           style="width: 100%; padding: 10px 12px; border: 1px solid #d1d5db; border-radius: 6px; font-size: 14px; text-align: center; outline: none; transition: border-color 0.2s;">
                                 </div>
                             </div>
                         </div>
-                        <div style="display: flex; gap: 12px; margin-top: 24px;">
-                            <button id="periodCancelBtn" style="flex: 1; padding: 10px 20px; background: #e5e7eb; color: #374151; border: none; border-radius: 8px; font-weight: 500; cursor: pointer; font-size: 14px;">
+                        
+                        <div style="display: flex; gap: 12px; margin-top: 32px;">
+                            <button id="periodCancelBtn" style="flex: 1; padding: 12px 24px; background: #f3f4f6; color: #374151; border: none; border-radius: 6px; font-weight: 500; cursor: pointer; font-size: 14px; transition: background 0.2s;">
                                 Cancelar
                             </button>
-                            <button id="periodConfirmBtn" style="flex: 1; padding: 10px 20px; background: #8b5cf6; color: white; border: none; border-radius: 8px; font-weight: 500; cursor: pointer; font-size: 14px;">
-                                ✅ Atualizar
+                            <button id="periodConfirmBtn" style="flex: 1; padding: 12px 24px; background: #009cb6; color: white; border: none; border-radius: 6px; font-weight: 500; cursor: pointer; font-size: 14px; transition: background 0.2s;">
+                                Atualizar
                             </button>
                         </div>
                     </div>
@@ -9825,9 +9860,42 @@ Continue?`);
                 
                 // Criar overlay e mostrar popup
                 const overlay = document.createElement('div');
-                overlay.style.cssText = 'position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.5); display: flex; align-items: center; justify-content: center; z-index: 10000;';
+                overlay.style.cssText = 'position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.4); backdrop-filter: blur(4px); display: flex; align-items: center; justify-content: center; z-index: 10000; animation: fadeIn 0.2s ease-out;';
                 overlay.innerHTML = periodPopupHtml;
                 document.body.appendChild(overlay);
+                
+                // Adicionar estilos de hover
+                const style = document.createElement('style');
+                style.textContent = `
+                    @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+                    #periodCancelBtn:hover { background: #e5e7eb !important; }
+                    #periodConfirmBtn:hover { background: #008ba0 !important; }
+                    #popup_period_select:focus, #popup_start_day:focus, #popup_end_day:focus { border-color: #009cb6 !important; }
+                `;
+                document.head.appendChild(style);
+                
+                // Lógica para mostrar/esconder inputs personalizados
+                const periodSelect = document.getElementById('popup_period_select');
+                const customInputs = document.getElementById('custom_period_inputs');
+                
+                periodSelect.addEventListener('change', () => {
+                    if (periodSelect.value === 'new') {
+                        customInputs.style.display = 'block';
+                    } else {
+                        customInputs.style.display = 'none';
+                        // Preencher com período selecionado
+                        const selectedPeriod = existingPeriods[parseInt(periodSelect.value)];
+                        if (selectedPeriod) {
+                            document.getElementById('popup_start_day').value = selectedPeriod.day_start;
+                            document.getElementById('popup_end_day').value = selectedPeriod.day_end;
+                        }
+                    }
+                });
+                
+                // Trigger inicial se "new" estiver selecionado
+                if (periodSelect.value === 'new') {
+                    customInputs.style.display = 'block';
+                }
                 
                 // Aguardar resposta do usuário
                 const userChoice = await new Promise((resolve) => {
@@ -9846,8 +9914,9 @@ Continue?`);
                     };
                 });
                 
-                // Remover popup
+                // Remover popup e style
                 document.body.removeChild(overlay);
+                document.head.removeChild(style);
                 
                 if (!userChoice.confirmed) {
                     return;
@@ -9856,9 +9925,9 @@ Continue?`);
                 const finalStartDay = userChoice.startDay;
                 const finalEndDay = userChoice.endDay;
                 
-                console.log(`✅ Período confirmado: ${finalStartDay}-${finalEndDay}`);
+                console.log(`Período confirmado: ${finalStartDay}-${finalEndDay}`);
                 
-                showNotification('🔄 Coletando preços ajustados...', 'info', 2000);
+                showNotification('Coletando preços ajustados...', 'info', 2000);
                 
                 // Coletar preços dos inputs NET
                 const prices = {};
