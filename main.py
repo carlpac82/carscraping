@@ -34886,16 +34886,30 @@ async def load_current_prices(request: Request, location: str, month: int, year:
                     raise
                 
                 if prices:
-                    # Converter datetime para string se necessário
-                    if updated_at and hasattr(updated_at, 'isoformat'):
-                        updated_at = updated_at.isoformat()
                     # Se retornou lista de períodos
                     if isinstance(prices, list):
                         logging.info(f"Returning {len(prices)} periods")
                         return JSONResponse({"ok": True, "periods": prices})
                     else:
-                        logging.info(f"Returning single period with {len(prices)} groups")
-                        return JSONResponse({"ok": True, "prices": prices, "updated_at": updated_at})
+                        # Converter datetime para string se necessário
+                        if updated_at and hasattr(updated_at, 'isoformat'):
+                            updated_at = updated_at.isoformat()
+                        
+                        # Se não há day_start/day_end especificados, retornar como lista de períodos
+                        if day_start is None and day_end is None:
+                            # Retornar como lista de períodos para compatibilidade com novo frontend
+                            periods = [{
+                                'prices': prices,
+                                'updated_at': updated_at,
+                                'day_start': 1,
+                                'day_end': 31
+                            }]
+                            logging.info(f"Returning 1 period (converted from single)")
+                            return JSONResponse({"ok": True, "periods": periods})
+                        else:
+                            # Período específico solicitado
+                            logging.info(f"Returning single period with {len(prices)} groups")
+                            return JSONResponse({"ok": True, "prices": prices, "updated_at": updated_at})
                 else:
                     logging.info("No prices found")
                     return JSONResponse({"ok": False, "message": "No prices found"})
