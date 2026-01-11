@@ -55,6 +55,7 @@ def load_prices_from_db(conn, location, month, year, day_start=None, day_end=Non
                         return None, None
                 else:
                     # Carregar todos os períodos do mês
+                    logging.info(f"Loading all periods for {location}, month={month}, year={year}")
                     cur.execute("""
                         SELECT prices_data, updated_at, day_start, day_end
                         FROM current_prices 
@@ -63,6 +64,7 @@ def load_prices_from_db(conn, location, month, year, day_start=None, day_end=Non
                     """, (location, month, year))
                     
                     rows = cur.fetchall()
+                    logging.info(f"Found {len(rows)} rows for {location}, {month}/{year}")
                     if rows:
                         periods = []
                         for row in rows:
