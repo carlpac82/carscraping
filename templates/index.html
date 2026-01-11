@@ -586,28 +586,20 @@
             }
             
             // Verificar se há sobreposição com períodos existentes e ajustar automaticamente
-            let sourcePrices = null;
-            
             allPeriods.forEach(period => {
                 // Se novo período começa dentro de um período existente
                 if (dayStart > period.day_start && dayStart <= period.day_end) {
                     console.log(`📅 Ajustando período ${period.day_start}-${period.day_end} para ${period.day_start}-${dayStart - 1}`);
-                    // Copiar preços do período original para o novo período
-                    if (!sourcePrices) sourcePrices = JSON.parse(JSON.stringify(period.prices));
                     period.day_end = dayStart - 1;
                 }
                 // Se novo período termina dentro de um período existente
                 if (dayEnd >= period.day_start && dayEnd < period.day_end) {
                     console.log(`📅 Ajustando período ${period.day_start}-${period.day_end} para ${dayEnd + 1}-${period.day_end}`);
-                    // Copiar preços do período original para o novo período
-                    if (!sourcePrices) sourcePrices = JSON.parse(JSON.stringify(period.prices));
                     period.day_start = dayEnd + 1;
                 }
                 // Se novo período engloba completamente um período existente
                 if (dayStart <= period.day_start && dayEnd >= period.day_end) {
                     console.log(`⚠️ Novo período ${dayStart}-${dayEnd} engloba período ${period.day_start}-${period.day_end} - será removido`);
-                    // Copiar preços do período que vai ser removido
-                    if (!sourcePrices) sourcePrices = JSON.parse(JSON.stringify(period.prices));
                     period.toRemove = true;
                 }
             });
@@ -615,15 +607,15 @@
             // Remover períodos englobados
             allPeriods = allPeriods.filter(p => !p.toRemove);
             
-            // Criar novo período com preços copiados do período original
+            // Criar novo período VAZIO (sem preços - serão adicionados via upload CSV)
             const newPeriod = {
-                prices: sourcePrices || {},
+                prices: {},
                 updated_at: new Date().toISOString(),
                 day_start: dayStart,
                 day_end: dayEnd
             };
             
-            console.log(`✅ Novo período criado com ${Object.keys(newPeriod.prices).length} grupos de preços`);
+            console.log(`✅ Novo período criado vazio (sem preços)`);
             
             allPeriods.push(newPeriod);
             
