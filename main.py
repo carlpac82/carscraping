@@ -35302,9 +35302,11 @@ async def save_current_prices(request: Request):
         day_start = data.get('day_start', 1)
         day_end = data.get('day_end', 31)
         
-        logging.info(f"🔥 INLINE SAVE (NO MODULES) - {location}, {month}/{year}, {day_start}-{day_end}")
+        logging.info(f"🔥🔥🔥 INLINE SAVE VERSION 2026-01-11-15:50 🔥🔥🔥")
+        logging.info(f"🔥 Location: {location}, Month: {month}, Year: {year}, Days: {day_start}-{day_end}")
         
         prices_json = json.dumps(prices)
+        logging.info(f"🔥 JSON length: {len(prices_json)} chars")
         
         with _db_lock:
             conn = _db_connect()
@@ -35313,7 +35315,8 @@ async def save_current_prices(request: Request):
                 conn_module = conn.__class__.__module__
                 is_postgres = 'psycopg' in conn_module
                 
-                logging.info(f"🔥 Database: {'PostgreSQL' if is_postgres else 'SQLite'}")
+                logging.info(f"🔥 Database module: {conn_module}")
+                logging.info(f"🔥 Is PostgreSQL: {is_postgres}")
                 
                 if is_postgres:
                     # PostgreSQL - SELECT + UPDATE/INSERT (SEM ON CONFLICT)
