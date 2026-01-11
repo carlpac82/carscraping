@@ -624,8 +624,14 @@
             
             console.log('✅ Período criado e períodos ajustados:', allPeriods.map(p => `${p.day_start}-${p.day_end}`));
             
-            // Guardar TODOS os períodos na base de dados (incluindo o novo e os ajustados)
-            await saveAllPeriods();
+            // Guardar apenas os períodos que têm preços (não guardar período vazio)
+            const periodsWithPrices = allPeriods.filter(p => Object.keys(p.prices).length > 0);
+            if (periodsWithPrices.length > 0) {
+                console.log(`💾 Guardando ${periodsWithPrices.length} períodos com preços...`);
+                await savePeriodsWithPrices(periodsWithPrices);
+            } else {
+                console.log('⚠️ Nenhum período com preços para guardar');
+            }
             
             updatePeriodSelector();
             loadPeriodByIndex(allPeriods.length - 1);
@@ -855,13 +861,11 @@
             });
         });
         
-        // Guardar TODOS os períodos na base de dados
-        async function saveAllPeriods() {
+        // Guardar apenas períodos com preços
+        async function savePeriodsWithPrices(periods) {
             const location = document.getElementById('locationSelect').value;
             const month = parseInt(document.getElementById('monthSelect').value);
             const year = parseInt(document.getElementById('yearSelect').value);
-            
-            console.log(`💾 Guardando ${allPeriods.length} períodos na base de dados...`);
             
             try {
                 // Primeiro, eliminar todos os períodos existentes deste mês
@@ -876,8 +880,8 @@
                     console.log(`🗑️ Períodos antigos eliminados`);
                 }
                 
-                // Depois, inserir todos os novos períodos
-                for (const period of allPeriods) {
+                // Depois, inserir os períodos com preços
+                for (const period of periods) {
                     const response = await fetch('/api/current-prices/save', {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json' },
@@ -1375,39 +1379,57 @@
             const month = parseInt(document.getElementById('monthSelect').value);
             const year = parseInt(document.getElementById('yearSelect').value);
             
-            // Obter day_start e day_end do período atual
-            let dayStart = 1;
-            let dayEnd = new Date(year, month, 0).getDate(); // Último dia do mês
+            // Atualizar preços do período atual
             if (allPeriods.length > 0 && currentPeriodIndex >= 0) {
-                dayStart = allPeriods[currentPeriodIndex].day_start;
-                dayEnd = allPeriods[currentPeriodIndex].day_end;
+                allPeriods[currentPeriodIndex].prices = pricesByGroup;
+                allPeriods[currentPeriodIndex].updated_at = new Date().toISOString();
             }
             
-            console.log(`💾 Guardando preços para período ${dayStart}-${dayEnd}`);
+            console.log(`💾 Guardando preços para período ${allPeriods[currentPeriodIndex].day_start}-${allPeriods[currentPeriodIndex].day_end}`);
             
+            // Guardar TODOS os períodos (incluindo o que acabou de receber preços)
             try {
-                const response = await fetch('/api/current-prices/save', {
+                // Primeiro, eliminar todos os períodos existentes deste mês
+                const deleteResponse = await fetch('/api/current-prices/delete-month', {
                     method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                    },
-                    body: JSON.stringify({
-                        location: location,
-                        month: month,
-                        year: year,
-                        prices: pricesByGroup,
-                        day_start: dayStart,
-                        day_end: dayEnd
-                    })
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ location, month, year })
                 });
                 
-                const result = await response.json();
-                
-                if (result.ok) {
-                    console.log('✅ Preços guardados com sucesso!');
-                } else {
-                    console.error('❌ Erro ao guardar preços:', result.error);
+                const deleteResult = await deleteResponse.json();
+                if (deleteResult.ok) {
+                    console.log(`🗑️ Períodos antigos eliminados`);
                 }
+                
+                // Depois, inserir todos os períodos (incluindo os vazios)
+                for (const period of allPeriods) {
+                    // Só guardar períodos que têm preços
+                    if (Object.keys(period.prices).length > 0) {
+                        const response = await fetch('/api/current-prices/save', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({
+                                location,
+                                month,
+                                year,
+                                prices: period.prices,
+                                day_start: period.day_start,
+                                day_end: period.day_end
+                            })
+                        });
+                        
+                        const result = await response.json();
+                        if (result.ok) {
+                            console.log(`✅ Período ${period.day_start}-${period.day_end} guardado com sucesso!`);
+                        } else {
+                            console.error(`❌ Erro ao guardar período ${period.day_start}-${period.day_end}:`, result.error);
+                        }
+                    } else {
+                        console.log(`⏭️ Período ${period.day_start}-${period.day_end} vazio - não guardado`);
+                    }
+                }
+                
+                console.log('✅ Preços guardados com sucesso!');
             } catch (error) {
                 console.error('❌ Erro ao guardar preços:', error);
             }
