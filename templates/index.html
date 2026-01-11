@@ -358,6 +358,32 @@
         </div>
     </main>
 
+    <!-- Modal para criar novo período -->
+    <div id="newPeriodModal" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 9998; align-items: center; justify-content: center;">
+        <div style="background: white; padding: 24px; border-radius: 8px; max-width: 400px; width: 90%;">
+            <h3 style="margin: 0 0 16px 0; font-size: 18px; font-weight: 700; color: #111827;">Criar Novo Período</h3>
+            
+            <div style="margin-bottom: 12px;">
+                <label style="display: block; font-size: 12px; font-weight: 600; color: #6b7280; margin-bottom: 4px;">Dia Início</label>
+                <input type="number" id="newPeriodDayStart" min="1" max="31" value="1" style="width: 100%; padding: 8px; border: 1px solid #e5e7eb; font-size: 14px;">
+            </div>
+            
+            <div style="margin-bottom: 16px;">
+                <label style="display: block; font-size: 12px; font-weight: 600; color: #6b7280; margin-bottom: 4px;">Dia Fim</label>
+                <input type="number" id="newPeriodDayEnd" min="1" max="31" value="31" style="width: 100%; padding: 8px; border: 1px solid #e5e7eb; font-size: 14px;">
+            </div>
+            
+            <div style="display: flex; gap: 8px; justify-content: flex-end;">
+                <button onclick="closeNewPeriodDialog()" style="padding: 8px 16px; background: #e5e7eb; color: #374151; border: none; font-size: 14px; font-weight: 600; cursor: pointer;">
+                    Cancelar
+                </button>
+                <button onclick="createNewPeriod()" style="padding: 8px 16px; background: #10b981; color: white; border: none; font-size: 14px; font-weight: 600; cursor: pointer;">
+                    Criar Período
+                </button>
+            </div>
+        </div>
+    </div>
+
     <!-- Loading Overlay -->
     <div id="loadingOverlay" class="loading-overlay">
         <div class="loading-spinner">
@@ -525,25 +551,191 @@
             return groupToCarName[grupo] || grupo.toLowerCase();
         }
         
+        // Variáveis globais para gestão de períodos
+        let allPeriods = [];
+        let currentPeriodIndex = 0;
+        
+        // Funções para modal de novo período
+        function showNewPeriodDialog() {
+            document.getElementById('newPeriodModal').style.display = 'flex';
+        }
+        
+        function closeNewPeriodDialog() {
+            document.getElementById('newPeriodModal').style.display = 'none';
+        }
+        
+        async function createNewPeriod() {
+            const dayStart = parseInt(document.getElementById('newPeriodDayStart').value);
+            const dayEnd = parseInt(document.getElementById('newPeriodDayEnd').value);
+            
+            if (dayStart < 1 || dayStart > 31 || dayEnd < 1 || dayEnd > 31 || dayStart > dayEnd) {
+                alert('Dias inválidos! Dia início deve ser menor ou igual ao dia fim.');
+                return;
+            }
+            
+            // Criar período vazio
+            const newPeriod = {
+                prices: {},
+                updated_at: new Date().toISOString(),
+                day_start: dayStart,
+                day_end: dayEnd
+            };
+            
+            allPeriods.push(newPeriod);
+            updatePeriodSelector();
+            loadPeriodByIndex(allPeriods.length - 1);
+            closeNewPeriodDialog();
+        }
+        
+        function updatePeriodSelector() {
+            const selector = document.getElementById('periodSelect');
+            selector.innerHTML = '<option value="">Selecionar...</option>';
+            
+            allPeriods.forEach((period, index) => {
+                const option = document.createElement('option');
+                option.value = index;
+                option.textContent = `Dias ${period.day_start}-${period.day_end}`;
+                selector.appendChild(option);
+            });
+            
+            if (allPeriods.length > 0) {
+                selector.value = currentPeriodIndex;
+            }
+        }
+        
+        function loadPeriodByIndex(index) {
+            if (index < 0 || index >= allPeriods.length) return;
+            
+            currentPeriodIndex = index;
+            const period = allPeriods[index];
+            
+            // Atualizar selector
+            document.getElementById('periodSelect').value = index;
+            
+            // Renderizar preços deste período
+            renderPricesForPeriod(period.prices, period.updated_at);
+        }
+        
+        function renderPricesForPeriod(pricesByGroup, updatedAt) {
+            // Atualizar data/hora
+            if (updatedAt) {
+                const date = new Date(updatedAt);
+                const formattedDate = date.toLocaleString('pt-PT', {
+                    day: '2-digit',
+                    month: '2-digit', 
+                    year: 'numeric',
+                    hour: '2-digit',
+                    minute: '2-digit'
+                });
+                document.getElementById('lastUpdated').textContent = `Última alteração: ${formattedDate}`;
+            } else {
+                document.getElementById('lastUpdated').textContent = '';
+            }
+            
+            // Criar cards com os preços
+            const container = document.getElementById('cardsContainer');
+            container.innerHTML = '';
+            
+            const diasMap = [1, 2, 3, 4, 5, 6, 7, 8, 9, 14, 22, 28, 31, 60];
+            
+            // Reordenar grupos: C3, C4, C5 no final
+            const allGroups = Object.keys(pricesByGroup);
+            const gruposFinais = ['C3', 'C4', 'C5'].filter(g => allGroups.includes(g));
+            const gruposOrdenados = allGroups.filter(g => !gruposFinais.includes(g));
+            const grupos = [...gruposOrdenados, ...gruposFinais];
+            
+            grupos.forEach(grupo => {
+                const groupPrices = pricesByGroup[grupo];
+                
+                if (grupo === 'X') return;
+                
+                const isGroupK = ['BK1','BK2','DK','EK1','EK2','FK','JK1','JK2','LK1','MK1','MK2','NK'].includes(grupo);
+                const isCommercial = ['C3','C4','C5'].includes(grupo);
+                const location = document.getElementById('locationSelect').value;
+                
+                if (isCommercial && location === 'Aeroporto de Faro') return;
+                
+                const card = document.createElement('div');
+                card.className = 'price-card';
+                
+                let photoSrc;
+                if (isCommercial) {
+                    photoSrc = `/static/${grupo.toLowerCase()}.png`;
+                } else {
+                    photoSrc = `/api/vehicles/${encodeURIComponent(getCarNameForGroup(grupo))}/photo?t=${Date.now()}`;
+                }
+                
+                let html = `
+                    <div class="flex items-center justify-center mb-2">
+                        <h3 class="text-xl font-bold text-[#009cb6]">Grupo ${grupo}</h3>
+                    </div>
+                    
+                    <img src="${photoSrc}" alt="${grupo}" class="car-image" onerror="this.style.display='none';">
+                    
+                    <div class="price-header">
+                        <span class="text-[8px] font-medium text-gray-600 w-8"></span>
+                        <span class="price-header-label net">NET</span>
+                        <span class="price-header-label commission">GROSS</span>
+                    </div>
+                    
+                    <div>`;
+                
+                diasMap.forEach(dia => {
+                    const netPrice = groupPrices[dia] || 0;
+                    const commPrice = isCommercial ? (netPrice === 0 ? '0.00' : netPrice.toFixed(2)) : (netPrice > 0 ? (netPrice * 1.1366).toFixed(2) : '0.00');
+                    html += `<div class="price-row">
+                        <span class="text-[9px] font-medium text-gray-600 w-8">${dia}d</span>
+                        <input type="number" class="price-input" value="${netPrice.toFixed(2)}" step="0.01">
+                        <input type="number" class="price-input commission" value="${commPrice}" step="0.01">
+                    </div>`;
+                });
+                
+                html += `</div>`;
+                card.innerHTML = html;
+                container.appendChild(card);
+            });
+            
+            updateCommissionPrices();
+            filterCards();
+        }
+        
+        // Event listener para mudança de período
+        document.addEventListener('DOMContentLoaded', function() {
+            document.getElementById('periodSelect').addEventListener('change', function() {
+                const index = parseInt(this.value);
+                if (!isNaN(index)) {
+                    loadPeriodByIndex(index);
+                }
+            });
+        });
+        
         // Guardar preços na base de dados
         async function savePricesToDB(prices) {
             const location = document.getElementById('locationSelect').value;
             const month = parseInt(document.getElementById('monthSelect').value);
             const year = parseInt(document.getElementById('yearSelect').value);
             
-            console.log('💾 Guardando preços:', { location, month, year, gruposCount: Object.keys(prices).length });
+            // Obter day_start e day_end do período atual
+            let dayStart = 1;
+            let dayEnd = 31;
+            if (allPeriods.length > 0 && currentPeriodIndex >= 0) {
+                dayStart = allPeriods[currentPeriodIndex].day_start;
+                dayEnd = allPeriods[currentPeriodIndex].day_end;
+            }
+            
+            console.log('💾 Guardando preços:', { location, month, year, dayStart, dayEnd, gruposCount: Object.keys(prices).length });
             
             try {
                 const response = await fetch('/api/current-prices/save', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ location, month, year, prices })
+                    body: JSON.stringify({ location, month, year, prices, day_start: dayStart, day_end: dayEnd })
                 });
                 
                 const result = await response.json();
                 if (result.ok) {
                     console.log('✅ Preços guardados na base de dados com sucesso!');
-                    console.log('📍 Localização:', location, '| Mês:', month, '| Ano:', year);
+                    console.log('📍 Localização:', location, '| Mês:', month, '| Ano:', year, '| Período:', `${dayStart}-${dayEnd}`);
                 } else {
                     console.error('❌ Erro ao guardar preços:', result.error);
                     alert('Erro ao guardar preços: ' + result.error);
