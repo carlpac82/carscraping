@@ -35017,6 +35017,46 @@ async def list_all_current_prices(request: Request):
         logging.error(f"Error listing prices: {e}")
         return JSONResponse({"ok": False, "error": str(e)}, status_code=500)
 
+@app.get("/api/current-prices/fix-constraint")
+async def fix_current_prices_constraint(request: Request):
+    """Corrigir constraint UNIQUE para suportar múltiplos períodos por mês"""
+    require_auth(request)
+    try:
+        with _db_lock:
+            conn = _db_connect()
+            try:
+                is_postgres = conn.__class__.__module__ in ['psycopg2.extensions', 'psycopg2._psycopg']
+                
+                if is_postgres:
+                    with conn.cursor() as cur:
+                        # Remover constraint antiga
+                        cur.execute("""
+                            ALTER TABLE current_prices 
+                            DROP CONSTRAINT IF EXISTS current_prices_location_month_year_key
+                        """)
+                        
+                        # Adicionar nova constraint com day_start e day_end
+                        cur.execute("""
+                            ALTER TABLE current_prices 
+                            ADD CONSTRAINT current_prices_location_month_year_period_key 
+                            UNIQUE (location, month, year, day_start, day_end)
+                        """)
+                        
+                        conn.commit()
+                        logging.info("✅ Constraint corrigida com sucesso!")
+                        return JSONResponse({"ok": True, "message": "Constraint fixed successfully"})
+                else:
+                    # SQLite
+                    logging.warning("SQLite não suporta ALTER CONSTRAINT - recriar tabela necessário")
+                    return JSONResponse({"ok": False, "error": "SQLite not supported for this operation"}, status_code=400)
+            finally:
+                conn.close()
+    except Exception as e:
+        logging.error(f"Error fixing constraint: {e}")
+        import traceback
+        logging.error(traceback.format_exc())
+        return JSONResponse({"ok": False, "error": str(e)}, status_code=500)
+
 @app.get("/api/current-prices/migrate")
 async def migrate_current_prices(request: Request):
     """Migrar preços antigos para incluir day_start/day_end"""
