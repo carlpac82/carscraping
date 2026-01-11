@@ -451,7 +451,11 @@
                     const response = await fetch(`/api/current-prices/load?location=${encodeURIComponent(location)}&month=${month}&year=${year}`);
                     const result = await response.json();
                     
-                    if (result.ok && result.prices && Object.keys(result.prices).length > 0) {
+                    // Suportar tanto estrutura nova (periods) quanto antiga (prices)
+                    const hasPrices = (result.ok && result.periods && result.periods.length > 0) || 
+                                     (result.ok && result.prices && Object.keys(result.prices).length > 0);
+                    
+                    if (hasPrices) {
                         // Tem preços - adicionar ✓ verde
                         option.textContent = `✓ ${monthName}`;
                         option.classList.remove('no-prices');
