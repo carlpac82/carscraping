@@ -340,33 +340,40 @@
             monthSelect.value = currentMonth.toString();
         }
         
-        // Verificar quais meses têm preços guardados e colorir opções
+        // Verificar quais meses têm preços guardados e adicionar indicador visual
         async function colorMonthOptions() {
             const location = document.getElementById('locationSelect').value;
             const year = parseInt(document.getElementById('yearSelect').value);
             const monthSelect = document.getElementById('monthSelect');
             const options = monthSelect.querySelectorAll('option');
             
+            const monthNames = ['Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho', 
+                               'Julho', 'Agosto', 'Setembro', 'Outubro', 'Novembro', 'Dezembro'];
+            
             // Verificar cada mês
             for (let i = 0; i < options.length; i++) {
                 const option = options[i];
                 const month = parseInt(option.value);
+                const monthName = monthNames[month - 1];
                 
                 try {
                     const response = await fetch(`/api/current-prices/load?location=${encodeURIComponent(location)}&month=${month}&year=${year}`);
                     const result = await response.json();
                     
                     if (result.ok && result.prices && Object.keys(result.prices).length > 0) {
-                        // Tem preços - verde
+                        // Tem preços - adicionar ✓ verde
+                        option.textContent = `✓ ${monthName}`;
                         option.classList.remove('no-prices');
                         option.classList.add('has-prices');
                     } else {
-                        // Sem preços - vermelho
+                        // Sem preços - adicionar ✗ vermelho
+                        option.textContent = `✗ ${monthName}`;
                         option.classList.remove('has-prices');
                         option.classList.add('no-prices');
                     }
                 } catch (error) {
                     // Erro - sem preços
+                    option.textContent = `✗ ${monthName}`;
                     option.classList.remove('has-prices');
                     option.classList.add('no-prices');
                 }
