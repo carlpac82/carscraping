@@ -34633,7 +34633,7 @@ async def load_ai_learning_data(request: Request):
             try:
                 # Load adjustments from ai_learning_data table
                 cursor = conn.execute("""
-                    SELECT grupo, days, location, original_price, new_price, timestamp, created_at
+                    SELECT grupo, days, location, original_price, new_price, timestamp
                     FROM ai_learning_data
                     ORDER BY timestamp DESC
                     LIMIT 1000
@@ -34650,7 +34650,7 @@ async def load_ai_learning_data(request: Request):
                         'originalPrice': row[3],
                         'newPrice': row[4],
                         'timestamp': row[5],
-                        'user': row[6]  # created_by field
+                        'user': 'system'  # Default user since created_at column doesn't exist
                     })
                 
                 # Generate AI suggestions based on adjustments
