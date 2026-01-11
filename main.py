@@ -4325,6 +4325,7 @@ async def logout_action(request: Request):
 
 @app.get("/", response_class=HTMLResponse)
 async def home(request: Request):
+    """Homepage - Current Prices"""
     try:
         require_auth(request)
         require_role_access(request)  # Bloquear recepcionistas
@@ -4334,7 +4335,8 @@ async def home(request: Request):
             return RedirectResponse(url="/vehicle-inspection", status_code=HTTP_303_SEE_OTHER)
         # Se for erro de autenticação (401), redirecionar para login
         return RedirectResponse(url="/login", status_code=HTTP_303_SEE_OTHER)
-    # load current user profile for greeting
+    
+    # load current user profile
     user_ctx = None
     try:
         uname = request.session.get("username")
@@ -4343,24 +4345,9 @@ async def home(request: Request):
     except Exception:
         user_ctx = None
     
-    # Load supplier logos for preloading
-    supplier_logos = []
-    try:
-        conn = _db_connect()
-        try:
-            rows = conn.execute("SELECT DISTINCT logo_path FROM suppliers WHERE logo_path IS NOT NULL AND active = 1").fetchall()
-            supplier_logos = [row[0] for row in rows if row[0]]
-        finally:
-            conn.close()
-    except Exception:
-        # Suppliers table doesn't exist yet, skip logo preloading
-        pass
-    
-    # FORCE NO CACHE - prevent browser from caching HTML/JS
     response = templates.TemplateResponse("index.html", {
         "request": request, 
-        "current_user": user_ctx,
-        "supplier_logos": supplier_logos
+        "current_user": user_ctx
     })
     response.headers["Cache-Control"] = "no-store, no-cache, must-revalidate, max-age=0"
     response.headers["Pragma"] = "no-cache"
@@ -34844,11 +34831,23 @@ async def load_current_prices(request: Request, location: str, month: int, year:
                 # Criar tabela se não existir
                 create_current_prices_table(conn)
                 
-                # Carregar preços
-                prices = load_prices_from_db(conn, location, month, year)
+                # Carregar preços e data da última alteração
+                try:
+                    prices, updated_at = load_prices_from_db(conn, location, month, year)
+                except (ValueError, TypeError):
+                    # Se a função retornar apenas um valor (compatibilidade com código antigo)
+                    result = load_prices_from_db(conn, location, month, year)
+                    if isinstance(result, tuple) and len(result) == 2:
+                        prices, updated_at = result
+                    else:
+                        prices = result
+                        updated_at = None
                 
                 if prices:
-                    return JSONResponse({"ok": True, "prices": prices})
+                    # Converter datetime para string se necessário
+                    if updated_at and hasattr(updated_at, 'isoformat'):
+                        updated_at = updated_at.isoformat()
+                    return JSONResponse({"ok": True, "prices": prices, "updated_at": updated_at})
                 else:
                     return JSONResponse({"ok": False, "message": "No prices found"})
             finally:

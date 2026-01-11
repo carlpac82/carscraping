@@ -505,6 +505,11 @@
                     <input type="number" id="wr_end_day" min="1" max="31" value="31" class="w-16 px-2 py-1 border border-gray-300 rounded text-sm text-center" placeholder="31">
                 </div>
                 <div class="flex items-center gap-1">
+                    <button onclick="updateCurrentPricesFromSearch()" class="p-2 hover:bg-purple-100 rounded transition-colors" title="Atualizar Current Prices">
+                        <svg class="w-6 h-6 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/>
+                        </svg>
+                    </button>
                     <span class="text-sm text-gray-600 mr-2" data-i18n="automation.downloadExcel">Download Excel:</span>
                     <button onclick="downloadExcelAuto('website')" class="p-2 hover:bg-gray-100 rounded transition-colors" title="Download Website">
                         <svg class="w-6 h-6 text-green-600" fill="currentColor" viewBox="0 0 24 24">
@@ -9644,6 +9649,90 @@ Continue?`);
             const overlay = document.getElementById('loadingOverlay');
             if (overlay) {
                 overlay.style.display = 'none';
+            }
+        }
+
+        // Função para atualizar Current Prices com os preços desta pesquisa
+        async function updateCurrentPricesFromSearch() {
+            try {
+                // Obter localização e data da pesquisa
+                const locationSelect = document.getElementById('location');
+                const dateInput = document.querySelector('input[type="date"]');
+                
+                if (!locationSelect || !dateInput || !dateInput.value) {
+                    showNotification('❌ Faça uma pesquisa primeiro para detectar localização e data!', 'error', 4000);
+                    return;
+                }
+                
+                const location = locationSelect.value;
+                const dateValue = dateInput.value; // YYYY-MM-DD
+                const parts = dateValue.split('-');
+                const year = parseInt(parts[0]);
+                const month = parseInt(parts[1]);
+                
+                const monthNames = ['', 'Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho', 
+                                  'Julho', 'Agosto', 'Setembro', 'Outubro', 'Novembro', 'Dezembro'];
+                
+                const confirmMsg = `Atualizar Current Prices para ${location} - ${monthNames[month]}/${year}?`;
+                if (!confirm(confirmMsg)) {
+                    return;
+                }
+                
+                showNotification('🔄 Coletando preços ajustados...', 'info', 2000);
+                
+                // Coletar preços dos cards AUTO
+                const prices = {};
+                const dias = [1, 2, 3, 4, 5, 6, 7, 8, 9, 14, 22, 28, 31, 60];
+                
+                // Procurar todos os cards de grupos
+                document.querySelectorAll('[id^="group-"]').forEach(card => {
+                    const grupo = card.id.replace('group-', '').toUpperCase();
+                    prices[grupo] = {};
+                    
+                    // Para cada dia, obter o preço NET
+                    dias.forEach(dia => {
+                        const netInput = card.querySelector(`#net-${grupo}-${dia}`);
+                        if (netInput && netInput.value) {
+                            const netPrice = parseFloat(netInput.value);
+                            if (netPrice > 0) {
+                                prices[grupo][dia] = netPrice;
+                            }
+                        }
+                    });
+                });
+                
+                if (Object.keys(prices).length === 0) {
+                    showNotification('❌ Nenhum preço encontrado. Faça uma pesquisa primeiro.', 'error', 4000);
+                    return;
+                }
+                
+                console.log('📊 Preços coletados:', prices);
+                console.log('📍 Destino:', location, monthNames[month], year);
+                
+                // Enviar para API
+                const response = await fetch('/api/current-prices/save', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        location: location,
+                        month: month,
+                        year: year,
+                        prices: prices
+                    })
+                });
+                
+                const result = await response.json();
+                
+                if (result.ok) {
+                    showNotification(`✅ Preços atualizados com sucesso para ${monthNames[month]}/${year}!`, 'success', 4000);
+                    console.log('✅ Preços guardados na base de dados');
+                } else {
+                    throw new Error(result.error || 'Erro ao guardar preços');
+                }
+                
+            } catch (err) {
+                console.error('❌ Error updating current prices:', err);
+                showNotification('❌ Erro ao atualizar preços: ' + err.message, 'error', 4000);
             }
         }
     </script>

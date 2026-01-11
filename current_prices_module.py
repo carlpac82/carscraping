@@ -14,7 +14,10 @@ from openpyxl.styles import Font, PatternFill, Alignment, Border, Side
 import logging
 
 COMMISSION_RATE = 0.1366  # 13.66%
-GRUPOS = ['B1', 'B2', 'BK1', 'BK2', 'C', 'D', 'DK', 'E1', 'E2', 'EK1', 'EK2', 'F', 'FK', 'G', 'J1', 'J2', 'L1', 'L2', 'M1', 'M2']
+# TODOS os grupos (incluindo K, comerciais e X)
+GRUPOS = ['B1', 'B2', 'BK1', 'BK2', 'C', 'C3', 'C4', 'C5', 'D', 'DK', 'E1', 'E2', 'EK1', 'EK2', 'F', 'FK', 'G', 'J1', 'J2', 'JK1', 'JK2', 'L1', 'L2', 'LK1', 'M1', 'M2', 'MK1', 'MK2', 'N', 'NK', 'X']
+GRUPOS_K = ['BK1', 'BK2', 'DK', 'EK1', 'EK2', 'FK', 'JK1', 'JK2', 'LK1', 'MK1', 'MK2', 'NK']
+GRUPOS_COMERCIAIS = ['C3', 'C4', 'C5']
 DIAS = [1, 2, 3, 4, 5, 6, 7, 8, 9, 14, 22, 28, 31, 60]
 
 def calculate_commission(net_price):
@@ -24,48 +27,108 @@ def calculate_commission(net_price):
 def load_prices_from_db(conn, location, month, year):
     """Carrega preços da base de dados"""
     try:
-        cursor = conn.execute("""
-            SELECT prices_data 
-            FROM current_prices 
-            WHERE location = ? AND month = ? AND year = ?
-        """, (location, month, year))
+        # Detectar se é PostgreSQL ou SQLite
+        is_postgres = conn.__class__.__module__ in ['psycopg2.extensions', 'psycopg2._psycopg']
         
-        row = cursor.fetchone()
-        if row and row[0]:
-            return json.loads(row[0])
-        return None
+        if is_postgres:
+            # PostgreSQL
+            with conn.cursor() as cur:
+                cur.execute("""
+                    SELECT prices_data, updated_at 
+                    FROM current_prices 
+                    WHERE location = %s AND month = %s AND year = %s
+                """, (location, month, year))
+                
+                row = cur.fetchone()
+                if row and row[0]:
+                    prices = json.loads(row[0])
+                    updated_at = row[1].isoformat() if row[1] else None
+                    logging.info(f"✅ Preços carregados: {location}, mês {month}, ano {year}")
+                    return prices, updated_at
+                else:
+                    logging.info(f"ℹ️ Sem preços para: {location}, mês {month}, ano {year}")
+                    return None, None
+        else:
+            # SQLite
+            cursor = conn.execute("""
+                SELECT prices_data, updated_at 
+                FROM current_prices 
+                WHERE location = ? AND month = ? AND year = ?
+            """, (location, month, year))
+            
+            row = cursor.fetchone()
+            if row and row[0]:
+                prices = json.loads(row[0])
+                updated_at = row[1] if row[1] else None
+                logging.info(f"✅ Preços carregados: {location}, mês {month}, ano {year}")
+                return prices, updated_at
+            else:
+                logging.info(f"ℹ️ Sem preços para: {location}, mês {month}, ano {year}")
+                return None, None
+                
     except Exception as e:
         logging.error(f"Erro ao carregar preços: {e}")
-        return None
+        return None, None
 
 def save_prices_to_db(conn, location, month, year, prices_data):
     """Guarda preços na base de dados"""
     try:
         prices_json = json.dumps(prices_data)
         
-        # Verificar se já existe
-        cursor = conn.execute("""
-            SELECT id FROM current_prices 
-            WHERE location = ? AND month = ? AND year = ?
-        """, (location, month, year))
+        # Detectar se é PostgreSQL ou SQLite
+        is_postgres = conn.__class__.__module__ in ['psycopg2.extensions', 'psycopg2._psycopg']
         
-        existing = cursor.fetchone()
-        
-        if existing:
-            # Atualizar
-            conn.execute("""
-                UPDATE current_prices 
-                SET prices_data = ?, updated_at = CURRENT_TIMESTAMP
-                WHERE location = ? AND month = ? AND year = ?
-            """, (prices_json, location, month, year))
+        if is_postgres:
+            # PostgreSQL
+            with conn.cursor() as cur:
+                # Verificar se já existe
+                cur.execute("""
+                    SELECT id FROM current_prices 
+                    WHERE location = %s AND month = %s AND year = %s
+                """, (location, month, year))
+                
+                existing = cur.fetchone()
+                
+                if existing:
+                    # Atualizar
+                    cur.execute("""
+                        UPDATE current_prices 
+                        SET prices_data = %s, updated_at = CURRENT_TIMESTAMP
+                        WHERE location = %s AND month = %s AND year = %s
+                    """, (prices_json, location, month, year))
+                else:
+                    # Inserir
+                    cur.execute("""
+                        INSERT INTO current_prices (location, month, year, prices_data, updated_at)
+                        VALUES (%s, %s, %s, %s, CURRENT_TIMESTAMP)
+                    """, (location, month, year, prices_json))
+            conn.commit()
         else:
-            # Inserir
-            conn.execute("""
-                INSERT INTO current_prices (location, month, year, prices_data, updated_at)
-                VALUES (?, ?, ?, ?, CURRENT_TIMESTAMP)
-            """, (location, month, year, prices_json))
+            # SQLite
+            cursor = conn.execute("""
+                SELECT id FROM current_prices 
+                WHERE location = ? AND month = ? AND year = ?
+            """, (location, month, year))
+            
+            existing = cursor.fetchone()
+            
+            if existing:
+                # Atualizar
+                conn.execute("""
+                    UPDATE current_prices 
+                    SET prices_data = ?, updated_at = CURRENT_TIMESTAMP
+                    WHERE location = ? AND month = ? AND year = ?
+                """, (prices_json, location, month, year))
+            else:
+                # Inserir
+                conn.execute("""
+                    INSERT INTO current_prices (location, month, year, prices_data, updated_at)
+                    VALUES (?, ?, ?, ?, CURRENT_TIMESTAMP)
+                """, (location, month, year, prices_json))
+            
+            conn.commit()
         
-        conn.commit()
+        logging.info(f"✅ Preços guardados: {location}, mês {month}, ano {year}")
         return True
     except Exception as e:
         logging.error(f"Erro ao guardar preços: {e}")
@@ -157,8 +220,26 @@ def generate_abbycar_excel(location, month, year, prices_data):
             ws.cell(row_idx, 1, f"{grupo}-CAR")
             ws.cell(row_idx, 2, grupo)
             
+            # Verificar se é grupo especial
+            is_group_k = grupo in GRUPOS_K
+            is_commercial = grupo in GRUPOS_COMERCIAIS
+            is_group_x = grupo == 'X'
+            
             for col_idx, dia in enumerate(DIAS, 3):
-                price = prices_data.get(grupo, {}).get(str(dia), {}).get('commission', 0)
+                price_data = prices_data.get(grupo, {}).get(str(dia), {})
+                net = price_data.get('net', 0) if price_data else 0
+                comm = price_data.get('commission', 0) if price_data else 0
+                
+                # REGRA: Grupo X sempre sem valores
+                if is_group_x:
+                    price = 0
+                # REGRA: C3,C4,C5 sempre NET (GROSS = NET)
+                elif is_commercial and net > 0:
+                    price = net
+                # REGRA: Grupos K sem valores se não tiverem preços
+                else:
+                    price = comm if comm > 0 else 0
+                
                 ws.cell(row_idx, col_idx, price)
             
             row_idx += 1
@@ -217,24 +298,44 @@ def generate_brokers_excel(location, month, year, prices_data):
             ws.cell(row_idx, 1, grupo)
             ws.cell(row_idx, 1).font = Font(bold=True)
             
+            # Verificar se é grupo especial
+            is_group_k = grupo in GRUPOS_K
+            is_commercial = grupo in GRUPOS_COMERCIAIS
+            is_group_x = grupo == 'X'
+            
             col_idx = 2
             for dia in DIAS:
                 price_data = prices_data.get(grupo, {}).get(str(dia), {'net': 0, 'commission': 0})
-                net = price_data['net']
-                comm = price_data['commission']
+                net = price_data.get('net', 0) if price_data else 0
+                comm = price_data.get('commission', 0) if price_data else 0
+                
+                # REGRA: Grupo X sempre sem valores
+                if is_group_x:
+                    net = 0
+                    comm = 0
+                
+                # REGRA: C3,C4,C5 sempre NET (GROSS = NET)
+                if is_commercial and net > 0:
+                    comm = net
+                
+                # REGRA: Grupos K sem valores se não tiverem preços (checkbox não selecionada)
+                # Se não há preços no prices_data, deixar 0
                 
                 # Net
                 ws.cell(row_idx, col_idx, net)
                 ws.cell(row_idx, col_idx).number_format = '0.00'
                 ws.cell(row_idx, col_idx).fill = PatternFill(start_color="FFF7ED", end_color="FFF7ED", fill_type="solid")
                 
-                # Com Comissão
+                # Com Comissão (GROSS)
                 ws.cell(row_idx, col_idx+1, comm)
                 ws.cell(row_idx, col_idx+1).number_format = '0.00'
                 ws.cell(row_idx, col_idx+1).fill = PatternFill(start_color="ECFDF5", end_color="ECFDF5", fill_type="solid")
                 
                 # Diferença %
-                diff_pct = COMMISSION_RATE * 100
+                if is_commercial:
+                    diff_pct = 0  # Comerciais não têm comissão
+                else:
+                    diff_pct = COMMISSION_RATE * 100
                 ws.cell(row_idx, col_idx+2, diff_pct)
                 ws.cell(row_idx, col_idx+2).number_format = '0.00"%"'
                 
@@ -304,8 +405,26 @@ def generate_website_excel(location, month, year, prices_data):
             ws.cell(row_idx, 1).font = Font(bold=True)
             ws.cell(row_idx, 2, group_categories.get(grupo, grupo))
             
+            # Verificar se é grupo especial
+            is_group_k = grupo in GRUPOS_K
+            is_commercial = grupo in GRUPOS_COMERCIAIS
+            is_group_x = grupo == 'X'
+            
             for col_idx, dia in enumerate(DIAS, 3):
-                price = prices_data.get(grupo, {}).get(str(dia), {}).get('commission', 0)
+                price_data = prices_data.get(grupo, {}).get(str(dia), {})
+                net = price_data.get('net', 0) if price_data else 0
+                comm = price_data.get('commission', 0) if price_data else 0
+                
+                # REGRA: Grupo X sempre sem valores
+                if is_group_x:
+                    price = 0
+                # REGRA: C3,C4,C5 sempre NET (GROSS = NET)
+                elif is_commercial and net > 0:
+                    price = net
+                # REGRA: Grupos K sem valores se não tiverem preços
+                else:
+                    price = comm if comm > 0 else 0
+                
                 ws.cell(row_idx, col_idx, price)
                 ws.cell(row_idx, col_idx).number_format = '0.00"€"'
                 ws.cell(row_idx, col_idx).alignment = Alignment(horizontal='center')
@@ -333,18 +452,40 @@ def generate_website_excel(location, month, year, prices_data):
 def create_current_prices_table(conn):
     """Cria tabela current_prices se não existir"""
     try:
-        conn.execute("""
-            CREATE TABLE IF NOT EXISTS current_prices (
-                id INTEGER PRIMARY KEY AUTOINCREMENT,
-                location TEXT NOT NULL,
-                month INTEGER NOT NULL,
-                year INTEGER NOT NULL,
-                prices_data TEXT NOT NULL,
-                updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-                UNIQUE(location, month, year)
-            )
-        """)
-        conn.commit()
+        # Detectar se é PostgreSQL ou SQLite
+        is_postgres = conn.__class__.__module__ in ['psycopg2.extensions', 'psycopg2._psycopg']
+        
+        if is_postgres:
+            # PostgreSQL syntax
+            query = """
+                CREATE TABLE IF NOT EXISTS current_prices (
+                    id SERIAL PRIMARY KEY,
+                    location TEXT NOT NULL,
+                    month INTEGER NOT NULL,
+                    year INTEGER NOT NULL,
+                    prices_data TEXT NOT NULL,
+                    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                    UNIQUE(location, month, year)
+                )
+            """
+            with conn.cursor() as cur:
+                cur.execute(query)
+            conn.commit()
+        else:
+            # SQLite syntax
+            conn.execute("""
+                CREATE TABLE IF NOT EXISTS current_prices (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    location TEXT NOT NULL,
+                    month INTEGER NOT NULL,
+                    year INTEGER NOT NULL,
+                    prices_data TEXT NOT NULL,
+                    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                    UNIQUE(location, month, year)
+                )
+            """)
+            conn.commit()
+        
         logging.info("Tabela current_prices criada/verificada com sucesso")
     except Exception as e:
         logging.error(f"Erro ao criar tabela current_prices: {e}")

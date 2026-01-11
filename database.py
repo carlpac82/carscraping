@@ -9,10 +9,10 @@ from typing import Optional
 from contextlib import contextmanager
 import logging
 
-# Check if we're in production (Render) or local development
-DATABASE_URL = os.getenv("DATABASE_URL")  # Render PostgreSQL URL
+# Check if we're in production (Railway) or local development
+DATABASE_URL = os.getenv("DATABASE_URL")  # Railway PostgreSQL URL
 
-print(f"🔍 [DATABASE.PY] DATABASE_URL from env: {DATABASE_URL[:30] if DATABASE_URL else 'None'}...", flush=True)
+print(f" [DATABASE.PY] DATABASE_URL from env: {DATABASE_URL[:30] if DATABASE_URL else 'None'}...", flush=True)
 
 # Fix for Render environment variable issue
 if not DATABASE_URL:
