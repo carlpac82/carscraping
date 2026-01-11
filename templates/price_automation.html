@@ -9766,11 +9766,97 @@ Continue?`);
                 const monthNames = ['', 'Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho', 
                                   'Julho', 'Agosto', 'Setembro', 'Outubro', 'Novembro', 'Dezembro'];
                 
-                const confirmMsg = `Deseja atualizar os preços de <strong>${location}</strong> para <strong>${monthNames[month]}/${year}</strong>?`;
-                const confirmed = await showConfirmDialog(confirmMsg);
-                if (!confirmed) {
+                // Detectar período automaticamente dos campos wr_start_day e wr_end_day
+                const startDayInput = document.getElementById('wr_start_day');
+                const endDayInput = document.getElementById('wr_end_day');
+                
+                let detectedStartDay = startDayInput?.value ? parseInt(startDayInput.value) : 1;
+                let detectedEndDay = endDayInput?.value ? parseInt(endDayInput.value) : 31;
+                
+                // Validar período detectado
+                if (detectedStartDay < 1) detectedStartDay = 1;
+                if (detectedEndDay > 31) detectedEndDay = 31;
+                if (detectedStartDay > detectedEndDay) {
+                    const temp = detectedStartDay;
+                    detectedStartDay = detectedEndDay;
+                    detectedEndDay = temp;
+                }
+                
+                console.log(`📅 Período detectado: ${detectedStartDay}-${detectedEndDay}`);
+                
+                // Criar popup personalizado com seleção de período
+                const periodPopupHtml = `
+                    <div style="background: white; padding: 24px; border-radius: 12px; max-width: 450px; box-shadow: 0 10px 40px rgba(0,0,0,0.2);">
+                        <h3 style="margin: 0 0 16px 0; font-size: 18px; font-weight: 600; color: #1f2937;">
+                            🔄 Atualizar Current Prices
+                        </h3>
+                        <div style="margin-bottom: 20px; padding: 12px; background: #f3f4f6; border-radius: 8px;">
+                            <div style="font-size: 14px; color: #6b7280; margin-bottom: 4px;">Localização e Mês:</div>
+                            <div style="font-size: 16px; font-weight: 600; color: #1f2937;">${location} - ${monthNames[month]}/${year}</div>
+                        </div>
+                        <div style="margin-bottom: 20px;">
+                            <label style="display: block; font-size: 14px; font-weight: 500; color: #374151; margin-bottom: 8px;">
+                                Período a atualizar:
+                            </label>
+                            <div style="display: flex; align-items: center; gap: 12px;">
+                                <div style="flex: 1;">
+                                    <label style="display: block; font-size: 12px; color: #6b7280; margin-bottom: 4px;">Dia Início</label>
+                                    <input type="number" id="popup_start_day" min="1" max="31" value="${detectedStartDay}" 
+                                           style="width: 100%; padding: 8px 12px; border: 2px solid #d1d5db; border-radius: 6px; font-size: 14px; text-align: center;">
+                                </div>
+                                <div style="padding-top: 20px; color: #9ca3af;">→</div>
+                                <div style="flex: 1;">
+                                    <label style="display: block; font-size: 12px; color: #6b7280; margin-bottom: 4px;">Dia Fim</label>
+                                    <input type="number" id="popup_end_day" min="1" max="31" value="${detectedEndDay}" 
+                                           style="width: 100%; padding: 8px 12px; border: 2px solid #d1d5db; border-radius: 6px; font-size: 14px; text-align: center;">
+                                </div>
+                            </div>
+                        </div>
+                        <div style="display: flex; gap: 12px; margin-top: 24px;">
+                            <button id="periodCancelBtn" style="flex: 1; padding: 10px 20px; background: #e5e7eb; color: #374151; border: none; border-radius: 8px; font-weight: 500; cursor: pointer; font-size: 14px;">
+                                Cancelar
+                            </button>
+                            <button id="periodConfirmBtn" style="flex: 1; padding: 10px 20px; background: #8b5cf6; color: white; border: none; border-radius: 8px; font-weight: 500; cursor: pointer; font-size: 14px;">
+                                ✅ Atualizar
+                            </button>
+                        </div>
+                    </div>
+                `;
+                
+                // Criar overlay e mostrar popup
+                const overlay = document.createElement('div');
+                overlay.style.cssText = 'position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.5); display: flex; align-items: center; justify-content: center; z-index: 10000;';
+                overlay.innerHTML = periodPopupHtml;
+                document.body.appendChild(overlay);
+                
+                // Aguardar resposta do usuário
+                const userChoice = await new Promise((resolve) => {
+                    document.getElementById('periodConfirmBtn').onclick = () => {
+                        const startDay = parseInt(document.getElementById('popup_start_day').value);
+                        const endDay = parseInt(document.getElementById('popup_end_day').value);
+                        resolve({ confirmed: true, startDay, endDay });
+                    };
+                    document.getElementById('periodCancelBtn').onclick = () => {
+                        resolve({ confirmed: false });
+                    };
+                    overlay.onclick = (e) => {
+                        if (e.target === overlay) {
+                            resolve({ confirmed: false });
+                        }
+                    };
+                });
+                
+                // Remover popup
+                document.body.removeChild(overlay);
+                
+                if (!userChoice.confirmed) {
                     return;
                 }
+                
+                const finalStartDay = userChoice.startDay;
+                const finalEndDay = userChoice.endDay;
+                
+                console.log(`✅ Período confirmado: ${finalStartDay}-${finalEndDay}`);
                 
                 showNotification('🔄 Coletando preços ajustados...', 'info', 2000);
                 
@@ -9865,7 +9951,7 @@ Continue?`);
                     console.log(`  ${grupo}: ${numPrices} dias com preços`);
                 });
                 
-                // Enviar para API
+                // Enviar para API com período específico
                 const response = await fetch('/api/current-prices/save', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
@@ -9873,15 +9959,17 @@ Continue?`);
                         location: location,
                         month: month,
                         year: year,
-                        prices: prices
+                        prices: prices,
+                        day_start: finalStartDay,
+                        day_end: finalEndDay
                     })
                 });
                 
                 const result = await response.json();
                 
                 if (result.ok) {
-                    showNotification(`✅ Preços atualizados com sucesso para ${monthNames[month]}/${year}!`, 'success', 4000);
-                    console.log('✅ Preços guardados na base de dados');
+                    showNotification(`✅ Preços atualizados com sucesso para ${monthNames[month]}/${year} (${finalStartDay}-${finalEndDay})!`, 'success', 4000);
+                    console.log(`✅ Preços guardados na base de dados para período ${finalStartDay}-${finalEndDay}`);
                 } else {
                     throw new Error(result.error || 'Erro ao guardar preços');
                 }
