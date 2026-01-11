@@ -1314,6 +1314,16 @@
             const month = parseInt(document.getElementById('monthSelect').value);
             const year = parseInt(document.getElementById('yearSelect').value);
             
+            // Obter day_start e day_end do período atual
+            let dayStart = 1;
+            let dayEnd = new Date(year, month, 0).getDate(); // Último dia do mês
+            if (allPeriods.length > 0 && currentPeriodIndex >= 0) {
+                dayStart = allPeriods[currentPeriodIndex].day_start;
+                dayEnd = allPeriods[currentPeriodIndex].day_end;
+            }
+            
+            console.log(`💾 Guardando preços para período ${dayStart}-${dayEnd}`);
+            
             try {
                 const response = await fetch('/api/current-prices/save', {
                     method: 'POST',
@@ -1324,7 +1334,9 @@
                         location: location,
                         month: month,
                         year: year,
-                        prices: pricesByGroup
+                        prices: pricesByGroup,
+                        day_start: dayStart,
+                        day_end: dayEnd
                     })
                 });
                 
