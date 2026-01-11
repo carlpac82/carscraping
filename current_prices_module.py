@@ -186,29 +186,11 @@ def save_prices_to_db(conn, location, month, year, prices_data, day_start=1, day
                     """, (location, month, year, day_start, day_end, prices_json))
             conn.commit()
         else:
-            # SQLite
-            cursor = conn.execute("""
-                SELECT id FROM current_prices 
-                WHERE location = ? AND month = ? AND year = ? 
-                  AND day_start = ? AND day_end = ?
-            """, (location, month, year, day_start, day_end))
-            
-            existing = cursor.fetchone()
-            
-            if existing:
-                # Atualizar
-                conn.execute("""
-                    UPDATE current_prices 
-                    SET prices_data = ?, updated_at = CURRENT_TIMESTAMP
-                    WHERE location = ? AND month = ? AND year = ? 
-                      AND day_start = ? AND day_end = ?
-                """, (prices_json, location, month, year, day_start, day_end))
-            else:
-                # Inserir
-                conn.execute("""
-                    INSERT INTO current_prices (location, month, year, day_start, day_end, prices_data, updated_at)
-                    VALUES (?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP)
-                """, (location, month, year, day_start, day_end, prices_json))
+            # SQLite - usar INSERT OR REPLACE para evitar problemas com constraint
+            conn.execute("""
+                INSERT OR REPLACE INTO current_prices (location, month, year, day_start, day_end, prices_data, updated_at)
+                VALUES (?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP)
+            """, (location, month, year, day_start, day_end, prices_json))
             
             conn.commit()
         
