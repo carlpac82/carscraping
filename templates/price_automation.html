@@ -3070,15 +3070,16 @@
                            'L1', 'L2', 'LK1', 'M1', 'M2', 'MK1', 'MK2', 'N', 'NK'];
             const days = [1, 2, 3, 4, 5, 6, 7, 8, 9, 14, 22, 28];
             
-            // Collect prices
+            // Collect prices from CURRENT PRICES (not Automated Prices)
             const prices = {};
             let totalPricesFound = 0;
             groups.forEach(group => {
                 prices[group] = {};
                 days.forEach(day => {
-                    const inputAuto = document.querySelector(`#pricesTableAuto input[data-grupo="${group}"][data-dias="${day}"][data-type="auto"]`);
-                    if (inputAuto && inputAuto.value && inputAuto.value !== '' && inputAuto.value !== '-') {
-                        prices[group][day] = parseFloat(inputAuto.value);
+                    // Buscar preço NET do Current Prices
+                    const inputNet = document.querySelector(`#pricesTable input[data-grupo="${group}"][data-dias="${day}"][data-type="net"]`);
+                    if (inputNet && inputNet.value && inputNet.value !== '' && inputNet.value !== '-') {
+                        prices[group][day] = parseFloat(inputNet.value);
                         totalPricesFound++;
                     }
                 });
@@ -3088,12 +3089,12 @@
                 }
             });
             
-            console.log('[ABBYCAR] Prices collected:', totalPricesFound, 'prices from', Object.keys(prices).length, 'groups');
+            console.log('[ABBYCAR] Prices collected from CURRENT PRICES:', totalPricesFound, 'prices from', Object.keys(prices).length, 'groups');
             console.log('[ABBYCAR] Groups with prices:', Object.keys(prices));
             
             // Verificar se há preços
             if (totalPricesFound === 0) {
-                showNotification('❌ Nenhum preço encontrado na tabela Automated Prices! Preencha os preços primeiro.', 'error', 5000);
+                showNotification('❌ Nenhum preço encontrado no Current Prices! Preencha os preços primeiro.', 'error', 5000);
                 return;
             }
             
