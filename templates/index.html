@@ -756,13 +756,28 @@
                 if (result.ok && result.periods && result.periods.length > 0) {
                     // Nova estrutura: lista de períodos
                     console.log('✅ Preços carregados da base de dados (períodos)');
-                    pricesByGroup = result.periods[0].prices;
-                    updatedAt = result.periods[0].updated_at;
+                    allPeriods = result.periods;
+                    updatePeriodSelector();
+                    loadPeriodByIndex(0);
+                    return; // Usar a função loadPeriodByIndex para renderizar
                 } else if (result.ok && result.prices) {
-                    // Estrutura antiga: preços diretos
-                    console.log('✅ Preços carregados da base de dados (legado)');
-                    pricesByGroup = result.prices;
-                    updatedAt = result.updated_at;
+                    // Estrutura antiga: preços diretos - criar período por defeito
+                    console.log('✅ Preços carregados da base de dados (legado) - criando período por defeito');
+                    
+                    // Calcular último dia do mês
+                    const year = parseInt(document.getElementById('yearSelect').value);
+                    const month = parseInt(document.getElementById('monthSelect').value);
+                    const lastDay = new Date(year, month, 0).getDate(); // Dia 0 do próximo mês = último dia do mês atual
+                    
+                    allPeriods = [{
+                        prices: result.prices,
+                        updated_at: result.updated_at,
+                        day_start: 1,
+                        day_end: lastDay
+                    }];
+                    updatePeriodSelector();
+                    loadPeriodByIndex(0);
+                    return; // Usar a função loadPeriodByIndex para renderizar
                 }
                 
                 if (pricesByGroup) {
