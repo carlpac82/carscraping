@@ -34838,7 +34838,16 @@ async def admin_current_prices(request: Request):
     html_path = os.path.join(os.path.dirname(__file__), "templates", "current_prices.html")
     try:
         with open(html_path, 'r', encoding='utf-8') as f:
-            return HTMLResponse(content=f.read())
+            content = f.read()
+            # Force no-cache headers
+            return HTMLResponse(
+                content=content,
+                headers={
+                    "Cache-Control": "no-cache, no-store, must-revalidate, max-age=0",
+                    "Pragma": "no-cache",
+                    "Expires": "0"
+                }
+            )
     except Exception as e:
         return HTMLResponse(content=f"<h1>Erro ao carregar página: {str(e)}</h1>", status_code=500)
 
