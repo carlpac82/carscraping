@@ -335,6 +335,10 @@
             border-left: 4px solid #ef4444;
         }
 
+        .toast.info {
+            border-left: 4px solid #3b82f6;
+        }
+
         .toast-title {
             font-weight: 700;
             margin-bottom: 5px;
@@ -670,13 +674,11 @@
                 const response = await fetch(`/api/current-prices/load?location=${location}&month=${month}&year=${year}`);
                 const data = await response.json();
 
-                if (data.ok && data.periods) {
-                    // Múltiplos períodos
+                if (data.ok && data.periods && data.periods.length > 0) {
+                    // Múltiplos períodos com dados
                     allPeriods = data.periods;
                     updatePeriodSelector();
-                    if (allPeriods.length > 0) {
-                        loadPeriodByIndex(0);
-                    }
+                    loadPeriodByIndex(0);
                     showToast('Sucesso', `${allPeriods.length} período(s) carregado(s)!`);
                 } else if (data.ok && data.prices) {
                     // Período único (compatibilidade)
@@ -690,12 +692,13 @@
                     loadPeriodByIndex(0);
                     showToast('Sucesso', 'Preços carregados!');
                 } else {
-                    // Sem preços - criar período padrão vazio
+                    // Sem preços - criar tabela vazia e permitir criar novo período
                     allPeriods = [];
                     updatePeriodSelector();
                     initializeEmptyPrices();
                     renderTable();
                     updateInfoBar();
+                    showToast('Info', 'Sem preços guardados. Clique "➕ Novo Período" para criar.', 'info');
                     console.log('ℹ️ Sem preços guardados para esta localização/período');
                 }
             } catch (error) {
