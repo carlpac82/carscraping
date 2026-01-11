@@ -517,27 +517,58 @@ def create_current_prices_table(conn):
         
         if is_postgres:
             # PostgreSQL syntax
-            query = """
-                CREATE TABLE IF NOT EXISTS current_prices (
-                    id SERIAL PRIMARY KEY,
-                    location TEXT NOT NULL,
-                    month INTEGER NOT NULL,
-                    year INTEGER NOT NULL,
-                    day_start INTEGER DEFAULT 1,
-                    day_end INTEGER DEFAULT 31,
-                    prices_data TEXT NOT NULL,
-                    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-                    UNIQUE(location, month, year, day_start, day_end)
-                )
-            """
             with conn.cursor() as cur:
-                cur.execute(query)
+                # Criar tabela se não existir (sem UNIQUE constraint primeiro)
+                cur.execute("""
+                    CREATE TABLE IF NOT EXISTS current_prices (
+                        id SERIAL PRIMARY KEY,
+                        location TEXT NOT NULL,
+                        month INTEGER NOT NULL,
+                        year INTEGER NOT NULL,
+                        prices_data TEXT NOT NULL,
+                        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+                    )
+                """)
+                
                 # Adicionar colunas se não existirem (migração)
                 try:
                     cur.execute("ALTER TABLE current_prices ADD COLUMN IF NOT EXISTS day_start INTEGER DEFAULT 1")
+                except:
+                    pass
+                try:
                     cur.execute("ALTER TABLE current_prices ADD COLUMN IF NOT EXISTS day_end INTEGER DEFAULT 31")
                 except:
                     pass
+                
+                # Atualizar registos antigos sem day_start/day_end
+                try:
+                    cur.execute("""
+                        UPDATE current_prices 
+                        SET day_start = 1, day_end = 31 
+                        WHERE day_start IS NULL OR day_end IS NULL
+                    """)
+                except:
+                    pass
+                
+                # Remover constraint antiga se existir
+                try:
+                    cur.execute("""
+                        ALTER TABLE current_prices 
+                        DROP CONSTRAINT IF EXISTS current_prices_location_month_year_key
+                    """)
+                except:
+                    pass
+                
+                # Adicionar nova constraint única
+                try:
+                    cur.execute("""
+                        ALTER TABLE current_prices 
+                        ADD CONSTRAINT current_prices_location_month_year_period_key 
+                        UNIQUE(location, month, year, day_start, day_end)
+                    """)
+                except:
+                    pass
+                    
             conn.commit()
         else:
             # SQLite syntax
