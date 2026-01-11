@@ -35272,10 +35272,11 @@ async def delete_month_periods(request: Request):
 
 @app.post("/api/current-prices/save")
 async def save_current_prices(request: Request):
-    """Guardar preços atuais na base de dados"""
+    """Guardar preços atuais na base de dados - EMERGENCY VERSION"""
     require_auth(request)
     try:
-        from current_prices_module import save_prices_to_db, create_current_prices_table
+        from emergency_save import emergency_save_prices
+        from current_prices_module import create_current_prices_table
         
         data = await request.json()
         location = data.get('location')
@@ -35285,14 +35286,16 @@ async def save_current_prices(request: Request):
         day_start = data.get('day_start', 1)
         day_end = data.get('day_end', 31)
         
+        logging.info(f"🚨 USING EMERGENCY SAVE - bypassing cache")
+        
         with _db_lock:
             conn = _db_connect()
             try:
                 # Criar tabela se não existir
                 create_current_prices_table(conn)
                 
-                # Guardar preços
-                success = save_prices_to_db(conn, location, month, year, prices, day_start, day_end)
+                # Guardar preços usando função de emergência (bypassa cache)
+                success = emergency_save_prices(conn, location, month, year, prices, day_start, day_end)
                 
                 if success:
                     return JSONResponse({"ok": True, "message": "Prices saved successfully"})
@@ -35302,6 +35305,8 @@ async def save_current_prices(request: Request):
                 conn.close()
     except Exception as e:
         logging.error(f"Error saving current prices: {e}")
+        import traceback
+        logging.error(traceback.format_exc())
         return JSONResponse({"ok": False, "error": str(e)}, status_code=500)
 
 @app.post("/api/current-prices/upload")
