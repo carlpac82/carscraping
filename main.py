@@ -35222,13 +35222,18 @@ async def add_period_columns_safe(request: Request):
         with _db_lock:
             conn = _db_connect()
             try:
-                conn_module = conn.__class__.__module__
-                is_postgres = 'psycopg' in conn_module
-                
-                logging.info(f"🔍 Database type: {'PostgreSQL' if is_postgres else 'SQLite'}")
+                # Detectar wrapper e obter conexão real
+                if hasattr(conn, '_conn'):
+                    real_conn = conn._conn
+                    is_postgres = True
+                    logging.info(f"🔍 Database: PostgreSQL (wrapper detected)")
+                else:
+                    real_conn = conn
+                    is_postgres = False
+                    logging.info(f"🔍 Database: SQLite")
                 
                 if is_postgres:
-                    with conn.cursor() as cur:
+                    with real_conn.cursor() as cur:
                         # Verificar se colunas existem
                         cur.execute("""
                             SELECT column_name 
@@ -35285,7 +35290,7 @@ async def add_period_columns_safe(request: Request):
                         else:
                             logging.info("✅ Constraint correta já existe!")
                         
-                        conn.commit()
+                        real_conn.commit()
                         logging.info("✅ Colunas e constraint corrigidas! DADOS PRESERVADOS.")
                         return JSONResponse({"ok": True, "message": "Columns and constraint fixed successfully", "data_preserved": True})
                 else:
