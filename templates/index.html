@@ -1405,17 +1405,23 @@
                 for (const period of allPeriods) {
                     // Só guardar períodos que têm preços
                     if (Object.keys(period.prices).length > 0) {
+                        console.log(`💾 Tentando guardar período ${period.day_start}-${period.day_end} com ${Object.keys(period.prices).length} grupos`);
+                        
+                        const payload = {
+                            location,
+                            month,
+                            year,
+                            prices: period.prices,
+                            day_start: period.day_start,
+                            day_end: period.day_end
+                        };
+                        
+                        console.log('📦 Payload:', JSON.stringify(payload).substring(0, 200) + '...');
+                        
                         const response = await fetch('/api/current-prices/save', {
                             method: 'POST',
                             headers: { 'Content-Type': 'application/json' },
-                            body: JSON.stringify({
-                                location,
-                                month,
-                                year,
-                                prices: period.prices,
-                                day_start: period.day_start,
-                                day_end: period.day_end
-                            })
+                            body: JSON.stringify(payload)
                         });
                         
                         const result = await response.json();
@@ -1423,6 +1429,7 @@
                             console.log(`✅ Período ${period.day_start}-${period.day_end} guardado com sucesso!`);
                         } else {
                             console.error(`❌ Erro ao guardar período ${period.day_start}-${period.day_end}:`, result.error);
+                            console.error('📦 Payload completo:', payload);
                         }
                     } else {
                         console.log(`⏭️ Período ${period.day_start}-${period.day_end} vazio - não guardado`);
