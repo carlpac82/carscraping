@@ -9818,12 +9818,14 @@ Continue?`);
                         }
                         
                         // Contar tipos
-                        if (tipo === 'net') netCount++;
+                        if (tipo === 'net' || tipo === 'auto') netCount++;
                         else if (tipo === 'real') realCount++;
                         else noTypeCount++;
                         
-                        // Coletar apenas inputs NET (ou sem tipo definido, assumindo que são NET)
-                        const isNet = tipo === 'net' || !tipo;
+                        // Coletar apenas inputs NET/AUTO (preços calculados automaticamente)
+                        // type="auto" = NET calculado automaticamente
+                        // type="real" = preço REAL (ignorar)
+                        const isNet = tipo === 'net' || tipo === 'auto' || !tipo;
                         
                         if (grupo && dia && isNet && input.value) {
                             const netPrice = parseFloat(input.value);
