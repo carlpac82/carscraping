@@ -28786,7 +28786,9 @@ async def export_automated_prices_excel(request: Request):
         location = data.get('location', 'Unknown')
         date = data.get('date', datetime.now().strftime('%Y-%m-%d'))
         prices = data.get('prices', {})
-        print(f"[BACKEND] Location: {location}, Date: {date}, Prices groups: {len(prices)}", flush=True)
+        day_start = data.get('day_start', 1)
+        day_end = data.get('day_end', 31)
+        print(f"[BACKEND] Location: {location}, Date: {date}, Period: {day_start}-{day_end}, Prices groups: {len(prices)}", flush=True)
         
         # Car group mapping (SIPP codes to groups)
         car_group_mapping = {
@@ -28969,6 +28971,17 @@ async def export_automated_prices_excel(request: Request):
         
         # Fill data rows - template already has formatting, just update values
         print(f"[BACKEND] Filling {len(sipp_codes_order)} rows with prices...", flush=True)
+        
+        # Calcular START DATE e END DATE no formato MM/DD/YYYY
+        date_obj = datetime.strptime(date, '%Y-%m-%d')
+        month = date_obj.month
+        year = date_obj.year
+        
+        # Formato: MM/DD/YYYY (ex: 01/01/2025, 01/31/2025)
+        start_date_str = f"{month:02d}/{day_start:02d}/{year}"
+        end_date_str = f"{month:02d}/{day_end:02d}/{year}"
+        print(f"[BACKEND] Period dates: START={start_date_str}, END={end_date_str}", flush=True)
+        
         row_num = 2
         for sipp_code in sipp_codes_order:
             # Get internal group from SIPP code
@@ -28980,6 +28993,12 @@ async def export_automated_prices_excel(request: Request):
             
             # Column 1: Stations (template already has formatting)
             ws.cell(row_num, 1).value = station_code
+            
+            # Column 2: Start Date (MM/DD/YYYY)
+            ws.cell(row_num, 2).value = start_date_str
+            
+            # Column 3: End Date (MM/DD/YYYY)
+            ws.cell(row_num, 3).value = end_date_str
             
             # Columns 7-18: Prices (1 day fixed through 22-28 daily)
             # Map frontend days to Excel columns

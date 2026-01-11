@@ -3050,6 +3050,18 @@
             const location = document.getElementById('locationAuto')?.value || 'Faro';
             const date = document.getElementById('pickupDateAuto')?.value || new Date().toISOString().split('T')[0];
             
+            // Extrair mês e ano da data para determinar período
+            const dateObj = new Date(date);
+            const month = dateObj.getMonth() + 1; // 1-12
+            const year = dateObj.getFullYear();
+            
+            // Determinar último dia do mês
+            const lastDayOfMonth = new Date(year, month, 0).getDate();
+            
+            // Período padrão: mês inteiro (pode ser ajustado se houver múltiplos períodos)
+            const day_start = 1;
+            const day_end = lastDayOfMonth;
+            
             // Abbycar: todos os grupos incluindo K (sem C3, C4, C5, X - não existem na Abbycar)
             // Ordem conforme imagem: B1, B2, BK1, BK2, D, DK, E1, E2, EK1, EK2, F, FK, G, J1, J2, JK1, JK2, L1, L1, LK1, M1, M1, M2, MK1, MK2, N, NK
             const groups = ['B1', 'B2', 'BK1', 'BK2', 'C', 'D', 'DK', 
@@ -3071,7 +3083,7 @@
             
             // Try backend Excel (60 second timeout - Excel generation can be slow)
             try {
-                console.log('[ABBYCAR] Sending request to backend...', { location, date, priceCount: Object.keys(prices).length });
+                console.log('[ABBYCAR] Sending request to backend...', { location, date, day_start, day_end, priceCount: Object.keys(prices).length });
                 
                 const controller = new AbortController();
                 const timeoutId = setTimeout(() => controller.abort(), 60000);
@@ -3079,7 +3091,7 @@
                 const response = await fetch('/api/export-automated-prices-excel', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ location, date, prices }),
+                    body: JSON.stringify({ location, date, prices, day_start, day_end }),
                     signal: controller.signal
                 });
                 
