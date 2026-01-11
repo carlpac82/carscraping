@@ -559,20 +559,22 @@ def create_current_prices_table(conn):
                 if 'day_start' not in existing_cols:
                     try:
                         cur.execute("ALTER TABLE current_prices ADD COLUMN day_start INTEGER DEFAULT 1")
+                        conn.commit()
                         logging.info("Coluna day_start adicionada")
                     except Exception as e:
-                        if "already exists" not in str(e):
-                            raise
-                        logging.info("Coluna day_start já existe")
+                        conn.rollback()  # Rollback em caso de erro
+                        if "already exists" not in str(e).lower():
+                            logging.error(f"Erro ao adicionar day_start: {e}")
                 
                 if 'day_end' not in existing_cols:
                     try:
                         cur.execute("ALTER TABLE current_prices ADD COLUMN day_end INTEGER DEFAULT 31")
+                        conn.commit()
                         logging.info("Coluna day_end adicionada")
                     except Exception as e:
-                        if "already exists" not in str(e):
-                            raise
-                        logging.info("Coluna day_end já existe")
+                        conn.rollback()  # Rollback em caso de erro
+                        if "already exists" not in str(e).lower():
+                            logging.error(f"Erro ao adicionar day_end: {e}")
                 
                 # Atualizar registos antigos sem day_start/day_end
                 cur.execute("""
