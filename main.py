@@ -35093,6 +35093,45 @@ async def migrate_current_prices(request: Request):
         logging.error(traceback.format_exc())
         return JSONResponse({"ok": False, "error": str(e)}, status_code=500)
 
+@app.post("/api/current-prices/delete-month")
+async def delete_month_periods(request: Request):
+    """Eliminar todos os períodos de um mês específico"""
+    require_auth(request)
+    try:
+        data = await request.json()
+        location = data.get('location')
+        month = data.get('month')
+        year = data.get('year')
+        
+        with _db_lock:
+            conn = _db_connect()
+            try:
+                is_postgres = conn.__class__.__module__ in ['psycopg2.extensions', 'psycopg2._psycopg']
+                
+                if is_postgres:
+                    with conn.cursor() as cur:
+                        cur.execute("""
+                            DELETE FROM current_prices 
+                            WHERE location = %s AND month = %s AND year = %s
+                        """, (location, month, year))
+                        deleted_count = cur.rowcount
+                    conn.commit()
+                else:
+                    cursor = conn.execute("""
+                        DELETE FROM current_prices 
+                        WHERE location = ? AND month = ? AND year = ?
+                    """, (location, month, year))
+                    deleted_count = cursor.rowcount
+                    conn.commit()
+                
+                logging.info(f"🗑️ Deleted {deleted_count} periods for {location}, {month}/{year}")
+                return JSONResponse({"ok": True, "deleted": deleted_count})
+            finally:
+                conn.close()
+    except Exception as e:
+        logging.error(f"Error deleting month periods: {e}")
+        return JSONResponse({"ok": False, "error": str(e)}, status_code=500)
+
 @app.post("/api/current-prices/save")
 async def save_current_prices(request: Request):
     """Guardar preços atuais na base de dados"""

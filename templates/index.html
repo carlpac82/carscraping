@@ -866,6 +866,19 @@
             console.log(`💾 Guardando ${allPeriods.length} períodos na base de dados...`);
             
             try {
+                // Primeiro, eliminar todos os períodos existentes deste mês
+                const deleteResponse = await fetch('/api/current-prices/delete-month', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ location, month, year })
+                });
+                
+                const deleteResult = await deleteResponse.json();
+                if (deleteResult.ok) {
+                    console.log(`🗑️ Períodos antigos eliminados`);
+                }
+                
+                // Depois, inserir todos os novos períodos
                 for (const period of allPeriods) {
                     const response = await fetch('/api/current-prices/save', {
                         method: 'POST',
