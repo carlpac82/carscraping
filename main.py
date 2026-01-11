@@ -34907,6 +34907,67 @@ async def load_current_prices(request: Request, location: str, month: int, year:
         logging.error(traceback.format_exc())
         return JSONResponse({"ok": False, "error": str(e)}, status_code=500)
 
+@app.get("/api/current-prices/list-all")
+async def list_all_current_prices(request: Request):
+    """Listar todos os registos de current_prices para debug"""
+    require_auth(request)
+    try:
+        with _db_lock:
+            conn = _db_connect()
+            try:
+                is_postgres = conn.__class__.__module__ in ['psycopg2.extensions', 'psycopg2._psycopg']
+                
+                if is_postgres:
+                    with conn.cursor() as cur:
+                        cur.execute("""
+                            SELECT location, month, year, day_start, day_end, 
+                                   LENGTH(prices_data) as data_size, updated_at
+                            FROM current_prices 
+                            ORDER BY location, year, month, day_start
+                        """)
+                        rows = cur.fetchall()
+                        
+                        records = []
+                        for row in rows:
+                            records.append({
+                                'location': row[0],
+                                'month': row[1],
+                                'year': row[2],
+                                'day_start': row[3],
+                                'day_end': row[4],
+                                'data_size': row[5],
+                                'updated_at': row[6].isoformat() if row[6] and hasattr(row[6], 'isoformat') else str(row[6])
+                            })
+                        
+                        return JSONResponse({"ok": True, "total": len(records), "records": records})
+                else:
+                    cursor = conn.execute("""
+                        SELECT location, month, year, day_start, day_end, 
+                               LENGTH(prices_data) as data_size, updated_at
+                        FROM current_prices 
+                        ORDER BY location, year, month, day_start
+                    """)
+                    rows = cursor.fetchall()
+                    
+                    records = []
+                    for row in rows:
+                        records.append({
+                            'location': row[0],
+                            'month': row[1],
+                            'year': row[2],
+                            'day_start': row[3],
+                            'day_end': row[4],
+                            'data_size': row[5],
+                            'updated_at': str(row[6]) if row[6] else None
+                        })
+                    
+                    return JSONResponse({"ok": True, "total": len(records), "records": records})
+            finally:
+                conn.close()
+    except Exception as e:
+        logging.error(f"Error listing prices: {e}")
+        return JSONResponse({"ok": False, "error": str(e)}, status_code=500)
+
 @app.get("/api/current-prices/migrate")
 async def migrate_current_prices(request: Request):
     """Migrar preços antigos para incluir day_start/day_end"""
