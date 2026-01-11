@@ -234,14 +234,10 @@
                 <h1 class="text-2xl font-bold text-gray-900 mb-2">Preços Atuais</h1>
                 <p class="text-gray-600">Gestão de preços net e comissão</p>
             </div>
-            <div class="flex items-center gap-2 text-sm text-gray-500">
-                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
-                <span id="lastUpdated" class="font-medium"></span>
-            </div>
         </div>
 
         <div class="bg-white rounded-lg shadow-sm p-4 mb-6">
-            <div class="flex items-end justify-between">
+            <div class="flex items-start justify-between mb-3">
                 <div class="flex items-start gap-6">
                     <div class="select-group">
                         <span class="select-label">Localização</span>
@@ -277,7 +273,7 @@
                     </div>
                 </div>
                 
-                <div class="flex items-center gap-4 h-10">
+                <div class="flex items-center gap-4">
                     <div class="flex items-center gap-1.5">
                         <svg class="w-3.5 h-3.5 text-[#f4ad0f]" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
                         <span class="text-[10px] text-gray-600 font-medium">BROKERS:</span>
@@ -300,7 +296,7 @@
                     </div>
                 </div>
                 
-                <div class="flex items-center gap-6 h-10">
+                <div class="flex items-center gap-6">
                     <div class="flex items-center gap-2">
                         <label class="flex items-center gap-1 cursor-pointer">
                             <input type="checkbox" id="showGroupsK" class="w-4 h-4 text-[#009cb6] rounded">
@@ -323,18 +319,25 @@
                             <span class="text-[9px] text-gray-600 font-medium">Guardar</span>
                         </button>
                     </div>
-                    
-                    <div class="flex items-center gap-1.5 h-10">
-                        <button onclick="downloadBrokers()" class="checkmark green" title="Download Brokers">
-                            <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" class="w-4 h-4"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/></svg>
-                        </button>
-                        <button onclick="downloadWebsite()" class="checkmark yellow" title="Download Website">
-                            <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" class="w-4 h-4"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/></svg>
-                        </button>
-                        <button onclick="downloadAbbycar()" class="checkmark cyan" title="Download Abbycar">
-                            <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" class="w-4 h-4"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/></svg>
-                        </button>
-                    </div>
+                </div>
+            </div>
+            
+            <div class="flex items-center justify-between pt-3 border-t border-gray-100">
+                <div class="flex items-center gap-2 text-sm text-gray-500">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                    <span id="lastUpdated" class="font-medium"></span>
+                </div>
+                
+                <div class="flex items-center gap-1.5">
+                    <button onclick="downloadBrokers()" class="w-6 h-6 flex items-center justify-center bg-[#10b981] hover:bg-[#059669] transition-colors" title="Download Brokers">
+                        <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" class="w-3.5 h-3.5 text-white"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M5 13l4 4L19 7"/></svg>
+                    </button>
+                    <button onclick="downloadWebsite()" class="w-6 h-6 flex items-center justify-center bg-[#f59e0b] hover:bg-[#d97706] transition-colors" title="Download Website">
+                        <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" class="w-3.5 h-3.5 text-white"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M5 13l4 4L19 7"/></svg>
+                    </button>
+                    <button onclick="downloadAbbycar()" class="w-6 h-6 flex items-center justify-center bg-[#06b6d4] hover:bg-[#0891b2] transition-colors" title="Download Abbycar">
+                        <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" class="w-3.5 h-3.5 text-white"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M5 13l4 4L19 7"/></svg>
+                    </button>
                 </div>
             </div>
         </div>
