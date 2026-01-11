@@ -35080,6 +35080,15 @@ async def check_current_prices_table(request: Request):
         logging.error(traceback.format_exc())
         return JSONResponse({"ok": False, "error": str(e)}, status_code=500)
 
+@app.get("/api/version-check")
+async def version_check():
+    """Verificar versão do código deployed"""
+    return JSONResponse({
+        "version": "2026-01-11-16:00",
+        "commit": "c249d0f",
+        "message": "Auto-add day_start/day_end columns on save if missing"
+    })
+
 @app.get("/api/current-prices/add-columns-safe")
 async def add_period_columns_safe(request: Request):
     """Adicionar colunas day_start e day_end - SEGURO (não apaga dados)"""
