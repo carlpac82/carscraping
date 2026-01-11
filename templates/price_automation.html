@@ -3072,15 +3072,30 @@
             
             // Collect prices
             const prices = {};
+            let totalPricesFound = 0;
             groups.forEach(group => {
                 prices[group] = {};
                 days.forEach(day => {
                     const inputAuto = document.querySelector(`#pricesTableAuto input[data-grupo="${group}"][data-dias="${day}"][data-type="auto"]`);
                     if (inputAuto && inputAuto.value && inputAuto.value !== '' && inputAuto.value !== '-') {
                         prices[group][day] = parseFloat(inputAuto.value);
+                        totalPricesFound++;
                     }
                 });
+                // Remove grupo se não tiver preços
+                if (Object.keys(prices[group]).length === 0) {
+                    delete prices[group];
+                }
             });
+            
+            console.log('[ABBYCAR] Prices collected:', totalPricesFound, 'prices from', Object.keys(prices).length, 'groups');
+            console.log('[ABBYCAR] Groups with prices:', Object.keys(prices));
+            
+            // Verificar se há preços
+            if (totalPricesFound === 0) {
+                showNotification('❌ Nenhum preço encontrado na tabela Automated Prices! Preencha os preços primeiro.', 'error', 5000);
+                return;
+            }
             
             // Try backend Excel (60 second timeout - Excel generation can be slow)
             try {
