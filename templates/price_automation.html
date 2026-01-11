@@ -9798,66 +9798,33 @@ Continue?`);
                         }
                     });
                 } else {
-                    // Método 2: Procurar nas tabelas visíveis (histórico carregado)
-                    const tables = document.querySelectorAll('table');
-                    tables.forEach(table => {
-                        // Primeiro, ler o header para saber quais dias estão presentes
-                        const headerRow = table.querySelector('thead tr');
-                        const dayMapping = {}; // colIndex -> dia
+                    // Método 2: Procurar inputs com data-dias e data-grupo (histórico carregado)
+                    // Os inputs podem não ter data-type="net" mas têm data-dias e data-grupo
+                    const allInputs = document.querySelectorAll('input[data-dias][data-grupo]');
+                    console.log('[UPDATE] Found', allInputs.length, 'inputs with data-dias and data-grupo');
+                    
+                    allInputs.forEach(input => {
+                        const grupo = input.dataset.grupo;
+                        const dia = parseInt(input.dataset.dias);
+                        const tipo = input.dataset.type; // pode ser undefined
                         
-                        if (headerRow) {
-                            const headerCells = headerRow.querySelectorAll('th');
-                            console.log('[UPDATE] Found', headerCells.length, 'header cells');
-                            headerCells.forEach((th, colIndex) => {
-                                const text = th.textContent.trim();
-                                if (colIndex < 5) { // Debug primeiros 5 headers
-                                    console.log(`[UPDATE] Header[${colIndex}]: "${text}"`);
+                        // Se não tem data-type, verificar se é o primeiro input de cada par (NET)
+                        // Ou verificar se o placeholder/classe indica que é NET
+                        const isNet = tipo === 'net' || 
+                                     input.placeholder === 'NET' || 
+                                     input.classList.contains('net-input') ||
+                                     !tipo; // Se não tem tipo, assumir que é NET
+                        
+                        if (grupo && dia && isNet && input.value) {
+                            const netPrice = parseFloat(input.value);
+                            if (netPrice > 0) {
+                                if (!prices[grupo]) {
+                                    prices[grupo] = {};
                                 }
-                                // Headers são tipo "1d NET", "1d REAL", "2d NET", etc
-                                const match = text.match(/(\d+)d\s+(NET|REAL)/);
-                                if (match) {
-                                    const dia = parseInt(match[1]);
-                                    const tipo = match[2];
-                                    if (tipo === 'NET') {
-                                        dayMapping[colIndex] = dia;
-                                        console.log(`[UPDATE] Mapped column ${colIndex} to day ${dia}`);
-                                    }
-                                }
-                            });
-                        } else {
-                            console.log('[UPDATE] No thead found, trying th in tbody');
-                        }
-                        
-                        console.log('[UPDATE] Day mapping from table headers:', dayMapping);
-                        
-                        // Agora processar as linhas de dados
-                        const rows = table.querySelectorAll('tbody tr');
-                        rows.forEach(row => {
-                            const cells = row.querySelectorAll('td');
-                            if (cells.length > 0) {
-                                const firstCell = cells[0];
-                                const grupo = firstCell.textContent.trim();
-                                
-                                // Para cada coluna NET identificada no header
-                                Object.keys(dayMapping).forEach(colIndex => {
-                                    const dia = dayMapping[colIndex];
-                                    const cell = cells[colIndex];
-                                    
-                                    if (cell) {
-                                        const input = cell.querySelector('input');
-                                        if (input && input.value) {
-                                            const netPrice = parseFloat(input.value);
-                                            if (netPrice > 0) {
-                                                if (!prices[grupo]) {
-                                                    prices[grupo] = {};
-                                                }
-                                                prices[grupo][dia] = netPrice;
-                                            }
-                                        }
-                                    }
-                                });
+                                prices[grupo][dia] = netPrice;
+                                console.log(`[UPDATE] Collected ${grupo}/${dia}d: ${netPrice}`);
                             }
-                        });
+                        }
                     });
                 }
                 
