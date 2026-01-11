@@ -620,11 +620,14 @@
             // Ordenar períodos por day_start
             allPeriods.sort((a, b) => a.day_start - b.day_start);
             
+            console.log('✅ Período criado e períodos ajustados:', allPeriods.map(p => `${p.day_start}-${p.day_end}`));
+            
+            // Guardar TODOS os períodos na base de dados (incluindo o novo e os ajustados)
+            await saveAllPeriods();
+            
             updatePeriodSelector();
             loadPeriodByIndex(allPeriods.length - 1);
             closeNewPeriodDialog();
-            
-            console.log('✅ Período criado e períodos ajustados:', allPeriods.map(p => `${p.day_start}-${p.day_end}`));
         }
         
         function updatePeriodSelector() {
@@ -843,6 +846,43 @@
                 }
             });
         });
+        
+        // Guardar TODOS os períodos na base de dados
+        async function saveAllPeriods() {
+            const location = document.getElementById('locationSelect').value;
+            const month = parseInt(document.getElementById('monthSelect').value);
+            const year = parseInt(document.getElementById('yearSelect').value);
+            
+            console.log(`💾 Guardando ${allPeriods.length} períodos na base de dados...`);
+            
+            try {
+                for (const period of allPeriods) {
+                    const response = await fetch('/api/current-prices/save', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ 
+                            location, 
+                            month, 
+                            year, 
+                            prices: period.prices, 
+                            day_start: period.day_start, 
+                            day_end: period.day_end 
+                        })
+                    });
+                    
+                    const result = await response.json();
+                    if (result.ok) {
+                        console.log(`✅ Período ${period.day_start}-${period.day_end} guardado com sucesso!`);
+                    } else {
+                        console.error(`❌ Erro ao guardar período ${period.day_start}-${period.day_end}:`, result.error);
+                    }
+                }
+                console.log('✅ Todos os períodos guardados na base de dados!');
+            } catch (error) {
+                console.error('❌ Erro ao guardar períodos:', error);
+                alert('Erro ao guardar períodos: ' + error.message);
+            }
+        }
         
         // Guardar preços na base de dados
         async function savePricesToDB(prices) {
