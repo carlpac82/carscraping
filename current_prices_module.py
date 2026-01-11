@@ -530,46 +530,70 @@ def create_current_prices_table(conn):
                     )
                 """)
                 
-                # Adicionar colunas se não existirem (migração)
-                try:
-                    cur.execute("ALTER TABLE current_prices ADD COLUMN IF NOT EXISTS day_start INTEGER DEFAULT 1")
-                except:
-                    pass
-                try:
-                    cur.execute("ALTER TABLE current_prices ADD COLUMN IF NOT EXISTS day_end INTEGER DEFAULT 31")
-                except:
-                    pass
+                # Verificar se colunas day_start e day_end existem
+                cur.execute("""
+                    SELECT column_name 
+                    FROM information_schema.columns 
+                    WHERE table_name = 'current_prices' 
+                    AND column_name IN ('day_start', 'day_end')
+                """)
+                existing_cols = [row[0] for row in cur.fetchall()]
+                
+                # Adicionar colunas se não existirem
+                if 'day_start' not in existing_cols:
+                    cur.execute("ALTER TABLE current_prices ADD COLUMN day_start INTEGER DEFAULT 1")
+                    logging.info("Coluna day_start adicionada")
+                
+                if 'day_end' not in existing_cols:
+                    cur.execute("ALTER TABLE current_prices ADD COLUMN day_end INTEGER DEFAULT 31")
+                    logging.info("Coluna day_end adicionada")
                 
                 # Atualizar registos antigos sem day_start/day_end
-                try:
-                    cur.execute("""
-                        UPDATE current_prices 
-                        SET day_start = 1, day_end = 31 
-                        WHERE day_start IS NULL OR day_end IS NULL
-                    """)
-                except:
-                    pass
+                cur.execute("""
+                    UPDATE current_prices 
+                    SET day_start = COALESCE(day_start, 1), 
+                        day_end = COALESCE(day_end, 31)
+                    WHERE day_start IS NULL OR day_end IS NULL
+                """)
+                updated_rows = cur.rowcount
+                if updated_rows > 0:
+                    logging.info(f"Atualizados {updated_rows} registos com day_start/day_end padrão")
                 
-                # Remover constraint antiga se existir
-                try:
+                # Verificar se constraint antiga existe
+                cur.execute("""
+                    SELECT constraint_name 
+                    FROM information_schema.table_constraints 
+                    WHERE table_name = 'current_prices' 
+                    AND constraint_name = 'current_prices_location_month_year_key'
+                """)
+                old_constraint = cur.fetchone()
+                
+                if old_constraint:
                     cur.execute("""
                         ALTER TABLE current_prices 
-                        DROP CONSTRAINT IF EXISTS current_prices_location_month_year_key
+                        DROP CONSTRAINT current_prices_location_month_year_key
                     """)
-                except:
-                    pass
+                    logging.info("Constraint antiga removida")
                 
-                # Adicionar nova constraint única
-                try:
+                # Verificar se nova constraint existe
+                cur.execute("""
+                    SELECT constraint_name 
+                    FROM information_schema.table_constraints 
+                    WHERE table_name = 'current_prices' 
+                    AND constraint_name = 'current_prices_location_month_year_period_key'
+                """)
+                new_constraint = cur.fetchone()
+                
+                if not new_constraint:
                     cur.execute("""
                         ALTER TABLE current_prices 
                         ADD CONSTRAINT current_prices_location_month_year_period_key 
                         UNIQUE(location, month, year, day_start, day_end)
                     """)
-                except:
-                    pass
+                    logging.info("Nova constraint única adicionada")
                     
             conn.commit()
+            logging.info("Tabela current_prices criada/migrada com sucesso")
         else:
             # SQLite syntax
             conn.execute("""
