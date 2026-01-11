@@ -782,7 +782,7 @@
             console.log('✅ Período atualizado:', allPeriods.map(p => `${p.day_start}-${p.day_end}`));
         }
         
-        function deletePeriod() {
+        async function deletePeriod() {
             if (allPeriods.length <= 1) {
                 alert('Não podes eliminar o último período!');
                 return;
@@ -841,12 +841,19 @@
             // Ordenar períodos
             allPeriods.sort((a, b) => a.day_start - b.day_start);
             
+            console.log('✅ Período eliminado e períodos ajustados:', allPeriods.map(p => `${p.day_start}-${p.day_end}`));
+            
+            // Guardar períodos com preços (mesma lógica que updatePeriod e createNewPeriod)
+            const periodsWithPrices = allPeriods.filter(p => Object.keys(p.prices).length > 0);
+            if (periodsWithPrices.length > 0) {
+                console.log(`💾 Guardando ${periodsWithPrices.length} períodos após eliminação...`);
+                await savePeriodsWithPrices(periodsWithPrices);
+            }
+            
             // Atualizar UI
             currentPeriodIndex = Math.max(0, currentPeriodIndex - 1);
             updatePeriodSelector();
             loadPeriodByIndex(currentPeriodIndex);
-            
-            console.log('✅ Período eliminado e períodos ajustados:', allPeriods.map(p => `${p.day_start}-${p.day_end}`));
         }
         
         function loadPeriodByIndex(index) {
