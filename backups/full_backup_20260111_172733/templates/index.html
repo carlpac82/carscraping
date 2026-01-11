@@ -1,0 +1,1935 @@
+<!doctype html>
+<html lang="pt">
+<head>
+    <meta charset="utf-8"/>
+    <meta name="viewport" content="width=device-width, initial-scale=1"/>
+    <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate"/>
+    <meta http-equiv="Pragma" content="no-cache"/>
+    <meta http-equiv="Expires" content="0"/>
+    <title>Preços Atuais v2.1 - Auto Prudente</title>
+    <link rel="icon" type="image/png" href="/static/autoprudente-favicon.png?v=2" />
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    <style>
+        * { font-family: 'Outfit', sans-serif; border-radius: 0 !important; }
+        img[alt="Profile"], img[src*="profile"], .profile-picture { border-radius: 50% !important; }
+        .price-card { background: white; padding: 12px; box-shadow: 0 1px 3px rgba(0,0,0,0.1); }
+        .price-card h3 { font-size: 13px; font-weight: 700; margin: 0 0 8px 0; text-align: center; white-space: nowrap; }
+        .price-header { display: flex; gap: 4px; margin-bottom: 4px; padding-bottom: 4px; border-bottom: 1px solid #f3f4f6; justify-content: center; }
+        .price-header-label { font-size: 8px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.3px; width: 55px; text-align: center; }
+        .price-header-label.net { color: #009cb6; }
+        .price-header-label.commission { color: #f4ad0f; }
+        .price-row { display: flex; gap: 4px; margin-bottom: 3px; align-items: center; justify-content: center; }
+        .price-input { width: 55px; padding: 3px 4px; border: none; font-size: 11px; text-align: center; background: transparent; color: #009cb6; font-weight: 600; }
+        .price-input.commission { color: #374151; }
+        .price-input:focus { outline: none; }
+        .commission-input { width: 60px; padding: 4px 8px; border: 1px solid #e5e7eb; font-size: 11px; text-align: center; -moz-appearance: textfield; appearance: textfield; }
+        .commission-input::-webkit-outer-spin-button, .commission-input::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
+        .car-image { width: 100%; height: 80px; object-fit: contain; background: white; padding: 8px; margin-bottom: 8px; }
+        .checkmark { width: 28px; height: 28px; display: flex; align-items: center; justify-content: center; cursor: pointer; transition: all 0.2s; }
+        .checkmark:hover { transform: scale(1.1); }
+        .checkmark.green { background: #10b981; }
+        .checkmark.yellow { background: #f59e0b; }
+        .checkmark.cyan { background: #06b6d4; }
+        .checkmark svg { width: 16px; height: 16px; color: white; stroke-width: 3; }
+        .select-group { display: flex; flex-direction: column; align-items: flex-start; gap: 2px; }
+        .select-label { font-size: 10px; font-weight: 600; color: #6b7280; text-transform: uppercase; letter-spacing: 0.5px; }
+        .select-value { font-size: 14px; font-weight: 700; color: #111827; }
+        #monthSelect option.has-prices { 
+            background-color: #10b981 !important; 
+            color: white !important; 
+            font-weight: 700 !important; 
+        }
+        #monthSelect option.no-prices { 
+            background-color: #ef4444 !important; 
+            color: white !important; 
+            font-weight: 700 !important; 
+        }
+        .loading-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.5);
+            display: none;
+            align-items: center;
+            justify-content: center;
+            z-index: 9999;
+            -webkit-backdrop-filter: blur(3px);
+            backdrop-filter: blur(3px);
+        }
+        .loading-overlay.active { display: flex; }
+        .loading-spinner {
+            width: 100px;
+            height: 100px;
+            position: relative;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .loading-spinner:after {
+            content: " ";
+            display: block;
+            width: 80px;
+            height: 80px;
+            position: absolute;
+            border-radius: 50%;
+            border: 7px solid #009cb6;
+            border-color: #009cb6 transparent #009cb6 transparent;
+            animation: spinner-dual-ring 1.2s linear infinite;
+        }
+        .loading-percentage {
+            position: relative;
+            z-index: 1;
+            font-size: 24px;
+            font-weight: 700;
+            color: #009cb6;
+            font-family: 'Outfit', sans-serif;
+        }
+        @keyframes spinner-dual-ring {
+            0% {
+                transform: rotate(0deg);
+            }
+            100% {
+                transform: rotate(360deg);
+            }
+        }
+        .mobile-menu-btn { display: none; background: none; border: none; color: white; padding: 8px; }
+        @media (max-width: 768px) {
+            .desktop-nav { display: none !important; }
+            .mobile-menu-btn { display: block !important; }
+        }
+    </style>
+</head>
+<body class="min-h-screen bg-gray-50">
+    <header class="bg-[#009cb6] border-b">
+        <div class="mx-auto max-w-6xl px-4 py-3 flex items-center justify-between">
+            <div class="flex items-center gap-3">
+                <a href="/" class="inline-flex items-center" title="Homepage">
+                    <img src="/static/ap-heather.png" alt="Auto Prudente" class="h-12 w-auto" />
+                </a>
+            </div>
+            
+            <button class="mobile-menu-btn" onclick="alert('Menu mobile')" aria-label="Menu">
+                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"/>
+                </svg>
+            </button>
+            
+            <div class="flex items-center gap-3 desktop-nav">
+                <a href="/" class="p-2 text-white/90 hover:text-white hover:bg-white/10 transition-all rounded" title="Home">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"/>
+                    </svg>
+                </a>
+                
+                <a href="/whatsapp" class="p-2 text-white/90 hover:text-white hover:bg-white/10 transition-all" title="WhatsApp">
+                    <svg class="w-5 h-5" viewBox="0 0 24 24" fill="currentColor">
+                        <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413Z"/>
+                    </svg>
+                </a>
+                
+                <a href="/price-automation" class="p-2 text-white/90 hover:text-white hover:bg-white/10 transition-all" title="Automação de Preços">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                    </svg>
+                </a>
+                
+                <a href="/vehicle-inspection" class="p-2 text-white/90 hover:text-white hover:bg-white/10 transition-all" title="Inspeção">
+                    <svg class="w-5 h-5" viewBox="0 0 24 24" fill="currentColor">
+                        <path d="M18.92 6.01C18.72 5.42 18.16 5 17.5 5h-11c-.66 0-1.21.42-1.42 1.01L3 12v8c0 .55.45 1 1 1h1c.55 0 1-.45 1-1v-1h12v1c0 .55.45 1 1 1h1c.55 0 1-.45 1-1v-8l-2.08-5.99zM6.5 16c-.83 0-1.5-.67-1.5-1.5S5.67 13 6.5 13s1.5.67 1.5 1.5S7.33 16 6.5 16zm11 0c-.83 0-1.5-.67-1.5-1.5s.67-1.5 1.5-1.5 1.5.67 1.5 1.5-.67 1.5-1.5 1.5zM5 11l1.5-4.5h11L19 11H5z"/>
+                    </svg>
+                </a>
+                
+                <a href="/damage-report" class="p-2 text-white/90 hover:text-white hover:bg-white/10 transition-all" title="Damage Report">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+                    </svg>
+                </a>
+                
+                <a href="/price-history" class="p-2 text-white/90 hover:text-white hover:bg-white/10 transition-all" title="Histórico">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/>
+                    </svg>
+                </a>
+                
+                <button onclick="location.reload()" class="p-2 text-white/90 hover:text-white hover:bg-white/10 transition-all" title="Renovar Sessão">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/>
+                    </svg>
+                </button>
+                
+                {% if request.session and request.session.get('is_admin') %}
+                <a href="/admin" class="p-2 text-white/90 hover:text-white hover:bg-white/10 transition-all" title="Admin">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"/>
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/>
+                    </svg>
+                </a>
+                {% endif %}
+                
+                <div class="relative">
+                    <button onclick="alert('Trocar idioma')" class="px-3 py-2 text-white/90 hover:text-white hover:bg-white/10 transition-all" title="Idioma">
+                        <span class="text-sm font-semibold">PT</span>
+                    </button>
+                </div>
+                
+                {% if current_user %}
+                <div class="relative flex items-center">
+                    <button onclick="toggleProfileMenu()" class="flex items-center gap-2 p-1 hover:bg-white/10 transition-all">
+                        {% if current_user.profile_picture_path %}
+                        <img src="{{ current_user.profile_picture_path }}" alt="Profile" class="h-8 w-8 rounded-full object-cover border-2 border-white/40" style="border-radius: 50% !important;" />
+                        {% else %}
+                        <div class="h-8 w-8 rounded-full bg-white/20 text-white flex items-center justify-center text-sm font-semibold border-2 border-white/40" style="border-radius: 50% !important;">
+                            {{ (current_user.first_name[:1] or 'U') | upper }}
+                        </div>
+                        {% endif %}
+                    </button>
+                    <div id="profileMenu" class="hidden absolute right-0 mt-2 w-56 bg-white shadow-lg border border-gray-200 z-50" style="top: 100%;">
+                        <div class="px-4 py-3 border-b border-gray-100">
+                            <p class="text-sm font-medium text-gray-900">{{ (current_user.first_name + ' ' + current_user.last_name).strip() or current_user.username }}</p>
+                            <p class="text-xs text-gray-500">{{ current_user.email or current_user.username }}</p>
+                        </div>
+                        <div class="py-1">
+                            <a href="/admin?section=profile" class="flex items-center gap-2 px-4 py-2 text-sm text-gray-700 hover:bg-gray-50">
+                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"/>
+                                </svg>
+                                Perfil
+                            </a>
+                            <form method="post" action="/logout" class="w-full">
+                                <button type="submit" class="w-full flex items-center gap-2 px-4 py-2 text-sm text-red-600 hover:bg-red-50">
+                                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"/>
+                                    </svg>
+                                    Logout
+                                </button>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </header>
+    <script>
+        function toggleProfileMenu() {
+            const menu = document.getElementById('profileMenu');
+            if (menu) menu.classList.toggle('hidden');
+        }
+        document.addEventListener('click', function(event) {
+            const menu = document.getElementById('profileMenu');
+            const button = event.target.closest('button[onclick="toggleProfileMenu()"]');
+            if (menu && !button && !menu.contains(event.target)) {
+                menu.classList.add('hidden');
+            }
+        });
+    </script>
+
+    <main class="mx-auto max-w-7xl px-4 py-6">
+        <div class="mb-6 flex items-center justify-between">
+            <div>
+                <h1 class="text-2xl font-bold text-gray-900 mb-2">Preços Atuais</h1>
+                <p class="text-gray-600">Gestão de preços net e comissão</p>
+            </div>
+        </div>
+
+        <div class="bg-white rounded-lg shadow-sm p-4 mb-6">
+            <div class="flex items-start justify-between mb-3">
+                <div class="flex items-start gap-6">
+                    <div class="select-group">
+                        <span class="select-label">Localização</span>
+                        <select id="locationSelect" class="select-value bg-transparent border-none outline-none cursor-pointer">
+                            <option>Albufeira</option>
+                            <option>Aeroporto de Faro</option>
+                        </select>
+                    </div>
+                    
+                    <div class="select-group">
+                        <span class="select-label">Período</span>
+                        <select id="monthSelect" class="select-value bg-transparent border-none outline-none cursor-pointer">
+                            <option value="1">Janeiro</option>
+                            <option value="2">Fevereiro</option>
+                            <option value="3">Março</option>
+                            <option value="4">Abril</option>
+                            <option value="5">Maio</option>
+                            <option value="6">Junho</option>
+                            <option value="7">Julho</option>
+                            <option value="8">Agosto</option>
+                            <option value="9">Setembro</option>
+                            <option value="10" selected>Outubro</option>
+                            <option value="11">Novembro</option>
+                            <option value="12">Dezembro</option>
+                        </select>
+                    </div>
+                    
+                    <div class="select-group">
+                        <span class="select-label">Ano</span>
+                        <select id="yearSelect" class="select-value bg-transparent border-none outline-none cursor-pointer">
+                            <!-- Populated dynamically by JavaScript -->
+                        </select>
+                    </div>
+                    
+                    <div class="select-group">
+                        <span class="select-label">Período do Mês</span>
+                        <div class="flex items-center gap-2" style="margin-top: 4px;">
+                            <select id="periodSelect" class="select-value bg-transparent border-none outline-none cursor-pointer">
+                                <option value="">Selecionar...</option>
+                            </select>
+                            <button onclick="showNewPeriodDialog()" class="flex items-center justify-center w-6 h-6 text-gray-600 hover:text-[#009cb6] transition-colors" title="Criar Período">
+                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
+                            </button>
+                            <button id="editPeriodBtn" onclick="editPeriod()" class="flex items-center justify-center w-6 h-6 text-gray-600 hover:text-[#009cb6] transition-colors" title="Editar Período" style="display: none;">
+                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/></svg>
+                            </button>
+                            <button id="deletePeriodBtn" onclick="deletePeriod()" class="flex items-center justify-center w-6 h-6 text-gray-600 hover:text-red-600 transition-colors" title="Eliminar Período" style="display: none;">
+                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="flex items-center gap-6">
+                    <div class="flex items-center gap-2">
+                        <label class="flex items-center gap-1 cursor-pointer">
+                            <input type="checkbox" id="showGroupsK" class="w-4 h-4 text-[#009cb6] rounded">
+                            <span class="text-xs text-gray-700">Grupo K</span>
+                        </label>
+                        <label class="flex items-center gap-1 cursor-pointer">
+                            <input type="checkbox" id="showCommercial" class="w-4 h-4 text-[#009cb6] rounded">
+                            <span class="text-xs text-gray-700">Comerciais</span>
+                        </label>
+                    </div>
+                    <div class="flex items-center gap-3">
+                        <input type="file" id="uploadFile" accept=".xlsx,.xls,.csv" style="display:none" onchange="handleUpload(event)">
+                        <button onclick="document.getElementById('uploadFile').click()" class="flex flex-col items-center justify-center gap-0.5 h-10" title="Upload">
+                            <svg class="w-5 h-5 text-[#009cb6]" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 13h6m-3-3v6m5 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
+                            <span class="text-[9px] text-gray-600 font-medium">Upload</span>
+                        </button>
+                        
+                        <button onclick="saveData()" class="flex flex-col items-center justify-center gap-0.5 h-10" title="Guardar">
+                            <svg class="w-5 h-5 text-[#f4ad0f]" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-3m-1 4l-3 3m0 0l-3-3m3 3V4"/></svg>
+                            <span class="text-[9px] text-gray-600 font-medium">Guardar</span>
+                        </button>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="flex items-center justify-between pt-3 border-t border-gray-100">
+                <div class="flex items-center gap-2 text-sm text-gray-500">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                    <span id="lastUpdated" class="font-medium"></span>
+                </div>
+                
+                <div class="flex items-center gap-4">
+                    <div class="flex items-center gap-1.5">
+                        <span class="text-[10px] text-gray-600 font-medium">BROKERS:</span>
+                        <input type="number" id="commissionBrokers" class="commission-input" value="13.66" step="0.01">
+                        <span class="text-[#009cb6] font-bold text-xs">%</span>
+                    </div>
+                    <div class="flex items-center gap-1.5">
+                        <span class="text-[10px] text-gray-600 font-medium">WEBSITE:</span>
+                        <input type="number" id="commissionWebsite" class="commission-input" value="14.00" step="0.01">
+                        <span class="text-[#009cb6] font-bold text-xs">%</span>
+                    </div>
+                    <div class="flex items-center gap-1.5">
+                        <span class="text-[10px] text-gray-600 font-medium">ABBYCAR:</span>
+                        <input type="number" id="commissionAbbycar" class="commission-input" value="5.00" step="0.01">
+                        <span class="text-[#009cb6] font-bold text-xs">%</span>
+                    </div>
+                </div>
+                
+                <div class="flex items-center gap-1.5">
+                    <button onclick="downloadBrokers()" class="w-6 h-6 flex items-center justify-center bg-[#10b981] hover:bg-[#059669] transition-colors" title="Download Brokers">
+                        <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" class="w-3.5 h-3.5 text-white"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M5 13l4 4L19 7"/></svg>
+                    </button>
+                    <button onclick="downloadWebsite()" class="w-6 h-6 flex items-center justify-center bg-[#f59e0b] hover:bg-[#d97706] transition-colors" title="Download Website">
+                        <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" class="w-3.5 h-3.5 text-white"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M5 13l4 4L19 7"/></svg>
+                    </button>
+                    <button onclick="downloadAbbycar()" class="w-6 h-6 flex items-center justify-center bg-[#06b6d4] hover:bg-[#0891b2] transition-colors" title="Download Abbycar">
+                        <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" class="w-3.5 h-3.5 text-white"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M5 13l4 4L19 7"/></svg>
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <div id="cardsContainer" class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 xl:grid-cols-6 gap-3">
+            <!-- Cards serão gerados dinamicamente pelo JavaScript -->
+        </div>
+    </main>
+
+    <!-- Modal para criar novo período -->
+    <div id="newPeriodModal" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.6); z-index: 9998; align-items: center; justify-content: center; backdrop-filter: blur(4px);">
+        <div style="background: white; padding: 32px; border-radius: 0; max-width: 400px; width: 90%; box-shadow: 0 20px 25px -5px rgba(0,0,0,0.1);">
+            <h3 style="margin: 0 0 24px 0; font-size: 20px; font-weight: 700; color: #009cb6; border-bottom: 2px solid #009cb6; padding-bottom: 12px;">Criar Novo Período</h3>
+            
+            <div style="margin-bottom: 16px;">
+                <label style="display: block; font-size: 13px; font-weight: 600; color: #009cb6; margin-bottom: 6px;">Dia Início</label>
+                <input type="number" id="newPeriodDayStart" min="1" max="31" value="1" style="width: 100%; padding: 10px; border: 2px solid #e5e7eb; font-size: 15px; transition: border-color 0.2s;" onfocus="this.style.borderColor='#009cb6'" onblur="this.style.borderColor='#e5e7eb'">
+            </div>
+            
+            <div style="margin-bottom: 24px;">
+                <label style="display: block; font-size: 13px; font-weight: 600; color: #009cb6; margin-bottom: 6px;">Dia Fim</label>
+                <input type="number" id="newPeriodDayEnd" min="1" max="31" value="31" style="width: 100%; padding: 10px; border: 2px solid #e5e7eb; font-size: 15px; transition: border-color 0.2s;" onfocus="this.style.borderColor='#009cb6'" onblur="this.style.borderColor='#e5e7eb'">
+            </div>
+            
+            <div style="display: flex; gap: 12px; justify-content: flex-end;">
+                <button onclick="closeNewPeriodDialog()" style="padding: 10px 20px; background: #f3f4f6; color: #6b7280; border: none; font-size: 14px; font-weight: 600; cursor: pointer; transition: background 0.2s;" onmouseover="this.style.background='#e5e7eb'" onmouseout="this.style.background='#f3f4f6'">
+                    Cancelar
+                </button>
+                <button onclick="createNewPeriod()" style="padding: 10px 20px; background: #009cb6; color: white; border: none; font-size: 14px; font-weight: 600; cursor: pointer; transition: background 0.2s;" onmouseover="this.style.background='#007a94'" onmouseout="this.style.background='#009cb6'">
+                    Criar Período
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Loading Overlay -->
+    <div id="loadingOverlay" class="loading-overlay">
+        <div class="loading-spinner">
+            <span class="loading-percentage" id="loadingPercentage">0%</span>
+        </div>
+    </div>
+
+    <script>
+        // Funções para mostrar/esconder loading com percentagem animada
+        let loadingInterval;
+        
+        function showLoading() {
+            document.getElementById('loadingOverlay').classList.add('active');
+            
+            // Animar percentagem de 0 a 100%
+            let percentage = 0;
+            const percentageElement = document.getElementById('loadingPercentage');
+            percentageElement.textContent = '0%';
+            
+            loadingInterval = setInterval(() => {
+                percentage += Math.random() * 15; // Incremento aleatório para parecer mais real
+                if (percentage > 95) percentage = 95; // Parar em 95% até terminar
+                percentageElement.textContent = Math.floor(percentage) + '%';
+            }, 150);
+        }
+        
+        function hideLoading() {
+            // Completar a 100% antes de esconder
+            const percentageElement = document.getElementById('loadingPercentage');
+            percentageElement.textContent = '100%';
+            
+            clearInterval(loadingInterval);
+            
+            setTimeout(() => {
+                document.getElementById('loadingOverlay').classList.remove('active');
+                percentageElement.textContent = '0%'; // Reset para próxima vez
+            }, 300);
+        }
+        
+        // Função para calcular preço com comissão
+        function calculateWithCommission(netPrice, commissionPercent) {
+            return (parseFloat(netPrice) * (1 + parseFloat(commissionPercent) / 100)).toFixed(2);
+        }
+
+        // Função para atualizar preços com comissão quando Net ou Comissão mudam
+        function updateCommissionPrices() {
+            const brokersCommission = parseFloat(document.getElementById('commissionBrokers').value) || 0;
+            const inputs = document.querySelectorAll('.price-input:not(.commission)');
+            
+            inputs.forEach(input => {
+                const row = input.closest('.price-row');
+                const commissionInput = row.querySelector('.price-input.commission');
+                if (input.value && commissionInput) {
+                    commissionInput.value = calculateWithCommission(input.value, brokersCommission);
+                }
+            });
+        }
+
+        // Popular anos dinamicamente (atual + 3 à frente)
+        function populateYears() {
+            const yearSelect = document.getElementById('yearSelect');
+            const currentYear = new Date().getFullYear();
+            
+            // Anos: 2026 até atual + 3
+            const startYear = 2026; // Programa iniciado em 2026
+            const endYear = currentYear + 3;
+            
+            for (let year = startYear; year <= endYear; year++) {
+                const option = document.createElement('option');
+                option.value = year;
+                option.textContent = year;
+                if (year === currentYear) {
+                    option.selected = true;
+                }
+                yearSelect.appendChild(option);
+            }
+        }
+        
+        // Selecionar mês atual por defeito
+        function setCurrentMonth() {
+            const monthSelect = document.getElementById('monthSelect');
+            const currentMonth = new Date().getMonth() + 1; // 1-12
+            monthSelect.value = currentMonth.toString();
+        }
+        
+        // Verificar quais meses têm preços guardados e adicionar indicador visual
+        async function colorMonthOptions() {
+            const location = document.getElementById('locationSelect').value;
+            const year = parseInt(document.getElementById('yearSelect').value);
+            const monthSelect = document.getElementById('monthSelect');
+            const options = monthSelect.querySelectorAll('option');
+            
+            const monthNames = ['Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho', 
+                               'Julho', 'Agosto', 'Setembro', 'Outubro', 'Novembro', 'Dezembro'];
+            
+            // Verificar todos os meses em paralelo (mais rápido)
+            const promises = Array.from(options).map(async (option, i) => {
+                const month = parseInt(option.value);
+                const monthName = monthNames[month - 1];
+                
+                try {
+                    const response = await fetch(`/api/current-prices/load?location=${encodeURIComponent(location)}&month=${month}&year=${year}`);
+                    const result = await response.json();
+                    
+                    // Suportar tanto estrutura nova (periods) quanto antiga (prices)
+                    const hasPrices = (result.ok && result.periods && result.periods.length > 0) || 
+                                     (result.ok && result.prices && Object.keys(result.prices).length > 0);
+                    
+                    if (hasPrices) {
+                        // Tem preços - adicionar ✓ verde
+                        option.textContent = `✓ ${monthName}`;
+                        option.classList.remove('no-prices');
+                        option.classList.add('has-prices');
+                    } else {
+                        // Sem preços - adicionar ✗ vermelho
+                        option.textContent = `✗ ${monthName}`;
+                        option.classList.remove('has-prices');
+                        option.classList.add('no-prices');
+                    }
+                } catch (error) {
+                    // Erro - sem preços
+                    option.textContent = `✗ ${monthName}`;
+                    option.classList.remove('has-prices');
+                    option.classList.add('no-prices');
+                }
+            });
+            
+            await Promise.all(promises);
+        }
+        
+        // Mapear grupos para nomes de carros (conforme especificado pelo utilizador)
+        function getCarNameForGroup(grupo) {
+            const groupToCarName = {
+                'B1': 'peugeot 108',
+                'B2': 'fiat panda',
+                'BK1': 'citroen c1',
+                'BK2': 'toyota aygo',
+                'C': 'opel corsa',
+                'C3': 'opel corsa',
+                'C4': 'opel corsa',
+                'C5': 'opel corsa',
+                'D': 'peugeot 208',
+                'DK': 'ford fiesta',
+                'E1': 'kia picanto',
+                'E2': 'opel corsa',
+                'EK1': 'toyota aygo',
+                'EK2': 'seat ibiza',
+                'F': 'seat arona',
+                'FK': 'renault captur',
+                'G': 'fiat 500 cabrio',
+                'J1': 'peugeot 2008',
+                'J2': 'peugeot 308 sw',
+                'JK1': 'citroen c4',
+                'JK2': 'seat leon sw',
+                'L1': 'citroen c3 aircross',
+                'L2': 'peugeot 308 sw',
+                'LK1': 'ford puma',
+                'M1': 'dacia jogger',
+                'M2': 'citroen c4 grand picasso',
+                'MK1': 'renault grand scenic',
+                'MK2': 'renault grand scenic',
+                'N': 'toyota proace',
+                'NK': 'citroen spacetourer'
+            };
+            return groupToCarName[grupo] || grupo.toLowerCase();
+        }
+        
+        // Variáveis globais para gestão de períodos
+        let allPeriods = [];
+        let currentPeriodIndex = 0;
+        
+        // Funções para modal de novo período
+        function showNewPeriodDialog() {
+            // Calcular último dia do mês atual
+            const month = parseInt(document.getElementById('monthSelect').value);
+            const year = parseInt(document.getElementById('yearSelect').value);
+            const lastDayOfMonth = new Date(year, month, 0).getDate();
+            
+            // Preencher campos com valores padrão
+            document.getElementById('newPeriodDayStart').value = 1;
+            document.getElementById('newPeriodDayEnd').value = lastDayOfMonth;
+            document.getElementById('newPeriodDayEnd').max = lastDayOfMonth;
+            
+            document.getElementById('newPeriodModal').style.display = 'flex';
+        }
+        
+        function closeNewPeriodDialog() {
+            document.getElementById('newPeriodModal').style.display = 'none';
+        }
+        
+        async function createNewPeriod() {
+            const dayStart = parseInt(document.getElementById('newPeriodDayStart').value);
+            const dayEnd = parseInt(document.getElementById('newPeriodDayEnd').value);
+            const month = parseInt(document.getElementById('monthSelect').value);
+            const year = parseInt(document.getElementById('yearSelect').value);
+            const lastDayOfMonth = new Date(year, month, 0).getDate();
+            
+            if (dayStart < 1 || dayStart > lastDayOfMonth || dayEnd < 1 || dayEnd > lastDayOfMonth || dayStart > dayEnd) {
+                alert(`Dias inválidos! Este mês tem ${lastDayOfMonth} dias. Dia início deve ser menor ou igual ao dia fim.`);
+                return;
+            }
+            
+            // Verificar se há sobreposição com períodos existentes e ajustar automaticamente
+            allPeriods.forEach(period => {
+                // Se novo período começa dentro de um período existente
+                if (dayStart > period.day_start && dayStart <= period.day_end) {
+                    console.log(`📅 Ajustando período ${period.day_start}-${period.day_end} para ${period.day_start}-${dayStart - 1}`);
+                    period.day_end = dayStart - 1;
+                }
+                // Se novo período termina dentro de um período existente
+                if (dayEnd >= period.day_start && dayEnd < period.day_end) {
+                    console.log(`📅 Ajustando período ${period.day_start}-${period.day_end} para ${dayEnd + 1}-${period.day_end}`);
+                    period.day_start = dayEnd + 1;
+                }
+                // Se novo período engloba completamente um período existente
+                if (dayStart <= period.day_start && dayEnd >= period.day_end) {
+                    console.log(`⚠️ Novo período ${dayStart}-${dayEnd} engloba período ${period.day_start}-${period.day_end} - será removido`);
+                    period.toRemove = true;
+                }
+            });
+            
+            // Remover períodos englobados
+            allPeriods = allPeriods.filter(p => !p.toRemove);
+            
+            // Criar novo período VAZIO (sem preços - serão adicionados via upload CSV)
+            const newPeriod = {
+                prices: {},
+                updated_at: new Date().toISOString(),
+                day_start: dayStart,
+                day_end: dayEnd
+            };
+            
+            console.log(`✅ Novo período criado vazio (sem preços)`);
+            
+            allPeriods.push(newPeriod);
+            
+            // Ordenar períodos por day_start
+            allPeriods.sort((a, b) => a.day_start - b.day_start);
+            
+            console.log('✅ Período criado e períodos ajustados:', allPeriods.map(p => `${p.day_start}-${p.day_end}`));
+            
+            // Guardar apenas os períodos que têm preços (não guardar período vazio)
+            const periodsWithPrices = allPeriods.filter(p => Object.keys(p.prices).length > 0);
+            if (periodsWithPrices.length > 0) {
+                console.log(`💾 Guardando ${periodsWithPrices.length} períodos com preços...`);
+                await savePeriodsWithPrices(periodsWithPrices);
+            } else {
+                console.log('⚠️ Nenhum período com preços para guardar');
+            }
+            
+            updatePeriodSelector();
+            loadPeriodByIndex(allPeriods.length - 1);
+            closeNewPeriodDialog();
+        }
+        
+        function updatePeriodSelector() {
+            const selector = document.getElementById('periodSelect');
+            selector.innerHTML = '<option value="">Selecionar...</option>';
+            
+            allPeriods.forEach((period, index) => {
+                const option = document.createElement('option');
+                option.value = index;
+                option.textContent = `Dias ${period.day_start}-${period.day_end}`;
+                selector.appendChild(option);
+            });
+            
+            if (allPeriods.length > 0) {
+                selector.value = currentPeriodIndex;
+            }
+            
+            // Adicionar botão de eliminar ao lado do selector
+            updateDeleteButton();
+        }
+        
+        function updateDeleteButton() {
+            const deleteBtn = document.getElementById('deletePeriodBtn');
+            const editBtn = document.getElementById('editPeriodBtn');
+            
+            if (!deleteBtn || !editBtn) return;
+            
+            // Mostrar botão de eliminar se houver mais de 1 período
+            if (allPeriods.length > 1 && currentPeriodIndex >= 0) {
+                deleteBtn.style.display = 'flex';
+            } else {
+                deleteBtn.style.display = 'none';
+            }
+            
+            // Mostrar botão de editar se houver período selecionado
+            if (allPeriods.length > 0 && currentPeriodIndex >= 0) {
+                editBtn.style.display = 'flex';
+            } else {
+                editBtn.style.display = 'none';
+            }
+        }
+        
+        function editPeriod() {
+            if (allPeriods.length === 0 || currentPeriodIndex < 0) return;
+            
+            const period = allPeriods[currentPeriodIndex];
+            const month = parseInt(document.getElementById('monthSelect').value);
+            const year = parseInt(document.getElementById('yearSelect').value);
+            const lastDayOfMonth = new Date(year, month, 0).getDate();
+            
+            // Preencher modal com valores atuais do período
+            document.getElementById('newPeriodDayStart').value = period.day_start;
+            document.getElementById('newPeriodDayEnd').value = period.day_end;
+            document.getElementById('newPeriodDayEnd').max = lastDayOfMonth;
+            
+            // Alterar título do modal
+            const modalTitle = document.querySelector('#newPeriodModal h3');
+            if (modalTitle) {
+                modalTitle.textContent = 'Editar Período';
+            }
+            
+            // Alterar botão de criar para atualizar
+            const createBtn = document.querySelector('#newPeriodModal button[onclick="createNewPeriod()"]');
+            if (createBtn) {
+                createBtn.textContent = 'Atualizar';
+                createBtn.setAttribute('onclick', 'updatePeriod()');
+            }
+            
+            document.getElementById('newPeriodModal').style.display = 'flex';
+        }
+        
+        async function updatePeriod() {
+            const dayStart = parseInt(document.getElementById('newPeriodDayStart').value);
+            const dayEnd = parseInt(document.getElementById('newPeriodDayEnd').value);
+            const month = parseInt(document.getElementById('monthSelect').value);
+            const year = parseInt(document.getElementById('yearSelect').value);
+            const lastDayOfMonth = new Date(year, month, 0).getDate();
+            
+            if (dayStart < 1 || dayStart > lastDayOfMonth || dayEnd < 1 || dayEnd > lastDayOfMonth || dayStart > dayEnd) {
+                alert(`Dias inválidos! Este mês tem ${lastDayOfMonth} dias. Dia início deve ser menor ou igual ao dia fim.`);
+                return;
+            }
+            
+            const period = allPeriods[currentPeriodIndex];
+            const oldStart = period.day_start;
+            const oldEnd = period.day_end;
+            
+            console.log(`📝 Editando período ${oldStart}-${oldEnd} para ${dayStart}-${dayEnd}`);
+            
+            // Atualizar período
+            period.day_start = dayStart;
+            period.day_end = dayEnd;
+            
+            // Ajustar períodos adjacentes se necessário
+            allPeriods.forEach((p, idx) => {
+                if (idx === currentPeriodIndex) return; // Não ajustar o próprio período
+                
+                // Se outro período sobrepõe com o novo range, ajustar
+                if (p.day_start >= dayStart && p.day_start <= dayEnd) {
+                    // Período começa dentro do novo range - mover para depois
+                    p.day_start = dayEnd + 1;
+                    console.log(`📅 Ajustando período ${idx} para começar em ${p.day_start}`);
+                }
+                if (p.day_end >= dayStart && p.day_end <= dayEnd) {
+                    // Período termina dentro do novo range - mover para antes
+                    p.day_end = dayStart - 1;
+                    console.log(`📅 Ajustando período ${idx} para terminar em ${p.day_end}`);
+                }
+            });
+            
+            // Remover períodos inválidos (onde day_start > day_end)
+            allPeriods = allPeriods.filter(p => p.day_start <= p.day_end);
+            
+            // Ordenar períodos
+            allPeriods.sort((a, b) => a.day_start - b.day_start);
+            
+            // Guardar períodos com preços
+            const periodsWithPrices = allPeriods.filter(p => Object.keys(p.prices).length > 0);
+            if (periodsWithPrices.length > 0) {
+                console.log(`💾 Guardando ${periodsWithPrices.length} períodos após edição...`);
+                await savePeriodsWithPrices(periodsWithPrices);
+            }
+            
+            // Atualizar UI
+            updatePeriodSelector();
+            loadPeriodByIndex(currentPeriodIndex);
+            
+            // Restaurar modal para estado de criação
+            const modalTitle = document.querySelector('#newPeriodModal h3');
+            if (modalTitle) {
+                modalTitle.textContent = 'Criar Novo Período';
+            }
+            const createBtn = document.querySelector('#newPeriodModal button[onclick="updatePeriod()"]');
+            if (createBtn) {
+                createBtn.textContent = 'Criar Período';
+                createBtn.setAttribute('onclick', 'createNewPeriod()');
+            }
+            
+            closeNewPeriodDialog();
+            
+            console.log('✅ Período atualizado:', allPeriods.map(p => `${p.day_start}-${p.day_end}`));
+        }
+        
+        async function deletePeriod() {
+            if (allPeriods.length <= 1) {
+                alert('Não podes eliminar o último período!');
+                return;
+            }
+            
+            const periodToDelete = allPeriods[currentPeriodIndex];
+            const month = parseInt(document.getElementById('monthSelect').value);
+            const year = parseInt(document.getElementById('yearSelect').value);
+            const lastDayOfMonth = new Date(year, month, 0).getDate();
+            
+            if (!confirm(`Eliminar período ${periodToDelete.day_start}-${periodToDelete.day_end}?`)) {
+                return;
+            }
+            
+            console.log(`🗑️ Eliminando período ${periodToDelete.day_start}-${periodToDelete.day_end}`);
+            
+            // Remover período
+            allPeriods.splice(currentPeriodIndex, 1);
+            
+            // Expandir períodos adjacentes para preencher o espaço
+            allPeriods.forEach(period => {
+                // Se período termina antes do eliminado, expandir até o início do eliminado
+                if (period.day_end === periodToDelete.day_start - 1) {
+                    // Verificar se há outro período depois
+                    const nextPeriod = allPeriods.find(p => p.day_start === periodToDelete.day_end + 1);
+                    if (nextPeriod) {
+                        period.day_end = nextPeriod.day_start - 1;
+                    } else {
+                        period.day_end = lastDayOfMonth;
+                    }
+                    console.log(`📅 Expandindo período para ${period.day_start}-${period.day_end}`);
+                }
+                // Se período começa depois do eliminado, expandir até o fim do eliminado
+                if (period.day_start === periodToDelete.day_end + 1) {
+                    // Verificar se há outro período antes
+                    const prevPeriod = allPeriods.find(p => p.day_end === periodToDelete.day_start - 1);
+                    if (prevPeriod) {
+                        period.day_start = prevPeriod.day_end + 1;
+                    } else {
+                        period.day_start = 1;
+                    }
+                    console.log(`📅 Expandindo período para ${period.day_start}-${period.day_end}`);
+                }
+            });
+            
+            // Se não há períodos adjacentes, criar um período completo
+            if (allPeriods.length === 0) {
+                allPeriods.push({
+                    prices: {},
+                    updated_at: new Date().toISOString(),
+                    day_start: 1,
+                    day_end: lastDayOfMonth
+                });
+            }
+            
+            // Ordenar períodos
+            allPeriods.sort((a, b) => a.day_start - b.day_start);
+            
+            console.log('✅ Período eliminado e períodos ajustados:', allPeriods.map(p => `${p.day_start}-${p.day_end}`));
+            
+            // Guardar períodos com preços (mesma lógica que updatePeriod e createNewPeriod)
+            const periodsWithPrices = allPeriods.filter(p => Object.keys(p.prices).length > 0);
+            if (periodsWithPrices.length > 0) {
+                console.log(`💾 Guardando ${periodsWithPrices.length} períodos após eliminação...`);
+                await savePeriodsWithPrices(periodsWithPrices);
+            }
+            
+            // Atualizar UI
+            currentPeriodIndex = Math.max(0, currentPeriodIndex - 1);
+            updatePeriodSelector();
+            loadPeriodByIndex(currentPeriodIndex);
+        }
+        
+        function loadPeriodByIndex(index) {
+            if (index < 0 || index >= allPeriods.length) return;
+            
+            currentPeriodIndex = index;
+            const period = allPeriods[index];
+            
+            // Atualizar selector
+            document.getElementById('periodSelect').value = index;
+            
+            // Renderizar preços deste período
+            renderPricesForPeriod(period.prices, period.updated_at);
+        }
+        
+        function renderPricesForPeriod(pricesByGroup, updatedAt) {
+            console.log('🎨 renderPricesForPeriod chamada com:', { 
+                grupos: Object.keys(pricesByGroup || {}), 
+                totalGrupos: Object.keys(pricesByGroup || {}).length,
+                updatedAt 
+            });
+            
+            // Atualizar data/hora
+            if (updatedAt) {
+                const date = new Date(updatedAt);
+                const formattedDate = date.toLocaleString('pt-PT', {
+                    day: '2-digit',
+                    month: '2-digit', 
+                    year: 'numeric',
+                    hour: '2-digit',
+                    minute: '2-digit'
+                });
+                document.getElementById('lastUpdated').textContent = `Última alteração: ${formattedDate}`;
+            } else {
+                document.getElementById('lastUpdated').textContent = '';
+            }
+            
+            // Criar cards com os preços
+            const container = document.getElementById('cardsContainer');
+            container.innerHTML = '';
+            
+            // Se período está vazio, criar estrutura com todos os grupos mas preços a 0
+            if (!pricesByGroup || Object.keys(pricesByGroup).length === 0) {
+                console.log('⚠️ Período vazio - criando cards com preços a 0');
+                pricesByGroup = {};
+                // Todos os grupos padrão
+                const allGroups = ['B1', 'B2', 'BK1', 'BK2', 'C', 'C3', 'C4', 'C5', 'D', 'DK', 'E1', 'E2', 'EK1', 'EK2', 'F', 'FK', 'G', 'J1', 'J2', 'JK1', 'JK2', 'L1', 'L2', 'LK1', 'M1', 'M2', 'MK1', 'MK2', 'N', 'NK', 'X'];
+                allGroups.forEach(grupo => {
+                    pricesByGroup[grupo] = {}; // Preços vazios para cada grupo
+                });
+            }
+            
+            const diasMap = [1, 2, 3, 4, 5, 6, 7, 8, 9, 14, 22, 28, 31, 60];
+            
+            // Reordenar grupos: C3, C4, C5 no final
+            const allGroups = Object.keys(pricesByGroup);
+            const gruposFinais = ['C3', 'C4', 'C5'].filter(g => allGroups.includes(g));
+            const gruposOrdenados = allGroups.filter(g => !gruposFinais.includes(g));
+            const grupos = [...gruposOrdenados, ...gruposFinais];
+            
+            console.log(`📊 Renderizando ${grupos.length} grupos:`, grupos);
+            
+            grupos.forEach(grupo => {
+                const groupPrices = pricesByGroup[grupo];
+                
+                if (grupo === 'X') return;
+                
+                const isGroupK = ['BK1','BK2','DK','EK1','EK2','FK','JK1','JK2','LK1','MK1','MK2','NK'].includes(grupo);
+                const isCommercial = ['C3','C4','C5'].includes(grupo);
+                const location = document.getElementById('locationSelect').value;
+                
+                if (isCommercial && location === 'Aeroporto de Faro') return;
+                
+                const card = document.createElement('div');
+                card.className = 'price-card';
+                
+                let photoSrc;
+                if (isCommercial) {
+                    photoSrc = `/static/${grupo.toLowerCase()}.png`;
+                } else {
+                    photoSrc = `/api/vehicles/${encodeURIComponent(getCarNameForGroup(grupo))}/photo?t=${Date.now()}`;
+                }
+                
+                let html = `
+                    <div class="flex items-center justify-center mb-2">
+                        <h3 class="text-xl font-bold text-[#009cb6]">Grupo ${grupo}</h3>
+                    </div>
+                    
+                    <img src="${photoSrc}" alt="${grupo}" class="car-image" onerror="this.style.display='none';">
+                    
+                    <div class="price-header">
+                        <span class="text-[8px] font-medium text-gray-600 w-8"></span>
+                        <span class="price-header-label net">NET</span>
+                        <span class="price-header-label commission">GROSS</span>
+                    </div>
+                    
+                    <div>`;
+                
+                diasMap.forEach(dia => {
+                    const netPrice = groupPrices[dia] || 0;
+                    const commPrice = isCommercial ? (netPrice === 0 ? '0.00' : netPrice.toFixed(2)) : (netPrice > 0 ? (netPrice * 1.1366).toFixed(2) : '0.00');
+                    html += `<div class="price-row">
+                        <span class="text-[9px] font-medium text-gray-600 w-8">${dia}d</span>
+                        <input type="number" class="price-input" value="${netPrice.toFixed(2)}" step="0.01">
+                        <input type="number" class="price-input commission" value="${commPrice}" step="0.01">
+                    </div>`;
+                });
+                
+                html += `</div>`;
+                card.innerHTML = html;
+                container.appendChild(card);
+            });
+            
+            updateCommissionPrices();
+            filterCards();
+        }
+        
+        // Event listener para mudança de período
+        document.addEventListener('DOMContentLoaded', function() {
+            document.getElementById('periodSelect').addEventListener('change', function() {
+                const index = parseInt(this.value);
+                if (!isNaN(index)) {
+                    loadPeriodByIndex(index);
+                }
+            });
+        });
+        
+        // Guardar apenas períodos com preços
+        async function savePeriodsWithPrices(periods) {
+            const location = document.getElementById('locationSelect').value;
+            const month = parseInt(document.getElementById('monthSelect').value);
+            const year = parseInt(document.getElementById('yearSelect').value);
+            
+            try {
+                // Primeiro, eliminar todos os períodos existentes deste mês
+                const deleteResponse = await fetch('/api/current-prices/delete-month', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ location, month, year })
+                });
+                
+                const deleteResult = await deleteResponse.json();
+                if (deleteResult.ok) {
+                    console.log(`🗑️ Períodos antigos eliminados`);
+                }
+                
+                // Depois, inserir os períodos com preços
+                for (const period of periods) {
+                    const response = await fetch('/api/current-prices/save', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ 
+                            location, 
+                            month, 
+                            year, 
+                            prices: period.prices, 
+                            day_start: period.day_start, 
+                            day_end: period.day_end 
+                        })
+                    });
+                    
+                    const result = await response.json();
+                    if (result.ok) {
+                        console.log(`✅ Período ${period.day_start}-${period.day_end} guardado com sucesso!`);
+                    } else {
+                        console.error(`❌ Erro ao guardar período ${period.day_start}-${period.day_end}:`, result.error);
+                    }
+                }
+                console.log('✅ Todos os períodos guardados na base de dados!');
+            } catch (error) {
+                console.error('❌ Erro ao guardar períodos:', error);
+                alert('Erro ao guardar períodos: ' + error.message);
+            }
+        }
+        
+        // Guardar preços na base de dados
+        async function savePricesToDB(prices) {
+            const location = document.getElementById('locationSelect').value;
+            const month = parseInt(document.getElementById('monthSelect').value);
+            const year = parseInt(document.getElementById('yearSelect').value);
+            
+            // Obter day_start e day_end do período atual
+            let dayStart = 1;
+            let dayEnd = 31;
+            if (allPeriods.length > 0 && currentPeriodIndex >= 0) {
+                dayStart = allPeriods[currentPeriodIndex].day_start;
+                dayEnd = allPeriods[currentPeriodIndex].day_end;
+            }
+            
+            console.log('💾 Guardando preços:', { location, month, year, dayStart, dayEnd, gruposCount: Object.keys(prices).length });
+            
+            try {
+                const response = await fetch('/api/current-prices/save', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ location, month, year, prices, day_start: dayStart, day_end: dayEnd })
+                });
+                
+                const result = await response.json();
+                if (result.ok) {
+                    console.log('✅ Preços guardados na base de dados com sucesso!');
+                    console.log('📍 Localização:', location, '| Mês:', month, '| Ano:', year, '| Período:', `${dayStart}-${dayEnd}`);
+                } else {
+                    console.error('❌ Erro ao guardar preços:', result.error);
+                    alert('Erro ao guardar preços: ' + result.error);
+                }
+            } catch (error) {
+                console.error('❌ Erro ao guardar preços:', error);
+                alert('Erro ao guardar preços: ' + error.message);
+            }
+        }
+        
+        // Carregar preços da base de dados
+        async function loadPricesFromDB() {
+            showLoading();
+            
+            const location = document.getElementById('locationSelect').value;
+            const month = parseInt(document.getElementById('monthSelect').value);
+            const year = parseInt(document.getElementById('yearSelect').value);
+            
+            try {
+                const response = await fetch(`/api/current-prices/load?location=${encodeURIComponent(location)}&month=${month}&year=${year}`);
+                const result = await response.json();
+                
+                // Suportar tanto a estrutura nova (periods) quanto a antiga (prices)
+                let pricesByGroup = null;
+                let updatedAt = null;
+                
+                if (result.ok && result.periods && result.periods.length > 0) {
+                    // Nova estrutura: lista de períodos
+                    console.log('✅ Preços carregados da base de dados (períodos)');
+                    
+                    // Ajustar períodos antigos para dias corretos do mês
+                    const month = parseInt(document.getElementById('monthSelect').value);
+                    const year = parseInt(document.getElementById('yearSelect').value);
+                    const lastDayOfMonth = new Date(year, month, 0).getDate();
+                    
+                    allPeriods = result.periods.map(period => {
+                        // Se período termina em 31 mas mês não tem 31 dias, ajustar
+                        if (period.day_end > lastDayOfMonth) {
+                            console.log(`📅 Ajustando período ${period.day_start}-${period.day_end} para ${period.day_start}-${lastDayOfMonth} (mês tem ${lastDayOfMonth} dias)`);
+                            return {
+                                ...period,
+                                day_end: lastDayOfMonth
+                            };
+                        }
+                        return period;
+                    });
+                    
+                    updatePeriodSelector();
+                    // Manter período atual se existir, senão carregar o primeiro
+                    const indexToLoad = (currentPeriodIndex >= 0 && currentPeriodIndex < allPeriods.length) ? currentPeriodIndex : 0;
+                    loadPeriodByIndex(indexToLoad);
+                    return; // Usar a função loadPeriodByIndex para renderizar
+                } else if (result.ok && result.prices) {
+                    // Estrutura antiga: preços diretos - criar período por defeito
+                    console.log('✅ Preços carregados da base de dados (legado) - criando período por defeito');
+                    
+                    // Calcular último dia do mês CORRETAMENTE
+                    const location = document.getElementById('locationSelect').value;
+                    const month = parseInt(document.getElementById('monthSelect').value);
+                    const year = parseInt(document.getElementById('yearSelect').value);
+                    const lastDay = new Date(year, month, 0).getDate(); // Dia 0 do próximo mês = último dia do mês atual
+                    
+                    console.log(`📅 Mês ${month}/${year} tem ${lastDay} dias`);
+                    
+                    allPeriods = [{
+                        prices: result.prices,
+                        updated_at: result.updated_at,
+                        day_start: 1,
+                        day_end: lastDay
+                    }];
+                    updatePeriodSelector();
+                    loadPeriodByIndex(0);
+                    return; // Usar a função loadPeriodByIndex para renderizar
+                }
+                
+                if (pricesByGroup) {
+                    // Atualizar data/hora da última alteração
+                    if (updatedAt) {
+                        const date = new Date(updatedAt);
+                        const formattedDate = date.toLocaleString('pt-PT', {
+                            day: '2-digit',
+                            month: '2-digit', 
+                            year: 'numeric',
+                            hour: '2-digit',
+                            minute: '2-digit'
+                        });
+                        document.getElementById('lastUpdated').textContent = `Última alteração: ${formattedDate}`;
+                    } else {
+                        document.getElementById('lastUpdated').textContent = '';
+                    }
+                    
+                    // Criar cards com os preços carregados
+                    const container = document.getElementById('cardsContainer');
+                    container.innerHTML = '';
+                    
+                    // Definir dias
+                    const diasMap = [1, 2, 3, 4, 5, 6, 7, 8, 9, 14, 22, 28, 31, 60];
+                    
+                    // Reordenar grupos: C3, C4, C5 no final
+                    const allGroups = Object.keys(pricesByGroup);
+                    const gruposFinais = ['C3', 'C4', 'C5'].filter(g => allGroups.includes(g));
+                    const gruposOrdenados = allGroups.filter(g => !gruposFinais.includes(g));
+                    const grupos = [...gruposOrdenados, ...gruposFinais];
+                    
+                    grupos.forEach(grupo => {
+                        const groupPrices = pricesByGroup[grupo];
+                        
+                        // Grupo X NUNCA aparece no visual
+                        if (grupo === 'X') return;
+                        
+                        // MOSTRAR TODOS OS GRUPOS (mesmo sem preços)
+                        // Aplicar filtros de checkbox
+                        const isGroupK = ['BK1','BK2','DK','EK1','EK2','FK','JK1','JK2','LK1','MK1','MK2','NK'].includes(grupo);
+                        const isCommercial = ['C3','C4','C5'].includes(grupo);
+                        const location = document.getElementById('locationSelect').value;
+                        
+                        // C3,C4,C5 não existem em Aeroporto de Faro
+                        if (isCommercial && location === 'Aeroporto de Faro') return;
+                        
+                        // CRIAR TODOS OS CARDS (checkboxes apenas controlam visibilidade depois)
+                        
+                        const card = document.createElement('div');
+                        card.className = 'price-card';
+                        
+                        // Usar fotos estáticas para C3, C4, C5
+                        let photoSrc;
+                        if (isCommercial) {
+                            photoSrc = `/static/${grupo.toLowerCase()}.png`;
+                        } else {
+                            photoSrc = `/api/vehicles/${encodeURIComponent(getCarNameForGroup(grupo))}/photo?t=${Date.now()}`;
+                        }
+                        
+                        let html = `
+                            <div class="flex items-center justify-center mb-2">
+                                <h3 class="text-xl font-bold text-[#009cb6]">Grupo ${grupo}</h3>
+                            </div>
+                            
+                            <img src="${photoSrc}" alt="${grupo}" class="car-image" onerror="this.style.display='none';">
+                            
+                            <div class="price-header">
+                                <span class="text-[8px] font-medium text-gray-600 w-8"></span>
+                                <span class="price-header-label net">NET</span>
+                                <span class="price-header-label commission">GROSS</span>
+                            </div>
+                            
+                            <div>`;
+                        
+                        diasMap.forEach(dia => {
+                            const netPrice = groupPrices[dia] || 0;
+                            // C3,C4,C5 são sempre NET (sem comissão) - sempre 2 casas decimais
+                            const commPrice = isCommercial ? (netPrice === 0 ? '0.00' : netPrice.toFixed(2)) : (netPrice > 0 ? (netPrice * 1.1366).toFixed(2) : '0.00');
+                            html += `<div class="price-row">
+                                <span class="text-[9px] font-medium text-gray-600 w-8">${dia}d</span>
+                                <input type="number" class="price-input" value="${netPrice.toFixed(2)}" step="0.01">
+                                <input type="number" class="price-input commission" value="${commPrice}" step="0.01">
+                            </div>`;
+                        });
+                        
+                        html += `</div>`;
+                        card.innerHTML = html;
+                        container.appendChild(card);
+                    });
+                    
+                    updateCommissionPrices();
+                    
+                    // Aplicar filtros de visibilidade após criar todos os cards
+                    filterCards();
+                } else {
+                    console.log('ℹ️ Sem preços guardados para esta localização/período');
+                    // Limpar container e data/hora se não há preços
+                    const container = document.getElementById('cardsContainer');
+                    container.innerHTML = '';
+                    document.getElementById('lastUpdated').textContent = '';
+                }
+            } catch (error) {
+                console.error('❌ Erro ao carregar preços:', error);
+                // Limpar container e data/hora em caso de erro
+                const container = document.getElementById('cardsContainer');
+                container.innerHTML = '';
+                document.getElementById('lastUpdated').textContent = '';
+            } finally {
+                hideLoading();
+            }
+        }
+        
+        // Chamar ao carregar a página
+        populateYears();
+        setCurrentMonth();
+        
+        // Colorir meses com/sem preços
+        colorMonthOptions();
+        
+        // Carregar preços guardados ao iniciar
+        loadPricesFromDB();
+        
+        // Função para filtrar cards visíveis (sem recarregar da BD)
+        function filterCards() {
+            const showGroupsK = document.getElementById('showGroupsK') ? document.getElementById('showGroupsK').checked : false;
+            const showCommercial = document.getElementById('showCommercial') ? document.getElementById('showCommercial').checked : false;
+            const location = document.getElementById('locationSelect').value;
+            
+            const cards = document.querySelectorAll('.price-card');
+            cards.forEach(card => {
+                const grupoText = card.querySelector('h3').textContent.replace('Grupo ', '');
+                const isGroupK = ['BK1','BK2','DK','EK1','EK2','FK','JK1','JK2','LK1','MK1','MK2','NK'].includes(grupoText);
+                const isCommercial = ['C3','C4','C5'].includes(grupoText);
+                
+                // C3,C4,C5 não existem em Aeroporto de Faro
+                if (isCommercial && location === 'Aeroporto de Faro') {
+                    card.style.display = 'none';
+                    return;
+                }
+                
+                // Aplicar filtros de checkbox
+                if (isGroupK && !showGroupsK) {
+                    card.style.display = 'none';
+                } else if (isCommercial && !showCommercial) {
+                    card.style.display = 'none';
+                } else {
+                    card.style.display = 'block';
+                }
+            });
+        }
+        
+        // Recarregar preços quando mudar localização, mês ou ano
+        document.getElementById('locationSelect').addEventListener('change', async function() {
+            showLoading();
+            await colorMonthOptions();
+            await loadPricesFromDB();
+        });
+        document.getElementById('monthSelect').addEventListener('change', loadPricesFromDB);
+        document.getElementById('yearSelect').addEventListener('change', async function() {
+            showLoading();
+            await colorMonthOptions();
+            await loadPricesFromDB();
+        });
+        
+        // Filtrar cards quando mudar checkboxes (SEM recarregar da BD)
+        document.getElementById('showGroupsK').addEventListener('change', filterCards);
+        document.getElementById('showCommercial').addEventListener('change', filterCards);
+
+        // Adicionar event listeners aos inputs de comissão
+        document.getElementById('commissionBrokers').addEventListener('input', updateCommissionPrices);
+        document.getElementById('commissionWebsite').addEventListener('input', () => {});
+        document.getElementById('commissionAbbycar').addEventListener('input', () => {});
+
+        // Upload: Ler ficheiro Excel/CSV Brokers e preencher Net
+        async function handleUpload(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+
+            const reader = new FileReader();
+            reader.onload = async function(e) {
+                try {
+                    let jsonData;
+                    
+                    // Verificar se é CSV ou Excel
+                    if (file.name.toLowerCase().endsWith('.csv')) {
+                        // Processar CSV
+                        const text = e.target.result;
+                        const lines = text.split('\n');
+                        jsonData = lines.map(line => line.split(';').map(cell => cell.trim()));
+                    } else {
+                        // Processar Excel
+                        const data = new Uint8Array(e.target.result);
+                        const workbook = XLSX.read(data, {type: 'array'});
+                        const firstSheet = workbook.Sheets[workbook.SheetNames[0]];
+                        jsonData = XLSX.utils.sheet_to_json(firstSheet, {header: 1});
+                    }
+
+                    console.log('Dados carregados:', jsonData.length, 'linhas');
+                    console.log('Primeira linha (header):', jsonData[0]);
+                    
+                    // Verificar estrutura: se primeira coluna da linha 1 é número (dias) ou texto (grupo)
+                    // Formato CSV Brokers: primeira coluna são DIAS, colunas seguintes são GRUPOS
+                    // Linha 0: header ("Dias", "B1", "B2", "BK1", ...)
+                    // Linha 1+: dia, B1_daily_price, B2_daily_price, ...
+                    
+                    // Ler grupos do header NA ORDEM EXATA DO CSV (não reordenar!)
+                    const header = jsonData[0];
+                    const grupos = [];
+                    
+                    for (let i = 1; i < header.length; i++) {
+                        const grupo = String(header[i]).trim();
+                        if (grupo && grupo !== '') {
+                            grupos.push(grupo);
+                        }
+                    }
+                    
+                    console.log('Grupos (ordem do CSV):', grupos);
+                    
+                    const diasMap = [1, 2, 3, 4, 5, 6, 7, 8, 9, 14, 22, 28, 31, 60];
+                    
+                    // Criar estrutura de dados: grupo -> dia -> preço
+                    const pricesByGroup = {};
+                    grupos.forEach(g => pricesByGroup[g] = {});
+                    
+                    // Processar linhas (cada linha é um dia)
+                    for (let i = 1; i < jsonData.length && i <= diasMap.length; i++) {
+                        const row = jsonData[i];
+                        if (!row || row.length === 0) continue;
+                        
+                        const dia = diasMap[i - 1]; // Dia correspondente
+                        
+                        // Cada coluna (exceto a primeira) é um grupo
+                        for (let colIdx = 1; colIdx < row.length && colIdx <= grupos.length; colIdx++) {
+                            const grupo = grupos[colIdx - 1];
+                            const priceValue = String(row[colIdx]).replace(',', '.');
+                            let dailyPrice = parseFloat(priceValue);
+                            
+                            // Log APENAS para grupo D dia 1 para debug
+                            if (grupo === 'D' && dia === 1) {
+                                console.log(`🔍 GRUPO D DIA 1: colIdx=${colIdx}, header[${colIdx}]="${header[colIdx]}", valor CSV="${row[colIdx]}", dailyPrice=${dailyPrice}`);
+                            }
+                            
+                            // Manter apenas 2 casas decimais (ignorar as extras)
+                            dailyPrice = Math.round(dailyPrice * 100) / 100;
+                            
+                            if (!isNaN(dailyPrice) && dailyPrice > 0) {
+                                // Para 1 dia: usar preço diretamente
+                                // Para 2+ dias: multiplicar pelo número de dias
+                                let totalPrice;
+                                if (dia === 1) {
+                                    totalPrice = dailyPrice;
+                                } else {
+                                    totalPrice = dailyPrice * dia;
+                                }
+                                const roundedPrice = Math.round(totalPrice * 100) / 100;
+                                pricesByGroup[grupo][dia] = roundedPrice;
+                            }
+                        }
+                    }
+                    
+                    console.log('Preços processados:', pricesByGroup);
+                    
+                    // Criar cards dinamicamente para todos os grupos
+                    const container = document.getElementById('cardsContainer');
+                    container.innerHTML = ''; // Limpar cards existentes
+                    
+                    grupos.forEach(grupo => {
+                        const groupPrices = pricesByGroup[grupo];
+                        
+                        console.log('Criando card para:', grupo, 'com', Object.keys(groupPrices || {}).length, 'preços');
+                        
+                        // Grupo X NUNCA aparece no visual
+                        if (grupo === 'X') {
+                            console.log('Grupo X não aparece no visual');
+                            return;
+                        }
+                        
+                        // MOSTRAR TODOS OS GRUPOS (mesmo sem preços)
+                        // Aplicar filtros de checkbox
+                        const isGroupK = ['BK1','BK2','DK','EK1','EK2','FK','JK1','JK2','LK1','MK1','MK2','NK'].includes(grupo);
+                        const isCommercial = ['C3','C4','C5'].includes(grupo);
+                        const location = document.getElementById('locationSelect').value;
+                        
+                        // C3,C4,C5 não existem em Aeroporto de Faro
+                        if (isCommercial && location === 'Aeroporto de Faro') {
+                            console.log('Grupo', grupo, 'não existe em Aeroporto de Faro');
+                            return;
+                        }
+                        
+                        // Verificar checkboxes
+                        const showGroupsK = document.getElementById('showGroupsK').checked;
+                        const showCommercial = document.getElementById('showCommercial').checked;
+                        
+                        if (isGroupK && !showGroupsK) return;
+                        if (isCommercial && !showCommercial) return;
+                        
+                        // Criar card
+                        const card = document.createElement('div');
+                        card.className = 'price-card';
+                        
+                        // Usar fotos estáticas para C3, C4, C5
+                        let photoSrc;
+                        if (isCommercial) {
+                            photoSrc = `/static/${grupo.toLowerCase()}.png`;
+                        } else {
+                            photoSrc = `/api/vehicles/${encodeURIComponent(getCarNameForGroup(grupo))}/photo?t=${Date.now()}`;
+                        }
+                        
+                        let html = `
+                            <div class="flex items-center justify-center mb-2">
+                                <h3 class="text-xl font-bold text-[#009cb6]">Grupo ${grupo}</h3>
+                            </div>
+                            
+                            <img src="${photoSrc}" alt="${grupo}" class="car-image" onerror="this.style.display='none';">
+                            
+                            <div class="price-header">
+                                <span class="text-[8px] font-medium text-gray-600 w-8"></span>
+                                <span class="price-header-label net">NET</span>
+                                <span class="price-header-label commission">GROSS</span>
+                            </div>
+                            
+                            <div>`;
+                        
+                        // Adicionar linhas de preços
+                        diasMap.forEach(dia => {
+                            const netPrice = groupPrices[dia] || 0;
+                            // C3,C4,C5 são sempre NET (sem comissão) - sempre 2 casas decimais
+                            const commPrice = isCommercial ? (netPrice === 0 ? '0.00' : netPrice.toFixed(2)) : (netPrice > 0 ? (netPrice * 1.1366).toFixed(2) : '0.00');
+                            html += `<div class="price-row">
+                                <span class="text-[9px] font-medium text-gray-600 w-8">${dia}d</span>
+                                <input type="number" class="price-input" value="${netPrice.toFixed(2)}" step="0.01">
+                                <input type="number" class="price-input commission" value="${commPrice}" step="0.01">
+                            </div>`;
+                        });
+                        
+                        html += `</div>`;
+                        card.innerHTML = html;
+                        container.appendChild(card);
+                    });
+
+                    // Atualizar preços com comissão
+                    updateCommissionPrices();
+                    
+                    // Data/hora será atualizada automaticamente pela função loadPricesFromDB()
+                    
+                    // Guardar preços na base de dados
+                    await savePricesToDB(pricesByGroup);
+                    
+                    // Recarregar para mostrar data/hora atualizada
+                    await loadPricesFromDB();
+                    
+                    alert('Ficheiro carregado com sucesso!');
+                } catch (error) {
+                    console.error('Erro ao processar ficheiro:', error);
+                    alert('Erro ao processar ficheiro. Verifique o formato.');
+                }
+            };
+            
+            // Ler como texto se CSV, senão como ArrayBuffer
+            if (file.name.toLowerCase().endsWith('.csv')) {
+                reader.readAsText(file);
+            } else {
+                reader.readAsArrayBuffer(file);
+            }
+        }
+
+        // Guardar preços na base de dados
+        async function savePricesToDB(pricesByGroup) {
+            const location = document.getElementById('locationSelect').value;
+            const month = parseInt(document.getElementById('monthSelect').value);
+            const year = parseInt(document.getElementById('yearSelect').value);
+            
+            // Atualizar preços do período atual
+            if (allPeriods.length > 0 && currentPeriodIndex >= 0) {
+                allPeriods[currentPeriodIndex].prices = pricesByGroup;
+                allPeriods[currentPeriodIndex].updated_at = new Date().toISOString();
+            }
+            
+            console.log(`💾 Guardando preços para período ${allPeriods[currentPeriodIndex].day_start}-${allPeriods[currentPeriodIndex].day_end}`);
+            
+            // Guardar TODOS os períodos (incluindo o que acabou de receber preços)
+            try {
+                // Primeiro, eliminar todos os períodos existentes deste mês
+                const deleteResponse = await fetch('/api/current-prices/delete-month', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ location, month, year })
+                });
+                
+                const deleteResult = await deleteResponse.json();
+                if (deleteResult.ok) {
+                    console.log(`🗑️ Períodos antigos eliminados`);
+                }
+                
+                // Depois, inserir todos os períodos (incluindo os vazios)
+                for (const period of allPeriods) {
+                    // Só guardar períodos que têm preços
+                    if (Object.keys(period.prices).length > 0) {
+                        console.log(`💾 Tentando guardar período ${period.day_start}-${period.day_end} com ${Object.keys(period.prices).length} grupos`);
+                        
+                        const payload = {
+                            location,
+                            month,
+                            year,
+                            prices: period.prices,
+                            day_start: period.day_start,
+                            day_end: period.day_end
+                        };
+                        
+                        console.log('📦 Payload:', JSON.stringify(payload).substring(0, 200) + '...');
+                        
+                        const response = await fetch('/api/current-prices/save', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify(payload)
+                        });
+                        
+                        const result = await response.json();
+                        if (result.ok) {
+                            console.log(`✅ Período ${period.day_start}-${period.day_end} guardado com sucesso!`);
+                        } else {
+                            console.error(`❌ Erro ao guardar período ${period.day_start}-${period.day_end}:`, result.error);
+                            console.error('📦 Payload completo:', payload);
+                        }
+                    } else {
+                        console.log(`⏭️ Período ${period.day_start}-${period.day_end} vazio - não guardado`);
+                    }
+                }
+                
+                console.log('✅ Preços guardados com sucesso!');
+            } catch (error) {
+                console.error('❌ Erro ao guardar preços:', error);
+            }
+        }
+
+        // Calcular preço para dia específico (lógica do automated prices)
+        function calculatePriceForDay(netPrice, day) {
+            if (!netPrice || netPrice <= 0) return 0;
+            
+            // Days 1-7: Fixed NET prices (no division)
+            if (day <= 7) {
+                return netPrice;
+            }
+            
+            // Days 8+: Daily prices (divide by days)
+            if (day === 8) {
+                return netPrice / 8;
+            } else if (day === 9) {
+                return netPrice / 9;
+            } else if (day === 14) {
+                return netPrice / 14;
+            } else if (day === 22) {
+                return netPrice / 22;
+            } else if (day === 28) {
+                return netPrice / 28;
+            } else if (day === 31) {
+                return netPrice / 31;
+            } else if (day === 60) {
+                return netPrice / 60;
+            }
+            
+            return netPrice;
+        }
+
+        // Download Brokers: Preço Net dividido por dias (8+ dias)
+        function downloadBrokers() {
+            const data = collectPriceData('brokers');
+            generateCSV(data, 'Brokers_Net.csv');
+        }
+
+        // Download Website: Net + comissão (ou 14% default)
+        function downloadWebsite() {
+            const websiteCommission = parseFloat(document.getElementById('commissionWebsite').value) || 14;
+            const data = collectPriceData('website', websiteCommission);
+            generateCSV(data, 'Website_Prices.csv');
+        }
+
+        // Download Abbycar: Formato específico com SIPP codes e daily prices
+        function downloadAbbycar() {
+            try {
+                console.log('Iniciando download Abbycar...');
+                const abbycarCommission = parseFloat(document.getElementById('commissionAbbycar').value) || 5;
+                console.log('Comissão Abbycar:', abbycarCommission);
+            const location = document.querySelector('#locationSelect').value;
+            const month = document.querySelector('#monthSelect').value;
+            const year = document.querySelector('#yearSelect').value;
+            
+            // Mapear grupos para SIPP codes e modelos
+            const groupToSipp = {
+                'B1': {sipp: 'MDMV', model: 'Peugeot 108'},
+                'B2': {sipp: 'MDMR', model: 'Fiat Panda'},
+                'BK1': {sipp: 'MCMV', model: 'Citroen C1'},
+                'BK2': {sipp: 'NDMR', model: 'Toyota Aygo'},
+                'C': {sipp: 'EDMV', model: 'Opel Corsa'},
+                'D': {sipp: 'HDMV', model: 'Ford Fiesta'},
+                'DK': {sipp: 'MDAV', model: 'Toyota Aygo'},
+                'E1': {sipp: 'EDAR', model: 'Opel Corsa'},
+                'E2': {sipp: 'EDAV', model: 'Citroen C3/Opel Corsa'},
+                'EK1': {sipp: 'CFMR', model: 'Seat Arona'},
+                'EK2': {sipp: 'DFMR', model: 'Kia Stonic'},
+                'F': {sipp: 'CFMV', model: 'Peugeot 2008'},
+                'FK': {sipp: 'CFAV', model: 'VW T-Cross'},
+                'G': {sipp: 'IWMR', model: 'Peugeot 308 SW'},
+                'J1': {sipp: 'DFMV', model: 'Citroen C4'},
+                'J2': {sipp: 'IWMV', model: 'Opel Astra STW'},
+                'L1': {sipp: 'SVMV', model: 'Peugeot Rifter'},
+                'L2': {sipp: 'SVAR', model: 'Peugeot Rifter Automatic'},
+                'M1': {sipp: 'LVMD', model: 'Fiat Talento'},
+                'M2': {sipp: 'LVMR', model: 'Opel Vivaro'}
+            };
+            
+            const data = collectAbbycarData(abbycarCommission, groupToSipp);
+                console.log('Dados coletados:', data.length, 'grupos');
+                generateAbbycarCSV(data, location, month, year);
+                console.log('Download Abbycar concluído!');
+            } catch (error) {
+                console.error('Erro no download Abbycar:', error);
+                alert('Erro ao gerar ficheiro Abbycar: ' + error.message);
+            }
+        }
+
+        // Coletar dados dos cards (formato transposto: grupos como colunas)
+        function collectPriceData(type, commission = 0) {
+            const dias = [1, 2, 3, 4, 5, 6, 7, 8, 9, 14, 22, 28, 31, 60];
+            
+            // Ordem fixa dos grupos (mesma ordem do CSV original)
+            const gruposOrdem = ['B1', 'B2', 'BK1', 'BK2', 'C', 'C3', 'C4', 'C5', 'D', 'DK', 'E1', 'E2', 'EK1', 'EK2', 'F', 'FK', 'G', 'J1', 'J2', 'JK1', 'JK2', 'L1', 'L2', 'LK1', 'M1', 'M2', 'MK1', 'MK2', 'N', 'NK', 'X'];
+            
+            // Header: Dias + grupos como colunas
+            const data = [['Dias', ...gruposOrdem]];
+            
+            // Criar mapa de cards por grupo
+            const cardsByGroup = {};
+            const cards = document.querySelectorAll('.price-card');
+            cards.forEach(card => {
+                const grupo = card.querySelector('h3').textContent.trim().replace('Grupo ', '');
+                cardsByGroup[grupo] = card;
+            });
+            
+            // Para cada dia, criar uma linha com os preços de todos os grupos
+            dias.forEach((dia, diaIdx) => {
+                const row = [dia]; // Primeira coluna: número do dia
+                
+                // Para cada grupo, adicionar o preço desse dia
+                gruposOrdem.forEach(grupo => {
+                    const card = cardsByGroup[grupo];
+                    if (!card) {
+                        // Grupo não existe (ex: X não aparece no visual, ou C3/C4/C5 em Faro)
+                        row.push(0);
+                        return;
+                    }
+                    
+                    const priceInputs = card.querySelectorAll('.price-input:not(.commission)');
+                    const input = priceInputs[diaIdx];
+                    if (!input) {
+                        row.push(0);
+                        return;
+                    }
+                    
+                    const netPrice = parseFloat(input.value) || 0;
+                    let finalPrice = 0;
+                    
+                    if (type === 'brokers') {
+                        // Brokers: Net dividido por dias (para dias 8+)
+                        finalPrice = calculatePriceForDay(netPrice, dia);
+                    } else if (type === 'website' || type === 'abbycar') {
+                        // Website/Abbycar: Net + comissão (sem divisão)
+                        finalPrice = parseFloat(calculateWithCommission(netPrice, commission));
+                    }
+                    
+                    // Formatar com 2 casas decimais, exceto se for 0
+                    row.push(finalPrice === 0 ? 0 : parseFloat(finalPrice.toFixed(2)));
+                });
+                
+                data.push(row);
+            });
+            
+            return data;
+        }
+
+        // Coletar dados para Abbycar (formato específico)
+        function collectAbbycarData(commission, groupToSipp) {
+            const data = [];
+            const station = 'ABF'; // Albufeira
+            
+            const cards = document.querySelectorAll('.price-card');
+            cards.forEach(card => {
+                const grupo = card.querySelector('h3').textContent.trim();
+                const sippInfo = groupToSipp[grupo];
+                
+                if (!sippInfo) return;
+                
+                const row = {
+                    station: station,
+                    startDate: '',
+                    endDate: '',
+                    group: sippInfo.sipp,
+                    model: sippInfo.model,
+                    currency: 'EUR',
+                    prices: {}
+                };
+                
+                // Coletar preços Net e aplicar comissão
+                const priceInputs = card.querySelectorAll('.price-input:not(.commission)');
+                const dias = [1, 2, 3, 4, 5, 6, 7, 8, 9, 14, 22, 28];
+                
+                priceInputs.forEach((input, idx) => {
+                    if (idx < dias.length) {
+                        const netPrice = parseFloat(input.value) || 0;
+                        const day = dias[idx];
+                        
+                        // Aplicar comissão (sem divisão por dias)
+                        const finalPrice = parseFloat(calculateWithCommission(netPrice, commission));
+                        
+                        // Mapear para colunas do Abbycar
+                        if (day <= 7) {
+                            row.prices[`${day}_day_fixed`] = finalPrice;
+                        } else if (day === 8) {
+                            row.prices['8_10_daily'] = finalPrice / 8; // Daily price
+                        } else if (day === 9) {
+                            row.prices['11_12_daily'] = finalPrice / 9; // Daily price
+                        } else if (day === 14) {
+                            row.prices['13_14_daily'] = finalPrice / 14; // Daily price
+                        } else if (day === 22) {
+                            row.prices['15_21_daily'] = finalPrice / 22; // Daily price
+                        } else if (day === 28) {
+                            row.prices['22_28_daily'] = finalPrice / 28; // Daily price
+                        }
+                    }
+                });
+                
+                data.push(row);
+            });
+            
+            return data;
+        }
+
+        // Gerar ficheiro CSV Abbycar
+        function generateAbbycarCSV(data, location, month, year) {
+            const headers = [
+                'Stations', 'Start Date', 'End Date', 'Group', 'Model Example (optional)', 'CURRENCY',
+                '1 day fixed', '2 days fixed', '3 days fixed', '4 days fixed', '5 days fixed', 
+                '6 days fixed', '7 days fixed', '8-10 daily', '11-12 daily', '13-14 daily', 
+                '15-21 daily', '22-28 daily'
+            ];
+            
+            let csvContent = headers.join(';') + '\n';
+            
+            data.forEach(row => {
+                const values = [
+                    row.station,
+                    row.startDate,
+                    row.endDate,
+                    row.group,
+                    row.model,
+                    row.currency,
+                    (row.prices['1_day_fixed'] || '').toString().replace('.', ','),
+                    (row.prices['2_day_fixed'] || '').toString().replace('.', ','),
+                    (row.prices['3_day_fixed'] || '').toString().replace('.', ','),
+                    (row.prices['4_day_fixed'] || '').toString().replace('.', ','),
+                    (row.prices['5_day_fixed'] || '').toString().replace('.', ','),
+                    (row.prices['6_day_fixed'] || '').toString().replace('.', ','),
+                    (row.prices['7_day_fixed'] || '').toString().replace('.', ','),
+                    (row.prices['8_10_daily'] || '').toString().replace('.', ','),
+                    (row.prices['11_12_daily'] || '').toString().replace('.', ','),
+                    (row.prices['13_14_daily'] || '').toString().replace('.', ','),
+                    (row.prices['15_21_daily'] || '').toString().replace('.', ','),
+                    (row.prices['22_28_daily'] || '').toString().replace('.', ',')
+                ];
+                csvContent += values.join(';') + '\n';
+            });
+            
+            // Download CSV
+            const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+            const link = document.createElement('a');
+            const url = URL.createObjectURL(blob);
+            link.setAttribute('href', url);
+            link.setAttribute('download', `ABBYCAR-${location}-${month}-${year}.csv`);
+            link.style.visibility = 'hidden';
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+        }
+
+        // Gerar ficheiro CSV
+        function generateCSV(data, filename) {
+            let csvContent = '';
+            data.forEach(row => {
+                csvContent += row.join(';') + '\n';
+            });
+            
+            const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+            const link = document.createElement('a');
+            const url = URL.createObjectURL(blob);
+            link.setAttribute('href', url);
+            link.setAttribute('download', filename);
+            link.style.visibility = 'hidden';
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+        }
+
+        // Gerar ficheiro Excel
+        function generateExcel(data, filename) {
+            const ws = XLSX.utils.aoa_to_sheet(data);
+            const wb = XLSX.utils.book_new();
+            XLSX.utils.book_append_sheet(wb, ws, 'Preços');
+            XLSX.writeFile(wb, filename);
+        }
+
+        // Guardar dados (pode ser expandido para enviar ao backend)
+        async function saveData() {
+            // Coletar preços dos cards (sempre usar NET, nunca GROSS)
+            const cards = document.querySelectorAll('.price-card');
+            const pricesByGroup = {};
+            const diasMap = [1, 2, 3, 4, 5, 6, 7, 8, 9, 14, 22, 28, 31, 60];
+            
+            cards.forEach(card => {
+                const grupoText = card.querySelector('h3').textContent.replace('Grupo ', '');
+                const priceInputs = card.querySelectorAll('.price-input:not(.commission)');
+                
+                pricesByGroup[grupoText] = {};
+                priceInputs.forEach((input, idx) => {
+                    const dia = diasMap[idx];
+                    const price = parseFloat(input.value) || 0;
+                    pricesByGroup[grupoText][dia] = Math.round(price * 100) / 100; // Arredondar para 2 casas decimais
+                });
+            });
+            
+            const location = document.getElementById('locationSelect').value;
+            const month = parseInt(document.getElementById('monthSelect').value);
+            const year = parseInt(document.getElementById('yearSelect').value);
+            
+            console.log('💾 Guardando alterações manuais:', { location, month, year, grupos: Object.keys(pricesByGroup).length });
+            
+            try {
+                const response = await fetch('/api/current-prices/save', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({ location, month, year, prices: pricesByGroup })
+                });
+                
+                const result = await response.json();
+                if (result.ok) {
+                    console.log('✅ Preços guardados com sucesso!');
+                    // Recarregar para mostrar data/hora atualizada
+                    await loadPricesFromDB();
+                    alert('✅ Alterações guardadas com sucesso!');
+                } else {
+                    alert('❌ Erro ao guardar: ' + result.error);
+                }
+            } catch (error) {
+                console.error('❌ Erro ao guardar:', error);
+                alert('❌ Erro ao guardar alterações: ' + error.message);
+            }
+        }
+
+        // Adicionar event listeners aos inputs de preço
+        document.addEventListener('DOMContentLoaded', function() {
+            // Quando alterar NET, recalcular GROSS
+            document.addEventListener('input', function(e) {
+                if (e.target.classList.contains('price-input') && !e.target.classList.contains('commission')) {
+                    const row = e.target.closest('.price-row');
+                    const card = e.target.closest('.price-card');
+                    const commissionInput = row.querySelector('.price-input.commission');
+                    const grupoText = card.querySelector('h3').textContent.replace('Grupo ', '');
+                    const isCommercial = ['C3','C4','C5'].includes(grupoText);
+                    
+                    if (e.target.value && commissionInput) {
+                        if (isCommercial) {
+                            // C3,C4,C5 são sempre NET (GROSS = NET)
+                            commissionInput.value = parseFloat(e.target.value).toFixed(2);
+                        } else {
+                            const brokersCommission = parseFloat(document.getElementById('commissionBrokers').value) || 0;
+                            commissionInput.value = calculateWithCommission(e.target.value, brokersCommission);
+                        }
+                    }
+                }
+                
+                // Quando alterar GROSS, recalcular NET
+                if (e.target.classList.contains('price-input') && e.target.classList.contains('commission')) {
+                    const row = e.target.closest('.price-row');
+                    const card = e.target.closest('.price-card');
+                    const netInput = row.querySelector('.price-input:not(.commission)');
+                    const grupoText = card.querySelector('h3').textContent.replace('Grupo ', '');
+                    const isCommercial = ['C3','C4','C5'].includes(grupoText);
+                    
+                    if (e.target.value && netInput) {
+                        if (isCommercial) {
+                            // C3,C4,C5 são sempre NET (GROSS = NET)
+                            netInput.value = parseFloat(e.target.value).toFixed(2);
+                        } else {
+                            const brokersCommission = parseFloat(document.getElementById('commissionBrokers').value) || 0;
+                            // NET = GROSS / (1 + comissão%)
+                            const netPrice = parseFloat(e.target.value) / (1 + brokersCommission / 100);
+                            netInput.value = netPrice.toFixed(2);
+                        }
+                    }
+                }
+            });
+        });
+    </script>
+</body>
+</html>

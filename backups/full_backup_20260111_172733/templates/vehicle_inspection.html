@@ -1,0 +1,2124 @@
+<!DOCTYPE html>
+<html lang="pt">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Check-out - Inspeção de Veículo</title>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="/static/notifications.js"></script>
+    <!-- Tesseract.js for OCR -->
+    <script src='https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js'></script>
+    <style>
+        * { 
+            font-family: 'Outfit', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+        }
+        #cameraPreview {
+            width: 100%;
+            height: 100vh;
+            object-fit: cover;
+            transform: scaleX(-1); /* Corrigir espelhamento */
+        }
+        .photo-slot {
+            position: relative;
+            aspect-ratio: 4/3;
+            background: #f3f4f6;
+            border: 2px dashed #d1d5db;
+            border-radius: 8px;
+            overflow: hidden;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+        .photo-slot:hover {
+            border-color: #009cb6;
+            background: #f0f9fb;
+        }
+        .photo-slot.captured {
+            border-color: #10b981;
+            border-style: solid;
+        }
+        .photo-slot img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+        .camera-modal {
+            position: fixed;
+            inset: 0;
+            background: rgba(0,0,0,0.98);
+            display: none;
+            z-index: 99999; /* Maior z-index para fullscreen */
+            width: 100vw;
+            height: 100vh;
+        }
+        .camera-modal.active {
+            display: flex;
+        }
+        video {
+            max-width: 100%;
+            max-height: 80vh;
+            border-radius: 8px;
+        }
+        .shutter-animation {
+            animation: flash 0.3s ease-out;
+        }
+        @keyframes flash {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0; }
+        }
+        
+        /* Header da câmera com fundo preto e transparência melhorada */
+        .camera-modal .absolute.top-0 {
+            background: linear-gradient(180deg, rgba(0,0,0,0.95) 0%, rgba(0,0,0,0.85) 60%, rgba(0,0,0,0.4) 90%, rgba(0,0,0,0) 100%) !important;
+            backdrop-filter: blur(3px);
+            padding-bottom: 40px !important;
+        }
+        
+        /* Garantir cor azul do website no título em fullscreen */
+        .camera-modal #cameraLocation {
+            color: #009cb6 !important; /* Azul do website */
+            text-shadow: 0 2px 4px rgba(0,0,0,0.8);
+        }
+        
+        /* Garantir que funciona em todos os estados de fullscreen */
+        :fullscreen .camera-modal #cameraLocation,
+        :-webkit-full-screen .camera-modal #cameraLocation,
+        :-moz-full-screen .camera-modal #cameraLocation {
+            color: #009cb6 !important;
+            text-shadow: 0 2px 4px rgba(0,0,0,0.8);
+        }
+        
+        /* Texto de instrução com sombra para melhor legibilidade */
+        .camera-modal #cameraInstruction {
+            text-shadow: 0 2px 4px rgba(0,0,0,0.8);
+        }
+        
+        /* Car diagram interactive */
+        .photo-indicator {
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+        .photo-indicator:hover circle {
+            transform: scale(1.1);
+            filter: brightness(1.2);
+        }
+        .photo-indicator.captured circle {
+            fill: #10b981;
+        }
+        .photo-indicator.captured text {
+            fill: white;
+        }
+        .photo-slot-number {
+            position: absolute;
+            top: 8px;
+            left: 8px;
+            width: 28px;
+            height: 28px;
+            border-radius: 50%;
+            background: white;
+            border: 2px solid #d1d5db;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+            font-size: 14px;
+            color: #6b7280;
+            z-index: 1;
+        }
+        .photo-slot.captured .photo-slot-number {
+            background: #10b981;
+            border-color: #10b981;
+            color: white;
+        }
+        
+        /* Camera overlay animations */
+        @keyframes pulse-guide {
+            0%, 100% { opacity: 0.8; stroke-width: 3; }
+            50% { opacity: 1; stroke-width: 4; }
+        }
+        #carGuide {
+            animation: pulse-guide 2s ease-in-out infinite;
+        }
+        
+        @keyframes pulse-hint {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.05); }
+        }
+        #hintText {
+            animation: pulse-hint 2s ease-in-out infinite;
+        }
+        
+        /* Toast notifications */
+        @keyframes slideIn {
+            from {
+                transform: translateX(400px);
+                opacity: 0;
+            }
+            to {
+                transform: translateX(0);
+                opacity: 1;
+            }
+        }
+        
+        @keyframes slideOut {
+            from {
+                transform: translateX(0);
+                opacity: 1;
+            }
+            to {
+                transform: translateX(400px);
+                opacity: 0;
+            }
+        }
+        
+        /* Step Indicators */
+        .step-circle {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            background: white;
+            border: 2px solid #d1d5db;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+            color: #6b7280;
+            margin: 0 auto;
+        }
+        
+        .step-indicator.active .step-circle {
+            background: #f59e0b;
+            border-color: #f59e0b;
+            color: white;
+        }
+        
+        .step-indicator.completed .step-circle {
+            background: #009cb6;
+            border-color: #009cb6;
+            color: white;
+        }
+        
+        .step-label {
+            font-size: 12px;
+            margin-top: 8px;
+            color: white;
+            font-weight: 600;
+        }
+        
+        /* Header navigation icons */
+        .nav-icon-checkin svg { color: #009cb6; fill: #009cb6; }
+        .nav-icon-checkout svg { color: #16a34a; fill: #16a34a; }
+        .nav-icon-history svg { color: #009cb6; fill: none; stroke: #009cb6; }
+        .nav-icon-checkin:hover svg,
+        .nav-icon-checkout:hover svg,
+        .nav-icon-history:hover svg { 
+            color: #f59e0b; 
+            fill: #f59e0b; 
+            stroke: #f59e0b; 
+        }
+        
+        /* Big car icon animations - dynamic based on inspection type */
+        {% if inspection_type == 'checkout' %}
+        /* Checkout page: hover turns RED */
+        .group:hover svg {
+            filter: drop-shadow(0 0 30px rgba(220, 38, 38, 0.8)) !important;
+        }
+        .group:hover .animate-ping {
+            border-color: rgba(220, 38, 38, 0.3) !important;
+        }
+        {% else %}
+        /* Check-out page: hover turns RED */
+        .group:hover svg {
+            filter: drop-shadow(0 0 30px rgba(16, 185, 129, 0.8)) !important;
+        }
+        .group:hover .animate-ping {
+            border-color: rgba(16, 185, 129, 0.3) !important;
+        }
+        {% endif %}
+        
+        /* CROQUI INTERATIVO */
+        .car-diagram-container {
+            background: white;
+            border-radius: 12px;
+            padding: 20px;
+            margin: 20px 0;
+        }
+        
+        /* FUEL SELECTOR STYLES */
+        .fuel-selector {
+            user-select: none;
+        }
+        
+        .fuel-tick {
+            width: 2px;
+            height: 16px;
+            background-color: #009cb6;
+            border-radius: 1px;
+        }
+        
+        .fuel-slider {
+            -webkit-appearance: none;
+            appearance: none;
+            background: transparent;
+            cursor: pointer;
+        }
+        
+        .fuel-slider::-webkit-slider-track {
+            background: #e5e7eb;
+            height: 8px;
+            border-radius: 4px;
+        }
+        
+        .fuel-slider::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            appearance: none;
+            height: 20px;
+            width: 20px;
+            border-radius: 50%;
+            background: #009cb6;
+            cursor: pointer;
+            border: 2px solid white;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+        }
+        
+        .fuel-slider::-moz-range-track {
+            background: #e5e7eb;
+            height: 8px;
+            border-radius: 4px;
+            border: none;
+        }
+        
+        .fuel-slider::-moz-range-thumb {
+            height: 20px;
+            width: 20px;
+            border-radius: 50%;
+            background: #009cb6;
+            cursor: pointer;
+            border: none;
+            border-radius: 50%;
+        }
+        
+        /* iPhone-style camera button */
+        .iphone-camera-button {
+            width: 80px;
+            height: 80px;
+            background: none;
+            border: none;
+            cursor: pointer;
+            padding: 0;
+            transition: transform 0.1s ease;
+        }
+        
+        .iphone-camera-button:active {
+            transform: scale(0.95);
+        }
+        
+        .camera-button-outer {
+            width: 80px;
+            height: 80px;
+            border: 4px solid white;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(10px);
+        }
+        
+        .camera-button-inner {
+            width: 60px;
+            height: 60px;
+            background: white;
+            border-radius: 50%;
+            transition: transform 0.1s ease;
+        }
+        
+        .iphone-camera-button:active .camera-button-inner {
+            transform: scale(0.9);
+        }
+        
+        .close-camera-button {
+            width: 50px;
+            height: 50px;
+            background: rgba(0, 0, 0, 0.5);
+            border: 2px solid white;
+            border-radius: 50%;
+            color: white;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.2s ease;
+            backdrop-filter: blur(10px);
+        }
+        
+        .close-camera-button:hover {
+            background: rgba(0, 0, 0, 0.7);
+            transform: scale(1.1);
+        }
+        
+        /* Odometer input styling */
+        #odometerReading {
+            transition: all 0.3s ease;
+        }
+        
+        #odometerReading:focus {
+            transform: scale(1.05);
+            color: #009cb6;
+        }
+        
+        .car-svg-container {
+            position: relative;
+            touch-action: none;
+            user-select: none;
+            max-width: 100%;
+            margin: 0 auto;
+        }
+        
+        .damage-pin {
+            position: absolute;
+            width: 16px;
+            height: 16px;
+            background: #000000;
+            color: transparent;
+            border-radius: 50%;
+            transform-origin: center center;
+            cursor: pointer;
+            box-shadow: 0 2px 6px rgba(0,0,0,0.4);
+            z-index: 10;
+            transition: transform 0.2s, box-shadow 0.2s;
+            border: 2px solid #ffffff;
+        }
+        
+        .damage-pin:hover, .damage-pin.selected {
+            transform: translate(-50%, -50%) scale(1.3);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.6);
+            z-index: 20;
+        }
+        
+        .damage-pin.size-tiny { width: 8px; height: 8px; border-width: 1px; }
+        .damage-pin.size-small { width: 12px; height: 12px; border-width: 1.5px; }
+        .damage-pin.size-medium { width: 16px; height: 16px; border-width: 2px; }
+        .damage-pin.size-large { width: 24px; height: 24px; border-width: 2px; }
+        
+        .drawing-canvas {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            z-index: 10;
+            border: 1px solid transparent;
+        }
+        
+        .drawing-canvas.active {
+            pointer-events: auto !important;
+            cursor: crosshair;
+            z-index: 15;
+            border: 1px solid rgba(239, 68, 68, 0.3);
+        }
+        
+        .tool-button {
+            padding: 12px 20px;
+            border: 2px solid #e5e7eb;
+            background: white;
+            border-radius: 8px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+            font-size: 16px;
+            min-height: 50px;
+        }
+        
+        .tool-button:hover {
+            border-color: #009cb6;
+            background: #f0f9ff;
+        }
+        
+        .tool-button.active {
+            background: #009cb6;
+            color: white;
+            border-color: #009cb6;
+        }
+        
+        .size-button {
+            width: 60px;
+            height: 60px;
+            border: 2px solid #e5e7eb;
+            background: white;
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        
+        .size-button:hover {
+            border-color: #009cb6;
+            background: #f0f9ff;
+        }
+        
+        .size-button.active {
+            background: #009cb6;
+            border-color: #009cb6;
+        }
+        
+        .size-button .dot {
+            background: #000000;
+            border-radius: 50%;
+        }
+        
+        .size-button.active .dot {
+            background: white;
+            border: 1px solid #009cb6;
+        }
+    </style>
+</head>
+<body class="bg-[#009cb6] min-h-screen">
+    <!-- Header with Logo -->
+    <header class="bg-white shadow-md">
+        <div class="max-w-7xl mx-auto px-4 py-3">
+            <div class="flex items-center justify-between">
+                <!-- Left: Logo -->
+                <div class="flex items-center">
+                    <img src="/static/Icon_AP.png" alt="Auto Prudente" class="h-12 w-auto" />
+                </div>
+                
+                <!-- Center: Page Title -->
+                <div class="absolute left-1/2 transform -translate-x-1/2">
+                    <h1 class="text-sm sm:text-base md:text-xl font-semibold text-[#009cb6]">
+                        {% if inspection_type == 'checkout' %}
+                        <span class="hidden sm:inline">Check-out - Entrega</span>
+                        <span class="sm:hidden">Check-out</span>
+                        {% else %}
+                        <span class="hidden sm:inline">Check-out - Entrega</span>
+                        <span class="sm:hidden">Check-out</span>
+                        {% endif %}
+                    </h1>
+                </div>
+                
+                <!-- Right: Actions -->
+                
+                <!-- Mobile Menu Button -->
+                <button onclick="toggleMobileMenu()" class="md:hidden p-2 text-[#009cb6] hover:bg-gray-50 rounded-lg">
+                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"/>
+                    </svg>
+                </button>
+                
+                <!-- Desktop Icons -->
+                <div class="hidden md:flex items-center gap-3">
+                    {% if request.session.get('is_admin') or request.session.get('role') in ['admin', 'user'] %}
+                    <!-- Home Icon (Blue) - Only for admin and regular users -->
+                    <a href="/" class="p-2 hover:bg-gray-50 rounded-lg transition-all" title="Voltar à Homepage">
+                        <svg class="w-6 h-6 text-[#009cb6] hover:text-[#f59e0b] transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"/>
+                        </svg>
+                    </a>
+                    {% endif %}
+                    
+                    <!-- Check-out Icon (Blue Car) -->
+                    <a href="/vehicle-checkout" class="nav-icon-checkout p-2 hover:bg-gray-50 rounded-lg transition-all" title="Check-out">
+                        <svg class="w-6 h-6" viewBox="0 0 24 24" fill="currentColor">
+                            <path d="M18.92 6.01C18.72 5.42 18.16 5 17.5 5h-11c-.66 0-1.21.42-1.42 1.01L3 12v8c0 .55.45 1 1 1h1c.55 0 1-.45 1-1v-1h12v1c0 .55.45 1 1 1h1c.55 0 1-.45 1-1v-8l-2.08-5.99zM6.5 16c-.83 0-1.5-.67-1.5-1.5S5.67 13 6.5 13s1.5.67 1.5 1.5S7.33 16 6.5 16zm11 0c-.83 0-1.5-.67-1.5-1.5s.67-1.5 1.5-1.5 1.5.67 1.5 1.5-.67 1.5-1.5 1.5zM5 11l1.5-4.5h11L19 11H5z"/>
+                        </svg>
+                    </a>
+                    
+                    <!-- History Icon (Blue Circle Clock) -->
+                    <a href="/inspection-history" class="nav-icon-history p-2 hover:bg-gray-50 rounded-lg transition-all" title="Histórico">
+                        <svg class="w-6 h-6" fill="currentColor" viewBox="0 0 24 24">
+                            <circle cx="12" cy="12" r="10" fill="none" stroke="currentColor" stroke-width="2"/>
+                            <path d="M12 6v6l4 2" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+                        </svg>
+                    </a>
+                    
+                    <!-- WhatsApp Icon (Green) - Role Support abre modal, outros vão para página -->
+                    {% if current_user.role == 'support' %}
+                    <button onclick="openWhatsAppModal()" class="p-2 hover:bg-gray-50 rounded-lg transition-all" title="WhatsApp Atendimento">
+                        <svg class="w-6 h-6 text-green-600 hover:text-green-700 transition-colors" viewBox="0 0 24 24" fill="currentColor">
+                            <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413Z"/>
+                        </svg>
+                    </button>
+                    {% else %}
+                    <a href="/whatsapp" class="p-2 hover:bg-gray-50 rounded-lg transition-all" title="WhatsApp Atendimento">
+                        <svg class="w-6 h-6 text-green-600 hover:text-green-700 transition-colors" viewBox="0 0 24 24" fill="currentColor">
+                            <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413Z"/>
+                        </svg>
+                    </a>
+                    {% endif %}
+                    
+                    <!-- User Avatar with Logout -->
+                    {% if current_user %}
+                    <div class="relative group">
+                        <button class="flex items-center hover:scale-105 transition-transform">
+                            {% if current_user.profile_picture_path %}
+                            <img src="{{ current_user.profile_picture_path }}" alt="Profile" class="w-10 h-10 rounded-full object-cover border-2 border-white shadow-lg" />
+                            {% else %}
+                            <div class="w-10 h-10 rounded-full bg-gradient-to-br from-[#009cb6] to-[#0077a3] flex items-center justify-center text-white font-bold text-sm border-2 border-white shadow-lg">
+                                {{ (current_user.first_name[:1] or current_user.username[:1] or 'U') | upper }}
+                            </div>
+                            {% endif %}
+                        </button>
+                        
+                        <!-- Logout Dropdown -->
+                        <div class="absolute right-0 top-12 w-48 bg-white rounded-lg shadow-xl border border-gray-200 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all z-50">
+                            <div class="p-3 border-b border-gray-100">
+                                <p class="text-sm font-semibold text-gray-900">{{ (current_user.first_name + ' ' + current_user.last_name).strip() or current_user.username }}</p>
+                                <p class="text-xs text-gray-500">{{ current_user.email or current_user.username }}</p>
+                            </div>
+                            <a href="/logout" onclick="return confirm('Tem a certeza que deseja terminar a sessão?');" class="w-full text-left px-4 py-2 text-sm text-red-600 hover:bg-red-50 transition-colors flex items-center gap-2">
+                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"/>
+                                </svg>
+                                Terminar Sessão
+                            </a>
+                        </div>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <!-- Mobile Menu - Layout Limpo -->
+    <div id="mobileMenu" class="fixed inset-0 bg-white z-50 hidden">
+        <div class="flex flex-col h-full max-w-md mx-auto">
+            <!-- Header -->
+            <div class="flex justify-end p-4 border-b border-gray-200">
+                <button onclick="toggleMobileMenu()" class="w-10 h-10 flex items-center justify-center bg-[#009cb6] text-white rounded-md">
+                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+                    </svg>
+                </button>
+            </div>
+            
+            <!-- Navigation -->
+            <nav class="flex-1 overflow-y-auto">
+                {% if request.session.get('is_admin') or request.session.get('role') in ['admin', 'user'] %}
+                <a href="/" onclick="toggleMobileMenu()" class="flex items-center gap-4 px-5 py-4 border-b border-gray-200 text-gray-800 hover:bg-gray-50 transition-colors">
+                    <svg class="w-5 h-5 text-[#009cb6]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"/>
+                    </svg>
+                    <span>Homepage</span>
+                </a>
+                {% endif %}
+                
+                <a href="/vehicle-checkout" onclick="toggleMobileMenu()" class="flex items-center gap-4 px-5 py-4 border-b border-gray-200 text-gray-800 hover:bg-gray-50 transition-colors">
+                    <svg class="w-5 h-5 text-green-600" fill="currentColor" viewBox="0 0 24 24">
+                        <path d="M18.92 6.01C18.72 5.42 18.16 5 17.5 5h-11c-.66 0-1.21.42-1.42 1.01L3 12v8c0 .55.45 1 1 1h1c.55 0 1-.45 1-1v-1h12v1c0 .55.45 1 1 1h1c.55 0 1-.45 1-1v-8l-2.08-5.99zM6.5 16c-.83 0-1.5-.67-1.5-1.5S5.67 13 6.5 13s1.5.67 1.5 1.5S7.33 16 6.5 16zm11 0c-.83 0-1.5-.67-1.5-1.5s.67-1.5 1.5-1.5 1.5.67 1.5 1.5-.67 1.5-1.5 1.5zM5 11l1.5-4.5h11L19 11H5z"/>
+                    </svg>
+                    <span>Check-out</span>
+                </a>
+                
+                <a href="/inspection-history" onclick="toggleMobileMenu()" class="flex items-center gap-4 px-5 py-4 border-b border-gray-200 text-gray-800 hover:bg-gray-50 transition-colors">
+                    <svg class="w-5 h-5 text-[#009cb6]" fill="currentColor" viewBox="0 0 24 24">
+                        <circle cx="12" cy="12" r="10" fill="none" stroke="currentColor" stroke-width="2"/>
+                        <path d="M12 6v6l4 2" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+                    </svg>
+                    <span>Histórico</span>
+                </a>
+            </nav>
+            
+            <!-- Logout -->
+            <div class="border-t-2 border-gray-200">
+                <a href="/logout" onclick="return confirm('Tem a certeza que deseja terminar a sessão?');" class="flex items-center justify-center gap-3 px-5 py-5 text-red-600 hover:bg-red-50 transition-colors w-full">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"/>
+                    </svg>
+                    <span class="font-semibold">Terminar Sessão</span>
+                </a>
+            </div>
+        </div>
+    </div>
+    
+    <!-- WhatsApp Modal (Role Support apenas) -->
+    <div id="whatsappModal" class="hidden fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4">
+        <div class="bg-white rounded-2xl shadow-2xl w-full max-w-7xl h-[90vh] flex flex-col">
+            <!-- Header -->
+            <div class="flex items-center justify-between p-4 border-b bg-gradient-to-r from-green-600 to-green-500">
+                <div class="flex items-center gap-3">
+                    <svg class="w-8 h-8 text-white" viewBox="0 0 24 24" fill="currentColor">
+                        <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413Z"/>
+                    </svg>
+                    <h2 class="text-xl font-bold text-white">WhatsApp Atendimento</h2>
+                </div>
+                <button onclick="closeWhatsAppModal()" class="text-white hover:bg-white/20 rounded-full p-2 transition-colors">
+                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+                    </svg>
+                </button>
+            </div>
+            
+            <!-- iFrame Content -->
+            <div class="flex-1 overflow-hidden">
+                <iframe id="whatsappIframe" src="" class="w-full h-full border-0"></iframe>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        function toggleMobileMenu() {
+            const menu = document.getElementById('mobileMenu');
+            menu.classList.toggle('hidden');
+        }
+        
+        function openWhatsAppModal() {
+            const modal = document.getElementById('whatsappModal');
+            const iframe = document.getElementById('whatsappIframe');
+            
+            // Carregar WhatsApp Dashboard no iframe
+            iframe.src = '/whatsapp';
+            
+            modal.classList.remove('hidden');
+        }
+        
+        function closeWhatsAppModal() {
+            const modal = document.getElementById('whatsappModal');
+            const iframe = document.getElementById('whatsappIframe');
+            
+            // Limpar iframe
+            iframe.src = '';
+            
+            modal.classList.add('hidden');
+        }
+        
+        // Fechar modal ao clicar fora
+        document.getElementById('whatsappModal')?.addEventListener('click', function(e) {
+            if (e.target === this) {
+                closeWhatsAppModal();
+            }
+        });
+        
+        // Fechar com tecla ESC
+        document.addEventListener('keydown', function(e) {
+            if (e.key === 'Escape') {
+                closeWhatsAppModal();
+            }
+        });
+        
+        // Logout function removed - now using direct HTML links
+    </script>
+
+    <main class="max-w-7xl mx-auto px-4 py-6">
+        <!-- STEP 1: Photo Capture (previously Step 2) -->
+        <div id="stepPhotos" class="step-content">
+            <div class="max-w-4xl mx-auto">
+                <!-- Matrícula and RA - Above Car -->
+                <div class="flex flex-col sm:flex-row items-center justify-center gap-4 mb-8">
+                    <div class="w-full sm:w-auto">
+                        <label class="block text-sm font-medium text-white mb-2">Matrícula * <span class="text-xs opacity-70">(Auto-detectada)</span></label>
+                        <input type="text" id="inputPlate" class="px-4 py-3 border-2 border-white rounded-lg bg-white text-gray-900 focus:ring-2 focus:ring-[#f59e0b] w-full sm:w-40 text-center font-semibold text-lg" placeholder="XX-XX-XX" required>
+                    </div>
+                    
+                    <div class="w-full sm:w-auto">
+                        <label class="block text-sm font-medium text-white mb-2">RA (Rental Agreement) *</label>
+                        <input type="text" id="inputRA" class="px-4 py-3 border-2 border-white rounded-lg bg-white text-gray-900 focus:ring-2 focus:ring-[#f59e0b] w-full sm:w-48 text-center font-semibold text-lg" placeholder="00000-09" maxlength="8" required>
+                    </div>
+                </div>
+                
+                <!-- Large Centered Car Icon Button -->
+                <div class="text-center mb-6">
+                    
+                    <!-- GIANT CAR ICON (clickable) - Responsive -->
+                    <button onclick="startAutoSequence()" class="group mx-auto block transition-all transform hover:scale-105 active:scale-95" title="Iniciar Inspeção">
+                        <div class="relative">
+                            <!-- Car Icon SVG - Always White - Responsive size -->
+                            <svg class="w-48 h-48 sm:w-56 sm:h-56 md:w-64 md:h-64 mx-auto drop-shadow-2xl transition-all" viewBox="0 0 24 24" fill="white">
+                                <!-- Front view car icon -->
+                                <path d="M18.92,6.01C18.72,5.42,18.16,5,17.5,5h-11C5.84,5,5.29,5.42,5.08,6.01L3,12v8c0,0.55,0.45,1,1,1h1c0.55,0,1-0.45,1-1v-1h12v1c0,0.55,0.45,1,1,1h1c0.55,0,1-0.45,1-1v-8L18.92,6.01z M6.5,16C5.67,16,5,15.33,5,14.5S5.67,13,6.5,13S8,13.67,8,14.5S7.33,16,6.5,16z M17.5,16c-0.83,0-1.5-0.67-1.5-1.5s0.67-1.5,1.5-1.5s1.5,0.67,1.5,1.5S18.33,16,17.5,16z M5,11l1.5-4.5h11L19,11H5z"/>
+                            </svg>
+                            
+                            <!-- Pulsing ring animation - Responsive -->
+                            <div class="absolute inset-0 flex items-center justify-center pointer-events-none">
+                                <div class="w-56 h-56 sm:w-64 sm:h-64 md:w-72 md:h-72 rounded-full border-4 border-white/30 animate-ping"></div>
+                            </div>
+                        </div>
+                        
+                        <!-- Text below icon - Responsive -->
+                        <div class="mt-4 sm:mt-6">
+                            <span class="text-xl sm:text-2xl font-bold text-white block {% if inspection_type == 'checkout' %}group-hover:text-[#dc2626]{% else %}group-hover:text-[#10b981]{% endif %} transition-colors">INICIAR INSPEÇÃO</span>
+                            <span class="text-xs sm:text-sm text-white/80 block mt-2">Toque para começar</span>
+                        </div>
+                    </button>
+                </div>
+
+                <!-- Instructions -->
+                <div class="text-center mb-6">
+                    <p class="text-white/90 text-sm max-w-xl mx-auto">
+                        {% if inspection_type == 'checkout' %}
+                        Fotografe o veículo na devolução. Documente todos os danos existentes e o estado final do combustível e quilómetros.
+                        {% else %}
+                        Fotografe o veículo antes do cliente partir. Documente o estado inicial, combustível e quilómetros de partida.
+                        {% endif %}
+                    </p>
+                </div>
+                
+                
+                <!-- Auto-filled Info - Inside Page (no labels) -->
+                <div class="mt-16 mb-12">
+                    <div class="flex items-center justify-center gap-3 text-xs text-white/70">
+                        <input type="text" id="inputReceptionist" class="px-3 py-1 text-xs border-0 rounded bg-white/20 text-white text-center w-28" readonly value="Admin">
+                        <span class="text-white/30">|</span>
+                        <input type="text" id="inputDate" class="px-3 py-1 text-xs border-0 rounded bg-white/20 text-white text-center w-24" readonly>
+                        <span class="text-white/30">|</span>
+                        <input type="text" id="inputTime" class="px-3 py-1 text-xs border-0 rounded bg-white/20 text-white text-center w-16" readonly>
+                    </div>
+                </div>
+                
+                <!-- Step Indicators - End of Page (much smaller) -->
+                <div class="mb-8">
+                    <div class="flex items-center justify-center gap-3 opacity-70">
+                        <div class="step-indicator active" data-step="1">
+                            <div class="inline-flex items-center gap-1">
+                                <div class="w-6 h-6 rounded-full flex items-center justify-center font-semibold text-[10px] transition-all" style="background: #f59e0b; color: white;">1</div>
+                                <span class="text-[10px] font-semibold text-white/80">Photos</span>
+                            </div>
+                        </div>
+                        
+                        <div class="w-6 h-px bg-white/30"></div>
+                        
+                        <div class="step-indicator" data-step="2">
+                            <div class="inline-flex items-center gap-1">
+                                <div class="w-6 h-6 rounded-full flex items-center justify-center font-semibold text-[10px] bg-white/20 text-white transition-all">2</div>
+                                <span class="text-[10px] font-medium text-white/60">AI Analysis</span>
+                            </div>
+                        </div>
+                        
+                        <div class="w-6 h-px bg-white/30"></div>
+                        
+                        <div class="step-indicator" data-step="3">
+                            <div class="inline-flex items-center gap-1">
+                                <div class="w-6 h-6 rounded-full flex items-center justify-center font-semibold text-[10px] bg-white/20 text-white transition-all">3</div>
+                                <span class="text-[10px] font-medium text-white/60">Review</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- STEP 1.5: Croqui Interativo de Danos -->
+        <div id="stepDiagram" class="step-content hidden">
+            <div class="car-diagram-container max-w-4xl mx-auto">
+                <h2 class="text-2xl font-bold text-[#009cb6] mb-4 text-center">Marcar Danos no Croqui</h2>
+                
+                <!-- Ferramentas Clean -->
+                <div class="flex justify-center gap-4 mb-6">
+                    <button type="button" id="toolPin" class="w-12 h-12 rounded-full bg-[#009cb6] text-white hover:bg-[#007a94] transition-all duration-200 flex items-center justify-center" onclick="selectTool('pin')" title="Pins">
+                        <svg class="w-6 h-6" fill="currentColor" viewBox="0 0 24 24">
+                            <path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z"/>
+                        </svg>
+                    </button>
+                    <button type="button" id="toolDraw" class="w-12 h-12 rounded-full bg-gray-400 text-white hover:bg-gray-500 transition-all duration-200 flex items-center justify-center" onclick="selectTool('draw')" title="Desenhar">
+                        <svg class="w-6 h-6" fill="currentColor" viewBox="0 0 24 24">
+                            <path d="M3 17.25V21h3.75L17.81 9.94l-3.75-3.75L3 17.25zM20.71 7.04c.39-.39.39-1.02 0-1.41l-2.34-2.34c-.39-.39-1.02-.39-1.41 0l-1.83 1.83 3.75 3.75 1.83-1.83z"/>
+                        </svg>
+                    </button>
+                    <button type="button" class="w-12 h-12 rounded-full bg-gray-400 text-white hover:bg-gray-500 transition-all duration-200 flex items-center justify-center" onclick="clearAll()" title="Limpar Tudo">
+                        <svg class="w-6 h-6" fill="currentColor" viewBox="0 0 24 24">
+                            <path d="M6 19c0 1.1.9 2 2 2h8c1.1 0 2-.9 2-2V7H6v12zM19 4h-3.5l-1-1h-5l-1 1H5v2h14V4z"/>
+                        </svg>
+                    </button>
+                </div>
+                
+                <!-- Tamanhos Clean -->
+                <div id="sizeControls" class="flex justify-center gap-3 mb-6">
+                    <button type="button" class="w-8 h-8 rounded-full bg-gray-200 hover:bg-gray-300 transition-all duration-200 flex items-center justify-center" onclick="selectSize('tiny')" id="sizeTiny" title="Pequeno">
+                        <div class="w-1 h-1 bg-gray-600 rounded-full"></div>
+                    </button>
+                    <button type="button" class="w-8 h-8 rounded-full bg-[#009cb6] hover:bg-[#007a94] transition-all duration-200 flex items-center justify-center" onclick="selectSize('small')" id="sizeSmall" title="Médio">
+                        <div class="w-2 h-2 bg-white rounded-full"></div>
+                    </button>
+                    <button type="button" class="w-8 h-8 rounded-full bg-gray-200 hover:bg-gray-300 transition-all duration-200 flex items-center justify-center" onclick="selectSize('medium')" id="sizeMedium" title="Grande">
+                        <div class="w-3 h-3 bg-gray-600 rounded-full"></div>
+                    </button>
+                    <button type="button" class="w-8 h-8 rounded-full bg-gray-200 hover:bg-gray-300 transition-all duration-200 flex items-center justify-center" onclick="selectSize('large')" id="sizeLarge" title="Extra Grande">
+                        <div class="w-4 h-4 bg-gray-600 rounded-full"></div>
+                    </button>
+                </div>
+                
+                <!-- Croqui do Carro -->
+                <div class="car-svg-container" id="carDiagram">
+                    <img src="/static/images/Croqui.png" alt="Croqui do Carro" style="width: 100%; height: auto; display: block;">
+                    <!-- Canvas para desenho -->
+                    <canvas id="drawingCanvas" class="drawing-canvas"></canvas>
+                    <!-- Pins adicionados dinamicamente aqui -->
+                    <!-- Pin preview -->
+                    <div id="pinPreview" class="damage-pin" style="display: none; opacity: 0.5; pointer-events: none;"></div>
+                </div>
+                
+                <!-- Seção Quilómetros e Combustível -->
+                <div class="mt-6 bg-white p-6 rounded-lg border-2 border-gray-200">
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        
+                        <!-- Quilómetros -->
+                        <div>
+                            <label class="block text-lg font-bold text-[#009cb6] mb-4">
+                                Km Saída / Km Out:
+                            </label>
+                            <div class="flex items-center justify-center bg-gray-50 rounded-lg p-4 border-2 border-gray-300">
+                                <input type="number" 
+                                       id="odometerReading" 
+                                       class="text-4xl font-bold text-center bg-transparent border-none outline-none w-full" 
+                                       placeholder="60578"
+                                       style="font-family: 'Courier New', monospace; letter-spacing: 0.2em;"
+                                       min="0"
+                                       max="999999">
+                            </div>
+                        </div>
+                        
+                        <!-- Combustível -->
+                        <div>
+                            <label class="block text-lg font-bold text-[#009cb6] mb-4">
+                                Combustível / Fuel:
+                            </label>
+                            <div class="bg-gray-50 rounded-lg p-4 border-2 border-gray-300">
+                                <!-- Fuel Level Selector -->
+                                <div class="fuel-selector">
+                                    <div class="flex items-center justify-between mb-2">
+                                        <span class="text-sm font-semibold text-[#009cb6]">OUT</span>
+                                        <span class="text-sm font-semibold text-[#009cb6]">R</span>
+                                        <span class="text-sm font-semibold text-[#009cb6]">1/4</span>
+                                        <span class="text-sm font-semibold text-[#009cb6]">1/2</span>
+                                        <span class="text-sm font-semibold text-[#009cb6]">3/4</span>
+                                        <span class="text-sm font-semibold text-[#009cb6]">F</span>
+                                    </div>
+                                    
+                                    <!-- Fuel Level Bar - Made narrower -->
+                                    <div class="relative bg-white border-2 border-[#009cb6] rounded-lg h-8 mb-2 max-w-xs mx-auto">
+                                        <!-- Fuel level indicators -->
+                                        <div class="absolute inset-0 flex items-center justify-between px-1">
+                                            <div class="fuel-tick" data-level="0"></div>
+                                            <div class="fuel-tick" data-level="1"></div>
+                                            <div class="fuel-tick" data-level="25"></div>
+                                            <div class="fuel-tick" data-level="50"></div>
+                                            <div class="fuel-tick" data-level="75"></div>
+                                            <div class="fuel-tick" data-level="100"></div>
+                                        </div>
+                                        
+                                        <!-- Fuel level fill -->
+                                        <div id="fuelFill" class="h-full bg-[#009cb6] rounded-lg transition-all duration-300" style="width: 100%;"></div>
+                                    </div>
+                                    
+                                    <!-- Fuel level slider - Made narrower -->
+                                    <div class="max-w-xs mx-auto">
+                                        <input type="range" 
+                                               id="fuelSlider" 
+                                               class="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer fuel-slider"
+                                               min="0" 
+                                               max="100" 
+                                               value="100"
+                                               step="5">
+                                    </div>
+                                    
+                                    <!-- Selected fuel level display -->
+                                    <div class="text-center mt-2">
+                                        <span class="text-sm font-semibold text-gray-700">Nível: </span>
+                                        <span id="fuelLevelText" class="text-sm font-bold text-[#009cb6]">Cheio (F)</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                    </div>
+                </div>
+                
+                <!-- Campo de Observações -->
+                <div class="mt-6 bg-white p-4 rounded-lg border-2 border-gray-200">
+                    <label class="block text-sm font-semibold text-gray-700 mb-2">
+                        Observações sobre os Danos
+                    </label>
+                    <textarea 
+                        id="damageObservations" 
+                        class="w-full px-4 py-3 border-2 border-gray-300 rounded-lg focus:ring-2 focus:ring-[#009cb6] focus:border-[#009cb6]" 
+                        rows="4" 
+                        placeholder="Descreva os danos marcados no croqui..."></textarea>
+                </div>
+                
+                <!-- Botão Continuar -->
+                <div class="mt-6 text-center">
+                    <button type="button" onclick="proceedToAnalysis()" class="px-8 py-4 bg-[#009cb6] text-white text-lg font-semibold rounded-lg hover:bg-[#007a8f] transition-colors shadow-lg">
+                        Continuar para Análise
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- STEP 2: AI Analysis -->
+        <div id="stepAnalysis" class="step-content hidden">
+            <div class="bg-white rounded-lg shadow-sm p-6 mb-6">
+                <h2 class="text-lg font-semibold mb-4">AI Damage Analysis</h2>
+                
+                <div id="analysisProgress" class="mb-6">
+                    <div class="flex items-center justify-between mb-2">
+                        <span class="text-sm font-medium">Analyzing photos...</span>
+                        <span id="analysisPercent" class="text-sm font-bold text-[#009cb6]">0%</span>
+                    </div>
+                    <div class="w-full bg-gray-200 rounded-full h-2">
+                        <div id="analysisBar" class="bg-[#009cb6] h-2 rounded-full transition-all" style="width: 0%"></div>
+                    </div>
+                </div>
+
+                <div id="analysisResults" class="space-y-4 hidden">
+                    <!-- Results will be populated by JS -->
+                </div>
+
+                <div class="mt-6 flex gap-3">
+                    <button onclick="prevStep()" class="px-6 py-3 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors">
+                        ← Back
+                    </button>
+                    <button onclick="nextStep()" id="btnNextToReview" class="flex-1 bg-[#009cb6] text-white px-6 py-3 rounded-lg hover:bg-[#007a8f] transition-colors font-semibold" disabled>
+                        Next: Review & Save →
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- STEP 4: Review & Save -->
+        <div id="stepReview" class="step-content hidden">
+            <div class="bg-white rounded-lg shadow-sm p-6 mb-6">
+                <h2 class="text-lg font-semibold mb-4">Review Inspection</h2>
+                
+                <div id="reviewSummary">
+                    <!-- Summary will be populated by JS -->
+                </div>
+
+                <div class="mt-6 flex gap-3">
+                    <button onclick="prevStep()" class="px-6 py-3 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors">
+                        ← Back
+                    </button>
+                    <button onclick="saveInspection()" class="flex-1 bg-green-600 text-white px-6 py-3 rounded-lg hover:bg-green-700 transition-colors font-semibold flex items-center justify-center gap-2">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-3m-1 4l-3 3m0 0l-3-3m3 3V4"/>
+                        </svg>
+                        Save Inspection
+                    </button>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <!-- Camera Modal -->
+    <div id="cameraModal" class="camera-modal">
+        <div class="flex flex-col items-center justify-center w-full h-full p-4">
+            <!-- Fullscreen Camera Header -->
+            <div class="absolute top-0 left-0 right-0 z-50 bg-black bg-opacity-90 text-white p-6 text-center">
+                <p id="cameraLocation" class="text-xl font-bold text-green-400 mb-2">VISTA FRONTAL</p>
+                <p id="cameraInstruction" class="text-base opacity-95 max-w-2xl mx-auto">Centre a frente do veículo, inclua a matrícula</p>
+            </div>
+            
+            <!-- Camera Preview Container with Overlay -->
+            <div class="relative w-full max-w-4xl mx-auto">
+                <video id="cameraPreview" autoplay playsinline class="w-full h-auto rounded-lg shadow-2xl"></video>
+                
+                <div id="cameraOverlay" style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none;">
+                    <!-- SVG Overlay -->
+                    <svg width="100%" height="100%" style="position: absolute; top: 0; left: 0;">
+                        <!-- Semi-transparent dark background -->
+                        <defs>
+                            <mask id="carMask">
+                                <rect width="100%" height="100%" fill="white"/>
+                                <!-- Car outline cutout -->
+                                <rect id="carCutout" x="20%" y="25%" width="60%" height="50%" rx="20" fill="black"/>
+                            </mask>
+                        </defs>
+                        
+                        <!-- Darkened area outside car outline -->
+                        <rect width="100%" height="100%" fill="black" opacity="0.5" mask="url(#carMask)"/>
+                        
+                        <!-- Car outline guide -->
+                        <rect id="carGuide" x="20%" y="25%" width="60%" height="50%" rx="20" 
+                              fill="none" stroke="#10b981" stroke-width="3" stroke-dasharray="10,5" opacity="0.8"/>
+                        
+                        <!-- Center crosshair -->
+                        <g id="centerCross" stroke="#10b981" stroke-width="2" opacity="0.6">
+                            <line x1="50%" y1="48%" x2="50%" y2="52%"/>
+                            <line x1="48%" y1="50%" x2="52%" y2="50%"/>
+                        </g>
+                    </svg>
+                </div>
+            </div>
+            
+            <!-- iPhone-style camera button - Hidden during countdown -->
+            <div class="flex justify-center px-4" id="cameraButtons" style="position: fixed; bottom: 40px; left: 0; right: 0; z-index: 10000; display: none;">
+                <button onclick="capturePhoto()" class="iphone-camera-button" title="Capturar Foto">
+                    <div class="camera-button-outer">
+                        <div class="camera-button-inner"></div>
+                    </div>
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <style>
+        .step-dot {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            background: #e5e7eb;
+            color: #6b7280;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 600;
+            margin: 0 auto;
+        }
+        .step-dot.active {
+            background: #009cb6;
+            color: white;
+        }
+        .step-dot.completed {
+            background: #10b981;
+            color: white;
+        }
+    </style>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script>
+        // Pass user data from backend to JavaScript
+        {% if current_user %}
+        window.currentUserData = {
+            name: "{{ (current_user.first_name + ' ' + current_user.last_name).strip() or current_user.username }}",
+            username: "{{ current_user.username }}",
+            email: "{{ current_user.email or '' }}"
+        };
+        {% else %}
+        window.currentUserData = {
+            name: "Rececionista",
+            username: "user",
+            email: ""
+        };
+        {% endif %}
+    </script>
+    <script src="/static/vehicle_inspection.js"></script>
+    
+    <!-- Croqui Interativo Script -->
+    <script>
+        // Variables
+        let currentTool = 'pin';  // pin, draw, eraser
+        let currentSize = 'small';
+        let pinCounter = 0;
+        let damages = [];
+        let drawing = false;
+        let canvas, ctx;
+        
+        // Initialize canvas
+        function initializeCanvas() {
+            console.log('🔍 initializeCanvas called');
+            
+            canvas = document.getElementById('drawingCanvas');
+            console.log('🔍 Canvas element:', !!canvas);
+            
+            const diagram = document.getElementById('carDiagram');
+            console.log('🔍 Diagram element:', !!diagram);
+            
+            const img = diagram ? diagram.querySelector('img') : null;
+            console.log('🔍 Image element:', !!img);
+            
+            if (!canvas) {
+                console.error('❌ Canvas element not found!');
+                return false;
+            }
+            
+            if (!diagram) {
+                console.error('❌ Diagram element not found!');
+                return false;
+            }
+            
+            if (!img) {
+                console.error('❌ Diagram image not found!');
+                return false;
+            }
+            
+            // Set canvas size to match image
+            const resizeCanvas = () => {
+                canvas.width = img.offsetWidth;
+                canvas.height = img.offsetHeight;
+                console.log(`Canvas resized to ${canvas.width}x${canvas.height}`);
+                redrawCanvas();
+            };
+            
+            img.addEventListener('load', resizeCanvas);
+            window.addEventListener('resize', resizeCanvas);
+            resizeCanvas();
+            
+            // Setup canvas context
+            ctx = canvas.getContext('2d');
+            ctx.lineJoin = 'round';
+            ctx.lineCap = 'round';
+            
+            // Setup diagram events
+            setupDiagramEvents();
+            
+            console.log('✅ Canvas initialized successfully');
+            return true;
+        }
+        
+        document.addEventListener('DOMContentLoaded', function() {
+            // Don't initialize canvas immediately since diagram step is hidden
+            // Canvas will be initialized when diagram step becomes visible
+            
+            // Remove test canvas button if it exists
+            removeTestCanvasButton();
+            
+            // Initialize fuel selector (but it won't work until diagram is visible)
+            setTimeout(() => {
+                initializeFuelSelector();
+            }, 100);
+            
+            // Ensure RA field formatting is working
+            setTimeout(() => {
+                const raField = document.getElementById('inputRA');
+                if (raField) {
+                    console.log('✅ RA field found and ready');
+                } else {
+                    console.error('❌ RA field not found');
+                }
+            }, 100);
+        });
+        
+        // Fuel selector functionality
+        function initializeFuelSelector() {
+            const fuelSlider = document.getElementById('fuelSlider');
+            const fuelFill = document.getElementById('fuelFill');
+            const fuelLevelText = document.getElementById('fuelLevelText');
+            
+            if (!fuelSlider || !fuelFill || !fuelLevelText) {
+                console.error('Fuel selector elements not found');
+                return;
+            }
+            
+            function updateFuelDisplay(value) {
+                const percentage = parseInt(value);
+                
+                // Update fill width
+                fuelFill.style.width = percentage + '%';
+                
+                // Update text based on percentage
+                let levelText = '';
+                if (percentage === 0) {
+                    levelText = 'Vazio (OUT)';
+                } else if (percentage <= 10) {
+                    levelText = 'Reserva (R)';
+                } else if (percentage <= 25) {
+                    levelText = '1/4';
+                } else if (percentage <= 50) {
+                    levelText = '1/2';
+                } else if (percentage <= 75) {
+                    levelText = '3/4';
+                } else {
+                    levelText = 'Cheio (F)';
+                }
+                
+                fuelLevelText.textContent = levelText;
+                
+                // Store value for saving
+                window.currentFuelLevel = percentage;
+                
+                console.log('Fuel level updated:', percentage + '%', levelText);
+            }
+            
+            // Listen for slider changes
+            fuelSlider.addEventListener('input', (e) => {
+                updateFuelDisplay(e.target.value);
+            });
+            
+            // Initialize with default value
+            updateFuelDisplay(fuelSlider.value);
+        }
+        
+        // Get fuel level for saving
+        function getFuelLevel() {
+            return window.currentFuelLevel || 100;
+        }
+        
+        // Get odometer reading for saving
+        function getOdometerReading() {
+            const odometerInput = document.getElementById('odometerReading');
+            return odometerInput ? parseInt(odometerInput.value) || 0 : 0;
+        }
+        
+        function selectTool(tool) {
+            currentTool = tool;
+            
+            // Reset all tool buttons to inactive state (gray)
+            document.getElementById('toolPin').className = 'w-12 h-12 rounded-full bg-gray-400 text-white hover:bg-gray-500 transition-all duration-200 flex items-center justify-center';
+            document.getElementById('toolDraw').className = 'w-12 h-12 rounded-full bg-gray-400 text-white hover:bg-gray-500 transition-all duration-200 flex items-center justify-center';
+            
+            // Set active tool to blue
+            const activeButton = document.getElementById('tool' + tool.charAt(0).toUpperCase() + tool.slice(1));
+            if (activeButton) {
+                activeButton.className = 'w-12 h-12 rounded-full bg-[#009cb6] text-white hover:bg-[#007a94] transition-all duration-200 flex items-center justify-center';
+            }
+            
+            // Update canvas pointer events and ensure it's ready
+            if (canvas) {
+                if (tool === 'draw' || tool === 'eraser') {
+                    canvas.style.pointerEvents = 'auto';
+                    canvas.style.zIndex = '15';
+                    console.log('✅ Canvas activated for', tool, 'pointer-events:', canvas.style.pointerEvents, 'z-index:', canvas.style.zIndex);
+                    console.log('✅ Canvas size:', canvas.width + 'x' + canvas.height);
+                    console.log('✅ Canvas context:', !!ctx);
+                } else {
+                    canvas.style.pointerEvents = 'none';
+                    console.log('🚫 Canvas deactivated for', tool);
+                }
+            } else {
+                console.error('❌ Canvas not found when selecting tool:', tool);
+            }
+        }
+        
+        function selectSize(size) {
+            currentSize = size;
+            
+            // Reset all size buttons to inactive state (gray)
+            document.getElementById('sizeTiny').className = 'w-8 h-8 rounded-full bg-gray-200 hover:bg-gray-300 transition-all duration-200 flex items-center justify-center';
+            document.getElementById('sizeSmall').className = 'w-8 h-8 rounded-full bg-gray-200 hover:bg-gray-300 transition-all duration-200 flex items-center justify-center';
+            document.getElementById('sizeMedium').className = 'w-8 h-8 rounded-full bg-gray-200 hover:bg-gray-300 transition-all duration-200 flex items-center justify-center';
+            document.getElementById('sizeLarge').className = 'w-8 h-8 rounded-full bg-gray-200 hover:bg-gray-300 transition-all duration-200 flex items-center justify-center';
+            
+            // Set active size to blue
+            const activeButton = document.getElementById('size' + size.charAt(0).toUpperCase() + size.slice(1));
+            if (activeButton) {
+                activeButton.className = 'w-8 h-8 rounded-full bg-[#009cb6] hover:bg-[#007a94] transition-all duration-200 flex items-center justify-center';
+            }
+        }
+        
+        function setupDiagramEvents() {
+            const diagram = document.getElementById('carDiagram');
+            
+            if (!diagram || !canvas) {
+                console.error('Diagram or canvas not found for event setup');
+                return;
+            }
+            
+            // Remove existing event listeners to avoid duplicates
+            diagram.removeEventListener('click', handleClick);
+            diagram.removeEventListener('mousemove', handleMove);
+            diagram.removeEventListener('mouseleave', hidePreview);
+            
+            // Mouse events for pins
+            diagram.addEventListener('click', handleClick);
+            diagram.addEventListener('mousemove', handleMove);
+            diagram.addEventListener('mouseleave', hidePreview);
+            
+            // Touch events for pins
+            diagram.addEventListener('touchstart', handleTouchStart, {passive: false});
+            diagram.addEventListener('touchmove', handleTouchMove, {passive: false});
+            diagram.addEventListener('touchend', handleTouchEnd);
+            
+            // Remove existing canvas event listeners
+            canvas.removeEventListener('mousedown', startDrawing);
+            canvas.removeEventListener('mousemove', draw);
+            canvas.removeEventListener('mouseup', stopDrawing);
+            canvas.removeEventListener('mouseout', stopDrawing);
+            canvas.removeEventListener('touchstart', startDrawing);
+            canvas.removeEventListener('touchmove', draw);
+            canvas.removeEventListener('touchend', stopDrawing);
+            
+            // Drawing events on canvas
+            canvas.addEventListener('mousedown', startDrawing, {passive: false});
+            canvas.addEventListener('mousemove', draw, {passive: false});
+            canvas.addEventListener('mouseup', stopDrawing, {passive: false});
+            canvas.addEventListener('mouseout', stopDrawing, {passive: false});
+            
+            canvas.addEventListener('touchstart', startDrawing, {passive: false});
+            canvas.addEventListener('touchmove', draw, {passive: false});
+            canvas.addEventListener('touchend', stopDrawing, {passive: false});
+            
+            console.log('✅ Diagram events setup complete');
+        }
+        
+        function handleClick(e) {
+            console.log('🔍 handleClick called, currentTool:', currentTool);
+            console.log('🔍 Click event details:', e.type, 'target:', e.target.tagName, 'clientX:', e.clientX, 'clientY:', e.clientY);
+            if (currentTool === 'pin') {
+                console.log('📍 Adding pin at click position');
+                addPin(e);
+            }
+        }
+        
+        function handleMove(e) {
+            if (currentTool === 'pin') {
+                showPinPreview(e);
+            }
+        }
+        
+        function handleTouchStart(e) {
+            if (currentTool === 'pin') {
+                e.preventDefault();
+                const touch = e.touches[0];
+                addPin(touch);
+            }
+        }
+        
+        function handleTouchMove(e) {
+            if (currentTool === 'pin') {
+                e.preventDefault();
+                const touch = e.touches[0];
+                showPinPreview(touch);
+            }
+        }
+        
+        function handleTouchEnd(e) {
+            hidePreview();
+        }
+        
+        function addPin(event) {
+            const container = document.getElementById('carDiagram');
+            const rect = container.getBoundingClientRect();
+            const x = (event.clientX || event.pageX) - rect.left;
+            const y = (event.clientY || event.pageY) - rect.top;
+            
+            pinCounter++;
+            const pinId = `pin-${pinCounter}`;
+            
+            const pin = document.createElement('div');
+            pin.className = `damage-pin size-${currentSize}`;
+            pin.id = pinId;
+            // No text content - pins are just black dots
+            pin.style.left = x + 'px';
+            pin.style.top = y + 'px';
+            pin.style.transform = 'translate(-50%, -50%)';
+            
+            // Double click/tap to remove
+            pin.ondblclick = () => removePin(pinId);
+            let tapCount = 0;
+            pin.ontouchend = (e) => {
+                e.preventDefault();
+                tapCount++;
+                if (tapCount === 2) {
+                    removePin(pinId);
+                    tapCount = 0;
+                }
+                setTimeout(() => tapCount = 0, 300);
+            };
+            
+            container.appendChild(pin);
+            
+            // Save coordinates
+            damages.push({
+                id: pinId,
+                type: 'pin',
+                number: pinCounter,
+                x: x,
+                y: y,
+                size: currentSize
+            });
+        }
+        
+        function removePin(pinId) {
+            const pin = document.getElementById(pinId);
+            if (pin) pin.remove();
+            damages = damages.filter(d => d.id !== pinId);
+        }
+        
+        function showPinPreview(event) {
+            const preview = document.getElementById('pinPreview');
+            const container = document.getElementById('carDiagram');
+            const rect = container.getBoundingClientRect();
+            const x = (event.clientX || event.pageX) - rect.left;
+            const y = (event.clientY || event.pageY) - rect.top;
+            
+            preview.className = `damage-pin size-${currentSize}`;
+            preview.style.display = 'block';
+            preview.style.left = x + 'px';
+            preview.style.top = y + 'px';
+            preview.style.transform = 'translate(-50%, -50%)';
+            // No number shown
+        }
+        
+        function hidePreview() {
+            const preview = document.getElementById('pinPreview');
+            preview.style.display = 'none';
+        }
+        
+        function startDrawing(e) {
+            console.log('🔍 startDrawing called, currentTool:', currentTool, 'canvas:', !!canvas, 'ctx:', !!ctx);
+            console.log('🔍 Event details:', e.type, 'target:', e.target.id, 'clientX:', e.clientX, 'clientY:', e.clientY);
+            
+            if (currentTool !== 'draw' && currentTool !== 'eraser') {
+                console.log('Not in draw/eraser mode, ignoring');
+                return;
+            }
+            
+            if (!canvas || !ctx) {
+                console.error('❌ Canvas or context not available for drawing');
+                console.error('❌ Canvas element:', canvas);
+                console.error('❌ Context:', ctx);
+                return;
+            }
+            
+            e.preventDefault();
+            e.stopPropagation();
+            drawing = true;
+            
+            console.log('✏️ Starting drawing, tool:', currentTool, 'canvas size:', canvas.width + 'x' + canvas.height);
+            
+            const rect = canvas.getBoundingClientRect();
+            const clientX = e.clientX !== undefined ? e.clientX : (e.touches && e.touches[0] ? e.touches[0].clientX : 0);
+            const clientY = e.clientY !== undefined ? e.clientY : (e.touches && e.touches[0] ? e.touches[0].clientY : 0);
+            const x = clientX - rect.left;
+            const y = clientY - rect.top;
+            
+            console.log('Start position:', {x, y});
+            
+            // Set stroke properties before beginning path
+            if (currentTool === 'draw') {
+                ctx.strokeStyle = '#000000'; // Black for damage marks
+                ctx.lineWidth = currentSize === 'tiny' ? 2 : currentSize === 'small' ? 3 : currentSize === 'medium' ? 5 : 8;
+                ctx.globalCompositeOperation = 'source-over';
+                ctx.lineCap = 'round';
+                ctx.lineJoin = 'round';
+                console.log('Drawing with width:', ctx.lineWidth);
+            } else if (currentTool === 'eraser') {
+                ctx.globalCompositeOperation = 'destination-out';
+                ctx.lineWidth = currentSize === 'tiny' ? 10 : currentSize === 'small' ? 15 : currentSize === 'medium' ? 25 : 35;
+                ctx.lineCap = 'round';
+                ctx.lineJoin = 'round';
+                console.log('Erasing with width:', ctx.lineWidth);
+            }
+            
+            ctx.beginPath();
+            ctx.moveTo(x, y);
+        }
+        
+        function draw(e) {
+            if (!drawing) return;
+            
+            if (!canvas || !ctx) {
+                console.error('❌ Canvas or context lost during drawing');
+                return;
+            }
+            
+            e.preventDefault();
+            e.stopPropagation();
+            
+            const rect = canvas.getBoundingClientRect();
+            const clientX = e.clientX !== undefined ? e.clientX : (e.touches && e.touches[0] ? e.touches[0].clientX : 0);
+            const clientY = e.clientY !== undefined ? e.clientY : (e.touches && e.touches[0] ? e.touches[0].clientY : 0);
+            const x = clientX - rect.left;
+            const y = clientY - rect.top;
+            
+            ctx.lineTo(x, y);
+            ctx.stroke();
+            // Don't begin new path - continue the line
+        }
+        
+        function stopDrawing(e) {
+            if (drawing) {
+                console.log('✅ Stopping drawing');
+                drawing = false;
+                ctx.closePath();
+                
+                // Save drawing as image data
+                damages.push({
+                    type: 'drawing',
+                    dataURL: canvas.toDataURL()
+                });
+                console.log('Drawing saved, total damages:', damages.length);
+            }
+        }
+        
+        function redrawCanvas() {
+            // Find last drawing in damages
+            const lastDrawing = damages.filter(d => d.type === 'drawing').pop();
+            if (lastDrawing) {
+                const img = new Image();
+                img.onload = () => {
+                    ctx.clearRect(0, 0, canvas.width, canvas.height);
+                    ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+                };
+                img.src = lastDrawing.dataURL;
+            }
+        }
+        
+        function clearAll() {
+            if (!confirm('Apagar tudo (pins e desenhos)?')) return;
+            
+            if (!canvas || !ctx) {
+                console.error('Canvas not available for clearing');
+                return;
+            }
+            
+            // Clear canvas (desenhos)
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            
+            // Clear pins (elementos div com classe damage-pin)
+            const container = document.getElementById('carDiagram');
+            if (container) {
+                const pins = container.querySelectorAll('.damage-pin');
+                pins.forEach(pin => {
+                    console.log('Removendo pin:', pin.id);
+                    pin.remove();
+                });
+                console.log(`Removidos ${pins.length} pins`);
+            }
+            
+            // Reset arrays e contadores
+            damages = [];
+            pinCounter = 0;
+            
+            console.log('Tudo limpo: pins e desenhos removidos');
+        }
+        
+        function testCanvasInteraction() {
+            console.log('🧪 Testing canvas interaction...');
+            console.log('🧪 Canvas element:', canvas);
+            console.log('🧪 Canvas size:', canvas?.width + 'x' + canvas?.height);
+            console.log('🧪 Canvas position:', canvas?.getBoundingClientRect());
+            console.log('🧪 Canvas style.pointerEvents:', canvas?.style.pointerEvents);
+            console.log('🧪 Canvas style.zIndex:', canvas?.style.zIndex);
+            console.log('🧪 Current tool:', currentTool);
+            
+            // Test drawing a small line to verify canvas works
+            if (canvas && ctx) {
+                ctx.strokeStyle = '#ff0000';
+                ctx.lineWidth = 2;
+                ctx.beginPath();
+                ctx.moveTo(10, 10);
+                ctx.lineTo(50, 50);
+                ctx.stroke();
+                console.log('🧪 Test line drawn on canvas');
+            }
+        }
+        
+        // Function to remove test canvas button
+        function removeTestCanvasButton() {
+            // Look for any button containing "Testar Canvas" text
+            const buttons = document.querySelectorAll('button');
+            buttons.forEach(button => {
+                if (button.textContent && (button.textContent.includes('Testar Canvas') || button.textContent.includes('Clique Aqui Primeiro'))) {
+                    console.log('Removing test canvas button:', button);
+                    button.remove();
+                }
+            });
+            
+            // Also check for dynamically created elements after a delay
+            setTimeout(() => {
+                const buttons = document.querySelectorAll('button');
+                buttons.forEach(button => {
+                    if (button.textContent && (button.textContent.includes('Testar Canvas') || button.textContent.includes('Clique Aqui Primeiro'))) {
+                        console.log('Removing test canvas button (delayed):', button);
+                        button.remove();
+                    }
+                });
+            }, 1000);
+            
+            // Check again after canvas initialization
+            setTimeout(() => {
+                const buttons = document.querySelectorAll('button');
+                buttons.forEach(button => {
+                    if (button.textContent && (button.textContent.includes('Testar Canvas') || button.textContent.includes('Clique Aqui Primeiro'))) {
+                        console.log('Removing test canvas button (final check):', button);
+                        button.remove();
+                    }
+                });
+            }, 3000);
+        }
+        
+        function nextToDiagram() {
+            console.log('🔵 nextToDiagram called - STARTING CANVAS INITIALIZATION');
+            
+            // Skip validation when called automatically after photos
+            const skipValidation = arguments[0] === true;
+            
+            if (!skipValidation) {
+                // Validate inputs
+                const plate = document.getElementById('inputPlate').value.trim();
+                const ra = document.getElementById('inputRA').value.trim();
+                
+                if (!plate || !ra) {
+                    alert('Por favor preencha a Matrícula e o RA');
+                    return;
+                }
+                
+                // Check if photos are captured (from vehicle_inspection.js)
+                if (window.inspectionData && Object.keys(window.inspectionData.photos || {}).length < 6) {
+                    alert('Por favor tire todas as 6 fotos primeiro');
+                    console.log('❌ Not enough photos:', Object.keys(window.inspectionData.photos || {}).length);
+                    return;
+                }
+            }
+            
+            console.log('✅ All validations passed');
+            console.log('✅ Photos captured:', Object.keys((window.inspectionData && window.inspectionData.photos) || {}).length);
+            
+            // Hide photos step, show diagram step
+            const stepPhotos = document.getElementById('stepPhotos');
+            const stepDiagram = document.getElementById('stepDiagram');
+            
+            if (stepPhotos) {
+                stepPhotos.classList.add('hidden');
+                console.log('✅ Hidden stepPhotos');
+            } else {
+                console.error('❌ stepPhotos not found');
+            }
+            
+            if (stepDiagram) {
+                stepDiagram.classList.remove('hidden');
+                console.log('✅ Showing stepDiagram');
+            } else {
+                console.error('❌ stepDiagram not found');
+            }
+            
+            // Initialize canvas now that diagram step is visible
+            setTimeout(() => {
+                console.log('📅 Initializing canvas for diagram step...');
+                
+                // Force re-initialize canvas now that diagram is visible
+                canvas = null;
+                ctx = null;
+                
+                console.log('🔍 Attempting to initialize canvas...');
+                const initResult = initializeCanvas();
+                console.log('🔍 Canvas init result:', initResult);
+                
+                if (!initResult) {
+                    console.error('❌ Failed to initialize canvas for diagram');
+                    return;
+                }
+                
+                // Ensure canvas is ready for drawing
+                console.log('🔍 Canvas check - canvas:', !!canvas, 'ctx:', !!ctx);
+                if (!canvas || !ctx) {
+                    console.error('❌ Canvas or context not ready after initialization');
+                    return;
+                }
+                
+                // Ensure canvas is properly sized (image should be visible now)
+                const diagram = document.getElementById('carDiagram');
+                if (canvas && diagram) {
+                    const img = diagram.querySelector('img');
+                    if (img) {
+                        // Force a resize after image loads
+                        const resizeCanvas = () => {
+                            if (img.offsetWidth > 0 && img.offsetHeight > 0) {
+                                canvas.width = img.offsetWidth;
+                                canvas.height = img.offsetHeight;
+                                console.log(`✅ Canvas resized to ${canvas.width}x${canvas.height}`);
+                                
+                                // Re-setup canvas context after resize
+                                ctx = canvas.getContext('2d');
+                                ctx.lineJoin = 'round';
+                                ctx.lineCap = 'round';
+                                
+                                // Clear canvas and redraw any existing content
+                                ctx.clearRect(0, 0, canvas.width, canvas.height);
+                                redrawCanvas();
+                                
+                                // Re-setup event listeners after canvas is ready
+                                setupDiagramEvents();
+                                
+                                // Force tool selection to ensure canvas is active
+                                setTimeout(() => {
+                                    selectTool('draw');
+                                    console.log('✅ Tool set to draw after canvas init');
+                                    
+                                    // Canvas ready - no automatic test line
+                                    console.log('✅ Canvas ready for user interaction');
+                                }, 100);
+                                
+                                console.log('✅ Canvas fully initialized and ready for drawing');
+                            } else {
+                                console.warn('Image not ready, retrying...');
+                                setTimeout(resizeCanvas, 100);
+                            }
+                        };
+                        
+                        if (img.complete && img.offsetWidth > 0) {
+                            resizeCanvas();
+                        } else {
+                            img.onload = resizeCanvas;
+                            // Also try after a delay in case onload already fired
+                            setTimeout(resizeCanvas, 200);
+                        }
+                    }
+                }
+                
+                // Initialize fuel selector now that elements are visible
+                initializeFuelSelector();
+                
+                // Make sure drawing tool is selected by default
+                setTimeout(() => {
+                    selectTool('draw');
+                    console.log('✅ Drawing tool selected and canvas should be ready');
+                }, 100);
+                
+            }, 500);
+            
+            // Scroll to top
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+            console.log('✅ Scrolled to top');
+        }
+        
+        function proceedToAnalysis() {
+            console.log('🔵 proceedToAnalysis called - skipping AI page');
+            
+            // Validate required fields
+            const odometerReading = getOdometerReading();
+            if (!odometerReading || odometerReading === 0) {
+                alert('Por favor, preencha os quilómetros. Este campo é obrigatório.');
+                document.getElementById('odometerReading').focus();
+                return;
+            }
+            
+            // Save observations
+            const observations = document.getElementById('damageObservations').value;
+            
+            // Save diagram data including fuel and odometer
+            window.diagramData = {
+                damages: damages,
+                observations: observations,
+                fuelLevel: getFuelLevel(),
+                odometerReading: odometerReading
+            };
+            
+            console.log('Diagram data saved:', window.diagramData);
+            
+            // Skip AI analysis page - show loading and go direct to finish
+            showAILoadingAndFinish();
+        }
+        
+        function showAILoadingAndFinish() {
+            // Hide diagram step
+            document.getElementById('stepDiagram').classList.add('hidden');
+            
+            // Show AI loading overlay
+            const loadingOverlay = document.createElement('div');
+            loadingOverlay.id = 'aiLoadingOverlay';
+            loadingOverlay.innerHTML = `
+                <div style="
+                    position: fixed;
+                    inset: 0;
+                    background: linear-gradient(135deg, #009cb6, #007a8f);
+                    display: flex;
+                    flex-direction: column;
+                    align-items: center;
+                    justify-content: center;
+                    z-index: 99999;
+                    color: white;
+                    text-align: center;
+                ">
+                    <div style="
+                        background: rgba(255, 255, 255, 0.1);
+                        padding: 50px;
+                        border-radius: 20px;
+                        backdrop-filter: blur(10px);
+                        border: 2px solid rgba(255, 255, 255, 0.2);
+                        max-width: 600px;
+                        margin: 20px;
+                    ">
+                        <div style="
+                            width: 80px;
+                            height: 80px;
+                            border: 4px solid rgba(255, 255, 255, 0.3);
+                            border-top: 4px solid white;
+                            border-radius: 50%;
+                            margin: 0 auto 30px;
+                            animation: spin 1s linear infinite;
+                        "></div>
+                        <h2 style="
+                            font-size: 32px;
+                            font-weight: bold;
+                            margin: 0 0 20px;
+                            animation: pulse 2s ease-in-out infinite;
+                        ">VERIFICANDO DANOS COM AI</h2>
+                        <p style="
+                            font-size: 18px;
+                            margin: 0 0 30px;
+                            opacity: 0.9;
+                        ">Analisando ${Object.keys(window.inspectionData?.photos || {}).length} fotos capturadas...</p>
+                        <div style="
+                            background: rgba(255, 255, 255, 0.2);
+                            padding: 20px;
+                            border-radius: 10px;
+                            font-size: 16px;
+                        ">
+                            <div style="margin-bottom: 15px;">✓ Danos identificados</div>
+                            <div style="margin-bottom: 15px;">✓ Relatório gerado</div>
+                            <div style="opacity: 0.7;">⏳ Finalizando análise...</div>
+                        </div>
+                    </div>
+                </div>
+                <style>
+                    @keyframes spin {
+                        from { transform: rotate(0deg); }
+                        to { transform: rotate(360deg); }
+                    }
+                    @keyframes pulse {
+                        0%, 100% { opacity: 1; }
+                        50% { opacity: 0.7; }
+                    }
+                </style>
+            `;
+            
+            document.body.appendChild(loadingOverlay);
+            
+            // After 4 seconds, remove loading and show final review
+            setTimeout(() => {
+                loadingOverlay.remove();
+                showFinalReviewStep();
+            }, 4000);
+        }
+        
+        function showFinalReviewStep() {
+            // Show the review step with enhanced functionality
+            document.getElementById('stepReview').classList.remove('hidden');
+            
+            // Update the review content with email option
+            const reviewContainer = document.querySelector('#stepReview .bg-white');
+            if (reviewContainer) {
+                reviewContainer.innerHTML = `
+                    <div class="text-center mb-8">
+                        <div class="w-20 h-20 bg-[#009cb6] bg-opacity-10 rounded-full flex items-center justify-center mx-auto mb-4">
+                            <svg class="w-10 h-10 text-[#009cb6]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
+                            </svg>
+                        </div>
+                        <h2 class="text-3xl font-bold text-[#009cb6] mb-2">Inspeção Concluída!</h2>
+                        <p class="text-lg text-gray-600">Todas as etapas foram completadas com sucesso</p>
+                    </div>
+                    
+                    <div class="grid md:grid-cols-2 gap-6 mb-8">
+                        <!-- Summary Card -->
+                        <div class="bg-gray-50 rounded-lg p-6">
+                            <h3 class="text-lg font-semibold mb-4 text-[#009cb6]">Resumo da Inspeção</h3>
+                            <div class="space-y-3">
+                                <div class="flex justify-between">
+                                    <span class="text-gray-600">Fotos capturadas:</span>
+                                    <span class="font-semibold text-[#009cb6]">${(() => {
+                                        // Contar fotos de múltiplas fontes
+                                        let count = 0;
+                                        
+                                        // Verificar window.inspectionData.photos
+                                        const inspectionPhotos = window.inspectionData?.photos || {};
+                                        count += Object.values(inspectionPhotos).filter(photo => photo && (photo.dataURL || photo.blob)).length;
+                                        
+                                        // Verificar localStorage como backup
+                                        try {
+                                            const storedPhotos = JSON.parse(localStorage.getItem('inspectionPhotos') || '{}');
+                                            if (count === 0) {
+                                                count = Object.values(storedPhotos).filter(photo => photo && (photo.dataURL || photo.blob)).length;
+                                            }
+                                        } catch(e) {}
+                                        
+                                        return count;
+                                    })()}/6</span>
+                                </div>
+                                <div class="flex justify-between">
+                                    <span class="text-gray-600">Danos marcados:</span>
+                                    <span class="font-semibold text-[#009cb6]">${(() => {
+                                        // Verificar pins e desenhos
+                                        const pins = document.querySelectorAll('.damage-pin');
+                                        const hasDrawings = window.diagramData?.damages && window.diagramData.damages.length > 0;
+                                        const hasCanvas = canvas && ctx && canvas.width > 0 && canvas.height > 0;
+                                        
+                                        // Verificar se há conteúdo no canvas
+                                        let hasCanvasContent = false;
+                                        if (hasCanvas) {
+                                            try {
+                                                const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+                                                const data = imageData.data;
+                                                for (let i = 0; i < data.length; i += 4) {
+                                                    if (data[i + 3] > 0) { // Alpha > 0 significa pixel desenhado
+                                                        hasCanvasContent = true;
+                                                        break;
+                                                    }
+                                                }
+                                            } catch(e) {}
+                                        }
+                                        
+                                        return (pins.length > 0 || hasDrawings || hasCanvasContent) ? 'Sim' : 'Não';
+                                    })()}</span>
+                                </div>
+                                <div class="flex justify-between">
+                                    <span class="text-gray-600">Combustível:</span>
+                                    <span class="font-semibold text-[#009cb6]">${window.diagramData?.fuelLevel || 100}%</span>
+                                </div>
+                                <div class="flex justify-between">
+                                    <span class="text-gray-600">Quilómetros:</span>
+                                    <span class="font-semibold text-[#009cb6]">${window.diagramData?.odometerReading || 0} km</span>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- Actions Card -->
+                        <div class="bg-[#009cb6] bg-opacity-10 rounded-lg p-6">
+                            <h3 class="text-lg font-semibold mb-4 text-[#009cb6]">Próximos Passos</h3>
+                            <div class="space-y-4">
+                                <div class="flex items-center gap-3">
+                                    <div class="w-8 h-8 bg-[#009cb6] bg-opacity-20 rounded-full flex items-center justify-center">
+                                        <span class="text-[#009cb6] font-semibold text-sm">1</span>
+                                    </div>
+                                    <span class="text-gray-700">Enviar relatório por email</span>
+                                </div>
+                                <div class="flex items-center gap-3">
+                                    <div class="w-8 h-8 bg-[#009cb6] bg-opacity-20 rounded-full flex items-center justify-center">
+                                        <span class="text-[#009cb6] font-semibold text-sm">2</span>
+                                    </div>
+                                    <span class="text-gray-700">Guardar no histórico</span>
+                                </div>
+                                <div class="flex items-center gap-3">
+                                    <div class="w-8 h-8 bg-[#009cb6] bg-opacity-20 rounded-full flex items-center justify-center">
+                                        <span class="text-[#009cb6] font-semibold text-sm">3</span>
+                                    </div>
+                                    <span class="text-gray-700">Finalizar inspeção</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Email Input -->
+                    <div class="mb-6">
+                        <label class="block text-sm font-medium text-gray-700 mb-2">
+                            Email para envio do relatório (opcional):
+                        </label>
+                        <input type="email" id="reportEmail" class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#009cb6] focus:border-[#009cb6]" placeholder="exemplo@email.com">
+                    </div>
+                    
+                    <!-- Action Buttons -->
+                    <div class="flex flex-col sm:flex-row gap-4">
+                        <button onclick="saveAndSendInspection()" class="flex-1 bg-[#f6b511] text-white px-6 py-4 rounded-lg hover:bg-[#e6a500] transition-colors font-semibold flex items-center justify-center gap-2 text-lg">
+                            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 8l7.89 4.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"></path>
+                            </svg>
+                            Guardar e Enviar por Email
+                        </button>
+                        <button onclick="saveInspectionOnly()" class="flex-1 bg-[#009cb6] text-white px-6 py-4 rounded-lg hover:bg-[#0086a1] transition-colors font-semibold flex items-center justify-center gap-2 text-lg">
+                            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-3m-1 4l-3 3m0 0l-3-3m3 3V4"></path>
+                            </svg>
+                            Apenas Guardar
+                        </button>
+                    </div>
+                `;
+            }
+            
+            // Scroll to top
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+        }
+        
+        function saveAndSendInspection() {
+            const email = document.getElementById('reportEmail').value.trim();
+            
+            if (!email) {
+                alert('Por favor, insira um email válido para envio do relatório.');
+                document.getElementById('reportEmail').focus();
+                return;
+            }
+            
+            // Show saving overlay
+            showSavingOverlay('Guardando inspeção e enviando por email...');
+            
+            // Save inspection with email
+            saveInspectionWithEmail(email);
+        }
+        
+        function saveInspectionOnly() {
+            // Show saving overlay
+            showSavingOverlay('Guardando inspeção no histórico...');
+            
+            // Save inspection without email
+            saveInspectionWithEmail(null);
+        }
+        
+        function showSavingOverlay(message) {
+            const overlay = document.createElement('div');
+            overlay.id = 'savingOverlay';
+            overlay.innerHTML = `
+                <div style="
+                    position: fixed;
+                    inset: 0;
+                    background: rgba(0, 0, 0, 0.8);
+                    display: flex;
+                    align-items: center;
+                    justify-content: center;
+                    z-index: 99999;
+                    color: white;
+                ">
+                    <div style="
+                        background: white;
+                        color: #333;
+                        padding: 40px;
+                        border-radius: 15px;
+                        text-align: center;
+                        max-width: 400px;
+                        margin: 20px;
+                    ">
+                        <div style="
+                            width: 50px;
+                            height: 50px;
+                            border: 4px solid #e5e5e5;
+                            border-top: 4px solid #009cb6;
+                            border-radius: 50%;
+                            margin: 0 auto 20px;
+                            animation: spin 1s linear infinite;
+                        "></div>
+                        <h3 style="margin: 0 0 10px; font-size: 18px; font-weight: bold;">${message}</h3>
+                        <p style="margin: 0; color: #666;">Aguarde um momento...</p>
+                    </div>
+                </div>
+            `;
+            document.body.appendChild(overlay);
+        }
+        
+        function saveInspectionWithEmail(email) {
+            // Prepare inspection data
+            const inspectionData = {
+                type: '{{ inspection_type|default("checkout") }}', // Add inspection type
+                photos: window.inspectionData?.photos || {},
+                damages: window.diagramData?.damages || [],
+                observations: window.diagramData?.observations || '',
+                fuelLevel: window.diagramData?.fuelLevel || 100,
+                odometerReading: window.diagramData?.odometerReading || 0,
+                plate: document.getElementById('inputPlate')?.value || '',
+                ra: document.getElementById('inputRA')?.value || '',
+                receptionist: document.getElementById('inputReceptionist')?.value || '',
+                date: document.getElementById('inputDate')?.value || '',
+                time: document.getElementById('inputTime')?.value || '',
+                email: email
+            };
+            
+            console.log('Saving inspection:', inspectionData);
+            
+            // Make actual API call to save inspection
+            fetch('/api/save-inspection', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(inspectionData)
+            })
+            .then(response => response.json())
+            .then(data => {
+                const overlay = document.getElementById('savingOverlay');
+                if (overlay) overlay.remove();
+                
+                if (data.success) {
+                    // Show success message
+                    const successMessage = email ? 
+                        'Inspeção guardada com sucesso!\nRelatório enviado por email.' :
+                        'Inspeção guardada no histórico com sucesso!';
+                        
+                    alert(successMessage);
+                    
+                    // Redirect to check-in page
+                    window.location.href = '/check-in';
+                } else {
+                    alert('Erro ao guardar inspeção: ' + (data.error || 'Erro desconhecido'));
+                }
+            })
+            .catch(error => {
+                const overlay = document.getElementById('savingOverlay');
+                if (overlay) overlay.remove();
+                
+                console.error('Error saving inspection:', error);
+                alert('Erro ao guardar inspeção. Tente novamente.');
+            });
+        }
+    </script>
+</body>
+</html>
