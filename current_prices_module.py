@@ -24,8 +24,10 @@ def calculate_commission(net_price):
     """Calcula preço com comissão"""
     return round(net_price * (1 + COMMISSION_RATE), 2)
 
-def load_prices_from_db(conn, location, month, year):
-    """Carrega preços da base de dados"""
+def load_prices_from_db(conn, location, month, year, day_start=None, day_end=None):
+    """Carrega preços da base de dados
+    Se day_start/day_end não forem especificados, retorna todos os períodos do mês
+    """
     try:
         # Detectar se é PostgreSQL ou SQLite
         is_postgres = conn.__class__.__module__ in ['psycopg2.extensions', 'psycopg2._psycopg']
@@ -33,45 +35,99 @@ def load_prices_from_db(conn, location, month, year):
         if is_postgres:
             # PostgreSQL
             with conn.cursor() as cur:
-                cur.execute("""
-                    SELECT prices_data, updated_at 
-                    FROM current_prices 
-                    WHERE location = %s AND month = %s AND year = %s
-                """, (location, month, year))
-                
-                row = cur.fetchone()
-                if row and row[0]:
-                    prices = json.loads(row[0])
-                    updated_at = row[1].isoformat() if row[1] else None
-                    logging.info(f"✅ Preços carregados: {location}, mês {month}, ano {year}")
-                    return prices, updated_at
+                if day_start is not None and day_end is not None:
+                    # Carregar período específico
+                    cur.execute("""
+                        SELECT prices_data, updated_at, day_start, day_end
+                        FROM current_prices 
+                        WHERE location = %s AND month = %s AND year = %s 
+                          AND day_start = %s AND day_end = %s
+                    """, (location, month, year, day_start, day_end))
+                    
+                    row = cur.fetchone()
+                    if row and row[0]:
+                        prices = json.loads(row[0])
+                        updated_at = row[1].isoformat() if row[1] else None
+                        logging.info(f"✅ Preços carregados: {location}, mês {month}/{year}, dias {day_start}-{day_end}")
+                        return prices, updated_at
+                    else:
+                        logging.info(f"ℹ️ Sem preços para: {location}, mês {month}/{year}, dias {day_start}-{day_end}")
+                        return None, None
                 else:
-                    logging.info(f"ℹ️ Sem preços para: {location}, mês {month}, ano {year}")
-                    return None, None
+                    # Carregar todos os períodos do mês
+                    cur.execute("""
+                        SELECT prices_data, updated_at, day_start, day_end
+                        FROM current_prices 
+                        WHERE location = %s AND month = %s AND year = %s
+                        ORDER BY day_start
+                    """, (location, month, year))
+                    
+                    rows = cur.fetchall()
+                    if rows:
+                        periods = []
+                        for row in rows:
+                            periods.append({
+                                'prices': json.loads(row[0]),
+                                'updated_at': row[1].isoformat() if row[1] else None,
+                                'day_start': row[2],
+                                'day_end': row[3]
+                            })
+                        logging.info(f"✅ {len(periods)} período(s) carregado(s): {location}, mês {month}/{year}")
+                        return periods, None
+                    else:
+                        logging.info(f"ℹ️ Sem preços para: {location}, mês {month}/{year}")
+                        return None, None
         else:
             # SQLite
-            cursor = conn.execute("""
-                SELECT prices_data, updated_at 
-                FROM current_prices 
-                WHERE location = ? AND month = ? AND year = ?
-            """, (location, month, year))
-            
-            row = cursor.fetchone()
-            if row and row[0]:
-                prices = json.loads(row[0])
-                updated_at = row[1] if row[1] else None
-                logging.info(f"✅ Preços carregados: {location}, mês {month}, ano {year}")
-                return prices, updated_at
+            if day_start is not None and day_end is not None:
+                # Carregar período específico
+                cursor = conn.execute("""
+                    SELECT prices_data, updated_at, day_start, day_end
+                    FROM current_prices 
+                    WHERE location = ? AND month = ? AND year = ? 
+                      AND day_start = ? AND day_end = ?
+                """, (location, month, year, day_start, day_end))
+                
+                row = cursor.fetchone()
+                if row and row[0]:
+                    prices = json.loads(row[0])
+                    updated_at = row[1] if row[1] else None
+                    logging.info(f"✅ Preços carregados: {location}, mês {month}/{year}, dias {day_start}-{day_end}")
+                    return prices, updated_at
+                else:
+                    logging.info(f"ℹ️ Sem preços para: {location}, mês {month}/{year}, dias {day_start}-{day_end}")
+                    return None, None
             else:
-                logging.info(f"ℹ️ Sem preços para: {location}, mês {month}, ano {year}")
-                return None, None
+                # Carregar todos os períodos do mês
+                cursor = conn.execute("""
+                    SELECT prices_data, updated_at, day_start, day_end
+                    FROM current_prices 
+                    WHERE location = ? AND month = ? AND year = ?
+                    ORDER BY day_start
+                """, (location, month, year))
+                
+                rows = cursor.fetchall()
+                if rows:
+                    periods = []
+                    for row in rows:
+                        periods.append({
+                            'prices': json.loads(row[0]),
+                            'updated_at': row[1] if row[1] else None,
+                            'day_start': row[2] if row[2] else 1,
+                            'day_end': row[3] if row[3] else 31
+                        })
+                    logging.info(f"✅ {len(periods)} período(s) carregado(s): {location}, mês {month}/{year}")
+                    return periods, None
+                else:
+                    logging.info(f"ℹ️ Sem preços para: {location}, mês {month}/{year}")
+                    return None, None
                 
     except Exception as e:
         logging.error(f"Erro ao carregar preços: {e}")
         return None, None
 
-def save_prices_to_db(conn, location, month, year, prices_data):
-    """Guarda preços na base de dados"""
+def save_prices_to_db(conn, location, month, year, prices_data, day_start=1, day_end=31):
+    """Guarda preços na base de dados para um período específico"""
     try:
         prices_json = json.dumps(prices_data)
         
@@ -81,11 +137,12 @@ def save_prices_to_db(conn, location, month, year, prices_data):
         if is_postgres:
             # PostgreSQL
             with conn.cursor() as cur:
-                # Verificar se já existe
+                # Verificar se já existe este período
                 cur.execute("""
                     SELECT id FROM current_prices 
-                    WHERE location = %s AND month = %s AND year = %s
-                """, (location, month, year))
+                    WHERE location = %s AND month = %s AND year = %s 
+                      AND day_start = %s AND day_end = %s
+                """, (location, month, year, day_start, day_end))
                 
                 existing = cur.fetchone()
                 
@@ -94,21 +151,23 @@ def save_prices_to_db(conn, location, month, year, prices_data):
                     cur.execute("""
                         UPDATE current_prices 
                         SET prices_data = %s, updated_at = CURRENT_TIMESTAMP
-                        WHERE location = %s AND month = %s AND year = %s
-                    """, (prices_json, location, month, year))
+                        WHERE location = %s AND month = %s AND year = %s 
+                          AND day_start = %s AND day_end = %s
+                    """, (prices_json, location, month, year, day_start, day_end))
                 else:
                     # Inserir
                     cur.execute("""
-                        INSERT INTO current_prices (location, month, year, prices_data, updated_at)
-                        VALUES (%s, %s, %s, %s, CURRENT_TIMESTAMP)
-                    """, (location, month, year, prices_json))
+                        INSERT INTO current_prices (location, month, year, day_start, day_end, prices_data, updated_at)
+                        VALUES (%s, %s, %s, %s, %s, %s, CURRENT_TIMESTAMP)
+                    """, (location, month, year, day_start, day_end, prices_json))
             conn.commit()
         else:
             # SQLite
             cursor = conn.execute("""
                 SELECT id FROM current_prices 
-                WHERE location = ? AND month = ? AND year = ?
-            """, (location, month, year))
+                WHERE location = ? AND month = ? AND year = ? 
+                  AND day_start = ? AND day_end = ?
+            """, (location, month, year, day_start, day_end))
             
             existing = cursor.fetchone()
             
@@ -117,18 +176,19 @@ def save_prices_to_db(conn, location, month, year, prices_data):
                 conn.execute("""
                     UPDATE current_prices 
                     SET prices_data = ?, updated_at = CURRENT_TIMESTAMP
-                    WHERE location = ? AND month = ? AND year = ?
-                """, (prices_json, location, month, year))
+                    WHERE location = ? AND month = ? AND year = ? 
+                      AND day_start = ? AND day_end = ?
+                """, (prices_json, location, month, year, day_start, day_end))
             else:
                 # Inserir
                 conn.execute("""
-                    INSERT INTO current_prices (location, month, year, prices_data, updated_at)
-                    VALUES (?, ?, ?, ?, CURRENT_TIMESTAMP)
-                """, (location, month, year, prices_json))
+                    INSERT INTO current_prices (location, month, year, day_start, day_end, prices_data, updated_at)
+                    VALUES (?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP)
+                """, (location, month, year, day_start, day_end, prices_json))
             
             conn.commit()
         
-        logging.info(f"✅ Preços guardados: {location}, mês {month}, ano {year}")
+        logging.info(f"✅ Preços guardados: {location}, mês {month}/{year}, dias {day_start}-{day_end}")
         return True
     except Exception as e:
         logging.error(f"Erro ao guardar preços: {e}")
@@ -463,13 +523,21 @@ def create_current_prices_table(conn):
                     location TEXT NOT NULL,
                     month INTEGER NOT NULL,
                     year INTEGER NOT NULL,
+                    day_start INTEGER DEFAULT 1,
+                    day_end INTEGER DEFAULT 31,
                     prices_data TEXT NOT NULL,
                     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-                    UNIQUE(location, month, year)
+                    UNIQUE(location, month, year, day_start, day_end)
                 )
             """
             with conn.cursor() as cur:
                 cur.execute(query)
+                # Adicionar colunas se não existirem (migração)
+                try:
+                    cur.execute("ALTER TABLE current_prices ADD COLUMN IF NOT EXISTS day_start INTEGER DEFAULT 1")
+                    cur.execute("ALTER TABLE current_prices ADD COLUMN IF NOT EXISTS day_end INTEGER DEFAULT 31")
+                except:
+                    pass
             conn.commit()
         else:
             # SQLite syntax
@@ -479,11 +547,22 @@ def create_current_prices_table(conn):
                     location TEXT NOT NULL,
                     month INTEGER NOT NULL,
                     year INTEGER NOT NULL,
+                    day_start INTEGER DEFAULT 1,
+                    day_end INTEGER DEFAULT 31,
                     prices_data TEXT NOT NULL,
                     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-                    UNIQUE(location, month, year)
+                    UNIQUE(location, month, year, day_start, day_end)
                 )
             """)
+            # Adicionar colunas se não existirem (migração)
+            try:
+                conn.execute("ALTER TABLE current_prices ADD COLUMN day_start INTEGER DEFAULT 1")
+            except:
+                pass
+            try:
+                conn.execute("ALTER TABLE current_prices ADD COLUMN day_end INTEGER DEFAULT 31")
+            except:
+                pass
             conn.commit()
         
         logging.info("Tabela current_prices criada/verificada com sucesso")

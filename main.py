@@ -34843,8 +34843,10 @@ async def admin_current_prices(request: Request):
         return HTMLResponse(content=f"<h1>Erro ao carregar página: {str(e)}</h1>", status_code=500)
 
 @app.get("/api/current-prices/load")
-async def load_current_prices(request: Request, location: str, month: int, year: int):
-    """Carregar preços atuais da base de dados"""
+async def load_current_prices(request: Request, location: str, month: int, year: int, day_start: int = None, day_end: int = None):
+    """Carregar preços atuais da base de dados
+    Se day_start/day_end não forem especificados, retorna todos os períodos do mês
+    """
     require_auth(request)
     try:
         from current_prices_module import load_prices_from_db, create_current_prices_table
@@ -34857,10 +34859,10 @@ async def load_current_prices(request: Request, location: str, month: int, year:
                 
                 # Carregar preços e data da última alteração
                 try:
-                    prices, updated_at = load_prices_from_db(conn, location, month, year)
+                    prices, updated_at = load_prices_from_db(conn, location, month, year, day_start, day_end)
                 except (ValueError, TypeError):
                     # Se a função retornar apenas um valor (compatibilidade com código antigo)
-                    result = load_prices_from_db(conn, location, month, year)
+                    result = load_prices_from_db(conn, location, month, year, day_start, day_end)
                     if isinstance(result, tuple) and len(result) == 2:
                         prices, updated_at = result
                     else:
@@ -34871,7 +34873,11 @@ async def load_current_prices(request: Request, location: str, month: int, year:
                     # Converter datetime para string se necessário
                     if updated_at and hasattr(updated_at, 'isoformat'):
                         updated_at = updated_at.isoformat()
-                    return JSONResponse({"ok": True, "prices": prices, "updated_at": updated_at})
+                    # Se retornou lista de períodos
+                    if isinstance(prices, list):
+                        return JSONResponse({"ok": True, "periods": prices})
+                    else:
+                        return JSONResponse({"ok": True, "prices": prices, "updated_at": updated_at})
                 else:
                     return JSONResponse({"ok": False, "message": "No prices found"})
             finally:
@@ -34892,6 +34898,8 @@ async def save_current_prices(request: Request):
         month = data.get('month')
         year = data.get('year')
         prices = data.get('prices')
+        day_start = data.get('day_start', 1)
+        day_end = data.get('day_end', 31)
         
         with _db_lock:
             conn = _db_connect()
@@ -34900,7 +34908,7 @@ async def save_current_prices(request: Request):
                 create_current_prices_table(conn)
                 
                 # Guardar preços
-                success = save_prices_to_db(conn, location, month, year, prices)
+                success = save_prices_to_db(conn, location, month, year, prices, day_start, day_end)
                 
                 if success:
                     return JSONResponse({"ok": True, "message": "Prices saved successfully"})
