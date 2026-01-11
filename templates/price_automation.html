@@ -9657,7 +9657,7 @@ Continue?`);
             try {
                 // Obter localização e data da pesquisa
                 const locationSelect = document.getElementById('location');
-                const dateInput = document.querySelector('input[type="date"]');
+                const dateInput = document.getElementById('pickupDateAuto');
                 
                 if (!locationSelect || !dateInput || !dateInput.value) {
                     showNotification('❌ Faça uma pesquisa primeiro para detectar localização e data!', 'error', 4000);
