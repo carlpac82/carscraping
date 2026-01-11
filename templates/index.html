@@ -1097,7 +1097,9 @@
                     });
                     
                     updatePeriodSelector();
-                    loadPeriodByIndex(0);
+                    // Manter período atual se existir, senão carregar o primeiro
+                    const indexToLoad = (currentPeriodIndex >= 0 && currentPeriodIndex < allPeriods.length) ? currentPeriodIndex : 0;
+                    loadPeriodByIndex(indexToLoad);
                     return; // Usar a função loadPeriodByIndex para renderizar
                 } else if (result.ok && result.prices) {
                     // Estrutura antiga: preços diretos - criar período por defeito
