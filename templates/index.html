@@ -556,6 +556,16 @@
         
         // Funções para modal de novo período
         function showNewPeriodDialog() {
+            // Calcular último dia do mês atual
+            const month = parseInt(document.getElementById('monthSelect').value);
+            const year = parseInt(document.getElementById('yearSelect').value);
+            const lastDayOfMonth = new Date(year, month, 0).getDate();
+            
+            // Preencher campos com valores padrão
+            document.getElementById('newPeriodDayStart').value = 1;
+            document.getElementById('newPeriodDayEnd').value = lastDayOfMonth;
+            document.getElementById('newPeriodDayEnd').max = lastDayOfMonth;
+            
             document.getElementById('newPeriodModal').style.display = 'flex';
         }
         
