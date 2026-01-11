@@ -35080,9 +35080,9 @@ async def check_current_prices_table(request: Request):
         logging.error(traceback.format_exc())
         return JSONResponse({"ok": False, "error": str(e)}, status_code=500)
 
-@app.get("/api/current-prices/fix-constraint-safe")
-async def fix_current_prices_constraint_safe(request: Request):
-    """Corrigir constraint UNIQUE - SEGURO (não apaga dados)"""
+@app.get("/api/current-prices/add-columns-safe")
+async def add_period_columns_safe(request: Request):
+    """Adicionar colunas day_start e day_end - SEGURO (não apaga dados)"""
     require_auth(request)
     try:
         with _db_lock:
@@ -35095,6 +35095,32 @@ async def fix_current_prices_constraint_safe(request: Request):
                 
                 if is_postgres:
                     with conn.cursor() as cur:
+                        # Verificar se colunas existem
+                        cur.execute("""
+                            SELECT column_name 
+                            FROM information_schema.columns 
+                            WHERE table_name = 'current_prices'
+                              AND column_name IN ('day_start', 'day_end')
+                        """)
+                        existing_cols = [row[0] for row in cur.fetchall()]
+                        logging.info(f"📋 Colunas existentes: {existing_cols}")
+                        
+                        # Adicionar day_start se não existir
+                        if 'day_start' not in existing_cols:
+                            logging.info("➕ Adicionando coluna day_start...")
+                            cur.execute("ALTER TABLE current_prices ADD COLUMN day_start INTEGER DEFAULT 1")
+                            cur.execute("UPDATE current_prices SET day_start = 1 WHERE day_start IS NULL")
+                        else:
+                            logging.info("✅ Coluna day_start já existe")
+                        
+                        # Adicionar day_end se não existir
+                        if 'day_end' not in existing_cols:
+                            logging.info("➕ Adicionando coluna day_end...")
+                            cur.execute("ALTER TABLE current_prices ADD COLUMN day_end INTEGER DEFAULT 31")
+                            cur.execute("UPDATE current_prices SET day_end = 31 WHERE day_end IS NULL")
+                        else:
+                            logging.info("✅ Coluna day_end já existe")
+                        
                         # Verificar constraints existentes
                         cur.execute("""
                             SELECT conname, pg_get_constraintdef(oid)
@@ -35105,7 +35131,7 @@ async def fix_current_prices_constraint_safe(request: Request):
                         existing_constraints = cur.fetchall()
                         logging.info(f"📋 Constraints existentes: {existing_constraints}")
                         
-                        # Remover APENAS constraints antigas (não a correta)
+                        # Remover APENAS constraints antigas
                         for name, definition in existing_constraints:
                             if 'day_start' not in definition or 'day_end' not in definition:
                                 logging.info(f"🗑️ Removendo constraint antiga: {name}")
@@ -35126,8 +35152,8 @@ async def fix_current_prices_constraint_safe(request: Request):
                             logging.info("✅ Constraint correta já existe!")
                         
                         conn.commit()
-                        logging.info("✅ Constraint corrigida com sucesso! DADOS PRESERVADOS.")
-                        return JSONResponse({"ok": True, "message": "Constraint fixed successfully", "data_preserved": True})
+                        logging.info("✅ Colunas e constraint corrigidas! DADOS PRESERVADOS.")
+                        return JSONResponse({"ok": True, "message": "Columns and constraint fixed successfully", "data_preserved": True})
                 else:
                     # SQLite - recriar tabela com constraint correta
                     logging.info("🔧 Recriando tabela SQLite com constraint correta...")
