@@ -35089,6 +35089,104 @@ async def version_check():
         "message": "Auto-add day_start/day_end columns on save if missing"
     })
 
+@app.get("/api/diagnose-table")
+async def diagnose_table(request: Request):
+    """Diagnosticar estrutura da tabela current_prices"""
+    require_auth(request)
+    try:
+        with _db_lock:
+            conn = _db_connect()
+            try:
+                conn_module = conn.__class__.__module__
+                is_postgres = 'psycopg' in conn_module
+                
+                result = {
+                    "database_type": "PostgreSQL" if is_postgres else "SQLite",
+                    "database_module": conn_module
+                }
+                
+                if is_postgres:
+                    with conn.cursor() as cur:
+                        # 1. Verificar se tabela existe
+                        cur.execute("""
+                            SELECT EXISTS (
+                                SELECT FROM information_schema.tables 
+                                WHERE table_name = 'current_prices'
+                            )
+                        """)
+                        result["table_exists"] = cur.fetchone()[0]
+                        
+                        if not result["table_exists"]:
+                            return JSONResponse(result)
+                        
+                        # 2. Estrutura da tabela
+                        cur.execute("""
+                            SELECT column_name, data_type, column_default, is_nullable
+                            FROM information_schema.columns 
+                            WHERE table_name = 'current_prices'
+                            ORDER BY ordinal_position
+                        """)
+                        result["columns"] = [
+                            {
+                                "name": row[0],
+                                "type": row[1],
+                                "default": row[2],
+                                "nullable": row[3]
+                            }
+                            for row in cur.fetchall()
+                        ]
+                        
+                        # 3. Constraints
+                        cur.execute("""
+                            SELECT conname, contype, pg_get_constraintdef(oid)
+                            FROM pg_constraint
+                            WHERE conrelid = 'current_prices'::regclass
+                        """)
+                        result["constraints"] = [
+                            {
+                                "name": row[0],
+                                "type": {'p': 'PRIMARY KEY', 'u': 'UNIQUE', 'f': 'FOREIGN KEY', 'c': 'CHECK'}.get(row[1], row[1]),
+                                "definition": row[2]
+                            }
+                            for row in cur.fetchall()
+                        ]
+                        
+                        # 4. Contar registos
+                        cur.execute("SELECT COUNT(*) FROM current_prices")
+                        result["total_rows"] = cur.fetchone()[0]
+                        
+                        # 5. Amostra de dados
+                        cur.execute("""
+                            SELECT id, location, month, year, day_start, day_end, 
+                                   LEFT(prices_data, 100) as prices_preview,
+                                   updated_at
+                            FROM current_prices 
+                            ORDER BY id DESC
+                            LIMIT 3
+                        """)
+                        result["sample_data"] = [
+                            {
+                                "id": row[0],
+                                "location": row[1],
+                                "month": row[2],
+                                "year": row[3],
+                                "day_start": row[4],
+                                "day_end": row[5],
+                                "prices_preview": row[6],
+                                "updated_at": row[7].isoformat() if row[7] else None
+                            }
+                            for row in cur.fetchall()
+                        ]
+                
+                return JSONResponse(result)
+            finally:
+                conn.close()
+    except Exception as e:
+        logging.error(f"Error diagnosing table: {e}")
+        import traceback
+        logging.error(traceback.format_exc())
+        return JSONResponse({"ok": False, "error": str(e)}, status_code=500)
+
 @app.get("/api/current-prices/add-columns-safe")
 async def add_period_columns_safe(request: Request):
     """Adicionar colunas day_start e day_end - SEGURO (não apaga dados)"""
