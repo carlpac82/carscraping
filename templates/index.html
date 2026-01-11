@@ -62,32 +62,23 @@
         }
         .loading-overlay.active { display: flex; }
         .loading-spinner {
+            width: 80px;
+            height: 80px;
+            position: relative;
+            display: inline-block;
+        }
+        .loading-spinner:after {
+            content: " ";
+            display: block;
             width: 64px;
             height: 64px;
-            position: relative;
-        }
-        .loading-spinner div {
-            box-sizing: border-box;
-            display: block;
-            position: absolute;
-            width: 51px;
-            height: 51px;
-            margin: 6px;
-            border: 6px solid #009cb6;
+            margin: 8px;
             border-radius: 50%;
-            animation: spinner-ring 1.2s cubic-bezier(0.5, 0, 0.5, 1) infinite;
-            border-color: #009cb6 transparent transparent transparent;
+            border: 6px solid #009cb6;
+            border-color: #009cb6 transparent #009cb6 transparent;
+            animation: spinner-dual-ring 1.2s linear infinite;
         }
-        .loading-spinner div:nth-child(1) {
-            animation-delay: -0.45s;
-        }
-        .loading-spinner div:nth-child(2) {
-            animation-delay: -0.3s;
-        }
-        .loading-spinner div:nth-child(3) {
-            animation-delay: -0.15s;
-        }
-        @keyframes spinner-ring {
+        @keyframes spinner-dual-ring {
             0% {
                 transform: rotate(0deg);
             }
@@ -345,11 +336,7 @@
 
     <!-- Loading Overlay -->
     <div id="loadingOverlay" class="loading-overlay">
-        <div class="loading-spinner">
-            <div></div>
-            <div></div>
-            <div></div>
-        </div>
+        <div class="loading-spinner"></div>
     </div>
 
     <script>
