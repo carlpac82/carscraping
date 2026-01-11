@@ -51,7 +51,7 @@ if USE_POSTGRES:
         'database': result.path[1:],
         'user': result.username,
         'password': result.password,
-        'sslmode': 'require'
+        'sslmode': 'prefer'  # Changed from 'require' to 'prefer' for local development
     }
     
     # Connection Pool (5-20 connections)
