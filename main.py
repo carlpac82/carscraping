@@ -28905,13 +28905,55 @@ async def export_automated_prices_excel(request: Request):
             'LVMR': 'Opel Vivaro'
         }
         
-        # Use SIPP codes in the EXACT order from original Abbycar.xlsx
+        # Use SIPP codes in the EXACT order from Abbycar image
+        # Order: B1, B2, BK1, BK2, D, DK, E1, E2, EK1, EK2, F, FK, G, J1, J2, JK1, JK2, L1, L1(CGAR), LK1, M1, M1(SVMD), M2, MK1, MK2, N, NK
         sipp_codes_order = [
-            'MDMV', 'MDMR', 'MCMV', 'NDMR', 'EDMV', 'HDMV', 'MDAR', 'EDAV', 'MDAV', 'EDAR',
-            'CFMR', 'DFMR', 'MTMR', 'CFMV', 'IWMR', 'DFMV', 'IWMV', 'CFAR', 'CGAR', 'CFAV',
-            'SVMR', 'SVMD', 'SVAD', 'SVMV', 'SVAR', 'LVMD', 'LVMR'
+            'MDMV',  # B1
+            'MDMR',  # B2
+            'MCMV',  # BK1 (K group - copies from B1)
+            'NDMR',  # BK2 (K group - copies from B2)
+            'EDMV',  # D
+            'HDMV',  # DK (K group - copies from D)
+            'MDAR',  # E1
+            'EDAV',  # E2
+            'MDAV',  # EK1 (K group - copies from E1)
+            'EDAR',  # EK2 (K group - copies from E2)
+            'CFMR',  # F
+            'DFMR',  # FK (K group - copies from F)
+            'MTMR',  # G
+            'CFMV',  # J1
+            'IWMR',  # J2
+            'DFMV',  # JK1 (K group - copies from J1)
+            'IWMV',  # JK2 (K group - copies from J2)
+            'CFAR',  # L1
+            'CGAR',  # L1 (duplicate in image)
+            'CFAV',  # LK1 (K group - copies from L1)
+            'SVMR',  # M1
+            'SVMD',  # M1 (duplicate in image)
+            'SVAD',  # M2
+            'SVMV',  # MK1 (K group - copies from M1)
+            'SVAR',  # MK2 (K group - copies from M2)
+            'LVMD',  # N
+            'LVMR'   # NK (K group - copies from N) - NOT NK1!
         ]
-        print(f"[BACKEND] Processing {len(sipp_codes_order)} SIPP codes...", flush=True)
+        print(f"[BACKEND] Processing {len(sipp_codes_order)} SIPP codes in Abbycar order...", flush=True)
+        
+        # Map K groups to their base groups for price calculation
+        k_group_base_mapping = {
+            'MCMV': 'MDMV',  # BK1 → B1
+            'NDMR': 'MDMR',  # BK2 → B2
+            'HDMV': 'EDMV',  # DK → D
+            'MDAV': 'MDAR',  # EK1 → E1
+            'EDAR': 'EDAV',  # EK2 → E2
+            'DFMR': 'CFMR',  # FK → F
+            'DFMV': 'CFMV',  # JK1 → J1
+            'IWMV': 'IWMR',  # JK2 → J2
+            'CFAV': 'CFAR',  # LK1 → L1
+            'SVMV': 'SVMR',  # MK1 → M1
+            'SVAR': 'SVAD',  # MK2 → M2
+            'LVMR': 'LVMD'   # NK → N
+        }
+        print(f"[BACKEND] K groups will copy from base groups + {abbycar_low_deposit_adjustment}% adjustment", flush=True)
         
         # Price calculation logic based on periods
         def calculate_price_for_day(group_prices, day):
@@ -28984,11 +29026,21 @@ async def export_automated_prices_excel(request: Request):
         
         row_num = 2
         for sipp_code in sipp_codes_order:
-            # Get internal group from SIPP code
-            internal_group = car_group_mapping.get(sipp_code, sipp_code)
-            group_prices = prices.get(internal_group, {})
+            # Check if this is a K group (needs to copy from base group)
+            is_k_group = sipp_code in k_group_base_mapping
             
-            # Check if this is a Low Deposit group
+            if is_k_group:
+                # K group: copy prices from base group
+                base_sipp_code = k_group_base_mapping[sipp_code]
+                base_internal_group = car_group_mapping.get(base_sipp_code, base_sipp_code)
+                group_prices = prices.get(base_internal_group, {})
+                print(f"[BACKEND] K group {sipp_code} copying from base {base_sipp_code} (internal: {base_internal_group})", flush=True)
+            else:
+                # Normal group: use its own prices
+                internal_group = car_group_mapping.get(sipp_code, sipp_code)
+                group_prices = prices.get(internal_group, {})
+            
+            # Check if this is a Low Deposit group (for legacy compatibility)
             is_low_deposit_group = sipp_code in low_deposit_sipp_codes
             
             # Column 1: Stations (template already has formatting)
@@ -29022,15 +29074,15 @@ async def export_automated_prices_excel(request: Request):
             for day_key, col_idx in price_columns:
                 price = calculate_price_for_day(group_prices, int(day_key))
                 
-                # Check if this is a Low Deposit group and if it's disabled
-                should_skip_price = is_low_deposit_group and not abbycar_low_deposit_enabled
+                # K groups: check if Low Deposit is enabled
+                should_skip_price = is_k_group and not abbycar_low_deposit_enabled
                 
                 if price and not should_skip_price:
                     # Apply Abbycar adjustment percentage
                     total_adjustment = abbycar_adjustment
                     
-                    # Add Low Deposit adjustment if group is in Low Deposit list AND enabled
-                    if is_low_deposit_group and abbycar_low_deposit_enabled:
+                    # K groups: add Low Deposit adjustment if enabled
+                    if is_k_group and abbycar_low_deposit_enabled:
                         total_adjustment += abbycar_low_deposit_adjustment
                     
                     adjusted_price = float(price) * (1 + total_adjustment / 100)
@@ -29046,7 +29098,7 @@ async def export_automated_prices_excel(request: Request):
                     # Format: #.##0,00 (2 decimal places with comma)
                     cell.number_format = '#.##0,00'
                 else:
-                    # Leave empty if: no price OR (Low Deposit group AND disabled)
+                    # Leave empty if: no price OR (K group AND Low Deposit disabled)
                     ws.cell(row_num, col_idx).value = ''
             
             row_num += 1
