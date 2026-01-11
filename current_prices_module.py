@@ -151,7 +151,8 @@ def load_prices_from_db(conn, location, month, year, day_start=None, day_end=Non
 
 def save_prices_to_db(conn, location, month, year, prices_data, day_start=1, day_end=31):
     """Guarda preços na base de dados para um período específico"""
-    # VERSÃO 2026-01-11-15:20 - PostgreSQL com SELECT+UPDATE/INSERT (não ON CONFLICT)
+    # VERSÃO 2026-01-11-15:30 - PostgreSQL com SELECT+UPDATE/INSERT DEFINITIVO
+    # NUNCA usar ON CONFLICT - Railway tem cache persistente
     try:
         prices_json = json.dumps(prices_data)
         
