@@ -62,21 +62,31 @@
         }
         .loading-overlay.active { display: flex; }
         .loading-spinner {
-            width: 80px;
-            height: 80px;
+            width: 100px;
+            height: 100px;
             position: relative;
-            display: inline-block;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
         }
         .loading-spinner:after {
             content: " ";
             display: block;
-            width: 64px;
-            height: 64px;
-            margin: 8px;
+            width: 80px;
+            height: 80px;
+            position: absolute;
             border-radius: 50%;
-            border: 6px solid #009cb6;
+            border: 7px solid #009cb6;
             border-color: #009cb6 transparent #009cb6 transparent;
             animation: spinner-dual-ring 1.2s linear infinite;
+        }
+        .loading-percentage {
+            position: relative;
+            z-index: 1;
+            font-size: 24px;
+            font-weight: 700;
+            color: #009cb6;
+            font-family: 'Outfit', sans-serif;
         }
         @keyframes spinner-dual-ring {
             0% {
@@ -336,17 +346,41 @@
 
     <!-- Loading Overlay -->
     <div id="loadingOverlay" class="loading-overlay">
-        <div class="loading-spinner"></div>
+        <div class="loading-spinner">
+            <span class="loading-percentage" id="loadingPercentage">0%</span>
+        </div>
     </div>
 
     <script>
-        // Funções para mostrar/esconder loading
+        // Funções para mostrar/esconder loading com percentagem animada
+        let loadingInterval;
+        
         function showLoading() {
             document.getElementById('loadingOverlay').classList.add('active');
+            
+            // Animar percentagem de 0 a 100%
+            let percentage = 0;
+            const percentageElement = document.getElementById('loadingPercentage');
+            percentageElement.textContent = '0%';
+            
+            loadingInterval = setInterval(() => {
+                percentage += Math.random() * 15; // Incremento aleatório para parecer mais real
+                if (percentage > 95) percentage = 95; // Parar em 95% até terminar
+                percentageElement.textContent = Math.floor(percentage) + '%';
+            }, 150);
         }
         
         function hideLoading() {
-            document.getElementById('loadingOverlay').classList.remove('active');
+            // Completar a 100% antes de esconder
+            const percentageElement = document.getElementById('loadingPercentage');
+            percentageElement.textContent = '100%';
+            
+            clearInterval(loadingInterval);
+            
+            setTimeout(() => {
+                document.getElementById('loadingOverlay').classList.remove('active');
+                percentageElement.textContent = '0%'; // Reset para próxima vez
+            }, 300);
         }
         
         // Função para calcular preço com comissão
