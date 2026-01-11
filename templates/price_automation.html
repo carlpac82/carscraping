@@ -9765,25 +9765,62 @@ Continue?`);
                 
                 showNotification('🔄 Coletando preços ajustados...', 'info', 2000);
                 
-                // Coletar preços dos inputs NET (data-type="net")
+                // Coletar preços dos inputs NET
                 const prices = {};
                 const dias = [1, 2, 3, 4, 5, 6, 7, 8, 9, 14, 22, 28, 31, 60];
                 
-                // Procurar todos os inputs NET
-                document.querySelectorAll('input[data-type="net"]').forEach(input => {
-                    const grupo = input.dataset.grupo;
-                    const dia = parseInt(input.dataset.dias);
-                    
-                    if (grupo && dia && input.value) {
-                        const netPrice = parseFloat(input.value);
-                        if (netPrice > 0) {
-                            if (!prices[grupo]) {
-                                prices[grupo] = {};
+                // Tentar primeiro com data-attributes
+                let inputsFound = document.querySelectorAll('input[data-type="net"]');
+                
+                if (inputsFound.length > 0) {
+                    // Método 1: Usar data-attributes (pesquisas novas)
+                    inputsFound.forEach(input => {
+                        const grupo = input.dataset.grupo;
+                        const dia = parseInt(input.dataset.dias);
+                        
+                        if (grupo && dia && input.value) {
+                            const netPrice = parseFloat(input.value);
+                            if (netPrice > 0) {
+                                if (!prices[grupo]) {
+                                    prices[grupo] = {};
+                                }
+                                prices[grupo][dia] = netPrice;
                             }
-                            prices[grupo][dia] = netPrice;
                         }
-                    }
-                });
+                    });
+                } else {
+                    // Método 2: Procurar nas tabelas visíveis (histórico carregado)
+                    const tables = document.querySelectorAll('table');
+                    tables.forEach(table => {
+                        const rows = table.querySelectorAll('tr');
+                        rows.forEach(row => {
+                            const cells = row.querySelectorAll('td');
+                            if (cells.length > 0) {
+                                const firstCell = cells[0];
+                                const grupo = firstCell.textContent.trim();
+                                
+                                // Para cada dia
+                                dias.forEach((dia, idx) => {
+                                    // Cada grupo tem 2 colunas por dia (NET e REAL)
+                                    // NET está nas colunas ímpares (1, 3, 5, ...)
+                                    const netCellIndex = 1 + (idx * 2);
+                                    if (cells[netCellIndex]) {
+                                        const input = cells[netCellIndex].querySelector('input');
+                                        if (input && input.value) {
+                                            const netPrice = parseFloat(input.value);
+                                            if (netPrice > 0) {
+                                                if (!prices[grupo]) {
+                                                    prices[grupo] = {};
+                                                }
+                                                prices[grupo][dia] = netPrice;
+                                            }
+                                        }
+                                    }
+                                });
+                            }
+                        });
+                    });
+                }
                 
                 if (Object.keys(prices).length === 0) {
                     showNotification('❌ Nenhum preço encontrado. Faça uma pesquisa primeiro.', 'error', 4000);
