@@ -29918,8 +29918,7 @@ async def save_recent_searches(request: Request):
                 
                 # Clear old searches for this user (keep max 3)
                 placeholder = "%s" if is_postgres else "?"
-                user_col = '"user"' if is_postgres else 'user'
-                conn.execute(f"DELETE FROM recent_searches WHERE {user_col} = {placeholder}", (username,))
+                conn.execute(f"DELETE FROM recent_searches WHERE username = {placeholder}", (username,))
                 
                 # Insert new searches with COMPLETE data
                 for idx, search in enumerate(searches[:3]):  # Max 3 searches
