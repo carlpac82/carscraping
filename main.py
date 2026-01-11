@@ -35017,6 +35017,59 @@ async def list_all_current_prices(request: Request):
         logging.error(f"Error listing prices: {e}")
         return JSONResponse({"ok": False, "error": str(e)}, status_code=500)
 
+@app.get("/api/current-prices/check-table")
+async def check_current_prices_table(request: Request):
+    """Verificar estrutura da tabela current_prices"""
+    require_auth(request)
+    try:
+        with _db_lock:
+            conn = _db_connect()
+            try:
+                is_postgres = conn.__class__.__module__ in ['psycopg2.extensions', 'psycopg2._psycopg']
+                
+                if is_postgres:
+                    with conn.cursor() as cur:
+                        # Verificar colunas da tabela
+                        cur.execute("""
+                            SELECT column_name, data_type, is_nullable
+                            FROM information_schema.columns
+                            WHERE table_name = 'current_prices'
+                            ORDER BY ordinal_position
+                        """)
+                        columns = cur.fetchall()
+                        
+                        # Verificar constraints
+                        cur.execute("""
+                            SELECT constraint_name, constraint_type
+                            FROM information_schema.table_constraints
+                            WHERE table_name = 'current_prices'
+                        """)
+                        constraints = cur.fetchall()
+                        
+                        return JSONResponse({
+                            "ok": True,
+                            "database": "PostgreSQL",
+                            "columns": [{"name": c[0], "type": c[1], "nullable": c[2]} for c in columns],
+                            "constraints": [{"name": c[0], "type": c[1]} for c in constraints]
+                        })
+                else:
+                    # SQLite
+                    cursor = conn.execute("PRAGMA table_info(current_prices)")
+                    columns = cursor.fetchall()
+                    
+                    return JSONResponse({
+                        "ok": True,
+                        "database": "SQLite",
+                        "columns": [{"cid": c[0], "name": c[1], "type": c[2], "notnull": c[3], "default": c[4]} for c in columns]
+                    })
+            finally:
+                conn.close()
+    except Exception as e:
+        logging.error(f"Error checking table: {e}")
+        import traceback
+        logging.error(traceback.format_exc())
+        return JSONResponse({"ok": False, "error": str(e)}, status_code=500)
+
 @app.get("/api/current-prices/fix-constraint")
 async def fix_current_prices_constraint(request: Request):
     """Corrigir constraint UNIQUE para suportar múltiplos períodos por mês"""
