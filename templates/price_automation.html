@@ -9822,6 +9822,13 @@ Continue?`);
                     });
                 }
                 
+                // Remover grupos sem preços válidos
+                Object.keys(prices).forEach(grupo => {
+                    if (Object.keys(prices[grupo]).length === 0) {
+                        delete prices[grupo];
+                    }
+                });
+                
                 if (Object.keys(prices).length === 0) {
                     showNotification('❌ Nenhum preço encontrado. Faça uma pesquisa primeiro.', 'error', 4000);
                     return;
@@ -9829,6 +9836,12 @@ Continue?`);
                 
                 console.log('📊 Preços coletados:', prices);
                 console.log('📍 Destino:', location, monthNames[month], year);
+                
+                // Debug: mostrar quantos preços por grupo
+                Object.keys(prices).forEach(grupo => {
+                    const numPrices = Object.keys(prices[grupo]).length;
+                    console.log(`  ${grupo}: ${numPrices} dias com preços`);
+                });
                 
                 // Enviar para API
                 const response = await fetch('/api/current-prices/save', {
