@@ -28792,33 +28792,36 @@ async def export_automated_prices_excel(request: Request):
         
         # Car group mapping (SIPP codes to groups)
         car_group_mapping = {
-            'MDMV': 'B1',  # Mini 4 Doors Manual
-            'MCMV': 'B1',  # Mini Coupe Manual (same group)
-            'EDMV': 'B2',  # Economy Manual
-            'NDMR': 'B2',  # Economy 4 Doors Manual (same group)
-            'MDMR': 'D',   # Mini 4 Doors Manual
-            'HDMV': 'D',   # Mini Elite 4 Doors Manual (same group)
-            'MDAR': 'E1',  # Mini Auto
-            'MDAV': 'E1',  # Mini 4 Doors Auto (same group)
-            'EDAV': 'E2',  # Economy Auto
-            'EDAR': 'E2',  # Economy Auto (same group)
-            'CFMR': 'F',   # Compact Manual
-            'DFMR': 'F',   # Compact 4 Doors Manual (same group)
-            'MTMR': 'G',   # Mini Elite Manual
-            'CFMV': 'J1',  # Compact Manual
-            'DFMV': 'J1',  # Compact 4 Doors Manual (same group)
-            'IWMR': 'J2',  # Intermediate Wagon Manual
-            'IWMV': 'J2',  # Intermediate Wagon Manual (same group)
-            'CFAR': 'L1',  # Compact Auto
-            'CGAR': 'L1',  # Compact Auto (same group)
-            'CFAV': 'L1',  # Compact Auto (same group)
-            'SVMR': 'M1',  # Standard Manual
-            'SVMD': 'M1',  # Standard Manual (same group)
-            'SVMV': 'M1',  # Standard Manual (same group)
-            'SVAD': 'M2',  # Standard Auto
-            'SVAR': 'M2',  # Standard Auto (same group)
-            'LVMD': 'N',   # Large Manual
-            'LVMR': 'N'    # Large Manual (same group)
+            # Normal groups (base groups)
+            'MDMV': 'B1',   # Mini 4 Doors Manual
+            'MDMR': 'B2',   # Mini 4 Doors Manual (B2 not D!)
+            'EDMV': 'D',    # Economy Manual
+            'MDAR': 'E1',   # Mini Auto
+            'EDAV': 'E2',   # Economy Auto
+            'CFMR': 'F',    # Compact Manual
+            'MTMR': 'G',    # Mini Elite Manual
+            'CFMV': 'J1',   # Compact Manual
+            'IWMR': 'J2',   # Intermediate Wagon Manual
+            'CFAR': 'L1',   # Compact Auto
+            'CGAR': 'L2',   # Compact Auto (L2 not L1!)
+            'SVMR': 'M1',   # Standard Manual
+            'SVMD': 'M1',   # Standard Manual (duplicate)
+            'SVAD': 'M2',   # Standard Auto
+            'LVMD': 'N',    # Large Manual
+            
+            # K groups (Low Deposit - copy from base + adjustment)
+            'MCMV': 'BK1',  # Mini Coupe Manual (K group)
+            'NDMR': 'BK2',  # Economy 4 Doors Manual (K group)
+            'HDMV': 'DK',   # Mini Elite 4 Doors Manual (K group)
+            'MDAV': 'EK1',  # Mini 4 Doors Auto (K group)
+            'EDAR': 'EK2',  # Economy Auto (K group)
+            'DFMR': 'FK',   # Compact 4 Doors Manual (K group)
+            'DFMV': 'JK1',  # Compact 4 Doors Manual (K group)
+            'IWMV': 'JK2',  # Intermediate Wagon Manual (K group)
+            'CFAV': 'LK1',  # Compact Auto (K group)
+            'SVMV': 'MK1',  # Standard Manual (K group)
+            'SVAR': 'MK2',  # Standard Auto (K group)
+            'LVMR': 'NK'    # Large Manual (K group)
         }
         
         # Load template
@@ -28938,20 +28941,20 @@ async def export_automated_prices_excel(request: Request):
         ]
         print(f"[BACKEND] Processing {len(sipp_codes_order)} SIPP codes in Abbycar order...", flush=True)
         
-        # Map K groups to their base groups for price calculation
+        # Map K groups (internal codes) to their base groups (internal codes) for price calculation
         k_group_base_mapping = {
-            'MCMV': 'MDMV',  # BK1 → B1
-            'NDMR': 'MDMR',  # BK2 → B2
-            'HDMV': 'EDMV',  # DK → D
-            'MDAV': 'MDAR',  # EK1 → E1
-            'EDAR': 'EDAV',  # EK2 → E2
-            'DFMR': 'CFMR',  # FK → F
-            'DFMV': 'CFMV',  # JK1 → J1
-            'IWMV': 'IWMR',  # JK2 → J2
-            'CFAV': 'CFAR',  # LK1 → L1
-            'SVMV': 'SVMR',  # MK1 → M1
-            'SVAR': 'SVAD',  # MK2 → M2
-            'LVMR': 'LVMD'   # NK → N
+            'BK1': 'B1',   # BK1 → B1
+            'BK2': 'B2',   # BK2 → B2
+            'DK': 'D',     # DK → D
+            'EK1': 'E1',   # EK1 → E1
+            'EK2': 'E2',   # EK2 → E2
+            'FK': 'F',     # FK → F
+            'JK1': 'J1',   # JK1 → J1
+            'JK2': 'J2',   # JK2 → J2
+            'LK1': 'L1',   # LK1 → L1
+            'MK1': 'M1',   # MK1 → M1
+            'MK2': 'M2',   # MK2 → M2
+            'NK': 'N'      # NK → N
         }
         print(f"[BACKEND] K groups will copy from base groups + {abbycar_low_deposit_adjustment}% adjustment", flush=True)
         
@@ -29026,19 +29029,21 @@ async def export_automated_prices_excel(request: Request):
         
         row_num = 2
         for sipp_code in sipp_codes_order:
-            # Check if this is a K group (needs to copy from base group)
-            is_k_group = sipp_code in k_group_base_mapping
+            # Get internal group from SIPP code
+            internal_group = car_group_mapping.get(sipp_code, sipp_code)
+            
+            # Check if this internal group is a K group (needs to copy from base group)
+            is_k_group = internal_group in k_group_base_mapping
             
             if is_k_group:
                 # K group: copy prices from base group
-                base_sipp_code = k_group_base_mapping[sipp_code]
-                base_internal_group = car_group_mapping.get(base_sipp_code, base_sipp_code)
+                base_internal_group = k_group_base_mapping[internal_group]
                 group_prices = prices.get(base_internal_group, {})
-                print(f"[BACKEND] K group {sipp_code} copying from base {base_sipp_code} (internal: {base_internal_group})", flush=True)
+                print(f"[BACKEND] K group {internal_group} (SIPP: {sipp_code}) copying from base {base_internal_group}", flush=True)
             else:
                 # Normal group: use its own prices
-                internal_group = car_group_mapping.get(sipp_code, sipp_code)
                 group_prices = prices.get(internal_group, {})
+                print(f"[BACKEND] Normal group {internal_group} (SIPP: {sipp_code})", flush=True)
             
             # Check if this is a Low Deposit group (for legacy compatibility)
             is_low_deposit_group = sipp_code in low_deposit_sipp_codes
