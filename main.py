@@ -35089,6 +35089,33 @@ async def version_check():
         "message": "Auto-add day_start/day_end columns on save if missing"
     })
 
+@app.get("/api/diagnose-env")
+async def diagnose_env(request: Request):
+    """Diagnosticar variáveis de ambiente"""
+    require_auth(request)
+    import os
+    
+    env_vars = {}
+    for key in ['DATABASE_URL', 'DATABASE_PRIVATE_URL', 'PGHOST', 'PGPORT', 'PGDATABASE', 'PGUSER', 'PGPASSWORD']:
+        value = os.getenv(key)
+        if value:
+            # Ocultar senha
+            if 'PASSWORD' in key or 'URL' in key:
+                env_vars[key] = value[:20] + '...' if len(value) > 20 else 'SET'
+            else:
+                env_vars[key] = value
+        else:
+            env_vars[key] = None
+    
+    # Verificar módulo de database.py
+    from database import USE_POSTGRES, DATABASE_URL as DB_URL
+    
+    return JSONResponse({
+        "env_vars": env_vars,
+        "database_py_USE_POSTGRES": USE_POSTGRES,
+        "database_py_DATABASE_URL": DB_URL[:30] + '...' if DB_URL and len(DB_URL) > 30 else DB_URL
+    })
+
 @app.get("/api/diagnose-table")
 async def diagnose_table(request: Request):
     """Diagnosticar estrutura da tabela current_prices"""
