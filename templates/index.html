@@ -15,6 +15,7 @@
         * { font-family: 'Outfit', sans-serif; border-radius: 0 !important; }
         img[alt="Profile"], img[src*="profile"], .profile-picture { border-radius: 50% !important; }
         .price-card { background: white; padding: 12px; box-shadow: 0 1px 3px rgba(0,0,0,0.1); }
+        .price-card h3 { font-size: 13px; font-weight: 700; margin: 0 0 8px 0; text-align: center; white-space: nowrap; }
         .price-header { display: flex; gap: 4px; margin-bottom: 4px; padding-bottom: 4px; border-bottom: 1px solid #f3f4f6; justify-content: center; }
         .price-header-label { font-size: 8px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.3px; width: 55px; text-align: center; }
         .price-header-label.net { color: #009cb6; }
@@ -350,9 +351,8 @@
             const monthNames = ['Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho', 
                                'Julho', 'Agosto', 'Setembro', 'Outubro', 'Novembro', 'Dezembro'];
             
-            // Verificar cada mês
-            for (let i = 0; i < options.length; i++) {
-                const option = options[i];
+            // Verificar todos os meses em paralelo (mais rápido)
+            const promises = Array.from(options).map(async (option, i) => {
                 const month = parseInt(option.value);
                 const monthName = monthNames[month - 1];
                 
@@ -377,7 +377,9 @@
                     option.classList.remove('has-prices');
                     option.classList.add('no-prices');
                 }
-            }
+            });
+            
+            await Promise.all(promises);
         }
         
         // Mapear grupos para nomes de carros (conforme especificado pelo utilizador)
