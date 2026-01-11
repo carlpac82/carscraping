@@ -825,14 +825,14 @@
         // Download Brokers: Preço Net dividido por dias (8+ dias)
         function downloadBrokers() {
             const data = collectPriceData('brokers');
-            generateExcel(data, 'Brokers_Net.xlsx');
+            generateCSV(data, 'Brokers_Net.csv');
         }
 
         // Download Website: Net + comissão (ou 14% default)
         function downloadWebsite() {
             const websiteCommission = parseFloat(document.getElementById('commissionWebsite').value) || 14;
             const data = collectPriceData('website', websiteCommission);
-            generateExcel(data, 'Website_Prices.xlsx');
+            generateCSV(data, 'Website_Prices.csv');
         }
 
         // Download Abbycar: Formato específico com SIPP codes e daily prices
@@ -1010,6 +1010,24 @@
             const url = URL.createObjectURL(blob);
             link.setAttribute('href', url);
             link.setAttribute('download', `ABBYCAR-${location}-${month}-${year}.csv`);
+            link.style.visibility = 'hidden';
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+        }
+
+        // Gerar ficheiro CSV
+        function generateCSV(data, filename) {
+            let csvContent = '';
+            data.forEach(row => {
+                csvContent += row.join(';') + '\n';
+            });
+            
+            const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+            const link = document.createElement('a');
+            const url = URL.createObjectURL(blob);
+            link.setAttribute('href', url);
+            link.setAttribute('download', filename);
             link.style.visibility = 'hidden';
             document.body.appendChild(link);
             link.click();
