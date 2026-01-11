@@ -626,8 +626,8 @@
                         
                         diasMap.forEach(dia => {
                             const netPrice = groupPrices[dia] || 0;
-                            // C3,C4,C5 são sempre NET (sem comissão)
-                            const commPrice = isCommercial ? netPrice.toFixed(2) : (netPrice > 0 ? (netPrice * 1.1366).toFixed(2) : '0.00');
+                            // C3,C4,C5 são sempre NET (sem comissão) - sempre 2 casas decimais
+                            const commPrice = isCommercial ? (netPrice === 0 ? '0.00' : netPrice.toFixed(2)) : (netPrice > 0 ? (netPrice * 1.1366).toFixed(2) : '0.00');
                             html += `<div class="price-row">
                                 <span class="text-[9px] font-medium text-gray-600 w-8">${dia}d</span>
                                 <input type="number" class="price-input" value="${netPrice.toFixed(2)}" step="0.01">
@@ -876,8 +876,8 @@
                         // Adicionar linhas de preços
                         diasMap.forEach(dia => {
                             const netPrice = groupPrices[dia] || 0;
-                            // C3,C4,C5 são sempre NET (sem comissão)
-                            const commPrice = isCommercial ? netPrice.toFixed(2) : (netPrice > 0 ? (netPrice * 1.1366).toFixed(2) : '0.00');
+                            // C3,C4,C5 são sempre NET (sem comissão) - sempre 2 casas decimais
+                            const commPrice = isCommercial ? (netPrice === 0 ? '0.00' : netPrice.toFixed(2)) : (netPrice > 0 ? (netPrice * 1.1366).toFixed(2) : '0.00');
                             html += `<div class="price-row">
                                 <span class="text-[9px] font-medium text-gray-600 w-8">${dia}d</span>
                                 <input type="number" class="price-input" value="${netPrice.toFixed(2)}" step="0.01">
