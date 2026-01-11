@@ -34907,6 +34907,82 @@ async def load_current_prices(request: Request, location: str, month: int, year:
         logging.error(traceback.format_exc())
         return JSONResponse({"ok": False, "error": str(e)}, status_code=500)
 
+@app.get("/api/current-prices/migrate")
+async def migrate_current_prices(request: Request):
+    """Migrar preços antigos para incluir day_start/day_end"""
+    require_auth(request)
+    try:
+        from current_prices_module import create_current_prices_table
+        
+        with _db_lock:
+            conn = _db_connect()
+            try:
+                # Criar/migrar tabela
+                create_current_prices_table(conn)
+                
+                # Verificar e atualizar registos sem day_start/day_end
+                is_postgres = conn.__class__.__module__ in ['psycopg2.extensions', 'psycopg2._psycopg']
+                
+                if is_postgres:
+                    with conn.cursor() as cur:
+                        # Contar registos sem day_start/day_end
+                        cur.execute("""
+                            SELECT COUNT(*) 
+                            FROM current_prices 
+                            WHERE day_start IS NULL OR day_end IS NULL
+                        """)
+                        count = cur.fetchone()[0]
+                        
+                        if count > 0:
+                            # Atualizar registos
+                            cur.execute("""
+                                UPDATE current_prices 
+                                SET day_start = 1, day_end = 31 
+                                WHERE day_start IS NULL OR day_end IS NULL
+                            """)
+                            conn.commit()
+                            logging.info(f"Migrated {count} records with day_start=1, day_end=31")
+                        
+                        # Contar total
+                        cur.execute("SELECT COUNT(*) FROM current_prices")
+                        total = cur.fetchone()[0]
+                        
+                        return JSONResponse({
+                            "ok": True, 
+                            "message": f"Migration complete. Updated {count} records. Total: {total} records."
+                        })
+                else:
+                    # SQLite
+                    cursor = conn.execute("""
+                        SELECT COUNT(*) 
+                        FROM current_prices 
+                        WHERE day_start IS NULL OR day_end IS NULL
+                    """)
+                    count = cursor.fetchone()[0]
+                    
+                    if count > 0:
+                        conn.execute("""
+                            UPDATE current_prices 
+                            SET day_start = 1, day_end = 31 
+                            WHERE day_start IS NULL OR day_end IS NULL
+                        """)
+                        conn.commit()
+                    
+                    cursor = conn.execute("SELECT COUNT(*) FROM current_prices")
+                    total = cursor.fetchone()[0]
+                    
+                    return JSONResponse({
+                        "ok": True, 
+                        "message": f"Migration complete. Updated {count} records. Total: {total} records."
+                    })
+            finally:
+                conn.close()
+    except Exception as e:
+        logging.error(f"Error during migration: {e}")
+        import traceback
+        logging.error(traceback.format_exc())
+        return JSONResponse({"ok": False, "error": str(e)}, status_code=500)
+
 @app.post("/api/current-prices/save")
 async def save_current_prices(request: Request):
     """Guardar preços atuais na base de dados"""
