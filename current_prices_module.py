@@ -66,11 +66,19 @@ def load_prices_from_db(conn, location, month, year, day_start=None, day_end=Non
                     if rows:
                         periods = []
                         for row in rows:
+                            # Converter datetime para string se necessário
+                            updated_at_str = None
+                            if row[1]:
+                                if hasattr(row[1], 'isoformat'):
+                                    updated_at_str = row[1].isoformat()
+                                else:
+                                    updated_at_str = str(row[1])
+                            
                             periods.append({
                                 'prices': json.loads(row[0]),
-                                'updated_at': row[1].isoformat() if row[1] else None,
-                                'day_start': row[2],
-                                'day_end': row[3]
+                                'updated_at': updated_at_str,
+                                'day_start': row[2] if row[2] is not None else 1,
+                                'day_end': row[3] if row[3] is not None else 31
                             })
                         logging.info(f"✅ {len(periods)} período(s) carregado(s): {location}, mês {month}/{year}")
                         return periods, None
@@ -110,11 +118,19 @@ def load_prices_from_db(conn, location, month, year, day_start=None, day_end=Non
                 if rows:
                     periods = []
                     for row in rows:
+                        # Converter datetime para string se necessário (SQLite retorna string, mas por segurança)
+                        updated_at_str = None
+                        if row[1]:
+                            if hasattr(row[1], 'isoformat'):
+                                updated_at_str = row[1].isoformat()
+                            else:
+                                updated_at_str = str(row[1])
+                        
                         periods.append({
                             'prices': json.loads(row[0]),
-                            'updated_at': row[1] if row[1] else None,
-                            'day_start': row[2] if row[2] else 1,
-                            'day_end': row[3] if row[3] else 31
+                            'updated_at': updated_at_str,
+                            'day_start': row[2] if row[2] is not None else 1,
+                            'day_end': row[3] if row[3] is not None else 31
                         })
                     logging.info(f"✅ {len(periods)} período(s) carregado(s): {location}, mês {month}/{year}")
                     return periods, None
@@ -541,12 +557,22 @@ def create_current_prices_table(conn):
                 
                 # Adicionar colunas se não existirem
                 if 'day_start' not in existing_cols:
-                    cur.execute("ALTER TABLE current_prices ADD COLUMN day_start INTEGER DEFAULT 1")
-                    logging.info("Coluna day_start adicionada")
+                    try:
+                        cur.execute("ALTER TABLE current_prices ADD COLUMN day_start INTEGER DEFAULT 1")
+                        logging.info("Coluna day_start adicionada")
+                    except Exception as e:
+                        if "already exists" not in str(e):
+                            raise
+                        logging.info("Coluna day_start já existe")
                 
                 if 'day_end' not in existing_cols:
-                    cur.execute("ALTER TABLE current_prices ADD COLUMN day_end INTEGER DEFAULT 31")
-                    logging.info("Coluna day_end adicionada")
+                    try:
+                        cur.execute("ALTER TABLE current_prices ADD COLUMN day_end INTEGER DEFAULT 31")
+                        logging.info("Coluna day_end adicionada")
+                    except Exception as e:
+                        if "already exists" not in str(e):
+                            raise
+                        logging.info("Coluna day_end já existe")
                 
                 # Atualizar registos antigos sem day_start/day_end
                 cur.execute("""

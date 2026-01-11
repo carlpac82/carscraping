@@ -34851,16 +34851,27 @@ async def load_current_prices(request: Request, location: str, month: int, year:
     try:
         from current_prices_module import load_prices_from_db, create_current_prices_table
         
+        logging.info(f"Loading prices: location={location}, month={month}, year={year}, day_start={day_start}, day_end={day_end}")
+        
         with _db_lock:
             conn = _db_connect()
             try:
                 # Criar tabela se não existir
-                create_current_prices_table(conn)
+                try:
+                    create_current_prices_table(conn)
+                    logging.info("Table creation/migration completed")
+                except Exception as table_error:
+                    logging.error(f"Error creating/migrating table: {table_error}")
+                    import traceback
+                    logging.error(traceback.format_exc())
+                    raise
                 
                 # Carregar preços e data da última alteração
                 try:
                     prices, updated_at = load_prices_from_db(conn, location, month, year, day_start, day_end)
-                except (ValueError, TypeError):
+                    logging.info(f"Load result: prices={'list' if isinstance(prices, list) else 'dict' if prices else 'None'}, updated_at={updated_at}")
+                except (ValueError, TypeError) as ve:
+                    logging.warning(f"ValueError/TypeError in load_prices_from_db: {ve}")
                     # Se a função retornar apenas um valor (compatibilidade com código antigo)
                     result = load_prices_from_db(conn, location, month, year, day_start, day_end)
                     if isinstance(result, tuple) and len(result) == 2:
@@ -34868,6 +34879,11 @@ async def load_current_prices(request: Request, location: str, month: int, year:
                     else:
                         prices = result
                         updated_at = None
+                except Exception as load_error:
+                    logging.error(f"Error in load_prices_from_db: {load_error}")
+                    import traceback
+                    logging.error(traceback.format_exc())
+                    raise
                 
                 if prices:
                     # Converter datetime para string se necessário
@@ -34875,15 +34891,20 @@ async def load_current_prices(request: Request, location: str, month: int, year:
                         updated_at = updated_at.isoformat()
                     # Se retornou lista de períodos
                     if isinstance(prices, list):
+                        logging.info(f"Returning {len(prices)} periods")
                         return JSONResponse({"ok": True, "periods": prices})
                     else:
+                        logging.info(f"Returning single period with {len(prices)} groups")
                         return JSONResponse({"ok": True, "prices": prices, "updated_at": updated_at})
                 else:
+                    logging.info("No prices found")
                     return JSONResponse({"ok": False, "message": "No prices found"})
             finally:
                 conn.close()
     except Exception as e:
         logging.error(f"Error loading current prices: {e}")
+        import traceback
+        logging.error(traceback.format_exc())
         return JSONResponse({"ok": False, "error": str(e)}, status_code=500)
 
 @app.post("/api/current-prices/save")
