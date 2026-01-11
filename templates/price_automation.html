@@ -9803,17 +9803,27 @@ Continue?`);
                     const allInputs = document.querySelectorAll('input[data-dias][data-grupo]');
                     console.log('[UPDATE] Found', allInputs.length, 'inputs with data-dias and data-grupo');
                     
-                    allInputs.forEach(input => {
+                    let netCount = 0;
+                    let realCount = 0;
+                    let noTypeCount = 0;
+                    
+                    allInputs.forEach((input, idx) => {
                         const grupo = input.dataset.grupo;
                         const dia = parseInt(input.dataset.dias);
-                        const tipo = input.dataset.type; // pode ser undefined
+                        const tipo = input.dataset.type;
                         
-                        // Se não tem data-type, verificar se é o primeiro input de cada par (NET)
-                        // Ou verificar se o placeholder/classe indica que é NET
-                        const isNet = tipo === 'net' || 
-                                     input.placeholder === 'NET' || 
-                                     input.classList.contains('net-input') ||
-                                     !tipo; // Se não tem tipo, assumir que é NET
+                        // Debug primeiros 5 inputs
+                        if (idx < 5) {
+                            console.log(`[UPDATE] Input[${idx}]: grupo=${grupo}, dia=${dia}, type=${tipo}, value=${input.value}, placeholder=${input.placeholder}`);
+                        }
+                        
+                        // Contar tipos
+                        if (tipo === 'net') netCount++;
+                        else if (tipo === 'real') realCount++;
+                        else noTypeCount++;
+                        
+                        // Coletar apenas inputs NET (ou sem tipo definido, assumindo que são NET)
+                        const isNet = tipo === 'net' || !tipo;
                         
                         if (grupo && dia && isNet && input.value) {
                             const netPrice = parseFloat(input.value);
@@ -9822,10 +9832,14 @@ Continue?`);
                                     prices[grupo] = {};
                                 }
                                 prices[grupo][dia] = netPrice;
-                                console.log(`[UPDATE] Collected ${grupo}/${dia}d: ${netPrice}`);
+                                if (Object.keys(prices).length <= 3) { // Log primeiros 3 grupos
+                                    console.log(`[UPDATE] Collected ${grupo}/${dia}d: ${netPrice}`);
+                                }
                             }
                         }
                     });
+                    
+                    console.log(`[UPDATE] Input types: NET=${netCount}, REAL=${realCount}, NO_TYPE=${noTypeCount}`);
                 }
                 
                 // Remover grupos sem preços válidos
