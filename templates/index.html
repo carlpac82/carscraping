@@ -279,18 +279,22 @@
                         </select>
                     </div>
                     
-                    <button onclick="showNewPeriodDialog()" class="px-3 py-1.5 bg-[#10b981] text-white text-xs font-semibold hover:bg-[#059669] transition-colors" style="margin-top: 18px;">
-                        ➕ Novo Período
+                    <button onclick="showNewPeriodDialog()" class="flex items-center justify-center w-8 h-8 text-gray-600 hover:text-[#009cb6] transition-colors" style="margin-top: 18px;" title="Novo Período">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
                     </button>
                 </div>
                 
-                <div class="flex items-center gap-3">
-                    <button onclick="toggleGroupsK()" id="btnGroupsK" class="px-3 py-1.5 bg-gray-100 hover:bg-[#009cb6] text-gray-600 hover:text-white transition-colors text-xs font-semibold" title="Mostrar/Ocultar Grupos K">
-                        K
-                    </button>
-                    <button onclick="toggleCommercial()" id="btnCommercial" class="px-3 py-1.5 bg-gray-100 hover:bg-[#009cb6] text-gray-600 hover:text-white transition-colors text-xs font-semibold" title="Mostrar/Ocultar Comerciais">
-                        C
-                    </button>
+                <div class="flex items-center gap-6">
+                    <div class="flex items-center gap-2">
+                        <label class="flex items-center gap-1 cursor-pointer">
+                            <input type="checkbox" id="showGroupsK" class="w-4 h-4 text-[#009cb6] rounded">
+                            <span class="text-xs text-gray-700">Grupo K</span>
+                        </label>
+                        <label class="flex items-center gap-1 cursor-pointer">
+                            <input type="checkbox" id="showCommercial" class="w-4 h-4 text-[#009cb6] rounded">
+                            <span class="text-xs text-gray-700">Comerciais</span>
+                        </label>
+                    </div>
                     <div class="flex items-center gap-3">
                         <input type="file" id="uploadFile" accept=".xlsx,.xls,.csv" style="display:none" onchange="handleUpload(event)">
                         <button onclick="document.getElementById('uploadFile').click()" class="flex flex-col items-center justify-center gap-0.5 h-10" title="Upload">
@@ -764,10 +768,13 @@
                     // Estrutura antiga: preços diretos - criar período por defeito
                     console.log('✅ Preços carregados da base de dados (legado) - criando período por defeito');
                     
-                    // Calcular último dia do mês
-                    const year = parseInt(document.getElementById('yearSelect').value);
+                    // Calcular último dia do mês CORRETAMENTE
+                    const location = document.getElementById('locationSelect').value;
                     const month = parseInt(document.getElementById('monthSelect').value);
+                    const year = parseInt(document.getElementById('yearSelect').value);
                     const lastDay = new Date(year, month, 0).getDate(); // Dia 0 do próximo mês = último dia do mês atual
+                    
+                    console.log(`📅 Mês ${month}/${year} tem ${lastDay} dias`);
                     
                     allPeriods = [{
                         prices: result.prices,
@@ -902,8 +909,8 @@
         
         // Função para filtrar cards visíveis (sem recarregar da BD)
         function filterCards() {
-            const showGroupsK = document.getElementById('showGroupsK').checked;
-            const showCommercial = document.getElementById('showCommercial').checked;
+            const showGroupsK = document.getElementById('showGroupsK') ? document.getElementById('showGroupsK').checked : false;
+            const showCommercial = document.getElementById('showCommercial') ? document.getElementById('showCommercial').checked : false;
             const location = document.getElementById('locationSelect').value;
             
             const cards = document.querySelectorAll('.price-card');
@@ -942,36 +949,9 @@
             await loadPricesFromDB();
         });
         
-        // Estado dos filtros (botões K e C)
-        let showGroupsK = false;
-        let showCommercial = false;
-        
-        // Funções para toggle dos botões K e C
-        function toggleGroupsK() {
-            showGroupsK = !showGroupsK;
-            const btn = document.getElementById('btnGroupsK');
-            if (showGroupsK) {
-                btn.classList.remove('bg-gray-100', 'text-gray-600');
-                btn.classList.add('bg-[#009cb6]', 'text-white');
-            } else {
-                btn.classList.remove('bg-[#009cb6]', 'text-white');
-                btn.classList.add('bg-gray-100', 'text-gray-600');
-            }
-            filterCards();
-        }
-        
-        function toggleCommercial() {
-            showCommercial = !showCommercial;
-            const btn = document.getElementById('btnCommercial');
-            if (showCommercial) {
-                btn.classList.remove('bg-gray-100', 'text-gray-600');
-                btn.classList.add('bg-[#009cb6]', 'text-white');
-            } else {
-                btn.classList.remove('bg-[#009cb6]', 'text-white');
-                btn.classList.add('bg-gray-100', 'text-gray-600');
-            }
-            filterCards();
-        }
+        // Filtrar cards quando mudar checkboxes (SEM recarregar da BD)
+        document.getElementById('showGroupsK').addEventListener('change', filterCards);
+        document.getElementById('showCommercial').addEventListener('change', filterCards);
 
         // Adicionar event listeners aos inputs de comissão
         document.getElementById('commissionBrokers').addEventListener('input', updateCommissionPrices);
