@@ -518,6 +518,15 @@ from bs4 import BeautifulSoup
 import sqlite3
 from threading import Lock
 import random
+import urllib3
+import warnings
+
+# Suprimir warnings de retry do urllib3/Selenium (conexões ao ChromeDriver)
+urllib3.disable_warnings()
+warnings.filterwarnings('ignore', category=urllib3.exceptions.InsecureRequestWarning)
+warnings.filterwarnings('ignore', message='.*Retrying.*')
+warnings.filterwarnings('ignore', message='.*Connection refused.*')
+warnings.filterwarnings('ignore', message='.*Failed to establish a new connection.*')
 
 # Import database module for PostgreSQL/SQLite hybrid support
 try:
