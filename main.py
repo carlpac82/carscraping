@@ -35464,7 +35464,7 @@ async def save_current_prices(request: Request):
         day_start = data.get('day_start', 1)
         day_end = data.get('day_end', 31)
         
-        logging.info(f"💾 SAVE VERSION 2026-01-11-16:20 - Location: {location}, Month: {month}/{year}, Days: {day_start}-{day_end}")
+        logging.info(f"💾 SAVE VERSION 2026-01-11-16:30 - Location: {location}, Month: {month}/{year}, Days: {day_start}-{day_end}")
         
         with _db_lock:
             conn = _db_connect()
@@ -35478,7 +35478,7 @@ async def save_current_prices(request: Request):
                 prices_json = json.dumps(prices)
                 
                 if is_postgres:
-                    # PostgreSQL - GARANTIR que colunas existem ANTES de inserir
+                    # PostgreSQL - usar cursor diretamente (não conn.execute que passa por wrapper)
                     with conn.cursor() as cur:
                         # 1. Verificar se colunas existem
                         cur.execute("""
@@ -35530,11 +35530,32 @@ async def save_current_prices(request: Request):
                     conn.commit()
                     logging.info(f"✅ PostgreSQL save successful")
                 else:
-                    # SQLite
-                    conn.execute("""
-                        INSERT OR REPLACE INTO current_prices (location, month, year, day_start, day_end, prices_data, updated_at)
-                        VALUES (?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP)
-                    """, (location, month, year, day_start, day_end, prices_json))
+                    # SQLite - usar cursor diretamente para evitar wrapper
+                    cursor = conn.cursor()
+                    
+                    # Verificar se período já existe
+                    cursor.execute("""
+                        SELECT id FROM current_prices 
+                        WHERE location = ? AND month = ? AND year = ? 
+                          AND day_start = ? AND day_end = ?
+                    """, (location, month, year, day_start, day_end))
+                    
+                    existing = cursor.fetchone()
+                    
+                    if existing:
+                        logging.info(f"🔄 Updating existing period (id={existing[0]})")
+                        cursor.execute("""
+                            UPDATE current_prices 
+                            SET prices_data = ?, updated_at = CURRENT_TIMESTAMP
+                            WHERE location = ? AND month = ? AND year = ? 
+                              AND day_start = ? AND day_end = ?
+                        """, (prices_json, location, month, year, day_start, day_end))
+                    else:
+                        logging.info(f"➕ Inserting new period")
+                        cursor.execute("""
+                            INSERT INTO current_prices (location, month, year, day_start, day_end, prices_data, updated_at)
+                            VALUES (?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP)
+                        """, (location, month, year, day_start, day_end, prices_json))
                     
                     conn.commit()
                     logging.info(f"✅ SQLite save successful")
