@@ -35272,12 +35272,9 @@ async def delete_month_periods(request: Request):
 
 @app.post("/api/current-prices/save")
 async def save_current_prices(request: Request):
-    """Guardar preços atuais na base de dados - EMERGENCY VERSION"""
+    """Guardar preços atuais - INLINE VERSION (NO MODULES)"""
     require_auth(request)
     try:
-        from emergency_save import emergency_save_prices
-        from current_prices_module import create_current_prices_table
-        
         data = await request.json()
         location = data.get('location')
         month = data.get('month')
@@ -35286,25 +35283,64 @@ async def save_current_prices(request: Request):
         day_start = data.get('day_start', 1)
         day_end = data.get('day_end', 31)
         
-        logging.info(f"🚨 USING EMERGENCY SAVE - bypassing cache")
+        logging.info(f"🔥 INLINE SAVE (NO MODULES) - {location}, {month}/{year}, {day_start}-{day_end}")
+        
+        prices_json = json.dumps(prices)
         
         with _db_lock:
             conn = _db_connect()
             try:
-                # Criar tabela se não existir
-                create_current_prices_table(conn)
+                # Detectar PostgreSQL
+                conn_module = conn.__class__.__module__
+                is_postgres = 'psycopg' in conn_module
                 
-                # Guardar preços usando função de emergência (bypassa cache)
-                success = emergency_save_prices(conn, location, month, year, prices, day_start, day_end)
+                logging.info(f"🔥 Database: {'PostgreSQL' if is_postgres else 'SQLite'}")
                 
-                if success:
+                if is_postgres:
+                    # PostgreSQL - SELECT + UPDATE/INSERT (SEM ON CONFLICT)
+                    with conn.cursor() as cur:
+                        # Verificar se existe
+                        cur.execute("""
+                            SELECT id FROM current_prices 
+                            WHERE location = %s AND month = %s AND year = %s 
+                              AND day_start = %s AND day_end = %s
+                        """, (location, month, year, day_start, day_end))
+                        
+                        existing = cur.fetchone()
+                        
+                        if existing:
+                            logging.info(f"🔄 Updating existing period")
+                            cur.execute("""
+                                UPDATE current_prices 
+                                SET prices_data = %s, updated_at = CURRENT_TIMESTAMP
+                                WHERE location = %s AND month = %s AND year = %s 
+                                  AND day_start = %s AND day_end = %s
+                            """, (prices_json, location, month, year, day_start, day_end))
+                        else:
+                            logging.info(f"➕ Inserting new period")
+                            cur.execute("""
+                                INSERT INTO current_prices (location, month, year, day_start, day_end, prices_data, updated_at)
+                                VALUES (%s, %s, %s, %s, %s, %s, CURRENT_TIMESTAMP)
+                            """, (location, month, year, day_start, day_end, prices_json))
+                    
+                    conn.commit()
+                    logging.info(f"✅ INLINE SAVE SUCCESS (PostgreSQL)")
                     return JSONResponse({"ok": True, "message": "Prices saved successfully"})
                 else:
-                    return JSONResponse({"ok": False, "error": "Failed to save prices"}, status_code=500)
+                    # SQLite
+                    conn.execute("""
+                        INSERT OR REPLACE INTO current_prices (location, month, year, day_start, day_end, prices_data, updated_at)
+                        VALUES (?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP)
+                    """, (location, month, year, day_start, day_end, prices_json))
+                    
+                    conn.commit()
+                    logging.info(f"✅ INLINE SAVE SUCCESS (SQLite)")
+                    return JSONResponse({"ok": True, "message": "Prices saved successfully"})
+                    
             finally:
                 conn.close()
     except Exception as e:
-        logging.error(f"Error saving current prices: {e}")
+        logging.error(f"❌ INLINE SAVE ERROR: {e}")
         import traceback
         logging.error(traceback.format_exc())
         return JSONResponse({"ok": False, "error": str(e)}, status_code=500)
