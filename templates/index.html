@@ -35,6 +35,8 @@
         .select-group { display: flex; flex-direction: column; align-items: flex-start; gap: 2px; }
         .select-label { font-size: 10px; font-weight: 600; color: #6b7280; text-transform: uppercase; letter-spacing: 0.5px; }
         .select-value { font-size: 14px; font-weight: 700; color: #111827; }
+        #monthSelect option.has-prices { background-color: #d1fae5; color: #065f46; font-weight: 600; }
+        #monthSelect option.no-prices { background-color: #fee2e2; color: #991b1b; font-weight: 600; }
         .mobile-menu-btn { display: none; background: none; border: none; color: white; padding: 8px; }
         @media (max-width: 768px) {
             .desktop-nav { display: none !important; }
@@ -330,6 +332,39 @@
             monthSelect.value = currentMonth.toString();
         }
         
+        // Verificar quais meses têm preços guardados e colorir opções
+        async function colorMonthOptions() {
+            const location = document.getElementById('locationSelect').value;
+            const year = parseInt(document.getElementById('yearSelect').value);
+            const monthSelect = document.getElementById('monthSelect');
+            const options = monthSelect.querySelectorAll('option');
+            
+            // Verificar cada mês
+            for (let i = 0; i < options.length; i++) {
+                const option = options[i];
+                const month = parseInt(option.value);
+                
+                try {
+                    const response = await fetch(`/api/current-prices/load?location=${encodeURIComponent(location)}&month=${month}&year=${year}`);
+                    const result = await response.json();
+                    
+                    if (result.ok && result.prices && Object.keys(result.prices).length > 0) {
+                        // Tem preços - verde
+                        option.classList.remove('no-prices');
+                        option.classList.add('has-prices');
+                    } else {
+                        // Sem preços - vermelho
+                        option.classList.remove('has-prices');
+                        option.classList.add('no-prices');
+                    }
+                } catch (error) {
+                    // Erro - sem preços
+                    option.classList.remove('has-prices');
+                    option.classList.add('no-prices');
+                }
+            }
+        }
+        
         // Mapear grupos para nomes de carros (conforme especificado pelo utilizador)
         function getCarNameForGroup(grupo) {
             const groupToCarName = {
@@ -522,6 +557,9 @@
         populateYears();
         setCurrentMonth();
         
+        // Colorir meses com/sem preços
+        colorMonthOptions();
+        
         // Carregar preços guardados ao iniciar
         loadPricesFromDB();
         
@@ -555,9 +593,15 @@
         }
         
         // Recarregar preços quando mudar localização, mês ou ano
-        document.getElementById('locationSelect').addEventListener('change', loadPricesFromDB);
+        document.getElementById('locationSelect').addEventListener('change', async function() {
+            await colorMonthOptions();
+            await loadPricesFromDB();
+        });
         document.getElementById('monthSelect').addEventListener('change', loadPricesFromDB);
-        document.getElementById('yearSelect').addEventListener('change', loadPricesFromDB);
+        document.getElementById('yearSelect').addEventListener('change', async function() {
+            await colorMonthOptions();
+            await loadPricesFromDB();
+        });
         
         // Filtrar cards quando mudar checkboxes (SEM recarregar da BD)
         document.getElementById('showGroupsK').addEventListener('change', filterCards);
