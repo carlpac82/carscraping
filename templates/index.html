@@ -284,40 +284,13 @@
                     </button>
                 </div>
                 
-                <div class="flex items-center gap-4">
-                    <div class="flex items-center gap-1.5">
-                        <svg class="w-3.5 h-3.5 text-[#f4ad0f]" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
-                        <span class="text-[10px] text-gray-600 font-medium">BROKERS:</span>
-                        <input type="number" id="commissionBrokers" class="commission-input" value="13.66" step="0.01">
-                        <span class="text-[#f4ad0f] font-bold text-xs">%</span>
-                    </div>
-                    
-                    <div class="flex items-center gap-1.5">
-                        <svg class="w-3.5 h-3.5 text-[#f4ad0f]" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 12a9 9 0 01-9 9m9-9a9 9 0 00-9-9m9 9H3m9 9a9 9 0 01-9-9m9 9c1.657 0 3-4.03 3-9s-1.343-9-3-9m0 18c-1.657 0-3-4.03-3-9s1.343-9 3-9m-9 9a9 9 0 019-9"/></svg>
-                        <span class="text-[10px] text-gray-600 font-medium">WEBSITE:</span>
-                        <input type="number" id="commissionWebsite" class="commission-input" value="14.00" step="0.01">
-                        <span class="text-[#f4ad0f] font-bold text-xs">%</span>
-                    </div>
-                    
-                    <div class="flex items-center gap-1.5">
-                        <svg class="w-3.5 h-3.5 text-[#f4ad0f]" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
-                        <span class="text-[10px] text-gray-600 font-medium">ABBYCAR:</span>
-                        <input type="number" id="commissionAbbycar" class="commission-input" value="5.00" step="0.01">
-                        <span class="text-[#f4ad0f] font-bold text-xs">%</span>
-                    </div>
-                </div>
-                
-                <div class="flex items-center gap-6">
-                    <div class="flex items-center gap-2">
-                        <label class="flex items-center gap-1 cursor-pointer">
-                            <input type="checkbox" id="showGroupsK" class="w-4 h-4 text-[#009cb6] rounded">
-                            <span class="text-xs text-gray-700">Grupo K</span>
-                        </label>
-                        <label class="flex items-center gap-1 cursor-pointer">
-                            <input type="checkbox" id="showCommercial" class="w-4 h-4 text-[#009cb6] rounded">
-                            <span class="text-xs text-gray-700">Comerciais</span>
-                        </label>
-                    </div>
+                <div class="flex items-center gap-3">
+                    <button onclick="toggleGroupsK()" id="btnGroupsK" class="px-3 py-1.5 bg-gray-100 hover:bg-[#009cb6] text-gray-600 hover:text-white transition-colors text-xs font-semibold" title="Mostrar/Ocultar Grupos K">
+                        K
+                    </button>
+                    <button onclick="toggleCommercial()" id="btnCommercial" class="px-3 py-1.5 bg-gray-100 hover:bg-[#009cb6] text-gray-600 hover:text-white transition-colors text-xs font-semibold" title="Mostrar/Ocultar Comerciais">
+                        C
+                    </button>
                     <div class="flex items-center gap-3">
                         <input type="file" id="uploadFile" accept=".xlsx,.xls,.csv" style="display:none" onchange="handleUpload(event)">
                         <button onclick="document.getElementById('uploadFile').click()" class="flex flex-col items-center justify-center gap-0.5 h-10" title="Upload">
@@ -337,6 +310,24 @@
                 <div class="flex items-center gap-2 text-sm text-gray-500">
                     <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
                     <span id="lastUpdated" class="font-medium"></span>
+                </div>
+                
+                <div class="flex items-center gap-4">
+                    <div class="flex items-center gap-1.5">
+                        <span class="text-[10px] text-gray-600 font-medium">BROKERS:</span>
+                        <input type="number" id="commissionBrokers" class="commission-input" value="13.66" step="0.01">
+                        <span class="text-[#009cb6] font-bold text-xs">%</span>
+                    </div>
+                    <div class="flex items-center gap-1.5">
+                        <span class="text-[10px] text-gray-600 font-medium">WEBSITE:</span>
+                        <input type="number" id="commissionWebsite" class="commission-input" value="14.00" step="0.01">
+                        <span class="text-[#009cb6] font-bold text-xs">%</span>
+                    </div>
+                    <div class="flex items-center gap-1.5">
+                        <span class="text-[10px] text-gray-600 font-medium">ABBYCAR:</span>
+                        <input type="number" id="commissionAbbycar" class="commission-input" value="5.00" step="0.01">
+                        <span class="text-[#009cb6] font-bold text-xs">%</span>
+                    </div>
                 </div>
                 
                 <div class="flex items-center gap-1.5">
@@ -359,25 +350,25 @@
     </main>
 
     <!-- Modal para criar novo período -->
-    <div id="newPeriodModal" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 9998; align-items: center; justify-content: center;">
-        <div style="background: white; padding: 24px; border-radius: 8px; max-width: 400px; width: 90%;">
-            <h3 style="margin: 0 0 16px 0; font-size: 18px; font-weight: 700; color: #111827;">Criar Novo Período</h3>
-            
-            <div style="margin-bottom: 12px;">
-                <label style="display: block; font-size: 12px; font-weight: 600; color: #6b7280; margin-bottom: 4px;">Dia Início</label>
-                <input type="number" id="newPeriodDayStart" min="1" max="31" value="1" style="width: 100%; padding: 8px; border: 1px solid #e5e7eb; font-size: 14px;">
-            </div>
+    <div id="newPeriodModal" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.6); z-index: 9998; align-items: center; justify-content: center; backdrop-filter: blur(4px);">
+        <div style="background: white; padding: 32px; border-radius: 0; max-width: 400px; width: 90%; box-shadow: 0 20px 25px -5px rgba(0,0,0,0.1);">
+            <h3 style="margin: 0 0 24px 0; font-size: 20px; font-weight: 700; color: #009cb6; border-bottom: 2px solid #009cb6; padding-bottom: 12px;">Criar Novo Período</h3>
             
             <div style="margin-bottom: 16px;">
-                <label style="display: block; font-size: 12px; font-weight: 600; color: #6b7280; margin-bottom: 4px;">Dia Fim</label>
-                <input type="number" id="newPeriodDayEnd" min="1" max="31" value="31" style="width: 100%; padding: 8px; border: 1px solid #e5e7eb; font-size: 14px;">
+                <label style="display: block; font-size: 13px; font-weight: 600; color: #009cb6; margin-bottom: 6px;">Dia Início</label>
+                <input type="number" id="newPeriodDayStart" min="1" max="31" value="1" style="width: 100%; padding: 10px; border: 2px solid #e5e7eb; font-size: 15px; transition: border-color 0.2s;" onfocus="this.style.borderColor='#009cb6'" onblur="this.style.borderColor='#e5e7eb'">
             </div>
             
-            <div style="display: flex; gap: 8px; justify-content: flex-end;">
-                <button onclick="closeNewPeriodDialog()" style="padding: 8px 16px; background: #e5e7eb; color: #374151; border: none; font-size: 14px; font-weight: 600; cursor: pointer;">
+            <div style="margin-bottom: 24px;">
+                <label style="display: block; font-size: 13px; font-weight: 600; color: #009cb6; margin-bottom: 6px;">Dia Fim</label>
+                <input type="number" id="newPeriodDayEnd" min="1" max="31" value="31" style="width: 100%; padding: 10px; border: 2px solid #e5e7eb; font-size: 15px; transition: border-color 0.2s;" onfocus="this.style.borderColor='#009cb6'" onblur="this.style.borderColor='#e5e7eb'">
+            </div>
+            
+            <div style="display: flex; gap: 12px; justify-content: flex-end;">
+                <button onclick="closeNewPeriodDialog()" style="padding: 10px 20px; background: #f3f4f6; color: #6b7280; border: none; font-size: 14px; font-weight: 600; cursor: pointer; transition: background 0.2s;" onmouseover="this.style.background='#e5e7eb'" onmouseout="this.style.background='#f3f4f6'">
                     Cancelar
                 </button>
-                <button onclick="createNewPeriod()" style="padding: 8px 16px; background: #10b981; color: white; border: none; font-size: 14px; font-weight: 600; cursor: pointer;">
+                <button onclick="createNewPeriod()" style="padding: 10px 20px; background: #009cb6; color: white; border: none; font-size: 14px; font-weight: 600; cursor: pointer; transition: background 0.2s;" onmouseover="this.style.background='#007a94'" onmouseout="this.style.background='#009cb6'">
                     Criar Período
                 </button>
             </div>
@@ -936,9 +927,36 @@
             await loadPricesFromDB();
         });
         
-        // Filtrar cards quando mudar checkboxes (SEM recarregar da BD)
-        document.getElementById('showGroupsK').addEventListener('change', filterCards);
-        document.getElementById('showCommercial').addEventListener('change', filterCards);
+        // Estado dos filtros (botões K e C)
+        let showGroupsK = false;
+        let showCommercial = false;
+        
+        // Funções para toggle dos botões K e C
+        function toggleGroupsK() {
+            showGroupsK = !showGroupsK;
+            const btn = document.getElementById('btnGroupsK');
+            if (showGroupsK) {
+                btn.classList.remove('bg-gray-100', 'text-gray-600');
+                btn.classList.add('bg-[#009cb6]', 'text-white');
+            } else {
+                btn.classList.remove('bg-[#009cb6]', 'text-white');
+                btn.classList.add('bg-gray-100', 'text-gray-600');
+            }
+            filterCards();
+        }
+        
+        function toggleCommercial() {
+            showCommercial = !showCommercial;
+            const btn = document.getElementById('btnCommercial');
+            if (showCommercial) {
+                btn.classList.remove('bg-gray-100', 'text-gray-600');
+                btn.classList.add('bg-[#009cb6]', 'text-white');
+            } else {
+                btn.classList.remove('bg-[#009cb6]', 'text-white');
+                btn.classList.add('bg-gray-100', 'text-gray-600');
+            }
+            filterCards();
+        }
 
         // Adicionar event listeners aos inputs de comissão
         document.getElementById('commissionBrokers').addEventListener('input', updateCommissionPrices);
