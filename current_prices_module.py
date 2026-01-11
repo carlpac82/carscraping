@@ -52,7 +52,7 @@ def load_prices_from_db(conn, location, month, year, day_start=None, day_end=Non
                         return prices, updated_at
                     else:
                         logging.info(f"ℹ️ Sem preços para: {location}, mês {month}/{year}, dias {day_start}-{day_end}")
-                        return None, None
+                        return [], None
                 else:
                     # Carregar todos os períodos do mês
                     logging.info(f"Loading all periods for {location}, month={month}, year={year}")
@@ -108,7 +108,7 @@ def load_prices_from_db(conn, location, month, year, day_start=None, day_end=Non
                     return prices, updated_at
                 else:
                     logging.info(f"ℹ️ Sem preços para: {location}, mês {month}/{year}, dias {day_start}-{day_end}")
-                    return None, None
+                    return [], None
             else:
                 # Carregar todos os períodos do mês
                 cursor = conn.execute("""
@@ -146,7 +146,9 @@ def load_prices_from_db(conn, location, month, year, day_start=None, day_end=Non
                 
     except Exception as e:
         logging.error(f"Erro ao carregar preços: {e}")
-        return None, None
+        import traceback
+        logging.error(traceback.format_exc())
+        return [], None
 
 def save_prices_to_db(conn, location, month, year, prices_data, day_start=1, day_end=31):
     """Guarda preços na base de dados para um período específico"""

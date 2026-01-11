@@ -34859,7 +34859,7 @@ async def load_current_prices(request: Request, location: str, month: int, year:
                 # Carregar preços e data da última alteração
                 try:
                     prices, updated_at = load_prices_from_db(conn, location, month, year, day_start, day_end)
-                    logging.info(f"Load result: prices={'list' if isinstance(prices, list) else 'dict' if prices else 'None'}, updated_at={updated_at}")
+                    logging.info(f"🔍 Load result: type={type(prices).__name__}, isinstance(list)={isinstance(prices, list)}, len={len(prices) if isinstance(prices, list) else 'N/A'}, updated_at={updated_at}")
                 except (ValueError, TypeError) as ve:
                     logging.warning(f"ValueError/TypeError in load_prices_from_db: {ve}")
                     # Se a função retornar apenas um valor (compatibilidade com código antigo)
@@ -34877,8 +34877,10 @@ async def load_current_prices(request: Request, location: str, month: int, year:
                 
                 # Se retornou lista de períodos
                 if isinstance(prices, list):
-                    logging.info(f"Returning {len(prices)} periods")
-                    return JSONResponse({"ok": True, "periods": prices})
+                    logging.info(f"✅ Returning {len(prices)} periods as list")
+                    response_data = {"ok": True, "periods": prices}
+                    logging.info(f"📤 Response: {response_data}")
+                    return JSONResponse(response_data)
                 elif prices:
                     # Converter datetime para string se necessário
                     if updated_at and hasattr(updated_at, 'isoformat'):
