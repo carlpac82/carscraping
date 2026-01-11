@@ -34849,23 +34849,13 @@ async def load_current_prices(request: Request, location: str, month: int, year:
     """
     require_auth(request)
     try:
-        from current_prices_module import load_prices_from_db, create_current_prices_table
+        from current_prices_module import load_prices_from_db
         
         logging.info(f"Loading prices: location={location}, month={month}, year={year}, day_start={day_start}, day_end={day_end}")
         
         with _db_lock:
             conn = _db_connect()
             try:
-                # Criar tabela se não existir
-                try:
-                    create_current_prices_table(conn)
-                    logging.info("Table creation/migration completed")
-                except Exception as table_error:
-                    logging.error(f"Error creating/migrating table: {table_error}")
-                    import traceback
-                    logging.error(traceback.format_exc())
-                    raise
-                
                 # Carregar preços e data da última alteração
                 try:
                     prices, updated_at = load_prices_from_db(conn, location, month, year, day_start, day_end)

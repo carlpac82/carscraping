@@ -65,28 +65,30 @@ def load_prices_from_db(conn, location, month, year, day_start=None, day_end=Non
                     
                     rows = cur.fetchall()
                     logging.info(f"Found {len(rows)} rows for {location}, {month}/{year}")
-                    if rows:
-                        periods = []
-                        for row in rows:
-                            # Converter datetime para string se necessário
-                            updated_at_str = None
-                            if row[1]:
-                                if hasattr(row[1], 'isoformat'):
-                                    updated_at_str = row[1].isoformat()
-                                else:
-                                    updated_at_str = str(row[1])
-                            
-                            periods.append({
-                                'prices': json.loads(row[0]),
-                                'updated_at': updated_at_str,
-                                'day_start': row[2] if row[2] is not None else 1,
-                                'day_end': row[3] if row[3] is not None else 31
-                            })
+                    
+                    periods = []
+                    for row in rows:
+                        # Converter datetime para string se necessário
+                        updated_at_str = None
+                        if row[1]:
+                            if hasattr(row[1], 'isoformat'):
+                                updated_at_str = row[1].isoformat()
+                            else:
+                                updated_at_str = str(row[1])
+                        
+                        periods.append({
+                            'prices': json.loads(row[0]),
+                            'updated_at': updated_at_str,
+                            'day_start': row[2] if row[2] is not None else 1,
+                            'day_end': row[3] if row[3] is not None else 31
+                        })
+                    
+                    if periods:
                         logging.info(f"✅ {len(periods)} período(s) carregado(s): {location}, mês {month}/{year}")
-                        return periods, None
                     else:
                         logging.info(f"ℹ️ Sem preços para: {location}, mês {month}/{year}")
-                        return None, None
+                    
+                    return periods, None
         else:
             # SQLite
             if day_start is not None and day_end is not None:
@@ -117,28 +119,30 @@ def load_prices_from_db(conn, location, month, year, day_start=None, day_end=Non
                 """, (location, month, year))
                 
                 rows = cursor.fetchall()
-                if rows:
-                    periods = []
-                    for row in rows:
-                        # Converter datetime para string se necessário (SQLite retorna string, mas por segurança)
-                        updated_at_str = None
-                        if row[1]:
-                            if hasattr(row[1], 'isoformat'):
-                                updated_at_str = row[1].isoformat()
-                            else:
-                                updated_at_str = str(row[1])
-                        
-                        periods.append({
-                            'prices': json.loads(row[0]),
-                            'updated_at': updated_at_str,
-                            'day_start': row[2] if row[2] is not None else 1,
-                            'day_end': row[3] if row[3] is not None else 31
-                        })
+                
+                periods = []
+                for row in rows:
+                    # Converter datetime para string se necessário (SQLite retorna string, mas por segurança)
+                    updated_at_str = None
+                    if row[1]:
+                        if hasattr(row[1], 'isoformat'):
+                            updated_at_str = row[1].isoformat()
+                        else:
+                            updated_at_str = str(row[1])
+                    
+                    periods.append({
+                        'prices': json.loads(row[0]),
+                        'updated_at': updated_at_str,
+                        'day_start': row[2] if row[2] is not None else 1,
+                        'day_end': row[3] if row[3] is not None else 31
+                    })
+                
+                if periods:
                     logging.info(f"✅ {len(periods)} período(s) carregado(s): {location}, mês {month}/{year}")
-                    return periods, None
                 else:
                     logging.info(f"ℹ️ Sem preços para: {location}, mês {month}/{year}")
-                    return None, None
+                
+                return periods, None
                 
     except Exception as e:
         logging.error(f"Erro ao carregar preços: {e}")
