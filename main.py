@@ -35080,35 +35080,54 @@ async def check_current_prices_table(request: Request):
         logging.error(traceback.format_exc())
         return JSONResponse({"ok": False, "error": str(e)}, status_code=500)
 
-@app.get("/api/current-prices/fix-constraint")
-async def fix_current_prices_constraint(request: Request):
-    """Corrigir constraint UNIQUE para suportar múltiplos períodos por mês"""
+@app.get("/api/current-prices/fix-constraint-safe")
+async def fix_current_prices_constraint_safe(request: Request):
+    """Corrigir constraint UNIQUE - SEGURO (não apaga dados)"""
     require_auth(request)
     try:
         with _db_lock:
             conn = _db_connect()
             try:
-                is_postgres = conn.__class__.__module__ in ['psycopg2.extensions', 'psycopg2._psycopg']
+                conn_module = conn.__class__.__module__
+                is_postgres = 'psycopg' in conn_module
+                
                 logging.info(f"🔍 Database type: {'PostgreSQL' if is_postgres else 'SQLite'}")
                 
                 if is_postgres:
                     with conn.cursor() as cur:
-                        # Remover constraint antiga
+                        # Verificar constraints existentes
                         cur.execute("""
-                            ALTER TABLE current_prices 
-                            DROP CONSTRAINT IF EXISTS current_prices_location_month_year_key
+                            SELECT conname, pg_get_constraintdef(oid)
+                            FROM pg_constraint
+                            WHERE conrelid = 'current_prices'::regclass
+                              AND contype = 'u'
                         """)
+                        existing_constraints = cur.fetchall()
+                        logging.info(f"📋 Constraints existentes: {existing_constraints}")
                         
-                        # Adicionar nova constraint com day_start e day_end
-                        cur.execute("""
-                            ALTER TABLE current_prices 
-                            ADD CONSTRAINT current_prices_location_month_year_period_key 
-                            UNIQUE (location, month, year, day_start, day_end)
-                        """)
+                        # Remover APENAS constraints antigas (não a correta)
+                        for name, definition in existing_constraints:
+                            if 'day_start' not in definition or 'day_end' not in definition:
+                                logging.info(f"🗑️ Removendo constraint antiga: {name}")
+                                cur.execute(f"ALTER TABLE current_prices DROP CONSTRAINT IF EXISTS {name}")
+                        
+                        # Adicionar constraint correta se não existir
+                        has_correct = any('day_start' in def_text and 'day_end' in def_text 
+                                        for _, def_text in existing_constraints)
+                        
+                        if not has_correct:
+                            logging.info("➕ Adicionando constraint correta...")
+                            cur.execute("""
+                                ALTER TABLE current_prices 
+                                ADD CONSTRAINT current_prices_unique_period 
+                                UNIQUE (location, month, year, day_start, day_end)
+                            """)
+                        else:
+                            logging.info("✅ Constraint correta já existe!")
                         
                         conn.commit()
-                        logging.info("✅ Constraint corrigida com sucesso!")
-                        return JSONResponse({"ok": True, "message": "Constraint fixed successfully"})
+                        logging.info("✅ Constraint corrigida com sucesso! DADOS PRESERVADOS.")
+                        return JSONResponse({"ok": True, "message": "Constraint fixed successfully", "data_preserved": True})
                 else:
                     # SQLite - recriar tabela com constraint correta
                     logging.info("🔧 Recriando tabela SQLite com constraint correta...")
