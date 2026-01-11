@@ -9807,8 +9807,12 @@ Continue?`);
                         
                         if (headerRow) {
                             const headerCells = headerRow.querySelectorAll('th');
+                            console.log('[UPDATE] Found', headerCells.length, 'header cells');
                             headerCells.forEach((th, colIndex) => {
                                 const text = th.textContent.trim();
+                                if (colIndex < 5) { // Debug primeiros 5 headers
+                                    console.log(`[UPDATE] Header[${colIndex}]: "${text}"`);
+                                }
                                 // Headers são tipo "1d NET", "1d REAL", "2d NET", etc
                                 const match = text.match(/(\d+)d\s+(NET|REAL)/);
                                 if (match) {
@@ -9816,9 +9820,12 @@ Continue?`);
                                     const tipo = match[2];
                                     if (tipo === 'NET') {
                                         dayMapping[colIndex] = dia;
+                                        console.log(`[UPDATE] Mapped column ${colIndex} to day ${dia}`);
                                     }
                                 }
                             });
+                        } else {
+                            console.log('[UPDATE] No thead found, trying th in tbody');
                         }
                         
                         console.log('[UPDATE] Day mapping from table headers:', dayMapping);
