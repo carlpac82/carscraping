@@ -34912,6 +34912,41 @@ async def load_current_prices(request: Request, location: str, month: int, year:
         logging.error(traceback.format_exc())
         return JSONResponse({"ok": False, "error": str(e)}, status_code=500)
 
+@app.get("/api/current-prices/test-load")
+async def test_load_current_prices(request: Request, location: str = "Albufeira", month: int = 1, year: int = 2026):
+    """Endpoint de teste para debug - mostra exatamente o que load retorna"""
+    require_auth(request)
+    try:
+        from current_prices_module import load_prices_from_db
+        
+        with _db_lock:
+            conn = _db_connect()
+            try:
+                prices, updated_at = load_prices_from_db(conn, location, month, year, None, None)
+                
+                return JSONResponse({
+                    "ok": True,
+                    "debug": {
+                        "type": type(prices).__name__,
+                        "is_list": isinstance(prices, list),
+                        "is_none": prices is None,
+                        "length": len(prices) if isinstance(prices, list) else "N/A",
+                        "updated_at": str(updated_at),
+                        "first_item": prices[0] if isinstance(prices, list) and len(prices) > 0 else None
+                    },
+                    "prices": prices,
+                    "updated_at": str(updated_at) if updated_at else None
+                })
+            finally:
+                conn.close()
+    except Exception as e:
+        import traceback
+        return JSONResponse({
+            "ok": False,
+            "error": str(e),
+            "traceback": traceback.format_exc()
+        })
+
 @app.get("/api/current-prices/list-all")
 async def list_all_current_prices(request: Request):
     """Listar todos os registos de current_prices para debug"""
