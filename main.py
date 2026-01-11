@@ -35046,9 +35046,43 @@ async def fix_current_prices_constraint(request: Request):
                         logging.info("✅ Constraint corrigida com sucesso!")
                         return JSONResponse({"ok": True, "message": "Constraint fixed successfully"})
                 else:
-                    # SQLite
-                    logging.warning("SQLite não suporta ALTER CONSTRAINT - recriar tabela necessário")
-                    return JSONResponse({"ok": False, "error": "SQLite not supported for this operation"}, status_code=400)
+                    # SQLite - recriar tabela com constraint correta
+                    logging.info("🔧 Recriando tabela SQLite com constraint correta...")
+                    
+                    # Backup dos dados existentes
+                    cursor = conn.execute("SELECT * FROM current_prices")
+                    existing_data = cursor.fetchall()
+                    logging.info(f"📦 Backup de {len(existing_data)} registos")
+                    
+                    # Apagar tabela antiga
+                    conn.execute("DROP TABLE IF EXISTS current_prices")
+                    
+                    # Criar nova tabela com constraint correta
+                    conn.execute("""
+                        CREATE TABLE current_prices (
+                            id INTEGER PRIMARY KEY AUTOINCREMENT,
+                            location TEXT NOT NULL,
+                            month INTEGER NOT NULL,
+                            year INTEGER NOT NULL,
+                            day_start INTEGER DEFAULT 1,
+                            day_end INTEGER DEFAULT 31,
+                            prices_data TEXT NOT NULL,
+                            updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                            UNIQUE(location, month, year, day_start, day_end)
+                        )
+                    """)
+                    
+                    # Restaurar dados
+                    for row in existing_data:
+                        # row = (id, location, month, year, day_start, day_end, prices_data, updated_at)
+                        conn.execute("""
+                            INSERT INTO current_prices (location, month, year, day_start, day_end, prices_data, updated_at)
+                            VALUES (?, ?, ?, ?, ?, ?, ?)
+                        """, (row[1], row[2], row[3], row[4] or 1, row[5] or 31, row[6], row[7]))
+                    
+                    conn.commit()
+                    logging.info("✅ Tabela SQLite recriada com sucesso!")
+                    return JSONResponse({"ok": True, "message": "SQLite table recreated with correct constraint"})
             finally:
                 conn.close()
     except Exception as e:
