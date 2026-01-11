@@ -9680,25 +9680,24 @@ Continue?`);
                 
                 showNotification('🔄 Coletando preços ajustados...', 'info', 2000);
                 
-                // Coletar preços dos cards AUTO
+                // Coletar preços dos inputs NET (data-type="net")
                 const prices = {};
                 const dias = [1, 2, 3, 4, 5, 6, 7, 8, 9, 14, 22, 28, 31, 60];
                 
-                // Procurar todos os cards de grupos
-                document.querySelectorAll('[id^="group-"]').forEach(card => {
-                    const grupo = card.id.replace('group-', '').toUpperCase();
-                    prices[grupo] = {};
+                // Procurar todos os inputs NET
+                document.querySelectorAll('input[data-type="net"]').forEach(input => {
+                    const grupo = input.dataset.grupo;
+                    const dia = parseInt(input.dataset.dias);
                     
-                    // Para cada dia, obter o preço NET
-                    dias.forEach(dia => {
-                        const netInput = card.querySelector(`#net-${grupo}-${dia}`);
-                        if (netInput && netInput.value) {
-                            const netPrice = parseFloat(netInput.value);
-                            if (netPrice > 0) {
-                                prices[grupo][dia] = netPrice;
+                    if (grupo && dia && input.value) {
+                        const netPrice = parseFloat(input.value);
+                        if (netPrice > 0) {
+                            if (!prices[grupo]) {
+                                prices[grupo] = {};
                             }
+                            prices[grupo][dia] = netPrice;
                         }
-                    });
+                    }
                 });
                 
                 if (Object.keys(prices).length === 0) {
