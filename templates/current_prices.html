@@ -377,6 +377,93 @@
             font-size: 12px;
             font-weight: 700;
         }
+
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.5);
+            z-index: 2000;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .modal.show {
+            display: flex;
+        }
+
+        .modal-content {
+            background: white;
+            padding: 30px;
+            border-radius: 16px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+            max-width: 500px;
+            width: 90%;
+        }
+
+        .modal-header {
+            font-size: 20px;
+            font-weight: 700;
+            margin-bottom: 20px;
+            color: #667eea;
+        }
+
+        .modal-body {
+            margin-bottom: 20px;
+        }
+
+        .modal-input-group {
+            margin-bottom: 15px;
+        }
+
+        .modal-input-group label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: 600;
+            color: #374151;
+        }
+
+        .modal-input-group input {
+            width: 100%;
+            padding: 10px;
+            border: 2px solid #e5e7eb;
+            border-radius: 8px;
+            font-size: 14px;
+        }
+
+        .modal-input-group input:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+
+        .modal-footer {
+            display: flex;
+            gap: 10px;
+            justify-content: flex-end;
+        }
+
+        .period-info {
+            background: #f0f4ff;
+            padding: 10px 15px;
+            border-radius: 8px;
+            margin-bottom: 15px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .period-info-label {
+            font-size: 12px;
+            color: #6b7280;
+        }
+
+        .period-info-value {
+            font-weight: 700;
+            color: #667eea;
+        }
     </style>
 </head>
 <body>
@@ -420,8 +507,19 @@
                     </select>
                 </div>
 
-                <button class="btn btn-primary" onclick="loadPrices()">
-                    🔄 Carregar Preços
+                <div class="select-group">
+                    <label>Período</label>
+                    <select id="period" onchange="loadSelectedPeriod()">
+                        <option value="">Selecionar...</option>
+                    </select>
+                </div>
+
+                <button class="btn btn-primary" onclick="loadPeriods()">
+                    🔄 Carregar
+                </button>
+
+                <button class="btn btn-success" onclick="showNewPeriodDialog()" style="background: #10b981; color: white;">
+                    ➕ Novo Período
                 </button>
 
                 <label for="file-upload" class="file-upload-label">
@@ -491,19 +589,49 @@
         <div class="toast-message" id="toast-message"></div>
     </div>
 
+    <!-- Modal para Novo Período -->
+    <div id="newPeriodModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">➕ Criar Novo Período</div>
+            <div class="modal-body">
+                <div class="modal-input-group">
+                    <label>Dia Início</label>
+                    <input type="number" id="newDayStart" min="1" max="31" value="1">
+                </div>
+                <div class="modal-input-group">
+                    <label>Dia Fim</label>
+                    <input type="number" id="newDayEnd" min="1" max="31" value="31">
+                </div>
+                <div style="font-size: 12px; color: #6b7280; margin-top: 10px;">
+                    ℹ️ Pode criar até 4 períodos por mês
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn" onclick="closeNewPeriodDialog()" style="background: #e5e7eb; color: #374151;">
+                    Cancelar
+                </button>
+                <button class="btn btn-primary" onclick="createNewPeriod()">
+                    Criar Período
+                </button>
+            </div>
+        </div>
+    </div>
+
     <script>
         const COMMISSION_RATE = 0.1366; // 13.66%
         const GRUPOS = ['B1', 'B2', 'BK1', 'BK2', 'C', 'D', 'DK', 'E1', 'E2', 'EK1', 'EK2', 'F', 'FK', 'G', 'J1', 'J2', 'L1', 'L2', 'M1', 'M2'];
         const DIAS = [1, 2, 3, 4, 5, 6, 7, 8, 9, 14, 22, 28, 31, 60];
 
         let currentPrices = {};
+        let allPeriods = [];
+        let currentPeriod = null;
 
         // Inicializar com mês e ano atuais
         window.onload = function() {
             const now = new Date();
             document.getElementById('month').value = now.getMonth() + 1;
             document.getElementById('year').value = now.getFullYear();
-            loadPrices();
+            loadPeriods();
         };
 
         function showToast(title, message, type = 'success') {
@@ -530,7 +658,7 @@
             document.getElementById('last-update').textContent = new Date().toLocaleString('pt-PT');
         }
 
-        async function loadPrices() {
+        async function loadPeriods() {
             const location = document.getElementById('location').value;
             const month = document.getElementById('month').value;
             const year = document.getElementById('year').value;
@@ -542,28 +670,149 @@
                 const response = await fetch(`/api/current-prices/load?location=${location}&month=${month}&year=${year}`);
                 const data = await response.json();
 
-                if (data.ok) {
-                    currentPrices = data.prices || {};
-                    renderTable();
-                    updateInfoBar();
-                    showToast('Sucesso', 'Preços carregados com sucesso!');
+                if (data.ok && data.periods) {
+                    // Múltiplos períodos
+                    allPeriods = data.periods;
+                    updatePeriodSelector();
+                    if (allPeriods.length > 0) {
+                        loadPeriodByIndex(0);
+                    }
+                    showToast('Sucesso', `${allPeriods.length} período(s) carregado(s)!`);
+                } else if (data.ok && data.prices) {
+                    // Período único (compatibilidade)
+                    allPeriods = [{
+                        prices: data.prices,
+                        updated_at: data.updated_at,
+                        day_start: 1,
+                        day_end: 31
+                    }];
+                    updatePeriodSelector();
+                    loadPeriodByIndex(0);
+                    showToast('Sucesso', 'Preços carregados!');
                 } else {
-                    // Se não existem preços, inicializar vazios
+                    // Sem preços - criar período padrão vazio
+                    allPeriods = [];
+                    updatePeriodSelector();
                     initializeEmptyPrices();
                     renderTable();
                     updateInfoBar();
-                    showToast('Aviso', 'Nenhum preço encontrado. Tabela inicializada vazia.', 'error');
+                    console.log('ℹ️ Sem preços guardados para esta localização/período');
                 }
             } catch (error) {
-                console.error('Erro ao carregar preços:', error);
+                console.error('Erro ao carregar períodos:', error);
+                allPeriods = [];
+                updatePeriodSelector();
                 initializeEmptyPrices();
                 renderTable();
                 updateInfoBar();
-                showToast('Erro', 'Erro ao carregar preços. Tabela inicializada vazia.', 'error');
+                showToast('Erro', 'Erro ao carregar períodos', 'error');
             }
 
             document.getElementById('loading').style.display = 'none';
             document.getElementById('table-container').style.display = 'block';
+        }
+
+        function updatePeriodSelector() {
+            const periodSelect = document.getElementById('period');
+            periodSelect.innerHTML = '<option value="">Selecionar...</option>';
+            
+            allPeriods.forEach((period, index) => {
+                const option = document.createElement('option');
+                option.value = index;
+                option.textContent = `Dias ${period.day_start}-${period.day_end}`;
+                periodSelect.appendChild(option);
+            });
+
+            if (allPeriods.length === 0) {
+                const option = document.createElement('option');
+                option.value = 'new';
+                option.textContent = '➕ Criar primeiro período';
+                periodSelect.appendChild(option);
+            }
+        }
+
+        function loadPeriodByIndex(index) {
+            if (index >= 0 && index < allPeriods.length) {
+                const period = allPeriods[index];
+                currentPeriod = period;
+                currentPrices = period.prices || {};
+                document.getElementById('period').value = index;
+                renderTable();
+                updateInfoBar();
+            }
+        }
+
+        function loadSelectedPeriod() {
+            const periodSelect = document.getElementById('period');
+            const value = periodSelect.value;
+            
+            if (value === 'new') {
+                showNewPeriodDialog();
+            } else if (value !== '') {
+                loadPeriodByIndex(parseInt(value));
+            }
+        }
+
+        function showNewPeriodDialog() {
+            if (allPeriods.length >= 4) {
+                showToast('Limite Atingido', 'Máximo de 4 períodos por mês', 'error');
+                return;
+            }
+            document.getElementById('newPeriodModal').classList.add('show');
+        }
+
+        function closeNewPeriodDialog() {
+            document.getElementById('newPeriodModal').classList.remove('show');
+        }
+
+        async function createNewPeriod() {
+            const dayStart = parseInt(document.getElementById('newDayStart').value);
+            const dayEnd = parseInt(document.getElementById('newDayEnd').value);
+
+            if (dayStart < 1 || dayStart > 31 || dayEnd < 1 || dayEnd > 31) {
+                showToast('Erro', 'Dias devem estar entre 1 e 31', 'error');
+                return;
+            }
+
+            if (dayStart > dayEnd) {
+                showToast('Erro', 'Dia início deve ser menor que dia fim', 'error');
+                return;
+            }
+
+            // Criar período vazio
+            initializeEmptyPrices();
+            
+            const location = document.getElementById('location').value;
+            const month = parseInt(document.getElementById('month').value);
+            const year = parseInt(document.getElementById('year').value);
+
+            try {
+                const response = await fetch('/api/current-prices/save', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        location,
+                        month,
+                        year,
+                        day_start: dayStart,
+                        day_end: dayEnd,
+                        prices: currentPrices
+                    })
+                });
+
+                const data = await response.json();
+
+                if (data.ok) {
+                    closeNewPeriodDialog();
+                    showToast('Sucesso', 'Novo período criado!');
+                    loadPeriods(); // Recarregar todos os períodos
+                } else {
+                    showToast('Erro', data.error || 'Erro ao criar período', 'error');
+                }
+            } catch (error) {
+                console.error('Erro ao criar período:', error);
+                showToast('Erro', 'Erro ao criar período', 'error');
+            }
         }
 
         function initializeEmptyPrices() {
@@ -665,6 +914,15 @@
             const month = document.getElementById('month').value;
             const year = document.getElementById('year').value;
 
+            // Obter day_start e day_end do período atual
+            let dayStart = 1;
+            let dayEnd = 31;
+            
+            if (currentPeriod) {
+                dayStart = currentPeriod.day_start || 1;
+                dayEnd = currentPeriod.day_end || 31;
+            }
+
             try {
                 const response = await fetch('/api/current-prices/save', {
                     method: 'POST',
@@ -675,6 +933,8 @@
                         location,
                         month: parseInt(month),
                         year: parseInt(year),
+                        day_start: dayStart,
+                        day_end: dayEnd,
                         prices: currentPrices
                     })
                 });
@@ -682,8 +942,9 @@
                 const data = await response.json();
 
                 if (data.ok) {
-                    showToast('Sucesso', 'Preços guardados com sucesso!');
+                    showToast('Sucesso', `Preços guardados (dias ${dayStart}-${dayEnd})!`);
                     updateInfoBar();
+                    loadPeriods(); // Recarregar para atualizar lista
                 } else {
                     showToast('Erro', data.error || 'Erro ao guardar preços', 'error');
                 }
