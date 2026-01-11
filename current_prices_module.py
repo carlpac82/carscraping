@@ -159,6 +159,16 @@ def save_prices_to_db(conn, location, month, year, prices_data, day_start=1, day
         is_postgres = conn.__class__.__module__ in ['psycopg2.extensions', 'psycopg2._psycopg']
         
         if is_postgres:
+            # PostgreSQL - garantir que colunas day_start e day_end existem
+            with conn.cursor() as cur:
+                try:
+                    cur.execute("ALTER TABLE current_prices ADD COLUMN IF NOT EXISTS day_start INTEGER DEFAULT 1")
+                    cur.execute("ALTER TABLE current_prices ADD COLUMN IF NOT EXISTS day_end INTEGER DEFAULT 31")
+                    conn.commit()
+                except Exception as e:
+                    logging.warning(f"Colunas day_start/day_end já existem ou erro: {e}")
+                    conn.rollback()
+            
             # PostgreSQL
             with conn.cursor() as cur:
                 # Verificar se já existe este período
