@@ -281,6 +281,9 @@
                             <button onclick="showNewPeriodDialog()" class="flex items-center justify-center w-6 h-6 text-gray-600 hover:text-[#009cb6] transition-colors" title="Criar Período">
                                 <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
                             </button>
+                            <button id="editPeriodBtn" onclick="editPeriod()" class="flex items-center justify-center w-6 h-6 text-gray-600 hover:text-[#009cb6] transition-colors" title="Editar Período" style="display: none;">
+                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/></svg>
+                            </button>
                             <button id="deletePeriodBtn" onclick="deletePeriod()" class="flex items-center justify-center w-6 h-6 text-gray-600 hover:text-red-600 transition-colors" title="Eliminar Período" style="display: none;">
                                 <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
                             </button>
@@ -658,15 +661,125 @@
         }
         
         function updateDeleteButton() {
-            const btn = document.getElementById('deletePeriodBtn');
-            if (!btn) return;
+            const deleteBtn = document.getElementById('deletePeriodBtn');
+            const editBtn = document.getElementById('editPeriodBtn');
             
-            // Só mostrar botão se houver período selecionado e mais de 1 período
+            if (!deleteBtn || !editBtn) return;
+            
+            // Mostrar botão de eliminar se houver mais de 1 período
             if (allPeriods.length > 1 && currentPeriodIndex >= 0) {
-                btn.style.display = 'flex';
+                deleteBtn.style.display = 'flex';
             } else {
-                btn.style.display = 'none';
+                deleteBtn.style.display = 'none';
             }
+            
+            // Mostrar botão de editar se houver período selecionado
+            if (allPeriods.length > 0 && currentPeriodIndex >= 0) {
+                editBtn.style.display = 'flex';
+            } else {
+                editBtn.style.display = 'none';
+            }
+        }
+        
+        function editPeriod() {
+            if (allPeriods.length === 0 || currentPeriodIndex < 0) return;
+            
+            const period = allPeriods[currentPeriodIndex];
+            const month = parseInt(document.getElementById('monthSelect').value);
+            const year = parseInt(document.getElementById('yearSelect').value);
+            const lastDayOfMonth = new Date(year, month, 0).getDate();
+            
+            // Preencher modal com valores atuais do período
+            document.getElementById('newPeriodDayStart').value = period.day_start;
+            document.getElementById('newPeriodDayEnd').value = period.day_end;
+            document.getElementById('newPeriodDayEnd').max = lastDayOfMonth;
+            
+            // Alterar título do modal
+            const modalTitle = document.querySelector('#newPeriodModal h3');
+            if (modalTitle) {
+                modalTitle.textContent = 'Editar Período';
+            }
+            
+            // Alterar botão de criar para atualizar
+            const createBtn = document.querySelector('#newPeriodModal button[onclick="createNewPeriod()"]');
+            if (createBtn) {
+                createBtn.textContent = 'Atualizar';
+                createBtn.setAttribute('onclick', 'updatePeriod()');
+            }
+            
+            document.getElementById('newPeriodModal').style.display = 'flex';
+        }
+        
+        async function updatePeriod() {
+            const dayStart = parseInt(document.getElementById('newPeriodDayStart').value);
+            const dayEnd = parseInt(document.getElementById('newPeriodDayEnd').value);
+            const month = parseInt(document.getElementById('monthSelect').value);
+            const year = parseInt(document.getElementById('yearSelect').value);
+            const lastDayOfMonth = new Date(year, month, 0).getDate();
+            
+            if (dayStart < 1 || dayStart > lastDayOfMonth || dayEnd < 1 || dayEnd > lastDayOfMonth || dayStart > dayEnd) {
+                alert(`Dias inválidos! Este mês tem ${lastDayOfMonth} dias. Dia início deve ser menor ou igual ao dia fim.`);
+                return;
+            }
+            
+            const period = allPeriods[currentPeriodIndex];
+            const oldStart = period.day_start;
+            const oldEnd = period.day_end;
+            
+            console.log(`📝 Editando período ${oldStart}-${oldEnd} para ${dayStart}-${dayEnd}`);
+            
+            // Atualizar período
+            period.day_start = dayStart;
+            period.day_end = dayEnd;
+            
+            // Ajustar períodos adjacentes se necessário
+            allPeriods.forEach((p, idx) => {
+                if (idx === currentPeriodIndex) return; // Não ajustar o próprio período
+                
+                // Se outro período sobrepõe com o novo range, ajustar
+                if (p.day_start >= dayStart && p.day_start <= dayEnd) {
+                    // Período começa dentro do novo range - mover para depois
+                    p.day_start = dayEnd + 1;
+                    console.log(`📅 Ajustando período ${idx} para começar em ${p.day_start}`);
+                }
+                if (p.day_end >= dayStart && p.day_end <= dayEnd) {
+                    // Período termina dentro do novo range - mover para antes
+                    p.day_end = dayStart - 1;
+                    console.log(`📅 Ajustando período ${idx} para terminar em ${p.day_end}`);
+                }
+            });
+            
+            // Remover períodos inválidos (onde day_start > day_end)
+            allPeriods = allPeriods.filter(p => p.day_start <= p.day_end);
+            
+            // Ordenar períodos
+            allPeriods.sort((a, b) => a.day_start - b.day_start);
+            
+            // Guardar períodos com preços
+            const periodsWithPrices = allPeriods.filter(p => Object.keys(p.prices).length > 0);
+            if (periodsWithPrices.length > 0) {
+                console.log(`💾 Guardando ${periodsWithPrices.length} períodos após edição...`);
+                await savePeriodsWithPrices(periodsWithPrices);
+            }
+            
+            // Atualizar UI
+            updatePeriodSelector();
+            loadPeriodByIndex(currentPeriodIndex);
+            
+            // Restaurar modal para estado de criação
+            const modalTitle = document.querySelector('#newPeriodModal h3');
+            if (modalTitle) {
+                modalTitle.textContent = 'Criar Novo Período';
+            }
+            const createBtn = document.querySelector('#newPeriodModal button[onclick="updatePeriod()"]');
+            if (createBtn) {
+                createBtn.textContent = 'Criar Período';
+                createBtn.setAttribute('onclick', 'createNewPeriod()');
+            }
+            
+            closeNewPeriodDialog();
+            
+            console.log('✅ Período atualizado:', allPeriods.map(p => `${p.day_start}-${p.day_end}`));
         }
         
         function deletePeriod() {
