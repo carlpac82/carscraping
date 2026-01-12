@@ -1616,28 +1616,35 @@
             const month = document.querySelector('#monthSelect').value;
             const year = document.querySelector('#yearSelect').value;
             
-            // Mapear grupos para SIPP codes e modelos
+            // Mapear grupos para SIPP codes e modelos (conforme backend main.py)
             const groupToSipp = {
                 'B1': {sipp: 'MDMV', model: 'Peugeot 108'},
                 'B2': {sipp: 'MDMR', model: 'Fiat Panda'},
                 'BK1': {sipp: 'MCMV', model: 'Citroen C1'},
                 'BK2': {sipp: 'NDMR', model: 'Toyota Aygo'},
                 'C': {sipp: 'EDMV', model: 'Opel Corsa'},
-                'D': {sipp: 'HDMV', model: 'Ford Fiesta'},
-                'DK': {sipp: 'MDAV', model: 'Toyota Aygo'},
-                'E1': {sipp: 'EDAR', model: 'Opel Corsa'},
+                'D': {sipp: 'EDMV', model: 'Opel Corsa'},
+                'DK': {sipp: 'HDMV', model: 'Ford Fiesta'},
+                'E1': {sipp: 'MDAR', model: 'Kia Picanto'},
                 'E2': {sipp: 'EDAV', model: 'Citroen C3/Opel Corsa'},
-                'EK1': {sipp: 'CFMR', model: 'Seat Arona'},
-                'EK2': {sipp: 'DFMR', model: 'Kia Stonic'},
-                'F': {sipp: 'CFMV', model: 'Seat Arona'},
-                'FK': {sipp: 'CFAV', model: 'VW T-Cross'},
-                'G': {sipp: 'IWMR', model: 'Peugeot 308 SW'},
-                'J1': {sipp: 'DFMV', model: 'Peugeot 2008'},
-                'J2': {sipp: 'IWMV', model: 'Opel Astra STW'},
-                'L1': {sipp: 'SVMV', model: 'Peugeot Rifter'},
-                'L2': {sipp: 'SVAR', model: 'Peugeot Rifter Automatic'},
-                'M1': {sipp: 'LVMD', model: 'Fiat Talento'},
-                'M2': {sipp: 'LVMR', model: 'Opel Vivaro'}
+                'EK1': {sipp: 'MDAV', model: 'Toyota Aygo'},
+                'EK2': {sipp: 'EDAR', model: 'Opel Corsa'},
+                'F': {sipp: 'CFMR', model: 'Seat Arona'},
+                'FK': {sipp: 'DFMR', model: 'Kia Stonic'},
+                'G': {sipp: 'MTMR', model: 'Fiat 500 Cabrio'},
+                'J1': {sipp: 'CFMV', model: 'Peugeot 2008'},
+                'J2': {sipp: 'IWMR', model: 'Peugeot 308 SW'},
+                'JK1': {sipp: 'DFMV', model: 'Citroen C4'},
+                'JK2': {sipp: 'IWMV', model: 'Opel Astra STW'},
+                'L1': {sipp: 'CFAR', model: 'Seat Arona'},
+                'L2': {sipp: 'CGAR', model: 'Citroen C3 Aircross'},
+                'LK1': {sipp: 'CFAV', model: 'VW T-Cross'},
+                'M1': {sipp: 'SVMR', model: 'Dacia Jogger SL Extreme'},
+                'M2': {sipp: 'SVAD', model: 'Citroen Grand C4 Automatic'},
+                'MK1': {sipp: 'SVMV', model: 'Peugeot Rifter'},
+                'MK2': {sipp: 'SVAR', model: 'Peugeot Rifter Automatic'},
+                'N': {sipp: 'LVMD', model: 'Fiat Talento'},
+                'NK': {sipp: 'LVMR', model: 'Opel Vivaro'}
             };
             
             const data = collectAbbycarData(abbycarCommission, groupToSipp);
