@@ -38,3 +38,6 @@ teste_visual.py
 teste_visual_novo.py
 chrome_profile/
 screenshots/
+
+# Database backups
+2026-*/
