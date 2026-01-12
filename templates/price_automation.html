@@ -1,13 +1,13 @@
 <!DOCTYPE html>
-<!-- Version: 2026-01-12-00:07 - FORCE CACHE BUST - Abbycar uses Current Prices NET -->
+<!-- Version: 2024-11-14-16:08 - Hierarchy Debug Logs Added -->
 <html lang="pt">
 <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, user-scalable=yes" />
-    <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate, max-age=0">
+    <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
     <meta http-equiv="Pragma" content="no-cache">
     <meta http-equiv="Expires" content="0">
-    <meta name="version" content="v2026-01-12-abbycar-current-prices-fix">
+    <meta name="version" content="v2025-11-03-monocromatic-notifications">
     <title>Price Automation • Auto Prudente</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
@@ -1094,8 +1094,7 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
     <script>
         // Grupos visíveis na automação (C não aparece pois copia D automaticamente)
-        // Incluindo grupos K (Low Deposit) para Abbycar
-        const grupos = ['B1', 'B2', 'BK1', 'BK2', 'D', 'DK', 'E1', 'E2', 'EK1', 'EK2', 'F', 'FK', 'G', 'J1', 'J2', 'JK1', 'JK2', 'L1', 'L2', 'LK1', 'M1', 'M2', 'MK1', 'MK2', 'N', 'NK'];
+        const grupos = ['B1', 'B2', 'D', 'E1', 'E2', 'F', 'G', 'J1', 'J2', 'L1', 'L2', 'M1', 'M2', 'N'];
         
         // Fill mode state
         let currentFillMode = 'auto'; // 'auto' or 'ai'
@@ -3070,33 +3069,17 @@
                            'L1', 'L2', 'LK1', 'M1', 'M2', 'MK1', 'MK2', 'N', 'NK'];
             const days = [1, 2, 3, 4, 5, 6, 7, 8, 9, 14, 22, 28];
             
-            // Collect prices from CURRENT PRICES (not Automated Prices)
+            // Collect prices
             const prices = {};
-            let totalPricesFound = 0;
             groups.forEach(group => {
                 prices[group] = {};
                 days.forEach(day => {
-                    // Buscar preço NET do Current Prices
-                    const inputNet = document.querySelector(`#pricesTable input[data-grupo="${group}"][data-dias="${day}"][data-type="net"]`);
-                    if (inputNet && inputNet.value && inputNet.value !== '' && inputNet.value !== '-') {
-                        prices[group][day] = parseFloat(inputNet.value);
-                        totalPricesFound++;
+                    const inputAuto = document.querySelector(`#pricesTableAuto input[data-grupo="${group}"][data-dias="${day}"][data-type="auto"]`);
+                    if (inputAuto && inputAuto.value && inputAuto.value !== '' && inputAuto.value !== '-') {
+                        prices[group][day] = parseFloat(inputAuto.value);
                     }
                 });
-                // Remove grupo se não tiver preços
-                if (Object.keys(prices[group]).length === 0) {
-                    delete prices[group];
-                }
             });
-            
-            console.log('[ABBYCAR] Prices collected from CURRENT PRICES:', totalPricesFound, 'prices from', Object.keys(prices).length, 'groups');
-            console.log('[ABBYCAR] Groups with prices:', Object.keys(prices));
-            
-            // Verificar se há preços
-            if (totalPricesFound === 0) {
-                showNotification('❌ Nenhum preço encontrado no Current Prices! Preencha os preços primeiro.', 'error', 5000);
-                return;
-            }
             
             // Try backend Excel (60 second timeout - Excel generation can be slow)
             try {
