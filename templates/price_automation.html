@@ -4483,6 +4483,7 @@
                                         </div>
                                         <div class="text-right">
                                             <div class="font-bold text-xs" style="color: ${cardColor};" id="price-display-${grupo}-${day}">${item.price ? parseFloat(item.price).toFixed(2) + '€' : '-'}</div>
+                                            ${item.price ? `<div class="text-[10px] text-gray-500 mt-0.5" id="price-net-${grupo}-${day}">NET: ${(parseFloat(item.price) / 1.1366).toFixed(2)}€</div>` : ''}
                                         </div>
                                     </div>
                                     <div class="bg-gray-50 rounded p-2 space-y-2">
