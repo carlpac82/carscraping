@@ -1629,10 +1629,10 @@
                 'E2': {sipp: 'EDAV', model: 'Citroen C3/Opel Corsa'},
                 'EK1': {sipp: 'CFMR', model: 'Seat Arona'},
                 'EK2': {sipp: 'DFMR', model: 'Kia Stonic'},
-                'F': {sipp: 'CFMV', model: 'Peugeot 2008'},
+                'F': {sipp: 'CFMV', model: 'Seat Arona'},
                 'FK': {sipp: 'CFAV', model: 'VW T-Cross'},
                 'G': {sipp: 'IWMR', model: 'Peugeot 308 SW'},
-                'J1': {sipp: 'DFMV', model: 'Citroen C4'},
+                'J1': {sipp: 'DFMV', model: 'Peugeot 2008'},
                 'J2': {sipp: 'IWMV', model: 'Opel Astra STW'},
                 'L1': {sipp: 'SVMV', model: 'Peugeot Rifter'},
                 'L2': {sipp: 'SVAR', model: 'Peugeot Rifter Automatic'},
@@ -1741,7 +1741,7 @@
                         const netPrice = parseFloat(input.value) || 0;
                         const day = dias[idx];
                         
-                        // Aplicar comissão (sem divisão por dias)
+                        // Aplicar comissão Abbycar
                         const finalPrice = parseFloat(calculateWithCommission(netPrice, commission));
                         
                         // Mapear para colunas do Abbycar
