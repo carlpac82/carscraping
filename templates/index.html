@@ -1627,6 +1627,10 @@
             const lowDepositPct = lowDepositData.ok ? lowDepositData.low_deposit_pct : 0;
             console.log('Low Deposit %:', lowDepositPct);
             
+            // Check if "Grupo K" checkbox is checked
+            const showGroupsK = document.getElementById('showGroupsK')?.checked || false;
+            console.log('Show Grupos K:', showGroupsK);
+            
             // Mapear grupos para SIPP codes e modelos (conforme backend main.py)
             // Alguns grupos aparecem 2x com SIPP codes diferentes (L1, M1)
             const groupToSipp = {
@@ -1658,7 +1662,7 @@
                 'NK': [{sipp: 'LVMR', model: 'Opel Vivaro'}]
             };
             
-            const data = collectAbbycarData(abbycarCommission, groupToSipp, startDate, endDate, lowDepositPct);
+            const data = collectAbbycarData(abbycarCommission, groupToSipp, startDate, endDate, lowDepositPct, showGroupsK);
                 console.log('Dados coletados:', data.length, 'grupos');
                 generateAbbycarCSV(data, location, month, year);
                 console.log('Download Abbycar concluído!');
@@ -1728,7 +1732,7 @@
         }
 
         // Coletar dados para Abbycar (formato específico)
-        function collectAbbycarData(commission, groupToSipp, startDate, endDate, lowDepositPct) {
+        function collectAbbycarData(commission, groupToSipp, startDate, endDate, lowDepositPct, showGroupsK) {
             const data = [];
             const station = 'ABF'; // Albufeira
             
@@ -1778,21 +1782,24 @@
                     
                     dias.forEach((day, idx) => {
                         let netPrice = 0;
+                        let finalPrice = 0;
                         
-                        // Se é grupo K, buscar preço do grupo base
+                        // Se é grupo K
                         if (kGroupMapping[grupo]) {
-                            const baseGroup = kGroupMapping[grupo];
-                            netPrice = cardPrices[baseGroup]?.[day] || 0;
+                            // Grupos K só têm preços se checkbox estiver marcado
+                            if (showGroupsK) {
+                                const baseGroup = kGroupMapping[grupo];
+                                netPrice = cardPrices[baseGroup]?.[day] || 0;
+                                // Aplicar comissão Abbycar
+                                finalPrice = parseFloat(calculateWithCommission(netPrice, commission));
+                                // Aplicar Low Deposit adicional
+                                finalPrice = finalPrice * (1 + lowDepositPct / 100);
+                            }
+                            // Se checkbox não marcado, finalPrice fica 0 (sem preços)
                         } else {
+                            // Grupos normais sempre têm preços
                             netPrice = cardPrices[grupo]?.[day] || 0;
-                        }
-                        
-                        // Aplicar comissão Abbycar
-                        let finalPrice = parseFloat(calculateWithCommission(netPrice, commission));
-                        
-                        // Se é grupo K, aplicar Low Deposit adicional
-                        if (kGroupMapping[grupo]) {
-                            finalPrice = finalPrice * (1 + lowDepositPct / 100);
+                            finalPrice = parseFloat(calculateWithCommission(netPrice, commission));
                         }
                         
                         // Mapear para colunas do Abbycar
