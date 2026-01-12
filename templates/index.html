@@ -1724,8 +1724,8 @@
                 
                 const row = {
                     station: station,
-                    startDate: '',
-                    endDate: '',
+                    startDate: '01',
+                    endDate: '31',
                     group: sippInfo.sipp,
                     model: sippInfo.model,
                     currency: 'EUR',
@@ -1746,17 +1746,17 @@
                         
                         // Mapear para colunas do Abbycar
                         if (day <= 7) {
-                            row.prices[`${day}_day_fixed`] = finalPrice;
+                            row.prices[`${day}_day_fixed`] = finalPrice.toFixed(2);
                         } else if (day === 8) {
-                            row.prices['8_10_daily'] = finalPrice / 8; // Daily price
+                            row.prices['8_10_daily'] = (finalPrice / 8).toFixed(2); // Daily price
                         } else if (day === 9) {
-                            row.prices['11_12_daily'] = finalPrice / 9; // Daily price
+                            row.prices['11_12_daily'] = (finalPrice / 9).toFixed(2); // Daily price
                         } else if (day === 14) {
-                            row.prices['13_14_daily'] = finalPrice / 14; // Daily price
+                            row.prices['13_14_daily'] = (finalPrice / 14).toFixed(2); // Daily price
                         } else if (day === 22) {
-                            row.prices['15_21_daily'] = finalPrice / 22; // Daily price
+                            row.prices['15_21_daily'] = (finalPrice / 22).toFixed(2); // Daily price
                         } else if (day === 28) {
-                            row.prices['22_28_daily'] = finalPrice / 28; // Daily price
+                            row.prices['22_28_daily'] = (finalPrice / 28).toFixed(2); // Daily price
                         }
                     }
                 });
