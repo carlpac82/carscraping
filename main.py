@@ -28954,8 +28954,8 @@ async def export_automated_prices_excel(request: Request):
         # Map internal group codes to primary SIPP code for display
         group_to_sipp = {
             'B1': 'MDMV',
-            'B2': 'EDMV',
-            'D': 'MDMR',
+            'B2': 'MDMR',
+            'D': 'EDMV',
             'E1': 'MDAR',
             'E2': 'EDAV',
             'F': 'CFMR',
