@@ -1616,6 +1616,11 @@
             const month = document.querySelector('#monthSelect').value;
             const year = document.querySelector('#yearSelect').value;
             
+            // Calculate start and end dates for the month (MM/DD/YYYY format)
+            const lastDay = new Date(year, month, 0).getDate(); // Last day of the month
+            const startDate = `${month}/01/${year}`;
+            const endDate = `${month}/${lastDay}/${year}`;
+            
             // Mapear grupos para SIPP codes e modelos (conforme backend main.py)
             // Alguns grupos aparecem 2x com SIPP codes diferentes (L1, M1)
             const groupToSipp = {
@@ -1647,7 +1652,7 @@
                 'NK': [{sipp: 'LVMR', model: 'Opel Vivaro'}]
             };
             
-            const data = collectAbbycarData(abbycarCommission, groupToSipp);
+            const data = collectAbbycarData(abbycarCommission, groupToSipp, startDate, endDate);
                 console.log('Dados coletados:', data.length, 'grupos');
                 generateAbbycarCSV(data, location, month, year);
                 console.log('Download Abbycar concluído!');
@@ -1717,7 +1722,7 @@
         }
 
         // Coletar dados para Abbycar (formato específico)
-        function collectAbbycarData(commission, groupToSipp) {
+        function collectAbbycarData(commission, groupToSipp, startDate, endDate) {
             const data = [];
             const station = 'ABF'; // Albufeira
             
@@ -1733,8 +1738,8 @@
                 sippInfoArray.forEach(sippInfo => {
                     const row = {
                         station: station,
-                        startDate: '01',
-                        endDate: '31',
+                        startDate: startDate,
+                        endDate: endDate,
                         group: sippInfo.sipp,
                         model: sippInfo.model,
                         currency: 'EUR',
