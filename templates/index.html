@@ -1607,7 +1607,7 @@
         }
 
         // Download Abbycar: Formato específico com SIPP codes e daily prices
-        function downloadAbbycar() {
+        async function downloadAbbycar() {
             try {
                 console.log('Iniciando download Abbycar...');
                 const abbycarCommission = parseFloat(document.getElementById('commissionAbbycar').value) || 5;
@@ -1620,6 +1620,12 @@
             const lastDay = new Date(year, month, 0).getDate(); // Last day of the month
             const startDate = `${month}/01/${year}`;
             const endDate = `${month}/${lastDay}/${year}`;
+            
+            // Fetch Low Deposit percentage from Admin Settings
+            const lowDepositResponse = await fetch('/api/admin-settings/low-deposit');
+            const lowDepositData = await lowDepositResponse.json();
+            const lowDepositPct = lowDepositData.ok ? lowDepositData.low_deposit_pct : 0;
+            console.log('Low Deposit %:', lowDepositPct);
             
             // Mapear grupos para SIPP codes e modelos (conforme backend main.py)
             // Alguns grupos aparecem 2x com SIPP codes diferentes (L1, M1)
@@ -1652,7 +1658,7 @@
                 'NK': [{sipp: 'LVMR', model: 'Opel Vivaro'}]
             };
             
-            const data = collectAbbycarData(abbycarCommission, groupToSipp, startDate, endDate);
+            const data = collectAbbycarData(abbycarCommission, groupToSipp, startDate, endDate, lowDepositPct);
                 console.log('Dados coletados:', data.length, 'grupos');
                 generateAbbycarCSV(data, location, month, year);
                 console.log('Download Abbycar concluído!');
@@ -1722,16 +1728,38 @@
         }
 
         // Coletar dados para Abbycar (formato específico)
-        function collectAbbycarData(commission, groupToSipp, startDate, endDate) {
+        function collectAbbycarData(commission, groupToSipp, startDate, endDate, lowDepositPct) {
             const data = [];
             const station = 'ABF'; // Albufeira
             
+            // Mapeamento de grupos K para seus grupos base
+            const kGroupMapping = {
+                'BK1': 'B1', 'BK2': 'B2', 'DK': 'D',
+                'EK1': 'E1', 'EK2': 'E2', 'FK': 'F',
+                'JK1': 'J1', 'JK2': 'J2', 'LK1': 'L1',
+                'MK1': 'M1', 'MK2': 'M2', 'NK': 'N'
+            };
+            
+            // Primeiro, coletar todos os preços dos cards
+            const cardPrices = {};
             const cards = document.querySelectorAll('.price-card');
             cards.forEach(card => {
                 const h3Text = card.querySelector('h3').textContent.trim();
-                const grupo = h3Text.replace('Grupo ', ''); // Remove "Grupo " prefix
-                const sippInfoArray = groupToSipp[grupo];
+                const grupo = h3Text.replace('Grupo ', '');
+                const priceInputs = card.querySelectorAll('.price-input:not(.commission)');
+                const dias = [1, 2, 3, 4, 5, 6, 7, 8, 9, 14, 22, 28];
                 
+                cardPrices[grupo] = {};
+                priceInputs.forEach((input, idx) => {
+                    if (idx < dias.length) {
+                        cardPrices[grupo][dias[idx]] = parseFloat(input.value) || 0;
+                    }
+                });
+            });
+            
+            // Agora processar cada grupo e gerar linhas
+            Object.keys(groupToSipp).forEach(grupo => {
+                const sippInfoArray = groupToSipp[grupo];
                 if (!sippInfoArray) return;
                 
                 // Alguns grupos têm múltiplos SIPP codes (L1, M1) - gerar linha para cada um
@@ -1746,32 +1774,40 @@
                         prices: {}
                     };
                     
-                    // Coletar preços Net e aplicar comissão
-                    const priceInputs = card.querySelectorAll('.price-input:not(.commission)');
                     const dias = [1, 2, 3, 4, 5, 6, 7, 8, 9, 14, 22, 28];
                     
-                    priceInputs.forEach((input, idx) => {
-                        if (idx < dias.length) {
-                            const netPrice = parseFloat(input.value) || 0;
-                            const day = dias[idx];
-                            
-                            // Aplicar comissão Abbycar
-                            const finalPrice = parseFloat(calculateWithCommission(netPrice, commission));
-                            
-                            // Mapear para colunas do Abbycar
-                            if (day <= 7) {
-                                row.prices[`${day}_day_fixed`] = finalPrice.toFixed(2);
-                            } else if (day === 8) {
-                                row.prices['8_10_daily'] = (finalPrice / 8).toFixed(2); // Daily price
-                            } else if (day === 9) {
-                                row.prices['11_12_daily'] = (finalPrice / 9).toFixed(2); // Daily price
-                            } else if (day === 14) {
-                                row.prices['13_14_daily'] = (finalPrice / 14).toFixed(2); // Daily price
-                            } else if (day === 22) {
-                                row.prices['15_21_daily'] = (finalPrice / 22).toFixed(2); // Daily price
-                            } else if (day === 28) {
-                                row.prices['22_28_daily'] = (finalPrice / 28).toFixed(2); // Daily price
-                            }
+                    dias.forEach((day, idx) => {
+                        let netPrice = 0;
+                        
+                        // Se é grupo K, buscar preço do grupo base
+                        if (kGroupMapping[grupo]) {
+                            const baseGroup = kGroupMapping[grupo];
+                            netPrice = cardPrices[baseGroup]?.[day] || 0;
+                        } else {
+                            netPrice = cardPrices[grupo]?.[day] || 0;
+                        }
+                        
+                        // Aplicar comissão Abbycar
+                        let finalPrice = parseFloat(calculateWithCommission(netPrice, commission));
+                        
+                        // Se é grupo K, aplicar Low Deposit adicional
+                        if (kGroupMapping[grupo]) {
+                            finalPrice = finalPrice * (1 + lowDepositPct / 100);
+                        }
+                        
+                        // Mapear para colunas do Abbycar
+                        if (day <= 7) {
+                            row.prices[`${day}_day_fixed`] = finalPrice.toFixed(2);
+                        } else if (day === 8) {
+                            row.prices['8_10_daily'] = (finalPrice / 8).toFixed(2); // Daily price
+                        } else if (day === 9) {
+                            row.prices['11_12_daily'] = (finalPrice / 9).toFixed(2); // Daily price
+                        } else if (day === 14) {
+                            row.prices['13_14_daily'] = (finalPrice / 14).toFixed(2); // Daily price
+                        } else if (day === 22) {
+                            row.prices['15_21_daily'] = (finalPrice / 22).toFixed(2); // Daily price
+                        } else if (day === 28) {
+                            row.prices['22_28_daily'] = (finalPrice / 28).toFixed(2); // Daily price
                         }
                     });
                     

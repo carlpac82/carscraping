@@ -28765,6 +28765,19 @@ async def download_export_history(request: Request, export_id: int):
         import traceback
         return _no_store_json({"ok": False, "error": str(e), "traceback": traceback.format_exc()}, 500)
 
+@app.get("/api/admin-settings/low-deposit")
+async def get_low_deposit_percentage(request: Request):
+    """Get Low Deposit percentage from Admin Settings"""
+    require_auth(request)
+    try:
+        low_deposit_pct = _get_abbycar_low_deposit_adjustment()
+        return _no_store_json({
+            "ok": True,
+            "low_deposit_pct": low_deposit_pct
+        })
+    except Exception as e:
+        return _no_store_json({"ok": False, "error": str(e)}, 500)
+
 @app.post("/api/export-automated-prices-excel")
 async def export_automated_prices_excel(request: Request):
     """Export automated prices to Excel (Abbycar format)"""
