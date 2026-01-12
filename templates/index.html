@@ -1664,7 +1664,9 @@
             
             const data = collectAbbycarData(abbycarCommission, groupToSipp, startDate, endDate, lowDepositPct, showGroupsK);
                 console.log('Dados coletados:', data.length, 'grupos');
-                generateAbbycarCSV(data, location, month, year);
+                
+                // Enviar para backend para gerar Excel com formatação
+                await downloadAbbycarExcel(data, location, startDate, endDate);
                 console.log('Download Abbycar concluído!');
             } catch (error) {
                 console.error('Erro no download Abbycar:', error);
@@ -1825,7 +1827,40 @@
             return data;
         }
 
-        // Gerar ficheiro CSV Abbycar
+        // Enviar dados para backend gerar Excel com formatação
+        async function downloadAbbycarExcel(data, location, startDate, endDate) {
+            try {
+                const response = await fetch('/api/export-abbycar-excel', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        data: data,
+                        location: location,
+                        startDate: startDate,
+                        endDate: endDate
+                    })
+                });
+                
+                if (!response.ok) {
+                    throw new Error('Erro ao gerar Excel');
+                }
+                
+                const blob = await response.blob();
+                const url = window.URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = `ABBYCAR-${location}-${startDate.replace(/\//g, '-')}.xlsx`;
+                document.body.appendChild(a);
+                a.click();
+                window.URL.revokeObjectURL(url);
+                document.body.removeChild(a);
+            } catch (error) {
+                console.error('Erro ao baixar Excel:', error);
+                throw error;
+            }
+        }
+        
+        // Gerar ficheiro CSV Abbycar (fallback)
         function generateAbbycarCSV(data, location, month, year) {
             const headers = [
                 'Stations', 'Start Date', 'End Date', 'Group', 'Model Example (optional)', 'CURRENCY',

@@ -28778,6 +28778,85 @@ async def get_low_deposit_percentage(request: Request):
     except Exception as e:
         return _no_store_json({"ok": False, "error": str(e)}, 500)
 
+@app.post("/api/export-abbycar-excel")
+async def export_abbycar_excel(request: Request):
+    """Export Abbycar Excel with blue background for K groups"""
+    require_auth(request)
+    try:
+        from openpyxl import Workbook
+        from openpyxl.styles import PatternFill
+        from starlette.responses import Response
+        import io
+        
+        data_json = await request.json()
+        rows_data = data_json.get('data', [])
+        location = data_json.get('location', 'Albufeira')
+        start_date = data_json.get('startDate', '')
+        end_date = data_json.get('endDate', '')
+        
+        # Create workbook
+        wb = Workbook()
+        ws = wb.active
+        ws.title = "Abbycar"
+        
+        # Headers
+        headers = ['Stations', 'Start Date', 'End Date', 'Group', 'Model Example (optional)', 'CURRENCY',
+                   '1 day fixed', '2 days fixed', '3 days fixed', '4 days fixed', '5 days fixed',
+                   '6 days fixed', '7 days fixed', '8-10 daily', '11-12 daily', '13-14 daily',
+                   '15-21 daily', '22-28 daily']
+        ws.append(headers)
+        
+        # K groups SIPP codes for blue background
+        k_group_sipps = ['MCMV', 'NDMR', 'HDMV', 'MDAV', 'EDAR', 'DFMR', 'DFMV', 'IWMV', 'CFAV', 'SVMV', 'SVAR', 'LVMR']
+        blue_fill = PatternFill(start_color='ADD8E6', end_color='ADD8E6', fill_type='solid')  # Light blue
+        
+        # Add data rows
+        for row_data in rows_data:
+            sipp_code = row_data.get('group', '')
+            row_values = [
+                row_data.get('station', ''),
+                row_data.get('startDate', ''),
+                row_data.get('endDate', ''),
+                sipp_code,
+                row_data.get('model', ''),
+                row_data.get('currency', 'EUR')
+            ]
+            
+            # Add prices
+            prices = row_data.get('prices', {})
+            for key in ['1_day_fixed', '2_day_fixed', '3_day_fixed', '4_day_fixed', '5_day_fixed',
+                       '6_day_fixed', '7_day_fixed', '8_10_daily', '11_12_daily', '13_14_daily',
+                       '15_21_daily', '22_28_daily']:
+                price_val = prices.get(key, '')
+                if price_val:
+                    row_values.append(str(price_val).replace('.', ','))
+                else:
+                    row_values.append('')
+            
+            ws.append(row_values)
+            
+            # Apply blue background if K group
+            if sipp_code in k_group_sipps:
+                row_idx = ws.max_row
+                for col_idx in range(1, len(headers) + 1):
+                    ws.cell(row_idx, col_idx).fill = blue_fill
+        
+        # Save to bytes
+        excel_bytes = io.BytesIO()
+        wb.save(excel_bytes)
+        excel_bytes.seek(0)
+        
+        filename = f"ABBYCAR-{location}-{start_date.replace('/', '-')}.xlsx"
+        
+        return Response(
+            content=excel_bytes.getvalue(),
+            media_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+            headers={'Content-Disposition': f'attachment; filename="{filename}"'}
+        )
+    except Exception as e:
+        import traceback
+        return _no_store_json({"ok": False, "error": str(e), "traceback": traceback.format_exc()}, 500)
+
 @app.post("/api/export-automated-prices-excel")
 async def export_automated_prices_excel(request: Request):
     """Export automated prices to Excel (Abbycar format)"""
