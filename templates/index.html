@@ -1716,7 +1716,8 @@
             
             const cards = document.querySelectorAll('.price-card');
             cards.forEach(card => {
-                const grupo = card.querySelector('h3').textContent.trim();
+                const h3Text = card.querySelector('h3').textContent.trim();
+                const grupo = h3Text.replace('Grupo ', ''); // Remove "Grupo " prefix
                 const sippInfo = groupToSipp[grupo];
                 
                 if (!sippInfo) return;
