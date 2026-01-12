@@ -1617,34 +1617,35 @@
             const year = document.querySelector('#yearSelect').value;
             
             // Mapear grupos para SIPP codes e modelos (conforme backend main.py)
+            // Alguns grupos aparecem 2x com SIPP codes diferentes (L1, M1)
             const groupToSipp = {
-                'B1': {sipp: 'MDMV', model: 'Peugeot 108'},
-                'B2': {sipp: 'MDMR', model: 'Fiat Panda'},
-                'BK1': {sipp: 'MCMV', model: 'Citroen C1'},
-                'BK2': {sipp: 'NDMR', model: 'Toyota Aygo'},
-                'C': {sipp: 'EDMV', model: 'Opel Corsa'},
-                'D': {sipp: 'EDMV', model: 'Opel Corsa'},
-                'DK': {sipp: 'HDMV', model: 'Ford Fiesta'},
-                'E1': {sipp: 'MDAR', model: 'Kia Picanto'},
-                'E2': {sipp: 'EDAV', model: 'Citroen C3/Opel Corsa'},
-                'EK1': {sipp: 'MDAV', model: 'Toyota Aygo'},
-                'EK2': {sipp: 'EDAR', model: 'Opel Corsa'},
-                'F': {sipp: 'CFMR', model: 'Seat Arona'},
-                'FK': {sipp: 'DFMR', model: 'Kia Stonic'},
-                'G': {sipp: 'MTMR', model: 'Fiat 500 Cabrio'},
-                'J1': {sipp: 'CFMV', model: 'Peugeot 2008'},
-                'J2': {sipp: 'IWMR', model: 'Peugeot 308 SW'},
-                'JK1': {sipp: 'DFMV', model: 'Citroen C4'},
-                'JK2': {sipp: 'IWMV', model: 'Opel Astra STW'},
-                'L1': {sipp: 'CFAR', model: 'Seat Arona'},
-                'L2': {sipp: 'CGAR', model: 'Citroen C3 Aircross'},
-                'LK1': {sipp: 'CFAV', model: 'VW T-Cross'},
-                'M1': {sipp: 'SVMR', model: 'Dacia Jogger SL Extreme'},
-                'M2': {sipp: 'SVAD', model: 'Citroen Grand C4 Automatic'},
-                'MK1': {sipp: 'SVMV', model: 'Peugeot Rifter'},
-                'MK2': {sipp: 'SVAR', model: 'Peugeot Rifter Automatic'},
-                'N': {sipp: 'LVMD', model: 'Fiat Talento'},
-                'NK': {sipp: 'LVMR', model: 'Opel Vivaro'}
+                'B1': [{sipp: 'MDMV', model: 'Peugeot 108'}],
+                'B2': [{sipp: 'MDMR', model: 'Fiat Panda'}],
+                'BK1': [{sipp: 'MCMV', model: 'Citroen C1'}],
+                'BK2': [{sipp: 'NDMR', model: 'Toyota Aygo'}],
+                'C': [{sipp: 'EDMV', model: 'Opel Corsa'}],
+                'D': [{sipp: 'EDMV', model: 'Opel Corsa'}],
+                'DK': [{sipp: 'HDMV', model: 'Ford Fiesta'}],
+                'E1': [{sipp: 'MDAR', model: 'Kia Picanto'}],
+                'E2': [{sipp: 'EDAV', model: 'Citroen C3/Opel Corsa'}],
+                'EK1': [{sipp: 'MDAV', model: 'Toyota Aygo'}],
+                'EK2': [{sipp: 'EDAR', model: 'Opel Corsa'}],
+                'F': [{sipp: 'CFMR', model: 'Seat Arona'}],
+                'FK': [{sipp: 'DFMR', model: 'Kia Stonic'}],
+                'G': [{sipp: 'MTMR', model: 'Fiat 500 Cabrio'}],
+                'J1': [{sipp: 'CFMV', model: 'Peugeot 2008'}],
+                'J2': [{sipp: 'IWMR', model: 'Peugeot 308 SW'}],
+                'JK1': [{sipp: 'DFMV', model: 'Citroen C4'}],
+                'JK2': [{sipp: 'IWMV', model: 'Opel Astra STW'}],
+                'L1': [{sipp: 'CFAR', model: 'Seat Arona'}, {sipp: 'CGAR', model: 'Citroen C3 Aircross'}],
+                'L2': [{sipp: 'CGAR', model: 'Citroen C3 Aircross'}],
+                'LK1': [{sipp: 'CFAV', model: 'VW T-Cross'}],
+                'M1': [{sipp: 'SVMR', model: 'Dacia Jogger SL Extreme'}, {sipp: 'SVMD', model: 'Citroen Grand C4'}],
+                'M2': [{sipp: 'SVAD', model: 'Citroen Grand C4 Automatic'}],
+                'MK1': [{sipp: 'SVMV', model: 'Peugeot Rifter'}],
+                'MK2': [{sipp: 'SVAR', model: 'Peugeot Rifter Automatic'}],
+                'N': [{sipp: 'LVMD', model: 'Fiat Talento'}],
+                'NK': [{sipp: 'LVMR', model: 'Opel Vivaro'}]
             };
             
             const data = collectAbbycarData(abbycarCommission, groupToSipp);
@@ -1725,50 +1726,53 @@
             cards.forEach(card => {
                 const h3Text = card.querySelector('h3').textContent.trim();
                 const grupo = h3Text.replace('Grupo ', ''); // Remove "Grupo " prefix
-                const sippInfo = groupToSipp[grupo];
+                const sippInfoArray = groupToSipp[grupo];
                 
-                if (!sippInfo) return;
+                if (!sippInfoArray) return;
                 
-                const row = {
-                    station: station,
-                    startDate: '01',
-                    endDate: '31',
-                    group: sippInfo.sipp,
-                    model: sippInfo.model,
-                    currency: 'EUR',
-                    prices: {}
-                };
-                
-                // Coletar preços Net e aplicar comissão
-                const priceInputs = card.querySelectorAll('.price-input:not(.commission)');
-                const dias = [1, 2, 3, 4, 5, 6, 7, 8, 9, 14, 22, 28];
-                
-                priceInputs.forEach((input, idx) => {
-                    if (idx < dias.length) {
-                        const netPrice = parseFloat(input.value) || 0;
-                        const day = dias[idx];
-                        
-                        // Aplicar comissão Abbycar
-                        const finalPrice = parseFloat(calculateWithCommission(netPrice, commission));
-                        
-                        // Mapear para colunas do Abbycar
-                        if (day <= 7) {
-                            row.prices[`${day}_day_fixed`] = finalPrice.toFixed(2);
-                        } else if (day === 8) {
-                            row.prices['8_10_daily'] = (finalPrice / 8).toFixed(2); // Daily price
-                        } else if (day === 9) {
-                            row.prices['11_12_daily'] = (finalPrice / 9).toFixed(2); // Daily price
-                        } else if (day === 14) {
-                            row.prices['13_14_daily'] = (finalPrice / 14).toFixed(2); // Daily price
-                        } else if (day === 22) {
-                            row.prices['15_21_daily'] = (finalPrice / 22).toFixed(2); // Daily price
-                        } else if (day === 28) {
-                            row.prices['22_28_daily'] = (finalPrice / 28).toFixed(2); // Daily price
+                // Alguns grupos têm múltiplos SIPP codes (L1, M1) - gerar linha para cada um
+                sippInfoArray.forEach(sippInfo => {
+                    const row = {
+                        station: station,
+                        startDate: '01',
+                        endDate: '31',
+                        group: sippInfo.sipp,
+                        model: sippInfo.model,
+                        currency: 'EUR',
+                        prices: {}
+                    };
+                    
+                    // Coletar preços Net e aplicar comissão
+                    const priceInputs = card.querySelectorAll('.price-input:not(.commission)');
+                    const dias = [1, 2, 3, 4, 5, 6, 7, 8, 9, 14, 22, 28];
+                    
+                    priceInputs.forEach((input, idx) => {
+                        if (idx < dias.length) {
+                            const netPrice = parseFloat(input.value) || 0;
+                            const day = dias[idx];
+                            
+                            // Aplicar comissão Abbycar
+                            const finalPrice = parseFloat(calculateWithCommission(netPrice, commission));
+                            
+                            // Mapear para colunas do Abbycar
+                            if (day <= 7) {
+                                row.prices[`${day}_day_fixed`] = finalPrice.toFixed(2);
+                            } else if (day === 8) {
+                                row.prices['8_10_daily'] = (finalPrice / 8).toFixed(2); // Daily price
+                            } else if (day === 9) {
+                                row.prices['11_12_daily'] = (finalPrice / 9).toFixed(2); // Daily price
+                            } else if (day === 14) {
+                                row.prices['13_14_daily'] = (finalPrice / 14).toFixed(2); // Daily price
+                            } else if (day === 22) {
+                                row.prices['15_21_daily'] = (finalPrice / 22).toFixed(2); // Daily price
+                            } else if (day === 28) {
+                                row.prices['22_28_daily'] = (finalPrice / 28).toFixed(2); // Daily price
+                            }
                         }
-                    }
+                    });
+                    
+                    data.push(row);
                 });
-                
-                data.push(row);
             });
             
             return data;
