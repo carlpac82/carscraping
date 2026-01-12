@@ -1715,23 +1715,11 @@
             const station = 'ABF'; // Albufeira
             
             const cards = document.querySelectorAll('.price-card');
-            console.log('[ABBYCAR DEBUG] Total cards found:', cards.length);
-            
             cards.forEach(card => {
-                const grupoElement = card.querySelector('h3');
-                if (!grupoElement) {
-                    console.log('[ABBYCAR DEBUG] Card sem h3:', card);
-                    return;
-                }
-                const grupo = grupoElement.textContent.trim();
-                console.log('[ABBYCAR DEBUG] Processing grupo:', grupo);
-                
+                const grupo = card.querySelector('h3').textContent.trim();
                 const sippInfo = groupToSipp[grupo];
                 
-                if (!sippInfo) {
-                    console.log('[ABBYCAR DEBUG] Grupo sem SIPP mapping:', grupo);
-                    return;
-                }
+                if (!sippInfo) return;
                 
                 const row = {
                     station: station,
