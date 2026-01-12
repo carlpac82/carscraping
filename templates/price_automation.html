@@ -6749,9 +6749,15 @@
             // If supplierData is in GROUP→DAY→CARS format, convert to DAY→CARS for visual cards
             let supplierDataForCards = supplierData;
             
+            console.log('[HISTORY] 🔍 Checking supplierData format...');
+            console.log('[HISTORY] 🔍 supplierData keys:', Object.keys(supplierData || {}).length);
+            
             if (supplierData && Object.keys(supplierData).length > 0) {
                 const firstKey = Object.keys(supplierData)[0];
+                console.log('[HISTORY] 🔍 First key:', firstKey, 'Type:', typeof firstKey);
+                
                 const isGroupFormat = isNaN(parseInt(firstKey)); // If first key is not a number, it's a group
+                console.log('[HISTORY] 🔍 Is group format?', isGroupFormat);
                 
                 if (isGroupFormat) {
                     console.log('[HISTORY] 🔄 Converting GROUP→DAY→CARS to DAY→CARS format for visual cards');
@@ -6760,19 +6766,25 @@
                     // Convert: {B1: {7: [...], 14: [...]}} → {7: [...], 14: [...]}
                     Object.keys(supplierData).forEach(grupo => {
                         const daysData = supplierData[grupo];
-                        Object.keys(daysData).forEach(day => {
-                            const dayInt = parseInt(day);
-                            if (!supplierDataForCards[dayInt]) {
-                                supplierDataForCards[dayInt] = [];
-                            }
-                            const cars = daysData[day];
-                            if (Array.isArray(cars)) {
-                                supplierDataForCards[dayInt].push(...cars);
-                            }
-                        });
+                        console.log(`[HISTORY] 🔄 Processing group ${grupo}:`, typeof daysData, Object.keys(daysData || {}).length, 'days');
+                        
+                        if (daysData && typeof daysData === 'object') {
+                            Object.keys(daysData).forEach(day => {
+                                const dayInt = parseInt(day);
+                                if (!supplierDataForCards[dayInt]) {
+                                    supplierDataForCards[dayInt] = [];
+                                }
+                                const cars = daysData[day];
+                                if (Array.isArray(cars)) {
+                                    console.log(`[HISTORY] 🔄 Adding ${cars.length} cars from ${grupo} day ${day}`);
+                                    supplierDataForCards[dayInt].push(...cars);
+                                }
+                            });
+                        }
                     });
                     
                     console.log('[HISTORY] ✅ Converted to DAY→CARS:', Object.keys(supplierDataForCards).length, 'days');
+                    console.log('[HISTORY] ✅ Days with data:', Object.keys(supplierDataForCards).map(d => `${d} (${supplierDataForCards[d].length} cars)`).join(', '));
                 } else {
                     console.log('[HISTORY] ✅ supplierData already in DAY→CARS format');
                 }
