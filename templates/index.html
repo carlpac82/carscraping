@@ -1564,11 +1564,11 @@
             }
         }
 
-        // Calcular preço para dia específico (lógica do automated prices)
+        // Calcular preço para dia específico (lógica do Abbycar - dias 1-7 fixos, 8+ divididos)
         function calculatePriceForDay(netPrice, day) {
             if (!netPrice || netPrice <= 0) return 0;
             
-            // Days 1-7: Fixed NET prices (no division)
+            // Days 1-7: Fixed NET prices (no division) - usado apenas para Abbycar
             if (day <= 7) {
                 return netPrice;
             }
@@ -1715,8 +1715,8 @@
                     let finalPrice = 0;
                     
                     if (type === 'brokers') {
-                        // Brokers: Net dividido por dias (para dias 8+)
-                        finalPrice = calculatePriceForDay(netPrice, dia);
+                        // Brokers: Net dividido SEMPRE por dias (preço diário)
+                        finalPrice = netPrice / dia;
                     } else if (type === 'website' || type === 'abbycar') {
                         // Website/Abbycar: Net + comissão (sem divisão)
                         finalPrice = parseFloat(calculateWithCommission(netPrice, commission));
