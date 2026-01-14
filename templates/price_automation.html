@@ -9527,17 +9527,11 @@ Continue?`);
             
             console.log('📅 [MONTH-PICKER] Month selected:', monthStr);
             
-            // Auto-select default days for monthly search (like the default for automated prices)
-            // Default: 1, 2, 3, 4, 5, 6, 7, 8, 9, 14, 22, 28
-            window.selectedDaysAuto = [1, 2, 3, 4, 5, 6, 7, 8, 9, 14, 22, 28];
+            // ⚠️ REMOVED AUTO-RESET: Preserve user's manually selected days
+            // Previously this was resetting to default [1,2,3,4,5,6,7,8,9,14,22,28]
+            // Now we keep whatever days the user has selected in the chips
             
-            // Reinitialize day chips with new selection
-            initDayChipsAuto();
-            
-            // Show notification
-            showNotification(`Mês selecionado: ${monthStr}. Dias automaticamente selecionados conforme configuração padrão.`, 'info');
-            
-            console.log('📅 [MONTH-PICKER] Auto-selected days:', window.selectedDaysAuto);
+            console.log('📅 [MONTH-PICKER] Keeping user-selected days:', selectedDaysAuto);
         }
         
         function initializeYearPicker() {
