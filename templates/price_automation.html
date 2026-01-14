@@ -5086,6 +5086,11 @@
                     window.currentSupplierData = allCarsByDay;
                     console.log(`[SAVE-HISTORY] 💾 Stored currentSupplierData with ${Object.keys(allCarsByDay).length} days`);
                     
+                    // DEBUG: Log dias before saving
+                    console.log(`[SAVE-HISTORY] 🔍 DEBUG - dias being saved:`, dias);
+                    console.log(`[SAVE-HISTORY] 🔍 DEBUG - selectedDaysAuto:`, selectedDaysAuto);
+                    console.log(`[SAVE-HISTORY] 🔍 DEBUG - global dias:`, window.dias);
+                    
                     // Save history for THIS specific month - PASS pickupDate explicitly!
                     const savedCount = await saveAutomatedPriceHistory(automatedPricesByGroup, dias, 'automated', allCarsByDay, pickupDate);
                     console.log(`[SAVE-HISTORY] COMPLETED: Saved ${savedCount} automated prices to history for month ${currentMonthOrDate} with pickupDate ${pickupDate}`);
