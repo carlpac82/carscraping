@@ -1715,10 +1715,14 @@
                     let finalPrice = 0;
                     
                     if (type === 'brokers') {
-                        // Brokers: Net dividido SEMPRE por dias (preço diário)
+                        // Brokers: Net dividido SEMPRE por dias (preço diário sem comissão)
                         finalPrice = netPrice / dia;
-                    } else if (type === 'website' || type === 'abbycar') {
-                        // Website/Abbycar: Net + comissão (sem divisão)
+                    } else if (type === 'website') {
+                        // Website: (Net / dias) + comissão (preço diário com comissão)
+                        const dailyNet = netPrice / dia;
+                        finalPrice = dailyNet * (1 + commission / 100);
+                    } else if (type === 'abbycar') {
+                        // Abbycar: Net + comissão (sem divisão por dias)
                         finalPrice = parseFloat(calculateWithCommission(netPrice, commission));
                     }
                     
