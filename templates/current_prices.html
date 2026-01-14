@@ -1010,6 +1010,11 @@
             const month = document.getElementById('month').value;
             const year = document.getElementById('year').value;
 
+            console.log(`[DOWNLOAD] ${type} - Location: ${location}, Month: ${month}, Year: ${year}`);
+            console.log(`[DOWNLOAD] currentPrices keys:`, Object.keys(currentPrices));
+            console.log(`[DOWNLOAD] Sample B1 prices:`, currentPrices.B1);
+            console.log(`[DOWNLOAD] currentPeriod:`, currentPeriod);
+
             try {
                 const response = await fetch(`${endpoint}?location=${location}&month=${month}&year=${year}`, {
                     method: 'POST',
