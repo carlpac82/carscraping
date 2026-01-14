@@ -35803,8 +35803,17 @@ async def download_brokers_prices(request: Request, location: str, month: int, y
         data = await request.json()
         prices = data.get('prices', {})
         
+        # DEBUG: Log dados recebidos
+        logging.info(f"[DOWNLOAD BROKERS] Location: {location}, Month: {month}, Year: {year}")
+        logging.info(f"[DOWNLOAD BROKERS] Grupos recebidos: {list(prices.keys())}")
+        if 'B1' in prices:
+            logging.info(f"[DOWNLOAD BROKERS] B1 dias: {list(prices['B1'].keys())}")
+            if '7' in prices['B1']:
+                logging.info(f"[DOWNLOAD BROKERS] B1 dia 7: {prices['B1']['7']}")
+        
         excel_file, filename = generate_brokers_excel(location, month, year, prices)
         
+        logging.info(f"[DOWNLOAD BROKERS] Excel gerado: {filename}")
         return Response(
             content=excel_file.getvalue(),
             media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
@@ -35825,8 +35834,17 @@ async def download_website_prices(request: Request, location: str, month: int, y
         data = await request.json()
         prices = data.get('prices', {})
         
+        # DEBUG: Log dados recebidos
+        logging.info(f"[DOWNLOAD WEBSITE] Location: {location}, Month: {month}, Year: {year}")
+        logging.info(f"[DOWNLOAD WEBSITE] Grupos recebidos: {list(prices.keys())}")
+        if 'B1' in prices:
+            logging.info(f"[DOWNLOAD WEBSITE] B1 dias: {list(prices['B1'].keys())}")
+            if '7' in prices['B1']:
+                logging.info(f"[DOWNLOAD WEBSITE] B1 dia 7: {prices['B1']['7']}")
+        
         excel_file, filename = generate_website_excel(location, month, year, prices)
         
+        logging.info(f"[DOWNLOAD WEBSITE] Excel gerado: {filename}")
         return Response(
             content=excel_file.getvalue(),
             media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
