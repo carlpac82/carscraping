@@ -1,0 +1,812 @@
+<!DOCTYPE html>
+<html lang="pt">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Gestão de Frota</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            background: #f9fafb;
+            padding: 15px;
+            overflow-x: hidden;
+        }
+        
+        .header {
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+        }
+        
+        .header h1 {
+            font-size: 24px;
+            color: #111827;
+            margin-bottom: 10px;
+        }
+        
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+            margin-bottom: 20px;
+        }
+        
+        .stat-card {
+            background: linear-gradient(135deg, #009cb6 0%, #007a94 100%);
+            color: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        
+        .stat-card h3 {
+            font-size: 13px;
+            font-weight: 500;
+            opacity: 0.9;
+            margin-bottom: 8px;
+        }
+        
+        .stat-card .value {
+            font-size: 28px;
+            font-weight: 700;
+        }
+        
+        .actions {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 20px;
+            flex-direction: column;
+            background: white;
+            padding: 15px;
+            border-radius: 8px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+        }
+        
+        .search-box {
+            width: 100%;
+        }
+        
+        .button-group {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+        
+        @media (max-width: 900px) {
+            .actions {
+                flex-direction: column;
+            }
+            
+            .search-box {
+                width: 100%;
+            }
+            
+            .btn {
+                width: 100%;
+                justify-content: center;
+            }
+        }
+        
+        .search-box input {
+            width: 100%;
+            padding: 10px 15px;
+            border: 2px solid #e5e7eb;
+            border-radius: 6px;
+            font-size: 14px;
+        }
+        
+        .search-box input:focus {
+            outline: none;
+            border-color: #009cb6;
+        }
+        
+        .btn {
+            padding: 10px 20px;
+            border: none;
+            border-radius: 6px;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+        }
+        
+        .btn svg {
+            width: 16px;
+            height: 16px;
+        }
+        
+        .btn-primary {
+            background: #009cb6;
+            color: white;
+        }
+        
+        .btn-primary:hover {
+            background: #007a94;
+        }
+        
+        .btn-success {
+            background: #10b981;
+            color: white;
+        }
+        
+        .btn-success:hover {
+            background: #059669;
+        }
+        
+        .btn-danger {
+            background: #ef4444;
+            color: white;
+        }
+        
+        .btn-danger:hover {
+            background: #dc2626;
+        }
+        
+        .btn-secondary {
+            background: #6b7280;
+            color: white;
+        }
+        
+        .btn-sm {
+            padding: 6px 12px;
+            font-size: 12px;
+        }
+        
+        .content {
+            background: white;
+            border-radius: 8px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+            overflow-x: auto;
+        }
+        
+        .vehicles-table {
+            width: 100%;
+            border-collapse: collapse;
+            table-layout: fixed;
+        }
+        
+        .vehicles-table thead {
+            background: #f9fafb;
+        }
+        
+        .vehicles-table th {
+            padding: 12px 15px;
+            text-align: left;
+            font-weight: 600;
+            color: #374151;
+            border-bottom: 2px solid #e5e7eb;
+            font-size: 12px;
+            text-transform: uppercase;
+            cursor: pointer;
+            user-select: none;
+            position: relative;
+        }
+        
+        .vehicles-table th:hover {
+            background: #f3f4f6;
+        }
+        
+        .vehicles-table th.sortable::after {
+            content: '⇅';
+            margin-left: 8px;
+            opacity: 0.3;
+            font-size: 14px;
+        }
+        
+        .vehicles-table th.sorted-asc::after {
+            content: '↑';
+            opacity: 1;
+            color: #009cb6;
+        }
+        
+        .vehicles-table th.sorted-desc::after {
+            content: '↓';
+            opacity: 1;
+            color: #009cb6;
+        }
+        
+        .vehicles-table td {
+            padding: 12px 15px;
+            border-bottom: 1px solid #e5e7eb;
+            font-size: 14px;
+        }
+        
+        .vehicles-table tbody tr:hover {
+            background: #f9fafb;
+        }
+        
+        .badge {
+            display: inline-block;
+            padding: 4px 10px;
+            border-radius: 12px;
+            font-size: 11px;
+            font-weight: 600;
+        }
+        
+        .badge-success {
+            background: #d1fae5;
+            color: #065f46;
+        }
+        
+        .badge-warning {
+            background: #fef3c7;
+            color: #92400e;
+        }
+        
+        .badge-danger {
+            background: #fee2e2;
+            color: #991b1b;
+        }
+        
+        .badge-info {
+            background: #dbeafe;
+            color: #1e40af;
+        }
+        
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.5);
+            z-index: 1000;
+            align-items: center;
+            justify-content: center;
+        }
+        
+        .modal.active {
+            display: flex;
+        }
+        
+        .modal-content {
+            background: white;
+            border-radius: 8px;
+            padding: 25px;
+            max-width: 600px;
+            width: 90%;
+            max-height: 90vh;
+            overflow-y: auto;
+        }
+        
+        .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+        
+        .modal-header h2 {
+            font-size: 20px;
+            color: #111827;
+        }
+        
+        .close-btn {
+            background: none;
+            border: none;
+            font-size: 24px;
+            cursor: pointer;
+            color: #6b7280;
+        }
+        
+        .form-group {
+            margin-bottom: 15px;
+        }
+        
+        .form-group label {
+            display: block;
+            margin-bottom: 6px;
+            font-weight: 600;
+            color: #374151;
+            font-size: 13px;
+        }
+        
+        .form-group input,
+        .form-group select,
+        .form-group textarea {
+            width: 100%;
+            padding: 10px;
+            border: 2px solid #e5e7eb;
+            border-radius: 6px;
+            font-size: 14px;
+        }
+        
+        .form-group input:focus,
+        .form-group select:focus,
+        .form-group textarea:focus {
+            outline: none;
+            border-color: #009cb6;
+        }
+        
+        .form-row {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 15px;
+        }
+        
+        .loading {
+            text-align: center;
+            padding: 40px;
+            color: #6b7280;
+        }
+        
+        .empty-state {
+            text-align: center;
+            padding: 60px 20px;
+            color: #6b7280;
+        }
+        
+        .action-buttons {
+            display: flex;
+            gap: 8px;
+            white-space: nowrap;
+        }
+        
+        .alert {
+            padding: 12px 15px;
+            border-radius: 6px;
+            margin-bottom: 15px;
+            display: none;
+        }
+        
+        .alert.show {
+            display: block;
+        }
+        
+        .alert-success {
+            background: #d1fae5;
+            color: #065f46;
+            border: 1px solid #10b981;
+        }
+        
+        .alert-error {
+            background: #fee2e2;
+            color: #991b1b;
+            border: 1px solid #ef4444;
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>Gestão de Frota</h1>
+    </div>
+    
+    <div id="alert" class="alert"></div>
+    
+    <div class="stats-grid" id="statsGrid">
+        <div class="stat-card">
+            <h3>Total de Veículos</h3>
+            <div class="value" id="totalVehicles">-</div>
+        </div>
+        <div class="stat-card">
+            <h3>Disponíveis</h3>
+            <div class="value" id="availableVehicles">-</div>
+        </div>
+        <div class="stat-card">
+            <h3>KM Média</h3>
+            <div class="value" id="avgKm">-</div>
+        </div>
+    </div>
+    
+    <div class="actions">
+        <div class="search-box">
+            <input type="text" id="searchInput" placeholder="Pesquisar por matrícula, marca, modelo...">
+        </div>
+        <div class="button-group">
+            <button class="btn btn-success" onclick="openAddModal()">
+                <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/>
+                </svg>
+                Adicionar Veículo
+            </button>
+            <button class="btn btn-primary" onclick="importFromExcel()">
+                <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"/>
+                </svg>
+                Importar Excel
+            </button>
+        </div>
+    </div>
+    
+    <div class="content">
+        <div id="vehiclesContainer">
+            <div class="loading">Carregando veículos...</div>
+        </div>
+    </div>
+    
+    <!-- Modal Adicionar/Editar Veículo -->
+    <div id="vehicleModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2 id="modalTitle">Adicionar Veículo</h2>
+                <button class="close-btn" onclick="closeModal()">&times;</button>
+            </div>
+            
+            <form id="vehicleForm" onsubmit="saveVehicle(event)">
+                <input type="hidden" id="vehicleId">
+                
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>Matrícula *</label>
+                        <input type="text" id="matricula" required>
+                    </div>
+                    <div class="form-group">
+                        <label>Grupo *</label>
+                        <input type="text" id="grupo" required placeholder="Ex: B2, D, M1">
+                    </div>
+                </div>
+                
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>Marca *</label>
+                        <input type="text" id="marca" required>
+                    </div>
+                    <div class="form-group">
+                        <label>Modelo *</label>
+                        <input type="text" id="modelo" required>
+                    </div>
+                </div>
+                
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>Cor</label>
+                        <input type="text" id="cor">
+                    </div>
+                    <div class="form-group">
+                        <label>Tipo Combustível *</label>
+                        <select id="tipo_combustivel" required>
+                            <option value="Gasolina">Gasolina</option>
+                            <option value="Gasoleo">Gasóleo</option>
+                            <option value="Electrico">Eléctrico</option>
+                        </select>
+                    </div>
+                </div>
+                
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>Nível Combustível</label>
+                        <select id="nivel_combustivel">
+                            <option value="Cheio">Cheio</option>
+                            <option value="7/8">7/8</option>
+                            <option value="3/4">3/4</option>
+                            <option value="5/8">5/8</option>
+                            <option value="1/2">1/2</option>
+                            <option value="3/8">3/8</option>
+                            <option value="1/4">1/4</option>
+                            <option value="1/8">1/8</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label>KM Atual</label>
+                        <input type="number" id="km_atual" min="0">
+                    </div>
+                </div>
+                
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>Data Matrícula</label>
+                        <input type="date" id="data_matricula">
+                    </div>
+                    <div class="form-group">
+                        <label>Status</label>
+                        <select id="status">
+                            <option value="disponivel">Disponível</option>
+                            <option value="alugado">Alugado</option>
+                            <option value="manutencao">Manutenção</option>
+                            <option value="inativo">Inativo</option>
+                        </select>
+                    </div>
+                </div>
+                
+                <div class="form-group">
+                    <label>Observações</label>
+                    <textarea id="observacoes" rows="3"></textarea>
+                </div>
+                
+                <div style="display: flex; gap: 10px; justify-content: flex-end; margin-top: 20px;">
+                    <button type="button" class="btn btn-secondary" onclick="closeModal()">Cancelar</button>
+                    <button type="submit" class="btn btn-success">Guardar</button>
+                </div>
+            </form>
+        </div>
+    </div>
+    
+    <script>
+        let vehicles = [];
+        let editingId = null;
+        let sortColumn = null;
+        let sortDirection = 'asc';
+        
+        function sortVehicles(column) {
+            if (sortColumn === column) {
+                sortDirection = sortDirection === 'asc' ? 'desc' : 'asc';
+            } else {
+                sortColumn = column;
+                sortDirection = 'asc';
+            }
+            
+            vehicles.sort((a, b) => {
+                let valA = a[column];
+                let valB = b[column];
+                
+                // Handle numeric columns
+                if (column === 'km_atual') {
+                    valA = parseInt(valA) || 0;
+                    valB = parseInt(valB) || 0;
+                }
+                
+                // Handle string columns
+                if (typeof valA === 'string') valA = valA.toLowerCase();
+                if (typeof valB === 'string') valB = valB.toLowerCase();
+                
+                if (valA < valB) return sortDirection === 'asc' ? -1 : 1;
+                if (valA > valB) return sortDirection === 'asc' ? 1 : -1;
+                return 0;
+            });
+            
+            renderVehicles();
+        }
+        
+        async function loadVehicles() {
+            try {
+                const response = await fetch('/api/admin/vehicles');
+                const data = await response.json();
+                
+                if (data.ok) {
+                    vehicles = data.vehicles;
+                    renderVehicles();
+                    loadStats();
+                } else {
+                    showAlert('Erro ao carregar veículos: ' + data.error, 'error');
+                }
+            } catch (error) {
+                showAlert('Erro ao carregar veículos: ' + error.message, 'error');
+            }
+        }
+        
+        async function loadStats() {
+            try {
+                const response = await fetch('/api/admin/vehicles/stats');
+                const data = await response.json();
+                
+                if (data.ok) {
+                    document.getElementById('totalVehicles').textContent = data.stats.total;
+                    document.getElementById('availableVehicles').textContent = data.stats.by_status.disponivel || 0;
+                    document.getElementById('avgKm').textContent = data.stats.km_stats.average.toLocaleString() + ' km';
+                }
+            } catch (error) {
+                console.error('Error loading stats:', error);
+            }
+        }
+        
+        function renderVehicles() {
+            const container = document.getElementById('vehiclesContainer');
+            const searchTerm = document.getElementById('searchInput').value.toLowerCase();
+            
+            const filtered = vehicles.filter(v => 
+                v.matricula.toLowerCase().includes(searchTerm) ||
+                v.marca.toLowerCase().includes(searchTerm) ||
+                v.modelo.toLowerCase().includes(searchTerm) ||
+                v.grupo.toLowerCase().includes(searchTerm)
+            );
+            
+            if (filtered.length === 0) {
+                container.innerHTML = `
+                    <div class="empty-state">
+                        <h3>Nenhum veículo encontrado</h3>
+                        <p>Adicione veículos ou importe do Excel</p>
+                    </div>
+                `;
+                return;
+            }
+            
+            const statusBadge = (status) => {
+                const badges = {
+                    'disponivel': 'badge-success',
+                    'alugado': 'badge-warning',
+                    'manutencao': 'badge-danger',
+                    'inativo': 'badge-info'
+                };
+                return badges[status] || 'badge-info';
+            };
+            
+            const statusText = {
+                'disponivel': 'Disponível',
+                'alugado': 'Alugado',
+                'manutencao': 'Manutenção',
+                'inativo': 'Inativo'
+            };
+            
+            const getSortClass = (column) => {
+                if (sortColumn === column) {
+                    return sortDirection === 'asc' ? 'sorted-asc' : 'sorted-desc';
+                }
+                return 'sortable';
+            };
+            
+            container.innerHTML = `
+                <table class="vehicles-table">
+                    <thead>
+                        <tr>
+                            <th class="${getSortClass('matricula')}" onclick="sortVehicles('matricula')" style="width: 12%;">Matrícula</th>
+                            <th class="${getSortClass('grupo')}" onclick="sortVehicles('grupo')" style="width: 8%;">Grupo</th>
+                            <th class="${getSortClass('marca')}" onclick="sortVehicles('marca')" style="width: 15%;">Marca/Modelo</th>
+                            <th class="${getSortClass('tipo_combustivel')}" onclick="sortVehicles('tipo_combustivel')" style="width: 12%;">Combustível</th>
+                            <th class="${getSortClass('km_atual')}" onclick="sortVehicles('km_atual')" style="width: 13%;">KM</th>
+                            <th class="${getSortClass('status')}" onclick="sortVehicles('status')" style="width: 12%;">Status</th>
+                            <th style="width: 28%;">Ações</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        ${filtered.map(v => `
+                            <tr>
+                                <td><strong>${v.matricula}</strong></td>
+                                <td><span class="badge badge-info">${v.grupo}</span></td>
+                                <td>${v.marca} ${v.modelo}</td>
+                                <td>${v.tipo_combustivel}</td>
+                                <td>${v.km_atual ? v.km_atual.toLocaleString() + ' km' : '-'}</td>
+                                <td><span class="badge ${statusBadge(v.status)}">${statusText[v.status] || v.status}</span></td>
+                                <td>
+                                    <div class="action-buttons">
+                                        <button class="btn btn-primary btn-sm" onclick="editVehicle(${v.id})">Editar</button>
+                                        <button class="btn btn-danger btn-sm" onclick="deleteVehicle(${v.id}, '${v.matricula}')">Remover</button>
+                                    </div>
+                                </td>
+                            </tr>
+                        `).join('')}
+                    </tbody>
+                </table>
+            `;
+        }
+        
+        function openAddModal() {
+            editingId = null;
+            document.getElementById('modalTitle').textContent = 'Adicionar Veículo';
+            document.getElementById('vehicleForm').reset();
+            document.getElementById('vehicleId').value = '';
+            document.getElementById('vehicleModal').classList.add('active');
+        }
+        
+        function editVehicle(id) {
+            const vehicle = vehicles.find(v => v.id === id);
+            if (!vehicle) return;
+            
+            editingId = id;
+            document.getElementById('modalTitle').textContent = 'Editar Veículo';
+            document.getElementById('vehicleId').value = id;
+            document.getElementById('matricula').value = vehicle.matricula;
+            document.getElementById('grupo').value = vehicle.grupo;
+            document.getElementById('marca').value = vehicle.marca;
+            document.getElementById('modelo').value = vehicle.modelo;
+            document.getElementById('cor').value = vehicle.cor || '';
+            document.getElementById('tipo_combustivel').value = vehicle.tipo_combustivel;
+            document.getElementById('nivel_combustivel').value = vehicle.nivel_combustivel || 'Cheio';
+            document.getElementById('km_atual').value = vehicle.km_atual || '';
+            document.getElementById('data_matricula').value = vehicle.data_matricula || '';
+            document.getElementById('status').value = vehicle.status;
+            document.getElementById('observacoes').value = vehicle.observacoes || '';
+            
+            document.getElementById('vehicleModal').classList.add('active');
+        }
+        
+        function closeModal() {
+            document.getElementById('vehicleModal').classList.remove('active');
+        }
+        
+        async function saveVehicle(event) {
+            event.preventDefault();
+            
+            const vehicleData = {
+                matricula: document.getElementById('matricula').value,
+                grupo: document.getElementById('grupo').value,
+                marca: document.getElementById('marca').value,
+                modelo: document.getElementById('modelo').value,
+                cor: document.getElementById('cor').value,
+                tipo_combustivel: document.getElementById('tipo_combustivel').value,
+                nivel_combustivel: document.getElementById('nivel_combustivel').value,
+                km_atual: parseInt(document.getElementById('km_atual').value) || 0,
+                data_matricula: document.getElementById('data_matricula').value,
+                status: document.getElementById('status').value,
+                observacoes: document.getElementById('observacoes').value
+            };
+            
+            try {
+                const url = editingId ? `/api/admin/vehicles/${editingId}` : '/api/admin/vehicles';
+                const method = editingId ? 'PUT' : 'POST';
+                
+                const response = await fetch(url, {
+                    method: method,
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(vehicleData)
+                });
+                
+                const data = await response.json();
+                
+                if (data.ok) {
+                    showAlert(data.message, 'success');
+                    closeModal();
+                    loadVehicles();
+                } else {
+                    showAlert('Erro: ' + data.error, 'error');
+                }
+            } catch (error) {
+                showAlert('Erro ao guardar veículo: ' + error.message, 'error');
+            }
+        }
+        
+        async function deleteVehicle(id, matricula) {
+            if (!confirm(`Tem a certeza que deseja remover o veículo ${matricula}?`)) {
+                return;
+            }
+            
+            try {
+                const response = await fetch(`/api/admin/vehicles/${id}`, {
+                    method: 'DELETE'
+                });
+                
+                const data = await response.json();
+                
+                if (data.ok) {
+                    showAlert(data.message, 'success');
+                    loadVehicles();
+                } else {
+                    showAlert('Erro: ' + data.error, 'error');
+                }
+            } catch (error) {
+                showAlert('Erro ao remover veículo: ' + error.message, 'error');
+            }
+        }
+        
+        async function importFromExcel() {
+            if (!confirm('Importar veículos do ficheiro Frota.xlsx? Veículos existentes serão atualizados.')) {
+                return;
+            }
+            
+            try {
+                showAlert('Importando veículos...', 'success');
+                
+                const response = await fetch('/api/admin/vehicles/import-excel', {
+                    method: 'POST'
+                });
+                
+                const data = await response.json();
+                
+                if (data.ok) {
+                    showAlert(`Importação concluída! ${data.imported} novos, ${data.updated} atualizados.`, 'success');
+                    loadVehicles();
+                } else {
+                    showAlert('Erro na importação: ' + data.error, 'error');
+                }
+            } catch (error) {
+                showAlert('Erro ao importar: ' + error.message, 'error');
+            }
+        }
+        
+        function showAlert(message, type) {
+            const alert = document.getElementById('alert');
+            alert.textContent = message;
+            alert.className = `alert alert-${type} show`;
+            
+            setTimeout(() => {
+                alert.classList.remove('show');
+            }, 5000);
+        }
+        
+        document.getElementById('searchInput').addEventListener('input', renderVehicles);
+        
+        loadVehicles();
+    </script>
+</body>
+</html>

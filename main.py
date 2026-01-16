@@ -17285,6 +17285,15 @@ async def admin_vehicles_page(request: Request):
         "request": request
     })
 
+@app.get("/admin/fleet-management", response_class=HTMLResponse)
+async def admin_fleet_management(request: Request):
+    """Página de gestão de frota (iframe-friendly)"""
+    require_admin(request)
+    
+    return templates.TemplateResponse("admin_fleet_management.html", {
+        "request": request
+    })
+
 @app.get("/admin/damage-report", response_class=HTMLResponse)
 async def admin_damage_report(request: Request):
     """Página de administração do Damage Report"""
