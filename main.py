@@ -3449,6 +3449,30 @@ def init_db():
                 """
             )
             
+            # Tabela para Veículos (Fleet Management)
+            conn.execute(
+                """
+                CREATE TABLE IF NOT EXISTS vehicles (
+                  id SERIAL PRIMARY KEY,
+                  matricula TEXT UNIQUE NOT NULL,
+                  grupo TEXT NOT NULL,
+                  marca TEXT NOT NULL,
+                  modelo TEXT NOT NULL,
+                  cor TEXT,
+                  tipo_combustivel TEXT NOT NULL,
+                  nivel_combustivel TEXT,
+                  km_atual INTEGER,
+                  data_matricula TEXT,
+                  status TEXT DEFAULT 'disponivel',
+                  observacoes TEXT,
+                  created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+                  updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
+                )
+                """
+            )
+            safe_create_index(conn, "CREATE INDEX IF NOT EXISTS idx_vehicles_grupo ON vehicles(grupo)", "idx_vehicles_grupo")
+            safe_create_index(conn, "CREATE INDEX IF NOT EXISTS idx_vehicles_status ON vehicles(status)", "idx_vehicles_status")
+            
             # Tabela para Price Validation Rules
             conn.execute(
                 """
@@ -17251,6 +17275,15 @@ async def admin_price_automation_settings(request: Request):
             return HTMLResponse(content=f.read())
     except FileNotFoundError:
         return HTMLResponse(content="<h1>Erro: price_automation_settings.html não encontrado</h1>", status_code=500)
+
+@app.get("/admin/vehicles", response_class=HTMLResponse)
+async def admin_vehicles_page(request: Request):
+    """Página de gestão de frota"""
+    require_admin(request)
+    
+    return templates.TemplateResponse("admin_vehicles.html", {
+        "request": request
+    })
 
 @app.get("/admin/damage-report", response_class=HTMLResponse)
 async def admin_damage_report(request: Request):
@@ -38601,6 +38634,373 @@ async def delete_inspection(inspection_number: str, request: Request):
         
     except Exception as e:
         logging.error(f"Error deleting inspection: {e}")
+        return JSONResponse({
+            "ok": False,
+            "error": str(e)
+        }, status_code=500)
+
+# ============================================================
+# FLEET MANAGEMENT API - Gestão de Frota
+# ============================================================
+
+@app.post("/api/admin/vehicles/import-excel")
+async def import_vehicles_from_excel(request: Request):
+    """Importar veículos do ficheiro Frota.xlsx"""
+    require_admin(request)
+    
+    try:
+        import pandas as pd
+        excel_path = os.path.join(os.path.dirname(__file__), "Frota.xlsx")
+        
+        if not os.path.exists(excel_path):
+            return JSONResponse({
+                "ok": False,
+                "error": "Ficheiro Frota.xlsx não encontrado"
+            }, status_code=404)
+        
+        # Ler Excel
+        df = pd.read_excel(excel_path)
+        
+        # Conectar à base de dados
+        with _db_lock:
+            con = _db_connect()
+            try:
+                imported = 0
+                updated = 0
+                errors = []
+                
+                for idx, row in df.iterrows():
+                    try:
+                        matricula = str(row['Matrícula']).strip()
+                        grupo = str(row['Grupo']).strip()
+                        marca = str(row['Marca']).strip()
+                        modelo = str(row['Modelo']).strip()
+                        cor = str(row.get('Cor', '')).strip()
+                        tipo_combustivel = str(row.get('Tipo Combustível', 'Gasolina')).strip()
+                        nivel_combustivel = str(row.get('Combustível', 'Cheio')).strip()
+                        km_atual = int(row.get('Km', 0))
+                        data_matricula = str(row.get('Data Matricula', '')) if pd.notna(row.get('Data Matricula')) else None
+                        
+                        # Verificar se já existe
+                        cur = con.execute("SELECT id FROM vehicles WHERE matricula=?", (matricula,))
+                        existing = cur.fetchone()
+                        
+                        if existing:
+                            # Atualizar
+                            con.execute("""
+                                UPDATE vehicles 
+                                SET grupo=?, marca=?, modelo=?, cor=?, tipo_combustivel=?, 
+                                    nivel_combustivel=?, km_atual=?, data_matricula=?, updated_at=?
+                                WHERE matricula=?
+                            """, (grupo, marca, modelo, cor, tipo_combustivel, nivel_combustivel, 
+                                  km_atual, data_matricula, time.strftime('%Y-%m-%dT%H:%M:%SZ', time.gmtime()), matricula))
+                            updated += 1
+                        else:
+                            # Inserir
+                            con.execute("""
+                                INSERT INTO vehicles 
+                                (matricula, grupo, marca, modelo, cor, tipo_combustivel, nivel_combustivel, 
+                                 km_atual, data_matricula, status, created_at, updated_at)
+                                VALUES (?,?,?,?,?,?,?,?,?,?,?,?)
+                            """, (matricula, grupo, marca, modelo, cor, tipo_combustivel, nivel_combustivel,
+                                  km_atual, data_matricula, 'disponivel', 
+                                  time.strftime('%Y-%m-%dT%H:%M:%SZ', time.gmtime()),
+                                  time.strftime('%Y-%m-%dT%H:%M:%SZ', time.gmtime())))
+                            imported += 1
+                            
+                    except Exception as e:
+                        errors.append(f"Linha {idx+2}: {str(e)}")
+                        continue
+                
+                con.commit()
+                
+                return JSONResponse({
+                    "ok": True,
+                    "imported": imported,
+                    "updated": updated,
+                    "total": len(df),
+                    "errors": errors
+                })
+                
+            except Exception as e:
+                con.rollback()
+                raise e
+            finally:
+                con.close()
+                
+    except Exception as e:
+        logging.error(f"Error importing vehicles: {e}")
+        return JSONResponse({
+            "ok": False,
+            "error": str(e)
+        }, status_code=500)
+
+@app.get("/api/admin/vehicles")
+async def get_vehicles(request: Request):
+    """Listar todos os veículos"""
+    require_admin(request)
+    
+    try:
+        with _db_lock:
+            con = _db_connect()
+            try:
+                cur = con.execute("""
+                    SELECT id, matricula, grupo, marca, modelo, cor, tipo_combustivel, 
+                           nivel_combustivel, km_atual, data_matricula, status, observacoes,
+                           created_at, updated_at
+                    FROM vehicles
+                    ORDER BY grupo, marca, modelo
+                """)
+                
+                vehicles = []
+                for row in cur.fetchall():
+                    vehicles.append({
+                        "id": row[0],
+                        "matricula": row[1],
+                        "grupo": row[2],
+                        "marca": row[3],
+                        "modelo": row[4],
+                        "cor": row[5],
+                        "tipo_combustivel": row[6],
+                        "nivel_combustivel": row[7],
+                        "km_atual": row[8],
+                        "data_matricula": row[9],
+                        "status": row[10],
+                        "observacoes": row[11],
+                        "created_at": row[12],
+                        "updated_at": row[13]
+                    })
+                
+                return JSONResponse({
+                    "ok": True,
+                    "vehicles": vehicles,
+                    "total": len(vehicles)
+                })
+                
+            finally:
+                con.close()
+                
+    except Exception as e:
+        logging.error(f"Error getting vehicles: {e}")
+        return JSONResponse({
+            "ok": False,
+            "error": str(e)
+        }, status_code=500)
+
+@app.post("/api/admin/vehicles")
+async def create_vehicle(request: Request):
+    """Criar novo veículo"""
+    require_admin(request)
+    
+    try:
+        data = await request.json()
+        
+        matricula = data.get('matricula', '').strip()
+        grupo = data.get('grupo', '').strip()
+        marca = data.get('marca', '').strip()
+        modelo = data.get('modelo', '').strip()
+        cor = data.get('cor', '').strip()
+        tipo_combustivel = data.get('tipo_combustivel', 'Gasolina').strip()
+        nivel_combustivel = data.get('nivel_combustivel', 'Cheio').strip()
+        km_atual = int(data.get('km_atual', 0))
+        data_matricula = data.get('data_matricula', '')
+        status = data.get('status', 'disponivel')
+        observacoes = data.get('observacoes', '')
+        
+        if not matricula or not grupo or not marca or not modelo:
+            return JSONResponse({
+                "ok": False,
+                "error": "Campos obrigatórios: matrícula, grupo, marca, modelo"
+            }, status_code=400)
+        
+        with _db_lock:
+            con = _db_connect()
+            try:
+                con.execute("""
+                    INSERT INTO vehicles 
+                    (matricula, grupo, marca, modelo, cor, tipo_combustivel, nivel_combustivel, 
+                     km_atual, data_matricula, status, observacoes, created_at, updated_at)
+                    VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?)
+                """, (matricula, grupo, marca, modelo, cor, tipo_combustivel, nivel_combustivel,
+                      km_atual, data_matricula, status, observacoes,
+                      time.strftime('%Y-%m-%dT%H:%M:%SZ', time.gmtime()),
+                      time.strftime('%Y-%m-%dT%H:%M:%SZ', time.gmtime())))
+                
+                con.commit()
+                
+                return JSONResponse({
+                    "ok": True,
+                    "message": "Veículo criado com sucesso"
+                })
+                
+            except Exception as e:
+                con.rollback()
+                raise e
+            finally:
+                con.close()
+                
+    except Exception as e:
+        logging.error(f"Error creating vehicle: {e}")
+        return JSONResponse({
+            "ok": False,
+            "error": str(e)
+        }, status_code=500)
+
+@app.put("/api/admin/vehicles/{vehicle_id}")
+async def update_vehicle(vehicle_id: int, request: Request):
+    """Atualizar veículo existente"""
+    require_admin(request)
+    
+    try:
+        data = await request.json()
+        
+        with _db_lock:
+            con = _db_connect()
+            try:
+                # Verificar se existe
+                cur = con.execute("SELECT id FROM vehicles WHERE id=?", (vehicle_id,))
+                if not cur.fetchone():
+                    return JSONResponse({
+                        "ok": False,
+                        "error": "Veículo não encontrado"
+                    }, status_code=404)
+                
+                # Atualizar
+                con.execute("""
+                    UPDATE vehicles 
+                    SET matricula=?, grupo=?, marca=?, modelo=?, cor=?, tipo_combustivel=?, 
+                        nivel_combustivel=?, km_atual=?, data_matricula=?, status=?, 
+                        observacoes=?, updated_at=?
+                    WHERE id=?
+                """, (
+                    data.get('matricula', '').strip(),
+                    data.get('grupo', '').strip(),
+                    data.get('marca', '').strip(),
+                    data.get('modelo', '').strip(),
+                    data.get('cor', '').strip(),
+                    data.get('tipo_combustivel', 'Gasolina').strip(),
+                    data.get('nivel_combustivel', 'Cheio').strip(),
+                    int(data.get('km_atual', 0)),
+                    data.get('data_matricula', ''),
+                    data.get('status', 'disponivel'),
+                    data.get('observacoes', ''),
+                    time.strftime('%Y-%m-%dT%H:%M:%SZ', time.gmtime()),
+                    vehicle_id
+                ))
+                
+                con.commit()
+                
+                return JSONResponse({
+                    "ok": True,
+                    "message": "Veículo atualizado com sucesso"
+                })
+                
+            except Exception as e:
+                con.rollback()
+                raise e
+            finally:
+                con.close()
+                
+    except Exception as e:
+        logging.error(f"Error updating vehicle: {e}")
+        return JSONResponse({
+            "ok": False,
+            "error": str(e)
+        }, status_code=500)
+
+@app.delete("/api/admin/vehicles/{vehicle_id}")
+async def delete_vehicle(vehicle_id: int, request: Request):
+    """Remover veículo"""
+    require_admin(request)
+    
+    try:
+        with _db_lock:
+            con = _db_connect()
+            try:
+                # Verificar se existe
+                cur = con.execute("SELECT id FROM vehicles WHERE id=?", (vehicle_id,))
+                if not cur.fetchone():
+                    return JSONResponse({
+                        "ok": False,
+                        "error": "Veículo não encontrado"
+                    }, status_code=404)
+                
+                # Remover
+                con.execute("DELETE FROM vehicles WHERE id=?", (vehicle_id,))
+                con.commit()
+                
+                return JSONResponse({
+                    "ok": True,
+                    "message": "Veículo removido com sucesso"
+                })
+                
+            except Exception as e:
+                con.rollback()
+                raise e
+            finally:
+                con.close()
+                
+    except Exception as e:
+        logging.error(f"Error deleting vehicle: {e}")
+        return JSONResponse({
+            "ok": False,
+            "error": str(e)
+        }, status_code=500)
+
+@app.get("/api/admin/vehicles/stats")
+async def get_vehicles_stats(request: Request):
+    """Estatísticas da frota"""
+    require_admin(request)
+    
+    try:
+        with _db_lock:
+            con = _db_connect()
+            try:
+                # Total de veículos
+                cur = con.execute("SELECT COUNT(*) FROM vehicles")
+                total = cur.fetchone()[0]
+                
+                # Por grupo
+                cur = con.execute("SELECT grupo, COUNT(*) FROM vehicles GROUP BY grupo ORDER BY grupo")
+                by_group = {row[0]: row[1] for row in cur.fetchall()}
+                
+                # Por marca
+                cur = con.execute("SELECT marca, COUNT(*) FROM vehicles GROUP BY marca ORDER BY COUNT(*) DESC LIMIT 10")
+                by_brand = {row[0]: row[1] for row in cur.fetchall()}
+                
+                # Por tipo de combustível
+                cur = con.execute("SELECT tipo_combustivel, COUNT(*) FROM vehicles GROUP BY tipo_combustivel")
+                by_fuel = {row[0]: row[1] for row in cur.fetchall()}
+                
+                # Por status
+                cur = con.execute("SELECT status, COUNT(*) FROM vehicles GROUP BY status")
+                by_status = {row[0]: row[1] for row in cur.fetchall()}
+                
+                # Quilometragem média
+                cur = con.execute("SELECT AVG(km_atual), MIN(km_atual), MAX(km_atual) FROM vehicles")
+                km_stats = cur.fetchone()
+                
+                return JSONResponse({
+                    "ok": True,
+                    "stats": {
+                        "total": total,
+                        "by_group": by_group,
+                        "by_brand": by_brand,
+                        "by_fuel": by_fuel,
+                        "by_status": by_status,
+                        "km_stats": {
+                            "average": int(km_stats[0]) if km_stats[0] else 0,
+                            "min": km_stats[1] or 0,
+                            "max": km_stats[2] or 0
+                        }
+                    }
+                })
+                
+            finally:
+                con.close()
+                
+    except Exception as e:
+        logging.error(f"Error getting vehicle stats: {e}")
         return JSONResponse({
             "ok": False,
             "error": str(e)

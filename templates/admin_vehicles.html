@@ -1,0 +1,728 @@
+<!DOCTYPE html>
+<html lang="pt">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Gestão de Frota - Admin</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+        
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+            overflow: hidden;
+        }
+        
+        .header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 30px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .header h1 {
+            font-size: 28px;
+            font-weight: 600;
+        }
+        
+        .btn {
+            padding: 12px 24px;
+            border: none;
+            border-radius: 8px;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+            text-decoration: none;
+            display: inline-block;
+        }
+        
+        .btn-primary {
+            background: #667eea;
+            color: white;
+        }
+        
+        .btn-primary:hover {
+            background: #5568d3;
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(102, 126, 234, 0.4);
+        }
+        
+        .btn-success {
+            background: #10b981;
+            color: white;
+        }
+        
+        .btn-success:hover {
+            background: #059669;
+        }
+        
+        .btn-danger {
+            background: #ef4444;
+            color: white;
+        }
+        
+        .btn-danger:hover {
+            background: #dc2626;
+        }
+        
+        .btn-secondary {
+            background: #6b7280;
+            color: white;
+        }
+        
+        .btn-secondary:hover {
+            background: #4b5563;
+        }
+        
+        .content {
+            padding: 30px;
+        }
+        
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+        
+        .stat-card {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 20px;
+            border-radius: 12px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        }
+        
+        .stat-card h3 {
+            font-size: 14px;
+            font-weight: 500;
+            opacity: 0.9;
+            margin-bottom: 8px;
+        }
+        
+        .stat-card .value {
+            font-size: 32px;
+            font-weight: 700;
+        }
+        
+        .actions {
+            display: flex;
+            gap: 15px;
+            margin-bottom: 30px;
+            flex-wrap: wrap;
+        }
+        
+        .search-box {
+            flex: 1;
+            min-width: 300px;
+        }
+        
+        .search-box input {
+            width: 100%;
+            padding: 12px 20px;
+            border: 2px solid #e5e7eb;
+            border-radius: 8px;
+            font-size: 14px;
+            transition: border-color 0.3s;
+        }
+        
+        .search-box input:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+        
+        .vehicles-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 20px;
+        }
+        
+        .vehicles-table thead {
+            background: #f9fafb;
+        }
+        
+        .vehicles-table th {
+            padding: 15px;
+            text-align: left;
+            font-weight: 600;
+            color: #374151;
+            border-bottom: 2px solid #e5e7eb;
+            font-size: 13px;
+            text-transform: uppercase;
+        }
+        
+        .vehicles-table td {
+            padding: 15px;
+            border-bottom: 1px solid #e5e7eb;
+            font-size: 14px;
+        }
+        
+        .vehicles-table tbody tr:hover {
+            background: #f9fafb;
+        }
+        
+        .badge {
+            display: inline-block;
+            padding: 4px 12px;
+            border-radius: 12px;
+            font-size: 12px;
+            font-weight: 600;
+        }
+        
+        .badge-success {
+            background: #d1fae5;
+            color: #065f46;
+        }
+        
+        .badge-warning {
+            background: #fef3c7;
+            color: #92400e;
+        }
+        
+        .badge-danger {
+            background: #fee2e2;
+            color: #991b1b;
+        }
+        
+        .badge-info {
+            background: #dbeafe;
+            color: #1e40af;
+        }
+        
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.5);
+            z-index: 1000;
+            align-items: center;
+            justify-content: center;
+        }
+        
+        .modal.active {
+            display: flex;
+        }
+        
+        .modal-content {
+            background: white;
+            border-radius: 12px;
+            padding: 30px;
+            max-width: 600px;
+            width: 90%;
+            max-height: 90vh;
+            overflow-y: auto;
+        }
+        
+        .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+        
+        .modal-header h2 {
+            font-size: 24px;
+            color: #111827;
+        }
+        
+        .close-btn {
+            background: none;
+            border: none;
+            font-size: 24px;
+            cursor: pointer;
+            color: #6b7280;
+        }
+        
+        .form-group {
+            margin-bottom: 20px;
+        }
+        
+        .form-group label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 600;
+            color: #374151;
+            font-size: 14px;
+        }
+        
+        .form-group input,
+        .form-group select,
+        .form-group textarea {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid #e5e7eb;
+            border-radius: 8px;
+            font-size: 14px;
+            transition: border-color 0.3s;
+        }
+        
+        .form-group input:focus,
+        .form-group select:focus,
+        .form-group textarea:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+        
+        .form-row {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 15px;
+        }
+        
+        .loading {
+            text-align: center;
+            padding: 40px;
+            color: #6b7280;
+        }
+        
+        .empty-state {
+            text-align: center;
+            padding: 60px 20px;
+            color: #6b7280;
+        }
+        
+        .empty-state h3 {
+            font-size: 20px;
+            margin-bottom: 10px;
+        }
+        
+        .action-buttons {
+            display: flex;
+            gap: 10px;
+        }
+        
+        .btn-sm {
+            padding: 6px 12px;
+            font-size: 12px;
+        }
+        
+        .alert {
+            padding: 15px 20px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            display: none;
+        }
+        
+        .alert.show {
+            display: block;
+        }
+        
+        .alert-success {
+            background: #d1fae5;
+            color: #065f46;
+            border: 1px solid #10b981;
+        }
+        
+        .alert-error {
+            background: #fee2e2;
+            color: #991b1b;
+            border: 1px solid #ef4444;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🚗 Gestão de Frota</h1>
+            <a href="/admin" class="btn btn-secondary">← Voltar ao Admin</a>
+        </div>
+        
+        <div class="content">
+            <div id="alert" class="alert"></div>
+            
+            <div class="stats-grid" id="statsGrid">
+                <div class="stat-card">
+                    <h3>Total de Veículos</h3>
+                    <div class="value" id="totalVehicles">-</div>
+                </div>
+                <div class="stat-card">
+                    <h3>Disponíveis</h3>
+                    <div class="value" id="availableVehicles">-</div>
+                </div>
+                <div class="stat-card">
+                    <h3>KM Média</h3>
+                    <div class="value" id="avgKm">-</div>
+                </div>
+            </div>
+            
+            <div class="actions">
+                <div class="search-box">
+                    <input type="text" id="searchInput" placeholder="🔍 Pesquisar por matrícula, marca, modelo...">
+                </div>
+                <button class="btn btn-success" onclick="openAddModal()">+ Adicionar Veículo</button>
+                <button class="btn btn-primary" onclick="importFromExcel()">📥 Importar Excel</button>
+            </div>
+            
+            <div id="vehiclesContainer">
+                <div class="loading">Carregando veículos...</div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Modal Adicionar/Editar Veículo -->
+    <div id="vehicleModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2 id="modalTitle">Adicionar Veículo</h2>
+                <button class="close-btn" onclick="closeModal()">&times;</button>
+            </div>
+            
+            <form id="vehicleForm" onsubmit="saveVehicle(event)">
+                <input type="hidden" id="vehicleId">
+                
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>Matrícula *</label>
+                        <input type="text" id="matricula" required>
+                    </div>
+                    <div class="form-group">
+                        <label>Grupo *</label>
+                        <input type="text" id="grupo" required placeholder="Ex: B2, D, M1">
+                    </div>
+                </div>
+                
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>Marca *</label>
+                        <input type="text" id="marca" required>
+                    </div>
+                    <div class="form-group">
+                        <label>Modelo *</label>
+                        <input type="text" id="modelo" required>
+                    </div>
+                </div>
+                
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>Cor</label>
+                        <input type="text" id="cor">
+                    </div>
+                    <div class="form-group">
+                        <label>Tipo Combustível *</label>
+                        <select id="tipo_combustivel" required>
+                            <option value="Gasolina">Gasolina</option>
+                            <option value="Gasoleo">Gasóleo</option>
+                            <option value="Electrico">Eléctrico</option>
+                        </select>
+                    </div>
+                </div>
+                
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>Nível Combustível</label>
+                        <select id="nivel_combustivel">
+                            <option value="Cheio">Cheio</option>
+                            <option value="7/8">7/8</option>
+                            <option value="3/4">3/4</option>
+                            <option value="5/8">5/8</option>
+                            <option value="1/2">1/2</option>
+                            <option value="3/8">3/8</option>
+                            <option value="1/4">1/4</option>
+                            <option value="1/8">1/8</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label>KM Atual</label>
+                        <input type="number" id="km_atual" min="0">
+                    </div>
+                </div>
+                
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>Data Matrícula</label>
+                        <input type="date" id="data_matricula">
+                    </div>
+                    <div class="form-group">
+                        <label>Status</label>
+                        <select id="status">
+                            <option value="disponivel">Disponível</option>
+                            <option value="alugado">Alugado</option>
+                            <option value="manutencao">Manutenção</option>
+                            <option value="inativo">Inativo</option>
+                        </select>
+                    </div>
+                </div>
+                
+                <div class="form-group">
+                    <label>Observações</label>
+                    <textarea id="observacoes" rows="3"></textarea>
+                </div>
+                
+                <div style="display: flex; gap: 10px; justify-content: flex-end; margin-top: 20px;">
+                    <button type="button" class="btn btn-secondary" onclick="closeModal()">Cancelar</button>
+                    <button type="submit" class="btn btn-success">Guardar</button>
+                </div>
+            </form>
+        </div>
+    </div>
+    
+    <script>
+        let vehicles = [];
+        let editingId = null;
+        
+        async function loadVehicles() {
+            try {
+                const response = await fetch('/api/admin/vehicles');
+                const data = await response.json();
+                
+                if (data.ok) {
+                    vehicles = data.vehicles;
+                    renderVehicles();
+                    loadStats();
+                } else {
+                    showAlert('Erro ao carregar veículos: ' + data.error, 'error');
+                }
+            } catch (error) {
+                showAlert('Erro ao carregar veículos: ' + error.message, 'error');
+            }
+        }
+        
+        async function loadStats() {
+            try {
+                const response = await fetch('/api/admin/vehicles/stats');
+                const data = await response.json();
+                
+                if (data.ok) {
+                    document.getElementById('totalVehicles').textContent = data.stats.total;
+                    document.getElementById('availableVehicles').textContent = data.stats.by_status.disponivel || 0;
+                    document.getElementById('avgKm').textContent = data.stats.km_stats.average.toLocaleString() + ' km';
+                }
+            } catch (error) {
+                console.error('Error loading stats:', error);
+            }
+        }
+        
+        function renderVehicles() {
+            const container = document.getElementById('vehiclesContainer');
+            const searchTerm = document.getElementById('searchInput').value.toLowerCase();
+            
+            const filtered = vehicles.filter(v => 
+                v.matricula.toLowerCase().includes(searchTerm) ||
+                v.marca.toLowerCase().includes(searchTerm) ||
+                v.modelo.toLowerCase().includes(searchTerm) ||
+                v.grupo.toLowerCase().includes(searchTerm)
+            );
+            
+            if (filtered.length === 0) {
+                container.innerHTML = `
+                    <div class="empty-state">
+                        <h3>Nenhum veículo encontrado</h3>
+                        <p>Adicione veículos ou importe do Excel</p>
+                    </div>
+                `;
+                return;
+            }
+            
+            const statusBadge = (status) => {
+                const badges = {
+                    'disponivel': 'badge-success',
+                    'alugado': 'badge-warning',
+                    'manutencao': 'badge-danger',
+                    'inativo': 'badge-info'
+                };
+                return badges[status] || 'badge-info';
+            };
+            
+            const statusText = {
+                'disponivel': 'Disponível',
+                'alugado': 'Alugado',
+                'manutencao': 'Manutenção',
+                'inativo': 'Inativo'
+            };
+            
+            container.innerHTML = `
+                <table class="vehicles-table">
+                    <thead>
+                        <tr>
+                            <th>Matrícula</th>
+                            <th>Grupo</th>
+                            <th>Marca/Modelo</th>
+                            <th>Combustível</th>
+                            <th>Nível</th>
+                            <th>KM</th>
+                            <th>Status</th>
+                            <th>Ações</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        ${filtered.map(v => `
+                            <tr>
+                                <td><strong>${v.matricula}</strong></td>
+                                <td><span class="badge badge-info">${v.grupo}</span></td>
+                                <td>${v.marca} ${v.modelo}</td>
+                                <td>${v.tipo_combustivel}</td>
+                                <td>${v.nivel_combustivel || '-'}</td>
+                                <td>${v.km_atual ? v.km_atual.toLocaleString() + ' km' : '-'}</td>
+                                <td><span class="badge ${statusBadge(v.status)}">${statusText[v.status] || v.status}</span></td>
+                                <td>
+                                    <div class="action-buttons">
+                                        <button class="btn btn-primary btn-sm" onclick="editVehicle(${v.id})">Editar</button>
+                                        <button class="btn btn-danger btn-sm" onclick="deleteVehicle(${v.id}, '${v.matricula}')">Remover</button>
+                                    </div>
+                                </td>
+                            </tr>
+                        `).join('')}
+                    </tbody>
+                </table>
+            `;
+        }
+        
+        function openAddModal() {
+            editingId = null;
+            document.getElementById('modalTitle').textContent = 'Adicionar Veículo';
+            document.getElementById('vehicleForm').reset();
+            document.getElementById('vehicleId').value = '';
+            document.getElementById('vehicleModal').classList.add('active');
+        }
+        
+        function editVehicle(id) {
+            const vehicle = vehicles.find(v => v.id === id);
+            if (!vehicle) return;
+            
+            editingId = id;
+            document.getElementById('modalTitle').textContent = 'Editar Veículo';
+            document.getElementById('vehicleId').value = id;
+            document.getElementById('matricula').value = vehicle.matricula;
+            document.getElementById('grupo').value = vehicle.grupo;
+            document.getElementById('marca').value = vehicle.marca;
+            document.getElementById('modelo').value = vehicle.modelo;
+            document.getElementById('cor').value = vehicle.cor || '';
+            document.getElementById('tipo_combustivel').value = vehicle.tipo_combustivel;
+            document.getElementById('nivel_combustivel').value = vehicle.nivel_combustivel || 'Cheio';
+            document.getElementById('km_atual').value = vehicle.km_atual || '';
+            document.getElementById('data_matricula').value = vehicle.data_matricula || '';
+            document.getElementById('status').value = vehicle.status;
+            document.getElementById('observacoes').value = vehicle.observacoes || '';
+            
+            document.getElementById('vehicleModal').classList.add('active');
+        }
+        
+        function closeModal() {
+            document.getElementById('vehicleModal').classList.remove('active');
+        }
+        
+        async function saveVehicle(event) {
+            event.preventDefault();
+            
+            const vehicleData = {
+                matricula: document.getElementById('matricula').value,
+                grupo: document.getElementById('grupo').value,
+                marca: document.getElementById('marca').value,
+                modelo: document.getElementById('modelo').value,
+                cor: document.getElementById('cor').value,
+                tipo_combustivel: document.getElementById('tipo_combustivel').value,
+                nivel_combustivel: document.getElementById('nivel_combustivel').value,
+                km_atual: parseInt(document.getElementById('km_atual').value) || 0,
+                data_matricula: document.getElementById('data_matricula').value,
+                status: document.getElementById('status').value,
+                observacoes: document.getElementById('observacoes').value
+            };
+            
+            try {
+                const url = editingId ? `/api/admin/vehicles/${editingId}` : '/api/admin/vehicles';
+                const method = editingId ? 'PUT' : 'POST';
+                
+                const response = await fetch(url, {
+                    method: method,
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(vehicleData)
+                });
+                
+                const data = await response.json();
+                
+                if (data.ok) {
+                    showAlert(data.message, 'success');
+                    closeModal();
+                    loadVehicles();
+                } else {
+                    showAlert('Erro: ' + data.error, 'error');
+                }
+            } catch (error) {
+                showAlert('Erro ao guardar veículo: ' + error.message, 'error');
+            }
+        }
+        
+        async function deleteVehicle(id, matricula) {
+            if (!confirm(`Tem a certeza que deseja remover o veículo ${matricula}?`)) {
+                return;
+            }
+            
+            try {
+                const response = await fetch(`/api/admin/vehicles/${id}`, {
+                    method: 'DELETE'
+                });
+                
+                const data = await response.json();
+                
+                if (data.ok) {
+                    showAlert(data.message, 'success');
+                    loadVehicles();
+                } else {
+                    showAlert('Erro: ' + data.error, 'error');
+                }
+            } catch (error) {
+                showAlert('Erro ao remover veículo: ' + error.message, 'error');
+            }
+        }
+        
+        async function importFromExcel() {
+            if (!confirm('Importar veículos do ficheiro Frota.xlsx? Veículos existentes serão atualizados.')) {
+                return;
+            }
+            
+            try {
+                showAlert('Importando veículos...', 'success');
+                
+                const response = await fetch('/api/admin/vehicles/import-excel', {
+                    method: 'POST'
+                });
+                
+                const data = await response.json();
+                
+                if (data.ok) {
+                    showAlert(`Importação concluída! ${data.imported} novos, ${data.updated} atualizados.`, 'success');
+                    loadVehicles();
+                } else {
+                    showAlert('Erro na importação: ' + data.error, 'error');
+                }
+            } catch (error) {
+                showAlert('Erro ao importar: ' + error.message, 'error');
+            }
+        }
+        
+        function showAlert(message, type) {
+            const alert = document.getElementById('alert');
+            alert.textContent = message;
+            alert.className = `alert alert-${type} show`;
+            
+            setTimeout(() => {
+                alert.classList.remove('show');
+            }, 5000);
+        }
+        
+        document.getElementById('searchInput').addEventListener('input', renderVehicles);
+        
+        loadVehicles();
+    </script>
+</body>
+</html>
