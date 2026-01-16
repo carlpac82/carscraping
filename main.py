@@ -11403,18 +11403,10 @@ async def track_by_params(request: Request):
             print(f"[SELENIUM] Local: {carjet_location}", file=sys.stderr, flush=True)
             
             # ============================================
-            # ROTAÇÃO DE DATAS (0-4 dias aleatório)
+            # NOTA: Rotação de datas JÁ FOI FEITA anteriormente (linha ~10537)
+            # NÃO fazer rotação duplicada aqui!
             # ============================================
-            # random já importado globalmente
-            from datetime import timedelta as td
-            
-            # Adicionar offset aleatório de 0-4 dias às datas
-            date_offset = random.randint(0, 4)
-            start_dt = start_dt + td(days=date_offset)
-            end_dt = end_dt + td(days=date_offset)
-            
-            print(f"[SELENIUM] Offset de datas: +{date_offset} dias", file=sys.stderr, flush=True)
-            print(f"[SELENIUM] Datas ajustadas: {start_dt.date()} - {end_dt.date()}", file=sys.stderr, flush=True)
+            print(f"[SELENIUM] Datas a usar (já rotacionadas): {start_dt.date()} - {end_dt.date()}", file=sys.stderr, flush=True)
             
             # ============================================
             # ROTAÇÃO DE HORAS (14:30-17:00 aleatório)
@@ -11587,10 +11579,29 @@ async def track_by_params(request: Request):
                         except Exception as e3:
                             last_error = str(e3)
                             print(f"[SELENIUM] ❌ Tentativa 3 falhou: {e3}", file=sys.stderr, flush=True)
+                            
+                            # Tentativa 4: chromedriver do sistema (sem ChromeDriverManager)
+                            try:
+                                print(f"[SELENIUM] Tentativa 4: chromedriver do sistema...", file=sys.stderr, flush=True)
+                                # Tentar usar chromedriver do PATH do sistema
+                                import shutil
+                                chromedriver_path = shutil.which('chromedriver')
+                                if chromedriver_path:
+                                    print(f"[SELENIUM] chromedriver encontrado em: {chromedriver_path}", file=sys.stderr, flush=True)
+                                    driver = webdriver.Chrome(
+                                        service=Service(chromedriver_path),
+                                        options=chrome_options_clean
+                                    )
+                                    print(f"[SELENIUM] ✅ Chrome iniciado com chromedriver do sistema!", file=sys.stderr, flush=True)
+                                else:
+                                    raise Exception("chromedriver não encontrado no PATH")
+                            except Exception as e4:
+                                last_error = str(e4)
+                                print(f"[SELENIUM] ❌ Tentativa 4 falhou: {e4}", file=sys.stderr, flush=True)
             
                 # Se nenhuma tentativa funcionou, lançar erro
                 if driver is None:
-                    raise Exception(f"Não foi possível iniciar Chrome após 3 tentativas. Último erro: {last_error}")
+                    raise Exception(f"Não foi possível iniciar Chrome após 4 tentativas. Último erro: {last_error}")
                 
                 # APLICAR SELENIUM-STEALTH para evitar detecção de bot
                 print(f"[SELENIUM] Aplicando selenium-stealth...", file=sys.stderr, flush=True)
