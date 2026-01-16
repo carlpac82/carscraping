@@ -4129,8 +4129,8 @@ def require_role_access(request: Request, allowed_pages: list = None):
     user_role = request.session.get("role", "")
     current_path = request.url.path
     
-    # Role "support" (atendimento): apenas WhatsApp e Inspeção de Veículos
-    if user_role == "support":
+    # Role "support" ou "suporte" (atendimento): apenas WhatsApp e Inspeção de Veículos
+    if user_role in ("support", "suporte"):
         support_allowed_pages = [
             "/whatsapp",
             "/api/whatsapp",
@@ -4150,7 +4150,7 @@ def require_role_access(request: Request, allowed_pages: list = None):
         if not is_allowed:
             raise HTTPException(
                 status_code=403, 
-                detail="Acesso negado. Role 'support' só pode aceder a WhatsApp e Inspeção de Veículos."
+                detail="Acesso negado. Role 'support/suporte' só pode aceder a WhatsApp e Inspeção de Veículos."
             )
         return
     
@@ -4189,7 +4189,7 @@ def require_inspection_access(request: Request):
     """
     Check if user has permission to access vehicle inspection.
     - Admins always have access
-    - Users with role='receptionist' always have access  
+    - Users with role='receptionist' or 'suporte' always have access  
     - Other users need can_access_inspection=1
     """
     require_auth(request)
@@ -4202,8 +4202,8 @@ def require_inspection_access(request: Request):
     role = request.session.get("user_role", "user")
     can_access = request.session.get("can_access_inspection", 0)
     
-    # Receptionist role always has access
-    if role == "receptionist":
+    # Receptionist and suporte roles always have access
+    if role in ("receptionist", "suporte"):
         return
     
     # Check explicit permission
