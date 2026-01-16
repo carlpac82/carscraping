@@ -9509,12 +9509,12 @@ async def admin_users_new_post(
         with _db_lock:
             con = _db_connect()
             try:
-                # Convert to boolean for PostgreSQL
-                is_admin_bool = True if (is_admin in ("1","true","on")) else False
-                enabled_bool = True
+                # Convert to integer (0/1) for PostgreSQL compatibility
+                is_admin_int = 1 if (is_admin in ("1","true","on")) else 0
+                enabled_int = 1
                 con.execute(
                     "INSERT INTO users (username, password_hash, first_name, last_name, mobile, email, profile_picture_path, profile_picture_data, is_admin, enabled, created_at) VALUES (?,?,?,?,?,?,?,?,?,?,?)",
-                    (u, pw_hash, first_name, last_name, mobile, email, pic_path or "", pic_data, is_admin_bool, enabled_bool, time.strftime('%Y-%m-%dT%H:%M:%SZ', time.gmtime()))
+                    (u, pw_hash, first_name, last_name, mobile, email, pic_path or "", pic_data, is_admin_int, enabled_int, time.strftime('%Y-%m-%dT%H:%M:%SZ', time.gmtime()))
                 )
                 
                 # Se tem foto, atualizar path com o ID do user
