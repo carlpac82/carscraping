@@ -770,7 +770,7 @@ async function openCameraWithStream(photoType) {
     // Use the stream we already obtained
     if (window.pendingCameraStream) {
         cameraStream = window.pendingCameraStream;
-        window.pendingCameraStream = null;
+        // DON'T clear pendingCameraStream - we need it for next photos
         
         // Set video source
         const video = document.getElementById('cameraPreview');
