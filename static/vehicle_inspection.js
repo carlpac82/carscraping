@@ -1080,6 +1080,110 @@ function showDeliveryPhotosGrid() {
     }
 }
 
+// Update delivery photos grid to include damage photos
+function updateDeliveryPhotosGridWithDamages() {
+    const photosGrid = document.getElementById('deliveryPhotosGrid');
+    if (!photosGrid) return;
+    
+    // Check if damage photos section already exists
+    let damageSection = document.getElementById('damagePhotosSection');
+    if (damageSection) {
+        damageSection.remove();
+    }
+    
+    // Only add damage section if there are damage photos
+    if (!window.pickupDamagePhotos || window.pickupDamagePhotos.length === 0) {
+        return;
+    }
+    
+    // Create damage photos section
+    damageSection = document.createElement('div');
+    damageSection.id = 'damagePhotosSection';
+    damageSection.style.cssText = `
+        margin-top: 30px;
+        padding-top: 20px;
+        border-top: 2px solid #dc3545;
+    `;
+    
+    // Damage section title
+    const damageTitle = document.createElement('h3');
+    damageTitle.textContent = 'Fotos Recolha - Danos';
+    damageTitle.style.cssText = `
+        color: #dc3545;
+        font-size: 20px;
+        font-weight: bold;
+        margin-bottom: 15px;
+        text-align: center;
+    `;
+    damageSection.appendChild(damageTitle);
+    
+    // Grid of damage photos
+    const damageGrid = document.createElement('div');
+    damageGrid.style.cssText = `
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+        gap: 15px;
+    `;
+    
+    // Add each damage photo
+    window.pickupDamagePhotos.forEach((photo, index) => {
+        const photoCard = document.createElement('div');
+        photoCard.style.cssText = `
+            position: relative;
+            border: 2px solid #dc3545;
+            border-radius: 8px;
+            overflow: hidden;
+            cursor: pointer;
+            transition: transform 0.2s, border-color 0.2s;
+        `;
+        
+        // Hover effect
+        photoCard.addEventListener('mouseenter', () => {
+            photoCard.style.transform = 'scale(1.05)';
+            photoCard.style.borderColor = '#c82333';
+        });
+        photoCard.addEventListener('mouseleave', () => {
+            photoCard.style.transform = 'scale(1)';
+            photoCard.style.borderColor = '#dc3545';
+        });
+        
+        // Photo image
+        const img = document.createElement('img');
+        img.src = photo.imageData;
+        img.alt = photo.side;
+        img.style.cssText = `
+            width: 100%;
+            height: 150px;
+            object-fit: cover;
+        `;
+        
+        // Photo label
+        const label = document.createElement('div');
+        label.textContent = formatPhotoType(photo.side);
+        label.style.cssText = `
+            background: rgba(220, 53, 69, 0.9);
+            color: white;
+            padding: 5px;
+            text-align: center;
+            font-size: 12px;
+            font-weight: bold;
+        `;
+        
+        photoCard.appendChild(img);
+        photoCard.appendChild(label);
+        
+        // Click to enlarge
+        photoCard.addEventListener('click', () => {
+            enlargePhoto(photo.imageData, photo.side);
+        });
+        
+        damageGrid.appendChild(photoCard);
+    });
+    
+    damageSection.appendChild(damageGrid);
+    photosGrid.appendChild(damageSection);
+}
+
 // Format photo type for display
 function formatPhotoType(type) {
     const labels = {
@@ -1576,6 +1680,9 @@ function captureDamagePhotoNow() {
         imageData: imageData,
         timestamp: new Date().toISOString()
     });
+    
+    // Update the photos grid to show the new damage photo
+    updateDeliveryPhotosGridWithDamages();
     
     showNotification('Foto capturada! Deseja adicionar mais fotos?', 'success');
     
