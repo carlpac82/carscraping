@@ -474,6 +474,45 @@ function saveVehicleInfo() {
     console.log('Vehicle info saved:', inspectionData.vehicleInfo);
 }
 
+// Contract Management Functions
+function getContractKey() {
+    const plate = document.getElementById('inputPlate').value.trim();
+    const ra = document.getElementById('inputRA').value.trim();
+    return `${plate}_${ra}`;
+}
+
+function getActiveContracts() {
+    const contracts = localStorage.getItem('activeContracts');
+    return contracts ? JSON.parse(contracts) : {};
+}
+
+function saveActiveContracts(contracts) {
+    localStorage.setItem('activeContracts', JSON.stringify(contracts));
+}
+
+function checkExistingContract() {
+    const plate = document.getElementById('inputPlate').value.trim();
+    const ra = document.getElementById('inputRA').value.trim();
+    const contractKey = getContractKey();
+    const contracts = getActiveContracts();
+    
+    // Check if there's an active contract for this vehicle with different RA
+    for (const [key, contract] of Object.entries(contracts)) {
+        const [contractPlate, contractRA] = key.split('_');
+        
+        // Same vehicle, different RA, and previous contract not completed (no pickup)
+        if (contractPlate === plate && contractRA !== ra && !contract.pickupComplete) {
+            return {
+                exists: true,
+                ra: contractRA,
+                deliveryComplete: contract.deliveryComplete
+            };
+        }
+    }
+    
+    return { exists: false };
+}
+
 // ENTREGA (Delivery/Check-out) - Start inspection process
 function startDelivery() {
     // Validate inspection info first
@@ -481,8 +520,28 @@ function startDelivery() {
         return;
     }
     
+    // Check if there's an incomplete contract for this vehicle
+    const existingContract = checkExistingContract();
+    if (existingContract.exists) {
+        showNotification(`❌ Existe um contrato ativo (RA: ${existingContract.ra}) para esta viatura que ainda não foi finalizado com check-in (recolha). Complete o check-in primeiro!`, 'error');
+        return;
+    }
+    
+    // Save contract as delivery started
+    const contractKey = getContractKey();
+    const contracts = getActiveContracts();
+    contracts[contractKey] = {
+        plate: document.getElementById('inputPlate').value.trim(),
+        ra: document.getElementById('inputRA').value.trim(),
+        deliveryComplete: false,
+        pickupComplete: false,
+        deliveryDate: new Date().toISOString()
+    };
+    saveActiveContracts(contracts);
+    
     // Set process type to delivery
     localStorage.setItem('processType', 'delivery');
+    localStorage.setItem('currentContractKey', contractKey);
     
     autoSequenceMode = true;
     currentPhotoIndex = 0;
@@ -2216,6 +2275,20 @@ function continuePhotoProcessing(photoType, blob) {
     
     // Auto-open diagram if all photos captured
     if (Object.keys(inspectionData.photos).length === 9) {
+        // Mark delivery as complete if this is a delivery process
+        const processType = localStorage.getItem('processType');
+        if (processType === 'delivery') {
+            const contractKey = localStorage.getItem('currentContractKey');
+            if (contractKey) {
+                const contracts = getActiveContracts();
+                if (contracts[contractKey]) {
+                    contracts[contractKey].deliveryComplete = true;
+                    saveActiveContracts(contracts);
+                    console.log('✅ Delivery marked as complete for contract:', contractKey);
+                }
+            }
+        }
+        
         // Show special completion message
         showFinalPhotoCompletionMessage();
         
