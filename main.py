@@ -3473,6 +3473,74 @@ def init_db():
             safe_create_index(conn, "CREATE INDEX IF NOT EXISTS idx_vehicles_grupo ON vehicles(grupo)", "idx_vehicles_grupo")
             safe_create_index(conn, "CREATE INDEX IF NOT EXISTS idx_vehicles_status ON vehicles(status)", "idx_vehicles_status")
             
+            # Tabela para Rental Agreements (RAs uploadados)
+            conn.execute(
+                """
+                CREATE TABLE IF NOT EXISTS rental_agreements (
+                  id SERIAL PRIMARY KEY,
+                  rental_agreement_number TEXT UNIQUE NOT NULL,
+                  license_plate TEXT NOT NULL,
+                  vehicle_id INTEGER,
+                  odometer INTEGER,
+                  fuel_level TEXT,
+                  pdf_filename TEXT,
+                  pdf_data BYTEA,
+                  extracted_data TEXT,
+                  inspection_completed BOOLEAN DEFAULT FALSE,
+                  inspection_id INTEGER,
+                  created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+                  updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+                  FOREIGN KEY (vehicle_id) REFERENCES vehicles(id) ON DELETE SET NULL,
+                  FOREIGN KEY (inspection_id) REFERENCES vehicle_inspections(id) ON DELETE SET NULL
+                )
+                """
+            )
+            safe_create_index(conn, "CREATE INDEX IF NOT EXISTS idx_ra_plate ON rental_agreements(license_plate)", "idx_ra_plate")
+            safe_create_index(conn, "CREATE INDEX IF NOT EXISTS idx_ra_number ON rental_agreements(rental_agreement_number)", "idx_ra_number")
+            safe_create_index(conn, "CREATE INDEX IF NOT EXISTS idx_ra_completed ON rental_agreements(inspection_completed)", "idx_ra_completed")
+            
+            # Tabela para coordenadas dos campos do Rental Agreement
+            conn.execute(
+                """
+                CREATE TABLE IF NOT EXISTS rental_agreement_coordinates (
+                  id INTEGER PRIMARY KEY AUTOINCREMENT,
+                  field_id TEXT NOT NULL,
+                  x REAL NOT NULL,
+                  y REAL NOT NULL,
+                  width REAL NOT NULL,
+                  height REAL NOT NULL,
+                  page INTEGER DEFAULT 0,
+                  field_type TEXT,
+                  template_version INTEGER DEFAULT 1,
+                  updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
+                )
+                """
+            )
+            safe_create_index(conn, "CREATE INDEX IF NOT EXISTS idx_ra_field ON rental_agreement_coordinates(field_id)", "idx_ra_field")
+            
+            # Inserir coordenadas padrão se a tabela estiver vazia
+            cursor = conn.execute("SELECT COUNT(*) FROM rental_agreement_coordinates")
+            count = cursor.fetchone()[0]
+            if count == 0:
+                # Coordenadas padrão para os campos do RA (ajustar conforme o template real)
+                default_coords = [
+                    ('rental_agreement', 100, 50, 150, 20, 0, 'text', 1),
+                    ('license_plate', 100, 100, 120, 20, 0, 'text', 1),
+                    ('odometer', 100, 150, 100, 20, 0, 'number', 1),
+                    ('fuel_level', 100, 200, 80, 20, 0, 'text', 1),
+                ]
+                for field_id, x, y, width, height, page, field_type, version in default_coords:
+                    conn.execute(
+                        """
+                        INSERT INTO rental_agreement_coordinates 
+                        (field_id, x, y, width, height, page, field_type, template_version)
+                        VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+                        """,
+                        (field_id, x, y, width, height, page, field_type, version)
+                    )
+                conn.commit()
+                logging.info("✅ Default RA coordinates inserted")
+            
             # Tabela para Price Validation Rules
             conn.execute(
                 """
@@ -4124,6 +4192,55 @@ def require_auth(request: Request):
         except Exception:
             # if any parsing error, refresh the timestamp anyway
             request.session["last_active_ts"] = int(datetime.now(timezone.utc).timestamp())
+
+def get_user_from_session(request: Request):
+    """Get complete user information from session"""
+    username = request.session.get("username", "")
+    
+    user_data = {
+        "username": username,
+        "first_name": "",
+        "last_name": "",
+        "email": "",
+        "profile_picture_path": "",
+        "is_admin": request.session.get("is_admin", False),
+        "role": request.session.get("role", "user")
+    }
+    
+    # Fetch complete user data from database
+    try:
+        with _db_lock:
+            conn = _db_connect()
+            try:
+                is_postgres = 'psycopg' in type(conn).__name__.lower() or os.getenv('DATABASE_URL')
+                
+                if is_postgres:
+                    cursor = conn.cursor()
+                    cursor.execute("""
+                        SELECT first_name, last_name, email, profile_picture_path 
+                        FROM users 
+                        WHERE username = %s
+                    """, (username,))
+                else:
+                    cursor = conn.cursor()
+                    cursor.execute("""
+                        SELECT first_name, last_name, email, profile_picture_path 
+                        FROM users 
+                        WHERE username = ?
+                    """, (username,))
+                
+                row = cursor.fetchone()
+                if row:
+                    user_data["first_name"] = row[0] or ""
+                    user_data["last_name"] = row[1] or ""
+                    user_data["email"] = row[2] or ""
+                    user_data["profile_picture_path"] = row[3] or ""
+            finally:
+                conn.close()
+    except Exception as e:
+        logging.error(f"Error fetching user data: {e}")
+    
+    return user_data
 
 def require_admin(request: Request):
     require_auth(request)
@@ -19194,6 +19311,7 @@ async def startup_vehicle_inspections():
                     vehicle_plate TEXT,
                     vehicle_brand TEXT,
                     vehicle_model TEXT,
+                    vehicle_id INTEGER,
                     contract_number TEXT,
                     customer_name TEXT,
                     customer_email TEXT,
@@ -19210,7 +19328,8 @@ async def startup_vehicle_inspections():
                     fuel_level TEXT,
                     status TEXT DEFAULT 'draft',
                     photo_count INTEGER DEFAULT 0,
-                    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+                    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                    FOREIGN KEY (vehicle_id) REFERENCES vehicles(id) ON DELETE SET NULL
                 )
             """)
             
@@ -19244,6 +19363,7 @@ async def startup_vehicle_inspections():
                     vehicle_plate TEXT,
                     vehicle_brand TEXT,
                     vehicle_model TEXT,
+                    vehicle_id INTEGER,
                     contract_number TEXT,
                     customer_name TEXT,
                     customer_email TEXT,
@@ -19260,7 +19380,8 @@ async def startup_vehicle_inspections():
                     fuel_level TEXT,
                     status TEXT DEFAULT 'draft',
                     photo_count INTEGER DEFAULT 0,
-                    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+                    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                    FOREIGN KEY (vehicle_id) REFERENCES vehicles(id) ON DELETE SET NULL
                 )
             """)
             
@@ -21685,6 +21806,12 @@ async def extract_from_rental_agreement(request: Request, file: UploadFile = Fil
                     field_id, x, y, width, height, page = row[0], row[1], row[2], row[3], row[4], row[5]
                     
                     try:
+                        # Convert to float to avoid Decimal type issues
+                        x = float(x)
+                        y = float(y)
+                        width = float(width)
+                        height = float(height)
+                        
                         # Ajustar para índice 0-based
                         page_num = int(page) - 1 if page else 0
                         
@@ -27772,8 +27899,12 @@ async def save_inspection(request: Request):
     
     try:
         import os
+        logging.info("=" * 80)
+        logging.info("🔍 SAVE INSPECTION - START")
+        
         # Get JSON data from request
         data = await request.json()
+        logging.info(f"📦 Received data keys: {list(data.keys())}")
         
         # Extract inspection data
         inspection_type = data.get('type', 'checkin')
@@ -27788,29 +27919,132 @@ async def save_inspection(request: Request):
         date = data.get('date', '')
         time = data.get('time', '')
         email = data.get('email', '')
+        vehicle_id = data.get('vehicle_id', None)
+        damage_croqui = data.get('damageCroqui', '')  # Base64 image of damage croqui
+        
+        logging.info(f"📋 Inspection Type: {inspection_type}")
+        logging.info(f"🚗 Plate: {plate}")
+        logging.info(f"📄 RA: {ra}")
+        logging.info(f"📧 Email: {email}")
+        logging.info(f"📊 Odometer: {odometer_reading}, Fuel: {fuel_level}")
+        logging.info(f"📸 Photos count: {len(photos)}")
+        logging.info(f"📸 Photos keys: {list(photos.keys())}")
+        for photo_key in photos.keys():
+            photo_val = photos[photo_key]
+            if photo_val:
+                logging.info(f"📸 Photo '{photo_key}': length={len(photo_val)}, starts_with={photo_val[:50] if len(photo_val) > 50 else photo_val}")
+            else:
+                logging.info(f"📸 Photo '{photo_key}': EMPTY or None")
+        logging.info(f"⚠️ Damages count: {len(damages)}")
+        logging.info(f"🖼️ Damage croqui received: {len(damage_croqui) if damage_croqui else 0} chars")
+        
+        # Get current user (colaborador que fez a entrega)
+        username = request.session.get('username', receptionist or 'Unknown')
+        
+        # Get delivery location from rental agreement
+        delivery_location = None
+        if ra:
+            try:
+                conn_temp = _db_connect()
+                try:
+                    is_postgres_temp = 'psycopg' in type(conn_temp).__name__.lower() or os.getenv('DATABASE_URL')
+                    cursor_temp = conn_temp.cursor()
+                    
+                    if is_postgres_temp:
+                        cursor_temp.execute("""
+                            SELECT extracted_data 
+                            FROM rental_agreements 
+                            WHERE rental_agreement_number = %s
+                        """, (ra,))
+                    else:
+                        cursor_temp.execute("""
+                            SELECT extracted_data 
+                            FROM rental_agreements 
+                            WHERE rental_agreement_number = ?
+                        """, (ra,))
+                    
+                    location_row = cursor_temp.fetchone()
+                    if location_row and location_row[0]:
+                        import json
+                        try:
+                            extracted = json.loads(location_row[0])
+                            pickup_loc = extracted.get('local_levantamento', '')
+                            dropoff_loc = extracted.get('local_entrega', '')
+                            # For delivery (checkin), use dropoff location (where vehicle is being returned)
+                            # For checkout, use pickup location (where vehicle is being picked up)
+                            delivery_location = dropoff_loc if inspection_type == 'checkin' else pickup_loc
+                            if not delivery_location:
+                                delivery_location = "Não especificado"
+                            logging.info(f"📍 Delivery location found: {delivery_location} (type: {inspection_type}, pickup: {pickup_loc}, dropoff: {dropoff_loc})")
+                        except json.JSONDecodeError:
+                            logging.warning(f"⚠️ Could not parse extracted_data JSON for RA: {ra}")
+                            delivery_location = "Não especificado"
+                    else:
+                        logging.warning(f"⚠️ No location data found for RA: {ra}")
+                        delivery_location = "Não especificado"
+                finally:
+                    conn_temp.close()
+            except Exception as loc_error:
+                logging.error(f"Failed to get delivery location: {loc_error}")
+                delivery_location = "Local não especificado"
         
         # Validate required fields
+        logging.info("✅ Validating required fields...")
         if not plate:
+            logging.error("❌ Validation failed: Vehicle plate is required")
             return JSONResponse({"success": False, "error": "Vehicle plate is required"}, status_code=400)
         
         if not odometer_reading:
+            logging.error("❌ Validation failed: Odometer reading is required")
             return JSONResponse({"success": False, "error": "Odometer reading is required"}, status_code=400)
         
-        # Generate inspection number
+        logging.info("✅ Validation passed")
+        
+        # Generate inspection number with milliseconds and random suffix for uniqueness
         import datetime
+        import random
         now = datetime.datetime.now()
-        inspection_number = f"VI-{now.strftime('%Y%m%d')}-{now.strftime('%H%M%S')}"
+        random_suffix = random.randint(100, 999)
+        inspection_number = f"VI-{now.strftime('%Y%m%d')}-{now.strftime('%H%M%S')}-{now.microsecond//1000:03d}-{random_suffix}"
+        logging.info(f"🔢 Generated inspection number: {inspection_number}")
         
         # Calculate damage info
         damage_count = len(damages)
         has_damage = damage_count > 0
         damage_severity = 'severe' if damage_count > 3 else 'moderate' if damage_count > 1 else 'minor' if damage_count > 0 else 'none'
+        logging.info(f"⚠️ Damage info: count={damage_count}, severity={damage_severity}")
         
-        # Get current user
+        # Get current user and full name
         username = request.session.get('username', 'Unknown')
+        user_full_name = username
+        
+        # Get user's full name from database
+        try:
+            conn_user = _db_connect()
+            cursor_user = conn_user.cursor()
+            is_postgres_user = 'psycopg' in type(conn_user).__name__.lower() or os.getenv('DATABASE_URL')
+            
+            if is_postgres_user:
+                cursor_user.execute("SELECT first_name, last_name FROM users WHERE username = %s", (username,))
+            else:
+                cursor_user.execute("SELECT first_name, last_name FROM users WHERE username = ?", (username,))
+            
+            user_row = cursor_user.fetchone()
+            if user_row and user_row[0]:
+                first_name = user_row[0] or ''
+                last_name = user_row[1] or ''
+                user_full_name = f"{first_name} {last_name}".strip() or username
+                logging.info(f"👤 User full name: {user_full_name}")
+            conn_user.close()
+        except Exception as user_error:
+            logging.error(f"Failed to get user full name: {user_error}")
+        
+        logging.info(f"👤 Current user: {username} ({user_full_name})")
         
         # Save to database
+        logging.info("💾 Connecting to database...")
         conn = _db_connect()
+        logging.info("✅ Database connected")
         try:
             # Detect database type - ROBUST METHOD
             is_postgres = False
@@ -27829,19 +28063,22 @@ async def save_inspection(request: Request):
             
             if is_postgres:
                 # PostgreSQL
+                logging.info("📊 Using PostgreSQL database")
                 cursor = conn.cursor()
+                logging.info("💾 Inserting inspection into vehicle_inspections table...")
                 cursor.execute("""
                     INSERT INTO vehicle_inspections
-                    (inspection_number, inspection_type, vehicle_plate, contract_number,
+                    (inspection_number, inspection_type, vehicle_plate, vehicle_id, contract_number,
                      inspector_name, inspector_notes, has_damage, damage_count, damage_severity,
                      ai_analysis_complete, ai_confidence_avg, odometer_reading, fuel_level,
                      status, photo_count, created_at)
-                    VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, NOW())
+                    VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, NOW())
                     RETURNING id
                 """, (
                     inspection_number,
                     inspection_type,
                     plate,
+                    vehicle_id,
                     ra,
                     receptionist or username,
                     observations,
@@ -27857,21 +28094,25 @@ async def save_inspection(request: Request):
                 ))
                 
                 inspection_id = cursor.fetchone()[0]
+                logging.info(f"✅ Inspection inserted with ID: {inspection_id}")
                 
             else:
                 # SQLite
+                logging.info("📊 Using SQLite database")
                 cursor = conn.cursor()
+                logging.info("💾 Inserting inspection into vehicle_inspections table...")
                 cursor.execute("""
                     INSERT INTO vehicle_inspections
-                    (inspection_number, inspection_type, vehicle_plate, contract_number,
+                    (inspection_number, inspection_type, vehicle_plate, vehicle_id, contract_number,
                      inspector_name, inspector_notes, has_damage, damage_count, damage_severity,
                      ai_analysis_complete, ai_confidence_avg, odometer_reading, fuel_level,
                      status, photo_count, created_at)
-                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, datetime('now'))
+                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, datetime('now'))
                 """, (
                     inspection_number,
                     inspection_type,
                     plate,
+                    vehicle_id,
                     ra,
                     receptionist or username,
                     observations,
@@ -27887,23 +28128,37 @@ async def save_inspection(request: Request):
                 ))
                 
                 inspection_id = cursor.lastrowid
+                logging.info(f"✅ Inspection inserted with ID: {inspection_id}")
             
-            # Save photos (simplified - would need proper photo handling in production)
+            # Save photos with base64 data
             photo_types = ['front', 'back', 'left', 'right', 'interior', 'odometer']
             for idx, photo_type in enumerate(photo_types):
                 if photo_type in photos:
-                    # In a real implementation, you'd save the actual photo data
-                    # For now, just record that the photo exists
+                    photo_data = photos[photo_type]
+                    # Extract base64 data (remove data:image/jpeg;base64, prefix if present)
+                    if isinstance(photo_data, str) and 'base64,' in photo_data:
+                        photo_base64 = photo_data.split('base64,')[1]
+                    else:
+                        photo_base64 = photo_data
+                    
+                    # Convert base64 to bytes for storage
+                    import base64
+                    try:
+                        photo_bytes = base64.b64decode(photo_base64)
+                    except:
+                        photo_bytes = None
+                    
                     if is_postgres:
                         cursor.execute("""
                             INSERT INTO inspection_photos
-                            (inspection_id, photo_type, photo_order, image_filename,
+                            (inspection_id, photo_type, photo_order, image_data, image_filename,
                              ai_analyzed, ai_has_damage, created_at)
-                            VALUES (%s, %s, %s, %s, %s, %s, NOW())
+                            VALUES (%s, %s, %s, %s, %s, %s, %s, NOW())
                         """, (
                             inspection_id,
                             photo_type,
                             idx + 1,
+                            photo_bytes,
                             f"{photo_type}.jpg",
                             True,
                             False
@@ -27911,29 +28166,313 @@ async def save_inspection(request: Request):
                     else:
                         cursor.execute("""
                             INSERT INTO inspection_photos
-                            (inspection_id, photo_type, photo_order, image_filename,
+                            (inspection_id, photo_type, photo_order, image_data, image_filename,
                              ai_analyzed, ai_has_damage, created_at)
-                            VALUES (?, ?, ?, ?, ?, ?, datetime('now'))
+                            VALUES (?, ?, ?, ?, ?, ?, ?, datetime('now'))
                         """, (
                             inspection_id,
                             photo_type,
                             idx + 1,
+                            photo_bytes,
                             f"{photo_type}.jpg",
                             1,
                             0
                         ))
             
+            # Update vehicle in fleet management if vehicle_id exists
+            if vehicle_id:
+                try:
+                    if is_postgres:
+                        cursor.execute("""
+                            UPDATE vehicles 
+                            SET km_atual = %s, 
+                                nivel_combustivel = %s,
+                                status = CASE 
+                                    WHEN %s = 'checkin' THEN 'disponivel'
+                                    WHEN %s = 'checkout' THEN 'alugado'
+                                    ELSE status
+                                END
+                            WHERE id = %s
+                        """, (int(odometer_reading), str(fuel_level), inspection_type, inspection_type, vehicle_id))
+                    else:
+                        new_status = 'disponivel' if inspection_type == 'checkin' else 'alugado' if inspection_type == 'checkout' else None
+                        if new_status:
+                            cursor.execute("""
+                                UPDATE vehicles 
+                                SET km_atual = ?, 
+                                    nivel_combustivel = ?,
+                                    status = ?
+                                WHERE id = ?
+                            """, (int(odometer_reading), str(fuel_level), new_status, vehicle_id))
+                        else:
+                            cursor.execute("""
+                                UPDATE vehicles 
+                                SET km_atual = ?, 
+                                    nivel_combustivel = ?
+                                WHERE id = ?
+                            """, (int(odometer_reading), str(fuel_level), vehicle_id))
+                    
+                    logging.info(f"✅ Vehicle {vehicle_id} updated in fleet: KM={odometer_reading}, Fuel={fuel_level}, Status updated based on {inspection_type}")
+                except Exception as update_error:
+                    logging.error(f"Failed to update vehicle in fleet: {update_error}")
+            
+            # Set default delivery location if still None
+            if not delivery_location:
+                delivery_location = "Não especificado"
+                
+            # Update rental agreement as inspection completed
+            if ra and plate:
+                try:
+                    if is_postgres:
+                        cursor.execute("""
+                            UPDATE rental_agreements
+                            SET inspection_completed = TRUE,
+                                inspection_id = %s,
+                                updated_at = NOW()
+                            WHERE rental_agreement_number = %s
+                              AND UPPER(license_plate) = UPPER(%s)
+                        """, (inspection_id, ra, plate))
+                    else:
+                        cursor.execute("""
+                            UPDATE rental_agreements
+                            SET inspection_completed = 1,
+                                inspection_id = ?,
+                                updated_at = datetime('now')
+                            WHERE rental_agreement_number = ?
+                              AND UPPER(license_plate) = UPPER(?)
+                        """, (inspection_id, ra, plate))
+                    
+                    logging.info(f"✅ Rental Agreement {ra} marked as inspection completed (inspection_id: {inspection_id})")
+                except Exception as ra_update_error:
+                    logging.error(f"Failed to update rental agreement: {ra_update_error}")
+                    # Don't fail the inspection save if RA update fails
+            
+            logging.info("💾 Committing transaction to database...")
             conn.commit()
+            logging.info("✅ Transaction committed successfully")
             
             # Send email if requested
             if email:
                 try:
-                    # Email sending logic would go here
-                    logging.info(f"Email report requested for {email} - inspection {inspection_number}")
+                    logging.info(f"📧 Preparing to send inspection report to {email} - inspection {inspection_number}")
+                    
+                    # Get current datetime
+                    from datetime import datetime
+                    current_datetime = datetime.now()
+                    
+                    # Convert logo to base64 for email embedding
+                    import base64
+                    logo_base64 = ""
+                    try:
+                        with open('/Users/filipepacheco/CascadeProjects/carscraping/logo_autoprudente 1.png', 'rb') as logo_file:
+                            logo_base64 = base64.b64encode(logo_file.read()).decode('utf-8')
+                            logo_base64 = f"data:image/png;base64,{logo_base64}"
+                            logging.info("✅ Logo converted to base64")
+                    except Exception as logo_error:
+                        logging.error(f"❌ Failed to load logo: {logo_error}")
+                        logo_base64 = "https://carrental-api-5r6g.onrender.com/static/logo.svg"
+                    
+                    # Create fuel gauge SVG (visual representation like in canvas)
+                    fuel_percentage = int(fuel_level)
+                    fuel_color = '#10b981' if fuel_percentage >= 75 else '#f59e0b' if fuel_percentage >= 50 else '#ef4444'
+                    
+                    # Calculate the fill for the tank visual representation
+                    tank_height = 100
+                    fill_height = tank_height * fuel_percentage / 100
+                    fill_y = tank_height - fill_height
+                    
+                    fuel_gauge_svg = f"""
+                <div style="text-align: center;">
+                    <svg width="80" height="120" viewBox="0 0 80 120" style="display: block; margin: 0 auto;">
+                        <rect x="20" y="10" width="40" height="100" rx="5" fill="#e5e7eb" stroke="#64748b" stroke-width="2"/>
+                        <rect x="22" y="{10 + fill_y}" width="36" height="{fill_height}" rx="3" fill="{fuel_color}"/>
+                        <path d="M 60 40 L 70 35 L 70 45 Z" fill="#64748b"/>
+                        <circle cx="40" cy="5" r="3" fill="#64748b"/>
+                    </svg>
+                    <p style="margin: 10px 0 0 0; color: #1f2937; font-size: 16px; font-weight: 600;">{fuel_percentage}%</p>
+                </div>
+                    """
+                    
+                    # Create photos HTML
+                    photos_html = ""
+                    photo_labels = {
+                    'front': 'Frente',
+                    'back': 'Traseira',
+                    'left': 'Lado Esquerdo',
+                    'right': 'Lado Direito',
+                    'interior': 'Interior',
+                        'odometer': 'Conta-Quilómetros'
+                    }
+                    
+                    logging.info(f"📸 Processing {len(photos)} photos for email")
+                    for photo_type, label in photo_labels.items():
+                        if photo_type in photos:
+                            photo_data = photos[photo_type]
+                            if photo_data:
+                                logging.info(f"🔍 Photo {photo_type}: length={len(photo_data)}")
+                                
+                                # Ensure photo data has the data URI prefix
+                                if not photo_data.startswith('data:'):
+                                    photo_data = f"data:image/jpeg;base64,{photo_data}"
+                                
+                                photos_html += f"""
+                                <div style="margin-bottom: 18px;">
+                                    <h4 style="color: #009cb6; margin-bottom: 8px; font-size: 16px;">{label}</h4>
+                                    <img src="{photo_data}" alt="{label}" style="max-width: 100%; width: 100%; height: auto; border-radius: 6px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); display: block;" />
+                                </div>
+                                """
+                                logging.info(f"✅ Added photo: {photo_type} ({label})")
+                            else:
+                                logging.warning(f"⚠️ Photo {photo_type} is empty or None")
+                    
+                    if not photos_html:
+                        logging.warning("⚠️ No photos were added to the email!")
+                    else:
+                        logging.info(f"✅ Total photos added to email: {len([k for k in photo_labels.keys() if k in photos and photos[k]])}")
+                    
+                    # Create damages croqui HTML (ONLY show image ONCE, never text list)
+                    damages_html = ""
+                    if damage_croqui and len(damage_croqui) > 100:
+                        logging.info(f"✅ Damage croqui received (length: {len(damage_croqui)} chars)")
+                        damages_html = f"""
+                        <div style="margin-top: 25px;">
+                            <h3 style="color: #009cb6; margin-bottom: 12px; font-size: 18px;">Croqui de Danos</h3>
+                            <div style="text-align: center;">
+                                <img src="{damage_croqui}" alt="Croqui de Danos" style="max-width: 100%; width: 100%; height: auto; border-radius: 6px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); display: block; margin: 0 auto;" />
+                            </div>
+                        </div>
+                        """
+                    else:
+                        logging.warning(f"⚠️ No damage croqui image received! Damages count: {len(damages)}")
+                    
+                    # Create HTML email body with logo and complete information - MOBILE OPTIMIZED
+                    html_message = f"""
+                <!DOCTYPE html>
+                <html>
+                <head>
+                    <meta charset="UTF-8">
+                    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+                    <meta name="x-apple-disable-message-reformatting">
+                    <title>Relatório de Entrega</title>
+                        <style type="text/css">
+                            @media only screen and (max-width: 600px) {{
+                                .container {{ width: 100% !important; }}
+                                .header {{ padding: 20px 15px !important; }}
+                                .header h1 {{ font-size: 22px !important; }}
+                                .header p {{ font-size: 16px !important; }}
+                                .content {{ padding: 20px 15px !important; }}
+                                .info-row {{ display: block !important; width: 100% !important; }}
+                                .info-cell {{ display: block !important; width: 100% !important; padding: 10px 0 !important; }}
+                                .detail-label {{ font-size: 14px !important; }}
+                                .detail-value {{ font-size: 16px !important; }}
+                                h2 {{ font-size: 20px !important; }}
+                                h3 {{ font-size: 18px !important; }}
+                                .photo-img {{ max-width: 100% !important; height: auto !important; }}
+                            }}
+                        </style>
+                    </head>
+                    <body style="margin: 0; padding: 0; background-color: #f8fafc; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;">
+                        <table width="100%" cellpadding="0" cellspacing="0" style="background-color: #f8fafc; padding: 10px 0;">
+                            <tr><td align="center">
+                                <table class="container" width="600" cellpadding="0" cellspacing="0" style="max-width: 600px; width: 100%; background-color: #ffffff; box-shadow: 0 2px 8px rgba(0,0,0,0.1);">
+                                    <!-- Header with Logo -->
+                                    <tr><td class="header" style="background: #009cb6; padding: 25px 20px; text-align: center;">
+                                        <img src="{logo_base64}" alt="Auto Prudente" style="height: 50px; max-width: 200px; margin-bottom: 12px;" />
+                                        <h1 style="margin: 8px 0 0 0; color: #ffffff; font-size: 24px; font-weight: 600;">Relatório de Entrega</h1>
+                                        <p style="margin: 6px 0 0 0; color: #e0f7fa; font-size: 17px; font-weight: 500;">RA: {ra}</p>
+                                        <p style="margin: 4px 0 0 0; color: #ffffff; font-size: 13px;">{current_datetime.strftime('%d de %B de %Y às %H:%M')}</p>
+                                    </td></tr>
+                                    
+                                    <!-- Delivery Information -->
+                                    <tr><td class="content" style="padding: 20px; background: #f0f9fb; border-bottom: 1px solid #e2e8f0;">
+                                        <table width="100%" cellpadding="0" cellspacing="0">
+                                            <tr class="info-row">
+                                                <td class="info-cell" width="50%" style="padding: 8px; vertical-align: top;">
+                                                    <div class="detail-label" style="font-size: 12px; color: #64748b; margin-bottom: 4px;">Colaborador</div>
+                                                    <div class="detail-value" style="font-size: 15px; font-weight: 600; color: #1f2937;">{user_full_name}</div>
+                                                </td>
+                                                <td class="info-cell" width="50%" style="padding: 8px; vertical-align: top;">
+                                                    <div class="detail-label" style="font-size: 12px; color: #64748b; margin-bottom: 4px;">Local de Entrega</div>
+                                                    <div class="detail-value" style="font-size: 15px; font-weight: 600; color: #1f2937;">{delivery_location or 'Não especificado'}</div>
+                                                </td>
+                                            </tr>
+                                        </table>
+                                    </td></tr>
+                                    
+                                    <!-- Vehicle Details -->
+                                    <tr><td class="content" style="padding: 25px 20px;">
+                                        <h2 style="color: #009cb6; margin-top: 0; font-size: 20px;">Detalhes do Veículo</h2>
+                                        <table style="width: 100%; border-collapse: collapse;">
+                                            <tr>
+                                                <td style="padding: 10px 8px; border-bottom: 1px solid #e5e7eb; font-size: 14px;"><strong>Matrícula:</strong></td>
+                                                <td style="padding: 10px 8px; border-bottom: 1px solid #e5e7eb; font-size: 14px;">{plate}</td>
+                                            </tr>
+                                            <tr>
+                                                <td style="padding: 10px 8px; border-bottom: 1px solid #e5e7eb; font-size: 14px;"><strong>Quilómetros:</strong></td>
+                                                <td style="padding: 10px 8px; border-bottom: 1px solid #e5e7eb; font-size: 14px;">{odometer_reading} km</td>
+                                            </tr>
+                                            <tr>
+                                                <td style="padding: 10px 8px; border-bottom: 1px solid #e5e7eb; font-size: 14px;"><strong>Tipo de Inspeção:</strong></td>
+                                                <td style="padding: 10px 8px; border-bottom: 1px solid #e5e7eb; font-size: 14px;">Entrega</td>
+                                            </tr>
+                                            <tr>
+                                                <td style="padding: 10px 8px; border-bottom: 1px solid #e5e7eb; font-size: 14px;"><strong>Danos Identificados:</strong></td>
+                                                <td style="padding: 10px 8px; border-bottom: 1px solid #e5e7eb; font-size: 14px;">{damage_count}</td>
+                                            </tr>
+                                        </table>
+                                        
+                                        <!-- Fuel Level -->
+                                        <div style="margin-top: 25px;">
+                                            <h3 style="color: #009cb6; margin-bottom: 12px; font-size: 18px; text-align: center;">Nível de Combustível</h3>
+                                            {fuel_gauge_svg}
+                                        </div>
+                                        
+                                        {f'<div style="margin-top: 25px;"><h3 style="color: #009cb6; font-size: 18px;">Observações</h3><p style="background: #f9fafb; padding: 12px; border-radius: 6px; color: #1f2937; font-size: 14px; line-height: 1.5;">{observations}</p></div>' if observations else ''}
+                                        
+                                        <!-- Photos -->
+                                        <div style="margin-top: 25px;">
+                                            <h3 style="color: #009cb6; margin-bottom: 15px; font-size: 18px;">Fotografias do Veículo</h3>
+                                            {photos_html if photos_html else '<p style="color: #64748b; font-style: italic;">Nenhuma fotografia disponível</p>'}
+                                        </div>
+                                        
+                                        {damages_html}
+                                    </td></tr>
+                                    
+                                    <!-- Footer -->
+                                    <tr><td style="background: #f8fafc; padding: 20px; text-align: center; border-top: 1px solid #e2e8f0;">
+                                        <p style="margin: 0; font-size: 11px; color: #94a3b8;">
+                                            Auto Prudente © {current_datetime.year} • Sistema de Gestão de Frotas
+                                        </p>
+                                        <p style="margin: 6px 0 0 0; font-size: 10px; color: #cbd5e1;">
+                                            Relatório gerado automaticamente • Número: {inspection_number}
+                                        </p>
+                                    </td></tr>
+                                </table>
+                            </td></tr>
+                        </table>
+                </body>
+                </html>
+                    """
+                    
+                    # Use existing Gmail OAuth function
+                    logging.info("📤 Calling _send_notification_email function...")
+                    email_subject = f"Relatorio de Entrega - RA {ra}"
+                    logging.info(f"📧 Email subject: {email_subject}")
+                    _send_notification_email(
+                        to_email=email,
+                        subject=email_subject,
+                        message=html_message
+                    )
+                    
+                    logging.info(f"✅ Email sent successfully to {email}")
+                    
                 except Exception as email_error:
-                    logging.error(f"Failed to send email: {email_error}")
+                    logging.error(f"❌ Failed to send email: {email_error}")
+                    logging.error(f"❌ Email error traceback: {traceback.format_exc()}")
+                    # Don't fail the inspection save if email fails
             
             logging.info(f"✅ Vehicle inspection saved: {inspection_number} ({inspection_type})")
+            logging.info(f"🎯 Returning success response to frontend...")
             
             return JSONResponse({
                 "success": True,
@@ -30022,6 +30561,51 @@ def _ensure_missing_tables():
                         logging.info("✅ automated_prices_history index created/verified")
                     except Exception as e:
                         logging.warning(f"⚠️ automated_prices_history index: {e}")
+                    
+                    # 8. Ensure vehicle_inspections has vehicle_id column
+                    try:
+                        conn.execute("""
+                            DO $$ 
+                            BEGIN
+                                IF NOT EXISTS (
+                                    SELECT 1 FROM information_schema.columns 
+                                    WHERE table_name='vehicle_inspections' AND column_name='vehicle_id'
+                                ) THEN
+                                    ALTER TABLE vehicle_inspections ADD COLUMN vehicle_id INTEGER;
+                                    ALTER TABLE vehicle_inspections ADD CONSTRAINT fk_vehicle_inspections_vehicle_id 
+                                        FOREIGN KEY (vehicle_id) REFERENCES vehicles(id) ON DELETE SET NULL;
+                                END IF;
+                            END $$;
+                        """)
+                        logging.info("✅ vehicle_inspections.vehicle_id column ensured")
+                    except Exception as e:
+                        logging.warning(f"⚠️ vehicle_inspections.vehicle_id: {e}")
+                    
+                    # 9. Reset vehicle_inspections sequence to prevent duplicate key errors
+                    try:
+                        conn.execute("""
+                            SELECT setval(
+                                pg_get_serial_sequence('vehicle_inspections', 'id'),
+                                COALESCE((SELECT MAX(id) FROM vehicle_inspections), 1),
+                                true
+                            );
+                        """)
+                        logging.info("✅ vehicle_inspections ID sequence reset")
+                    except Exception as e:
+                        logging.warning(f"⚠️ vehicle_inspections sequence reset: {e}")
+                    
+                    # 10. Reset inspection_photos sequence to prevent duplicate key errors
+                    try:
+                        conn.execute("""
+                            SELECT setval(
+                                pg_get_serial_sequence('inspection_photos', 'id'),
+                                COALESCE((SELECT MAX(id) FROM inspection_photos), 1),
+                                true
+                            );
+                        """)
+                        logging.info("✅ inspection_photos ID sequence reset")
+                    except Exception as e:
+                        logging.warning(f"⚠️ inspection_photos sequence reset: {e}")
                     
                     conn.commit()
                 else:
@@ -38082,17 +38666,23 @@ async def root_page(request: Request):
 @app.get("/check-in")
 async def check_in_page(request: Request):
     """Check-in page"""
+    require_auth(request)
+    current_user = get_user_from_session(request)
     return templates.TemplateResponse("vehicle_inspection.html", {
         "request": request,
-        "inspection_type": "checkin"
+        "inspection_type": "checkin",
+        "current_user": current_user
     })
 
 @app.get("/check-out") 
 async def check_out_page(request: Request):
     """Check-out page"""
+    require_auth(request)
+    current_user = get_user_from_session(request)
     return templates.TemplateResponse("vehicle_inspection.html", {
         "request": request,
-        "inspection_type": "checkout"
+        "inspection_type": "checkout",
+        "current_user": current_user
     })
 
 @app.get("/vehicle-inspections")
@@ -38144,26 +38734,278 @@ async def create_vehicle_inspection(request: Request):
 async def get_inspections_history(request: Request):
     """Get vehicle inspections history"""
     try:
-        mock_inspections = [
-            {
-                "inspection_number": "VI-20251111150000",
-                "vehicle_plate": "AA-00-AA",
-                "contract_number": "12345-01",
-                "inspection_type": "checkin",
-                "inspector_name": "Admin",
-                "created_at": "2025-11-11T15:00:00",
-                "fuel_level": 100,
-                "odometer_reading": 50000
-            }
-        ]
-        
-        return JSONResponse({
-            "ok": True,
-            "inspections": mock_inspections
-        })
+        conn = _db_connect()
+        try:
+            # Detect database type
+            is_postgres = False
+            conn_type = type(conn).__name__
+            
+            if 'psycopg' in conn_type.lower() or conn_type == 'connection':
+                is_postgres = True
+            elif os.getenv('DATABASE_URL'):
+                is_postgres = True
+            
+            if is_postgres:
+                cursor = conn.cursor()
+                cursor.execute("""
+                    SELECT inspection_number, vehicle_plate, contract_number, 
+                           inspection_type, inspector_name, created_at, 
+                           fuel_level, odometer_reading, damage_count, status
+                    FROM vehicle_inspections
+                    ORDER BY created_at DESC
+                    LIMIT 100
+                """)
+                rows = cursor.fetchall()
+            else:
+                cursor = conn.cursor()
+                cursor.execute("""
+                    SELECT inspection_number, vehicle_plate, contract_number, 
+                           inspection_type, inspector_name, created_at, 
+                           fuel_level, odometer_reading, damage_count, status
+                    FROM vehicle_inspections
+                    ORDER BY created_at DESC
+                    LIMIT 100
+                """)
+                rows = cursor.fetchall()
+            
+            inspections = []
+            for row in rows:
+                inspections.append({
+                    "inspection_number": row[0],
+                    "vehicle_plate": row[1],
+                    "contract_number": row[2],
+                    "inspection_type": row[3],
+                    "inspector_name": row[4],
+                    "created_at": str(row[5]) if row[5] else None,
+                    "fuel_level": row[6],
+                    "odometer_reading": row[7],
+                    "damage_count": row[8],
+                    "status": row[9]
+                })
+            
+            return JSONResponse({
+                "ok": True,
+                "inspections": inspections
+            })
+            
+        finally:
+            conn.close()
         
     except Exception as e:
         logging.error(f"Error getting inspections history: {e}")
+        return JSONResponse({
+            "ok": False,
+            "error": str(e)
+        }, status_code=500)
+
+@app.post("/api/inspections/resend-last")
+async def resend_last_inspection(request: Request):
+    """Resend the last inspection report to a specified email"""
+    try:
+        data = await request.json()
+        recipient_email = data.get('email', '')
+        
+        if not recipient_email:
+            return JSONResponse({
+                "ok": False,
+                "error": "Email is required"
+            }, status_code=400)
+        
+        logging.info(f"📧 Resending last inspection report to: {recipient_email}")
+        
+        # Get last inspection from database
+        conn = _db_connect()
+        try:
+            is_postgres = 'psycopg' in type(conn).__name__.lower() or os.getenv('DATABASE_URL')
+            cursor = conn.cursor()
+            
+            # Get last inspection
+            cursor.execute("""
+                SELECT id, inspection_number, inspection_type, vehicle_plate, contract_number,
+                       inspector_name, inspector_notes, damage_count, odometer_reading, fuel_level,
+                       created_at
+                FROM vehicle_inspections
+                ORDER BY created_at DESC
+                LIMIT 1
+            """)
+            
+            inspection = cursor.fetchone()
+            if not inspection:
+                return JSONResponse({
+                    "ok": False,
+                    "error": "No inspections found"
+                }, status_code=404)
+            
+            inspection_id = inspection[0]
+            inspection_number = inspection[1]
+            inspection_type = inspection[2]
+            plate = inspection[3]
+            ra = inspection[4]
+            inspector = inspection[5]
+            observations = inspection[6] or ''
+            damage_count = inspection[7]
+            odometer = inspection[8]
+            fuel_level = inspection[9]
+            created_at = inspection[10]
+            
+            logging.info(f"✅ Found inspection: {inspection_number}")
+            
+            # Get photos
+            if is_postgres:
+                cursor.execute("""
+                    SELECT photo_type, image_data
+                    FROM inspection_photos
+                    WHERE inspection_id = %s
+                    ORDER BY photo_order
+                """, (inspection_id,))
+            else:
+                cursor.execute("""
+                    SELECT photo_type, image_data
+                    FROM inspection_photos
+                    WHERE inspection_id = ?
+                    ORDER BY photo_order
+                """, (inspection_id,))
+            
+            photos = {}
+            for row in cursor.fetchall():
+                photo_type = row[0]
+                image_data = row[1]
+                if image_data:
+                    import base64
+                    if isinstance(image_data, bytes):
+                        photos[photo_type] = base64.b64encode(image_data).decode('utf-8')
+                    else:
+                        photos[photo_type] = image_data
+            
+            logging.info(f"✅ Found {len(photos)} photos")
+            
+            # Now send the email using the existing email generation logic
+            # (reuse the code from save_inspection)
+            
+            # Read logo
+            logo_base64 = ''
+            logo_path = '/Users/filipepacheco/CascadeProjects/carscraping/logo_autoprudente 1.png'
+            try:
+                with open(logo_path, 'rb') as f:
+                    logo_base64 = base64.b64encode(f.read()).decode('utf-8')
+            except:
+                pass
+            
+            # Generate fuel gauge SVG
+            fuel_percentage = int(fuel_level)
+            fuel_color = '#10b981' if fuel_percentage >= 75 else '#f59e0b' if fuel_percentage >= 50 else '#ef4444'
+            tank_height = 100
+            fill_height = tank_height * fuel_percentage / 100
+            fill_y = tank_height - fill_height
+            
+            fuel_gauge_svg = f"""
+            <svg width="80" height="120" viewBox="0 0 80 120" style="display: block; margin: 0 auto;">
+                <rect x="20" y="10" width="40" height="100" rx="5" fill="none" stroke="#64748b" stroke-width="3"/>
+                <rect x="23" y="{10 + fill_y}" width="34" height="{fill_height}" rx="3" fill="{fuel_color}"/>
+                <path d="M 60 40 L 70 35 L 70 45 Z" fill="#64748b"/>
+            </svg>
+            """
+            
+            # Generate photos HTML
+            photos_html = ""
+            photo_labels = {
+                'front': 'Frente',
+                'back': 'Traseira',
+                'left': 'Lado Esquerdo',
+                'right': 'Lado Direito',
+                'interior': 'Interior',
+                'odometer': 'Conta-Quilómetros'
+            }
+            
+            for photo_type, label in photo_labels.items():
+                if photo_type in photos and photos[photo_type]:
+                    photo_data = photos[photo_type]
+                    if not photo_data.startswith('data:'):
+                        photo_data = f"data:image/jpeg;base64,{photo_data}"
+                    
+                    photos_html += f"""
+                    <div style="margin-bottom: 20px;">
+                        <h4 style="color: #009cb6; margin-bottom: 10px; font-size: 16px;">{label}</h4>
+                        <img class="photo-img" src="{photo_data}" alt="{label}" style="max-width: 100%; width: 100%; height: auto; border-radius: 6px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); display: block;" />
+                    </div>
+                    """
+            
+            # Create HTML email (simplified version without croqui for now)
+            html_message = f"""
+            <!DOCTYPE html>
+            <html>
+            <head>
+                <meta charset="UTF-8">
+                <meta name="viewport" content="width=device-width, initial-scale=1.0">
+                <title>Relatório de Entrega</title>
+            </head>
+            <body style="margin: 0; padding: 0; font-family: Arial, sans-serif; background-color: #f3f4f6;">
+                <div style="max-width: 600px; width: 100%; margin: 0 auto; background-color: #ffffff;">
+                    <div style="background: linear-gradient(135deg, #009cb6 0%, #007a8c 100%); color: white; padding: 30px; text-align: center;">
+                        {"<img src='data:image/png;base64," + logo_base64 + "' alt='Auto Prudente' style='max-width: 200px; height: auto; margin-bottom: 20px;' />" if logo_base64 else ""}
+                        <h1 style="margin: 0; font-size: 28px;">Relatório de Entrega</h1>
+                        <p style="margin: 10px 0 0 0; font-size: 18px;">RA: {ra}</p>
+                        <p style="margin: 5px 0 0 0; font-size: 14px;">{created_at}</p>
+                    </div>
+                    
+                    <div style="padding: 30px;">
+                        <h3 style="color: #009cb6;">Detalhes do Veículo</h3>
+                        <table style="width: 100%; border-collapse: collapse; margin-bottom: 25px;">
+                            <tr style="border-bottom: 1px solid #e5e7eb;">
+                                <td style="padding: 12px 0; color: #6b7280;">Matrícula:</td>
+                                <td style="padding: 12px 0; text-align: right; font-weight: 600;">{plate}</td>
+                            </tr>
+                            <tr style="border-bottom: 1px solid #e5e7eb;">
+                                <td style="padding: 12px 0; color: #6b7280;">Quilómetros:</td>
+                                <td style="padding: 12px 0; text-align: right; font-weight: 600;">{odometer} km</td>
+                            </tr>
+                            <tr style="border-bottom: 1px solid #e5e7eb;">
+                                <td style="padding: 12px 0; color: #6b7280;">Danos:</td>
+                                <td style="padding: 12px 0; text-align: right; font-weight: 600;">{damage_count}</td>
+                            </tr>
+                        </table>
+                        
+                        <h3 style="color: #009cb6;">Nível de Combustível</h3>
+                        <div style="text-align: center; margin-bottom: 25px;">
+                            {fuel_gauge_svg}
+                            <p style="margin: 10px 0 0 0; color: #6b7280;">{fuel_percentage}%</p>
+                        </div>
+                        
+                        <h3 style="color: #009cb6;">Fotografias do Veículo</h3>
+                        {photos_html}
+                    </div>
+                </div>
+            </body>
+            </html>
+            """
+            
+            # Send email using Gmail OAuth
+            success = _send_notification_email(
+                recipient_email,
+                f"Relatório de Entrega - RA {ra}",
+                html_message
+            )
+            
+            if success:
+                logging.info(f"✅ Report resent successfully to {recipient_email}")
+                return JSONResponse({
+                    "ok": True,
+                    "message": f"Report sent to {recipient_email}",
+                    "inspection_number": inspection_number
+                })
+            else:
+                return JSONResponse({
+                    "ok": False,
+                    "error": "Failed to send email"
+                }, status_code=500)
+            
+        finally:
+            conn.close()
+        
+    except Exception as e:
+        logging.error(f"Error resending inspection: {e}")
+        import traceback
+        traceback.print_exc()
         return JSONResponse({
             "ok": False,
             "error": str(e)
@@ -38645,6 +39487,674 @@ async def delete_inspection(inspection_number: str, request: Request):
         logging.error(f"Error deleting inspection: {e}")
         return JSONResponse({
             "ok": False,
+            "error": str(e)
+        }, status_code=500)
+
+@app.post("/api/extract-rental-agreement")
+async def extract_rental_agreement(request: Request, pdf: UploadFile = File(...)):
+    """Extract data from Rental Agreement PDF - Uses same logic as Damage Report"""
+    require_auth(request)
+    
+    # Use the same extraction function as Damage Report
+    result = await extract_from_rental_agreement(request, pdf)
+    
+    if not result.get("ok"):
+        return JSONResponse({
+            "success": False,
+            "error": result.get("error", "Failed to extract data")
+        }, status_code=500)
+    
+    # Map Damage Report fields to Vehicle Inspection fields
+    dr_fields = result.get("fields", {})
+    
+    # Extract the fields needed for Vehicle Inspection
+    inspection_data = {
+        "rental_agreement": dr_fields.get("contractNumber", ""),
+        "license_plate": dr_fields.get("vehiclePlate", ""),
+        "odometer": dr_fields.get("odometer", "") or dr_fields.get("km_out", ""),
+        "fuel_level": dr_fields.get("fuel_level", "") or dr_fields.get("fuelLevel", ""),
+        "email": dr_fields.get("clientEmail", "") or dr_fields.get("email", "")
+    }
+    
+    # Clean rental agreement number (remove -09 suffix)
+    if inspection_data["rental_agreement"] and '-09' in inspection_data["rental_agreement"]:
+        inspection_data["rental_agreement"] = inspection_data["rental_agreement"].replace('-09', '')
+    
+    logging.info(f"✅ Mapped to Vehicle Inspection: RA={inspection_data['rental_agreement']}, Plate={inspection_data['license_plate']}")
+    
+    # Now continue with the original logic to save to database
+    pdf.file.seek(0)  # Reset file pointer
+    pdf_bytes = await pdf.read()
+    
+    return await _save_rental_agreement_to_db(inspection_data, pdf_bytes, pdf.filename, request)
+
+async def _save_rental_agreement_to_db(result: dict, pdf_bytes: bytes, pdf_filename: str, request: Request):
+    """Save extracted rental agreement data to database"""
+    require_auth(request)
+    
+    try:
+        # Validate license plate with fleet management
+        vehicle_info = None
+        if result["license_plate"]:
+            conn = _db_connect()
+            is_postgres = _is_postgresql_connection(conn)
+            try:
+                if is_postgres:
+                    with conn.cursor() as cur:
+                        cur.execute("""
+                            SELECT id, matricula, grupo, marca, modelo, tipo_combustivel, 
+                                   nivel_combustivel, km_atual, status
+                            FROM vehicles
+                            WHERE UPPER(matricula) = UPPER(%s)
+                        """, (result["license_plate"],))
+                        vehicle_row = cur.fetchone()
+                else:
+                    cursor = conn.execute("""
+                        SELECT id, matricula, grupo, marca, modelo, tipo_combustivel, 
+                               nivel_combustivel, km_atual, status
+                        FROM vehicles
+                        WHERE UPPER(matricula) = UPPER(?)
+                    """, (result["license_plate"],))
+                    vehicle_row = cursor.fetchone()
+                
+                if vehicle_row:
+                    vehicle_info = {
+                        "id": vehicle_row[0],
+                        "matricula": vehicle_row[1],
+                        "grupo": vehicle_row[2],
+                        "marca": vehicle_row[3],
+                        "modelo": vehicle_row[4],
+                        "tipo_combustivel": vehicle_row[5],
+                        "nivel_combustivel": vehicle_row[6],
+                        "km_atual": vehicle_row[7],
+                        "status": vehicle_row[8]
+                    }
+            except Exception as e:
+                logging.error(f"Error checking vehicle in fleet: {e}")
+            finally:
+                conn.close()
+        
+        # Check if RA already exists before saving
+        existing_ra = None
+        inspection_exists = False
+        vehicle_change = False
+        if result["rental_agreement"] and result["license_plate"]:
+            try:
+                conn = _db_connect()
+                is_postgres = _is_postgresql_connection(conn)
+                
+                if is_postgres:
+                    with conn.cursor() as cur:
+                        # Check if RA already exists and get inspection status + license plate
+                        cur.execute("""
+                            SELECT id, inspection_completed, inspection_id, license_plate
+                            FROM rental_agreements 
+                            WHERE rental_agreement_number = %s
+                        """, (result["rental_agreement"],))
+                        existing = cur.fetchone()
+                        if existing:
+                            existing_ra = {
+                                "id": existing[0],
+                                "inspection_completed": existing[1],
+                                "inspection_id": existing[2],
+                                "license_plate": existing[3]
+                            }
+                            inspection_exists = bool(existing[1])
+                            # Check if license plate is different (vehicle change)
+                            vehicle_change = (existing[3].upper() != result["license_plate"].upper())
+                else:
+                    cursor = conn.execute("""
+                        SELECT id, inspection_completed, inspection_id, license_plate
+                        FROM rental_agreements 
+                        WHERE rental_agreement_number = ?
+                    """, (result["rental_agreement"],))
+                    existing = cursor.fetchone()
+                    if existing:
+                        existing_ra = {
+                            "id": existing[0],
+                            "inspection_completed": existing[1],
+                            "inspection_id": existing[2],
+                            "license_plate": existing[3]
+                        }
+                        inspection_exists = bool(existing[1])
+                        # Check if license plate is different (vehicle change)
+                        vehicle_change = (existing[3].upper() != result["license_plate"].upper())
+                
+                conn.close()
+                
+                # If RA exists, return info for frontend to ask confirmation
+                if existing_ra:
+                    return JSONResponse({
+                        "success": True,
+                        "ra_exists": True,
+                        "inspection_exists": inspection_exists,
+                        "vehicle_change": vehicle_change,
+                        "data": result,
+                        "vehicle_info": vehicle_info,
+                        "existing_ra": existing_ra,
+                        "message": "Rental Agreement já existe. Deseja substituir?"
+                    })
+                
+            except Exception as check_error:
+                logging.error(f"Error checking existing RA: {check_error}")
+        
+        # If RA doesn't exist, proceed to save
+        ra_saved = False
+        ra_id = None
+        if result["rental_agreement"] and result["license_plate"]:
+            try:
+                conn = _db_connect()
+                is_postgres = _is_postgresql_connection(conn)
+                
+                # Convert result to JSON string
+                import json
+                extracted_json = json.dumps(result)
+                
+                if is_postgres:
+                    with conn.cursor() as cur:
+                        # Insert new RA
+                        cur.execute("""
+                            INSERT INTO rental_agreements
+                            (rental_agreement_number, license_plate, vehicle_id, odometer, 
+                             fuel_level, pdf_filename, pdf_data, extracted_data)
+                            VALUES (%s, %s, %s, %s, %s, %s, %s, %s)
+                            RETURNING id
+                        """, (
+                            result["rental_agreement"],
+                            result["license_plate"],
+                            vehicle_info["id"] if vehicle_info else None,
+                            int(result["odometer"]) if result["odometer"] else None,
+                            result["fuel_level"],
+                            pdf_filename,
+                            pdf_bytes,
+                            extracted_json
+                        ))
+                        ra_id = cur.fetchone()[0]
+                else:
+                    # SQLite - Insert new RA
+                    cursor = conn.execute("""
+                        INSERT INTO rental_agreements
+                        (rental_agreement_number, license_plate, vehicle_id, odometer, 
+                         fuel_level, pdf_filename, pdf_data, extracted_data)
+                        VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+                    """, (
+                        result["rental_agreement"],
+                        result["license_plate"],
+                        vehicle_info["id"] if vehicle_info else None,
+                        int(result["odometer"]) if result["odometer"] else None,
+                        result["fuel_level"],
+                        pdf_filename,
+                        pdf_bytes,
+                        extracted_json
+                    ))
+                    ra_id = cursor.lastrowid
+                
+                conn.commit()
+                conn.close()
+                ra_saved = True
+                logging.info(f"✅ Rental Agreement {result['rental_agreement']} saved to database (ID: {ra_id})")
+                
+            except Exception as save_error:
+                logging.error(f"Error saving rental agreement to database: {save_error}")
+                import traceback
+                traceback.print_exc()
+        
+        return JSONResponse({
+            "success": True,
+            "ra_exists": False,
+            "data": result,
+            "vehicle_info": vehicle_info,
+            "vehicle_found": vehicle_info is not None,
+            "fields_extracted": len([v for v in result.values() if v]),
+            "ra_saved": ra_saved,
+            "ra_id": ra_id,
+            "message": "Rental Agreement guardado com sucesso!" if ra_saved else "Dados extraídos"
+        })
+        
+    except Exception as e:
+        logging.error(f"Error extracting rental agreement: {e}")
+        return JSONResponse({
+            "success": False,
+            "error": str(e)
+        }, status_code=500)
+
+@app.post("/api/rental-agreement/replace")
+async def replace_rental_agreement(request: Request):
+    """Replace existing rental agreement after user confirmation"""
+    require_auth(request)
+    
+    try:
+        data = await request.json()
+        ra_number = data.get("rental_agreement_number")
+        license_plate = data.get("license_plate")
+        vehicle_id = data.get("vehicle_id")
+        odometer = data.get("odometer")
+        fuel_level = data.get("fuel_level")
+        pdf_filename = data.get("pdf_filename")
+        pdf_data_base64 = data.get("pdf_data")
+        extracted_data = data.get("extracted_data")
+        
+        if not ra_number:
+            return JSONResponse({
+                "success": False,
+                "error": "Rental Agreement number é obrigatório"
+            }, status_code=400)
+        
+        # Decode PDF data
+        import base64
+        pdf_bytes = base64.b64decode(pdf_data_base64) if pdf_data_base64 else None
+        
+        conn = _db_connect()
+        is_postgres = _is_postgresql_connection(conn)
+        
+        if is_postgres:
+            with conn.cursor() as cur:
+                cur.execute("""
+                    UPDATE rental_agreements
+                    SET license_plate = %s,
+                        vehicle_id = %s,
+                        odometer = %s,
+                        fuel_level = %s,
+                        pdf_filename = %s,
+                        pdf_data = %s,
+                        extracted_data = %s,
+                        updated_at = NOW()
+                    WHERE rental_agreement_number = %s
+                    RETURNING id
+                """, (
+                    license_plate,
+                    vehicle_id,
+                    int(odometer) if odometer else None,
+                    fuel_level,
+                    pdf_filename,
+                    pdf_bytes,
+                    extracted_data,
+                    ra_number
+                ))
+                result = cur.fetchone()
+                ra_id = result[0] if result else None
+        else:
+            conn.execute("""
+                UPDATE rental_agreements
+                SET license_plate = ?,
+                    vehicle_id = ?,
+                    odometer = ?,
+                    fuel_level = ?,
+                    pdf_filename = ?,
+                    pdf_data = ?,
+                    extracted_data = ?,
+                    updated_at = datetime('now')
+                WHERE rental_agreement_number = ?
+            """, (
+                license_plate,
+                vehicle_id,
+                int(odometer) if odometer else None,
+                fuel_level,
+                pdf_filename,
+                pdf_bytes,
+                extracted_data,
+                ra_number
+            ))
+            ra_id = conn.execute("SELECT id FROM rental_agreements WHERE rental_agreement_number = ?", (ra_number,)).fetchone()[0]
+        
+        conn.commit()
+        conn.close()
+        
+        logging.info(f"✅ Rental Agreement {ra_number} replaced successfully")
+        
+        return JSONResponse({
+            "success": True,
+            "ra_id": ra_id,
+            "message": "Rental Agreement substituído com sucesso!"
+        })
+        
+    except Exception as e:
+        logging.error(f"Error replacing rental agreement: {e}")
+        return JSONResponse({
+            "success": False,
+            "error": str(e)
+        }, status_code=500)
+
+@app.get("/api/rental-agreement/by-plate/{plate}")
+async def get_latest_ra_by_plate(request: Request, plate: str):
+    """Get latest rental agreement by license plate and check inspection status"""
+    require_auth(request)
+    
+    try:
+        conn = _db_connect()
+        is_postgres = _is_postgresql_connection(conn)
+        
+        # Normalize plate: remove spaces and convert to uppercase
+        normalized_plate = plate.replace(" ", "").upper()
+        logging.info(f"🔍 Searching for plate: '{plate}' (normalized: '{normalized_plate}')")
+        
+        # Get latest RA for this plate (highest RA number)
+        if is_postgres:
+            with conn.cursor() as cur:
+                cur.execute("""
+                    SELECT ra.id, ra.rental_agreement_number, ra.license_plate, 
+                           ra.vehicle_id, ra.odometer, ra.fuel_level, 
+                           ra.inspection_completed, ra.inspection_id,
+                           ra.created_at, ra.updated_at, ra.extracted_data
+                    FROM rental_agreements ra
+                    WHERE REPLACE(UPPER(ra.license_plate), ' ', '') = %s
+                    ORDER BY ra.rental_agreement_number DESC
+                    LIMIT 1
+                """, (normalized_plate,))
+                ra_row = cur.fetchone()
+        else:
+            cursor = conn.execute("""
+                SELECT ra.id, ra.rental_agreement_number, ra.license_plate, 
+                       ra.vehicle_id, ra.odometer, ra.fuel_level, 
+                       ra.inspection_completed, ra.inspection_id,
+                       ra.created_at, ra.updated_at, ra.extracted_data
+                FROM rental_agreements ra
+                WHERE REPLACE(UPPER(ra.license_plate), ' ', '') = ?
+                ORDER BY ra.rental_agreement_number DESC
+                LIMIT 1
+            """, (normalized_plate,))
+            ra_row = cursor.fetchone()
+        
+        if not ra_row:
+            conn.close()
+            return JSONResponse({
+                "success": False,
+                "found": False,
+                "message": "Nenhum Rental Agreement encontrado para esta matrícula"
+            })
+        
+        # Parse RA data
+        ra_data = {
+            "id": ra_row[0],
+            "rental_agreement_number": ra_row[1],
+            "license_plate": ra_row[2],
+            "vehicle_id": ra_row[3],
+            "odometer": ra_row[4],
+            "fuel_level": ra_row[5],
+            "inspection_completed": bool(ra_row[6]),
+            "inspection_id": ra_row[7],
+            "created_at": str(ra_row[8]) if ra_row[8] else None,
+            "updated_at": str(ra_row[9]) if ra_row[9] else None
+        }
+        
+        # Extract email from extracted_data JSON if available
+        client_email = None
+        if ra_row[10]:  # extracted_data
+            try:
+                import json
+                extracted_data = json.loads(ra_row[10])
+                client_email = extracted_data.get("clientEmail") or extracted_data.get("email")
+                logging.info(f"📧 Extracted data keys: {list(extracted_data.keys())}")
+                logging.info(f"📧 Client email found: {client_email}")
+            except Exception as e:
+                logging.error(f"📧 Error parsing extracted_data: {e}")
+        else:
+            logging.warning(f"📧 No extracted_data found for RA {ra_row[1]}")
+        ra_data["client_email"] = client_email
+        logging.info(f"📧 Final ra_data client_email: {ra_data.get('client_email')}")
+        
+        # Get vehicle info if vehicle_id exists
+        vehicle_info = None
+        if ra_data["vehicle_id"]:
+            if is_postgres:
+                with conn.cursor() as cur:
+                    cur.execute("""
+                        SELECT id, matricula, grupo, marca, modelo, tipo_combustivel, 
+                               nivel_combustivel, km_atual, status
+                        FROM vehicles
+                        WHERE id = %s
+                    """, (ra_data["vehicle_id"],))
+                    vehicle_row = cur.fetchone()
+            else:
+                cursor = conn.execute("""
+                    SELECT id, matricula, grupo, marca, modelo, tipo_combustivel, 
+                           nivel_combustivel, km_atual, status
+                    FROM vehicles
+                    WHERE id = ?
+                """, (ra_data["vehicle_id"],))
+                vehicle_row = cursor.fetchone()
+            
+            if vehicle_row:
+                vehicle_info = {
+                    "id": vehicle_row[0],
+                    "matricula": vehicle_row[1],
+                    "grupo": vehicle_row[2],
+                    "marca": vehicle_row[3],
+                    "modelo": vehicle_row[4],
+                    "tipo_combustivel": vehicle_row[5],
+                    "nivel_combustivel": vehicle_row[6],
+                    "km_atual": vehicle_row[7],
+                    "status": vehicle_row[8]
+                }
+        
+        # Get inspection info if inspection exists
+        inspection_info = None
+        if ra_data["inspection_completed"] and ra_data["inspection_id"]:
+            if is_postgres:
+                with conn.cursor() as cur:
+                    cur.execute("""
+                        SELECT inspection_number, inspection_type, status, 
+                               created_at, inspector_name
+                        FROM vehicle_inspections
+                        WHERE id = %s
+                    """, (ra_data["inspection_id"],))
+                    inspection_row = cur.fetchone()
+            else:
+                cursor = conn.execute("""
+                    SELECT inspection_number, inspection_type, status, 
+                           created_at, inspector_name
+                    FROM vehicle_inspections
+                    WHERE id = ?
+                """, (ra_data["inspection_id"],))
+                inspection_row = cursor.fetchone()
+            
+            if inspection_row:
+                inspection_info = {
+                    "inspection_number": inspection_row[0],
+                    "inspection_type": inspection_row[1],
+                    "status": inspection_row[2],
+                    "created_at": str(inspection_row[3]) if inspection_row[3] else None,
+                    "inspector_name": inspection_row[4]
+                }
+        
+        conn.close()
+        
+        # Determine message based on inspection status
+        if ra_data["inspection_completed"]:
+            message = "Inspeção já realizada. Deseja refazer a inspeção?"
+        else:
+            message = "Inspeção não realizada. Pode iniciar a inspeção."
+        
+        return JSONResponse({
+            "success": True,
+            "found": True,
+            "rental_agreement": ra_data,
+            "vehicle_info": vehicle_info,
+            "inspection_info": inspection_info,
+            "message": message
+        })
+        
+    except Exception as e:
+        logging.error(f"Error fetching rental agreement by plate: {e}")
+        import traceback
+        traceback.print_exc()
+        return JSONResponse({
+            "success": False,
+            "error": str(e)
+        }, status_code=500)
+
+@app.get("/ra-mapper")
+async def ra_mapper_page(request: Request):
+    """Página para mapear coordenadas do Rental Agreement"""
+    require_auth(request)
+    return templates.TemplateResponse("ra_mapper.html", {"request": request})
+
+@app.post("/api/rental-agreement/update-coordinates")
+async def update_ra_coordinates(request: Request):
+    """Atualizar coordenadas dos campos do Rental Agreement"""
+    require_auth(request)
+    
+    try:
+        data = await request.json()
+        coordinates = data.get("coordinates", [])
+        
+        conn = _db_connect()
+        is_postgres = _is_postgresql_connection(conn)
+        
+        # Delete existing coordinates
+        if is_postgres:
+            with conn.cursor() as cur:
+                cur.execute("DELETE FROM rental_agreement_coordinates")
+        else:
+            conn.execute("DELETE FROM rental_agreement_coordinates")
+        
+        # Insert new coordinates
+        for coord in coordinates:
+            if is_postgres:
+                with conn.cursor() as cur:
+                    cur.execute("""
+                        INSERT INTO rental_agreement_coordinates 
+                        (field_id, x, y, width, height, page, field_type, template_version)
+                        VALUES (%s, %s, %s, %s, %s, %s, %s, %s)
+                    """, (
+                        coord["field_id"],
+                        coord["x"],
+                        coord["y"],
+                        coord["width"],
+                        coord["height"],
+                        coord.get("page", 0),
+                        coord.get("field_type", "text"),
+                        coord.get("template_version", 1)
+                    ))
+            else:
+                conn.execute("""
+                    INSERT INTO rental_agreement_coordinates 
+                    (field_id, x, y, width, height, page, field_type, template_version)
+                    VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+                """, (
+                    coord["field_id"],
+                    coord["x"],
+                    coord["y"],
+                    coord["width"],
+                    coord["height"],
+                    coord.get("page", 0),
+                    coord.get("field_type", "text"),
+                    coord.get("template_version", 1)
+                ))
+        
+        conn.commit()
+        conn.close()
+        
+        return JSONResponse({
+            "success": True,
+            "message": f"{len(coordinates)} coordenadas atualizadas"
+        })
+        
+    except Exception as e:
+        logging.error(f"Error updating RA coordinates: {e}")
+        return JSONResponse({
+            "success": False,
+            "error": str(e)
+        }, status_code=500)
+
+@app.post("/api/vehicles/update-from-inspection")
+async def update_vehicle_from_inspection(request: Request):
+    """Atualizar Km e Gasolina na Gestão de Frota durante inspeção"""
+    require_auth(request)
+    
+    try:
+        data = await request.json()
+        license_plate = data.get("license_plate")
+        odometer = data.get("odometer")
+        fuel_level = data.get("fuel_level")
+        
+        if not license_plate:
+            return JSONResponse({
+                "success": False,
+                "error": "Matrícula é obrigatória"
+            }, status_code=400)
+        
+        conn = _db_connect()
+        is_postgres = _is_postgresql_connection(conn)
+        
+        # Update vehicle in fleet management
+        if is_postgres:
+            with conn.cursor() as cur:
+                update_fields = []
+                params = []
+                
+                if odometer is not None:
+                    update_fields.append("km_atual = %s")
+                    params.append(int(odometer))
+                
+                if fuel_level is not None:
+                    update_fields.append("nivel_combustivel = %s")
+                    params.append(fuel_level)
+                
+                if not update_fields:
+                    conn.close()
+                    return JSONResponse({
+                        "success": False,
+                        "error": "Nenhum campo para atualizar"
+                    }, status_code=400)
+                
+                params.append(license_plate)
+                
+                cur.execute(f"""
+                    UPDATE vehicles
+                    SET {', '.join(update_fields)}
+                    WHERE UPPER(matricula) = UPPER(%s)
+                """, params)
+                
+                updated = cur.rowcount > 0
+        else:
+            update_fields = []
+            params = []
+            
+            if odometer is not None:
+                update_fields.append("km_atual = ?")
+                params.append(int(odometer))
+            
+            if fuel_level is not None:
+                update_fields.append("nivel_combustivel = ?")
+                params.append(fuel_level)
+            
+            if not update_fields:
+                conn.close()
+                return JSONResponse({
+                    "success": False,
+                    "error": "Nenhum campo para atualizar"
+                }, status_code=400)
+            
+            params.append(license_plate)
+            
+            cursor = conn.execute(f"""
+                UPDATE vehicles
+                SET {', '.join(update_fields)}
+                WHERE UPPER(matricula) = UPPER(?)
+            """, params)
+            
+            updated = cursor.rowcount > 0
+        
+        conn.commit()
+        conn.close()
+        
+        if updated:
+            logging.info(f"✅ Vehicle {license_plate} updated: odometer={odometer}, fuel={fuel_level}")
+            return JSONResponse({
+                "success": True,
+                "message": "Veículo atualizado na Gestão de Frota"
+            })
+        else:
+            return JSONResponse({
+                "success": False,
+                "error": "Veículo não encontrado na Gestão de Frota"
+            }, status_code=404)
+        
+    except Exception as e:
+        logging.error(f"Error updating vehicle from inspection: {e}")
+        return JSONResponse({
+            "success": False,
             "error": str(e)
         }, status_code=500)
 

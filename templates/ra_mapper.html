@@ -1,0 +1,244 @@
+<!DOCTYPE html>
+<html lang="pt">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>RA Mapper - Mapear Coordenadas</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+</head>
+<body class="bg-gray-100">
+    <div class="container mx-auto p-6">
+        <h1 class="text-3xl font-bold mb-6">Rental Agreement Mapper</h1>
+        
+        <div class="bg-white rounded-lg shadow p-6 mb-6">
+            <h2 class="text-xl font-semibold mb-4">1. Upload do PDF do Rental Agreement</h2>
+            <input type="file" id="pdfUpload" accept="application/pdf" class="mb-4">
+            <div id="pdfInfo" class="text-sm text-gray-600 mb-4"></div>
+        </div>
+        
+        <div class="grid grid-cols-2 gap-6">
+            <div class="bg-white rounded-lg shadow p-6">
+                <h2 class="text-xl font-semibold mb-4">2. Visualizar PDF e Mapear Campos</h2>
+                <div class="mb-4">
+                    <label class="block text-sm font-medium mb-2">Campo a mapear:</label>
+                    <select id="fieldSelect" class="w-full border rounded px-3 py-2">
+                        <option value="rental_agreement">Rental Agreement Number</option>
+                        <option value="license_plate">License Plate (Matrícula)</option>
+                        <option value="odometer">Odometer (Quilómetros)</option>
+                        <option value="fuel_level">Fuel Level (Combustível)</option>
+                    </select>
+                </div>
+                <div class="mb-4">
+                    <p class="text-sm text-gray-600">Clique e arraste no PDF para definir a área do campo</p>
+                </div>
+                <div id="pdfContainer" class="border-2 border-gray-300 relative overflow-auto" style="max-height: 600px;">
+                    <canvas id="pdfCanvas"></canvas>
+                </div>
+            </div>
+            
+            <div class="bg-white rounded-lg shadow p-6">
+                <h2 class="text-xl font-semibold mb-4">3. Coordenadas Mapeadas</h2>
+                <div id="coordinatesList" class="space-y-2 mb-4"></div>
+                <button id="saveBtn" class="w-full bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700">
+                    Guardar Coordenadas
+                </button>
+                <button id="testBtn" class="w-full bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700 mt-2">
+                    Testar Extração
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+        
+        let pdfDoc = null;
+        let pdfPage = null;
+        let canvas = document.getElementById('pdfCanvas');
+        let ctx = canvas.getContext('2d');
+        let coordinates = {};
+        let isDrawing = false;
+        let startX, startY;
+        let currentRect = null;
+        let pdfBytes = null;
+        
+        document.getElementById('pdfUpload').addEventListener('change', async (e) => {
+            const file = e.target.files[0];
+            if (!file) return;
+            
+            const arrayBuffer = await file.arrayBuffer();
+            pdfBytes = new Uint8Array(arrayBuffer);
+            
+            pdfDoc = await pdfjsLib.getDocument({data: pdfBytes}).promise;
+            document.getElementById('pdfInfo').textContent = `PDF carregado: ${pdfDoc.numPages} página(s)`;
+            
+            // Render first page
+            pdfPage = await pdfDoc.getPage(1);
+            const viewport = pdfPage.getViewport({scale: 1.5});
+            
+            canvas.width = viewport.width;
+            canvas.height = viewport.height;
+            
+            await pdfPage.render({
+                canvasContext: ctx,
+                viewport: viewport
+            }).promise;
+            
+            drawExistingRects();
+        });
+        
+        canvas.addEventListener('mousedown', (e) => {
+            const rect = canvas.getBoundingClientRect();
+            startX = e.clientX - rect.left;
+            startY = e.clientY - rect.top;
+            isDrawing = true;
+        });
+        
+        canvas.addEventListener('mousemove', (e) => {
+            if (!isDrawing) return;
+            
+            const rect = canvas.getBoundingClientRect();
+            const currentX = e.clientX - rect.left;
+            const currentY = e.clientY - rect.top;
+            
+            // Redraw PDF
+            pdfPage.render({
+                canvasContext: ctx,
+                viewport: pdfPage.getViewport({scale: 1.5})
+            });
+            
+            // Draw existing rectangles
+            drawExistingRects();
+            
+            // Draw current rectangle
+            ctx.strokeStyle = 'red';
+            ctx.lineWidth = 2;
+            ctx.strokeRect(startX, startY, currentX - startX, currentY - startY);
+        });
+        
+        canvas.addEventListener('mouseup', (e) => {
+            if (!isDrawing) return;
+            isDrawing = false;
+            
+            const rect = canvas.getBoundingClientRect();
+            const endX = e.clientX - rect.left;
+            const endY = e.clientY - rect.top;
+            
+            const fieldId = document.getElementById('fieldSelect').value;
+            const scale = 1.5;
+            
+            coordinates[fieldId] = {
+                field_id: fieldId,
+                x: Math.min(startX, endX) / scale,
+                y: Math.min(startY, endY) / scale,
+                width: Math.abs(endX - startX) / scale,
+                height: Math.abs(endY - startY) / scale,
+                page: 0,
+                field_type: 'text',
+                template_version: 1
+            };
+            
+            updateCoordinatesList();
+            drawExistingRects();
+        });
+        
+        function drawExistingRects() {
+            const scale = 1.5;
+            for (const [fieldId, coord] of Object.entries(coordinates)) {
+                ctx.strokeStyle = 'blue';
+                ctx.lineWidth = 2;
+                ctx.strokeRect(
+                    coord.x * scale,
+                    coord.y * scale,
+                    coord.width * scale,
+                    coord.height * scale
+                );
+                
+                ctx.fillStyle = 'blue';
+                ctx.font = '12px Arial';
+                ctx.fillText(fieldId, coord.x * scale + 5, coord.y * scale - 5);
+            }
+        }
+        
+        function updateCoordinatesList() {
+            const list = document.getElementById('coordinatesList');
+            list.innerHTML = '';
+            
+            for (const [fieldId, coord] of Object.entries(coordinates)) {
+                const div = document.createElement('div');
+                div.className = 'p-3 bg-gray-50 rounded';
+                div.innerHTML = `
+                    <div class="font-semibold">${fieldId}</div>
+                    <div class="text-xs text-gray-600">
+                        x: ${Math.round(coord.x)}, y: ${Math.round(coord.y)}, 
+                        w: ${Math.round(coord.width)}, h: ${Math.round(coord.height)}
+                    </div>
+                `;
+                list.appendChild(div);
+            }
+        }
+        
+        document.getElementById('saveBtn').addEventListener('click', async () => {
+            const coordArray = Object.values(coordinates);
+            
+            if (coordArray.length === 0) {
+                alert('Mapeia pelo menos um campo primeiro!');
+                return;
+            }
+            
+            try {
+                const response = await fetch('/api/rental-agreement/update-coordinates', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({coordinates: coordArray})
+                });
+                
+                const data = await response.json();
+                
+                if (data.success) {
+                    alert('Coordenadas guardadas com sucesso!');
+                } else {
+                    alert('Erro: ' + data.error);
+                }
+            } catch (error) {
+                console.error('Error saving coordinates:', error);
+                alert('Erro ao guardar coordenadas');
+            }
+        });
+        
+        document.getElementById('testBtn').addEventListener('click', async () => {
+            if (!pdfBytes) {
+                alert('Carrega um PDF primeiro!');
+                return;
+            }
+            
+            const blob = new Blob([pdfBytes], {type: 'application/pdf'});
+            const formData = new FormData();
+            formData.append('pdf', blob, 'test.pdf');
+            
+            try {
+                const response = await fetch('/api/extract-rental-agreement', {
+                    method: 'POST',
+                    body: formData
+                });
+                
+                const data = await response.json();
+                
+                if (data.success) {
+                    alert('Dados extraídos:\n\n' + 
+                          'RA: ' + (data.data.rental_agreement || 'N/A') + '\n' +
+                          'Matrícula: ' + (data.data.license_plate || 'N/A') + '\n' +
+                          'Km: ' + (data.data.odometer || 'N/A') + '\n' +
+                          'Combustível: ' + (data.data.fuel_level || 'N/A'));
+                } else {
+                    alert('Erro na extração: ' + data.error);
+                }
+            } catch (error) {
+                console.error('Error testing extraction:', error);
+                alert('Erro ao testar extração');
+            }
+        });
+    </script>
+</body>
+</html>

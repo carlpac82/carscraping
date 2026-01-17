@@ -659,6 +659,79 @@
     </div>
 
     <script>
+        // Minimalist Alert Function
+        function showMinimalistAlert(message, type = 'info') {
+            const overlay = document.createElement('div');
+            overlay.style.cssText = 'position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.5); z-index: 99999; display: flex; align-items: center; justify-content: center;';
+            
+            const modal = document.createElement('div');
+            modal.style.cssText = 'background: white; border-radius: 8px; padding: 24px; max-width: 400px; width: 90%; box-shadow: 0 4px 20px rgba(0,0,0,0.3);';
+            
+            const iconMap = {
+                'success': '<svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="#10b981" stroke-width="2"><path d="M20 6L9 17l-5-5"/></svg>',
+                'error': '<svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="#ef4444" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/></svg>',
+                'info': '<svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="#3b82f6" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>'
+            };
+            
+            modal.innerHTML = `
+                <div style="text-align: center; margin-bottom: 16px;">${iconMap[type] || iconMap['info']}</div>
+                <div style="text-align: center; color: #1f2937; font-size: 16px; line-height: 1.5; margin-bottom: 24px;">${message}</div>
+                <button onclick="this.closest('[style*=fixed]').remove()" style="width: 100%; padding: 12px; background: #009cb6; color: white; border: none; border-radius: 6px; font-size: 14px; font-weight: 500; cursor: pointer;">OK</button>
+            `;
+            
+            overlay.appendChild(modal);
+            document.body.appendChild(overlay);
+            
+            overlay.addEventListener('click', (e) => {
+                if (e.target === overlay) overlay.remove();
+            });
+        }
+        
+        // Minimalist Confirm Function
+        function showMinimalistConfirm(title, message, callback) {
+            const overlay = document.createElement('div');
+            overlay.style.cssText = 'position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.5); z-index: 99999; display: flex; align-items: center; justify-content: center;';
+            
+            const modal = document.createElement('div');
+            modal.style.cssText = 'background: white; border-radius: 8px; padding: 24px; max-width: 400px; width: 90%; box-shadow: 0 4px 20px rgba(0,0,0,0.3);';
+            
+            modal.innerHTML = `
+                <div style="text-align: center; margin-bottom: 16px;">
+                    <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="#f59e0b" stroke-width="2">
+                        <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/>
+                        <line x1="12" y1="9" x2="12" y2="13"/>
+                        <line x1="12" y1="17" x2="12.01" y2="17"/>
+                    </svg>
+                </div>
+                <div style="text-align: center; color: #1f2937; font-size: 18px; font-weight: 600; margin-bottom: 12px;">${title}</div>
+                <div style="text-align: center; color: #6b7280; font-size: 14px; line-height: 1.5; margin-bottom: 24px;">${message}</div>
+                <div style="display: flex; gap: 12px;">
+                    <button id="confirmNo" style="flex: 1; padding: 12px; background: #e5e7eb; color: #374151; border: none; border-radius: 6px; font-size: 14px; font-weight: 500; cursor: pointer;">Não</button>
+                    <button id="confirmYes" style="flex: 1; padding: 12px; background: #009cb6; color: white; border: none; border-radius: 6px; font-size: 14px; font-weight: 500; cursor: pointer;">Sim</button>
+                </div>
+            `;
+            
+            overlay.appendChild(modal);
+            document.body.appendChild(overlay);
+            
+            modal.querySelector('#confirmYes').addEventListener('click', () => {
+                overlay.remove();
+                if (callback) callback(true);
+            });
+            
+            modal.querySelector('#confirmNo').addEventListener('click', () => {
+                overlay.remove();
+                if (callback) callback(false);
+            });
+            
+            overlay.addEventListener('click', (e) => {
+                if (e.target === overlay) {
+                    overlay.remove();
+                    if (callback) callback(false);
+                }
+            });
+        }
+        
         function toggleMobileMenu() {
             const menu = document.getElementById('mobileMenu');
             menu.classList.toggle('hidden');
@@ -714,7 +787,15 @@
                     
                     <div class="w-full sm:w-auto">
                         <label class="block text-sm font-medium text-white mb-2">RA (Rental Agreement) *</label>
-                        <input type="text" id="inputRA" class="px-4 py-3 border-2 border-white rounded-lg bg-white text-gray-900 focus:ring-2 focus:ring-[#f59e0b] w-full sm:w-48 text-center font-semibold text-lg" placeholder="00000-09" maxlength="8" required>
+                        <div class="flex gap-2 items-center">
+                            <input type="text" id="inputRA" class="px-4 py-3 border-2 border-white rounded-lg bg-white text-gray-900 focus:ring-2 focus:ring-[#f59e0b] w-full sm:w-48 text-center font-semibold text-lg" placeholder="00000-09" maxlength="8" required>
+                            <input type="file" id="raFileInput" accept="application/pdf" class="hidden" onchange="handleRAUpload(event)">
+                            <button type="button" onclick="document.getElementById('raFileInput').click()" class="p-3 bg-white hover:bg-[#f59e0b] border-2 border-white rounded-lg transition-all group" title="Upload Rental Agreement PDF">
+                                <svg class="w-6 h-6 text-[#009cb6] group-hover:text-white transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"/>
+                                </svg>
+                            </button>
+                        </div>
                     </div>
                 </div>
                 
@@ -1225,8 +1306,49 @@
                 updateFuelDisplay(e.target.value);
             });
             
+            // Update Fleet Management when fuel changes (debounced)
+            let fuelUpdateTimeout;
+            fuelSlider.addEventListener('change', (e) => {
+                clearTimeout(fuelUpdateTimeout);
+                fuelUpdateTimeout = setTimeout(() => {
+                    updateFleetManagement();
+                }, 1000);
+            });
+            
             // Initialize with default value
             updateFuelDisplay(fuelSlider.value);
+        }
+        
+        // Update Fleet Management with current odometer and fuel level
+        async function updateFleetManagement() {
+            const plate = document.getElementById('inputPlate')?.value?.trim();
+            if (!plate || !window.currentVehicleId) return;
+            
+            const odometer = getOdometerReading();
+            const fuelLevel = getFuelLevel();
+            
+            try {
+                const response = await fetch('/api/vehicles/update-from-inspection', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        license_plate: plate,
+                        odometer: odometer,
+                        fuel_level: fuelLevel
+                    })
+                });
+                
+                const data = await response.json();
+                if (data.success) {
+                    console.log('✅ Fleet Management updated:', data.message);
+                } else {
+                    console.warn('⚠️ Fleet Management update failed:', data.error);
+                }
+            } catch (error) {
+                console.error('Error updating Fleet Management:', error);
+            }
         }
         
         // Get fuel level for saving
@@ -1741,6 +1863,44 @@
                 // Initialize fuel selector now that elements are visible
                 initializeFuelSelector();
                 
+                // Auto-fill Km and Fuel from RA data if available
+                if (window.currentRAData) {
+                    console.log('🚗 Auto-preenchendo Km e Fuel do RA...');
+                    
+                    // Get vehicle info from the original fetch
+                    const odometerValue = window.currentRAData.odometerValue;
+                    const fuelValue = window.currentRAData.fuelValue;
+                    
+                    console.log('📊 Valores guardados - Km:', odometerValue, 'Fuel:', fuelValue);
+                    
+                    // Auto-fill odometer
+                    if (odometerValue) {
+                        const odometerInput = document.getElementById('odometerReading');
+                        if (odometerInput) {
+                            odometerInput.value = odometerValue;
+                            if (window.diagramData) {
+                                window.diagramData.odometerReading = odometerValue;
+                            }
+                            console.log('✅ Km preenchido no Croqui:', odometerValue);
+                        }
+                    }
+                    
+                    // Auto-fill fuel level
+                    if (fuelValue) {
+                        const fuelSlider = document.getElementById('fuelSlider');
+                        if (fuelSlider) {
+                            fuelSlider.value = fuelValue;
+                            fuelSlider.dispatchEvent(new Event('input'));
+                            if (window.diagramData) {
+                                window.diagramData.fuelLevel = fuelValue;
+                            }
+                            console.log('✅ Fuel preenchido no Croqui:', fuelValue);
+                        }
+                    }
+                } else {
+                    console.log('⚠️ Nenhum dado de RA guardado para auto-preencher');
+                }
+                
                 // Make sure drawing tool is selected by default
                 setTimeout(() => {
                     selectTool('draw');
@@ -1995,6 +2155,15 @@
                         </button>
                     </div>
                 `;
+                
+                // Preencher email automaticamente se disponível
+                setTimeout(() => {
+                    const emailInput = document.getElementById('reportEmail');
+                    if (emailInput && window.currentRAData?.client_email) {
+                        emailInput.value = window.currentRAData.client_email;
+                        console.log('✅ Email preenchido automaticamente no modal final:', window.currentRAData.client_email);
+                    }
+                }, 100);
             }
             
             // Scroll to top
@@ -2002,6 +2171,11 @@
         }
         
         function saveAndSendInspection() {
+            if (isSaving) {
+                console.log('⚠️ Already saving, ignoring duplicate click');
+                return;
+            }
+            
             const email = document.getElementById('reportEmail').value.trim();
             
             if (!email) {
@@ -2010,6 +2184,8 @@
                 return;
             }
             
+            isSaving = true;
+            
             // Show saving overlay
             showSavingOverlay('Guardando inspeção e enviando por email...');
             
@@ -2017,7 +2193,16 @@
             saveInspectionWithEmail(email);
         }
         
+        let isSaving = false;
+        
         function saveInspectionOnly() {
+            if (isSaving) {
+                console.log('⚠️ Already saving, ignoring duplicate click');
+                return;
+            }
+            
+            isSaving = true;
+            
             // Show saving overlay
             showSavingOverlay('Guardando inspeção no histórico...');
             
@@ -2066,6 +2251,51 @@
         }
         
         function saveInspectionWithEmail(email) {
+            // Capture damage croqui as base64 image
+            let damageCroquiBase64 = '';
+            try {
+                const canvas = document.getElementById('drawingCanvas');
+                console.log('🔍 Canvas found:', !!canvas);
+                
+                if (canvas && canvas.width > 0 && canvas.height > 0) {
+                    console.log('🔍 Canvas size:', canvas.width, 'x', canvas.height);
+                    
+                    // Create a temporary canvas to combine the background image and drawings
+                    const tempCanvas = document.createElement('canvas');
+                    const tempCtx = tempCanvas.getContext('2d');
+                    
+                    // Get the croqui image
+                    const croquiImg = document.querySelector('#carDiagram img');
+                    console.log('🔍 Croqui image found:', !!croquiImg);
+                    
+                    if (croquiImg && croquiImg.complete && croquiImg.naturalWidth > 0) {
+                        // Set canvas size based on image natural size
+                        tempCanvas.width = croquiImg.naturalWidth;
+                        tempCanvas.height = croquiImg.naturalHeight;
+                        console.log('🔍 Temp canvas size:', tempCanvas.width, 'x', tempCanvas.height);
+                        
+                        // Draw the background croqui image
+                        tempCtx.drawImage(croquiImg, 0, 0);
+                        
+                        // Scale and draw the damage canvas on top
+                        const scaleX = tempCanvas.width / canvas.width;
+                        const scaleY = tempCanvas.height / canvas.height;
+                        tempCtx.scale(scaleX, scaleY);
+                        tempCtx.drawImage(canvas, 0, 0);
+                        
+                        // Convert to base64
+                        damageCroquiBase64 = tempCanvas.toDataURL('image/png');
+                        console.log('✅ Damage croqui captured as base64, length:', damageCroquiBase64.length);
+                    } else {
+                        console.warn('⚠️ Croqui image not loaded or invalid');
+                    }
+                } else {
+                    console.warn('⚠️ Canvas not found or has invalid size:', canvas?.width, 'x', canvas?.height);
+                }
+            } catch (error) {
+                console.error('❌ Error capturing damage croqui:', error);
+            }
+            
             // Prepare inspection data
             const inspectionData = {
                 type: '{{ inspection_type|default("checkout") }}', // Add inspection type
@@ -2079,7 +2309,9 @@
                 receptionist: document.getElementById('inputReceptionist')?.value || '',
                 date: document.getElementById('inputDate')?.value || '',
                 time: document.getElementById('inputTime')?.value || '',
-                email: email
+                email: email,
+                vehicle_id: window.currentVehicleId || null, // Add vehicle_id from fleet
+                damageCroqui: damageCroquiBase64 // Add damage croqui image
             };
             
             console.log('Saving inspection:', inspectionData);
@@ -2096,6 +2328,7 @@
             .then(data => {
                 const overlay = document.getElementById('savingOverlay');
                 if (overlay) overlay.remove();
+                isSaving = false; // Reset flag
                 
                 if (data.success) {
                     // Show success message
@@ -2114,9 +2347,341 @@
             .catch(error => {
                 const overlay = document.getElementById('savingOverlay');
                 if (overlay) overlay.remove();
+                isSaving = false; // Reset flag
                 
                 console.error('Error saving inspection:', error);
                 alert('Erro ao guardar inspeção. Tente novamente.');
+            });
+        }
+        
+        // Replace existing RA after user confirmation
+        async function replaceExistingRA(pendingData) {
+            try {
+                const { file, extractedData, vehicleInfo } = pendingData;
+                
+                // Convert file to base64
+                const reader = new FileReader();
+                reader.readAsDataURL(file);
+                
+                await new Promise((resolve) => {
+                    reader.onload = async () => {
+                        const base64Data = reader.result.split(',')[1];
+                        
+                        // Call replace endpoint
+                        const response = await fetch('/api/rental-agreement/replace', {
+                            method: 'POST',
+                            headers: {
+                                'Content-Type': 'application/json'
+                            },
+                            body: JSON.stringify({
+                                rental_agreement_number: extractedData.rental_agreement,
+                                license_plate: extractedData.license_plate,
+                                vehicle_id: vehicleInfo?.id || null,
+                                odometer: extractedData.odometer,
+                                fuel_level: extractedData.fuel_level,
+                                pdf_filename: file.name,
+                                pdf_data: base64Data,
+                                extracted_data: JSON.stringify(extractedData)
+                            })
+                        });
+                        
+                        const result = await response.json();
+                        
+                        if (result.success) {
+                            // Fill form fields with extracted data
+                            if (extractedData.rental_agreement) {
+                                document.getElementById('inputRA').value = extractedData.rental_agreement;
+                            }
+                            if (extractedData.license_plate) {
+                                document.getElementById('inputPlate').value = extractedData.license_plate;
+                            }
+                            if (extractedData.odometer) {
+                                const odometerInput = document.getElementById('odometerReading');
+                                if (odometerInput) {
+                                    odometerInput.value = extractedData.odometer;
+                                }
+                            }
+                            if (extractedData.fuel_level) {
+                                const fuelSlider = document.getElementById('fuelSlider');
+                                if (fuelSlider) {
+                                    fuelSlider.value = extractedData.fuel_level;
+                                    fuelSlider.dispatchEvent(new Event('input'));
+                                }
+                            }
+                            if (extractedData.email) {
+                                const emailInput = document.getElementById('reportEmail');
+                                if (emailInput) {
+                                    emailInput.value = extractedData.email;
+                                }
+                            }
+                            
+                            // Store vehicle_id
+                            if (vehicleInfo) {
+                                window.currentVehicleId = vehicleInfo.id;
+                            }
+                            
+                            showMinimalistAlert(`RA ${extractedData.rental_agreement} substituído`, 'success');
+                        } else {
+                            showMinimalistAlert('Erro ao substituir RA: ' + (result.error || 'Erro desconhecido'), 'error');
+                        }
+                        
+                        delete window.pendingRAData;
+                        resolve();
+                    };
+                });
+            } catch (error) {
+                console.error('Error replacing RA:', error);
+                showMinimalistAlert('Erro ao substituir Rental Agreement', 'error');
+                delete window.pendingRAData;
+            }
+        }
+        
+        // Handle Rental Agreement PDF Upload
+        async function handleRAUpload(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+            
+            if (file.type !== 'application/pdf') {
+                alert('Por favor, selecione um ficheiro PDF.');
+                return;
+            }
+            
+            // Show loading indicator
+            const loadingDiv = document.createElement('div');
+            loadingDiv.id = 'raUploadLoading';
+            loadingDiv.style.cssText = 'position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); background: white; padding: 30px; border-radius: 12px; box-shadow: 0 4px 20px rgba(0,0,0,0.3); z-index: 99999; text-align: center;';
+            loadingDiv.innerHTML = `
+                <svg class="animate-spin h-10 w-10 text-[#009cb6] mx-auto mb-3" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                    <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                    <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                </svg>
+                <p class="text-gray-700 font-semibold">A processar Rental Agreement...</p>
+                <p class="text-gray-500 text-sm mt-2">A extrair dados do PDF</p>
+            `;
+            document.body.appendChild(loadingDiv);
+            
+            try {
+                // Create FormData and upload PDF
+                const formData = new FormData();
+                formData.append('pdf', file);
+                
+                const response = await fetch('/api/extract-rental-agreement', {
+                    method: 'POST',
+                    body: formData
+                });
+                
+                const data = await response.json();
+                
+                // Remove loading
+                loadingDiv.remove();
+                
+                if (data.success) {
+                    // Check if RA already exists
+                    if (data.ra_exists) {
+                        const raNumber = data.data.rental_agreement || 'N/A';
+                        const oldPlate = data.existing_ra.license_plate;
+                        const newPlate = data.data.license_plate;
+                        
+                        // Store data temporarily for potential replacement
+                        window.pendingRAData = {
+                            file: file,
+                            extractedData: data.data,
+                            vehicleInfo: data.vehicle_info
+                        };
+                        
+                        // Check if it's a vehicle change (same RA, different plate)
+                        if (data.vehicle_change) {
+                            // Vehicle change detected
+                            showMinimalistConfirm(
+                                `RA ${raNumber} - Troca de viatura`,
+                                `Rental Agreement já existe com matrícula ${oldPlate}. Nova matrícula: ${newPlate}. Deseja efectuar troca de viatura?`,
+                                async (confirmed) => {
+                                    if (confirmed) {
+                                        await replaceExistingRA(window.pendingRAData);
+                                    } else {
+                                        // Clear file input
+                                        event.target.value = '';
+                                        delete window.pendingRAData;
+                                    }
+                                }
+                            );
+                        } else {
+                            // Same RA, same plate - check if inspection exists
+                            if (data.inspection_exists) {
+                                // RA exists AND inspection already done
+                                showMinimalistConfirm(
+                                    `RA ${raNumber} já existe`,
+                                    'Rental Agreement já existe com inspeção realizada. Deseja substituir e fazer nova inspeção?',
+                                    async (confirmed) => {
+                                        if (confirmed) {
+                                            await replaceExistingRA(window.pendingRAData);
+                                        } else {
+                                            // Clear file input
+                                            event.target.value = '';
+                                            delete window.pendingRAData;
+                                        }
+                                    }
+                                );
+                            } else {
+                                // RA exists but NO inspection done yet
+                                showMinimalistConfirm(
+                                    `RA ${raNumber} já existe`,
+                                    'Rental Agreement já existe mas inspeção não foi realizada. Deseja substituir?',
+                                    async (confirmed) => {
+                                        if (confirmed) {
+                                            await replaceExistingRA(window.pendingRAData);
+                                        } else {
+                                            // Clear file input
+                                            event.target.value = '';
+                                            delete window.pendingRAData;
+                                        }
+                                    }
+                                );
+                            }
+                        }
+                    } else {
+                        // New RA - fill form fields with extracted data
+                        if (data.data.rental_agreement) {
+                            document.getElementById('inputRA').value = data.data.rental_agreement;
+                        }
+                        if (data.data.license_plate) {
+                            document.getElementById('inputPlate').value = data.data.license_plate;
+                        }
+                        if (data.data.odometer) {
+                            const odometerInput = document.getElementById('odometerReading');
+                            if (odometerInput) {
+                                odometerInput.value = data.data.odometer;
+                            }
+                        }
+                        if (data.data.fuel_level) {
+                            const fuelSlider = document.getElementById('fuelSlider');
+                            if (fuelSlider) {
+                                fuelSlider.value = data.data.fuel_level;
+                                fuelSlider.dispatchEvent(new Event('input'));
+                            }
+                        }
+                        if (data.data.email) {
+                            const emailInput = document.getElementById('reportEmail');
+                            if (emailInput) {
+                                emailInput.value = data.data.email;
+                            }
+                        }
+                        
+                        // Store vehicle_id globally for later use when saving inspection
+                        if (data.vehicle_found && data.vehicle_info) {
+                            window.currentVehicleId = data.vehicle_info.id;
+                        } else {
+                            window.currentVehicleId = null;
+                        }
+                        
+                        const raNumber = data.data.rental_agreement || 'N/A';
+                        showMinimalistAlert(`RA ${raNumber} carregado`, 'success');
+                    }
+                } else {
+                    showMinimalistAlert('Erro ao processar PDF: ' + (data.error || 'Erro desconhecido'), 'error');
+                }
+            } catch (error) {
+                loadingDiv.remove();
+                console.error('Error uploading RA:', error);
+                showMinimalistAlert('Erro ao fazer upload do Rental Agreement. Tente novamente.', 'error');
+            }
+        }
+        
+        // Check for existing RA when plate is entered manually
+        let plateCheckTimeout;
+        document.getElementById('inputPlate').addEventListener('input', function(e) {
+            const plate = e.target.value.trim();
+            
+            console.log('🚗 Matrícula input event:', plate);
+            
+            // Clear previous timeout
+            clearTimeout(plateCheckTimeout);
+            
+            // Only check if plate has valid format (XX-XX-XX)
+            if (plate.length >= 8 && plate.includes('-')) {
+                console.log('✅ Matrícula válida, buscando RA em 800ms...');
+                plateCheckTimeout = setTimeout(async () => {
+                    console.log('🔍 Buscando RA para matrícula:', plate);
+                    try {
+                        const response = await fetch(`/api/rental-agreement/by-plate/${encodeURIComponent(plate)}`);
+                        console.log('📡 Response status:', response.status);
+                        const data = await response.json();
+                        console.log('📦 Response data:', data);
+                        
+                        if (data.success && data.found) {
+                            const ra = data.rental_agreement;
+                            const vehicleInfo = data.vehicle_info;
+                            
+                            // Priority: Use vehicle info from Fleet Management if available, otherwise use RA data
+                            let odometerValue = null;
+                            let fuelValue = null;
+                            
+                            console.log('🚗 Vehicle Info:', vehicleInfo);
+                            console.log('🚗 RA vehicle_id:', ra.vehicle_id);
+                            
+                            if (vehicleInfo) {
+                                // Use Fleet Management data (most up-to-date)
+                                odometerValue = vehicleInfo.km_atual;
+                                fuelValue = vehicleInfo.nivel_combustivel;
+                                window.currentVehicleId = vehicleInfo.id;
+                                console.log('✅ Usando dados da Gestão de Frota - Km:', odometerValue, 'Fuel:', fuelValue);
+                            } else if (ra.vehicle_id) {
+                                // Fallback to RA data if no vehicle info
+                                odometerValue = ra.odometer;
+                                fuelValue = ra.fuel_level;
+                                window.currentVehicleId = ra.vehicle_id;
+                                console.log('✅ Usando dados do RA - Km:', odometerValue, 'Fuel:', fuelValue);
+                            } else {
+                                console.log('⚠️ Nenhum dado de veículo disponível');
+                            }
+                            
+                            // Guardar RA data globalmente para usar no modal final e no Croqui
+                            window.currentRAData = {
+                                ...ra,
+                                odometerValue: odometerValue,
+                                fuelValue: fuelValue
+                            };
+                            
+                            console.log('📧 RA Data:', ra);
+                            console.log('📧 Client Email:', ra.client_email);
+                            console.log('✅ RA data guardado em window.currentRAData com Km e Fuel');
+                            
+                            // Auto-fill RA number
+                            document.getElementById('inputRA').value = ra.rental_agreement_number;
+                            
+                            // Show appropriate message
+                            if (ra.inspection_completed) {
+                                showMinimalistConfirm(
+                                    `RA ${ra.rental_agreement_number}`,
+                                    'Inspeção realizada. Refazer inspeção?',
+                                    (confirmed) => {
+                                        if (!confirmed) {
+                                            document.getElementById('inputPlate').value = '';
+                                            document.getElementById('inputRA').value = '';
+                                            document.getElementById('reportEmail').value = '';
+                                        }
+                                    }
+                                );
+                            } else {
+                                showMinimalistAlert(`RA ${ra.rental_agreement_number} - Inspeção por realizar`, 'info');
+                            }
+                        }
+                    } catch (error) {
+                        console.error('Error checking RA by plate:', error);
+                    }
+                }, 800);
+            }
+        });
+        
+        // Update Fleet Management when odometer changes (debounced)
+        let odometerUpdateTimeout;
+        const odometerInput = document.getElementById('odometerReading');
+        if (odometerInput) {
+            odometerInput.addEventListener('change', function() {
+                clearTimeout(odometerUpdateTimeout);
+                odometerUpdateTimeout = setTimeout(() => {
+                    updateFleetManagement();
+                }, 1000);
             });
         }
     </script>

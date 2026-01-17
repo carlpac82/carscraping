@@ -1,4 +1,0 @@
-Final URL: https://www.carjet.com/aluguel-carros/index.htm?war=0
-Has s=: False
-Has b=: False
-Has war: True

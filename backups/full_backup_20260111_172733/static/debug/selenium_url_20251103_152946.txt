@@ -1,3 +1,0 @@
-Final URL: https://www.carjet.com/do/list/pt?s=9fb70586-d961-4f66-9d0e-ce9e14258d32&b=57f7d918-4c8b-4297-a648-44cf9f7b2dac
-Has s=: True
-Has b=: True
