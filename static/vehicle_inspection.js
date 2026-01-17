@@ -901,10 +901,17 @@ async function loadDeliveryDataAndShowCroqui() {
             return;
         }
         
+        // Mark that we are in PICKUP mode
+        window.isPickupMode = true;
+        window.pickupNewDamages = []; // Store new damages added during pickup (in red)
+        
         // Store delivery data
         window.deliveryInspection = data.inspection;
         window.deliveryPhotos = data.photos || [];
         window.deliveryDamages = data.damages || [];
+        
+        console.log('📦 Delivery inspection loaded:', data.inspection);
+        console.log('📸 Delivery photos:', data.photos.length);
         
         // Store delivery photos in inspectionData for reference
         if (data.photos && data.photos.length > 0) {
@@ -918,15 +925,40 @@ async function loadDeliveryDataAndShowCroqui() {
         // Navigate to damage diagram step
         showNotification('Dados do check-out carregados! Mostrando croqui...', 'success');
         
-        // Skip to damage diagram
-        setTimeout(() => {
-            showDamageStep();
-        }, 500);
+        // Hide photo steps, show diagram step
+        document.querySelectorAll('.step-content').forEach(step => step.classList.add('hidden'));
+        const diagramStep = document.getElementById('stepDiagram');
+        if (diagramStep) {
+            diagramStep.classList.remove('hidden');
+            
+            // Update title for pickup mode
+            const title = diagramStep.querySelector('h2');
+            if (title) {
+                title.textContent = 'Recolha de Viatura - Verificar Danos';
+            }
+            
+            // Show pickup-specific UI
+            showPickupDiagramUI();
+        }
         
     } catch (error) {
         console.error('Error loading delivery data:', error);
         showNotification('Erro ao carregar dados do check-out: ' + error.message, 'error');
     }
+}
+
+// Show pickup-specific UI in diagram step
+function showPickupDiagramUI() {
+    // This function will be called to show:
+    // 1. Grid of delivery photos (clickable to enlarge)
+    // 2. Delivery damages on croqui (original color)
+    // 3. Buttons: "Registar Novos Danos" and "Terminar Recolha"
+    
+    console.log('🎨 Setting up pickup diagram UI...');
+    
+    // TODO: Implement full pickup UI
+    // For now, just show a message
+    showNotification('Modo Recolha ativado. Croqui e fotos do check-out serão carregados...', 'info');
 }
 
 // Auto Sequence Mode (legacy - now called by startDelivery)
