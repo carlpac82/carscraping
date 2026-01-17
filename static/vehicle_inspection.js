@@ -474,22 +474,71 @@ function saveVehicleInfo() {
     console.log('Vehicle info saved:', inspectionData.vehicleInfo);
 }
 
-// Auto Sequence Mode
-function startAutoSequence() {
+// ENTREGA (Delivery/Check-out) - Start inspection process
+function startDelivery() {
     // Validate inspection info first
     if (!validateInspectionInfo()) {
         return;
     }
     
+    // Set process type to delivery
+    localStorage.setItem('processType', 'delivery');
+    
     autoSequenceMode = true;
     currentPhotoIndex = 0;
     
-    showNotification('Modo automático ativado! Siga as instruções', 'info');
+    showNotification('Iniciando processo de ENTREGA! Siga as instruções', 'info');
     
     // Start with first photo
     setTimeout(() => {
         capturePhotoSequence(0);
     }, 1000);
+}
+
+// RECOLHA (Pickup/Check-in) - Load delivery data and update
+function startPickup() {
+    // Check if there's a delivery process first
+    const hasDelivery = localStorage.getItem('processType') === 'delivery' && localStorage.getItem('inspectionPhotos');
+    
+    if (!hasDelivery) {
+        showNotification('❌ Não existe processo de ENTREGA! Faça a entrega primeiro.', 'error');
+        return;
+    }
+    
+    // Validate inspection info
+    if (!validateInspectionInfo()) {
+        return;
+    }
+    
+    // Set process type to pickup
+    localStorage.setItem('processType', 'pickup');
+    
+    // Show modal to update kms and fuel
+    showPickupUpdateModal();
+}
+
+// Show modal to update kms and fuel for pickup
+function showPickupUpdateModal() {
+    // TODO: Implement modal to update kms and fuel
+    // For now, just start the pickup process
+    showNotification('Iniciando processo de RECOLHA! Carregando dados da entrega...', 'info');
+    
+    // Load delivery data
+    const deliveryPhotos = localStorage.getItem('inspectionPhotos');
+    if (deliveryPhotos) {
+        inspectionData.photos = JSON.parse(deliveryPhotos);
+    }
+    
+    // TODO: Show damage diagram with existing damages
+    // TODO: Allow adding new damages in red
+    // TODO: Option to add damage photos or do full inspection
+    
+    showNotification('Funcionalidade de RECOLHA em desenvolvimento...', 'info');
+}
+
+// Auto Sequence Mode (legacy - now called by startDelivery)
+function startAutoSequence() {
+    startDelivery();
 }
 
 function capturePhotoSequence(index) {
