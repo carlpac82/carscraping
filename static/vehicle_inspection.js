@@ -1300,41 +1300,43 @@ function startRegisterNewDamages() {
 
 // Show modal to select damage photo side
 function showDamageSideSelectionModal() {
+    const sides = [
+        { id: 'front', label: 'Frente', image: '/static/Inspeção/Vista Frontal.png' },
+        { id: 'front_left', label: 'Frente Esquerda', image: '/static/Inspeção/Vista Frontal Esquerda.png' },
+        { id: 'left', label: 'Esquerda', image: '/static/Inspeção/Vista Lateral Esquerda.png' },
+        { id: 'back_left', label: 'Trás Esquerda', image: '/static/Inspeção/Vista Traseira Esquerda.png' },
+        { id: 'back', label: 'Trás', image: '/static/Inspeção/Vista Traseira.png' },
+        { id: 'back_right', label: 'Trás Direita', image: '/static/Inspeção/Vista Traseira direita.png' },
+        { id: 'right', label: 'Direita', image: '/static/Inspeção/Vista Lateral Direita.png' },
+        { id: 'front_right', label: 'Frente Direita', image: '/static/Inspeção/Vista Frontal Direita.png' }
+    ];
+    
+    let sidesHTML = '';
+    sides.forEach(side => {
+        sidesHTML += `
+            <div onclick="selectDamageSide('${side.id}')" style="cursor: pointer; border: 3px solid #009cb6; border-radius: 12px; overflow: hidden; transition: transform 0.2s, box-shadow 0.2s; background: white;" 
+                 onmouseover="this.style.transform='scale(1.05)'; this.style.boxShadow='0 8px 20px rgba(0,156,182,0.4)';" 
+                 onmouseout="this.style.transform='scale(1)'; this.style.boxShadow='none';">
+                <img src="${side.image}" alt="${side.label}" style="width: 100%; height: 120px; object-fit: contain; background: black; display: block;">
+                <div style="padding: 10px; text-align: center; background: #009cb6; color: white; font-weight: bold; font-size: 14px;">
+                    ${side.label}
+                </div>
+            </div>
+        `;
+    });
+    
     const modalHTML = `
-        <div id="damageSideModal" style="position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.85); z-index: 10000; display: flex; align-items: center; justify-content: center; backdrop-filter: blur(4px);">
-            <div style="background: white; padding: 40px; border-radius: 12px; max-width: 600px; width: 90%; box-shadow: 0 10px 40px rgba(0,0,0,0.3);">
+        <div id="damageSideModal" style="position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.85); z-index: 10000; display: flex; align-items: center; justify-content: center; backdrop-filter: blur(4px); overflow-y: auto; padding: 20px;">
+            <div style="background: white; padding: 30px; border-radius: 12px; max-width: 700px; width: 100%; box-shadow: 0 10px 40px rgba(0,0,0,0.3); max-height: 90vh; overflow-y: auto;">
                 <h2 style="color: #009cb6; font-size: 24px; font-weight: bold; margin-bottom: 10px; text-align: center;">
                     Registar Novo Dano
                 </h2>
-                <p style="color: #666; margin-bottom: 30px; text-align: center; font-size: 14px;">
+                <p style="color: #666; margin-bottom: 25px; text-align: center; font-size: 14px;">
                     Selecione o lado da viatura onde está o novo dano
                 </p>
                 
-                <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 15px; margin-bottom: 30px;">
-                    <button onclick="selectDamageSide('front')" style="padding: 20px; background: #009cb6; color: white; border: none; border-radius: 8px; font-size: 16px; font-weight: bold; cursor: pointer; transition: background 0.2s;">
-                        Frente
-                    </button>
-                    <button onclick="selectDamageSide('front_left')" style="padding: 20px; background: #009cb6; color: white; border: none; border-radius: 8px; font-size: 16px; font-weight: bold; cursor: pointer; transition: background 0.2s;">
-                        Frente Esquerda
-                    </button>
-                    <button onclick="selectDamageSide('left')" style="padding: 20px; background: #009cb6; color: white; border: none; border-radius: 8px; font-size: 16px; font-weight: bold; cursor: pointer; transition: background 0.2s;">
-                        Esquerda
-                    </button>
-                    <button onclick="selectDamageSide('back_left')" style="padding: 20px; background: #009cb6; color: white; border: none; border-radius: 8px; font-size: 16px; font-weight: bold; cursor: pointer; transition: background 0.2s;">
-                        Trás Esquerda
-                    </button>
-                    <button onclick="selectDamageSide('back')" style="padding: 20px; background: #009cb6; color: white; border: none; border-radius: 8px; font-size: 16px; font-weight: bold; cursor: pointer; transition: background 0.2s;">
-                        Trás
-                    </button>
-                    <button onclick="selectDamageSide('back_right')" style="padding: 20px; background: #009cb6; color: white; border: none; border-radius: 8px; font-size: 16px; font-weight: bold; cursor: pointer; transition: background 0.2s;">
-                        Trás Direita
-                    </button>
-                    <button onclick="selectDamageSide('right')" style="padding: 20px; background: #009cb6; color: white; border: none; border-radius: 8px; font-size: 16px; font-weight: bold; cursor: pointer; transition: background 0.2s;">
-                        Direita
-                    </button>
-                    <button onclick="selectDamageSide('front_right')" style="padding: 20px; background: #009cb6; color: white; border: none; border-radius: 8px; font-size: 16px; font-weight: bold; cursor: pointer; transition: background 0.2s;">
-                        Frente Direita
-                    </button>
+                <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 15px; margin-bottom: 25px;">
+                    ${sidesHTML}
                 </div>
                 
                 <button onclick="closeDamageSideModal()" style="width: 100%; padding: 15px; background: #6c757d; color: white; border: none; border-radius: 8px; font-size: 16px; font-weight: bold; cursor: pointer;">
@@ -1388,7 +1390,10 @@ function openCameraForDamage(photoType) {
             </div>
             
             <div style="padding: 20px; background: rgba(0,0,0,0.8); display: flex; flex-direction: column; gap: 15px;">
-                <div style="text-align: center; color: white; font-size: 18px; font-weight: bold;">
+                <div style="text-align: center; color: #009cb6; font-size: 20px; font-weight: bold;">
+                    Fotografar Novo Dano
+                </div>
+                <div style="text-align: center; color: white; font-size: 16px;">
                     ${formatPhotoType(photoType)}
                 </div>
                 
