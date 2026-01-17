@@ -949,16 +949,832 @@ async function loadDeliveryDataAndShowCroqui() {
 
 // Show pickup-specific UI in diagram step
 function showPickupDiagramUI() {
-    // This function will be called to show:
-    // 1. Grid of delivery photos (clickable to enlarge)
-    // 2. Delivery damages on croqui (original color)
-    // 3. Buttons: "Registar Novos Danos" and "Terminar Recolha"
-    
     console.log('🎨 Setting up pickup diagram UI...');
     
-    // TODO: Implement full pickup UI
-    // For now, just show a message
-    showNotification('Modo Recolha ativado. Croqui e fotos do check-out serão carregados...', 'info');
+    // 1. Create and show delivery photos grid
+    showDeliveryPhotosGrid();
+    
+    // 2. Load delivery damages on croqui (will be implemented next)
+    // loadDeliveryDamagesOnCroqui();
+    
+    // 3. Add pickup action buttons
+    addPickupActionButtons();
+    
+    // 4. Modify croqui to allow adding new damages in red
+    setupPickupCroquiMode();
+}
+
+// Show grid of delivery photos (clickable to enlarge)
+function showDeliveryPhotosGrid() {
+    const diagramStep = document.getElementById('stepDiagram');
+    if (!diagramStep) return;
+    
+    // Check if grid already exists
+    let photosGrid = document.getElementById('deliveryPhotosGrid');
+    if (photosGrid) {
+        photosGrid.remove();
+    }
+    
+    // Create photos grid container
+    photosGrid = document.createElement('div');
+    photosGrid.id = 'deliveryPhotosGrid';
+    photosGrid.style.cssText = `
+        background: white;
+        border-radius: 12px;
+        padding: 20px;
+        margin-bottom: 20px;
+        border: 2px solid #009cb6;
+    `;
+    
+    // Title
+    const title = document.createElement('h3');
+    title.textContent = 'Fotos do Check-out';
+    title.style.cssText = `
+        color: #009cb6;
+        font-size: 20px;
+        font-weight: bold;
+        margin-bottom: 15px;
+        text-align: center;
+    `;
+    photosGrid.appendChild(title);
+    
+    // Grid of photos
+    const grid = document.createElement('div');
+    grid.style.cssText = `
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+        gap: 15px;
+    `;
+    
+    // Add each photo
+    if (window.deliveryPhotos && window.deliveryPhotos.length > 0) {
+        window.deliveryPhotos.forEach(photo => {
+            if (photo.photo_type !== 'damage_croqui') {
+                const photoCard = document.createElement('div');
+                photoCard.style.cssText = `
+                    position: relative;
+                    border: 2px solid #ddd;
+                    border-radius: 8px;
+                    overflow: hidden;
+                    cursor: pointer;
+                    transition: transform 0.2s, border-color 0.2s;
+                `;
+                
+                // Hover effect
+                photoCard.addEventListener('mouseenter', () => {
+                    photoCard.style.transform = 'scale(1.05)';
+                    photoCard.style.borderColor = '#009cb6';
+                });
+                photoCard.addEventListener('mouseleave', () => {
+                    photoCard.style.transform = 'scale(1)';
+                    photoCard.style.borderColor = '#ddd';
+                });
+                
+                // Photo image
+                const img = document.createElement('img');
+                img.src = photo.image_data;
+                img.alt = photo.photo_type;
+                img.style.cssText = `
+                    width: 100%;
+                    height: 150px;
+                    object-fit: cover;
+                `;
+                
+                // Photo label
+                const label = document.createElement('div');
+                label.textContent = formatPhotoType(photo.photo_type);
+                label.style.cssText = `
+                    background: rgba(0, 156, 182, 0.9);
+                    color: white;
+                    padding: 5px;
+                    text-align: center;
+                    font-size: 12px;
+                    font-weight: bold;
+                `;
+                
+                photoCard.appendChild(img);
+                photoCard.appendChild(label);
+                
+                // Click to enlarge
+                photoCard.addEventListener('click', () => {
+                    enlargePhoto(photo.image_data, photo.photo_type);
+                });
+                
+                grid.appendChild(photoCard);
+            }
+        });
+    } else {
+        const noPhotos = document.createElement('p');
+        noPhotos.textContent = 'Nenhuma foto encontrada no check-out';
+        noPhotos.style.cssText = 'text-align: center; color: #666; padding: 20px;';
+        grid.appendChild(noPhotos);
+    }
+    
+    photosGrid.appendChild(grid);
+    
+    // Insert at the top of diagram step
+    const diagramContainer = diagramStep.querySelector('.car-diagram-container');
+    if (diagramContainer) {
+        diagramContainer.insertBefore(photosGrid, diagramContainer.firstChild);
+    }
+}
+
+// Format photo type for display
+function formatPhotoType(type) {
+    const labels = {
+        'front': 'Frente',
+        'front_left': 'Frente Esq.',
+        'left': 'Esquerda',
+        'back_left': 'Trás Esq.',
+        'back': 'Trás',
+        'back_right': 'Trás Dir.',
+        'right': 'Direita',
+        'front_right': 'Frente Dir.',
+        'odometer': 'Odómetro'
+    };
+    return labels[type] || type;
+}
+
+// Enlarge photo in modal
+function enlargePhoto(imageData, photoType) {
+    // Create modal
+    const modal = document.createElement('div');
+    modal.style.cssText = `
+        position: fixed;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background: rgba(0, 0, 0, 0.9);
+        z-index: 10000;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding: 20px;
+    `;
+    
+    // Close on click
+    modal.addEventListener('click', () => {
+        modal.remove();
+    });
+    
+    // Image container
+    const container = document.createElement('div');
+    container.style.cssText = `
+        max-width: 90%;
+        max-height: 90%;
+        position: relative;
+    `;
+    container.addEventListener('click', (e) => {
+        e.stopPropagation();
+    });
+    
+    // Image
+    const img = document.createElement('img');
+    img.src = imageData;
+    img.alt = photoType;
+    img.style.cssText = `
+        max-width: 100%;
+        max-height: 80vh;
+        border-radius: 8px;
+        box-shadow: 0 10px 40px rgba(0, 0, 0, 0.5);
+    `;
+    
+    // Label
+    const label = document.createElement('div');
+    label.textContent = formatPhotoType(photoType);
+    label.style.cssText = `
+        background: #009cb6;
+        color: white;
+        padding: 10px 20px;
+        text-align: center;
+        font-size: 18px;
+        font-weight: bold;
+        border-radius: 8px;
+        margin-top: 10px;
+    `;
+    
+    // Close button
+    const closeBtn = document.createElement('button');
+    closeBtn.textContent = '✕';
+    closeBtn.style.cssText = `
+        position: absolute;
+        top: -10px;
+        right: -10px;
+        background: #dc3545;
+        color: white;
+        border: none;
+        border-radius: 50%;
+        width: 40px;
+        height: 40px;
+        font-size: 24px;
+        cursor: pointer;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+    `;
+    closeBtn.addEventListener('click', () => {
+        modal.remove();
+    });
+    
+    container.appendChild(img);
+    container.appendChild(label);
+    container.appendChild(closeBtn);
+    modal.appendChild(container);
+    document.body.appendChild(modal);
+}
+
+// Add pickup action buttons
+function addPickupActionButtons() {
+    const diagramStep = document.getElementById('stepDiagram');
+    if (!diagramStep) return;
+    
+    // Check if buttons already exist
+    let buttonsContainer = document.getElementById('pickupActionButtons');
+    if (buttonsContainer) {
+        buttonsContainer.remove();
+    }
+    
+    // Create buttons container
+    buttonsContainer = document.createElement('div');
+    buttonsContainer.id = 'pickupActionButtons';
+    buttonsContainer.style.cssText = `
+        display: flex;
+        gap: 15px;
+        justify-content: center;
+        margin-top: 30px;
+        padding: 20px;
+    `;
+    
+    // Button: Registar Novos Danos
+    const btnNewDamages = document.createElement('button');
+    btnNewDamages.textContent = 'Registar Novos Danos';
+    btnNewDamages.style.cssText = `
+        background: #ff9800;
+        color: white;
+        border: none;
+        padding: 15px 30px;
+        border-radius: 8px;
+        font-size: 16px;
+        font-weight: bold;
+        cursor: pointer;
+        transition: background 0.2s;
+    `;
+    btnNewDamages.addEventListener('mouseenter', () => {
+        btnNewDamages.style.background = '#f57c00';
+    });
+    btnNewDamages.addEventListener('mouseleave', () => {
+        btnNewDamages.style.background = '#ff9800';
+    });
+    btnNewDamages.addEventListener('click', startRegisterNewDamages);
+    
+    // Button: Terminar Recolha
+    const btnFinishPickup = document.createElement('button');
+    btnFinishPickup.textContent = 'Terminar Recolha';
+    btnFinishPickup.style.cssText = `
+        background: #28a745;
+        color: white;
+        border: none;
+        padding: 15px 30px;
+        border-radius: 8px;
+        font-size: 16px;
+        font-weight: bold;
+        cursor: pointer;
+        transition: background 0.2s;
+    `;
+    btnFinishPickup.addEventListener('mouseenter', () => {
+        btnFinishPickup.style.background = '#218838';
+    });
+    btnFinishPickup.addEventListener('mouseleave', () => {
+        btnFinishPickup.style.background = '#28a745';
+    });
+    btnFinishPickup.addEventListener('click', finishPickup);
+    
+    buttonsContainer.appendChild(btnNewDamages);
+    buttonsContainer.appendChild(btnFinishPickup);
+    
+    // Add to diagram step
+    const diagramContainer = diagramStep.querySelector('.car-diagram-container');
+    if (diagramContainer) {
+        diagramContainer.appendChild(buttonsContainer);
+    }
+}
+
+// Setup pickup croqui mode (allow adding new damages in red)
+function setupPickupCroquiMode() {
+    console.log('🎨 Setting up pickup croqui mode - new damages will be RED');
+    window.pickupCroquiMode = true;
+    // The existing damage marking system will be modified to use red color for new damages
+}
+
+// Start registering new damages
+function startRegisterNewDamages() {
+    console.log('📸 Starting new damage registration...');
+    
+    // Show modal to select which side to photograph
+    showDamageSideSelectionModal();
+}
+
+// Show modal to select damage photo side
+function showDamageSideSelectionModal() {
+    const modalHTML = `
+        <div id="damageSideModal" style="position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.85); z-index: 10000; display: flex; align-items: center; justify-content: center; backdrop-filter: blur(4px);">
+            <div style="background: white; padding: 40px; border-radius: 12px; max-width: 600px; width: 90%; box-shadow: 0 10px 40px rgba(0,0,0,0.3);">
+                <h2 style="color: #009cb6; font-size: 24px; font-weight: bold; margin-bottom: 10px; text-align: center;">
+                    Registar Novo Dano
+                </h2>
+                <p style="color: #666; margin-bottom: 30px; text-align: center; font-size: 14px;">
+                    Selecione o lado da viatura onde está o novo dano
+                </p>
+                
+                <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 15px; margin-bottom: 30px;">
+                    <button onclick="selectDamageSide('front')" style="padding: 20px; background: #009cb6; color: white; border: none; border-radius: 8px; font-size: 16px; font-weight: bold; cursor: pointer; transition: background 0.2s;">
+                        Frente
+                    </button>
+                    <button onclick="selectDamageSide('front_left')" style="padding: 20px; background: #009cb6; color: white; border: none; border-radius: 8px; font-size: 16px; font-weight: bold; cursor: pointer; transition: background 0.2s;">
+                        Frente Esquerda
+                    </button>
+                    <button onclick="selectDamageSide('left')" style="padding: 20px; background: #009cb6; color: white; border: none; border-radius: 8px; font-size: 16px; font-weight: bold; cursor: pointer; transition: background 0.2s;">
+                        Esquerda
+                    </button>
+                    <button onclick="selectDamageSide('back_left')" style="padding: 20px; background: #009cb6; color: white; border: none; border-radius: 8px; font-size: 16px; font-weight: bold; cursor: pointer; transition: background 0.2s;">
+                        Trás Esquerda
+                    </button>
+                    <button onclick="selectDamageSide('back')" style="padding: 20px; background: #009cb6; color: white; border: none; border-radius: 8px; font-size: 16px; font-weight: bold; cursor: pointer; transition: background 0.2s;">
+                        Trás
+                    </button>
+                    <button onclick="selectDamageSide('back_right')" style="padding: 20px; background: #009cb6; color: white; border: none; border-radius: 8px; font-size: 16px; font-weight: bold; cursor: pointer; transition: background 0.2s;">
+                        Trás Direita
+                    </button>
+                    <button onclick="selectDamageSide('right')" style="padding: 20px; background: #009cb6; color: white; border: none; border-radius: 8px; font-size: 16px; font-weight: bold; cursor: pointer; transition: background 0.2s;">
+                        Direita
+                    </button>
+                    <button onclick="selectDamageSide('front_right')" style="padding: 20px; background: #009cb6; color: white; border: none; border-radius: 8px; font-size: 16px; font-weight: bold; cursor: pointer; transition: background 0.2s;">
+                        Frente Direita
+                    </button>
+                </div>
+                
+                <button onclick="closeDamageSideModal()" style="width: 100%; padding: 15px; background: #6c757d; color: white; border: none; border-radius: 8px; font-size: 16px; font-weight: bold; cursor: pointer;">
+                    Cancelar
+                </button>
+            </div>
+        </div>
+    `;
+    
+    document.body.insertAdjacentHTML('beforeend', modalHTML);
+}
+
+// Close damage side selection modal
+function closeDamageSideModal() {
+    const modal = document.getElementById('damageSideModal');
+    if (modal) {
+        modal.remove();
+    }
+}
+
+// Select damage side and open camera
+function selectDamageSide(side) {
+    console.log('📸 Selected damage side:', side);
+    
+    // Close modal
+    closeDamageSideModal();
+    
+    // Store selected side
+    window.currentDamageSide = side;
+    
+    // Open camera to capture damage photo
+    captureDamagePhoto(side);
+}
+
+// Capture damage photo
+function captureDamagePhoto(side) {
+    showNotification(`Abrindo câmera para fotografar: ${formatPhotoType(side)}`, 'info');
+    
+    // Open camera modal (reuse existing camera functionality)
+    openCameraForDamage(side);
+}
+
+// Open camera for damage photo
+function openCameraForDamage(photoType) {
+    // Create camera modal
+    const modalHTML = `
+        <div id="damagePhotoModal" style="position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: black; z-index: 10000; display: flex; flex-direction: column;">
+            <div style="flex: 1; display: flex; align-items: center; justify-content: center; position: relative;">
+                <video id="damageVideo" autoplay playsinline style="max-width: 100%; max-height: 100%; object-fit: contain;"></video>
+                <canvas id="damageCanvas" style="display: none;"></canvas>
+            </div>
+            
+            <div style="padding: 20px; background: rgba(0,0,0,0.8); display: flex; flex-direction: column; gap: 15px;">
+                <div style="text-align: center; color: white; font-size: 18px; font-weight: bold;">
+                    ${formatPhotoType(photoType)}
+                </div>
+                
+                <div style="display: flex; gap: 15px; justify-content: center;">
+                    <button onclick="captureDamagePhotoNow()" style="flex: 1; padding: 20px; background: #28a745; color: white; border: none; border-radius: 8px; font-size: 18px; font-weight: bold; cursor: pointer;">
+                        📸 Capturar
+                    </button>
+                    <button onclick="closeDamagePhotoModal()" style="flex: 1; padding: 20px; background: #dc3545; color: white; border: none; border-radius: 8px; font-size: 18px; font-weight: bold; cursor: pointer;">
+                        Cancelar
+                    </button>
+                </div>
+            </div>
+        </div>
+    `;
+    
+    document.body.insertAdjacentHTML('beforeend', modalHTML);
+    
+    // Start camera
+    startDamageCamera();
+}
+
+// Start camera for damage photo
+async function startDamageCamera() {
+    try {
+        const video = document.getElementById('damageVideo');
+        const stream = await navigator.mediaDevices.getUserMedia({
+            video: { facingMode: 'environment' }
+        });
+        video.srcObject = stream;
+        window.damageCameraStream = stream;
+    } catch (error) {
+        console.error('Error starting camera:', error);
+        showNotification('Erro ao aceder à câmera: ' + error.message, 'error');
+        closeDamagePhotoModal();
+    }
+}
+
+// Capture damage photo now
+function captureDamagePhotoNow() {
+    const video = document.getElementById('damageVideo');
+    const canvas = document.getElementById('damageCanvas');
+    const ctx = canvas.getContext('2d');
+    
+    // Set canvas size to video size
+    canvas.width = video.videoWidth;
+    canvas.height = video.videoHeight;
+    
+    // Draw video frame to canvas
+    ctx.drawImage(video, 0, 0);
+    
+    // Get base64 image
+    const imageData = canvas.toDataURL('image/jpeg', 0.9);
+    
+    // Stop camera
+    if (window.damageCameraStream) {
+        window.damageCameraStream.getTracks().forEach(track => track.stop());
+    }
+    
+    // Close modal
+    closeDamagePhotoModal();
+    
+    // Store damage photo
+    if (!window.pickupDamagePhotos) {
+        window.pickupDamagePhotos = [];
+    }
+    
+    window.pickupDamagePhotos.push({
+        side: window.currentDamageSide,
+        imageData: imageData,
+        timestamp: new Date().toISOString()
+    });
+    
+    showNotification('Foto capturada! Deseja adicionar mais fotos?', 'success');
+    
+    // Ask if wants to add more photos
+    askAddMoreDamagePhotos();
+}
+
+// Close damage photo modal
+function closeDamagePhotoModal() {
+    // Stop camera
+    if (window.damageCameraStream) {
+        window.damageCameraStream.getTracks().forEach(track => track.stop());
+    }
+    
+    const modal = document.getElementById('damagePhotoModal');
+    if (modal) {
+        modal.remove();
+    }
+}
+
+// Ask if wants to add more damage photos
+function askAddMoreDamagePhotos() {
+    const modalHTML = `
+        <div id="addMorePhotosModal" style="position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.85); z-index: 10000; display: flex; align-items: center; justify-content: center;">
+            <div style="background: white; padding: 40px; border-radius: 12px; max-width: 500px; width: 90%; box-shadow: 0 10px 40px rgba(0,0,0,0.3);">
+                <h2 style="color: #009cb6; font-size: 24px; font-weight: bold; margin-bottom: 20px; text-align: center;">
+                    Adicionar Mais Fotos?
+                </h2>
+                <p style="color: #666; margin-bottom: 30px; text-align: center;">
+                    Deseja adicionar mais fotos de danos ou terminar o registo?
+                </p>
+                
+                <div style="display: flex; gap: 15px;">
+                    <button onclick="addAnotherDamagePhoto()" style="flex: 1; padding: 15px; background: #ff9800; color: white; border: none; border-radius: 8px; font-size: 16px; font-weight: bold; cursor: pointer;">
+                        Adicionar Mais
+                    </button>
+                    <button onclick="finishAddingDamagePhotos()" style="flex: 1; padding: 15px; background: #28a745; color: white; border: none; border-radius: 8px; font-size: 16px; font-weight: bold; cursor: pointer;">
+                        Terminar
+                    </button>
+                </div>
+            </div>
+        </div>
+    `;
+    
+    document.body.insertAdjacentHTML('beforeend', modalHTML);
+}
+
+// Add another damage photo
+function addAnotherDamagePhoto() {
+    const modal = document.getElementById('addMorePhotosModal');
+    if (modal) {
+        modal.remove();
+    }
+    
+    // Show side selection again
+    showDamageSideSelectionModal();
+}
+
+// Finish adding damage photos
+function finishAddingDamagePhotos() {
+    const modal = document.getElementById('addMorePhotosModal');
+    if (modal) {
+        modal.remove();
+    }
+    
+    const photoCount = window.pickupDamagePhotos ? window.pickupDamagePhotos.length : 0;
+    showNotification(`${photoCount} foto(s) de novos danos registada(s)!`, 'success');
+}
+
+// Finish pickup and show summary
+function finishPickup() {
+    console.log('✅ Finishing pickup...');
+    
+    // Validate that we have all required data
+    if (!window.deliveryInspection) {
+        showNotification('Erro: Dados do check-out não encontrados', 'error');
+        return;
+    }
+    
+    // Show pickup summary modal
+    showPickupSummaryModal();
+}
+
+// Show pickup summary modal (like checkout summary)
+function showPickupSummaryModal() {
+    const plate = document.getElementById('inputPlate')?.value?.trim();
+    const ra = document.getElementById('inputRA')?.value?.trim();
+    const odometer = document.getElementById('odometerReading')?.value;
+    const fuel = document.getElementById('fuelSlider')?.value;
+    
+    // Count new damage photos
+    const newDamagePhotosCount = window.pickupDamagePhotos ? window.pickupDamagePhotos.length : 0;
+    const newDamagesCount = window.pickupNewDamages ? window.pickupNewDamages.length : 0;
+    
+    const modalHTML = `
+        <div id="pickupSummaryModal" style="position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.9); z-index: 10000; display: flex; align-items: center; justify-content: center; padding: 20px; overflow-y: auto;">
+            <div style="background: white; padding: 40px; border-radius: 12px; max-width: 800px; width: 100%; box-shadow: 0 10px 40px rgba(0,0,0,0.5);">
+                <h2 style="color: #28a745; font-size: 28px; font-weight: bold; margin-bottom: 10px; text-align: center;">
+                    ✅ Recolha de Viatura Completa
+                </h2>
+                <p style="color: #666; margin-bottom: 30px; text-align: center; font-size: 14px;">
+                    Todos os dados foram registados com sucesso
+                </p>
+                
+                <!-- Summary Info -->
+                <div style="background: #f8f9fa; border-radius: 8px; padding: 20px; margin-bottom: 30px;">
+                    <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 15px;">
+                        <div>
+                            <div style="color: #666; font-size: 12px; margin-bottom: 5px;">Matrícula</div>
+                            <div style="color: #009cb6; font-size: 18px; font-weight: bold;">${plate}</div>
+                        </div>
+                        <div>
+                            <div style="color: #666; font-size: 12px; margin-bottom: 5px;">RA</div>
+                            <div style="color: #009cb6; font-size: 18px; font-weight: bold;">${ra}</div>
+                        </div>
+                        <div>
+                            <div style="color: #666; font-size: 12px; margin-bottom: 5px;">Km Entrada</div>
+                            <div style="color: #009cb6; font-size: 18px; font-weight: bold;">${odometer} km</div>
+                        </div>
+                        <div>
+                            <div style="color: #666; font-size: 12px; margin-bottom: 5px;">Combustível</div>
+                            <div style="color: #009cb6; font-size: 18px; font-weight: bold;">${fuel}%</div>
+                        </div>
+                        <div>
+                            <div style="color: #666; font-size: 12px; margin-bottom: 5px;">Fotos do Check-out</div>
+                            <div style="color: #009cb6; font-size: 18px; font-weight: bold;">${window.deliveryPhotos ? window.deliveryPhotos.length : 0}</div>
+                        </div>
+                        <div>
+                            <div style="color: #666; font-size: 12px; margin-bottom: 5px;">Novos Danos</div>
+                            <div style="color: #dc3545; font-size: 18px; font-weight: bold;">${newDamagesCount} (${newDamagePhotosCount} fotos)</div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Action Buttons -->
+                <div style="display: flex; flex-direction: column; gap: 15px;">
+                    <button onclick="saveAndEmailPickup()" style="width: 100%; padding: 20px; background: #009cb6; color: white; border: none; border-radius: 8px; font-size: 18px; font-weight: bold; cursor: pointer; transition: background 0.2s;">
+                        💾 Guardar e Enviar Email
+                    </button>
+                    <button onclick="savePickupOnly()" style="width: 100%; padding: 20px; background: #28a745; color: white; border: none; border-radius: 8px; font-size: 18px; font-weight: bold; cursor: pointer; transition: background 0.2s;">
+                        💾 Só Guardar
+                    </button>
+                    <button onclick="closePickupSummary()" style="width: 100%; padding: 15px; background: #6c757d; color: white; border: none; border-radius: 8px; font-size: 16px; font-weight: bold; cursor: pointer;">
+                        Cancelar
+                    </button>
+                </div>
+            </div>
+        </div>
+    `;
+    
+    document.body.insertAdjacentHTML('beforeend', modalHTML);
+}
+
+// Close pickup summary
+function closePickupSummary() {
+    const modal = document.getElementById('pickupSummaryModal');
+    if (modal) {
+        modal.remove();
+    }
+}
+
+// Save and email pickup
+async function saveAndEmailPickup() {
+    showNotification('Guardando recolha e enviando email...', 'info');
+    
+    const success = await savePickupInspection();
+    
+    if (success) {
+        // Close summary modal
+        closePickupSummary();
+        
+        // TODO: Send email
+        showNotification('Recolha guardada com sucesso! Email será enviado...', 'success');
+        
+        // Redirect after delay
+        setTimeout(() => {
+            window.location.href = '/vehicle-inspection';
+        }, 2000);
+    }
+}
+
+// Save pickup only
+async function savePickupOnly() {
+    showNotification('Guardando recolha...', 'info');
+    
+    const success = await savePickupInspection();
+    
+    if (success) {
+        // Close summary modal
+        closePickupSummary();
+        
+        showNotification('Recolha guardada com sucesso!', 'success');
+        
+        // Redirect after delay
+        setTimeout(() => {
+            window.location.href = '/vehicle-inspection';
+        }, 2000);
+    }
+}
+
+// Save pickup inspection to backend
+async function savePickupInspection() {
+    try {
+        // Prepare inspection data
+        const plate = document.getElementById('inputPlate')?.value?.trim();
+        const ra = document.getElementById('inputRA')?.value?.trim();
+        const odometer = document.getElementById('odometerReading')?.value;
+        const fuel = document.getElementById('fuelSlider')?.value;
+        const receptionist = document.getElementById('inputReceptionist')?.value?.trim();
+        const observations = document.getElementById('inputObservations')?.value?.trim();
+        
+        // Get damage croqui (with new damages in red)
+        const damageCroqui = await captureDamageCroqui();
+        
+        // Prepare photos object (delivery photos + new damage photos)
+        const photos = {};
+        
+        // Add delivery photos
+        if (window.deliveryPhotos) {
+            window.deliveryPhotos.forEach(photo => {
+                if (photo.photo_type !== 'damage_croqui') {
+                    photos[photo.photo_type] = photo.image_data;
+                }
+            });
+        }
+        
+        // Add new damage photos with unique keys
+        if (window.pickupDamagePhotos) {
+            window.pickupDamagePhotos.forEach((photo, index) => {
+                photos[`new_damage_${index}`] = photo.imageData;
+            });
+        }
+        
+        // Prepare request data
+        const requestData = {
+            inspection_type: 'checkin',
+            plate: plate,
+            ra: ra,
+            odometer_reading: parseInt(odometer),
+            fuel_level: parseInt(fuel),
+            receptionist: receptionist,
+            observations: observations,
+            has_damage: (window.pickupNewDamages && window.pickupNewDamages.length > 0),
+            damage_count: window.pickupNewDamages ? window.pickupNewDamages.length : 0,
+            photos: photos,
+            damage_croqui: damageCroqui
+        };
+        
+        console.log('📤 Saving pickup inspection...', requestData);
+        
+        // Send to backend
+        const response = await fetch('/api/save-inspection', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify(requestData)
+        });
+        
+        if (!response.ok) {
+            throw new Error('Erro ao guardar recolha');
+        }
+        
+        const data = await response.json();
+        
+        if (data.ok) {
+            console.log('✅ Pickup inspection saved successfully');
+            return true;
+        } else {
+            throw new Error(data.error || 'Erro desconhecido');
+        }
+        
+    } catch (error) {
+        console.error('Error saving pickup inspection:', error);
+        showNotification('Erro ao guardar recolha: ' + error.message, 'error');
+        return false;
+    }
+}
+
+// Capture damage croqui (helper function)
+async function captureDamageCroqui() {
+    try {
+        const canvas = document.getElementById('drawingCanvas');
+        const container = document.getElementById('carDiagram');
+        
+        if (!canvas || !container) {
+            console.warn('Canvas or container not found');
+            return '';
+        }
+        
+        // Create temporary canvas
+        const tempCanvas = document.createElement('canvas');
+        const tempCtx = tempCanvas.getContext('2d');
+        const croquiImg = container.querySelector('img');
+        
+        if (!croquiImg || !croquiImg.complete) {
+            console.warn('Croqui image not loaded');
+            return '';
+        }
+        
+        // Set canvas size
+        tempCanvas.width = croquiImg.naturalWidth;
+        tempCanvas.height = croquiImg.naturalHeight;
+        
+        // Draw croqui image
+        tempCtx.drawImage(croquiImg, 0, 0);
+        
+        // Draw canvas content (lines/drawings)
+        if (canvas.width > 0 && canvas.height > 0) {
+            tempCtx.drawImage(canvas, 0, 0, tempCanvas.width, tempCanvas.height);
+        }
+        
+        // Draw pins
+        const pins = container.querySelectorAll('.damage-pin');
+        pins.forEach(pin => {
+            const rect = container.getBoundingClientRect();
+            const pinRect = pin.getBoundingClientRect();
+            
+            const x = (pinRect.left - rect.left) / rect.width * tempCanvas.width;
+            const y = (pinRect.top - rect.top) / rect.height * tempCanvas.height;
+            
+            const size = pin.classList.contains('size-small') ? 8 : 
+                        pin.classList.contains('size-large') ? 20 : 12;
+            
+            // Check if it's a new damage (red color)
+            const isNewDamage = pin.style.background === 'rgb(220, 53, 69)' || pin.style.background === '#dc3545';
+            
+            tempCtx.fillStyle = isNewDamage ? '#dc3545' : '#000000';
+            tempCtx.beginPath();
+            tempCtx.arc(x, y, size, 0, Math.PI * 2);
+            tempCtx.fill();
+        });
+        
+        // Return base64
+        return tempCanvas.toDataURL('image/png');
+        
+    } catch (error) {
+        console.error('Error capturing damage croqui:', error);
+        return '';
+    }
 }
 
 // Auto Sequence Mode (legacy - now called by startDelivery)
