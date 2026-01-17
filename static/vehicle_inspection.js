@@ -158,19 +158,28 @@ function updatePickupButtonState() {
     
     if (!pickupButton) return;
     
-    // Check if there's a completed delivery for current plate/RA
+    // Check if there's a completed delivery
+    // Priority 1: Check window.inspectionCompleted (from RA database)
+    // Priority 2: Check localStorage contracts
     const plate = document.getElementById('inputPlate')?.value.trim();
     const ra = document.getElementById('inputRA')?.value.trim();
     
     let hasCompletedDelivery = false;
     
-    if (plate && ra) {
+    // Check if inspection was completed (from database)
+    if (window.inspectionCompleted === true) {
+        hasCompletedDelivery = true;
+        console.log('✅ Check-in enabled: inspection_completed from database');
+    } 
+    // Fallback: Check localStorage contracts
+    else if (plate && ra) {
         const contractKey = `${plate}_${ra}`;
         const contracts = getActiveContracts();
         
         // Check if this specific contract has completed delivery
         if (contracts[contractKey] && contracts[contractKey].deliveryComplete) {
             hasCompletedDelivery = true;
+            console.log('✅ Check-in enabled: deliveryComplete from localStorage');
         }
     }
     
@@ -194,6 +203,8 @@ function updatePickupButtonState() {
             pickupText.classList.remove('group-hover:text-green-500');
             pickupText.classList.add('text-gray-400');
         }
+        
+        console.log('❌ Check-in disabled: no completed delivery found');
     } else {
         // Enable button
         pickupButton.disabled = false;
