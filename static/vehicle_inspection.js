@@ -951,17 +951,17 @@ async function loadDeliveryDataAndShowCroqui() {
 function showPickupDiagramUI() {
     console.log('🎨 Setting up pickup diagram UI...');
     
-    // 1. Create and show delivery photos grid
-    showDeliveryPhotosGrid();
+    // 1. Load delivery damages on croqui FIRST
+    loadDeliveryDamagesOnCroqui();
     
-    // 2. Load delivery damages on croqui (will be implemented next)
-    // loadDeliveryDamagesOnCroqui();
+    // 2. Modify croqui to allow adding new damages in red
+    setupPickupCroquiMode();
     
     // 3. Add pickup action buttons
     addPickupActionButtons();
     
-    // 4. Modify croqui to allow adding new damages in red
-    setupPickupCroquiMode();
+    // 4. Create and show delivery photos grid AFTER croqui
+    showDeliveryPhotosGrid();
 }
 
 // Show grid of delivery photos (clickable to enlarge)
@@ -1072,10 +1072,10 @@ function showDeliveryPhotosGrid() {
     
     photosGrid.appendChild(grid);
     
-    // Insert at the top of diagram step
+    // Insert AFTER the croqui (at the end of diagram step)
     const diagramContainer = diagramStep.querySelector('.car-diagram-container');
     if (diagramContainer) {
-        diagramContainer.insertBefore(photosGrid, diagramContainer.firstChild);
+        diagramContainer.appendChild(photosGrid);
     }
 }
 
@@ -1258,11 +1258,36 @@ function addPickupActionButtons() {
     }
 }
 
-// Setup pickup croqui mode (allow adding new damages in red)
+// Load delivery damages on croqui
+function loadDeliveryDamagesOnCroqui() {
+    console.log('📍 Loading delivery damages on croqui...');
+    
+    if (!window.deliveryPhotos || window.deliveryPhotos.length === 0) {
+        console.log('⚠️ No delivery photos to load damages from');
+        return;
+    }
+    
+    // Find the damage_croqui photo
+    const croquiPhoto = window.deliveryPhotos.find(p => p.photo_type === 'damage_croqui');
+    
+    if (!croquiPhoto || !croquiPhoto.image_data) {
+        console.log('⚠️ No damage croqui found in delivery photos');
+        return;
+    }
+    
+    // Load the croqui image with damages
+    const croquiImg = document.getElementById('carCroqui');
+    if (croquiImg) {
+        croquiImg.src = croquiPhoto.image_data;
+        console.log('✅ Loaded delivery damage croqui');
+    }
+}
+
+// Setup pickup croqui mode - new damages will be red
 function setupPickupCroquiMode() {
     console.log('🎨 Setting up pickup croqui mode - new damages will be RED');
-    window.pickupCroquiMode = true;
-    // The existing damage marking system will be modified to use red color for new damages
+    // The actual red color logic is in addPin() function in the HTML
+    // which checks window.isPickupMode
 }
 
 // Start registering new damages
