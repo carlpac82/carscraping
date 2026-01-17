@@ -1014,21 +1014,17 @@ function showDeliveryPhotosGrid() {
                 const photoCard = document.createElement('div');
                 photoCard.style.cssText = `
                     position: relative;
-                    border: 2px solid #ddd;
-                    border-radius: 8px;
                     overflow: hidden;
                     cursor: pointer;
-                    transition: transform 0.2s, border-color 0.2s;
+                    transition: transform 0.2s;
                 `;
                 
                 // Hover effect
                 photoCard.addEventListener('mouseenter', () => {
                     photoCard.style.transform = 'scale(1.05)';
-                    photoCard.style.borderColor = '#009cb6';
                 });
                 photoCard.addEventListener('mouseleave', () => {
                     photoCard.style.transform = 'scale(1)';
-                    photoCard.style.borderColor = '#ddd';
                 });
                 
                 // Photo image
@@ -1039,15 +1035,15 @@ function showDeliveryPhotosGrid() {
                     width: 100%;
                     height: 150px;
                     object-fit: cover;
+                    border-radius: 8px;
                 `;
                 
-                // Photo label
+                // Photo label (clean, no background box)
                 const label = document.createElement('div');
                 label.textContent = formatPhotoType(photo.photo_type);
                 label.style.cssText = `
-                    background: rgba(0, 156, 182, 0.9);
-                    color: white;
-                    padding: 5px;
+                    color: #009cb6;
+                    padding: 5px 0;
                     text-align: center;
                     font-size: 12px;
                     font-weight: bold;
@@ -1080,12 +1076,12 @@ function showDeliveryPhotosGrid() {
     }
 }
 
-// Update delivery photos grid to include damage photos
+// Update delivery photos grid to include damage photos (ALWAYS AFTER delivery photos)
 function updateDeliveryPhotosGridWithDamages() {
     const photosGrid = document.getElementById('deliveryPhotosGrid');
     if (!photosGrid) return;
     
-    // Check if damage photos section already exists
+    // Check if damage photos section already exists and remove it
     let damageSection = document.getElementById('damagePhotosSection');
     if (damageSection) {
         damageSection.remove();
@@ -1096,7 +1092,7 @@ function updateDeliveryPhotosGridWithDamages() {
         return;
     }
     
-    // Create damage photos section
+    // Create damage photos section (will be appended at the END)
     damageSection = document.createElement('div');
     damageSection.id = 'damagePhotosSection';
     damageSection.style.cssText = `
@@ -1130,21 +1126,17 @@ function updateDeliveryPhotosGridWithDamages() {
         const photoCard = document.createElement('div');
         photoCard.style.cssText = `
             position: relative;
-            border: 2px solid #dc3545;
-            border-radius: 8px;
             overflow: hidden;
             cursor: pointer;
-            transition: transform 0.2s, border-color 0.2s;
+            transition: transform 0.2s;
         `;
         
         // Hover effect
         photoCard.addEventListener('mouseenter', () => {
             photoCard.style.transform = 'scale(1.05)';
-            photoCard.style.borderColor = '#c82333';
         });
         photoCard.addEventListener('mouseleave', () => {
             photoCard.style.transform = 'scale(1)';
-            photoCard.style.borderColor = '#dc3545';
         });
         
         // Photo image
@@ -1155,15 +1147,15 @@ function updateDeliveryPhotosGridWithDamages() {
             width: 100%;
             height: 150px;
             object-fit: cover;
+            border-radius: 8px;
         `;
         
-        // Photo label
+        // Photo label (clean, no background box)
         const label = document.createElement('div');
         label.textContent = formatPhotoType(photo.side);
         label.style.cssText = `
-            background: rgba(220, 53, 69, 0.9);
-            color: white;
-            padding: 5px;
+            color: #dc3545;
+            padding: 5px 0;
             text-align: center;
             font-size: 12px;
             font-weight: bold;
