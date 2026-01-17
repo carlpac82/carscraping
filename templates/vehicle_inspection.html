@@ -1120,6 +1120,25 @@
                         </g>
                     </svg>
                 </div>
+                
+                <!-- Car Diagram Miniature - Bottom Right -->
+                <div id="carMiniature" style="
+                    position: fixed;
+                    bottom: 120px;
+                    right: 20px;
+                    width: 140px;
+                    height: 140px;
+                    background: rgba(0, 0, 0, 0.7);
+                    border: 3px solid #009cb6;
+                    border-radius: 12px;
+                    padding: 8px;
+                    z-index: 9999;
+                    display: none;
+                    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.6);
+                    backdrop-filter: blur(10px);
+                ">
+                    <img src="/static/carro.png" alt="Car Position" style="width: 100%; height: 100%; object-fit: contain; border-radius: 6px;">
+                </div>
             </div>
             
             <!-- iPhone-style camera button - Hidden during countdown -->
@@ -1173,7 +1192,328 @@
         };
         {% endif %}
     </script>
-    <script src="/static/vehicle_inspection.js"></script>
+    <script src="/static/vehicle_inspection.js?v=20260117"></script>
+    
+    <!-- Force correct photo sending - Override -->
+    <script>
+        // Override saveInspectionWithEmail to ensure photos are sent correctly
+        const originalSaveInspectionWithEmail = window.saveInspectionWithEmail || function() {};
+        
+        window.saveInspectionWithEmail = function(email) {
+            console.log('🔧 OVERRIDE: saveInspectionWithEmail called with email:', email);
+            
+            // Capture damage croqui as base64 image (including pins)
+            let damageCroquiBase64 = '';
+            try {
+                const canvas = document.getElementById('drawingCanvas');
+                const container = document.getElementById('carDiagram');
+                
+                if (canvas && canvas.width > 0 && canvas.height > 0) {
+                    const tempCanvas = document.createElement('canvas');
+                    const tempCtx = tempCanvas.getContext('2d');
+                    const croquiImg = document.querySelector('#carDiagram img');
+                    
+                    if (croquiImg && croquiImg.complete && croquiImg.naturalWidth > 0) {
+                        tempCanvas.width = croquiImg.naturalWidth;
+                        tempCanvas.height = croquiImg.naturalHeight;
+                        
+                        // Draw background image
+                        tempCtx.drawImage(croquiImg, 0, 0);
+                        
+                        // Calculate scale
+                        const scaleX = tempCanvas.width / canvas.width;
+                        const scaleY = tempCanvas.height / canvas.height;
+                        
+                        // Draw canvas (drawings/lines)
+                        tempCtx.save();
+                        tempCtx.scale(scaleX, scaleY);
+                        tempCtx.drawImage(canvas, 0, 0);
+                        tempCtx.restore();
+                        
+                        // Draw pins on top
+                        console.log('🔍 Container element:', container);
+                        console.log('🔍 Container HTML:', container ? container.innerHTML.substring(0, 200) : 'null');
+                        
+                        const allPins = container.querySelectorAll('.damage-pin');
+                        console.log(`🔍 Total .damage-pin elements found: ${allPins.length}`);
+                        allPins.forEach((p, i) => {
+                            console.log(`  Pin ${i}: id=${p.id}, classes=${p.className}, left=${p.style.left}, top=${p.style.top}`);
+                        });
+                        
+                        const pins = container.querySelectorAll('.damage-pin:not(#pinPreview)');
+                        console.log(`📍 Pins to render (excluding preview): ${pins.length}`);
+                        
+                        if (pins.length === 0) {
+                            console.warn('⚠️ NO PINS FOUND! Cannot render pins on croqui.');
+                        }
+                        
+                        pins.forEach((pin, index) => {
+                            console.log(`\n📍 Processing Pin ${index}:`);
+                            console.log(`  - ID: ${pin.id}`);
+                            console.log(`  - Classes: ${pin.className}`);
+                            console.log(`  - style.left: "${pin.style.left}"`);
+                            console.log(`  - style.top: "${pin.style.top}"`);
+                            
+                            // Get pin position from style (already in container coordinates)
+                            const pinLeft = parseFloat(pin.style.left) || 0;
+                            const pinTop = parseFloat(pin.style.top) || 0;
+                            
+                            console.log(`  - Parsed: left=${pinLeft}, top=${pinTop}`);
+                            
+                            if (pinLeft === 0 && pinTop === 0) {
+                                console.warn(`  ⚠️ Pin ${index} has zero coordinates!`);
+                            }
+                            
+                            // Scale to canvas size
+                            const pinX = pinLeft * scaleX;
+                            const pinY = pinTop * scaleY;
+                            
+                            console.log(`  - Scaled: X=${pinX}, Y=${pinY} (scaleX=${scaleX}, scaleY=${scaleY})`);
+                            console.log(`  - Canvas size: ${tempCanvas.width}x${tempCanvas.height}`);
+                            
+                            // Get pin size
+                            let radius = 8; // default medium
+                            if (pin.classList.contains('size-tiny')) radius = 4;
+                            else if (pin.classList.contains('size-small')) radius = 6;
+                            else if (pin.classList.contains('size-large')) radius = 12;
+                            
+                            const scaledRadius = radius * Math.min(scaleX, scaleY);
+                            console.log(`  - Radius: ${radius} → scaled: ${scaledRadius}`);
+                            
+                            // Draw pin as circle
+                            tempCtx.beginPath();
+                            tempCtx.arc(pinX, pinY, scaledRadius, 0, Math.PI * 2);
+                            tempCtx.fillStyle = '#000000';
+                            tempCtx.fill();
+                            tempCtx.strokeStyle = '#ffffff';
+                            tempCtx.lineWidth = 2;
+                            tempCtx.stroke();
+                            
+                            console.log(`  ✅ Pin ${index} drawn successfully`);
+                        });
+                        
+                        damageCroquiBase64 = tempCanvas.toDataURL('image/png');
+                        console.log('✅ Damage croqui captured with pins:', damageCroquiBase64.length, 'chars');
+                    }
+                }
+            } catch (error) {
+                console.error('❌ Error capturing damage croqui:', error);
+            }
+            
+            // Load photos from localStorage first
+            console.log('📸 Loading photos from localStorage...');
+            try {
+                const storedPhotos = localStorage.getItem('inspectionPhotos');
+                if (storedPhotos) {
+                    const parsedPhotos = JSON.parse(storedPhotos);
+                    console.log('📸 Found photos in localStorage:', Object.keys(parsedPhotos));
+                    
+                    // Update window.inspectionData with localStorage photos
+                    if (!window.inspectionData) {
+                        window.inspectionData = { photos: {}, aiResults: {}, vehicleInfo: {} };
+                    }
+                    if (!window.inspectionData.photos) {
+                        window.inspectionData.photos = {};
+                    }
+                    
+                    Object.keys(parsedPhotos).forEach(key => {
+                        window.inspectionData.photos[key] = parsedPhotos[key];
+                    });
+                    
+                    console.log('✅ Loaded photos from localStorage:', Object.keys(window.inspectionData.photos));
+                }
+            } catch(e) {
+                console.error('❌ Failed to load photos from localStorage:', e);
+            }
+            
+            // Prepare photos - extract dataURL from each photo object
+            const photos = {};
+            if (window.inspectionData?.photos) {
+                console.log('📸 Processing photos from window.inspectionData.photos');
+                Object.keys(window.inspectionData.photos).forEach(photoType => {
+                    const photoObj = window.inspectionData.photos[photoType];
+                    if (photoObj) {
+                        if (typeof photoObj === 'string') {
+                            photos[photoType] = photoObj;
+                        } else if (photoObj.dataURL) {
+                            photos[photoType] = photoObj.dataURL;
+                        } else if (photoObj instanceof Blob) {
+                            console.warn(`⚠️ Photo ${photoType} is a Blob, needs conversion`);
+                        }
+                        if (photos[photoType]) {
+                            console.log(`✅ Photo ${photoType}: ${photos[photoType].substring(0, 50)}...`);
+                        }
+                    }
+                });
+            }
+            
+            console.log(`📸 Total photos to send: ${Object.keys(photos).length}`);
+            
+            // Prepare inspection data
+            const inspectionData = {
+                type: '{{ inspection_type|default("checkout") }}',
+                photos: photos,
+                damages: window.diagramData?.damages || [],
+                observations: window.diagramData?.observations || '',
+                fuelLevel: window.diagramData?.fuelLevel || 100,
+                odometerReading: window.diagramData?.odometerReading || 0,
+                plate: document.getElementById('inputPlate')?.value || '',
+                ra: document.getElementById('inputRA')?.value || '',
+                receptionist: document.getElementById('inputReceptionist')?.value || '',
+                date: document.getElementById('inputDate')?.value || '',
+                time: document.getElementById('inputTime')?.value || '',
+                email: email,
+                vehicle_id: window.currentVehicleId || null,
+                damageCroqui: damageCroquiBase64
+            };
+            
+            console.log('📦 Sending inspection data:', {
+                photos: Object.keys(inspectionData.photos),
+                damages: inspectionData.damages.length,
+                hasCroqui: !!inspectionData.damageCroqui
+            });
+            
+            // Make API call
+            fetch('/api/save-inspection', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(inspectionData)
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    alert(email ? 'Inspeção guardada com sucesso!\nRelatório enviado por email.' : 'Inspeção guardada no histórico com sucesso!');
+                    window.location.href = '/check-in';
+                } else {
+                    alert('Erro ao guardar inspeção: ' + (data.error || 'Erro desconhecido'));
+                }
+            })
+            .catch(error => {
+                console.error('Error saving inspection:', error);
+                alert('Erro ao guardar inspeção. Tente novamente.');
+            });
+        };
+        
+        console.log('✅ Photo sending override installed');
+        
+        // Override acceptPhoto to ensure Blob to dataURL conversion
+        window.acceptPhotoOverride = function(photoType) {
+            console.log('🔵 acceptPhotoOverride called for:', photoType);
+            console.log('🔵 window.tempPhotoBlob:', window.tempPhotoBlob);
+            const blob = window.tempPhotoBlob;
+            
+            if (!blob) {
+                alert('Erro: Foto não encontrada');
+                console.error('❌ No blob found in window.tempPhotoBlob');
+                return;
+            }
+            
+            console.log('🔵 Blob size:', blob.size, 'bytes');
+            console.log('🔵 Blob type:', blob.type);
+            
+            // Convert Blob to dataURL (base64) before storing
+            console.log('🔵 Starting FileReader conversion...');
+            const reader = new FileReader();
+            
+            reader.onerror = function(error) {
+                console.error('❌ FileReader error:', error);
+                alert('Erro ao processar foto. Tente novamente.');
+            };
+            
+            reader.onloadend = function() {
+                const dataURL = reader.result;
+                console.log('✅ Photo converted to dataURL:', dataURL.substring(0, 50) + '...');
+                console.log('✅ DataURL length:', dataURL.length);
+                
+                // Store photo with dataURL
+                console.log('💾 Storing photo in inspectionData...');
+                if (!window.inspectionData) {
+                    window.inspectionData = { photos: {}, aiResults: {}, vehicleInfo: {} };
+                }
+                if (!window.inspectionData.photos) {
+                    window.inspectionData.photos = {};
+                }
+                
+                window.inspectionData.photos[photoType] = {
+                    dataURL: dataURL,
+                    blob: blob,
+                    timestamp: new Date().toISOString(),
+                    type: photoType
+                };
+                
+                // Also save to localStorage
+                try {
+                    // Clear old photos first to avoid quota issues
+                    if (Object.keys(window.inspectionData.photos).length === 1) {
+                        localStorage.removeItem('inspectionPhotos');
+                        console.log('🧹 Cleared old photos from localStorage');
+                    }
+                    
+                    const photosForStorage = {};
+                    Object.keys(window.inspectionData.photos).forEach(key => {
+                        photosForStorage[key] = {
+                            dataURL: window.inspectionData.photos[key].dataURL,
+                            timestamp: window.inspectionData.photos[key].timestamp,
+                            type: window.inspectionData.photos[key].type
+                        };
+                    });
+                    localStorage.setItem('inspectionPhotos', JSON.stringify(photosForStorage));
+                    console.log('💾 Photo saved to localStorage:', photoType);
+                } catch(e) {
+                    console.warn('Failed to save to localStorage:', e);
+                    // If quota exceeded, try clearing and saving again
+                    if (e.name === 'QuotaExceededError') {
+                        try {
+                            localStorage.clear();
+                            console.log('🧹 Cleared all localStorage due to quota');
+                            const photosForStorage = {};
+                            Object.keys(window.inspectionData.photos).forEach(key => {
+                                photosForStorage[key] = {
+                                    dataURL: window.inspectionData.photos[key].dataURL,
+                                    timestamp: window.inspectionData.photos[key].timestamp,
+                                    type: window.inspectionData.photos[key].type
+                                };
+                            });
+                            localStorage.setItem('inspectionPhotos', JSON.stringify(photosForStorage));
+                            console.log('✅ Photos saved after clearing localStorage');
+                        } catch(e2) {
+                            console.error('❌ Still failed after clearing:', e2);
+                        }
+                    }
+                }
+                
+                console.log('✅ Photo saved successfully:', photoType, 'Total photos:', Object.keys(window.inspectionData.photos).length);
+                
+                // Continue with normal flow - call the original continuePhotoProcessing if it exists
+                if (typeof continuePhotoProcessing === 'function') {
+                    setTimeout(() => {
+                        console.log('▶️ Continuing photo processing...');
+                        continuePhotoProcessing(photoType, blob);
+                    }, 1000);
+                } else {
+                    // Fallback: close preview and continue
+                    const preview = document.getElementById('photoPreviewContainer');
+                    if (preview) preview.remove();
+                    
+                    // Check if all photos captured
+                    const totalPhotos = Object.keys(window.inspectionData.photos).length;
+                    console.log('Photos captured:', totalPhotos, '/6');
+                    
+                    if (totalPhotos >= 6) {
+                        console.log('All photos captured, closing camera...');
+                        if (typeof closeCamera === 'function') {
+                            closeCamera();
+                        }
+                    }
+                }
+            };
+            
+            console.log('🔵 Calling reader.readAsDataURL...');
+            reader.readAsDataURL(blob);
+        };
+        
+        console.log('✅ acceptPhotoOverride installed');
+    </script>
     
     <!-- Croqui Interativo Script -->
     <script>
@@ -2277,15 +2617,55 @@
                         // Draw the background croqui image
                         tempCtx.drawImage(croquiImg, 0, 0);
                         
-                        // Scale and draw the damage canvas on top
+                        // Calculate scale
                         const scaleX = tempCanvas.width / canvas.width;
                         const scaleY = tempCanvas.height / canvas.height;
+                        console.log('🔍 Scale factors:', scaleX, scaleY);
+                        
+                        // Draw the damage canvas (lines/drawings) on top
+                        tempCtx.save();
                         tempCtx.scale(scaleX, scaleY);
                         tempCtx.drawImage(canvas, 0, 0);
+                        tempCtx.restore();
+                        
+                        // NOW DRAW PINS ON TOP
+                        const container = document.getElementById('carDiagram');
+                        const allPins = container.querySelectorAll('.damage-pin');
+                        console.log(`🔍 Total .damage-pin elements: ${allPins.length}`);
+                        
+                        const pins = container.querySelectorAll('.damage-pin:not(#pinPreview)');
+                        console.log(`📍 Pins to render: ${pins.length}`);
+                        
+                        pins.forEach((pin, index) => {
+                            const pinLeft = parseFloat(pin.style.left) || 0;
+                            const pinTop = parseFloat(pin.style.top) || 0;
+                            
+                            const pinX = pinLeft * scaleX;
+                            const pinY = pinTop * scaleY;
+                            
+                            console.log(`📍 Pin ${index}: (${pinLeft}, ${pinTop}) → (${pinX}, ${pinY})`);
+                            
+                            let radius = 8;
+                            if (pin.classList.contains('size-tiny')) radius = 4;
+                            else if (pin.classList.contains('size-small')) radius = 6;
+                            else if (pin.classList.contains('size-large')) radius = 12;
+                            
+                            const scaledRadius = radius * Math.min(scaleX, scaleY);
+                            
+                            tempCtx.beginPath();
+                            tempCtx.arc(pinX, pinY, scaledRadius, 0, Math.PI * 2);
+                            tempCtx.fillStyle = '#000000';
+                            tempCtx.fill();
+                            tempCtx.strokeStyle = '#ffffff';
+                            tempCtx.lineWidth = 2;
+                            tempCtx.stroke();
+                            
+                            console.log(`✅ Pin ${index} drawn`);
+                        });
                         
                         // Convert to base64
                         damageCroquiBase64 = tempCanvas.toDataURL('image/png');
-                        console.log('✅ Damage croqui captured as base64, length:', damageCroquiBase64.length);
+                        console.log('✅ Damage croqui captured with', pins.length, 'pins, length:', damageCroquiBase64.length);
                     } else {
                         console.warn('⚠️ Croqui image not loaded or invalid');
                     }
@@ -2296,10 +2676,34 @@
                 console.error('❌ Error capturing damage croqui:', error);
             }
             
+            // Prepare photos - extract dataURL from each photo object
+            const photos = {};
+            if (window.inspectionData?.photos) {
+                console.log('📸 Raw inspectionData.photos:', window.inspectionData.photos);
+                Object.keys(window.inspectionData.photos).forEach(photoType => {
+                    const photoObj = window.inspectionData.photos[photoType];
+                    if (photoObj) {
+                        // Extract dataURL string from photo object
+                        if (typeof photoObj === 'string') {
+                            photos[photoType] = photoObj;
+                        } else if (photoObj.dataURL) {
+                            photos[photoType] = photoObj.dataURL;
+                        } else if (photoObj instanceof Blob) {
+                            console.warn(`⚠️ Photo ${photoType} is a Blob, needs conversion`);
+                        }
+                        console.log(`📸 Photo ${photoType}: ${photos[photoType] ? 'OK (' + photos[photoType].substring(0, 50) + '...)' : 'MISSING'}`);
+                    }
+                });
+            } else {
+                console.error('❌ window.inspectionData.photos is undefined!');
+            }
+            
+            console.log(`📸 Total photos to send: ${Object.keys(photos).length}`);
+            
             // Prepare inspection data
             const inspectionData = {
                 type: '{{ inspection_type|default("checkout") }}', // Add inspection type
-                photos: window.inspectionData?.photos || {},
+                photos: photos,
                 damages: window.diagramData?.damages || [],
                 observations: window.diagramData?.observations || '',
                 fuelLevel: window.diagramData?.fuelLevel || 100,
@@ -2314,7 +2718,7 @@
                 damageCroqui: damageCroquiBase64 // Add damage croqui image
             };
             
-            console.log('Saving inspection:', inspectionData);
+            console.log('📦 Saving inspection with photos:', Object.keys(inspectionData.photos));
             
             // Make actual API call to save inspection
             fetch('/api/save-inspection', {

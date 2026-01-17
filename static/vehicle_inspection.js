@@ -135,14 +135,18 @@ function showNotification(message, type = 'info') {
     }, 3000);
 }
 
-// Photo types and instructions
+// Photo types and instructions - 9 photos total
+// Each photo has a specific image from the Inspecção folder
 const photoTypes = [
-    {type: 'front', label: 'Vista Frontal', instruction: 'Centre a frente do veículo, inclua a matrícula'},
-    {type: 'back', label: 'Vista Traseira', instruction: 'Centre a traseira do veículo, inclua a matrícula'},
-    {type: 'left', label: 'Lado Esquerdo', instruction: 'Mostre todo o lado esquerdo, inclua todas as portas e rodas'},
-    {type: 'right', label: 'Lado Direito', instruction: 'Mostre todo o lado direito, inclua todas as portas e rodas'},
-    {type: 'interior', label: 'Interior', instruction: 'Mostre o painel, bancos e condição geral do interior'},
-    {type: 'odometer', label: 'Conta-Quilómetros', instruction: 'Foto clara do conta-quilómetros/display da quilometragem'}
+    {type: 'front', label: 'Vista Frontal', instruction: 'Centre a frente do veículo, inclua a matrícula', position: 1, image: 'Vista Frontal.png'},
+    {type: 'front_left', label: 'Vista Frontal Lateral Esquerda', instruction: 'Mostre a frente e o lado esquerdo do veículo', position: 2, image: 'Vista Frontal Esquerda.png'},
+    {type: 'front_right', label: 'Vista Frontal Lateral Direita', instruction: 'Mostre a frente e o lado direito do veículo', position: 3, image: 'Vista Frontal Direita.png'},
+    {type: 'right', label: 'Vista Lateral Direita', instruction: 'Mostre todo o lado direito, inclua todas as portas e rodas', position: 4, image: 'Vista Lateral Direita.png'},
+    {type: 'back_right', label: 'Vista Traseira Lateral Direita', instruction: 'Mostre a traseira e o lado direito do veículo', position: 5, image: 'Vista Traseira direita.png'},
+    {type: 'back', label: 'Vista Traseira', instruction: 'Centre a traseira do veículo, inclua a matrícula', position: 6, image: 'Vista Traseira.png'},
+    {type: 'back_left', label: 'Vista Traseira Lateral Esquerda', instruction: 'Mostre a traseira e o lado esquerdo do veículo', position: 7, image: 'Vista Traseira Esquerda.png'},
+    {type: 'left', label: 'Vista Lateral Esquerda', instruction: 'Mostre todo o lado esquerdo, inclua todas as portas e rodas', position: 8, image: 'Vista Lateral Esquerda.png'},
+    {type: 'odometer', label: 'Odómetro / Painel de Instrumentos', instruction: 'Foto clara do conta-quilómetros/display da quilometragem', position: 9, image: 'Odometro.png'}
 ];
 
 // Initialize on page load
@@ -433,8 +437,8 @@ function validateInspectionInfo() {
 
 function validatePhotos() {
     const capturedCount = Object.keys(inspectionData.photos).length;
-    if (capturedCount < 6) {
-        showNotification(`Please capture all 6 photos (${capturedCount}/6 done)`, 'warning');
+    if (capturedCount < 9) {
+        showNotification(`Por favor capture todas as 9 fotos (${capturedCount}/9 completas)`, 'warning');
         return false;
     }
     return true;
@@ -496,11 +500,268 @@ function capturePhotoSequence(index) {
     
     const photoType = photoTypes[index].type;
     
-    // Open camera directly - countdown will happen inside modal
-    openCamera(photoType);
+    // Show car diagram preview first, then open camera
+    showCarDiagramPreview(photoType);
 }
 
 // Countdown removed - now happens in camera modal
+
+// Show car diagram preview before opening camera
+async function showCarDiagramPreview(photoType) {
+    const photo = photoTypes.find(p => p.type === photoType);
+    if (!photo) return;
+    
+    // Create preview modal
+    const previewModal = document.createElement('div');
+    previewModal.id = 'carDiagramPreview';
+    previewModal.style.cssText = `
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: rgba(0, 0, 0, 0.95);
+        z-index: 999999;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        padding: 20px;
+    `;
+    
+    // Use specific image from Inspecção folder
+    const imagePath = `/static/Inspecçao/${photo.image}`;
+    console.log(`🖼️ Loading image for ${photo.label}: ${imagePath}`);
+    
+    previewModal.innerHTML = `
+        <style>
+            @keyframes spin {
+                from { transform: translate(-50%, -50%) rotate(0deg); }
+                to { transform: translate(-50%, -50%) rotate(360deg); }
+            }
+            .countdown-circle {
+                animation: spin 2s linear infinite;
+            }
+        </style>
+        
+        <h2 style="color: white; font-size: 24px; margin-bottom: 8px; text-align: center;">${photo.label}</h2>
+        <p style="color: #009cb6; font-size: 16px; margin-bottom: 20px; text-align: center;">${photo.instruction}</p>
+        
+        <div style="position: relative; max-width: 350px; width: 100%;">
+            <img id="previewCarImage" src="${imagePath}" alt="${photo.label}" style="width: 100%; height: auto; display: block; border-radius: 8px;">
+            
+            <!-- Countdown on roof - centered on car roof -->
+            <div id="previewCountdown" style="
+                position: absolute;
+                top: 35%;
+                left: 50%;
+                transform: translate(-50%, -50%);
+                font-size: 64px;
+                font-weight: bold;
+                color: #ff4757;
+                text-shadow: 0 0 20px rgba(0, 0, 0, 0.8), 0 4px 8px rgba(0, 0, 0, 0.5);
+                display: none;
+                z-index: 10;
+            ">3</div>
+            
+            <!-- Spinning circle around countdown -->
+            <div id="countdownCircle" class="countdown-circle" style="
+                position: absolute;
+                top: 35%;
+                left: 50%;
+                transform: translate(-50%, -50%);
+                width: 100px;
+                height: 100px;
+                border: 4px solid transparent;
+                border-top-color: #ff4757;
+                border-right-color: #ff4757;
+                border-radius: 50%;
+                display: none;
+                z-index: 9;
+            "></div>
+            
+            <!-- Loading message -->
+            <div id="cameraPermissionMsg" style="
+                position: absolute;
+                top: 50%;
+                left: 50%;
+                transform: translate(-50%, -50%);
+                color: white;
+                font-size: 16px;
+                text-align: center;
+                background: rgba(0, 0, 0, 0.8);
+                padding: 15px 25px;
+                border-radius: 8px;
+                display: block;
+            ">A pedir permissão da câmera...</div>
+        </div>
+    `;
+    
+    document.body.appendChild(previewModal);
+    
+    // Force image to load and display
+    const carImage = document.getElementById('previewCarImage');
+    if (carImage) {
+        carImage.onload = () => {
+            console.log('✅ Car image loaded successfully');
+        };
+        carImage.onerror = () => {
+            console.error('❌ Failed to load car image:', imagePath);
+        };
+    }
+    
+    // Check if we already have camera permission
+    if (window.pendingCameraStream || cameraStream) {
+        // Already have permission, hide message and start countdown immediately
+        console.log('✅ Camera permission already granted');
+        const permMsg = document.getElementById('cameraPermissionMsg');
+        if (permMsg) permMsg.style.display = 'none';
+        
+        setTimeout(() => {
+            startPreviewCountdown(photoType);
+        }, 500);
+    } else {
+        // Request camera permission first time
+        try {
+            console.log('🎥 Requesting camera permission...');
+            const stream = await navigator.mediaDevices.getUserMedia({
+                video: {
+                    facingMode: 'environment',
+                    width: { ideal: 1920 },
+                    height: { ideal: 1080 }
+                }
+            });
+            
+            // Store stream for later use
+            window.pendingCameraStream = stream;
+            
+            // Hide permission message
+            const permMsg = document.getElementById('cameraPermissionMsg');
+            if (permMsg) permMsg.style.display = 'none';
+            
+            // Start countdown after permission granted
+            setTimeout(() => {
+                startPreviewCountdown(photoType);
+            }, 500);
+            
+        } catch (error) {
+            console.error('❌ Camera permission denied:', error);
+            const modal = document.getElementById('carDiagramPreview');
+            if (modal) modal.remove();
+            showNotification('Permissão da câmera negada. Por favor, permita o acesso à câmera.', 'error');
+        }
+    }
+}
+
+// Countdown in preview modal before opening camera
+function startPreviewCountdown(photoType) {
+    const countdownEl = document.getElementById('previewCountdown');
+    const circleEl = document.getElementById('countdownCircle');
+    
+    if (!countdownEl) {
+        const modal = document.getElementById('carDiagramPreview');
+        if (modal) modal.remove();
+        openCameraWithStream(photoType);
+        return;
+    }
+    
+    // Show countdown and spinning circle
+    countdownEl.style.display = 'block';
+    if (circleEl) circleEl.style.display = 'block';
+    
+    let count = 3;
+    countdownEl.textContent = count;
+    
+    const interval = setInterval(() => {
+        count--;
+        if (count > 0) {
+            countdownEl.textContent = count;
+        } else {
+            clearInterval(interval);
+            const modal = document.getElementById('carDiagramPreview');
+            if (modal) modal.remove();
+            openCameraWithStream(photoType);
+        }
+    }, 1000);
+}
+
+// Show car miniature with position marker
+function showCarMiniature(photoType) {
+    const photo = photoTypes.find(p => p.type === photoType);
+    if (!photo) return;
+    
+    const miniature = document.getElementById('carMiniature');
+    const miniatureImg = miniature ? miniature.querySelector('img') : null;
+    
+    if (!miniature || !miniatureImg) return;
+    
+    // Use specific image from Inspecção folder
+    const imagePath = `/static/Inspecçao/${photo.image}`;
+    miniatureImg.src = imagePath;
+    miniatureImg.alt = photo.label;
+    
+    // Show miniature
+    miniature.style.display = 'block';
+}
+
+// Open camera using already obtained stream (no additional countdown)
+async function openCameraWithStream(photoType) {
+    currentPhotoType = photoType;
+    const photo = photoTypes.find(p => p.type === photoType);
+    
+    // Update modal content with simplified info
+    document.getElementById('cameraLocation').textContent = photo.label.toUpperCase();
+    document.getElementById('cameraInstruction').textContent = photo.instruction;
+    
+    // Show modal
+    const modal = document.getElementById('cameraModal');
+    modal.classList.add('active');
+    
+    // Request fullscreen
+    try {
+        if (document.documentElement.requestFullscreen) {
+            await document.documentElement.requestFullscreen();
+        } else if (document.documentElement.webkitRequestFullscreen) {
+            await document.documentElement.webkitRequestFullscreen();
+        } else if (document.documentElement.msRequestFullscreen) {
+            await document.documentElement.msRequestFullscreen();
+        }
+        console.log('✅ Fullscreen activated for camera');
+    } catch (error) {
+        console.log('⚠️ Could not activate fullscreen:', error.message);
+    }
+    
+    // Setup camera overlay for this photo type
+    setupCameraOverlay(photoType);
+    
+    // Show and position car miniature
+    showCarMiniature(photoType);
+    
+    // Initialize 3D car model
+    init3DCar(photoType);
+    
+    // Use the stream we already obtained
+    if (window.pendingCameraStream) {
+        cameraStream = window.pendingCameraStream;
+        window.pendingCameraStream = null;
+        
+        // Set video source
+        const video = document.getElementById('cameraPreview');
+        video.srcObject = cameraStream;
+        
+        // Show camera buttons immediately (no countdown)
+        video.addEventListener('loadedmetadata', () => {
+            const cameraButtons = document.getElementById('cameraButtons');
+            if (cameraButtons) {
+                cameraButtons.style.display = 'flex';
+            }
+            console.log('✅ Camera ready - buttons shown');
+        });
+    } else {
+        console.error('❌ No pending camera stream found');
+        closeCamera();
+    }
+}
 
 // Camera functions
 async function openCamera(photoType) {
@@ -531,6 +792,9 @@ console.log('⚠️ Could not activate fullscreen:', error.message);
     
 // Setup camera overlay for this photo type
 setupCameraOverlay(photoType);
+    
+// Show and position car miniature
+showCarMiniature(photoType);
     
 // Initialize 3D car model
 init3DCar(photoType);
@@ -1372,6 +1636,12 @@ function closeCamera() {
         video.srcObject = null;
     }
     
+    // Hide car miniature
+    const miniature = document.getElementById('carMiniature');
+    if (miniature) {
+        miniature.style.display = 'none';
+    }
+    
     // Exit fullscreen
     try {
         if (document.fullscreenElement) {
@@ -1696,23 +1966,55 @@ function showFinalPhotoCompletionMessage() {
 }
 
 function acceptPhoto(photoType) {
-    console.log('acceptPhoto called for:', photoType);
+    // Check if override function exists (from template HTML)
+    if (typeof window.acceptPhotoOverride === 'function') {
+        console.log('🔄 Using acceptPhotoOverride from template');
+        return window.acceptPhotoOverride(photoType);
+    }
+    
+    console.log('🔵 acceptPhoto called for:', photoType);
+    console.log('🔵 window.tempPhotoBlob:', window.tempPhotoBlob);
     const blob = window.tempPhotoBlob;
     
     if (!blob) {
         alert('Erro: Foto não encontrada');
-        console.error('No blob found in window.tempPhotoBlob');
+        console.error('❌ No blob found in window.tempPhotoBlob');
         return;
     }
+    
+    console.log('🔵 Blob size:', blob.size, 'bytes');
+    console.log('🔵 Blob type:', blob.type);
     
     // Show blue processing window between photos
     showPhotoProcessingWindow(photoType);
     
-    // Store photo after a delay
-    setTimeout(() => {
-        inspectionData.photos[photoType] = blob;
-        continuePhotoProcessing(photoType, blob);
-    }, 2000); // 2 second delay
+    // Convert Blob to dataURL (base64) before storing
+    console.log('🔵 Starting FileReader conversion...');
+    const reader = new FileReader();
+    
+    reader.onerror = function(error) {
+        console.error('❌ FileReader error:', error);
+        alert('Erro ao processar foto. Tente novamente.');
+    };
+    
+    reader.onloadend = function() {
+        const dataURL = reader.result;
+        console.log(`✅ Photo ${photoType} converted to dataURL:`, dataURL.substring(0, 50) + '...');
+        console.log(`✅ DataURL length:`, dataURL.length);
+        
+        // Store photo with dataURL immediately (no delay)
+        console.log('💾 Calling savePhotoData...');
+        savePhotoData(photoType, dataURL, blob);
+        
+        // Continue processing after a short delay
+        setTimeout(() => {
+            console.log('▶️ Continuing photo processing...');
+            continuePhotoProcessing(photoType, blob);
+        }, 1000);
+    };
+    
+    console.log('🔵 Calling reader.readAsDataURL...');
+    reader.readAsDataURL(blob);
 }
 
 function showPhotoProcessingWindow(photoType) {
@@ -1817,13 +2119,13 @@ function continuePhotoProcessing(photoType, blob) {
     }
     
     // Auto-open diagram if all photos captured
-    if (Object.keys(inspectionData.photos).length === 6) {
+    if (Object.keys(inspectionData.photos).length === 9) {
         // Show special completion message
         showFinalPhotoCompletionMessage();
         
         // Wait a bit then auto-navigate to diagram
         setTimeout(() => {
-            console.log('🔵 Auto-opening diagram after 6 photos');
+            console.log('🔵 Auto-opening diagram after 9 photos');
             showDiagramStep();
             // Also initialize canvas
             const canvasEl = document.getElementById('drawingCanvas');
@@ -1844,7 +2146,7 @@ function continuePhotoProcessing(photoType, blob) {
     
     // ✅ FIX: Keep camera modal open and restart stream for next photo
     const video = document.getElementById('cameraPreview');
-    if (video && Object.keys(inspectionData.photos).length < 6) {
+    if (video && Object.keys(inspectionData.photos).length < 9) {
         video.style.display = 'block';
         
         // Restart camera stream for next photo
@@ -1874,8 +2176,10 @@ function continuePhotoProcessing(photoType, blob) {
             const nextPhotoType = photoTypes.find(pt => !inspectionData.photos[pt.type]);
             if (nextPhotoType) {
                 currentPhotoType = nextPhotoType.type;
-                document.getElementById('cameraTitle').textContent = nextPhotoType.label;
-                document.getElementById('cameraInstruction').textContent = nextPhotoType.instruction;
+                const titleEl = document.getElementById('cameraTitle');
+                const instructionEl = document.getElementById('cameraInstruction');
+                if (titleEl) titleEl.textContent = nextPhotoType.label;
+                if (instructionEl) instructionEl.textContent = nextPhotoType.instruction;
                 setupCameraOverlay(nextPhotoType.type);
             }
             
@@ -1890,7 +2194,7 @@ function continuePhotoProcessing(photoType, blob) {
     }
     
     // Close modal if all photos are captured
-    if (Object.keys(inspectionData.photos).length >= 6) {
+    if (Object.keys(inspectionData.photos).length >= 9) {
         setTimeout(() => {
             closeCamera();
         }, 1000);
@@ -1901,9 +2205,9 @@ function continuePhotoProcessing(photoType, blob) {
     
     // Check if we need to capture more photos
     const totalPhotos = Object.keys(inspectionData.photos).length;
-    console.log(`Photos captured: ${totalPhotos}/6`);
+    console.log(`Photos captured: ${totalPhotos}/9`);
     
-    if (totalPhotos < 6) {
+    if (totalPhotos < 9) {
         // Find next photo type to capture
         const nextPhotoType = photoTypes.find(pt => !inspectionData.photos[pt.type]);
         

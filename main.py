@@ -27709,7 +27709,7 @@ async def create_vehicle_inspection(request: Request):
                     inspection_id = cursor.fetchone()[0]
                     
                     # Save photos
-                    photo_types = ['front', 'back', 'left', 'right', 'interior', 'odometer']
+                    photo_types = ['front', 'front_left', 'left', 'back_left', 'back', 'back_right', 'right', 'front_right', 'odometer']
                     for idx, photo_type in enumerate(photo_types):
                         photo_file = form.get(f'photo_{photo_type}')
                         if photo_file:
@@ -27838,7 +27838,7 @@ async def create_vehicle_inspection(request: Request):
                     inspection_id = cursor.lastrowid
                     
                     # Save photos
-                    photo_types = ['front', 'back', 'left', 'right', 'interior', 'odometer']
+                    photo_types = ['front', 'front_left', 'left', 'back_left', 'back', 'back_right', 'right', 'front_right', 'odometer']
                     for idx, photo_type in enumerate(photo_types):
                         photo_file = form.get(f'photo_{photo_type}')
                         if photo_file:
@@ -28131,10 +28131,14 @@ async def save_inspection(request: Request):
                 logging.info(f"✅ Inspection inserted with ID: {inspection_id}")
             
             # Save photos with base64 data
-            photo_types = ['front', 'back', 'left', 'right', 'interior', 'odometer']
+            photo_types = ['front', 'front_left', 'left', 'back_left', 'back', 'back_right', 'right', 'front_right', 'odometer']
+            logging.info(f"💾 Saving photos to database...")
+            photos_saved = 0
             for idx, photo_type in enumerate(photo_types):
-                if photo_type in photos:
+                if photo_type in photos and photos[photo_type]:
                     photo_data = photos[photo_type]
+                    logging.info(f"📸 Processing photo '{photo_type}': data length={len(photo_data) if photo_data else 0}")
+                    
                     # Extract base64 data (remove data:image/jpeg;base64, prefix if present)
                     if isinstance(photo_data, str) and 'base64,' in photo_data:
                         photo_base64 = photo_data.split('base64,')[1]
@@ -28145,8 +28149,62 @@ async def save_inspection(request: Request):
                     import base64
                     try:
                         photo_bytes = base64.b64decode(photo_base64)
-                    except:
+                        logging.info(f"✅ Photo '{photo_type}' decoded: {len(photo_bytes)} bytes")
+                    except Exception as decode_error:
+                        logging.error(f"❌ Failed to decode photo '{photo_type}': {decode_error}")
                         photo_bytes = None
+                    
+                    if photo_bytes and len(photo_bytes) > 0:
+                        if is_postgres:
+                            cursor.execute("""
+                                INSERT INTO inspection_photos
+                                (inspection_id, photo_type, photo_order, image_data, image_filename,
+                                 ai_analyzed, ai_has_damage, created_at)
+                                VALUES (%s, %s, %s, %s, %s, %s, %s, NOW())
+                            """, (
+                                inspection_id,
+                                photo_type,
+                                idx + 1,
+                                photo_bytes,
+                                f"{photo_type}.jpg",
+                                True,
+                                False
+                            ))
+                        else:
+                            cursor.execute("""
+                                INSERT INTO inspection_photos
+                                (inspection_id, photo_type, photo_order, image_data, image_filename,
+                                 ai_analyzed, ai_has_damage, created_at)
+                                VALUES (?, ?, ?, ?, ?, ?, ?, datetime('now'))
+                            """, (
+                                inspection_id,
+                                photo_type,
+                                idx + 1,
+                                photo_bytes,
+                                f"{photo_type}.jpg",
+                                1,
+                                0
+                            ))
+                        photos_saved += 1
+                        logging.info(f"✅ Photo '{photo_type}' saved to database")
+                    else:
+                        logging.warning(f"⚠️ Photo '{photo_type}' is empty or invalid, skipping")
+                else:
+                    logging.warning(f"⚠️ Photo '{photo_type}' not found in photos dict")
+            
+            logging.info(f"✅ Total photos saved to database: {photos_saved}/{len(photo_types)}")
+            
+            # Save damage croqui if present
+            if damage_croqui and len(damage_croqui) > 100:
+                try:
+                    logging.info(f"💾 Saving damage croqui to database...")
+                    if 'base64,' in damage_croqui:
+                        croqui_base64 = damage_croqui.split('base64,')[1]
+                    else:
+                        croqui_base64 = damage_croqui
+                    
+                    croqui_bytes = base64.b64decode(croqui_base64)
+                    logging.info(f"✅ Damage croqui decoded: {len(croqui_bytes)} bytes")
                     
                     if is_postgres:
                         cursor.execute("""
@@ -28156,12 +28214,12 @@ async def save_inspection(request: Request):
                             VALUES (%s, %s, %s, %s, %s, %s, %s, NOW())
                         """, (
                             inspection_id,
-                            photo_type,
-                            idx + 1,
-                            photo_bytes,
-                            f"{photo_type}.jpg",
+                            'damage_croqui',
+                            99,  # High order number to keep it separate
+                            croqui_bytes,
+                            'damage_croqui.png',
                             True,
-                            False
+                            True
                         ))
                     else:
                         cursor.execute("""
@@ -28171,13 +28229,18 @@ async def save_inspection(request: Request):
                             VALUES (?, ?, ?, ?, ?, ?, ?, datetime('now'))
                         """, (
                             inspection_id,
-                            photo_type,
-                            idx + 1,
-                            photo_bytes,
-                            f"{photo_type}.jpg",
+                            'damage_croqui',
+                            99,
+                            croqui_bytes,
+                            'damage_croqui.png',
                             1,
-                            0
+                            1
                         ))
+                    logging.info(f"✅ Damage croqui saved to database")
+                except Exception as croqui_error:
+                    logging.error(f"❌ Failed to save damage croqui: {croqui_error}")
+            else:
+                logging.warning(f"⚠️ No damage croqui to save")
             
             # Update vehicle in fleet management if vehicle_id exists
             if vehicle_id:
@@ -28296,12 +28359,15 @@ async def save_inspection(request: Request):
                     # Create photos HTML
                     photos_html = ""
                     photo_labels = {
-                    'front': 'Frente',
-                    'back': 'Traseira',
-                    'left': 'Lado Esquerdo',
-                    'right': 'Lado Direito',
-                    'interior': 'Interior',
-                        'odometer': 'Conta-Quilómetros'
+                    'front': 'Vista Frontal',
+                    'front_left': 'Vista Frontal Lateral Esquerda',
+                    'left': 'Vista Lateral Esquerda',
+                    'back_left': 'Vista Traseira Lateral Esquerda',
+                    'back': 'Vista Traseira',
+                    'back_right': 'Vista Traseira Lateral Direita',
+                    'right': 'Vista Lateral Direita',
+                    'front_right': 'Vista Frontal Lateral Direita',
+                        'odometer': 'Odómetro / Painel de Instrumentos'
                     }
                     
                     logging.info(f"📸 Processing {len(photos)} photos for email")
@@ -28429,13 +28495,14 @@ async def save_inspection(request: Request):
                                         
                                         {f'<div style="margin-top: 25px;"><h3 style="color: #009cb6; font-size: 18px;">Observações</h3><p style="background: #f9fafb; padding: 12px; border-radius: 6px; color: #1f2937; font-size: 14px; line-height: 1.5;">{observations}</p></div>' if observations else ''}
                                         
+                                        <!-- Damage Croqui (BEFORE photos) -->
+                                        {damages_html}
+                                        
                                         <!-- Photos -->
                                         <div style="margin-top: 25px;">
                                             <h3 style="color: #009cb6; margin-bottom: 15px; font-size: 18px;">Fotografias do Veículo</h3>
                                             {photos_html if photos_html else '<p style="color: #64748b; font-style: italic;">Nenhuma fotografia disponível</p>'}
                                         </div>
-                                        
-                                        {damages_html}
                                     </td></tr>
                                     
                                     <!-- Footer -->
@@ -38909,12 +38976,15 @@ async def resend_last_inspection(request: Request):
             # Generate photos HTML
             photos_html = ""
             photo_labels = {
-                'front': 'Frente',
-                'back': 'Traseira',
-                'left': 'Lado Esquerdo',
-                'right': 'Lado Direito',
-                'interior': 'Interior',
-                'odometer': 'Conta-Quilómetros'
+                'front': 'Vista Frontal',
+                'front_left': 'Vista Frontal Lateral Esquerda',
+                'left': 'Vista Lateral Esquerda',
+                'back_left': 'Vista Traseira Lateral Esquerda',
+                'back': 'Vista Traseira',
+                'back_right': 'Vista Traseira Lateral Direita',
+                'right': 'Vista Lateral Direita',
+                'front_right': 'Vista Frontal Lateral Direita',
+                'odometer': 'Odómetro / Painel de Instrumentos'
             }
             
             for photo_type, label in photo_labels.items():
@@ -39015,25 +39085,93 @@ async def resend_last_inspection(request: Request):
 async def get_inspection_details(inspection_number: str, request: Request):
     """Get specific inspection details"""
     try:
-        mock_inspection = {
-            "inspection_number": inspection_number,
-            "vehicle_plate": "AA-00-AA",
-            "contract_number": "12345-01",
-            "inspection_type": "checkin",
-            "inspector_name": "Admin",
-            "created_at": "2025-11-11T15:00:00",
-            "fuel_level": 100,
-            "odometer_reading": 50000,
-            "damage_notes": ""
-        }
-        
-        return JSONResponse({
-            "ok": True,
-            "inspection": mock_inspection
-        })
+        conn = _db_connect()
+        try:
+            is_postgres = 'psycopg' in type(conn).__name__.lower() or os.getenv('DATABASE_URL')
+            cursor = conn.cursor()
+            
+            # Get inspection details
+            cursor.execute("""
+                SELECT id, inspection_number, inspection_type, vehicle_plate, contract_number,
+                       inspector_name, inspector_notes, damage_count, odometer_reading, fuel_level,
+                       created_at, status
+                FROM vehicle_inspections
+                WHERE inspection_number = %s
+            """ if is_postgres else """
+                SELECT id, inspection_number, inspection_type, vehicle_plate, contract_number,
+                       inspector_name, inspector_notes, damage_count, odometer_reading, fuel_level,
+                       created_at, status
+                FROM vehicle_inspections
+                WHERE inspection_number = ?
+            """, (inspection_number,))
+            
+            inspection_row = cursor.fetchone()
+            if not inspection_row:
+                return JSONResponse({
+                    "ok": False,
+                    "error": "Inspection not found"
+                }, status_code=404)
+            
+            inspection_id = inspection_row[0]
+            
+            # Get photos for this inspection (including damage croqui)
+            cursor.execute("""
+                SELECT photo_type, image_data
+                FROM inspection_photos
+                WHERE inspection_id = %s
+                ORDER BY photo_order
+            """ if is_postgres else """
+                SELECT photo_type, image_data
+                FROM inspection_photos
+                WHERE inspection_id = ?
+                ORDER BY photo_order
+            """, (inspection_id,))
+            
+            photos_rows = cursor.fetchall()
+            photos = {}
+            damage_croqui = None
+            import base64
+            for photo_row in photos_rows:
+                photo_type = photo_row[0]
+                image_data = photo_row[1]
+                if image_data:
+                    # Convert bytes to base64 string
+                    photo_base64 = base64.b64encode(image_data).decode('utf-8')
+                    
+                    # Separate damage croqui from regular photos
+                    if photo_type == 'damage_croqui':
+                        damage_croqui = f"data:image/png;base64,{photo_base64}"
+                    else:
+                        photos[photo_type] = f"data:image/jpeg;base64,{photo_base64}"
+            
+            inspection = {
+                "inspection_number": inspection_row[1],
+                "inspection_type": inspection_row[2],
+                "vehicle_plate": inspection_row[3],
+                "contract_number": inspection_row[4],
+                "inspector_name": inspection_row[5],
+                "inspector_notes": inspection_row[6],
+                "damage_count": inspection_row[7],
+                "odometer_reading": inspection_row[8],
+                "fuel_level": inspection_row[9],
+                "created_at": str(inspection_row[10]) if inspection_row[10] else None,
+                "status": inspection_row[11],
+                "photos": photos,
+                "damage_croqui": damage_croqui
+            }
+            
+            return JSONResponse({
+                "ok": True,
+                "inspection": inspection
+            })
+            
+        finally:
+            conn.close()
         
     except Exception as e:
         logging.error(f"Error getting inspection details: {e}")
+        import traceback
+        logging.error(traceback.format_exc())
         return JSONResponse({
             "ok": False,
             "error": str(e)
