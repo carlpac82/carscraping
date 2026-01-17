@@ -550,6 +550,21 @@ async function showCarDiagramPreview(photoType) {
             .countdown-circle {
                 animation: spin 2s linear infinite;
             }
+            @keyframes pulse {
+                0% {
+                    box-shadow: 0 0 0 0 rgba(255, 71, 87, 0.7);
+                }
+                70% {
+                    box-shadow: 0 0 0 20px rgba(255, 71, 87, 0);
+                }
+                100% {
+                    box-shadow: 0 0 0 0 rgba(255, 71, 87, 0);
+                }
+            }
+            #previewCarImage {
+                filter: drop-shadow(0 0 0 rgba(255, 71, 87, 0));
+                animation: pulse 2s infinite;
+            }
         </style>
         
         <div style="position: absolute; top: 20px; left: 0; right: 0; text-align: center; z-index: 10;">
