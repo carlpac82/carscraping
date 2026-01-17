@@ -1419,34 +1419,29 @@ async function openCameraForDamage(photoType) {
     // Show countdown first (EXACTLY like checkout)
     await showDamageCountdown(photoType, photoLabel, photoInstruction);
     
-    // After countdown, show camera modal (EXACTLY like checkout)
+    // After countdown, show camera modal (EXACTLY like checkout - ONLY capture button)
     const modalHTML = `
         <div id="damagePhotoModal" style="position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: #000; z-index: 10000; display: flex; flex-direction: column;">
             <video id="damageVideo" autoplay playsinline style="width: 100%; height: 100vh; object-fit: cover;"></video>
             <canvas id="damageCanvas" style="display: none;"></canvas>
             
             <!-- Top header with photo info (EXACTLY like checkout) -->
-            <div style="position: absolute; top: 0; left: 0; right: 0; z-index: 10001; background: rgba(0,0,0,0.9); color: white; padding: 24px; text-align: center; padding-right: 130px;">
-                <p style="font-size: 20px; font-weight: bold; color: #10b981; margin-bottom: 8px;">${photoLabel.toUpperCase()}</p>
-                <p style="font-size: 16px; opacity: 0.95; max-width: 672px; margin: 0 auto;">${photoInstruction}</p>
+            <div class="absolute top-0 left-0 right-0 z-50 bg-black bg-opacity-90 text-white p-6 text-center" style="padding-right: 130px;">
+                <p class="text-xl font-bold text-green-400 mb-2">${photoLabel.toUpperCase()}</p>
+                <p class="text-base opacity-95 max-w-2xl mx-auto">${photoInstruction}</p>
             </div>
             
             <!-- Car Diagram Miniature - Top Right (EXACTLY like checkout) -->
-            <div style="position: fixed; top: 20px; right: 20px; width: 100px; height: 100px; z-index: 10002; display: block;">
+            <div style="position: fixed; top: 20px; right: 20px; width: 100px; height: 100px; z-index: 9999; display: block;">
                 <img src="${imageUrl}" alt="${photoLabel}" style="width: 100%; height: 100%; object-fit: contain; filter: drop-shadow(0 4px 10px rgba(0,0,0,0.5));">
             </div>
             
-            <!-- Bottom buttons (EXACTLY like checkout) -->
-            <div id="cameraButtons" style="position: fixed; bottom: 0; left: 0; right: 0; z-index: 50; display: flex; gap: 20px; justify-content: center; padding: 40px 20px; background: linear-gradient(to top, rgba(0,0,0,0.9) 0%, transparent 100%);">
-                <button onclick="captureDamagePhotoNow()" style="flex: 0 0 auto; padding: 16px 40px; background: #10b981; color: white; border: none; border-radius: 12px; font-size: 18px; font-weight: 700; cursor: pointer; box-shadow: 0 4px 15px rgba(16,185,129,0.4); transition: all 0.2s;" 
-                        onmouseover="this.style.transform='scale(1.05)'; this.style.boxShadow='0 6px 20px rgba(16,185,129,0.6)';" 
-                        onmouseout="this.style.transform='scale(1)'; this.style.boxShadow='0 4px 15px rgba(16,185,129,0.4)';">
-                    📷 Capturar
-                </button>
-                <button onclick="closeDamagePhotoModal()" style="flex: 0 0 auto; padding: 16px 40px; background: #dc2626; color: white; border: none; border-radius: 12px; font-size: 18px; font-weight: 700; cursor: pointer; box-shadow: 0 4px 15px rgba(220,38,38,0.4); transition: all 0.2s;" 
-                        onmouseover="this.style.transform='scale(1.05)'; this.style.boxShadow='0 6px 20px rgba(220,38,38,0.6)';" 
-                        onmouseout="this.style.transform='scale(1)'; this.style.boxShadow='0 4px 15px rgba(220,38,38,0.4)';">
-                    Cancelar
+            <!-- Bottom button - ONLY Capturar (EXACTLY like checkout) -->
+            <div style="position: fixed; bottom: 0; left: 0; right: 0; z-index: 50; display: flex; justify-content: center; padding: 40px 20px; background: linear-gradient(to top, rgba(0,0,0,0.9) 0%, transparent 100%);">
+                <button onclick="captureDamagePhotoNow()" style="width: 80px; height: 80px; background: white; color: #000; border: none; border-radius: 50%; font-size: 32px; cursor: pointer; box-shadow: 0 4px 15px rgba(255,255,255,0.3); transition: all 0.2s; display: flex; align-items: center; justify-content: center;" 
+                        onmouseover="this.style.transform='scale(1.1)'; this.style.boxShadow='0 6px 20px rgba(255,255,255,0.5)';" 
+                        onmouseout="this.style.transform='scale(1)'; this.style.boxShadow='0 4px 15px rgba(255,255,255,0.3)';">
+                    📷
                 </button>
             </div>
         </div>
@@ -1461,26 +1456,27 @@ async function openCameraForDamage(photoType) {
 // Show countdown with car image before opening camera (EXACTLY like checkout)
 function showDamageCountdown(photoType, photoLabel, photoInstruction) {
     return new Promise((resolve) => {
-        // Get the reference image for this photo type
+        // Get the reference image for this photo type (EXACTLY like checkout)
         const photo = photoTypes.find(p => p.type === photoType);
         const imageUrl = photo ? `/static/Inspecçao/${photo.image}` : '';
         
+        // EXACTLY the same HTML as checkout countdown
         const countdownHTML = `
-            <div id="damageCountdown" style="position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0, 0, 0, 0.8); z-index: 99999; display: flex; flex-direction: column; align-items: center; justify-content: center; pointer-events: none;">
+            <div id="damageCountdown" style="position: fixed; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; z-index: 99999; pointer-events: none; background: rgba(0, 0, 0, 0.8);">
                 <div style="position: absolute; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0, 0, 0, 0.7); z-index: -1;"></div>
                 
                 <!-- Text at top -->
                 <div style="position: absolute; top: 50px; left: 0; right: 0; text-align: center; z-index: 10;">
                     <h3 style="font-size: 22px; font-weight: 600; color: white; margin-bottom: 8px; text-shadow: 0 2px 8px rgba(0,0,0,0.5);">${photoLabel}</h3>
-                    <p style="font-size: 14px; font-weight: 400; color: white; opacity: 0.8; text-shadow: 0 2px 8px rgba(0,0,0,0.5);">${photoInstruction}</p>
+                    <p style="font-size: 14px; font-weight: 400; color: #dc3545; opacity: 0.9; text-shadow: 0 2px 8px rgba(0,0,0,0.5);">${photoInstruction}</p>
                 </div>
                 
-                <!-- Car image in center -->
+                <!-- Car image in center (EXACTLY like checkout) -->
                 <div style="margin-bottom: 40px; z-index: 10;">
                     <img src="${imageUrl}" alt="${photoLabel}" style="width: 200px; height: auto; filter: drop-shadow(0 10px 30px rgba(220,53,69,0.5));">
                 </div>
                 
-                <!-- Countdown circle -->
+                <!-- Countdown circle (EXACTLY like checkout) -->
                 <div style="text-align: center; position: relative; z-index: 10;">
                     <svg width="160" height="160" viewBox="0 0 160 160" style="transform: rotate(-90deg);">
                         <circle cx="80" cy="80" r="70" fill="none" stroke="rgba(255,255,255,0.15)" stroke-width="10"/>
@@ -1495,7 +1491,7 @@ function showDamageCountdown(photoType, photoLabel, photoInstruction) {
         
         document.body.insertAdjacentHTML('beforeend', countdownHTML);
         
-        // Countdown animation
+        // Countdown animation (EXACTLY like checkout)
         let count = 3;
         const circle = document.getElementById('damageCountdownCircle');
         const numberEl = document.getElementById('damageCountdownNumber');
