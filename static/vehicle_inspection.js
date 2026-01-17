@@ -679,10 +679,11 @@ function proceedWithDelivery() {
 
 // RECOLHA (Pickup/Check-in) - Load delivery data and update
 function startPickup() {
-    // Check if there's a delivery process first
-    const hasDelivery = localStorage.getItem('processType') === 'delivery' && localStorage.getItem('inspectionPhotos');
+    // Check if there's a completed delivery (either in localStorage or from backend)
+    const hasLocalDelivery = localStorage.getItem('processType') === 'delivery' && localStorage.getItem('inspectionPhotos');
+    const hasBackendDelivery = window.inspectionCompleted === true;
     
-    if (!hasDelivery) {
+    if (!hasLocalDelivery && !hasBackendDelivery) {
         showNotification('❌ Não existe processo de ENTREGA! Faça a entrega primeiro.', 'error');
         return;
     }
