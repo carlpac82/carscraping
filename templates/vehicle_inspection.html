@@ -1212,7 +1212,7 @@
         };
         {% endif %}
     </script>
-    <script src="/static/vehicle_inspection.js?v=20260117203100"></script>
+    <script src="/static/vehicle_inspection.js?v=20260117203200"></script>
     
     <!-- Force correct photo sending - Override -->
     <script>
@@ -2293,7 +2293,23 @@
         }
         
         function proceedToAnalysis() {
-            console.log('🔵 proceedToAnalysis called - skipping AI page');
+            console.log('🔵 proceedToAnalysis called');
+            
+            // Check if this is pickup mode (check-in)
+            if (window.isPickupMode === true) {
+                console.log('📍 Pickup mode detected - calling finishPickup()');
+                // In pickup mode, go directly to pickup summary
+                if (typeof finishPickup === 'function') {
+                    finishPickup();
+                } else {
+                    console.error('❌ finishPickup function not found');
+                    alert('Erro: Função de finalização não encontrada');
+                }
+                return;
+            }
+            
+            // For checkout mode, continue with normal flow
+            console.log('📍 Checkout mode - skipping AI page');
             
             // Validate required fields
             const odometerReading = getOdometerReading();
