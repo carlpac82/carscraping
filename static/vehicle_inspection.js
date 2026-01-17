@@ -1280,31 +1280,61 @@ function addPickupActionButtons() {
 function loadDeliveryDamagesOnCroqui() {
     console.log('📍 Loading delivery damages on croqui...');
     
-    // Check if we have delivery inspection data with damages
-    if (!window.deliveryInspection || !window.deliveryInspection.damages) {
-        console.log('⚠️ No delivery damages to load');
+    // Check if we have delivery photos
+    if (!window.deliveryPhotos || window.deliveryPhotos.length === 0) {
+        console.log('⚠️ No delivery photos to load');
         return;
     }
     
-    const deliveryDamages = window.deliveryInspection.damages;
+    // Find the damage_croqui photo from delivery
+    const croquiPhoto = window.deliveryPhotos.find(p => p.photo_type === 'damage_croqui');
     
-    if (!Array.isArray(deliveryDamages) || deliveryDamages.length === 0) {
-        console.log('⚠️ No delivery damages array or empty');
+    if (!croquiPhoto || !croquiPhoto.image_data) {
+        console.log('⚠️ No damage croqui found in delivery photos');
         return;
     }
     
-    console.log(`📍 Loading ${deliveryDamages.length} delivery damages...`);
+    console.log('📍 Loading delivery damage croqui as background...');
     
-    // Add each delivery damage as a blue pin on the croqui
-    deliveryDamages.forEach((damage, index) => {
-        if (damage.x && damage.y) {
-            // Add pin at the damage location (blue for delivery damages)
-            addPinAtPosition(damage.x, damage.y, false); // false = not a new pickup damage
-            console.log(`✅ Added delivery damage pin ${index + 1} at (${damage.x}, ${damage.y})`);
-        }
-    });
+    // Create a background image layer with the delivery croqui
+    const carDiagram = document.getElementById('carDiagram');
+    if (!carDiagram) {
+        console.error('❌ Car diagram not found');
+        return;
+    }
     
-    console.log('✅ Loaded all delivery damage pins');
+    // Create background div with delivery croqui
+    let bgLayer = document.getElementById('deliveryCroquiBackground');
+    if (!bgLayer) {
+        bgLayer = document.createElement('div');
+        bgLayer.id = 'deliveryCroquiBackground';
+        bgLayer.style.cssText = `
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-image: url('${croquiPhoto.image_data}');
+            background-size: contain;
+            background-repeat: no-repeat;
+            background-position: center;
+            pointer-events: none;
+            z-index: 1;
+            opacity: 0.7;
+        `;
+        carDiagram.insertBefore(bgLayer, carDiagram.firstChild);
+    } else {
+        bgLayer.style.backgroundImage = `url('${croquiPhoto.image_data}')`;
+    }
+    
+    // Make sure the SVG croqui is above the background
+    const croquiImg = document.getElementById('carCroqui');
+    if (croquiImg) {
+        croquiImg.style.position = 'relative';
+        croquiImg.style.zIndex = '2';
+    }
+    
+    console.log('✅ Loaded delivery damage croqui as background');
 }
 
 // Add pin at specific position (for loading delivery damages)
