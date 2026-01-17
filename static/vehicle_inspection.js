@@ -1280,25 +1280,97 @@ function addPickupActionButtons() {
 function loadDeliveryDamagesOnCroqui() {
     console.log('📍 Loading delivery damages on croqui...');
     
-    if (!window.deliveryPhotos || window.deliveryPhotos.length === 0) {
-        console.log('⚠️ No delivery photos to load damages from');
+    // Check if we have delivery inspection data with damages
+    if (!window.deliveryInspection || !window.deliveryInspection.damages) {
+        console.log('⚠️ No delivery damages to load');
         return;
     }
     
-    // Find the damage_croqui photo
-    const croquiPhoto = window.deliveryPhotos.find(p => p.photo_type === 'damage_croqui');
+    const deliveryDamages = window.deliveryInspection.damages;
     
-    if (!croquiPhoto || !croquiPhoto.image_data) {
-        console.log('⚠️ No damage croqui found in delivery photos');
+    if (!Array.isArray(deliveryDamages) || deliveryDamages.length === 0) {
+        console.log('⚠️ No delivery damages array or empty');
         return;
     }
     
-    // Load the croqui image with damages
-    const croquiImg = document.getElementById('carCroqui');
-    if (croquiImg) {
-        croquiImg.src = croquiPhoto.image_data;
-        console.log('✅ Loaded delivery damage croqui');
+    console.log(`📍 Loading ${deliveryDamages.length} delivery damages...`);
+    
+    // Add each delivery damage as a blue pin on the croqui
+    deliveryDamages.forEach((damage, index) => {
+        if (damage.x && damage.y) {
+            // Add pin at the damage location (blue for delivery damages)
+            addPinAtPosition(damage.x, damage.y, false); // false = not a new pickup damage
+            console.log(`✅ Added delivery damage pin ${index + 1} at (${damage.x}, ${damage.y})`);
+        }
+    });
+    
+    console.log('✅ Loaded all delivery damage pins');
+}
+
+// Add pin at specific position (for loading delivery damages)
+function addPinAtPosition(x, y, isNewDamage = false) {
+    const container = document.getElementById('carDiagram');
+    if (!container) {
+        console.error('❌ Car diagram container not found');
+        return;
     }
+    
+    // Increment global pin counter (defined in HTML)
+    if (typeof window.pinCounter === 'undefined') {
+        window.pinCounter = 0;
+    }
+    window.pinCounter++;
+    
+    const pinId = `pin-${window.pinCounter}`;
+    
+    const pin = document.createElement('div');
+    pin.className = `damage-pin size-medium`;
+    pin.id = pinId;
+    pin.style.left = x + 'px';
+    pin.style.top = y + 'px';
+    pin.style.transform = 'translate(-50%, -50%)';
+    pin.style.position = 'absolute';
+    pin.style.borderRadius = '50%';
+    pin.style.cursor = 'pointer';
+    pin.style.zIndex = '10';
+    
+    // Blue for delivery damages, red for new pickup damages
+    if (isNewDamage) {
+        pin.style.background = '#dc3545'; // Red
+        pin.style.border = '2px solid #a71d2a';
+        pin.style.width = '16px';
+        pin.style.height = '16px';
+    } else {
+        pin.style.background = '#009cb6'; // Blue (delivery damages)
+        pin.style.border = '2px solid #007a8f';
+        pin.style.width = '16px';
+        pin.style.height = '16px';
+    }
+    
+    // Double click to remove
+    pin.ondblclick = () => {
+        pin.remove();
+        if (window.damages) {
+            window.damages = window.damages.filter(d => d.id !== pinId);
+        }
+    };
+    
+    container.appendChild(pin);
+    
+    // Save to damages array (defined in HTML)
+    if (!window.damages) {
+        window.damages = [];
+    }
+    
+    window.damages.push({
+        id: pinId,
+        type: 'pin',
+        number: window.pinCounter,
+        x: x,
+        y: y,
+        size: 'medium',
+        isNewDamage: isNewDamage
+    });
 }
 
 // Setup pickup croqui mode - new damages will be red
