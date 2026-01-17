@@ -1628,19 +1628,42 @@ async function savePickupInspection() {
             });
         }
         
+        // Get current user data
+        const currentUser = window.currentUserData || {};
+        const colaborador = currentUser.name || receptionist || 'Desconhecido';
+        
+        // Get current date/time
+        const now = new Date();
+        const dataHora = now.toISOString();
+        
+        // Get location from rental agreement
+        const local = window.currentRAData?.location || 'Não especificado';
+        
+        // Calculate total kms (pickup - delivery)
+        const deliveryKms = window.deliveryInspection?.odometer_reading || 0;
+        const pickupKms = parseInt(odometer) || 0;
+        const totalKms = pickupKms - deliveryKms;
+        
         // Prepare request data
         const requestData = {
             inspection_type: 'checkin',
             plate: plate,
             ra: ra,
-            odometer_reading: parseInt(odometer),
+            odometer_reading: pickupKms,
             fuel_level: parseInt(fuel),
             receptionist: receptionist,
+            colaborador: colaborador,
+            data_hora: dataHora,
+            local: local,
+            delivery_kms: deliveryKms,
+            total_kms: totalKms,
             observations: observations,
             has_damage: (window.pickupNewDamages && window.pickupNewDamages.length > 0),
             damage_count: window.pickupNewDamages ? window.pickupNewDamages.length : 0,
+            new_damage_photos_count: window.pickupDamagePhotos ? window.pickupDamagePhotos.length : 0,
             photos: photos,
-            damage_croqui: damageCroqui
+            damage_croqui: damageCroqui,
+            client_email: window.currentRAData?.client_email || ''
         };
         
         console.log('📤 Saving pickup inspection...', requestData);
