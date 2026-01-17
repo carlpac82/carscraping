@@ -961,11 +961,28 @@ function showPickupDiagramUI() {
     // 3. Prefill kms and fuel from delivery
     prefillPickupFieldsFromDelivery();
     
-    // 4. Add pickup action buttons
+    // 4. Hide "Continuar para Análise" button (only show "Terminar Recolha")
+    hideAnalysisButtonInPickupMode();
+    
+    // 5. Add pickup action buttons
     addPickupActionButtons();
     
-    // 5. Create and show delivery photos grid AFTER croqui
+    // 6. Create and show delivery photos grid AFTER croqui
     showDeliveryPhotosGrid();
+}
+
+// Hide "Continuar para Análise" button in pickup mode
+function hideAnalysisButtonInPickupMode() {
+    console.log('🔒 Hiding "Continuar para Análise" button in pickup mode...');
+    
+    // Find the button by its text content
+    const buttons = document.querySelectorAll('button');
+    buttons.forEach(button => {
+        if (button.textContent.includes('Continuar para Análise')) {
+            button.style.display = 'none';
+            console.log('✅ "Continuar para Análise" button hidden');
+        }
+    });
 }
 
 // Prefill kms and fuel fields with delivery values
