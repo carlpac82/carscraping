@@ -28686,12 +28686,16 @@ async def inspection_history_page(request: Request):
 @app.get("/api/get_inspection")
 async def get_inspection(request: Request, plate: str, ra: str, type: str = 'checkout'):
     """Get inspection data (photos and damages) for pickup process"""
+    logging.info(f"🔍 GET /api/get_inspection called with plate={plate}, ra={ra}, type={type}")
+    
     try:
         require_inspection_access(request)
     except HTTPException:
+        logging.warning("❌ Unauthorized access to get_inspection")
         return JSONResponse({"success": False, "error": "Unauthorized"}, status_code=403)
     
     try:
+        logging.info("📊 Connecting to database...")
         conn = _db_connect()
         
         # Check if PostgreSQL or SQLite
