@@ -1481,18 +1481,23 @@ function showDamageCountdown(photoType, photoLabel, photoInstruction) {
             <!-- Text at top -->
             <div style="position: absolute; top: 50px; left: 0; right: 0; text-align: center; z-index: 10;">
                 <h3 style="font-size: 22px; font-weight: 600; color: white; margin-bottom: 8px; text-shadow: 0 2px 8px rgba(0,0,0,0.5);">${photoLabel}</h3>
-                <p style="font-size: 14px; font-weight: 400; color: white; opacity: 0.8; text-shadow: 0 2px 8px rgba(0,0,0,0.5);">${photoInstruction}</p>
+                <p style="font-size: 14px; font-weight: 400; color: #dc3545; opacity: 0.9; text-shadow: 0 2px 8px rgba(0,0,0,0.5);">${photoInstruction}</p>
             </div>
             
-            <!-- Countdown circle in center -->
+            <!-- 3D Car image in center (EXACTLY like checkout) -->
+            <div style="margin-bottom: 40px; z-index: 10;">
+                <img src="${imageUrl}" alt="${photoLabel}" style="width: 200px; height: auto; filter: drop-shadow(0 10px 30px rgba(220,53,69,0.5));">
+            </div>
+            
+            <!-- Countdown circle - WHITE with RED number (EXACTLY like checkout) -->
             <div style="text-align: center; position: relative; z-index: 10;">
                 <svg width="160" height="160" viewBox="0 0 160 160" style="transform: rotate(-90deg);">
                     <circle cx="80" cy="80" r="70" fill="none" stroke="rgba(255,255,255,0.15)" stroke-width="10"/>
-                    <circle id="damageCountdownCircle" cx="80" cy="80" r="70" fill="none" stroke="#009cb6" stroke-width="10" 
+                    <circle id="damageCountdownCircle" cx="80" cy="80" r="70" fill="none" stroke="white" stroke-width="10" 
                         stroke-dasharray="440" stroke-dashoffset="0" 
                         style="transition: stroke-dashoffset 1s linear;"/>
                 </svg>
-                <div id="damageCountdownNumber" style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); font-size: 72px; font-weight: 800; color: white; text-shadow: 0 4px 12px rgba(0,0,0,0.5);">3</div>
+                <div id="damageCountdownNumber" style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); font-size: 72px; font-weight: 800; color: #dc3545; text-shadow: 0 4px 12px rgba(0,0,0,0.5);">3</div>
             </div>
         `;
         
