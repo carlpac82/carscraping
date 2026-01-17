@@ -728,6 +728,8 @@ async function openCameraWithStream(photoType) {
     // Show modal
     const modal = document.getElementById('cameraModal');
     modal.classList.add('active');
+    modal.style.opacity = '1';
+    modal.style.pointerEvents = 'auto';
     
     // Request fullscreen with mobile support
     try {
@@ -2185,13 +2187,46 @@ function continuePhotoProcessing(photoType, blob) {
         if (nextPhotoType) {
             console.log('Opening next photo:', nextPhotoType.type);
             
+            // Show processing overlay to prevent seeing main screen
+            const processingOverlay = document.createElement('div');
+            processingOverlay.id = 'processingOverlay';
+            processingOverlay.style.cssText = `
+                position: fixed;
+                top: 0;
+                left: 0;
+                width: 100%;
+                height: 100%;
+                background: rgba(0, 0, 0, 0.95);
+                z-index: 999998;
+                display: flex;
+                flex-direction: column;
+                align-items: center;
+                justify-content: center;
+            `;
+            processingOverlay.innerHTML = `
+                <div style="text-align: center;">
+                    <div style="width: 60px; height: 60px; border: 4px solid #009cb6; border-top-color: transparent; border-radius: 50%; animation: spin 1s linear infinite; margin: 0 auto 20px;"></div>
+                    <p style="color: white; font-size: 18px; font-weight: 500;">A processar foto...</p>
+                </div>
+                <style>
+                    @keyframes spin {
+                        to { transform: rotate(360deg); }
+                    }
+                </style>
+            `;
+            document.body.appendChild(processingOverlay);
+            
             // Close current camera
             closeCamera();
             
             // Show car diagram preview for next photo after short delay
             setTimeout(() => {
+                // Remove processing overlay
+                const overlay = document.getElementById('processingOverlay');
+                if (overlay) overlay.remove();
+                
                 showCarDiagramPreview(nextPhotoType.type);
-            }, 1800); // Wait for saving animation to finish
+            }, 1500);
         }
     } else {
         // All photos captured, close camera
