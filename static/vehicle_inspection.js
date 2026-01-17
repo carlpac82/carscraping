@@ -2174,41 +2174,44 @@ function startCameraCountdown() {
     const photoLabel = photo ? photo.label : 'Foto';
     const photoInstruction = photo ? photo.instruction : '';
     
+    // Get car image from Inspecção folder
+    const imageUrl = photo ? `/static/Inspecçao/${photo.image}` : '';
+    
     countdownOverlay.innerHTML = `
         <div style="position: absolute; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0, 0, 0, 0.7); z-index: -1;"></div>
         
         <!-- Text at top -->
-        <div style="position: absolute; top: 50px; left: 0; right: 0; text-align: center; z-index: 10;">
-            <h3 style="font-size: 22px; font-weight: 600; color: white; margin-bottom: 8px; text-shadow: 0 2px 8px rgba(0,0,0,0.5);">${photoLabel}</h3>
-            <p style="font-size: 14px; font-weight: 400; color: white; opacity: 0.8; text-shadow: 0 2px 8px rgba(0,0,0,0.5);">${photoInstruction}</p>
+        <div style="position: absolute; top: 60px; left: 0; right: 0; text-align: center; z-index: 10;">
+            <h2 style="color: white; font-size: 20px; margin: 0 0 8px 0; font-weight: 600; line-height: 1.2;">${photoLabel}</h2>
+            <p style="color: #ff4757; font-size: 14px; margin: 0; font-weight: 500; max-width: 300px; margin: 0 auto;">${photoInstruction}</p>
         </div>
         
-        <!-- Countdown circle in center -->
-        <div style="text-align: center; position: relative; z-index: 10;">
-            <svg width="160" height="160" viewBox="0 0 160 160" style="transform: rotate(-90deg);">
-                <circle cx="80" cy="80" r="70" fill="none" stroke="rgba(255,255,255,0.15)" stroke-width="10"/>
-                <circle id="countdownCircle" cx="80" cy="80" r="70" fill="none" stroke="#009cb6" stroke-width="10" 
-                    stroke-dasharray="440" stroke-dashoffset="0" 
-                    style="transition: stroke-dashoffset 1s linear;"/>
-            </svg>
-            <div id="countdownNumber" style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); font-size: 72px; font-weight: 800; color: white; text-shadow: 0 4px 12px rgba(0,0,0,0.5);">3</div>
+        <div style="display: flex; flex-direction: column; justify-content: center; align-items: center; min-height: 100vh; padding: 140px 20px 20px 20px;">
+            <img src="${imageUrl}" alt="${photoLabel}" style="max-width: 180px; width: 100%; height: auto; display: block; margin: 0 auto;">
+            
+            <!-- Countdown - centered horizontally below image -->
+            <div style="position: relative; width: 100%; text-align: center; margin-top: 60px;">
+                <div id="countdownNumber" style="
+                    display: inline-block;
+                    font-size: 43px;
+                    font-weight: bold;
+                    color: #ff4757;
+                    text-shadow: 0 0 20px rgba(0, 0, 0, 0.8), 0 4px 8px rgba(0, 0, 0, 0.5);
+                    position: relative;
+                    z-index: 10;
+                ">3</div>
+            </div>
         </div>
-        
-        <!-- Space for buttons at bottom (they will be visible underneath) -->
     `;
     
     document.body.appendChild(countdownOverlay);
     
-    // Countdown animation
+    // Countdown animation - just update the number
     let count = 3;
-    const circle = document.getElementById('countdownCircle');
     const numberEl = document.getElementById('countdownNumber');
-    const circumference = 440; // 2 * PI * 70
     
     window.countdownInterval = setInterval(() => {
         count--;
-        const progress = count / 3;
-        circle.style.strokeDashoffset = circumference * (1 - progress);
         
         if (count > 0) {
             numberEl.textContent = count;
