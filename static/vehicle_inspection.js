@@ -3124,15 +3124,105 @@ function continuePickupDamageFlow() {
         // Show notification that photo was saved
         console.log('✅ Photo saved, ready for next damage');
         
-        // Show loading screen before reopening modal
-        showLoadingScreen();
-        
-        // Reopen damage selection modal after loading
-        setTimeout(() => {
-            hideLoadingScreen();
-            startRegisterNewDamages();
-        }, 1000);
+        // Show confirmation modal
+        showAddMoreDamagesModal();
     }
+}
+
+// Show modal asking if user wants to add more damages
+function showAddMoreDamagesModal() {
+    const modal = document.createElement('div');
+    modal.id = 'addMoreDamagesModal';
+    modal.style.cssText = `
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: rgba(0, 0, 0, 0.9);
+        z-index: 999999;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    `;
+    
+    const photoCount = window.pickupDamagePhotos.length;
+    
+    modal.innerHTML = `
+        <div style="background: white; padding: 40px; border-radius: 12px; max-width: 500px; width: 90%; box-shadow: 0 10px 40px rgba(0,0,0,0.3); text-align: center;">
+            <h2 style="color: #009cb6; font-size: 24px; font-weight: bold; margin-bottom: 20px;">
+                Foto Guardada! ✅
+            </h2>
+            <p style="color: #666; margin-bottom: 30px; font-size: 16px;">
+                ${photoCount} foto(s) de dano registada(s).<br>
+                Deseja adicionar mais fotos de danos?
+            </p>
+            
+            <div style="display: flex; gap: 15px; justify-content: center;">
+                <button onclick="addMoreDamages()" style="
+                    flex: 1;
+                    padding: 15px 28px;
+                    background: #ff9800;
+                    color: white;
+                    border: none;
+                    border-radius: 8px;
+                    font-size: 16px;
+                    font-weight: 600;
+                    cursor: pointer;
+                    transition: background 0.2s;
+                    box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+                " onmouseover="this.style.background='#f57c00'" onmouseout="this.style.background='#ff9800'">
+                    ➕ Adicionar Mais
+                </button>
+                
+                <button onclick="finishDamageRegistration()" style="
+                    flex: 1;
+                    padding: 15px 28px;
+                    background: #28a745;
+                    color: white;
+                    border: none;
+                    border-radius: 8px;
+                    font-size: 16px;
+                    font-weight: 600;
+                    cursor: pointer;
+                    transition: background 0.2s;
+                    box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+                " onmouseover="this.style.background='#218838'" onmouseout="this.style.background='#28a745'">
+                    ✓ Terminar
+                </button>
+            </div>
+        </div>
+    `;
+    
+    document.body.appendChild(modal);
+}
+
+// Add more damages - reopen selection modal
+function addMoreDamages() {
+    const modal = document.getElementById('addMoreDamagesModal');
+    if (modal) {
+        modal.remove();
+    }
+    
+    // Show loading screen before reopening modal
+    showLoadingScreen();
+    
+    // Reopen damage selection modal after loading
+    setTimeout(() => {
+        hideLoadingScreen();
+        startRegisterNewDamages();
+    }, 800);
+}
+
+// Finish damage registration - close modal
+function finishDamageRegistration() {
+    const modal = document.getElementById('addMoreDamagesModal');
+    if (modal) {
+        modal.remove();
+    }
+    
+    const photoCount = window.pickupDamagePhotos ? window.pickupDamagePhotos.length : 0;
+    showNotification(`${photoCount} foto(s) de novos danos registada(s)!`, 'success');
 }
 
 // Show loading screen
