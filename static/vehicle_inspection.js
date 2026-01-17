@@ -1301,14 +1301,14 @@ function startRegisterNewDamages() {
 // Show modal to select damage photo side
 function showDamageSideSelectionModal() {
     const sides = [
-        { id: 'front', label: 'Frente', image: '/static/Inspeção/Vista Frontal.png' },
-        { id: 'front_left', label: 'Frente Esquerda', image: '/static/Inspeção/Vista Frontal Esquerda.png' },
-        { id: 'left', label: 'Esquerda', image: '/static/Inspeção/Vista Lateral Esquerda.png' },
-        { id: 'back_left', label: 'Trás Esquerda', image: '/static/Inspeção/Vista Traseira Esquerda.png' },
-        { id: 'back', label: 'Trás', image: '/static/Inspeção/Vista Traseira.png' },
-        { id: 'back_right', label: 'Trás Direita', image: '/static/Inspeção/Vista Traseira direita.png' },
-        { id: 'right', label: 'Direita', image: '/static/Inspeção/Vista Lateral Direita.png' },
-        { id: 'front_right', label: 'Frente Direita', image: '/static/Inspeção/Vista Frontal Direita.png' }
+        { id: 'front', label: 'Frente', image: '/static/Inspe%C3%A7ao/Vista%20Frontal.png' },
+        { id: 'front_left', label: 'Frente Esquerda', image: '/static/Inspe%C3%A7ao/Vista%20Frontal%20Esquerda.png' },
+        { id: 'left', label: 'Esquerda', image: '/static/Inspe%C3%A7ao/Vista%20Lateral%20Esquerda.png' },
+        { id: 'back_left', label: 'Trás Esquerda', image: '/static/Inspe%C3%A7ao/Vista%20Traseira%20Esquerda.png' },
+        { id: 'back', label: 'Trás', image: '/static/Inspe%C3%A7ao/Vista%20Traseira.png' },
+        { id: 'back_right', label: 'Trás Direita', image: '/static/Inspe%C3%A7ao/Vista%20Traseira%20direita.png' },
+        { id: 'right', label: 'Direita', image: '/static/Inspe%C3%A7ao/Vista%20Lateral%20Direita.png' },
+        { id: 'front_right', label: 'Frente Direita', image: '/static/Inspe%C3%A7ao/Vista%20Frontal%20Direita.png' }
     ];
     
     let sidesHTML = '';
