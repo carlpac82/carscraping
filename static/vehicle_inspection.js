@@ -712,12 +712,10 @@ function showPickupUpdateModal() {
         deliveryFuel = parseFloat(window.currentFuelLevel);
     }
     
-    // Get current km from form or backend
-    let currentKm = '';
+    // Get delivery (check-out) km from backend
+    let deliveryKm = '';
     if (window.currentRAData && window.currentRAData.odometer) {
-        currentKm = window.currentRAData.odometer;
-    } else {
-        currentKm = document.getElementById('odometerReading')?.value || '';
+        deliveryKm = window.currentRAData.odometer;
     }
     
     // Create modal HTML with clean design
@@ -736,7 +734,11 @@ function showPickupUpdateModal() {
                     <label style="display: block; color: #009cb6; font-weight: bold; font-size: 16px; margin-bottom: 12px;">
                         Km Entrada / Km In:
                     </label>
-                    <input type="number" id="pickupKm" value="${currentKm}" 
+                    ${deliveryKm ? `<div style="background: #e3f2fd; padding: 10px; border-radius: 6px; margin-bottom: 10px; border-left: 4px solid #009cb6;">
+                        <span style="font-size: 13px; color: #666;">Km Saída (Check-out): </span>
+                        <span style="font-size: 14px; font-weight: bold; color: #009cb6;">${deliveryKm} km</span>
+                    </div>` : ''}
+                    <input type="number" id="pickupKm" value="${deliveryKm}" 
                            style="width: 100%; padding: 14px; border: 2px solid #009cb6; border-radius: 8px; font-size: 18px; font-weight: 600; color: #333;"
                            placeholder="Ex: 51500">
                 </div>
@@ -800,17 +802,20 @@ function showPickupUpdateModal() {
         const percentage = parseInt(value);
         fill.style.width = percentage + '%';
         
-        const levelText = {
-            0: 'Vazio (E)',
-            5: '1/16', 10: '1/8', 15: '3/16',
-            20: '1/4', 25: '5/16', 30: '3/8', 35: '7/16',
-            40: '1/2', 45: '9/16', 50: '5/8', 55: '11/16',
-            60: '3/4', 65: '13/16', 70: '7/8', 75: '15/16',
-            80: '7/8+', 85: '7/8++', 90: 'Quase Cheio',
-            95: 'Quase Cheio+', 100: 'Cheio (F)'
-        };
+        // Simplified fractions like in check-out
+        let levelText = '';
+        if (percentage === 0) levelText = 'Vazio (E)';
+        else if (percentage <= 12) levelText = '1/8';
+        else if (percentage <= 25) levelText = '1/4';
+        else if (percentage <= 37) levelText = '3/8';
+        else if (percentage <= 50) levelText = '1/2';
+        else if (percentage <= 62) levelText = '5/8';
+        else if (percentage <= 75) levelText = '3/4';
+        else if (percentage <= 87) levelText = '7/8';
+        else if (percentage < 100) levelText = 'Quase Cheio';
+        else levelText = 'Cheio (F)';
         
-        text.textContent = `${percentage}% - ${levelText[percentage] || percentage + '%'}`;
+        text.textContent = `${percentage}% - ${levelText}`;
     }
     
     slider.addEventListener('input', (e) => {
