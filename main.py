@@ -28065,6 +28065,24 @@ async def save_inspection(request: Request):
                 # PostgreSQL
                 logging.info("📊 Using PostgreSQL database")
                 cursor = conn.cursor()
+                
+                # Delete previous inspection with same RA+plate (if exists)
+                # This prevents duplicate check-outs for the same vehicle+contract
+                # Exception: If RA is same but plate is different, keep both (vehicle swap)
+                logging.info(f"🗑️ Checking for previous inspection with RA={ra} and Plate={plate}...")
+                cursor.execute("""
+                    DELETE FROM vehicle_inspections
+                    WHERE contract_number = %s 
+                    AND vehicle_plate = %s
+                    AND inspection_type = %s
+                """, (ra, plate, inspection_type))
+                
+                deleted_count = cursor.rowcount
+                if deleted_count > 0:
+                    logging.info(f"🗑️ Deleted {deleted_count} previous inspection(s) with same RA+Plate")
+                else:
+                    logging.info(f"✅ No previous inspection found with same RA+Plate")
+                
                 logging.info("💾 Inserting inspection into vehicle_inspections table...")
                 cursor.execute("""
                     INSERT INTO vehicle_inspections
@@ -28100,6 +28118,24 @@ async def save_inspection(request: Request):
                 # SQLite
                 logging.info("📊 Using SQLite database")
                 cursor = conn.cursor()
+                
+                # Delete previous inspection with same RA+plate (if exists)
+                # This prevents duplicate check-outs for the same vehicle+contract
+                # Exception: If RA is same but plate is different, keep both (vehicle swap)
+                logging.info(f"🗑️ Checking for previous inspection with RA={ra} and Plate={plate}...")
+                cursor.execute("""
+                    DELETE FROM vehicle_inspections
+                    WHERE contract_number = ? 
+                    AND vehicle_plate = ?
+                    AND inspection_type = ?
+                """, (ra, plate, inspection_type))
+                
+                deleted_count = cursor.rowcount
+                if deleted_count > 0:
+                    logging.info(f"🗑️ Deleted {deleted_count} previous inspection(s) with same RA+Plate")
+                else:
+                    logging.info(f"✅ No previous inspection found with same RA+Plate")
+                
                 logging.info("💾 Inserting inspection into vehicle_inspections table...")
                 cursor.execute("""
                     INSERT INTO vehicle_inspections
