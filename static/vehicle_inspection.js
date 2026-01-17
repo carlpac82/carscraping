@@ -1453,45 +1453,52 @@ async function openCameraForDamage(photoType) {
     startDamageCamera();
 }
 
-// Show countdown with car image before opening camera (EXACTLY like checkout)
+// Show countdown - EXACTLY like checkout
 function showDamageCountdown(photoType, photoLabel, photoInstruction) {
     return new Promise((resolve) => {
-        // Get the reference image for this photo type (EXACTLY like checkout)
+        // Get the reference image for this photo type
         const photo = photoTypes.find(p => p.type === photoType);
         const imageUrl = photo ? `/static/Inspecçao/${photo.image}` : '';
         
-        // EXACTLY the same HTML as checkout countdown
-        const countdownHTML = `
-            <div id="damageCountdown" style="position: fixed; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; z-index: 99999; pointer-events: none; background: rgba(0, 0, 0, 0.8);">
-                <div style="position: absolute; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0, 0, 0, 0.7); z-index: -1;"></div>
-                
-                <!-- Text at top -->
-                <div style="position: absolute; top: 50px; left: 0; right: 0; text-align: center; z-index: 10;">
-                    <h3 style="font-size: 22px; font-weight: 600; color: white; margin-bottom: 8px; text-shadow: 0 2px 8px rgba(0,0,0,0.5);">${photoLabel}</h3>
-                    <p style="font-size: 14px; font-weight: 400; color: #dc3545; opacity: 0.9; text-shadow: 0 2px 8px rgba(0,0,0,0.5);">${photoInstruction}</p>
-                </div>
-                
-                <!-- Car image in center (EXACTLY like checkout) -->
-                <div style="margin-bottom: 40px; z-index: 10;">
-                    <img src="${imageUrl}" alt="${photoLabel}" style="width: 200px; height: auto; filter: drop-shadow(0 10px 30px rgba(220,53,69,0.5));">
-                </div>
-                
-                <!-- Countdown circle (EXACTLY like checkout) -->
-                <div style="text-align: center; position: relative; z-index: 10;">
-                    <svg width="160" height="160" viewBox="0 0 160 160" style="transform: rotate(-90deg);">
-                        <circle cx="80" cy="80" r="70" fill="none" stroke="rgba(255,255,255,0.15)" stroke-width="10"/>
-                        <circle id="damageCountdownCircle" cx="80" cy="80" r="70" fill="none" stroke="#009cb6" stroke-width="10" 
-                            stroke-dasharray="440" stroke-dashoffset="0" 
-                            style="transition: stroke-dashoffset 1s linear;"/>
-                    </svg>
-                    <div id="damageCountdownNumber" style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); font-size: 72px; font-weight: 800; color: white; text-shadow: 0 4px 12px rgba(0,0,0,0.5);">3</div>
-                </div>
+        // Create countdown overlay - EXACTLY like checkout
+        const countdownOverlay = document.createElement('div');
+        countdownOverlay.id = 'damageCountdown';
+        countdownOverlay.style.cssText = `
+            position: fixed;
+            inset: 0;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            z-index: 99999;
+            pointer-events: none;
+            background: rgba(0, 0, 0, 0.8);
+        `;
+        
+        countdownOverlay.innerHTML = `
+            <div style="position: absolute; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0, 0, 0, 0.7); z-index: -1;"></div>
+            
+            <!-- Text at top -->
+            <div style="position: absolute; top: 50px; left: 0; right: 0; text-align: center; z-index: 10;">
+                <h3 style="font-size: 22px; font-weight: 600; color: white; margin-bottom: 8px; text-shadow: 0 2px 8px rgba(0,0,0,0.5);">${photoLabel}</h3>
+                <p style="font-size: 14px; font-weight: 400; color: white; opacity: 0.8; text-shadow: 0 2px 8px rgba(0,0,0,0.5);">${photoInstruction}</p>
+            </div>
+            
+            <!-- Countdown circle in center -->
+            <div style="text-align: center; position: relative; z-index: 10;">
+                <svg width="160" height="160" viewBox="0 0 160 160" style="transform: rotate(-90deg);">
+                    <circle cx="80" cy="80" r="70" fill="none" stroke="rgba(255,255,255,0.15)" stroke-width="10"/>
+                    <circle id="damageCountdownCircle" cx="80" cy="80" r="70" fill="none" stroke="#009cb6" stroke-width="10" 
+                        stroke-dasharray="440" stroke-dashoffset="0" 
+                        style="transition: stroke-dashoffset 1s linear;"/>
+                </svg>
+                <div id="damageCountdownNumber" style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); font-size: 72px; font-weight: 800; color: white; text-shadow: 0 4px 12px rgba(0,0,0,0.5);">3</div>
             </div>
         `;
         
-        document.body.insertAdjacentHTML('beforeend', countdownHTML);
+        document.body.appendChild(countdownOverlay);
         
-        // Countdown animation (EXACTLY like checkout)
+        // Countdown animation - EXACTLY like checkout
         let count = 3;
         const circle = document.getElementById('damageCountdownCircle');
         const numberEl = document.getElementById('damageCountdownNumber');
@@ -1506,8 +1513,7 @@ function showDamageCountdown(photoType, photoLabel, photoInstruction) {
                 numberEl.textContent = count;
             } else {
                 clearInterval(interval);
-                const countdown = document.getElementById('damageCountdown');
-                if (countdown) countdown.remove();
+                countdownOverlay.remove();
                 resolve();
             }
         }, 1000);
