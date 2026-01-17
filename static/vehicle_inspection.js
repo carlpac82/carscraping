@@ -560,11 +560,11 @@ async function showCarDiagramPreview(photoType) {
         
         <p style="color: #ff4757; font-size: 15px; margin: 30px 0 0 0; font-weight: 500; text-align: center; max-width: 300px;">${photo.instruction}</p>
         
-        <!-- Countdown - position depends on photo type -->
+        <!-- Countdown - position based on first image (Vista Traseira) -->
         <div id="previewCountdown" style="
             position: fixed;
             top: ${photoType === 'odometer' ? '75%' : '50.4%'};
-            left: 50%;
+            left: 51%;
             transform: translate(-50%, -50%);
             font-size: 43px;
             font-weight: bold;
@@ -578,7 +578,7 @@ async function showCarDiagramPreview(photoType) {
         <div id="countdownCircle" class="countdown-circle" style="
             position: fixed;
             top: ${photoType === 'odometer' ? '75%' : '50.4%'};
-            left: 50%;
+            left: 51%;
             transform: translate(-50%, -50%);
             width: 67px;
             height: 67px;
