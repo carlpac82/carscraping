@@ -528,7 +528,7 @@ async function showCarDiagramPreview(photoType) {
         left: 0;
         width: 100%;
         height: 100%;
-        background: transparent;
+        background: rgba(0, 0, 0, 0.95);
         z-index: 999999;
         display: flex;
         flex-direction: column;
@@ -556,13 +556,9 @@ async function showCarDiagramPreview(photoType) {
             <h2 style="color: white; font-size: 22px; margin: 0; font-weight: 600;">${photo.label}</h2>
         </div>
         
-        <div style="display: flex; flex-direction: column; align-items: center; gap: 15px;">
-            <div style="position: relative; max-width: 220px; width: 100%;">
-                <img id="previewCarImage" src="${imagePath}" alt="${photo.label}" style="width: 100%; height: auto; display: block; border-radius: 8px;">
-            </div>
-            
-            <p style="color: #ff4757; font-size: 15px; margin: 0; font-weight: 500; text-align: center; max-width: 300px;">${photo.instruction}</p>
-        </div>
+        <img id="previewCarImage" src="${imagePath}" alt="${photo.label}" style="max-width: 220px; width: 100%; height: auto; display: block; margin: 0 auto;">
+        
+        <p style="color: #ff4757; font-size: 15px; margin: 15px 0 0 0; font-weight: 500; text-align: center; max-width: 300px;">${photo.instruction}</p>
         
         <!-- Countdown - position depends on photo type -->
         <div id="previewCountdown" style="
