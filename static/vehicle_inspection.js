@@ -552,8 +552,8 @@ async function showCarDiagramPreview(photoType) {
             }
         </style>
         
-        <div style="position: absolute; top: 40px; left: 0; right: 0; text-align: center; z-index: 10;">
-            <h2 style="color: white; font-size: 22px; margin: 0 0 20px 0; font-weight: 600;">${photo.label}</h2>
+        <div style="position: absolute; top: 40px; left: 0; right: 0; text-align: center; z-index: 10; height: 60px; display: flex; align-items: center; justify-content: center;">
+            <h2 style="color: white; font-size: 22px; margin: 0; font-weight: 600; line-height: 1.2;">${photo.label}</h2>
         </div>
         
         <img id="previewCarImage" src="${imagePath}" alt="${photo.label}" style="max-width: 220px; width: 100%; height: auto; display: block; margin: 0 auto;">
