@@ -1322,7 +1322,7 @@ function showDamageSideSelectionModal() {
                 <div style="color: #009cb6; font-weight: bold; font-size: 9px; margin-bottom: 2px; text-shadow: 1px 1px 3px rgba(0,0,0,0.9);">
                     ${side.label}
                 </div>
-                <img src="/static/Inspecçao/${side.image}" alt="${side.label}" style="width: 100%; max-width: 70px; height: auto; object-fit: contain; display: block; margin: 0 auto; border-radius: 4px;">
+                <img src="/static/Inspecçao/${side.image}" alt="${side.label}" style="width: 100%; height: 60px; object-fit: cover; display: block; margin: 0 auto; border-radius: 4px;">
             </div>
         `;
     });
