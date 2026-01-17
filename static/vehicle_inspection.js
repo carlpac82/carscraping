@@ -1505,13 +1505,13 @@ async function openCameraForDamage(photoType) {
             <canvas id="damageCanvas" style="display: none;"></canvas>
             
             <!-- Top header with photo info (EXACTLY like checkout) -->
-            <div class="absolute top-0 left-0 right-0 z-50 bg-black bg-opacity-90 text-white p-6 text-center" style="padding-right: 130px;">
-                <p class="text-xl font-bold text-green-400 mb-2">${photoLabel.toUpperCase()}</p>
-                <p class="text-base opacity-95 max-w-2xl mx-auto">${photoInstruction}</p>
+            <div style="position: absolute; top: 0; left: 0; right: 0; z-index: 10001; background: rgba(0,0,0,0.9); color: white; padding: 24px; text-align: center; padding-right: 130px;">
+                <p style="font-size: 20px; font-weight: bold; color: #10b981; margin-bottom: 8px;">${photoLabel.toUpperCase()}</p>
+                <p style="font-size: 16px; opacity: 0.95; max-width: 672px; margin: 0 auto;">${photoInstruction}</p>
             </div>
             
             <!-- Car Diagram Miniature - Top Right (EXACTLY like checkout) -->
-            <div style="position: fixed; top: 20px; right: 20px; width: 100px; height: 100px; z-index: 9999; display: block;">
+            <div style="position: fixed; top: 20px; right: 20px; width: 100px; height: 100px; z-index: 10002; display: block;">
                 <img src="${imageUrl}" alt="${photoLabel}" style="width: 100%; height: 100%; object-fit: contain; filter: drop-shadow(0 4px 10px rgba(0,0,0,0.5));">
             </div>
             
