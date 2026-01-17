@@ -3075,6 +3075,11 @@
                             
                             // Store inspection status for later check when clicking "Iniciar Entrega"
                             window.inspectionCompleted = ra.inspection_completed;
+                            
+                            // Update pickup button state after setting inspection status
+                            if (typeof updatePickupButtonState === 'function') {
+                                updatePickupButtonState();
+                            }
                         }
                     } catch (error) {
                         console.error('Error checking RA by plate:', error);
