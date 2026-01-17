@@ -2171,43 +2171,6 @@ function continuePhotoProcessing(photoType, blob) {
     const preview = document.getElementById('photoPreviewContainer');
     if (preview) preview.remove();
     
-    // ✅ FIX: Keep camera modal open and restart stream for next photo
-    const video = document.getElementById('cameraPreview');
-    if (video && Object.keys(inspectionData.photos).length < 9) {
-        video.style.display = 'block';
-        
-        // Restart camera stream for next photo
-        navigator.mediaDevices.getUserMedia({
-            video: {
-                facingMode: 'environment',
-                width: { ideal: 1920 },
-                height: { ideal: 1080 }
-            }
-        }).then(stream => {
-            cameraStream = stream;
-            video.srcObject = stream;
-            video.play();
-            
-            // Show overlay again
-            const overlay = document.getElementById('cameraOverlay');
-            if (overlay) overlay.style.display = 'block';
-            
-            // Hide camera buttons before restarting countdown
-            // Camera will be closed and reopened with preview modal
-            console.log('✅ Camera will be closed for next photo');
-        }).catch(err => {
-            console.error('Error restarting camera:', err);
-            showNotification('Erro ao reiniciar a câmera', 'error');
-        });
-    }
-    
-    // Close modal if all photos are captured
-    if (Object.keys(inspectionData.photos).length >= 9) {
-        setTimeout(() => {
-            closeCamera();
-        }, 1000);
-    }
-    
     // Clear temp blob
     window.tempPhotoBlob = null;
     
@@ -2232,6 +2195,7 @@ function continuePhotoProcessing(photoType, blob) {
         }
     } else {
         // All photos captured, close camera
+        console.log('✅ All 9 photos captured, closing camera');
         closeCamera();
     }
 }
