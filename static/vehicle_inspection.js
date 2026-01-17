@@ -3076,6 +3076,56 @@ function savePickupDamagePhoto(blob, photoType) {
     reader.readAsDataURL(blob);
 }
 
+// Update pickup damage photos grid
+function updatePickupDamagePhotosGrid() {
+    console.log('📸 Updating pickup damage photos grid...');
+    
+    // Find the pickup damage photos section in the modal
+    const pickupSection = document.querySelector('[data-section="pickup-damages"]');
+    if (!pickupSection) {
+        console.log('⚠️ Pickup damage photos section not found');
+        return;
+    }
+    
+    // Find the grid container
+    const gridContainer = pickupSection.querySelector('.grid');
+    if (!gridContainer) {
+        console.log('⚠️ Grid container not found');
+        return;
+    }
+    
+    // Clear existing photos
+    gridContainer.innerHTML = '';
+    
+    // Add each pickup damage photo
+    if (window.pickupDamagePhotos && window.pickupDamagePhotos.length > 0) {
+        window.pickupDamagePhotos.forEach((photo, index) => {
+            const photoDiv = document.createElement('div');
+            photoDiv.className = 'text-center';
+            photoDiv.innerHTML = `
+                <img src="${photo.data}" alt="${formatPhotoType(photo.type)}" style="max-width: 80px; height: auto; border-radius: 4px; margin: 0 auto; display: block;">
+                <p style="font-size: 11px; color: #666; margin-top: 4px;">${formatPhotoType(photo.type)}</p>
+            `;
+            gridContainer.appendChild(photoDiv);
+        });
+    } else {
+        gridContainer.innerHTML = '<p style="color: #999; font-size: 12px; text-align: center; grid-column: 1 / -1;">Nenhuma foto de dano registada</p>';
+    }
+    
+    console.log('✅ Pickup damage photos grid updated:', window.pickupDamagePhotos.length, 'photos');
+}
+
+// Continue pickup damage flow
+function continuePickupDamageFlow() {
+    console.log('🔄 Continuing pickup damage flow...');
+    
+    // Check if we should ask to add more photos
+    if (window.pickupDamagePhotos && window.pickupDamagePhotos.length > 0) {
+        // Show notification that photo was saved
+        console.log('✅ Photo saved, ready for next damage');
+    }
+}
+
 function showPhotoPreview(blob, photoType) {
     // Hide camera video
     document.getElementById('cameraPreview').style.display = 'none';
