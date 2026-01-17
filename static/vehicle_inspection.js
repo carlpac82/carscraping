@@ -493,6 +493,14 @@ function startAutoSequence() {
 }
 
 function capturePhotoSequence(index) {
+    // Clear old photos when starting new inspection (index 0)
+    if (index === 0) {
+        console.log('🧹 Starting new inspection - clearing old photos');
+        inspectionData.photos = {};
+        window.inspectionData = inspectionData;
+        localStorage.removeItem('inspectionPhotos');
+    }
+    
     if (index >= photoTypes.length) {
         console.log('All photos captured');
         return;
@@ -556,10 +564,10 @@ async function showCarDiagramPreview(photoType) {
             <p style="color: #ff4757; font-size: 15px; margin: 0; font-weight: 500; text-align: center; max-width: 300px;">${photo.instruction}</p>
         </div>
         
-        <!-- Countdown 5% smaller (43px) and 5% lower (50.4%) -->
+        <!-- Countdown - position depends on photo type -->
         <div id="previewCountdown" style="
             position: fixed;
-            top: 50.4%;
+            top: ${photoType === 'odometer' ? '65%' : '50.4%'};
             left: 50%;
             transform: translate(-50%, -50%);
             font-size: 43px;
@@ -573,7 +581,7 @@ async function showCarDiagramPreview(photoType) {
         <!-- Spinning circle around countdown -->
         <div id="countdownCircle" class="countdown-circle" style="
             position: fixed;
-            top: 50.4%;
+            top: ${photoType === 'odometer' ? '65%' : '50.4%'};
             left: 50%;
             transform: translate(-50%, -50%);
             width: 67px;
@@ -722,8 +730,17 @@ async function openCameraWithStream(photoType) {
     const photo = photoTypes.find(p => p.type === photoType);
     
     // Update modal content with simplified info
-    document.getElementById('cameraLocation').textContent = photo.label.toUpperCase();
-    document.getElementById('cameraInstruction').textContent = photo.instruction;
+    const locationEl = document.getElementById('cameraLocation');
+    const instructionEl = document.getElementById('cameraInstruction');
+    
+    if (locationEl) {
+        locationEl.textContent = photo.label.toUpperCase();
+        console.log(`📝 Updated title: ${photo.label.toUpperCase()}`);
+    }
+    if (instructionEl) {
+        instructionEl.textContent = photo.instruction;
+        console.log(`📝 Updated instruction: ${photo.instruction}`);
+    }
     
     // Show modal
     const modal = document.getElementById('cameraModal');
@@ -777,6 +794,7 @@ async function openCameraWithStream(photoType) {
         // Set video source
         const video = document.getElementById('cameraPreview');
         video.srcObject = cameraStream;
+        video.style.display = 'block'; // Make sure video is visible
         
         // Show camera buttons immediately (no countdown)
         video.addEventListener('loadedmetadata', () => {
@@ -1652,16 +1670,18 @@ async function detectLicensePlate(blob) {
     }
 }
 
-function closeCamera() {
-    // Stop camera stream
-    if (cameraStream) {
+function closeCamera(keepStream = false) {
+    // Stop camera stream only if not keeping it for next photo
+    if (cameraStream && !keepStream) {
         cameraStream.getTracks().forEach(track => track.stop());
         cameraStream = null;
+        window.savedCameraStream = null;
+        window.pendingCameraStream = null;
     }
     
-    // Clear camera preview
+    // Clear camera preview only if not keeping stream
     const video = document.getElementById('cameraPreview');
-    if (video) {
+    if (video && !keepStream) {
         video.srcObject = null;
     }
     
@@ -1671,24 +1691,26 @@ function closeCamera() {
         miniature.style.display = 'none';
     }
     
-    // Exit fullscreen
-    try {
-        if (document.fullscreenElement) {
-            if (document.exitFullscreen) {
-                document.exitFullscreen();
-            } else if (document.webkitExitFullscreen) {
-                document.webkitExitFullscreen();
-            } else if (document.msExitFullscreen) {
-                document.msExitFullscreen();
+    // Exit fullscreen only if not keeping stream
+    if (!keepStream) {
+        try {
+            if (document.fullscreenElement) {
+                if (document.exitFullscreen) {
+                    document.exitFullscreen();
+                } else if (document.webkitExitFullscreen) {
+                    document.webkitExitFullscreen();
+                } else if (document.msExitFullscreen) {
+                    document.msExitFullscreen();
+                }
+                console.log('✅ Fullscreen exited');
             }
-            console.log('✅ Fullscreen exited');
+        } catch (error) {
+            console.log('⚠️ Could not exit fullscreen:', error.message);
         }
-    } catch (error) {
-        console.log('⚠️ Could not exit fullscreen:', error.message);
+        
+        // Hide modal only if not keeping stream
+        document.getElementById('cameraModal').classList.remove('active');
     }
-    
-    // Hide modal
-    document.getElementById('cameraModal').classList.remove('active');
 }
 
 // Functions for new button layout
@@ -2216,8 +2238,8 @@ function continuePhotoProcessing(photoType, blob) {
             `;
             document.body.appendChild(processingOverlay);
             
-            // Close current camera
-            closeCamera();
+            // Close current camera but keep stream for next photo
+            closeCamera(true);
             
             // Show car diagram preview for next photo after short delay
             setTimeout(() => {
