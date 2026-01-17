@@ -28692,7 +28692,7 @@ async def get_inspection(request: Request, plate: str, ra: str, type: str = 'che
         return JSONResponse({"success": False, "error": "Unauthorized"}, status_code=403)
     
     try:
-        conn = get_db_connection()
+        conn = _db_connect()
         
         # Check if PostgreSQL or SQLite
         is_postgres = False
