@@ -28066,6 +28066,35 @@ async def save_inspection(request: Request):
                 logging.info("📊 Using PostgreSQL database")
                 cursor = conn.cursor()
                 
+                # Check for vehicle swap scenario (same RA, different plate)
+                # If doing check-out and there's a previous check-out with same RA but different plate
+                # that doesn't have a check-in yet, block the operation
+                if inspection_type == 'checkout':
+                    logging.info(f"🔍 Checking for pending check-in with RA={ra}...")
+                    cursor.execute("""
+                        SELECT vehicle_plate, inspection_number
+                        FROM vehicle_inspections
+                        WHERE contract_number = %s
+                        AND vehicle_plate != %s
+                        AND inspection_type = 'checkout'
+                        AND NOT EXISTS (
+                            SELECT 1 FROM vehicle_inspections ci
+                            WHERE ci.contract_number = vehicle_inspections.contract_number
+                            AND ci.vehicle_plate = vehicle_inspections.vehicle_plate
+                            AND ci.inspection_type = 'checkin'
+                        )
+                        LIMIT 1
+                    """, (ra, plate))
+                    
+                    pending_checkout = cursor.fetchone()
+                    if pending_checkout:
+                        pending_plate = pending_checkout[0]
+                        logging.error(f"❌ Cannot do check-out: pending check-in for {pending_plate} with RA {ra}")
+                        return JSONResponse({
+                            "ok": False,
+                            "error": f"Tem que fazer o check-in da viatura {pending_plate} (RA {ra}) antes de fazer check-out da nova viatura. Troca de viatura requer check-in da viatura anterior primeiro."
+                        }, status_code=400)
+                
                 # Delete previous inspection with same RA+plate (if exists)
                 # This prevents duplicate check-outs for the same vehicle+contract
                 # Exception: If RA is same but plate is different, keep both (vehicle swap)
@@ -28118,6 +28147,35 @@ async def save_inspection(request: Request):
                 # SQLite
                 logging.info("📊 Using SQLite database")
                 cursor = conn.cursor()
+                
+                # Check for vehicle swap scenario (same RA, different plate)
+                # If doing check-out and there's a previous check-out with same RA but different plate
+                # that doesn't have a check-in yet, block the operation
+                if inspection_type == 'checkout':
+                    logging.info(f"🔍 Checking for pending check-in with RA={ra}...")
+                    cursor.execute("""
+                        SELECT vehicle_plate, inspection_number
+                        FROM vehicle_inspections
+                        WHERE contract_number = ?
+                        AND vehicle_plate != ?
+                        AND inspection_type = 'checkout'
+                        AND NOT EXISTS (
+                            SELECT 1 FROM vehicle_inspections ci
+                            WHERE ci.contract_number = vehicle_inspections.contract_number
+                            AND ci.vehicle_plate = vehicle_inspections.vehicle_plate
+                            AND ci.inspection_type = 'checkin'
+                        )
+                        LIMIT 1
+                    """, (ra, plate))
+                    
+                    pending_checkout = cursor.fetchone()
+                    if pending_checkout:
+                        pending_plate = pending_checkout[0]
+                        logging.error(f"❌ Cannot do check-out: pending check-in for {pending_plate} with RA {ra}")
+                        return JSONResponse({
+                            "ok": False,
+                            "error": f"Tem que fazer o check-in da viatura {pending_plate} (RA {ra}) antes de fazer check-out da nova viatura. Troca de viatura requer check-in da viatura anterior primeiro."
+                        }, status_code=400)
                 
                 # Delete previous inspection with same RA+plate (if exists)
                 # This prevents duplicate check-outs for the same vehicle+contract
