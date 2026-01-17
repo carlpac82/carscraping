@@ -552,19 +552,18 @@ async function showCarDiagramPreview(photoType) {
             }
         </style>
         
-        <div style="position: absolute; top: 40px; left: 0; right: 0; text-align: center; z-index: 10; height: 60px; display: flex; align-items: center; justify-content: center;">
-            <h2 style="color: white; font-size: 22px; margin: 0; font-weight: 600; line-height: 1.2;">${photo.label}</h2>
+        <div style="position: absolute; top: 40px; left: 0; right: 0; text-align: center; z-index: 10;">
+            <h2 style="color: white; font-size: 22px; margin: 0 0 10px 0; font-weight: 600; line-height: 1.2;">${photo.label}</h2>
+            <p style="color: #ff4757; font-size: 15px; margin: 0; font-weight: 500; max-width: 300px; margin: 0 auto;">${photo.instruction}</p>
         </div>
         
         <img id="previewCarImage" src="${imagePath}" alt="${photo.label}" style="max-width: 220px; width: 100%; height: auto; display: block; margin: 0 auto;">
         
-        <p style="color: #ff4757; font-size: 15px; margin: 30px 0 0 0; font-weight: 500; text-align: center; max-width: 300px;">${photo.instruction}</p>
-        
-        <!-- Countdown - position based on first image (Vista Traseira) -->
+        <!-- Countdown - centered horizontally after image -->
         <div id="previewCountdown" style="
             position: fixed;
             top: ${photoType === 'odometer' ? '75%' : '50.4%'};
-            left: 50.4%;
+            left: 50%;
             transform: translate(-50%, -50%);
             font-size: 43px;
             font-weight: bold;
@@ -578,7 +577,7 @@ async function showCarDiagramPreview(photoType) {
         <div id="countdownCircle" class="countdown-circle" style="
             position: fixed;
             top: ${photoType === 'odometer' ? '75%' : '50.4%'};
-            left: 50.4%;
+            left: 50%;
             transform: translate(-50%, -50%);
             width: 67px;
             height: 67px;
