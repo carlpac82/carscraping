@@ -149,8 +149,65 @@ const photoTypes = [
     {type: 'odometer', label: 'Odómetro / Painel de Instrumentos', instruction: 'Foto clara do conta-quilómetros/display da quilometragem', position: 9, image: 'Odometro.png'}
 ];
 
+// Update pickup button state based on delivery status
+function updatePickupButtonState() {
+    const pickupButton = document.getElementById('pickupButton');
+    const pickupIcon = document.getElementById('pickupIcon');
+    const pickupAnimation = document.getElementById('pickupAnimation');
+    const pickupText = document.getElementById('pickupText');
+    
+    if (!pickupButton) return;
+    
+    // Check if there's a delivery process
+    const hasDelivery = localStorage.getItem('processType') === 'delivery' && localStorage.getItem('inspectionPhotos');
+    
+    if (!hasDelivery) {
+        // Disable button
+        pickupButton.disabled = true;
+        pickupButton.classList.add('opacity-50', 'cursor-not-allowed');
+        
+        // Change icon to gray
+        if (pickupIcon) {
+            pickupIcon.setAttribute('fill', '#9ca3af'); // gray-400
+        }
+        
+        // Hide animation
+        if (pickupAnimation) {
+            pickupAnimation.style.display = 'none';
+        }
+        
+        // Change text color to gray
+        if (pickupText) {
+            pickupText.classList.remove('group-hover:text-green-500');
+            pickupText.classList.add('text-gray-400');
+        }
+    } else {
+        // Enable button
+        pickupButton.disabled = false;
+        pickupButton.classList.remove('opacity-50', 'cursor-not-allowed');
+        
+        // Change icon to white
+        if (pickupIcon) {
+            pickupIcon.setAttribute('fill', 'white');
+        }
+        
+        // Show animation
+        if (pickupAnimation) {
+            pickupAnimation.style.display = 'flex';
+        }
+        
+        // Restore text color
+        if (pickupText) {
+            pickupText.classList.add('group-hover:text-green-500');
+            pickupText.classList.remove('text-gray-400');
+        }
+    }
+}
+
 // Initialize on page load
 document.addEventListener('DOMContentLoaded', function() {
+    // Update pickup button state
+    updatePickupButtonState();
     // Auto-fill Rececionista from logged-in user
     let userName = 'Rececionista'; // fallback
     
