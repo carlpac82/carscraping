@@ -2238,9 +2238,9 @@ function continuePhotoProcessing(photoType, blob) {
             // Close current camera
             closeCamera();
             
-            // Open camera for next photo after short delay
+            // Show car diagram preview for next photo after short delay
             setTimeout(() => {
-                openCamera(nextPhotoType.type);
+                showCarDiagramPreview(nextPhotoType.type);
             }, 1800); // Wait for saving animation to finish
         }
     } else {
