@@ -958,11 +958,46 @@ function showPickupDiagramUI() {
     // 2. Modify croqui to allow adding new damages in red
     setupPickupCroquiMode();
     
-    // 3. Add pickup action buttons
+    // 3. Prefill kms and fuel from delivery
+    prefillPickupFieldsFromDelivery();
+    
+    // 4. Add pickup action buttons
     addPickupActionButtons();
     
-    // 4. Create and show delivery photos grid AFTER croqui
+    // 5. Create and show delivery photos grid AFTER croqui
     showDeliveryPhotosGrid();
+}
+
+// Prefill kms and fuel fields with delivery values
+function prefillPickupFieldsFromDelivery() {
+    console.log('📝 Prefilling pickup fields from delivery...');
+    
+    if (!window.deliveryInspection) {
+        console.log('⚠️ No delivery inspection data');
+        return;
+    }
+    
+    // Get delivery kms and fuel
+    const deliveryKms = window.deliveryInspection.odometer_reading || 0;
+    const deliveryFuel = window.deliveryInspection.fuel_level || 100;
+    
+    console.log(`📍 Delivery values - Kms: ${deliveryKms}, Fuel: ${deliveryFuel}`);
+    
+    // Set kms placeholder (not value, so user can see it's from delivery)
+    const odometerInput = document.getElementById('odometerReading');
+    if (odometerInput) {
+        odometerInput.placeholder = `${deliveryKms} (Entrega)`;
+        odometerInput.style.color = '#009cb6';
+        console.log(`✅ Kms placeholder set: ${deliveryKms}`);
+    }
+    
+    // Set fuel value
+    const fuelSlider = document.getElementById('fuelSlider');
+    if (fuelSlider) {
+        fuelSlider.value = deliveryFuel;
+        fuelSlider.dispatchEvent(new Event('input'));
+        console.log(`✅ Fuel set: ${deliveryFuel}`);
+    }
 }
 
 // Show grid of delivery photos (clickable to enlarge)
