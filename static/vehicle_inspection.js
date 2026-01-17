@@ -550,29 +550,6 @@ async function showCarDiagramPreview(photoType) {
             .countdown-circle {
                 animation: spin 2s linear infinite;
             }
-            @keyframes pulse-ring {
-                0% {
-                    transform: scale(0.8);
-                    opacity: 1;
-                }
-                50% {
-                    transform: scale(1.2);
-                    opacity: 0.5;
-                }
-                100% {
-                    transform: scale(0.8);
-                    opacity: 1;
-                }
-            }
-            .pulse-dot {
-                position: absolute;
-                width: 20px;
-                height: 20px;
-                border-radius: 50%;
-                background: rgba(255, 71, 87, 0.6);
-                animation: pulse-ring 2s ease-in-out infinite;
-                z-index: 1;
-            }
         </style>
         
         <div style="position: absolute; top: 20px; left: 0; right: 0; text-align: center; z-index: 10;">
@@ -581,19 +558,7 @@ async function showCarDiagramPreview(photoType) {
         </div>
         
         <div style="display: flex; flex-direction: column; justify-content: center; align-items: center; min-height: 100vh; padding: 70px 20px 20px 20px;">
-            <div style="position: relative; display: inline-block;">
-                <!-- Pulse dots around the car image -->
-                <div class="pulse-dot" style="top: -5px; left: 50%; transform: translateX(-50%);"></div>
-                <div class="pulse-dot" style="top: 50%; right: -5px; transform: translateY(-50%);"></div>
-                <div class="pulse-dot" style="bottom: -5px; left: 50%; transform: translateX(-50%);"></div>
-                <div class="pulse-dot" style="top: 50%; left: -5px; transform: translateY(-50%);"></div>
-                <div class="pulse-dot" style="top: 15%; right: 15%;"></div>
-                <div class="pulse-dot" style="top: 15%; left: 15%;"></div>
-                <div class="pulse-dot" style="bottom: 15%; right: 15%;"></div>
-                <div class="pulse-dot" style="bottom: 15%; left: 15%;"></div>
-                
-                <img id="previewCarImage" src="${imagePath}" alt="${photo.label}" style="max-width: 180px; width: 100%; height: auto; display: block; position: relative; z-index: 2;">
-            </div>
+            <img id="previewCarImage" src="${imagePath}" alt="${photo.label}" style="max-width: 180px; width: 100%; height: auto; display: block; margin: 0 auto;">
             
             <!-- Countdown - centered horizontally below image -->
             <div style="position: relative; width: 100%; text-align: center; margin-top: 40px;">
