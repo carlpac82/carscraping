@@ -1309,7 +1309,8 @@ function showDamageSideSelectionModal() {
         { id: 'back', label: 'Vista Traseira', image: 'Vista Traseira.png' },
         { id: 'back_right', label: 'Vista Traseira Direita', image: 'Vista Traseira direita.png' },
         { id: 'right', label: 'Vista Lateral Direita', image: 'Vista Lateral Direita.png' },
-        { id: 'front_right', label: 'Vista Frontal Direita', image: 'Vista Frontal Direita.png' }
+        { id: 'front_right', label: 'Vista Frontal Direita', image: 'Vista Frontal Direita.png' },
+        { id: 'odometer', label: 'Odómetro', image: 'Odometro.png' }
     ];
     
     let sidesHTML = '';
@@ -1318,8 +1319,8 @@ function showDamageSideSelectionModal() {
             <div onclick="selectDamageSide('${side.id}')" style="cursor: pointer; transition: transform 0.2s; text-align: center;" 
                  onmouseover="this.style.transform='scale(1.05)';" 
                  onmouseout="this.style.transform='scale(1)';">
-                <img src="/static/Inspecçao/${side.image}" alt="${side.label}" style="width: 100%; max-width: 280px; height: auto; object-fit: contain; display: block; margin: 0 auto 10px;">
-                <div style="color: white; font-weight: bold; font-size: 16px; text-shadow: 2px 2px 4px rgba(0,0,0,0.8);">
+                <img src="/static/Inspecçao/${side.image}" alt="${side.label}" style="width: 100%; height: auto; object-fit: contain; display: block; margin: 0 auto 8px;">
+                <div style="color: white; font-weight: bold; font-size: 14px; text-shadow: 2px 2px 4px rgba(0,0,0,0.8);">
                     ${side.label}
                 </div>
             </div>
@@ -1327,16 +1328,16 @@ function showDamageSideSelectionModal() {
     });
     
     const modalHTML = `
-        <div id="damageSideModal" style="position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.92); z-index: 10000; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 40px 20px; overflow-y: auto;">
-            <h2 style="color: #009cb6; font-size: 28px; font-weight: bold; margin-bottom: 40px; text-align: center; text-shadow: 2px 2px 4px rgba(0,0,0,0.5);">
+        <div id="damageSideModal" style="position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.92); z-index: 10000; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 20px 15px; overflow-y: auto;">
+            <h2 style="color: #009cb6; font-size: 22px; font-weight: bold; margin-bottom: 25px; text-align: center; text-shadow: 2px 2px 4px rgba(0,0,0,0.5);">
                 Registar Novo Dano
             </h2>
             
-            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 40px; max-width: 1200px; width: 100%; margin-bottom: 40px;">
+            <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; max-width: 900px; width: 100%; margin-bottom: 25px;">
                 ${sidesHTML}
             </div>
             
-            <button onclick="closeDamageSideModal()" style="padding: 15px 40px; background: rgba(108, 117, 125, 0.9); color: white; border: 2px solid white; border-radius: 8px; font-size: 18px; font-weight: bold; cursor: pointer; transition: background 0.2s;" 
+            <button onclick="closeDamageSideModal()" style="padding: 12px 30px; background: rgba(108, 117, 125, 0.9); color: white; border: 2px solid white; border-radius: 8px; font-size: 16px; font-weight: bold; cursor: pointer; transition: background 0.2s;" 
                     onmouseover="this.style.background='rgba(108, 117, 125, 1)';" 
                     onmouseout="this.style.background='rgba(108, 117, 125, 0.9)';">
                 Cancelar
