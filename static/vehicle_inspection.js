@@ -1385,7 +1385,7 @@ function captureDamagePhoto(side) {
 }
 
 // Open camera for damage photo
-function openCameraForDamage(photoType) {
+async function openCameraForDamage(photoType) {
     window.currentDamageSide = photoType;
     
     // Get reference photo from delivery photos
@@ -1397,6 +1397,10 @@ function openCameraForDamage(photoType) {
     const photoLabel = formatPhotoType(photoType);
     const photoInstruction = 'Mostre a frente e o lado do veículo';
     
+    // Show countdown first (like checkout)
+    await showDamageCountdown(photoType, photoLabel, photoInstruction);
+    
+    // After countdown, show camera modal
     const modalHTML = `
         <div id="damagePhotoModal" style="position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: #000; z-index: 10000; display: flex; flex-direction: column;">
             <video id="damageVideo" autoplay playsinline style="width: 100%; height: 100%; object-fit: cover; position: absolute; top: 0; left: 0;"></video>
@@ -1440,6 +1444,86 @@ function openCameraForDamage(photoType) {
     
     // Start camera
     startDamageCamera();
+}
+
+// Show countdown with 3D car miniature before opening camera (like checkout)
+function showDamageCountdown(photoType, photoLabel, photoInstruction) {
+    return new Promise((resolve) => {
+        const countdownHTML = `
+            <div id="damageCountdown" style="position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.95); z-index: 10001; display: flex; flex-direction: column; align-items: center; justify-content: center;">
+                <!-- Text at top -->
+                <div style="position: absolute; top: 50px; left: 0; right: 0; text-align: center;">
+                    <h3 style="font-size: 22px; font-weight: 600; color: white; margin-bottom: 8px; text-shadow: 0 2px 8px rgba(0,0,0,0.5);">${photoLabel}</h3>
+                    <p style="font-size: 14px; font-weight: 400; color: #dc3545; opacity: 0.9; text-shadow: 0 2px 8px rgba(0,0,0,0.5);">${photoInstruction}</p>
+                </div>
+                
+                <!-- 3D Car miniature in center -->
+                <div id="damage3DCar" style="width: 200px; height: 200px; margin-bottom: 30px;"></div>
+                
+                <!-- Countdown circle -->
+                <div style="text-align: center; position: relative;">
+                    <svg width="160" height="160" viewBox="0 0 160 160" style="transform: rotate(-90deg);">
+                        <circle cx="80" cy="80" r="70" fill="none" stroke="rgba(255,255,255,0.15)" stroke-width="10"/>
+                        <circle id="damageCountdownCircle" cx="80" cy="80" r="70" fill="none" stroke="#dc3545" stroke-width="10" 
+                            stroke-dasharray="440" stroke-dashoffset="0" 
+                            style="transition: stroke-dashoffset 1s linear;"/>
+                    </svg>
+                    <div id="damageCountdownNumber" style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); font-size: 72px; font-weight: 800; color: white; text-shadow: 0 4px 12px rgba(0,0,0,0.5);">3</div>
+                </div>
+            </div>
+        `;
+        
+        document.body.insertAdjacentHTML('beforeend', countdownHTML);
+        
+        // Initialize 3D car miniature
+        init3DCarForDamage(photoType);
+        
+        // Countdown animation
+        let count = 3;
+        const circle = document.getElementById('damageCountdownCircle');
+        const numberEl = document.getElementById('damageCountdownNumber');
+        const circumference = 440;
+        
+        const interval = setInterval(() => {
+            count--;
+            const progress = count / 3;
+            circle.style.strokeDashoffset = circumference * (1 - progress);
+            
+            if (count > 0) {
+                numberEl.textContent = count;
+            } else {
+                clearInterval(interval);
+                const countdown = document.getElementById('damageCountdown');
+                if (countdown) countdown.remove();
+                resolve();
+            }
+        }, 1000);
+    });
+}
+
+// Initialize 3D car for damage countdown
+function init3DCarForDamage(photoType) {
+    const container = document.getElementById('damage3DCar');
+    if (!container) return;
+    
+    // Simple 3D car representation (reuse existing logic)
+    const carHTML = `
+        <div style="width: 100%; height: 100%; display: flex; align-items: center; justify-content: center;">
+            <div style="position: relative; width: 120px; height: 180px;">
+                <!-- Car body -->
+                <div style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); width: 100px; height: 160px; background: linear-gradient(135deg, #dc3545 0%, #c82333 100%); border-radius: 20px 20px 10px 10px; box-shadow: 0 10px 30px rgba(220,53,69,0.4);"></div>
+                <!-- Windows -->
+                <div style="position: absolute; top: 30%; left: 50%; transform: translate(-50%, -50%); width: 70px; height: 50px; background: rgba(255,255,255,0.2); border-radius: 10px 10px 0 0;"></div>
+                <!-- Wheels -->
+                <div style="position: absolute; top: 25%; left: 5px; width: 20px; height: 20px; background: #333; border-radius: 50%; box-shadow: 0 2px 8px rgba(0,0,0,0.5);"></div>
+                <div style="position: absolute; top: 25%; right: 5px; width: 20px; height: 20px; background: #333; border-radius: 50%; box-shadow: 0 2px 8px rgba(0,0,0,0.5);"></div>
+                <div style="position: absolute; bottom: 25%; left: 5px; width: 20px; height: 20px; background: #333; border-radius: 50%; box-shadow: 0 2px 8px rgba(0,0,0,0.5);"></div>
+                <div style="position: absolute; bottom: 25%; right: 5px; width: 20px; height: 20px; background: #333; border-radius: 50%; box-shadow: 0 2px 8px rgba(0,0,0,0.5);"></div>
+            </div>
+        </div>
+    `;
+    
+    container.innerHTML = carHTML;
 }
 
 // Start camera for damage photo
