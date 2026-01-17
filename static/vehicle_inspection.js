@@ -702,21 +702,128 @@ function startPickup() {
 
 // Show modal to update kms and fuel for pickup
 function showPickupUpdateModal() {
-    // TODO: Implement modal to update kms and fuel
-    // For now, just start the pickup process
     showNotification('Iniciando processo de RECOLHA! Carregando dados da entrega...', 'info');
     
-    // Load delivery data
-    const deliveryPhotos = localStorage.getItem('inspectionPhotos');
-    if (deliveryPhotos) {
-        inspectionData.photos = JSON.parse(deliveryPhotos);
+    // Get current values from form
+    const currentKm = document.getElementById('odometerReading')?.value || '';
+    const currentFuel = document.getElementById('fuelLevel')?.value || '100';
+    
+    // Create modal HTML
+    const modalHTML = `
+        <div id="pickupUpdateModal" style="position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.8); z-index: 10000; display: flex; align-items: center; justify-content: center;">
+            <div style="background: white; padding: 30px; border-radius: 15px; max-width: 500px; width: 90%;">
+                <h2 style="color: #009cb6; font-size: 24px; font-weight: bold; margin-bottom: 20px; text-align: center;">
+                    🚗 Atualizar Dados de Recolha
+                </h2>
+                <p style="color: #666; margin-bottom: 20px; text-align: center;">
+                    Insira os quilómetros e combustível finais da viatura
+                </p>
+                
+                <div style="margin-bottom: 20px;">
+                    <label style="display: block; color: #009cb6; font-weight: bold; margin-bottom: 8px;">
+                        Quilómetros Finais:
+                    </label>
+                    <input type="number" id="pickupKm" value="${currentKm}" 
+                           style="width: 100%; padding: 12px; border: 2px solid #009cb6; border-radius: 8px; font-size: 16px;"
+                           placeholder="Ex: 51500">
+                </div>
+                
+                <div style="margin-bottom: 30px;">
+                    <label style="display: block; color: #009cb6; font-weight: bold; margin-bottom: 8px;">
+                        Combustível Final (%):
+                    </label>
+                    <select id="pickupFuel" 
+                            style="width: 100%; padding: 12px; border: 2px solid #009cb6; border-radius: 8px; font-size: 16px;">
+                        <option value="0" ${currentFuel == '0' ? 'selected' : ''}>Vazio (E)</option>
+                        <option value="12.5" ${currentFuel == '12.5' ? 'selected' : ''}>1/8</option>
+                        <option value="25" ${currentFuel == '25' ? 'selected' : ''}>1/4</option>
+                        <option value="37.5" ${currentFuel == '37.5' ? 'selected' : ''}>3/8</option>
+                        <option value="50" ${currentFuel == '50' ? 'selected' : ''}>1/2</option>
+                        <option value="62.5" ${currentFuel == '62.5' ? 'selected' : ''}>5/8</option>
+                        <option value="75" ${currentFuel == '75' ? 'selected' : ''}>3/4</option>
+                        <option value="87.5" ${currentFuel == '87.5' ? 'selected' : ''}>7/8</option>
+                        <option value="100" ${currentFuel == '100' ? 'selected' : ''}>Cheio (F)</option>
+                    </select>
+                </div>
+                
+                <div style="display: flex; gap: 10px;">
+                    <button onclick="cancelPickupUpdate()" 
+                            style="flex: 1; padding: 15px; background: #dc3545; color: white; border: none; border-radius: 8px; font-size: 16px; font-weight: bold; cursor: pointer;">
+                        Cancelar
+                    </button>
+                    <button onclick="confirmPickupUpdate()" 
+                            style="flex: 1; padding: 15px; background: #28a745; color: white; border: none; border-radius: 8px; font-size: 16px; font-weight: bold; cursor: pointer;">
+                        Continuar
+                    </button>
+                </div>
+            </div>
+        </div>
+    `;
+    
+    // Add modal to page
+    document.body.insertAdjacentHTML('beforeend', modalHTML);
+    
+    // Focus on km input
+    setTimeout(() => {
+        document.getElementById('pickupKm')?.focus();
+    }, 100);
+}
+
+// Cancel pickup update
+function cancelPickupUpdate() {
+    const modal = document.getElementById('pickupUpdateModal');
+    if (modal) {
+        modal.remove();
+    }
+    showNotification('Recolha cancelada', 'info');
+}
+
+// Confirm pickup update and start photo sequence
+function confirmPickupUpdate() {
+    const km = document.getElementById('pickupKm')?.value;
+    const fuel = document.getElementById('pickupFuel')?.value;
+    
+    if (!km || km <= 0) {
+        alert('Por favor, insira os quilómetros finais');
+        document.getElementById('pickupKm')?.focus();
+        return;
     }
     
-    // TODO: Show damage diagram with existing damages
-    // TODO: Allow adding new damages in red
-    // TODO: Option to add damage photos or do full inspection
+    // Update form fields
+    document.getElementById('odometerReading').value = km;
+    document.getElementById('fuelLevel').value = fuel;
     
-    showNotification('Funcionalidade de RECOLHA em desenvolvimento...', 'info');
+    // Update display
+    const fuelText = {
+        '0': 'Vazio (E)',
+        '12.5': '1/8',
+        '25': '1/4',
+        '37.5': '3/8',
+        '50': '1/2',
+        '62.5': '5/8',
+        '75': '3/4',
+        '87.5': '7/8',
+        '100': 'Cheio (F)'
+    };
+    document.getElementById('fuelDisplay').textContent = `${fuel}% - ${fuelText[fuel] || fuel + '%'}`;
+    
+    // Close modal
+    const modal = document.getElementById('pickupUpdateModal');
+    if (modal) {
+        modal.remove();
+    }
+    
+    // Start photo sequence for pickup
+    showNotification('Dados atualizados! Iniciando captura de fotos...', 'success');
+    
+    // Set auto sequence mode
+    autoSequenceMode = true;
+    currentPhotoIndex = 0;
+    
+    // Start with first photo
+    setTimeout(() => {
+        capturePhotoSequence(0);
+    }, 1000);
 }
 
 // Auto Sequence Mode (legacy - now called by startDelivery)
