@@ -840,7 +840,7 @@ function cancelPickupUpdate() {
     showNotification('Recolha cancelada', 'info');
 }
 
-// Confirm pickup update and start photo sequence
+// Confirm pickup update and load delivery data
 function confirmPickupUpdate() {
     const km = document.getElementById('pickupKm')?.value;
     const fuel = document.getElementById('pickupFuelSlider')?.value;
@@ -871,17 +871,62 @@ function confirmPickupUpdate() {
         modal.remove();
     }
     
-    // Start photo sequence for pickup
-    showNotification('Dados atualizados! Iniciando captura de fotos...', 'success');
+    // Load delivery (check-out) data and show croqui with damages
+    showNotification('Carregando dados do check-out...', 'info');
+    loadDeliveryDataAndShowCroqui();
+}
+
+// Load delivery (check-out) data and show croqui with damages
+async function loadDeliveryDataAndShowCroqui() {
+    const plate = document.getElementById('inputPlate')?.value?.trim();
+    const ra = document.getElementById('inputRA')?.value?.trim();
     
-    // Set auto sequence mode
-    autoSequenceMode = true;
-    currentPhotoIndex = 0;
+    if (!plate || !ra) {
+        showNotification('Matrícula e RA são obrigatórios', 'error');
+        return;
+    }
     
-    // Start with first photo
-    setTimeout(() => {
-        capturePhotoSequence(0);
-    }, 1000);
+    try {
+        // Fetch delivery inspection data from backend
+        const response = await fetch(`/api/get_inspection?plate=${encodeURIComponent(plate)}&ra=${encodeURIComponent(ra)}&type=checkout`);
+        
+        if (!response.ok) {
+            throw new Error('Erro ao buscar dados do check-out');
+        }
+        
+        const data = await response.json();
+        
+        if (!data.success || !data.inspection) {
+            showNotification('Não foi encontrado check-out para esta viatura', 'error');
+            return;
+        }
+        
+        // Store delivery data
+        window.deliveryInspection = data.inspection;
+        window.deliveryPhotos = data.photos || [];
+        window.deliveryDamages = data.damages || [];
+        
+        // Store delivery photos in inspectionData for reference
+        if (data.photos && data.photos.length > 0) {
+            data.photos.forEach(photo => {
+                if (photo.photo_type && photo.image_data) {
+                    inspectionData.photos[photo.photo_type] = photo.image_data;
+                }
+            });
+        }
+        
+        // Navigate to damage diagram step
+        showNotification('Dados do check-out carregados! Mostrando croqui...', 'success');
+        
+        // Skip to damage diagram
+        setTimeout(() => {
+            showDamageStep();
+        }, 500);
+        
+    } catch (error) {
+        console.error('Error loading delivery data:', error);
+        showNotification('Erro ao carregar dados do check-out: ' + error.message, 'error');
+    }
 }
 
 // Auto Sequence Mode (legacy - now called by startDelivery)

@@ -28683,6 +28683,217 @@ async def inspection_history_page(request: Request):
     })
 
 
+@app.get("/api/get_inspection")
+async def get_inspection(request: Request, plate: str, ra: str, type: str = 'checkout'):
+    """Get inspection data (photos and damages) for pickup process"""
+    try:
+        require_inspection_access(request)
+    except HTTPException:
+        return JSONResponse({"success": False, "error": "Unauthorized"}, status_code=403)
+    
+    try:
+        conn = get_db_connection()
+        
+        # Check if PostgreSQL or SQLite
+        is_postgres = False
+        try:
+            import psycopg2
+            is_postgres = isinstance(conn, psycopg2.extensions.connection)
+        except:
+            pass
+        
+        if is_postgres:
+            cursor = conn.cursor()
+            
+            # Get inspection
+            cursor.execute("""
+                SELECT id, inspection_number, inspection_type, vehicle_plate, vehicle_id,
+                       contract_number, inspector_name, inspector_notes, has_damage,
+                       damage_count, damage_severity, odometer_reading, fuel_level,
+                       status, photo_count, created_at
+                FROM vehicle_inspections
+                WHERE UPPER(vehicle_plate) = UPPER(%s)
+                  AND contract_number = %s
+                  AND inspection_type = %s
+                ORDER BY created_at DESC
+                LIMIT 1
+            """, (plate, ra, type))
+            
+            inspection_row = cursor.fetchone()
+            
+            if not inspection_row:
+                return JSONResponse({
+                    "success": False,
+                    "error": f"No {type} inspection found for plate {plate} and RA {ra}"
+                })
+            
+            inspection = {
+                "id": inspection_row[0],
+                "inspection_number": inspection_row[1],
+                "inspection_type": inspection_row[2],
+                "vehicle_plate": inspection_row[3],
+                "vehicle_id": inspection_row[4],
+                "contract_number": inspection_row[5],
+                "inspector_name": inspection_row[6],
+                "inspector_notes": inspection_row[7],
+                "has_damage": inspection_row[8],
+                "damage_count": inspection_row[9],
+                "damage_severity": inspection_row[10],
+                "odometer_reading": inspection_row[11],
+                "fuel_level": inspection_row[12],
+                "status": inspection_row[13],
+                "photo_count": inspection_row[14],
+                "created_at": str(inspection_row[15])
+            }
+            
+            inspection_id = inspection_row[0]
+            
+            # Get photos
+            cursor.execute("""
+                SELECT id, photo_type, photo_order, image_data, image_filename,
+                       ai_analyzed, ai_has_damage, created_at
+                FROM inspection_photos
+                WHERE inspection_id = %s
+                ORDER BY photo_order
+            """, (inspection_id,))
+            
+            photos = []
+            for photo_row in cursor.fetchall():
+                import base64
+                image_data = photo_row[3]
+                if image_data:
+                    # Convert bytes to base64 string
+                    if isinstance(image_data, bytes):
+                        image_base64 = base64.b64encode(image_data).decode('utf-8')
+                        image_data_url = f"data:image/jpeg;base64,{image_base64}"
+                    else:
+                        image_data_url = image_data
+                    
+                    photos.append({
+                        "id": photo_row[0],
+                        "photo_type": photo_row[1],
+                        "photo_order": photo_row[2],
+                        "image_data": image_data_url,
+                        "image_filename": photo_row[4],
+                        "ai_analyzed": photo_row[5],
+                        "ai_has_damage": photo_row[6],
+                        "created_at": str(photo_row[7])
+                    })
+            
+            # Get damages (from damage croqui if exists)
+            damages = []
+            # TODO: Parse damage croqui data if needed
+            
+            conn.close()
+            
+            return JSONResponse({
+                "success": True,
+                "inspection": inspection,
+                "photos": photos,
+                "damages": damages
+            })
+            
+        else:
+            # SQLite
+            cursor = conn.cursor()
+            
+            # Get inspection
+            cursor.execute("""
+                SELECT id, inspection_number, inspection_type, vehicle_plate, vehicle_id,
+                       contract_number, inspector_name, inspector_notes, has_damage,
+                       damage_count, damage_severity, odometer_reading, fuel_level,
+                       status, photo_count, created_at
+                FROM vehicle_inspections
+                WHERE UPPER(vehicle_plate) = UPPER(?)
+                  AND contract_number = ?
+                  AND inspection_type = ?
+                ORDER BY created_at DESC
+                LIMIT 1
+            """, (plate, ra, type))
+            
+            inspection_row = cursor.fetchone()
+            
+            if not inspection_row:
+                return JSONResponse({
+                    "success": False,
+                    "error": f"No {type} inspection found for plate {plate} and RA {ra}"
+                })
+            
+            inspection = {
+                "id": inspection_row[0],
+                "inspection_number": inspection_row[1],
+                "inspection_type": inspection_row[2],
+                "vehicle_plate": inspection_row[3],
+                "vehicle_id": inspection_row[4],
+                "contract_number": inspection_row[5],
+                "inspector_name": inspection_row[6],
+                "inspector_notes": inspection_row[7],
+                "has_damage": inspection_row[8],
+                "damage_count": inspection_row[9],
+                "damage_severity": inspection_row[10],
+                "odometer_reading": inspection_row[11],
+                "fuel_level": inspection_row[12],
+                "status": inspection_row[13],
+                "photo_count": inspection_row[14],
+                "created_at": str(inspection_row[15])
+            }
+            
+            inspection_id = inspection_row[0]
+            
+            # Get photos
+            cursor.execute("""
+                SELECT id, photo_type, photo_order, image_data, image_filename,
+                       ai_analyzed, ai_has_damage, created_at
+                FROM inspection_photos
+                WHERE inspection_id = ?
+                ORDER BY photo_order
+            """, (inspection_id,))
+            
+            photos = []
+            for photo_row in cursor.fetchall():
+                import base64
+                image_data = photo_row[3]
+                if image_data:
+                    # Convert bytes to base64 string
+                    if isinstance(image_data, bytes):
+                        image_base64 = base64.b64encode(image_data).decode('utf-8')
+                        image_data_url = f"data:image/jpeg;base64,{image_base64}"
+                    else:
+                        image_data_url = image_data
+                    
+                    photos.append({
+                        "id": photo_row[0],
+                        "photo_type": photo_row[1],
+                        "photo_order": photo_row[2],
+                        "image_data": image_data_url,
+                        "image_filename": photo_row[4],
+                        "ai_analyzed": photo_row[5],
+                        "ai_has_damage": photo_row[6],
+                        "created_at": str(photo_row[7])
+                    })
+            
+            # Get damages
+            damages = []
+            
+            conn.close()
+            
+            return JSONResponse({
+                "success": True,
+                "inspection": inspection,
+                "photos": photos,
+                "damages": damages
+            })
+    
+    except Exception as e:
+        logging.error(f"Error getting inspection: {e}")
+        import traceback
+        traceback.print_exc()
+        return JSONResponse({
+            "success": False,
+            "error": str(e)
+        }, status_code=500)
+
+
 @app.post("/api/inspections/{inspection_number}/email")
 async def send_inspection_email(request: Request, inspection_number: str):
     """Send inspection by email"""
