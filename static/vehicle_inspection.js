@@ -3070,6 +3070,9 @@ function savePickupDamagePhoto(blob, photoType) {
         // Update photo grid
         updatePickupDamagePhotosGrid();
         
+        // Update delivery photos grid to show damage photos
+        updateDeliveryPhotosGridWithDamages();
+        
         // Continue with next damage side if needed
         continuePickupDamageFlow();
     };
