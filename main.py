@@ -28683,6 +28683,11 @@ async def inspection_history_page(request: Request):
     })
 
 
+@app.get("/api/test_endpoint")
+async def test_endpoint():
+    """Test endpoint to verify routing works"""
+    return JSONResponse({"success": True, "message": "Endpoint is working!"})
+
 @app.get("/api/get_inspection")
 async def get_inspection(request: Request, plate: str, ra: str, type: str = 'checkout'):
     """Get inspection data (photos and damages) for pickup process"""
