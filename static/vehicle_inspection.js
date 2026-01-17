@@ -616,12 +616,17 @@ async function showCarDiagramPreview(photoType) {
         };
     }
     
-    // Check if we already have camera permission
-    if (window.pendingCameraStream || cameraStream) {
+    // Check if we already have camera permission/stream
+    if (window.savedCameraStream || window.pendingCameraStream || cameraStream) {
         // Already have permission, hide message and start countdown immediately
         console.log('✅ Camera permission already granted');
         const permMsg = document.getElementById('cameraPermissionMsg');
         if (permMsg) permMsg.style.display = 'none';
+        
+        // Reuse existing stream if available
+        if (window.savedCameraStream && window.savedCameraStream.active) {
+            window.pendingCameraStream = window.savedCameraStream;
+        }
         
         setTimeout(() => {
             startPreviewCountdown(photoType);
@@ -638,7 +643,8 @@ async function showCarDiagramPreview(photoType) {
                 }
             });
             
-            // Store stream for later use
+            // Store stream globally for reuse
+            window.savedCameraStream = stream;
             window.pendingCameraStream = stream;
             
             // Hide permission message
@@ -2187,27 +2193,8 @@ function continuePhotoProcessing(photoType, blob) {
             if (overlay) overlay.style.display = 'block';
             
             // Hide camera buttons before restarting countdown
-            const cameraButtons = document.getElementById('cameraButtons');
-            if (cameraButtons) {
-                cameraButtons.style.display = 'none';
-                console.log('🔒 Camera buttons hidden for next photo');
-            }
-            
-            // Update camera title and instruction for next photo
-            const nextPhotoType = photoTypes.find(pt => !inspectionData.photos[pt.type]);
-            if (nextPhotoType) {
-                currentPhotoType = nextPhotoType.type;
-                const titleEl = document.getElementById('cameraTitle');
-                const instructionEl = document.getElementById('cameraInstruction');
-                if (titleEl) titleEl.textContent = nextPhotoType.label;
-                if (instructionEl) instructionEl.textContent = nextPhotoType.instruction;
-                setupCameraOverlay(nextPhotoType.type);
-            }
-            
-            // Restart countdown
-            startCameraCountdown();
-            
-            console.log('✅ Camera restarted for next photo:', nextPhotoType?.type);
+            // Camera will be closed and reopened with preview modal
+            console.log('✅ Camera will be closed for next photo');
         }).catch(err => {
             console.error('Error restarting camera:', err);
             showNotification('Erro ao reiniciar a câmera', 'error');
