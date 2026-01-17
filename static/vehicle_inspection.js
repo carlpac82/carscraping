@@ -1319,25 +1319,25 @@ function showDamageSideSelectionModal() {
             <div onclick="selectDamageSide('${side.id}')" style="position: relative; cursor: pointer; transition: transform 0.2s; text-align: center;" 
                  onmouseover="this.style.transform='scale(1.05)';" 
                  onmouseout="this.style.transform='scale(1)';">
-                <div style="color: #009cb6; font-weight: bold; font-size: 10px; margin-bottom: 3px; text-shadow: 1px 1px 3px rgba(0,0,0,0.9);">
+                <div style="color: #009cb6; font-weight: bold; font-size: 9px; margin-bottom: 2px; text-shadow: 1px 1px 3px rgba(0,0,0,0.9);">
                     ${side.label}
                 </div>
-                <img src="/static/Inspecçao/${side.image}" alt="${side.label}" style="width: 100%; max-width: 100px; height: auto; object-fit: contain; display: block; margin: 0 auto; border-radius: 6px;">
+                <img src="/static/Inspecçao/${side.image}" alt="${side.label}" style="width: 100%; max-width: 70px; height: auto; object-fit: contain; display: block; margin: 0 auto; border-radius: 4px;">
             </div>
         `;
     });
     
     const modalHTML = `
-        <div id="damageSideModal" style="position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.92); z-index: 10000; display: flex; flex-direction: column; align-items: center; justify-content: flex-start; padding: 10px 8px; overflow-y: auto;">
-            <h2 style="color: #009cb6; font-size: 18px; font-weight: bold; margin-bottom: 12px; text-align: center; text-shadow: 2px 2px 4px rgba(0,0,0,0.5);">
+        <div id="damageSideModal" style="position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.92); z-index: 10000; display: flex; flex-direction: column; align-items: center; justify-content: flex-start; padding: 8px 6px; overflow-y: auto;">
+            <h2 style="color: #009cb6; font-size: 16px; font-weight: bold; margin-bottom: 8px; text-align: center; text-shadow: 2px 2px 4px rgba(0,0,0,0.5);">
                 Registar Novo Dano
             </h2>
             
-            <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; max-width: 100%; width: 100%; margin-bottom: 12px;">
+            <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; max-width: 100%; width: 100%; margin-bottom: 10px;">
                 ${sidesHTML}
             </div>
             
-            <button onclick="closeDamageSideModal()" style="padding: 8px 20px; background: rgba(108, 117, 125, 0.9); color: white; border: 2px solid white; border-radius: 6px; font-size: 13px; font-weight: bold; cursor: pointer; transition: background 0.2s;" 
+            <button onclick="closeDamageSideModal()" style="padding: 6px 18px; background: rgba(108, 117, 125, 0.9); color: white; border: 2px solid white; border-radius: 6px; font-size: 12px; font-weight: bold; cursor: pointer; transition: background 0.2s;" 
                     onmouseover="this.style.background='rgba(108, 117, 125, 1)';" 
                     onmouseout="this.style.background='rgba(108, 117, 125, 0.9)';">
                 Cancelar
