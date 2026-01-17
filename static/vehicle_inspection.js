@@ -2290,6 +2290,13 @@ function startCameraCountdown() {
         window.countdownInterval = null;
     }
     
+    // Make sure car miniature is visible during countdown
+    const carMiniature = document.getElementById('carMiniature');
+    if (carMiniature) {
+        carMiniature.style.display = 'block';
+        carMiniature.style.zIndex = '100000'; // Above countdown overlay
+    }
+    
     // Hide camera buttons during countdown
     const cameraButtons = document.getElementById('cameraButtons');
     if (cameraButtons) {
