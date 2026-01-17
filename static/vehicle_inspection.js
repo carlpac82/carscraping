@@ -3162,30 +3162,30 @@ function showAddMoreDamagesModal() {
                 <button onclick="addMoreDamages()" style="
                     flex: 1;
                     padding: 14px 24px;
-                    background: rgba(255, 152, 0, 0.15);
-                    color: #ff9800;
-                    border: 1px solid rgba(255, 152, 0, 0.3);
+                    background: #ff9800;
+                    color: white;
+                    border: none;
                     border-radius: 8px;
                     font-size: 15px;
                     font-weight: 600;
                     cursor: pointer;
                     transition: all 0.2s;
-                " onmouseover="this.style.background='rgba(255, 152, 0, 0.25)'; this.style.borderColor='rgba(255, 152, 0, 0.5)'" onmouseout="this.style.background='rgba(255, 152, 0, 0.15)'; this.style.borderColor='rgba(255, 152, 0, 0.3)'">
+                " onmouseover="this.style.background='#f57c00'" onmouseout="this.style.background='#ff9800'">
                     Adicionar Mais
                 </button>
                 
                 <button onclick="finishDamageRegistration()" style="
                     flex: 1;
                     padding: 14px 24px;
-                    background: rgba(40, 167, 69, 0.15);
-                    color: #28a745;
-                    border: 1px solid rgba(40, 167, 69, 0.3);
+                    background: #28a745;
+                    color: white;
+                    border: none;
                     border-radius: 8px;
                     font-size: 15px;
                     font-weight: 600;
                     cursor: pointer;
                     transition: all 0.2s;
-                " onmouseover="this.style.background='rgba(40, 167, 69, 0.25)'; this.style.borderColor='rgba(40, 167, 69, 0.5)'" onmouseout="this.style.background='rgba(40, 167, 69, 0.15)'; this.style.borderColor='rgba(40, 167, 69, 0.3)'">
+                " onmouseover="this.style.background='#218838'" onmouseout="this.style.background='#28a745'">
                     Terminar
                 </button>
             </div>
