@@ -3165,6 +3165,21 @@ function showAddMoreDamagesModal() {
                 <button onclick="addMoreDamages()" style="
                     flex: 1;
                     padding: 14px 24px;
+                    background: #009cb6;
+                    color: white;
+                    border: none;
+                    border-radius: 8px;
+                    font-size: 15px;
+                    font-weight: 600;
+                    cursor: pointer;
+                    transition: all 0.2s;
+                " onmouseover="this.style.background='#007a8f'" onmouseout="this.style.background='#009cb6'">
+                    Adicionar Mais
+                </button>
+                
+                <button onclick="finishDamageRegistration()" style="
+                    flex: 1;
+                    padding: 14px 24px;
                     background: #ff9800;
                     color: white;
                     border: none;
@@ -3174,21 +3189,6 @@ function showAddMoreDamagesModal() {
                     cursor: pointer;
                     transition: all 0.2s;
                 " onmouseover="this.style.background='#f57c00'" onmouseout="this.style.background='#ff9800'">
-                    Adicionar Mais
-                </button>
-                
-                <button onclick="finishDamageRegistration()" style="
-                    flex: 1;
-                    padding: 14px 24px;
-                    background: #28a745;
-                    color: white;
-                    border: none;
-                    border-radius: 8px;
-                    font-size: 15px;
-                    font-weight: 600;
-                    cursor: pointer;
-                    transition: all 0.2s;
-                " onmouseover="this.style.background='#218838'" onmouseout="this.style.background='#28a745'">
                     Terminar
                 </button>
             </div>
