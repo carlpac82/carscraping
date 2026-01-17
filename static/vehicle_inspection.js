@@ -564,7 +564,7 @@ async function showCarDiagramPreview(photoType) {
         <div id="previewCountdown" style="
             position: fixed;
             top: ${photoType === 'odometer' ? '75%' : '50.4%'};
-            left: 50.5%;
+            left: 50.4%;
             transform: translate(-50%, -50%);
             font-size: 43px;
             font-weight: bold;
@@ -578,7 +578,7 @@ async function showCarDiagramPreview(photoType) {
         <div id="countdownCircle" class="countdown-circle" style="
             position: fixed;
             top: ${photoType === 'odometer' ? '75%' : '50.4%'};
-            left: 50.5%;
+            left: 50.4%;
             transform: translate(-50%, -50%);
             width: 67px;
             height: 67px;
