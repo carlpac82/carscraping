@@ -1432,7 +1432,7 @@ async function openCameraForDamage(photoType) {
             </div>
             
             <!-- Car Diagram Miniature - Top Right (EXACTLY like checkout) -->
-            <div style="position: fixed; top: 20px; right: 20px; width: 100px; height: 100px; z-index: 9999; display: block;">
+            <div id="damageCarMiniature" style="position: fixed; top: 20px; right: 20px; width: 100px; height: 100px; z-index: 9999; display: block;">
                 <img src="${imageUrl}" alt="${photoLabel}" style="width: 100%; height: 100%; object-fit: contain; filter: drop-shadow(0 4px 10px rgba(0,0,0,0.5));">
             </div>
             
@@ -1459,6 +1459,17 @@ function showDamageCountdown(photoType, photoLabel, photoInstruction) {
         // Get the reference image for this photo type
         const photo = photoTypes.find(p => p.type === photoType);
         const imageUrl = photo ? `/static/Inspecçao/${photo.image}` : '';
+        
+        // Show car miniature BEFORE countdown (EXACTLY like checkout)
+        const miniature = document.getElementById('damageCarMiniature');
+        if (miniature) {
+            const miniatureImg = miniature.querySelector('img');
+            if (miniatureImg) {
+                miniatureImg.src = imageUrl;
+                miniatureImg.alt = photoLabel;
+            }
+            miniature.style.display = 'block';
+        }
         
         // Create countdown overlay - EXACTLY like checkout
         const countdownOverlay = document.createElement('div');
