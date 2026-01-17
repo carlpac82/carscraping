@@ -28703,13 +28703,8 @@ async def get_inspection(request: Request, plate: str, ra: str, type: str = 'che
         logging.info("📊 Connecting to database...")
         conn = _db_connect()
         
-        # Check if PostgreSQL or SQLite
-        is_postgres = False
-        try:
-            import psycopg2
-            is_postgres = isinstance(conn, psycopg2.extensions.connection)
-        except:
-            pass
+        # Check if PostgreSQL or SQLite using global flag
+        is_postgres = _USE_NEW_DB
         
         if is_postgres:
             cursor = conn.cursor()
