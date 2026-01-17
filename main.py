@@ -28766,8 +28766,11 @@ async def get_inspection(request: Request, plate: str, ra: str, type: str = 'che
                 import base64
                 image_data = photo_row[3]
                 if image_data:
-                    # Convert bytes to base64 string
-                    if isinstance(image_data, bytes):
+                    # Convert bytes/memoryview to base64 string
+                    if isinstance(image_data, (bytes, memoryview)):
+                        # Convert memoryview to bytes if needed
+                        if isinstance(image_data, memoryview):
+                            image_data = image_data.tobytes()
                         image_base64 = base64.b64encode(image_data).decode('utf-8')
                         image_data_url = f"data:image/jpeg;base64,{image_base64}"
                     else:
@@ -28858,8 +28861,11 @@ async def get_inspection(request: Request, plate: str, ra: str, type: str = 'che
                 import base64
                 image_data = photo_row[3]
                 if image_data:
-                    # Convert bytes to base64 string
-                    if isinstance(image_data, bytes):
+                    # Convert bytes/memoryview to base64 string
+                    if isinstance(image_data, (bytes, memoryview)):
+                        # Convert memoryview to bytes if needed
+                        if isinstance(image_data, memoryview):
+                            image_data = image_data.tobytes()
                         image_base64 = base64.b64encode(image_data).decode('utf-8')
                         image_data_url = f"data:image/jpeg;base64,{image_base64}"
                     else:
