@@ -190,12 +190,12 @@ function updatePickupButtonState() {
         
         // Change icon to gray
         if (pickupIcon) {
-            pickupIcon.setAttribute('fill', '#9ca3af'); // gray-400
+            pickupIcon.setAttribute('fill', '#6c757d'); // gray color
         }
         
         // Hide animation
         if (pickupAnimation) {
-            pickupAnimation.style.display = 'none';
+            pickupAnimation.classList.add('hidden');
         }
         
         // Change text color to gray
@@ -210,14 +210,14 @@ function updatePickupButtonState() {
         pickupButton.disabled = false;
         pickupButton.classList.remove('opacity-50', 'cursor-not-allowed');
         
-        // Change icon to white
+        // Change icon to GREEN
         if (pickupIcon) {
-            pickupIcon.setAttribute('fill', 'white');
+            pickupIcon.setAttribute('fill', '#28a745'); // Green color
         }
         
         // Show animation
         if (pickupAnimation) {
-            pickupAnimation.style.display = 'flex';
+            pickupAnimation.classList.remove('hidden');
         }
         
         // Restore text color
