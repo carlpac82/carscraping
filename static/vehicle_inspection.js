@@ -696,8 +696,9 @@ function startPickup() {
     // Set process type to pickup
     localStorage.setItem('processType', 'pickup');
     
-    // Show modal to update kms and fuel
-    showPickupUpdateModal();
+    // Go directly to croqui with delivery data
+    showNotification('Carregando dados do check-out...', 'info');
+    loadDeliveryDataAndShowCroqui();
 }
 
 // Show modal to update kms and fuel for pickup
