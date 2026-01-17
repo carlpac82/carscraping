@@ -558,7 +558,7 @@ async function showCarDiagramPreview(photoType) {
         
         <img id="previewCarImage" src="${imagePath}" alt="${photo.label}" style="max-width: 220px; width: 100%; height: auto; display: block; margin: 0 auto;">
         
-        <p style="color: #ff4757; font-size: 15px; margin: 20px 0 0 0; font-weight: 500; text-align: center; max-width: 300px;">${photo.instruction}</p>
+        <p style="color: #ff4757; font-size: 15px; margin: 30px 0 0 0; font-weight: 500; text-align: center; max-width: 300px;">${photo.instruction}</p>
         
         <!-- Countdown - position depends on photo type -->
         <div id="previewCountdown" style="
