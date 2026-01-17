@@ -3149,46 +3149,44 @@ function showAddMoreDamagesModal() {
     const photoCount = window.pickupDamagePhotos.length;
     
     modal.innerHTML = `
-        <div style="background: white; padding: 40px; border-radius: 12px; max-width: 500px; width: 90%; box-shadow: 0 10px 40px rgba(0,0,0,0.3); text-align: center;">
-            <h2 style="color: #009cb6; font-size: 24px; font-weight: bold; margin-bottom: 20px;">
-                Foto Guardada! ✅
+        <div style="background: rgba(0, 0, 0, 0.85); backdrop-filter: blur(10px); padding: 40px; border-radius: 12px; max-width: 500px; width: 90%; box-shadow: 0 10px 40px rgba(0,0,0,0.5); text-align: center; border: 1px solid rgba(255,255,255,0.1);">
+            <h2 style="color: white; font-size: 22px; font-weight: 600; margin-bottom: 12px;">
+                Foto Guardada
             </h2>
-            <p style="color: #666; margin-bottom: 30px; font-size: 16px;">
-                ${photoCount} foto(s) de dano registada(s).<br>
+            <p style="color: rgba(255,255,255,0.7); margin-bottom: 30px; font-size: 15px; line-height: 1.5;">
+                ${photoCount} foto(s) de dano registada(s)<br>
                 Deseja adicionar mais fotos de danos?
             </p>
             
-            <div style="display: flex; gap: 15px; justify-content: center;">
+            <div style="display: flex; gap: 12px; justify-content: center;">
                 <button onclick="addMoreDamages()" style="
                     flex: 1;
-                    padding: 15px 28px;
-                    background: #ff9800;
-                    color: white;
-                    border: none;
+                    padding: 14px 24px;
+                    background: rgba(255, 152, 0, 0.15);
+                    color: #ff9800;
+                    border: 1px solid rgba(255, 152, 0, 0.3);
                     border-radius: 8px;
-                    font-size: 16px;
+                    font-size: 15px;
                     font-weight: 600;
                     cursor: pointer;
-                    transition: background 0.2s;
-                    box-shadow: 0 4px 12px rgba(0,0,0,0.2);
-                " onmouseover="this.style.background='#f57c00'" onmouseout="this.style.background='#ff9800'">
-                    ➕ Adicionar Mais
+                    transition: all 0.2s;
+                " onmouseover="this.style.background='rgba(255, 152, 0, 0.25)'; this.style.borderColor='rgba(255, 152, 0, 0.5)'" onmouseout="this.style.background='rgba(255, 152, 0, 0.15)'; this.style.borderColor='rgba(255, 152, 0, 0.3)'">
+                    Adicionar Mais
                 </button>
                 
                 <button onclick="finishDamageRegistration()" style="
                     flex: 1;
-                    padding: 15px 28px;
-                    background: #28a745;
-                    color: white;
-                    border: none;
+                    padding: 14px 24px;
+                    background: rgba(40, 167, 69, 0.15);
+                    color: #28a745;
+                    border: 1px solid rgba(40, 167, 69, 0.3);
                     border-radius: 8px;
-                    font-size: 16px;
+                    font-size: 15px;
                     font-weight: 600;
                     cursor: pointer;
-                    transition: background 0.2s;
-                    box-shadow: 0 4px 12px rgba(0,0,0,0.2);
-                " onmouseover="this.style.background='#218838'" onmouseout="this.style.background='#28a745'">
-                    ✓ Terminar
+                    transition: all 0.2s;
+                " onmouseover="this.style.background='rgba(40, 167, 69, 0.25)'; this.style.borderColor='rgba(40, 167, 69, 0.5)'" onmouseout="this.style.background='rgba(40, 167, 69, 0.15)'; this.style.borderColor='rgba(40, 167, 69, 0.3)'">
+                    Terminar
                 </button>
             </div>
         </div>
