@@ -577,6 +577,34 @@ function startDelivery() {
         return;
     }
     
+    // Check if inspection was already completed for this RA
+    if (window.inspectionCompleted) {
+        const raNumber = document.getElementById('inputRA').value.trim();
+        showMinimalistConfirm(
+            `RA ${raNumber}`,
+            'Inspeção realizada. Refazer inspeção?',
+            (confirmed) => {
+                if (confirmed) {
+                    // User confirmed, proceed with delivery
+                    proceedWithDelivery();
+                } else {
+                    // User cancelled, clear fields
+                    document.getElementById('inputPlate').value = '';
+                    document.getElementById('inputRA').value = '';
+                    document.getElementById('reportEmail').value = '';
+                    window.inspectionCompleted = false;
+                }
+            }
+        );
+        return;
+    }
+    
+    // No previous inspection, proceed normally
+    proceedWithDelivery();
+}
+
+// Helper function to proceed with delivery
+function proceedWithDelivery() {
     // Check if there's an incomplete contract for this vehicle
     const existingContract = checkExistingContract();
     if (existingContract.exists) {

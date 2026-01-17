@@ -3073,19 +3073,12 @@
                             // Auto-fill RA number
                             document.getElementById('inputRA').value = ra.rental_agreement_number;
                             
-                            // Show appropriate message
+                            // Store inspection status for later check when clicking "Iniciar Entrega"
+                            window.inspectionCompleted = ra.inspection_completed;
+                            
+                            // Show info message only
                             if (ra.inspection_completed) {
-                                showMinimalistConfirm(
-                                    `RA ${ra.rental_agreement_number}`,
-                                    'Inspeção realizada. Refazer inspeção?',
-                                    (confirmed) => {
-                                        if (!confirmed) {
-                                            document.getElementById('inputPlate').value = '';
-                                            document.getElementById('inputRA').value = '';
-                                            document.getElementById('reportEmail').value = '';
-                                        }
-                                    }
-                                );
+                                showMinimalistAlert(`RA ${ra.rental_agreement_number} - Inspeção já realizada`, 'info');
                             } else {
                                 showMinimalistAlert(`RA ${ra.rental_agreement_number} - Inspeção por realizar`, 'info');
                             }
