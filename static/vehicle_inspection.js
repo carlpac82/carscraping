@@ -1316,32 +1316,38 @@ function showDamageSideSelectionModal() {
     let sidesHTML = '';
     sides.forEach(side => {
         sidesHTML += `
-            <div onclick="selectDamageSide('${side.id}')" style="position: relative; cursor: pointer; transition: transform 0.2s; text-align: center;" 
-                 onmouseover="this.style.transform='scale(1.05)';" 
-                 onmouseout="this.style.transform='scale(1)';">
-                <div style="color: #009cb6; font-weight: bold; font-size: 10px; margin-bottom: 2px; text-shadow: 1px 1px 3px rgba(0,0,0,0.9);">
+            <div onclick="selectDamageSide('${side.id}')" 
+                 style="background: rgba(255,255,255,0.05); border: 2px solid rgba(0,156,182,0.3); border-radius: 12px; padding: 12px; cursor: pointer; transition: all 0.3s; text-align: center;" 
+                 onmouseover="this.style.background='rgba(0,156,182,0.15)'; this.style.borderColor='#009cb6'; this.style.transform='translateY(-3px)';" 
+                 onmouseout="this.style.background='rgba(255,255,255,0.05)'; this.style.borderColor='rgba(0,156,182,0.3)'; this.style.transform='translateY(0)';">
+                <div style="color: #009cb6; font-weight: 600; font-size: 11px; margin-bottom: 8px; text-transform: uppercase; letter-spacing: 0.5px;">
                     ${side.label}
                 </div>
-                <img src="/static/Inspecçao/${side.image}" alt="${side.label}" style="width: 100%; height: 80px; object-fit: contain; display: block; margin: 0 auto; border-radius: 4px;">
+                <img src="/static/Inspecçao/${side.image}" alt="${side.label}" style="width: 100%; height: 75px; object-fit: contain; display: block; margin: 0 auto; filter: brightness(1.1);">
             </div>
         `;
     });
     
     const modalHTML = `
-        <div id="damageSideModal" style="position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.92); z-index: 10000; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 15px 10px; overflow-y: auto;">
-            <h2 style="color: #009cb6; font-size: 18px; font-weight: bold; margin-bottom: 15px; text-align: center; text-shadow: 2px 2px 4px rgba(0,0,0,0.5);">
-                Registar Novo Dano
-            </h2>
-            
-            <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px 10px; max-width: 100%; width: 100%; margin-bottom: 15px;">
-                ${sidesHTML}
+        <div id="damageSideModal" style="position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: linear-gradient(135deg, rgba(0,0,0,0.95) 0%, rgba(0,30,40,0.95) 100%); z-index: 10000; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 20px; overflow-y: auto; backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px);">
+            <div style="max-width: 500px; width: 100%;">
+                <h2 style="color: white; font-size: 24px; font-weight: 700; margin-bottom: 8px; text-align: center; letter-spacing: -0.5px;">
+                    Recolha de Viatura
+                </h2>
+                <p style="color: rgba(255,255,255,0.7); font-size: 14px; margin-bottom: 25px; text-align: center;">
+                    Verificar Danos - Selecione a vista para fotografar
+                </p>
+                
+                <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; margin-bottom: 25px;">
+                    ${sidesHTML}
+                </div>
+                
+                <button onclick="closeDamageSideModal()" style="width: 100%; padding: 14px; background: rgba(220,53,69,0.9); color: white; border: none; border-radius: 12px; font-size: 15px; font-weight: 600; cursor: pointer; transition: all 0.3s; box-shadow: 0 4px 15px rgba(220,53,69,0.3);" 
+                        onmouseover="this.style.background='rgba(220,53,69,1)'; this.style.transform='translateY(-2px)'; this.style.boxShadow='0 6px 20px rgba(220,53,69,0.4)';" 
+                        onmouseout="this.style.background='rgba(220,53,69,0.9)'; this.style.transform='translateY(0)'; this.style.boxShadow='0 4px 15px rgba(220,53,69,0.3)';">
+                    Cancelar
+                </button>
             </div>
-            
-            <button onclick="closeDamageSideModal()" style="padding: 8px 25px; background: rgba(108, 117, 125, 0.9); color: white; border: 2px solid white; border-radius: 8px; font-size: 14px; font-weight: bold; cursor: pointer; transition: background 0.2s;" 
-                    onmouseover="this.style.background='rgba(108, 117, 125, 1)';" 
-                    onmouseout="this.style.background='rgba(108, 117, 125, 0.9)';">
-                Cancelar
-            </button>
         </div>
     `;
     
@@ -1374,36 +1380,58 @@ function selectDamageSide(side) {
 function captureDamagePhoto(side) {
     showNotification(`Abrindo câmera para fotografar: ${formatPhotoType(side)}`, 'info');
     
-    // Open camera modal (reuse existing camera functionality)
+    // Open camera for damage photo
     openCameraForDamage(side);
 }
 
 // Open camera for damage photo
 function openCameraForDamage(photoType) {
-    // Create camera modal
+    window.currentDamageSide = photoType;
+    
+    // Get reference photo from delivery photos
+    let referencePhoto = null;
+    if (window.deliveryPhotos && window.deliveryPhotos.length > 0) {
+        referencePhoto = window.deliveryPhotos.find(p => p.photo_type === photoType);
+    }
+    
+    const photoLabel = formatPhotoType(photoType);
+    const photoInstruction = 'Mostre a frente e o lado do veículo';
+    
     const modalHTML = `
-        <div id="damagePhotoModal" style="position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: black; z-index: 10000; display: flex; flex-direction: column;">
-            <div style="flex: 1; display: flex; align-items: center; justify-content: center; position: relative;">
-                <video id="damageVideo" autoplay playsinline style="max-width: 100%; max-height: 100%; object-fit: contain;"></video>
-                <canvas id="damageCanvas" style="display: none;"></canvas>
+        <div id="damagePhotoModal" style="position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: #000; z-index: 10000; display: flex; flex-direction: column;">
+            <video id="damageVideo" autoplay playsinline style="width: 100%; height: 100%; object-fit: cover; position: absolute; top: 0; left: 0;"></video>
+            <canvas id="damageCanvas" style="display: none;"></canvas>
+            
+            <!-- Top header with photo info -->
+            <div style="position: absolute; top: 0; left: 0; right: 0; background: linear-gradient(to bottom, rgba(0,0,0,0.8) 0%, transparent 100%); padding: 40px 20px 60px; z-index: 10; pointer-events: none;">
+                <h3 style="font-size: 22px; font-weight: 600; color: white; margin: 0 0 8px 0; text-align: center; text-shadow: 0 2px 8px rgba(0,0,0,0.5);">
+                    ${photoLabel.toUpperCase()}
+                </h3>
+                <p style="font-size: 14px; font-weight: 400; color: white; opacity: 0.8; margin: 0; text-align: center; text-shadow: 0 2px 8px rgba(0,0,0,0.5);">
+                    ${photoInstruction}
+                </p>
             </div>
             
-            <div style="padding: 20px; background: rgba(0,0,0,0.8); display: flex; flex-direction: column; gap: 15px;">
-                <div style="text-align: center; color: #009cb6; font-size: 20px; font-weight: bold;">
-                    Fotografar Novo Dano
+            <!-- Reference photo miniature (top right) -->
+            ${referencePhoto ? `
+                <div style="position: absolute; top: 120px; right: 20px; z-index: 10; background: rgba(0,0,0,0.7); border: 2px solid #009cb6; border-radius: 12px; padding: 8px; backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px);">
+                    <img src="${referencePhoto.image_data}" alt="Referência" style="width: 80px; height: 80px; object-fit: cover; border-radius: 6px; display: block;">
+                    <div style="color: #009cb6; font-size: 9px; font-weight: 600; margin-top: 4px; text-align: center; text-transform: uppercase;">Entrega</div>
                 </div>
-                <div style="text-align: center; color: white; font-size: 16px;">
-                    ${formatPhotoType(photoType)}
-                </div>
-                
-                <div style="display: flex; gap: 15px; justify-content: center;">
-                    <button onclick="captureDamagePhotoNow()" style="flex: 1; padding: 20px; background: #28a745; color: white; border: none; border-radius: 8px; font-size: 18px; font-weight: bold; cursor: pointer;">
-                        📸 Capturar
-                    </button>
-                    <button onclick="closeDamagePhotoModal()" style="flex: 1; padding: 20px; background: #dc3545; color: white; border: none; border-radius: 8px; font-size: 18px; font-weight: bold; cursor: pointer;">
-                        Cancelar
-                    </button>
-                </div>
+            ` : ''}
+            
+            <!-- Bottom buttons -->
+            <div style="position: absolute; bottom: 0; left: 0; right: 0; background: linear-gradient(to top, rgba(0,0,0,0.9) 0%, transparent 100%); padding: 60px 20px 40px; z-index: 10; display: flex; gap: 15px; justify-content: center;">
+                <button onclick="captureDamagePhotoNow()" style="flex: 1; max-width: 200px; padding: 16px; background: #28a745; color: white; border: none; border-radius: 12px; font-size: 16px; font-weight: 600; cursor: pointer; box-shadow: 0 4px 15px rgba(40,167,69,0.4); transition: all 0.3s;" 
+                        onmouseover="this.style.transform='translateY(-2px)'; this.style.boxShadow='0 6px 20px rgba(40,167,69,0.5)';" 
+                        onmouseout="this.style.transform='translateY(0)'; this.style.boxShadow='0 4px 15px rgba(40,167,69,0.4)';">
+                    📷 Capturar
+                </button>
+                <button onclick="closeDamagePhotoModal()" style="flex: 1; max-width: 200px; padding: 16px; background: rgba(220,53,69,0.9); color: white; border: none; border-radius: 12px; font-size: 16px; font-weight: 600; cursor: pointer; box-shadow: 0 4px 15px rgba(220,53,69,0.4); transition: all 0.3s;" 
+                        onmouseover="this.style.transform='translateY(-2px)'; this.style.boxShadow='0 6px 20px rgba(220,53,69,0.5)';" 
+                        onmouseout="this.style.transform='translateY(0)'; this.style.boxShadow='0 4px 15px rgba(220,53,69,0.4)';">
+                    Cancelar
+                </button>
             </div>
         </div>
     `;
