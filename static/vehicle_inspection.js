@@ -989,7 +989,7 @@ function showDeliveryPhotosGrid() {
     
     // Title
     const title = document.createElement('h3');
-    title.textContent = 'Fotos do Check-out';
+    title.textContent = 'Fotos da Entrega';
     title.style.cssText = `
         color: #009cb6;
         font-size: 20px;
@@ -1328,16 +1328,16 @@ function showDamageSideSelectionModal() {
     });
     
     const modalHTML = `
-        <div id="damageSideModal" style="position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.92); z-index: 10000; display: flex; flex-direction: column; align-items: center; justify-content: flex-start; padding: 8px 6px; overflow-y: auto;">
-            <h2 style="color: #009cb6; font-size: 16px; font-weight: bold; margin-bottom: 6px; text-align: center; text-shadow: 2px 2px 4px rgba(0,0,0,0.5);">
+        <div id="damageSideModal" style="position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.92); z-index: 10000; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 15px 10px; overflow-y: auto;">
+            <h2 style="color: #009cb6; font-size: 18px; font-weight: bold; margin-bottom: 15px; text-align: center; text-shadow: 2px 2px 4px rgba(0,0,0,0.5);">
                 Registar Novo Dano
             </h2>
             
-            <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 4px 6px; max-width: 100%; width: 100%; margin-bottom: 8px;">
+            <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px 10px; max-width: 100%; width: 100%; margin-bottom: 15px;">
                 ${sidesHTML}
             </div>
             
-            <button onclick="closeDamageSideModal()" style="padding: 6px 18px; background: rgba(108, 117, 125, 0.9); color: white; border: 2px solid white; border-radius: 6px; font-size: 12px; font-weight: bold; cursor: pointer; transition: background 0.2s;" 
+            <button onclick="closeDamageSideModal()" style="padding: 8px 25px; background: rgba(108, 117, 125, 0.9); color: white; border: 2px solid white; border-radius: 8px; font-size: 14px; font-weight: bold; cursor: pointer; transition: background 0.2s;" 
                     onmouseover="this.style.background='rgba(108, 117, 125, 1)';" 
                     onmouseout="this.style.background='rgba(108, 117, 125, 0.9)';">
                 Cancelar
