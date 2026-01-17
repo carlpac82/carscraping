@@ -528,7 +528,7 @@ async function showCarDiagramPreview(photoType) {
         left: 0;
         width: 100%;
         height: 100%;
-        background: rgba(0, 0, 0, 0.95);
+        background: transparent;
         z-index: 999999;
         display: flex;
         flex-direction: column;
