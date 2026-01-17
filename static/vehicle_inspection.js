@@ -1476,29 +1476,31 @@ function showDamageCountdown(photoType, photoLabel, photoInstruction) {
         `;
         
         countdownOverlay.innerHTML = `
-            <div style="position: absolute; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0, 0, 0, 0.7); z-index: 1;"></div>
+            <div style="position: absolute; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0, 0, 0, 0.7); z-index: -1;"></div>
             
-            <!-- Text at top - HIGHER z-index to stay above car image -->
-            <div style="position: absolute; top: 50px; left: 0; right: 0; text-align: center; z-index: 100;">
+            <!-- Text at top -->
+            <div style="position: absolute; top: 50px; left: 0; right: 0; text-align: center; z-index: 10;">
                 <h3 style="font-size: 22px; font-weight: 600; color: white; margin-bottom: 8px; text-shadow: 0 2px 8px rgba(0,0,0,0.5);">${photoLabel}</h3>
                 <p style="font-size: 14px; font-weight: 400; color: #dc3545; opacity: 0.9; text-shadow: 0 2px 8px rgba(0,0,0,0.5);">${photoInstruction}</p>
             </div>
             
-            <!-- 3D Car image in center - LOWER z-index so text stays on top -->
-            <div style="margin-bottom: 40px; z-index: 50;">
-                <img src="${imageUrl}" alt="${photoLabel}" style="width: 200px; height: auto; filter: drop-shadow(0 10px 30px rgba(220,53,69,0.5));">
+            <!-- 3D Car image in center (EXACTLY like checkout) -->
+            <div style="margin-top: 120px; margin-bottom: 30px; z-index: 5;">
+                <img src="${imageUrl}" alt="${photoLabel}" style="width: 220px; height: auto; filter: drop-shadow(0 10px 30px rgba(220,53,69,0.5));">
             </div>
             
-            <!-- Countdown circle - WHITE with RED number -->
-            <div style="text-align: center; position: relative; z-index: 60;">
-                <svg width="160" height="160" viewBox="0 0 160 160" style="transform: rotate(-90deg);">
-                    <circle cx="80" cy="80" r="70" fill="none" stroke="rgba(255,255,255,0.15)" stroke-width="10"/>
-                    <circle id="damageCountdownCircle" cx="80" cy="80" r="70" fill="none" stroke="white" stroke-width="10" 
-                        stroke-dasharray="440" stroke-dashoffset="0" 
+            <!-- Countdown circle below car -->
+            <div style="text-align: center; position: relative; z-index: 10;">
+                <svg width="120" height="120" viewBox="0 0 120 120" style="transform: rotate(-90deg);">
+                    <circle cx="60" cy="60" r="50" fill="none" stroke="rgba(255,255,255,0.15)" stroke-width="8"/>
+                    <circle id="damageCountdownCircle" cx="60" cy="60" r="50" fill="none" stroke="white" stroke-width="8" 
+                        stroke-dasharray="314" stroke-dashoffset="0" 
                         style="transition: stroke-dashoffset 1s linear;"/>
                 </svg>
-                <div id="damageCountdownNumber" style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); font-size: 72px; font-weight: 800; color: #dc3545; text-shadow: 0 4px 12px rgba(0,0,0,0.5);">3</div>
+                <div id="damageCountdownNumber" style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); font-size: 56px; font-weight: 800; color: #dc3545; text-shadow: 0 4px 12px rgba(0,0,0,0.5);">3</div>
             </div>
+            
+            <!-- Space for buttons at bottom (they will be visible underneath) -->
         `;
         
         document.body.appendChild(countdownOverlay);
@@ -1507,7 +1509,7 @@ function showDamageCountdown(photoType, photoLabel, photoInstruction) {
         let count = 3;
         const circle = document.getElementById('damageCountdownCircle');
         const numberEl = document.getElementById('damageCountdownNumber');
-        const circumference = 440;
+        const circumference = 314; // 2 * PI * 50
         
         const interval = setInterval(() => {
             count--;
