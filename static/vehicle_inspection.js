@@ -3060,7 +3060,7 @@ function savePickupDamagePhoto(blob, photoType) {
         window.pickupDamagePhotos.push({
             type: photoType,
             side: window.currentDamageSide,
-            data: base64data,
+            imageData: base64data,
             timestamp: new Date().toISOString()
         });
         
@@ -3103,7 +3103,7 @@ function updatePickupDamagePhotosGrid() {
             const photoDiv = document.createElement('div');
             photoDiv.className = 'text-center';
             photoDiv.innerHTML = `
-                <img src="${photo.data}" alt="${formatPhotoType(photo.type)}" style="max-width: 80px; height: auto; border-radius: 4px; margin: 0 auto; display: block;">
+                <img src="${photo.imageData}" alt="${formatPhotoType(photo.type)}" style="max-width: 80px; height: auto; border-radius: 4px; margin: 0 auto; display: block;">
                 <p style="font-size: 11px; color: #666; margin-top: 4px;">${formatPhotoType(photo.type)}</p>
             `;
             gridContainer.appendChild(photoDiv);
