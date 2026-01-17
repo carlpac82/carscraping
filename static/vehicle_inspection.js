@@ -3126,7 +3126,7 @@ function continuePickupDamageFlow() {
         
         // Reopen damage selection modal after a short delay
         setTimeout(() => {
-            startRegisterNewDamage();
+            startRegisterNewDamages();
         }, 500);
     }
 }
