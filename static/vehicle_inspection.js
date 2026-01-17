@@ -1476,21 +1476,21 @@ function showDamageCountdown(photoType, photoLabel, photoInstruction) {
         `;
         
         countdownOverlay.innerHTML = `
-            <div style="position: absolute; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0, 0, 0, 0.7); z-index: -1;"></div>
+            <div style="position: absolute; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0, 0, 0, 0.7); z-index: 1;"></div>
             
-            <!-- Text at top -->
-            <div style="position: absolute; top: 50px; left: 0; right: 0; text-align: center; z-index: 10;">
+            <!-- Text at top - HIGHER z-index to stay above car image -->
+            <div style="position: absolute; top: 50px; left: 0; right: 0; text-align: center; z-index: 100;">
                 <h3 style="font-size: 22px; font-weight: 600; color: white; margin-bottom: 8px; text-shadow: 0 2px 8px rgba(0,0,0,0.5);">${photoLabel}</h3>
                 <p style="font-size: 14px; font-weight: 400; color: #dc3545; opacity: 0.9; text-shadow: 0 2px 8px rgba(0,0,0,0.5);">${photoInstruction}</p>
             </div>
             
-            <!-- 3D Car image in center (EXACTLY like checkout) -->
-            <div style="margin-bottom: 40px; z-index: 10;">
+            <!-- 3D Car image in center - LOWER z-index so text stays on top -->
+            <div style="margin-bottom: 40px; z-index: 50;">
                 <img src="${imageUrl}" alt="${photoLabel}" style="width: 200px; height: auto; filter: drop-shadow(0 10px 30px rgba(220,53,69,0.5));">
             </div>
             
-            <!-- Countdown circle - WHITE with RED number (EXACTLY like checkout) -->
-            <div style="text-align: center; position: relative; z-index: 10;">
+            <!-- Countdown circle - WHITE with RED number -->
+            <div style="text-align: center; position: relative; z-index: 60;">
                 <svg width="160" height="160" viewBox="0 0 160 160" style="transform: rotate(-90deg);">
                     <circle cx="80" cy="80" r="70" fill="none" stroke="rgba(255,255,255,0.15)" stroke-width="10"/>
                     <circle id="damageCountdownCircle" cx="80" cy="80" r="70" fill="none" stroke="white" stroke-width="10" 
