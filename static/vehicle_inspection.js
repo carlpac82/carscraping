@@ -544,57 +544,63 @@ async function showCarDiagramPreview(photoType) {
             }
         </style>
         
-        <h2 style="color: white; font-size: 24px; margin-bottom: 8px; text-align: center;">${photo.label}</h2>
-        <p style="color: #009cb6; font-size: 16px; margin-bottom: 20px; text-align: center;">${photo.instruction}</p>
-        
-        <div style="position: relative; max-width: 350px; width: 100%;">
-            <img id="previewCarImage" src="${imagePath}" alt="${photo.label}" style="width: 100%; height: auto; display: block; border-radius: 8px;">
-            
-            <!-- Countdown on roof - centered on car roof -->
-            <div id="previewCountdown" style="
-                position: absolute;
-                top: 35%;
-                left: 50%;
-                transform: translate(-50%, -50%);
-                font-size: 64px;
-                font-weight: bold;
-                color: #ff4757;
-                text-shadow: 0 0 20px rgba(0, 0, 0, 0.8), 0 4px 8px rgba(0, 0, 0, 0.5);
-                display: none;
-                z-index: 10;
-            ">3</div>
-            
-            <!-- Spinning circle around countdown -->
-            <div id="countdownCircle" class="countdown-circle" style="
-                position: absolute;
-                top: 35%;
-                left: 50%;
-                transform: translate(-50%, -50%);
-                width: 100px;
-                height: 100px;
-                border: 4px solid transparent;
-                border-top-color: #ff4757;
-                border-right-color: #ff4757;
-                border-radius: 50%;
-                display: none;
-                z-index: 9;
-            "></div>
-            
-            <!-- Loading message -->
-            <div id="cameraPermissionMsg" style="
-                position: absolute;
-                top: 50%;
-                left: 50%;
-                transform: translate(-50%, -50%);
-                color: white;
-                font-size: 16px;
-                text-align: center;
-                background: rgba(0, 0, 0, 0.8);
-                padding: 15px 25px;
-                border-radius: 8px;
-                display: block;
-            ">A pedir permissão da câmera...</div>
+        <div style="position: absolute; top: 30px; left: 0; right: 0; text-align: center; z-index: 10;">
+            <h2 style="color: white; font-size: 22px; margin: 0; font-weight: 600;">${photo.label}</h2>
         </div>
+        
+        <div style="display: flex; flex-direction: column; align-items: center; gap: 15px;">
+            <div style="position: relative; max-width: 220px; width: 100%;">
+                <img id="previewCarImage" src="${imagePath}" alt="${photo.label}" style="width: 100%; height: auto; display: block; border-radius: 8px;">
+            </div>
+            
+            <p style="color: #ff4757; font-size: 15px; margin: 0; font-weight: 500; text-align: center; max-width: 300px;">${photo.instruction}</p>
+        </div>
+        
+        <!-- Countdown 5% smaller (43px) and 5% lower (50.4%) -->
+        <div id="previewCountdown" style="
+            position: fixed;
+            top: 50.4%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            font-size: 43px;
+            font-weight: bold;
+            color: #ff4757;
+            text-shadow: 0 0 20px rgba(0, 0, 0, 0.8), 0 4px 8px rgba(0, 0, 0, 0.5);
+            display: none;
+            z-index: 10;
+        ">3</div>
+        
+        <!-- Spinning circle around countdown -->
+        <div id="countdownCircle" class="countdown-circle" style="
+            position: fixed;
+            top: 50.4%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 67px;
+            height: 67px;
+            border: 3px solid transparent;
+            border-top-color: #ff4757;
+            border-right-color: #ff4757;
+            border-radius: 50%;
+            display: none;
+            z-index: 9;
+        "></div>
+        
+        <!-- Loading message -->
+        <div id="cameraPermissionMsg" style="
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            color: white;
+            font-size: 16px;
+            text-align: center;
+            background: rgba(0, 0, 0, 0.8);
+            padding: 15px 25px;
+            border-radius: 8px;
+            display: block;
+            z-index: 11;
+        ">A pedir permissão da câmera...</div>
     `;
     
     document.body.appendChild(previewModal);
@@ -717,18 +723,33 @@ async function openCameraWithStream(photoType) {
     const modal = document.getElementById('cameraModal');
     modal.classList.add('active');
     
-    // Request fullscreen
+    // Request fullscreen with mobile support
     try {
-        if (document.documentElement.requestFullscreen) {
-            await document.documentElement.requestFullscreen();
-        } else if (document.documentElement.webkitRequestFullscreen) {
-            await document.documentElement.webkitRequestFullscreen();
-        } else if (document.documentElement.msRequestFullscreen) {
-            await document.documentElement.msRequestFullscreen();
+        const elem = modal || document.documentElement;
+        if (elem.requestFullscreen) {
+            await elem.requestFullscreen();
+        } else if (elem.webkitRequestFullscreen) {
+            await elem.webkitRequestFullscreen();
+        } else if (elem.webkitEnterFullscreen) {
+            // iOS Safari
+            await elem.webkitEnterFullscreen();
+        } else if (elem.msRequestFullscreen) {
+            await elem.msRequestFullscreen();
+        } else if (elem.mozRequestFullScreen) {
+            await elem.mozRequestFullScreen();
         }
         console.log('✅ Fullscreen activated for camera');
     } catch (error) {
         console.log('⚠️ Could not activate fullscreen:', error.message);
+        // Try alternative method for mobile
+        try {
+            const video = document.getElementById('cameraPreview');
+            if (video && video.webkitEnterFullscreen) {
+                video.webkitEnterFullscreen();
+            }
+        } catch (e) {
+            console.log('⚠️ Alternative fullscreen also failed');
+        }
     }
     
     // Setup camera overlay for this photo type
