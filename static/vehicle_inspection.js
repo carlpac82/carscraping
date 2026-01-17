@@ -704,56 +704,84 @@ function startPickup() {
 function showPickupUpdateModal() {
     showNotification('Iniciando processo de RECOLHA! Carregando dados da entrega...', 'info');
     
-    // Get current values from form
-    const currentKm = document.getElementById('odometerReading')?.value || '';
-    const currentFuel = document.getElementById('fuelLevel')?.value || '100';
+    // Get delivery (check-out) fuel level from backend or current value
+    let deliveryFuel = 100;
+    if (window.currentRAData && window.currentRAData.fuel_level) {
+        deliveryFuel = parseFloat(window.currentRAData.fuel_level);
+    } else if (window.currentFuelLevel) {
+        deliveryFuel = parseFloat(window.currentFuelLevel);
+    }
     
-    // Create modal HTML
+    // Get current km from form or backend
+    let currentKm = '';
+    if (window.currentRAData && window.currentRAData.odometer) {
+        currentKm = window.currentRAData.odometer;
+    } else {
+        currentKm = document.getElementById('odometerReading')?.value || '';
+    }
+    
+    // Create modal HTML with clean design
     const modalHTML = `
-        <div id="pickupUpdateModal" style="position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.8); z-index: 10000; display: flex; align-items: center; justify-content: center;">
-            <div style="background: white; padding: 30px; border-radius: 15px; max-width: 500px; width: 90%;">
-                <h2 style="color: #009cb6; font-size: 24px; font-weight: bold; margin-bottom: 20px; text-align: center;">
-                    🚗 Atualizar Dados de Recolha
+        <div id="pickupUpdateModal" style="position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.85); z-index: 10000; display: flex; align-items: center; justify-content: center; backdrop-filter: blur(4px);">
+            <div style="background: white; padding: 40px; border-radius: 12px; max-width: 600px; width: 90%; box-shadow: 0 10px 40px rgba(0,0,0,0.3);">
+                <h2 style="color: #009cb6; font-size: 28px; font-weight: bold; margin-bottom: 10px; text-align: center;">
+                    Iniciar Recolha de Viatura
                 </h2>
-                <p style="color: #666; margin-bottom: 20px; text-align: center;">
+                <p style="color: #666; margin-bottom: 30px; text-align: center; font-size: 14px;">
                     Insira os quilómetros e combustível finais da viatura
                 </p>
                 
-                <div style="margin-bottom: 20px;">
-                    <label style="display: block; color: #009cb6; font-weight: bold; margin-bottom: 8px;">
-                        Quilómetros Finais:
+                <!-- Quilómetros -->
+                <div style="margin-bottom: 30px;">
+                    <label style="display: block; color: #009cb6; font-weight: bold; font-size: 16px; margin-bottom: 12px;">
+                        Km Entrada / Km In:
                     </label>
                     <input type="number" id="pickupKm" value="${currentKm}" 
-                           style="width: 100%; padding: 12px; border: 2px solid #009cb6; border-radius: 8px; font-size: 16px;"
+                           style="width: 100%; padding: 14px; border: 2px solid #009cb6; border-radius: 8px; font-size: 18px; font-weight: 600; color: #333;"
                            placeholder="Ex: 51500">
                 </div>
                 
-                <div style="margin-bottom: 30px;">
-                    <label style="display: block; color: #009cb6; font-weight: bold; margin-bottom: 8px;">
-                        Combustível Final (%):
+                <!-- Combustível -->
+                <div style="margin-bottom: 40px;">
+                    <label style="display: block; color: #009cb6; font-weight: bold; font-size: 16px; margin-bottom: 12px;">
+                        Combustível / Fuel:
                     </label>
-                    <select id="pickupFuel" 
-                            style="width: 100%; padding: 12px; border: 2px solid #009cb6; border-radius: 8px; font-size: 16px;">
-                        <option value="0" ${currentFuel == '0' ? 'selected' : ''}>Vazio (E)</option>
-                        <option value="12.5" ${currentFuel == '12.5' ? 'selected' : ''}>1/8</option>
-                        <option value="25" ${currentFuel == '25' ? 'selected' : ''}>1/4</option>
-                        <option value="37.5" ${currentFuel == '37.5' ? 'selected' : ''}>3/8</option>
-                        <option value="50" ${currentFuel == '50' ? 'selected' : ''}>1/2</option>
-                        <option value="62.5" ${currentFuel == '62.5' ? 'selected' : ''}>5/8</option>
-                        <option value="75" ${currentFuel == '75' ? 'selected' : ''}>3/4</option>
-                        <option value="87.5" ${currentFuel == '87.5' ? 'selected' : ''}>7/8</option>
-                        <option value="100" ${currentFuel == '100' ? 'selected' : ''}>Cheio (F)</option>
-                    </select>
+                    <div style="background: #f8f9fa; border: 2px solid #009cb6; border-radius: 8px; padding: 20px;">
+                        <div style="display: flex; align-items: center; justify-content: between; margin-bottom: 8px;">
+                            <span style="font-size: 12px; font-weight: 600; color: #009cb6;">OUT</span>
+                            <span style="font-size: 12px; font-weight: 600; color: #009cb6; margin-left: auto;">F</span>
+                        </div>
+                        
+                        <!-- Fuel Level Bar -->
+                        <div style="position: relative; background: white; border: 2px solid #009cb6; border-radius: 8px; height: 32px; margin-bottom: 12px;">
+                            <div id="pickupFuelFill" style="height: 100%; background: #009cb6; border-radius: 6px; transition: width 0.3s; width: ${deliveryFuel}%;"></div>
+                        </div>
+                        
+                        <!-- Fuel Level Slider -->
+                        <input type="range" 
+                               id="pickupFuelSlider" 
+                               min="0" 
+                               max="100" 
+                               value="${deliveryFuel}" 
+                               step="5"
+                               style="width: 100%; height: 8px; border-radius: 5px; background: #ddd; outline: none; cursor: pointer;">
+                        
+                        <!-- Selected fuel level display -->
+                        <div style="text-align: center; margin-top: 12px;">
+                            <span style="font-size: 14px; font-weight: 600; color: #666;">Nível: </span>
+                            <span id="pickupFuelText" style="font-size: 14px; font-weight: bold; color: #009cb6;"></span>
+                        </div>
+                    </div>
                 </div>
                 
-                <div style="display: flex; gap: 10px;">
+                <div style="display: flex; gap: 12px;">
                     <button onclick="cancelPickupUpdate()" 
-                            style="flex: 1; padding: 15px; background: #dc3545; color: white; border: none; border-radius: 8px; font-size: 16px; font-weight: bold; cursor: pointer;">
+                            style="flex: 1; padding: 16px; background: #6c757d; color: white; border: none; border-radius: 8px; font-size: 16px; font-weight: bold; cursor: pointer; transition: background 0.2s;">
                         Cancelar
                     </button>
                     <button onclick="confirmPickupUpdate()" 
-                            style="flex: 1; padding: 15px; background: #28a745; color: white; border: none; border-radius: 8px; font-size: 16px; font-weight: bold; cursor: pointer;">
-                        Continuar
+                            style="flex: 1; padding: 16px; background: #009cb6; color: white; border: none; border-radius: 8px; font-size: 16px; font-weight: bold; cursor: pointer; transition: background 0.2s;">
+                        Iniciar Recolha
                     </button>
                 </div>
             </div>
@@ -762,6 +790,35 @@ function showPickupUpdateModal() {
     
     // Add modal to page
     document.body.insertAdjacentHTML('beforeend', modalHTML);
+    
+    // Setup fuel slider
+    const slider = document.getElementById('pickupFuelSlider');
+    const fill = document.getElementById('pickupFuelFill');
+    const text = document.getElementById('pickupFuelText');
+    
+    function updatePickupFuelDisplay(value) {
+        const percentage = parseInt(value);
+        fill.style.width = percentage + '%';
+        
+        const levelText = {
+            0: 'Vazio (E)',
+            5: '1/16', 10: '1/8', 15: '3/16',
+            20: '1/4', 25: '5/16', 30: '3/8', 35: '7/16',
+            40: '1/2', 45: '9/16', 50: '5/8', 55: '11/16',
+            60: '3/4', 65: '13/16', 70: '7/8', 75: '15/16',
+            80: '7/8+', 85: '7/8++', 90: 'Quase Cheio',
+            95: 'Quase Cheio+', 100: 'Cheio (F)'
+        };
+        
+        text.textContent = `${percentage}% - ${levelText[percentage] || percentage + '%'}`;
+    }
+    
+    slider.addEventListener('input', (e) => {
+        updatePickupFuelDisplay(e.target.value);
+    });
+    
+    // Initialize display
+    updatePickupFuelDisplay(deliveryFuel);
     
     // Focus on km input
     setTimeout(() => {
@@ -781,7 +838,7 @@ function cancelPickupUpdate() {
 // Confirm pickup update and start photo sequence
 function confirmPickupUpdate() {
     const km = document.getElementById('pickupKm')?.value;
-    const fuel = document.getElementById('pickupFuel')?.value;
+    const fuel = document.getElementById('pickupFuelSlider')?.value;
     
     if (!km || km <= 0) {
         alert('Por favor, insira os quilómetros finais');
@@ -791,21 +848,17 @@ function confirmPickupUpdate() {
     
     // Update form fields
     document.getElementById('odometerReading').value = km;
-    document.getElementById('fuelLevel').value = fuel;
     
-    // Update display
-    const fuelText = {
-        '0': 'Vazio (E)',
-        '12.5': '1/8',
-        '25': '1/4',
-        '37.5': '3/8',
-        '50': '1/2',
-        '62.5': '5/8',
-        '75': '3/4',
-        '87.5': '7/8',
-        '100': 'Cheio (F)'
-    };
-    document.getElementById('fuelDisplay').textContent = `${fuel}% - ${fuelText[fuel] || fuel + '%'}`;
+    // Update fuel slider on main form
+    const mainFuelSlider = document.getElementById('fuelSlider');
+    if (mainFuelSlider) {
+        mainFuelSlider.value = fuel;
+        // Trigger change event to update display
+        mainFuelSlider.dispatchEvent(new Event('input'));
+    }
+    
+    // Store fuel level
+    window.currentFuelLevel = parseInt(fuel);
     
     // Close modal
     const modal = document.getElementById('pickupUpdateModal');
