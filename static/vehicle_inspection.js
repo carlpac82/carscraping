@@ -976,98 +976,113 @@ function showDeliveryPhotosGrid() {
         photosGrid.remove();
     }
     
-    // Create photos grid container
+    // Create photos grid container (clean design)
     photosGrid = document.createElement('div');
     photosGrid.id = 'deliveryPhotosGrid';
     photosGrid.style.cssText = `
-        background: white;
-        border-radius: 12px;
-        padding: 20px;
-        margin-bottom: 20px;
-        border: 2px solid #009cb6;
+        background: transparent;
+        padding: 0;
+        margin-bottom: 30px;
     `;
     
+    // FIRST: Add damage photos section if exists (RECOLHA PRIMEIRO)
+    if (window.pickupDamagePhotos && window.pickupDamagePhotos.length > 0) {
+        // Title
+        const damageTitle = document.createElement('h3');
+        damageTitle.textContent = 'Fotos Recolha - Danos';
+        damageTitle.style.cssText = `
+            color: #333;
+            font-size: 16px;
+            font-weight: 600;
+            margin-bottom: 15px;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+        `;
+        photosGrid.appendChild(damageTitle);
+        
+        // Grid
+        const damageGrid = document.createElement('div');
+        damageGrid.style.cssText = `
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+            gap: 20px;
+            margin-bottom: 40px;
+        `;
+        
+        window.pickupDamagePhotos.forEach(photo => {
+            const photoCard = document.createElement('div');
+            photoCard.style.cssText = `cursor: pointer; transition: transform 0.2s;`;
+            photoCard.addEventListener('mouseenter', () => photoCard.style.transform = 'scale(1.05)');
+            photoCard.addEventListener('mouseleave', () => photoCard.style.transform = 'scale(1)');
+            
+            const img = document.createElement('img');
+            img.src = photo.imageData;
+            img.style.cssText = `width: 100%; height: 150px; object-fit: cover; border-radius: 8px;`;
+            
+            const label = document.createElement('div');
+            label.textContent = formatPhotoType(photo.side);
+            label.style.cssText = `color: #666; padding: 8px 0; text-align: center; font-size: 13px; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;`;
+            
+            photoCard.appendChild(img);
+            photoCard.appendChild(label);
+            photoCard.addEventListener('click', () => enlargePhoto(photo.imageData, photo.side));
+            damageGrid.appendChild(photoCard);
+        });
+        
+        photosGrid.appendChild(damageGrid);
+    }
+    
+    // SECOND: Add delivery photos section (ENTREGA DEPOIS)
     // Title
-    const title = document.createElement('h3');
-    title.textContent = 'Fotos da Entrega';
-    title.style.cssText = `
-        color: #009cb6;
-        font-size: 20px;
-        font-weight: bold;
+    const deliveryTitle = document.createElement('h3');
+    deliveryTitle.textContent = 'Fotos da Entrega';
+    deliveryTitle.style.cssText = `
+        color: #333;
+        font-size: 16px;
+        font-weight: 600;
         margin-bottom: 15px;
-        text-align: center;
+        font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
     `;
-    photosGrid.appendChild(title);
+    photosGrid.appendChild(deliveryTitle);
     
-    // Grid of photos
-    const grid = document.createElement('div');
-    grid.style.cssText = `
+    // Grid of delivery photos
+    const deliveryGrid = document.createElement('div');
+    deliveryGrid.style.cssText = `
         display: grid;
         grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
-        gap: 15px;
+        gap: 20px;
     `;
     
-    // Add each photo
+    // Add each delivery photo
     if (window.deliveryPhotos && window.deliveryPhotos.length > 0) {
         window.deliveryPhotos.forEach(photo => {
             if (photo.photo_type !== 'damage_croqui') {
                 const photoCard = document.createElement('div');
-                photoCard.style.cssText = `
-                    position: relative;
-                    overflow: hidden;
-                    cursor: pointer;
-                    transition: transform 0.2s;
-                `;
+                photoCard.style.cssText = `cursor: pointer; transition: transform 0.2s;`;
+                photoCard.addEventListener('mouseenter', () => photoCard.style.transform = 'scale(1.05)');
+                photoCard.addEventListener('mouseleave', () => photoCard.style.transform = 'scale(1)');
                 
-                // Hover effect
-                photoCard.addEventListener('mouseenter', () => {
-                    photoCard.style.transform = 'scale(1.05)';
-                });
-                photoCard.addEventListener('mouseleave', () => {
-                    photoCard.style.transform = 'scale(1)';
-                });
-                
-                // Photo image
                 const img = document.createElement('img');
                 img.src = photo.image_data;
-                img.alt = photo.photo_type;
-                img.style.cssText = `
-                    width: 100%;
-                    height: 150px;
-                    object-fit: cover;
-                    border-radius: 8px;
-                `;
+                img.style.cssText = `width: 100%; height: 150px; object-fit: cover; border-radius: 8px;`;
                 
-                // Photo label (clean, no background box)
                 const label = document.createElement('div');
                 label.textContent = formatPhotoType(photo.photo_type);
-                label.style.cssText = `
-                    color: #009cb6;
-                    padding: 5px 0;
-                    text-align: center;
-                    font-size: 12px;
-                    font-weight: bold;
-                `;
+                label.style.cssText = `color: #666; padding: 8px 0; text-align: center; font-size: 13px; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;`;
                 
                 photoCard.appendChild(img);
                 photoCard.appendChild(label);
-                
-                // Click to enlarge
-                photoCard.addEventListener('click', () => {
-                    enlargePhoto(photo.image_data, photo.photo_type);
-                });
-                
-                grid.appendChild(photoCard);
+                photoCard.addEventListener('click', () => enlargePhoto(photo.image_data, photo.photo_type));
+                deliveryGrid.appendChild(photoCard);
             }
         });
     } else {
         const noPhotos = document.createElement('p');
-        noPhotos.textContent = 'Nenhuma foto encontrada no check-out';
-        noPhotos.style.cssText = 'text-align: center; color: #666; padding: 20px;';
-        grid.appendChild(noPhotos);
+        noPhotos.textContent = 'Nenhuma foto encontrada';
+        noPhotos.style.cssText = 'text-align: center; color: #999; padding: 20px; font-family: -apple-system, BlinkMacSystemFont, \'Segoe UI\', sans-serif;';
+        deliveryGrid.appendChild(noPhotos);
     }
     
-    photosGrid.appendChild(grid);
+    photosGrid.appendChild(deliveryGrid);
     
     // Insert AFTER the croqui (at the end of diagram step)
     const diagramContainer = diagramStep.querySelector('.car-diagram-container');
@@ -1076,104 +1091,10 @@ function showDeliveryPhotosGrid() {
     }
 }
 
-// Update delivery photos grid to include damage photos (ALWAYS AFTER delivery photos)
+// Update delivery photos grid to include damage photos (RECOLHA PRIMEIRO)
 function updateDeliveryPhotosGridWithDamages() {
-    const photosGrid = document.getElementById('deliveryPhotosGrid');
-    if (!photosGrid) return;
-    
-    // Check if damage photos section already exists and remove it
-    let damageSection = document.getElementById('damagePhotosSection');
-    if (damageSection) {
-        damageSection.remove();
-    }
-    
-    // Only add damage section if there are damage photos
-    if (!window.pickupDamagePhotos || window.pickupDamagePhotos.length === 0) {
-        return;
-    }
-    
-    // Create damage photos section (will be appended at the END)
-    damageSection = document.createElement('div');
-    damageSection.id = 'damagePhotosSection';
-    damageSection.style.cssText = `
-        margin-top: 30px;
-        padding-top: 20px;
-        border-top: 2px solid #dc3545;
-    `;
-    
-    // Damage section title
-    const damageTitle = document.createElement('h3');
-    damageTitle.textContent = 'Fotos Recolha - Danos';
-    damageTitle.style.cssText = `
-        color: #dc3545;
-        font-size: 20px;
-        font-weight: bold;
-        margin-bottom: 15px;
-        text-align: center;
-    `;
-    damageSection.appendChild(damageTitle);
-    
-    // Grid of damage photos
-    const damageGrid = document.createElement('div');
-    damageGrid.style.cssText = `
-        display: grid;
-        grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
-        gap: 15px;
-    `;
-    
-    // Add each damage photo
-    window.pickupDamagePhotos.forEach((photo, index) => {
-        const photoCard = document.createElement('div');
-        photoCard.style.cssText = `
-            position: relative;
-            overflow: hidden;
-            cursor: pointer;
-            transition: transform 0.2s;
-        `;
-        
-        // Hover effect
-        photoCard.addEventListener('mouseenter', () => {
-            photoCard.style.transform = 'scale(1.05)';
-        });
-        photoCard.addEventListener('mouseleave', () => {
-            photoCard.style.transform = 'scale(1)';
-        });
-        
-        // Photo image
-        const img = document.createElement('img');
-        img.src = photo.imageData;
-        img.alt = photo.side;
-        img.style.cssText = `
-            width: 100%;
-            height: 150px;
-            object-fit: cover;
-            border-radius: 8px;
-        `;
-        
-        // Photo label (clean, no background box)
-        const label = document.createElement('div');
-        label.textContent = formatPhotoType(photo.side);
-        label.style.cssText = `
-            color: #dc3545;
-            padding: 5px 0;
-            text-align: center;
-            font-size: 12px;
-            font-weight: bold;
-        `;
-        
-        photoCard.appendChild(img);
-        photoCard.appendChild(label);
-        
-        // Click to enlarge
-        photoCard.addEventListener('click', () => {
-            enlargePhoto(photo.imageData, photo.side);
-        });
-        
-        damageGrid.appendChild(photoCard);
-    });
-    
-    damageSection.appendChild(damageGrid);
-    photosGrid.appendChild(damageSection);
+    // Simply rebuild the entire grid with new order
+    showDeliveryPhotosGrid();
 }
 
 // Format photo type for display
