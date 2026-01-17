@@ -158,10 +158,23 @@ function updatePickupButtonState() {
     
     if (!pickupButton) return;
     
-    // Check if there's a delivery process
-    const hasDelivery = localStorage.getItem('processType') === 'delivery' && localStorage.getItem('inspectionPhotos');
+    // Check if there's a completed delivery for current plate/RA
+    const plate = document.getElementById('inputPlate')?.value.trim();
+    const ra = document.getElementById('inputRA')?.value.trim();
     
-    if (!hasDelivery) {
+    let hasCompletedDelivery = false;
+    
+    if (plate && ra) {
+        const contractKey = `${plate}_${ra}`;
+        const contracts = getActiveContracts();
+        
+        // Check if this specific contract has completed delivery
+        if (contracts[contractKey] && contracts[contractKey].deliveryComplete) {
+            hasCompletedDelivery = true;
+        }
+    }
+    
+    if (!hasCompletedDelivery) {
         // Disable button
         pickupButton.disabled = true;
         pickupButton.classList.add('opacity-50', 'cursor-not-allowed');
@@ -208,6 +221,20 @@ function updatePickupButtonState() {
 document.addEventListener('DOMContentLoaded', function() {
     // Update pickup button state
     updatePickupButtonState();
+    
+    // Add listeners to update pickup button when plate or RA changes
+    const plateInput = document.getElementById('inputPlate');
+    const raInput = document.getElementById('inputRA');
+    
+    if (plateInput) {
+        plateInput.addEventListener('input', function() {
+            setTimeout(updatePickupButtonState, 1000); // Delay to allow RA auto-fill
+        });
+    }
+    
+    if (raInput) {
+        raInput.addEventListener('input', updatePickupButtonState);
+    }
     // Auto-fill Rececionista from logged-in user
     let userName = 'Rececionista'; // fallback
     

@@ -3075,13 +3075,6 @@
                             
                             // Store inspection status for later check when clicking "Iniciar Entrega"
                             window.inspectionCompleted = ra.inspection_completed;
-                            
-                            // Show info message only
-                            if (ra.inspection_completed) {
-                                showMinimalistAlert(`RA ${ra.rental_agreement_number} - Inspeção já realizada`, 'info');
-                            } else {
-                                showMinimalistAlert(`RA ${ra.rental_agreement_number} - Inspeção por realizar`, 'info');
-                            }
                         }
                     } catch (error) {
                         console.error('Error checking RA by plate:', error);
