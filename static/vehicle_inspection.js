@@ -557,7 +557,7 @@ async function showCarDiagramPreview(photoType) {
             <p style="color: #ff4757; font-size: 14px; margin: 0; font-weight: 500; max-width: 300px; margin: 0 auto;">${photo.instruction}</p>
         </div>
         
-        <div style="display: flex; flex-direction: column; justify-content: center; align-items: center; min-height: 100vh; padding: 100px 20px 20px 20px;">
+        <div style="display: flex; flex-direction: column; justify-content: center; align-items: center; min-height: 100vh; padding: 70px 20px 20px 20px;">
             <img id="previewCarImage" src="${imagePath}" alt="${photo.label}" style="max-width: 180px; width: 100%; height: auto; display: block; margin: 0 auto;">
             
             <!-- Countdown - centered horizontally below image -->
@@ -581,8 +581,8 @@ async function showCarDiagramPreview(photoType) {
                     width: 67px;
                     height: 67px;
                     border: 3px solid transparent;
-                    border-top-color: #ff4757;
-                    border-right-color: #ff4757;
+                    border-top-color: white;
+                    border-right-color: white;
                     border-radius: 50%;
                     display: none;
                     z-index: 9;
