@@ -1498,46 +1498,41 @@ async function openCameraForDamage(photoType) {
         referencePhoto = window.deliveryPhotos.find(p => p.photo_type === photoType);
     }
     
-    const photoLabel = formatPhotoType(photoType);
-    const photoInstruction = 'Mostre a frente e o lado do veículo';
+    const photo = photoTypes.find(p => p.type === photoType);
+    const photoLabel = photo ? photo.label : formatPhotoType(photoType);
+    const photoInstruction = photo ? photo.instruction : 'Mostre a frente e o lado do veículo';
+    const imageUrl = photo ? `/static/Inspecçao/${photo.image}` : '';
     
-    // Show countdown first (like checkout)
+    // Show countdown first (EXACTLY like checkout)
     await showDamageCountdown(photoType, photoLabel, photoInstruction);
     
-    // After countdown, show camera modal
+    // After countdown, show camera modal (EXACTLY like checkout)
     const modalHTML = `
         <div id="damagePhotoModal" style="position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: #000; z-index: 10000; display: flex; flex-direction: column;">
-            <video id="damageVideo" autoplay playsinline style="width: 100%; height: 100%; object-fit: cover; position: absolute; top: 0; left: 0;"></video>
+            <video id="damageVideo" autoplay playsinline style="width: 100%; height: 100vh; object-fit: cover;"></video>
             <canvas id="damageCanvas" style="display: none;"></canvas>
             
-            <!-- Top header with photo info -->
-            <div style="position: absolute; top: 0; left: 0; right: 0; background: linear-gradient(to bottom, rgba(0,0,0,0.8) 0%, transparent 100%); padding: 40px 20px 60px; z-index: 10; pointer-events: none;">
-                <h3 style="font-size: 22px; font-weight: 600; color: white; margin: 0 0 8px 0; text-align: center; text-shadow: 0 2px 8px rgba(0,0,0,0.5);">
-                    ${photoLabel.toUpperCase()}
-                </h3>
-                <p style="font-size: 14px; font-weight: 400; color: white; opacity: 0.8; margin: 0; text-align: center; text-shadow: 0 2px 8px rgba(0,0,0,0.5);">
-                    ${photoInstruction}
-                </p>
+            <!-- Top header with photo info (EXACTLY like checkout) -->
+            <div class="absolute top-0 left-0 right-0 z-50 bg-black bg-opacity-90 text-white p-6 text-center" style="padding-right: 130px;">
+                <p class="text-xl font-bold text-green-400 mb-2">${photoLabel.toUpperCase()}</p>
+                <p class="text-base opacity-95 max-w-2xl mx-auto">${photoInstruction}</p>
             </div>
             
-            <!-- Reference photo miniature (top right) -->
-            ${referencePhoto ? `
-                <div style="position: absolute; top: 120px; right: 20px; z-index: 10; background: rgba(0,0,0,0.7); border: 2px solid #009cb6; border-radius: 12px; padding: 8px; backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px);">
-                    <img src="${referencePhoto.image_data}" alt="Referência" style="width: 80px; height: 80px; object-fit: cover; border-radius: 6px; display: block;">
-                    <div style="color: #009cb6; font-size: 9px; font-weight: 600; margin-top: 4px; text-align: center; text-transform: uppercase;">Entrega</div>
-                </div>
-            ` : ''}
+            <!-- Car Diagram Miniature - Top Right (EXACTLY like checkout) -->
+            <div style="position: fixed; top: 20px; right: 20px; width: 100px; height: 100px; z-index: 9999; display: block;">
+                <img src="${imageUrl}" alt="${photoLabel}" style="width: 100%; height: 100%; object-fit: contain; filter: drop-shadow(0 4px 10px rgba(0,0,0,0.5));">
+            </div>
             
-            <!-- Bottom buttons -->
-            <div style="position: absolute; bottom: 0; left: 0; right: 0; background: linear-gradient(to top, rgba(0,0,0,0.9) 0%, transparent 100%); padding: 60px 20px 40px; z-index: 10; display: flex; gap: 15px; justify-content: center;">
-                <button onclick="captureDamagePhotoNow()" style="flex: 1; max-width: 200px; padding: 16px; background: #28a745; color: white; border: none; border-radius: 12px; font-size: 16px; font-weight: 600; cursor: pointer; box-shadow: 0 4px 15px rgba(40,167,69,0.4); transition: all 0.3s;" 
-                        onmouseover="this.style.transform='translateY(-2px)'; this.style.boxShadow='0 6px 20px rgba(40,167,69,0.5)';" 
-                        onmouseout="this.style.transform='translateY(0)'; this.style.boxShadow='0 4px 15px rgba(40,167,69,0.4)';">
+            <!-- Bottom buttons (EXACTLY like checkout) -->
+            <div id="cameraButtons" style="position: fixed; bottom: 0; left: 0; right: 0; z-index: 50; display: flex; gap: 20px; justify-content: center; padding: 40px 20px; background: linear-gradient(to top, rgba(0,0,0,0.9) 0%, transparent 100%);">
+                <button onclick="captureDamagePhotoNow()" style="flex: 0 0 auto; padding: 16px 40px; background: #10b981; color: white; border: none; border-radius: 12px; font-size: 18px; font-weight: 700; cursor: pointer; box-shadow: 0 4px 15px rgba(16,185,129,0.4); transition: all 0.2s;" 
+                        onmouseover="this.style.transform='scale(1.05)'; this.style.boxShadow='0 6px 20px rgba(16,185,129,0.6)';" 
+                        onmouseout="this.style.transform='scale(1)'; this.style.boxShadow='0 4px 15px rgba(16,185,129,0.4)';">
                     📷 Capturar
                 </button>
-                <button onclick="closeDamagePhotoModal()" style="flex: 1; max-width: 200px; padding: 16px; background: rgba(220,53,69,0.9); color: white; border: none; border-radius: 12px; font-size: 16px; font-weight: 600; cursor: pointer; box-shadow: 0 4px 15px rgba(220,53,69,0.4); transition: all 0.3s;" 
-                        onmouseover="this.style.transform='translateY(-2px)'; this.style.boxShadow='0 6px 20px rgba(220,53,69,0.5)';" 
-                        onmouseout="this.style.transform='translateY(0)'; this.style.boxShadow='0 4px 15px rgba(220,53,69,0.4)';">
+                <button onclick="closeDamagePhotoModal()" style="flex: 0 0 auto; padding: 16px 40px; background: #dc2626; color: white; border: none; border-radius: 12px; font-size: 18px; font-weight: 700; cursor: pointer; box-shadow: 0 4px 15px rgba(220,38,38,0.4); transition: all 0.2s;" 
+                        onmouseover="this.style.transform='scale(1.05)'; this.style.boxShadow='0 6px 20px rgba(220,38,38,0.6)';" 
+                        onmouseout="this.style.transform='scale(1)'; this.style.boxShadow='0 4px 15px rgba(220,38,38,0.4)';">
                     Cancelar
                 </button>
             </div>
@@ -1550,25 +1545,33 @@ async function openCameraForDamage(photoType) {
     startDamageCamera();
 }
 
-// Show countdown with 3D car miniature before opening camera (like checkout)
+// Show countdown with car image before opening camera (EXACTLY like checkout)
 function showDamageCountdown(photoType, photoLabel, photoInstruction) {
     return new Promise((resolve) => {
+        // Get the reference image for this photo type
+        const photo = photoTypes.find(p => p.type === photoType);
+        const imageUrl = photo ? `/static/Inspecçao/${photo.image}` : '';
+        
         const countdownHTML = `
-            <div id="damageCountdown" style="position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.95); z-index: 10001; display: flex; flex-direction: column; align-items: center; justify-content: center;">
+            <div id="damageCountdown" style="position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0, 0, 0, 0.8); z-index: 99999; display: flex; flex-direction: column; align-items: center; justify-content: center; pointer-events: none;">
+                <div style="position: absolute; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0, 0, 0, 0.7); z-index: -1;"></div>
+                
                 <!-- Text at top -->
-                <div style="position: absolute; top: 50px; left: 0; right: 0; text-align: center;">
+                <div style="position: absolute; top: 50px; left: 0; right: 0; text-align: center; z-index: 10;">
                     <h3 style="font-size: 22px; font-weight: 600; color: white; margin-bottom: 8px; text-shadow: 0 2px 8px rgba(0,0,0,0.5);">${photoLabel}</h3>
-                    <p style="font-size: 14px; font-weight: 400; color: #dc3545; opacity: 0.9; text-shadow: 0 2px 8px rgba(0,0,0,0.5);">${photoInstruction}</p>
+                    <p style="font-size: 14px; font-weight: 400; color: white; opacity: 0.8; text-shadow: 0 2px 8px rgba(0,0,0,0.5);">${photoInstruction}</p>
                 </div>
                 
-                <!-- 3D Car miniature in center -->
-                <div id="damage3DCar" style="width: 200px; height: 200px; margin-bottom: 30px;"></div>
+                <!-- Car image in center -->
+                <div style="margin-bottom: 40px; z-index: 10;">
+                    <img src="${imageUrl}" alt="${photoLabel}" style="width: 200px; height: auto; filter: drop-shadow(0 10px 30px rgba(220,53,69,0.5));">
+                </div>
                 
                 <!-- Countdown circle -->
-                <div style="text-align: center; position: relative;">
+                <div style="text-align: center; position: relative; z-index: 10;">
                     <svg width="160" height="160" viewBox="0 0 160 160" style="transform: rotate(-90deg);">
                         <circle cx="80" cy="80" r="70" fill="none" stroke="rgba(255,255,255,0.15)" stroke-width="10"/>
-                        <circle id="damageCountdownCircle" cx="80" cy="80" r="70" fill="none" stroke="#dc3545" stroke-width="10" 
+                        <circle id="damageCountdownCircle" cx="80" cy="80" r="70" fill="none" stroke="#009cb6" stroke-width="10" 
                             stroke-dasharray="440" stroke-dashoffset="0" 
                             style="transition: stroke-dashoffset 1s linear;"/>
                     </svg>
@@ -1578,9 +1581,6 @@ function showDamageCountdown(photoType, photoLabel, photoInstruction) {
         `;
         
         document.body.insertAdjacentHTML('beforeend', countdownHTML);
-        
-        // Initialize 3D car miniature
-        init3DCarForDamage(photoType);
         
         // Countdown animation
         let count = 3;
@@ -1603,31 +1603,6 @@ function showDamageCountdown(photoType, photoLabel, photoInstruction) {
             }
         }, 1000);
     });
-}
-
-// Initialize 3D car for damage countdown
-function init3DCarForDamage(photoType) {
-    const container = document.getElementById('damage3DCar');
-    if (!container) return;
-    
-    // Simple 3D car representation (reuse existing logic)
-    const carHTML = `
-        <div style="width: 100%; height: 100%; display: flex; align-items: center; justify-content: center;">
-            <div style="position: relative; width: 120px; height: 180px;">
-                <!-- Car body -->
-                <div style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); width: 100px; height: 160px; background: linear-gradient(135deg, #dc3545 0%, #c82333 100%); border-radius: 20px 20px 10px 10px; box-shadow: 0 10px 30px rgba(220,53,69,0.4);"></div>
-                <!-- Windows -->
-                <div style="position: absolute; top: 30%; left: 50%; transform: translate(-50%, -50%); width: 70px; height: 50px; background: rgba(255,255,255,0.2); border-radius: 10px 10px 0 0;"></div>
-                <!-- Wheels -->
-                <div style="position: absolute; top: 25%; left: 5px; width: 20px; height: 20px; background: #333; border-radius: 50%; box-shadow: 0 2px 8px rgba(0,0,0,0.5);"></div>
-                <div style="position: absolute; top: 25%; right: 5px; width: 20px; height: 20px; background: #333; border-radius: 50%; box-shadow: 0 2px 8px rgba(0,0,0,0.5);"></div>
-                <div style="position: absolute; bottom: 25%; left: 5px; width: 20px; height: 20px; background: #333; border-radius: 50%; box-shadow: 0 2px 8px rgba(0,0,0,0.5);"></div>
-                <div style="position: absolute; bottom: 25%; right: 5px; width: 20px; height: 20px; background: #333; border-radius: 50%; box-shadow: 0 2px 8px rgba(0,0,0,0.5);"></div>
-            </div>
-        </div>
-    `;
-    
-    container.innerHTML = carHTML;
 }
 
 // Start camera for damage photo
