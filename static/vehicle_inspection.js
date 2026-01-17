@@ -1302,24 +1302,24 @@ function startRegisterNewDamages() {
 // Show modal to select damage photo side
 function showDamageSideSelectionModal() {
     const sides = [
-        { id: 'front', label: 'Frente', image: '/static/Inspe%C3%A7ao/Vista%20Frontal.png' },
-        { id: 'front_left', label: 'Frente Esquerda', image: '/static/Inspe%C3%A7ao/Vista%20Frontal%20Esquerda.png' },
-        { id: 'left', label: 'Esquerda', image: '/static/Inspe%C3%A7ao/Vista%20Lateral%20Esquerda.png' },
-        { id: 'back_left', label: 'Trás Esquerda', image: '/static/Inspe%C3%A7ao/Vista%20Traseira%20Esquerda.png' },
-        { id: 'back', label: 'Trás', image: '/static/Inspe%C3%A7ao/Vista%20Traseira.png' },
-        { id: 'back_right', label: 'Trás Direita', image: '/static/Inspe%C3%A7ao/Vista%20Traseira%20direita.png' },
-        { id: 'right', label: 'Direita', image: '/static/Inspe%C3%A7ao/Vista%20Lateral%20Direita.png' },
-        { id: 'front_right', label: 'Frente Direita', image: '/static/Inspe%C3%A7ao/Vista%20Frontal%20Direita.png' }
+        { id: 'front', label: 'Vista Frontal', image: 'Vista Frontal.png' },
+        { id: 'front_left', label: 'Vista Frontal Esquerda', image: 'Vista Frontal Esquerda.png' },
+        { id: 'left', label: 'Vista Lateral Esquerda', image: 'Vista Lateral Esquerda.png' },
+        { id: 'back_left', label: 'Vista Traseira Esquerda', image: 'Vista Traseira Esquerda.png' },
+        { id: 'back', label: 'Vista Traseira', image: 'Vista Traseira.png' },
+        { id: 'back_right', label: 'Vista Traseira Direita', image: 'Vista Traseira direita.png' },
+        { id: 'right', label: 'Vista Lateral Direita', image: 'Vista Lateral Direita.png' },
+        { id: 'front_right', label: 'Vista Frontal Direita', image: 'Vista Frontal Direita.png' }
     ];
     
     let sidesHTML = '';
     sides.forEach(side => {
         sidesHTML += `
-            <div onclick="selectDamageSide('${side.id}')" style="cursor: pointer; border: 3px solid #009cb6; border-radius: 12px; overflow: hidden; transition: transform 0.2s, box-shadow 0.2s; background: white;" 
-                 onmouseover="this.style.transform='scale(1.05)'; this.style.boxShadow='0 8px 20px rgba(0,156,182,0.4)';" 
-                 onmouseout="this.style.transform='scale(1)'; this.style.boxShadow='none';">
-                <img src="${side.image}" alt="${side.label}" style="width: 100%; height: 120px; object-fit: contain; background: black; display: block;">
-                <div style="padding: 10px; text-align: center; background: #009cb6; color: white; font-weight: bold; font-size: 14px;">
+            <div onclick="selectDamageSide('${side.id}')" style="cursor: pointer; transition: transform 0.2s; text-align: center;" 
+                 onmouseover="this.style.transform='scale(1.05)';" 
+                 onmouseout="this.style.transform='scale(1)';">
+                <img src="/static/Inspecçao/${side.image}" alt="${side.label}" style="width: 100%; max-width: 280px; height: auto; object-fit: contain; display: block; margin: 0 auto 10px;">
+                <div style="color: white; font-weight: bold; font-size: 16px; text-shadow: 2px 2px 4px rgba(0,0,0,0.8);">
                     ${side.label}
                 </div>
             </div>
@@ -1327,23 +1327,20 @@ function showDamageSideSelectionModal() {
     });
     
     const modalHTML = `
-        <div id="damageSideModal" style="position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.85); z-index: 10000; display: flex; align-items: center; justify-content: center; backdrop-filter: blur(4px); overflow-y: auto; padding: 20px;">
-            <div style="background: white; padding: 30px; border-radius: 12px; max-width: 700px; width: 100%; box-shadow: 0 10px 40px rgba(0,0,0,0.3); max-height: 90vh; overflow-y: auto;">
-                <h2 style="color: #009cb6; font-size: 24px; font-weight: bold; margin-bottom: 10px; text-align: center;">
-                    Registar Novo Dano
-                </h2>
-                <p style="color: #666; margin-bottom: 25px; text-align: center; font-size: 14px;">
-                    Selecione o lado da viatura onde está o novo dano
-                </p>
-                
-                <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 15px; margin-bottom: 25px;">
-                    ${sidesHTML}
-                </div>
-                
-                <button onclick="closeDamageSideModal()" style="width: 100%; padding: 15px; background: #6c757d; color: white; border: none; border-radius: 8px; font-size: 16px; font-weight: bold; cursor: pointer;">
-                    Cancelar
-                </button>
+        <div id="damageSideModal" style="position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.92); z-index: 10000; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 40px 20px; overflow-y: auto;">
+            <h2 style="color: #009cb6; font-size: 28px; font-weight: bold; margin-bottom: 40px; text-align: center; text-shadow: 2px 2px 4px rgba(0,0,0,0.5);">
+                Registar Novo Dano
+            </h2>
+            
+            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 40px; max-width: 1200px; width: 100%; margin-bottom: 40px;">
+                ${sidesHTML}
             </div>
+            
+            <button onclick="closeDamageSideModal()" style="padding: 15px 40px; background: rgba(108, 117, 125, 0.9); color: white; border: 2px solid white; border-radius: 8px; font-size: 18px; font-weight: bold; cursor: pointer; transition: background 0.2s;" 
+                    onmouseover="this.style.background='rgba(108, 117, 125, 1)';" 
+                    onmouseout="this.style.background='rgba(108, 117, 125, 0.9)';">
+                Cancelar
+            </button>
         </div>
     `;
     
