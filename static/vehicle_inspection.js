@@ -3124,10 +3124,64 @@ function continuePickupDamageFlow() {
         // Show notification that photo was saved
         console.log('✅ Photo saved, ready for next damage');
         
-        // Reopen damage selection modal after a short delay
+        // Show loading screen before reopening modal
+        showLoadingScreen();
+        
+        // Reopen damage selection modal after loading
         setTimeout(() => {
+            hideLoadingScreen();
             startRegisterNewDamages();
-        }, 500);
+        }, 1000);
+    }
+}
+
+// Show loading screen
+function showLoadingScreen() {
+    const loadingScreen = document.createElement('div');
+    loadingScreen.id = 'loadingScreen';
+    loadingScreen.style.cssText = `
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: rgba(0, 0, 0, 0.95);
+        z-index: 999999;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+    `;
+    
+    loadingScreen.innerHTML = `
+        <div style="text-align: center;">
+            <div style="
+                width: 60px;
+                height: 60px;
+                border: 4px solid rgba(255, 255, 255, 0.2);
+                border-top-color: #ff4757;
+                border-radius: 50%;
+                animation: spin 1s linear infinite;
+                margin: 0 auto 20px auto;
+            "></div>
+            <p style="color: white; font-size: 16px; font-weight: 500;">A processar...</p>
+        </div>
+        
+        <style>
+            @keyframes spin {
+                to { transform: rotate(360deg); }
+            }
+        </style>
+    `;
+    
+    document.body.appendChild(loadingScreen);
+}
+
+// Hide loading screen
+function hideLoadingScreen() {
+    const loadingScreen = document.getElementById('loadingScreen');
+    if (loadingScreen) {
+        loadingScreen.remove();
     }
 }
 
