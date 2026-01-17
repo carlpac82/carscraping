@@ -3123,6 +3123,11 @@ function continuePickupDamageFlow() {
     if (window.pickupDamagePhotos && window.pickupDamagePhotos.length > 0) {
         // Show notification that photo was saved
         console.log('✅ Photo saved, ready for next damage');
+        
+        // Reopen damage selection modal after a short delay
+        setTimeout(() => {
+            startRegisterNewDamage();
+        }, 500);
     }
 }
 
