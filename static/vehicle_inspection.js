@@ -552,24 +552,25 @@ async function showCarDiagramPreview(photoType) {
             }
         </style>
         
-        <div style="position: absolute; top: 40px; left: 0; right: 0; text-align: center; z-index: 10;">
-            <h2 style="color: white; font-size: 22px; margin: 0 0 10px 0; font-weight: 600; line-height: 1.2;">${photo.label}</h2>
-            <p style="color: #ff4757; font-size: 15px; margin: 0; font-weight: 500; max-width: 300px; margin: 0 auto;">${photo.instruction}</p>
+        <div style="position: absolute; top: 20px; left: 0; right: 0; text-align: center; z-index: 10;">
+            <h2 style="color: white; font-size: 20px; margin: 0 0 8px 0; font-weight: 600; line-height: 1.2;">${photo.label}</h2>
+            <p style="color: #ff4757; font-size: 14px; margin: 0; font-weight: 500; max-width: 300px; margin: 0 auto;">${photo.instruction}</p>
         </div>
         
-        <img id="previewCarImage" src="${imagePath}" alt="${photo.label}" style="max-width: 220px; width: 100%; height: auto; display: block; margin: 0 auto 30px auto;">
-        
-        <!-- Countdown - centered horizontally below image -->
-        <div style="position: relative; width: 100%; text-align: center; margin-top: 20px;">
-            <div id="previewCountdown" style="
-                display: inline-block;
-                font-size: 43px;
-                font-weight: bold;
-                color: #ff4757;
-                text-shadow: 0 0 20px rgba(0, 0, 0, 0.8), 0 4px 8px rgba(0, 0, 0, 0.5);
-                position: relative;
-                z-index: 10;
-            ">3</div>
+        <div style="padding-top: 120px;">
+            <img id="previewCarImage" src="${imagePath}" alt="${photo.label}" style="max-width: 180px; width: 100%; height: auto; display: block; margin: 0 auto 20px auto;">
+            
+            <!-- Countdown - centered horizontally below image -->
+            <div style="position: relative; width: 100%; text-align: center; margin-top: 10px;">
+                <div id="previewCountdown" style="
+                    display: inline-block;
+                    font-size: 43px;
+                    font-weight: bold;
+                    color: #ff4757;
+                    text-shadow: 0 0 20px rgba(0, 0, 0, 0.8), 0 4px 8px rgba(0, 0, 0, 0.5);
+                    position: relative;
+                    z-index: 10;
+                ">3</div>
             
             <!-- Spinning circle around countdown -->
             <div id="countdownCircle" class="countdown-circle" style="
