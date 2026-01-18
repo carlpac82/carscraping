@@ -27907,20 +27907,31 @@ async def save_inspection(request: Request):
         logging.info(f"📦 Received data keys: {list(data.keys())}")
         
         # Extract inspection data
-        inspection_type = data.get('type', 'checkin')
+        inspection_type = data.get('inspection_type', data.get('type', 'checkin'))
         photos = data.get('photos', {})
         damages = data.get('damages', [])
         observations = data.get('observations', '')
-        fuel_level = data.get('fuelLevel', 100)
-        odometer_reading = data.get('odometerReading', 0)
+        fuel_level = data.get('fuel_level', data.get('fuelLevel', 100))
+        odometer_reading = data.get('odometer_reading', data.get('odometerReading', 0))
         plate = data.get('plate', '').strip()
         ra = data.get('ra', '').strip()
         receptionist = data.get('receptionist', '')
         date = data.get('date', '')
         time = data.get('time', '')
-        email = data.get('email', '')
+        email = data.get('client_email', data.get('email', ''))
         vehicle_id = data.get('vehicle_id', None)
-        damage_croqui = data.get('damageCroqui', '')  # Base64 image of damage croqui
+        damage_croqui = data.get('damage_croqui', data.get('damageCroqui', ''))  # Base64 image of damage croqui
+        
+        # New fields for check-in (pickup/recolha)
+        colaborador = data.get('colaborador', '')
+        data_hora = data.get('data_hora', '')
+        local = data.get('local', '')
+        delivery_kms = data.get('delivery_kms', 0)
+        total_kms = data.get('total_kms', 0)
+        new_damage_photos_count = data.get('new_damage_photos_count', 0)
+        has_new_damages = data.get('has_damage', False)
+        
+        logging.info(f"📦 Check-in specific data - Colaborador: {colaborador}, Local: {local}, Delivery KMs: {delivery_kms}, Total KMs: {total_kms}, New damages: {new_damage_photos_count}")
         
         logging.info(f"📋 Inspection Type: {inspection_type}")
         logging.info(f"🚗 Plate: {plate}")
@@ -27990,15 +28001,31 @@ async def save_inspection(request: Request):
         
         # Validate required fields
         logging.info("✅ Validating required fields...")
+        logging.info(f"🔍 Plate value: '{plate}' (type: {type(plate).__name__})")
+        logging.info(f"🔍 Odometer RAW value: '{odometer_reading}' (type: {type(odometer_reading).__name__})")
+        logging.info(f"🔍 Odometer bool check: {bool(odometer_reading)}")
+        logging.info(f"🔍 Odometer == 0: {odometer_reading == 0}")
+        logging.info(f"🔍 Odometer is None: {odometer_reading is None}")
+        
         if not plate:
             logging.error("❌ Validation failed: Vehicle plate is required")
             return JSONResponse({"success": False, "error": "Vehicle plate is required"}, status_code=400)
         
-        if not odometer_reading:
-            logging.error("❌ Validation failed: Odometer reading is required")
+        # Convert odometer to int and validate
+        original_odometer = odometer_reading
+        try:
+            odometer_reading = int(odometer_reading) if odometer_reading else 0
+            logging.info(f"🔍 Odometer AFTER conversion: {odometer_reading} (from: {original_odometer})")
+        except (ValueError, TypeError) as e:
+            logging.error(f"❌ Validation failed: Invalid odometer reading: {odometer_reading}, error: {e}")
+            return JSONResponse({"success": False, "error": "Invalid odometer reading"}, status_code=400)
+        
+        if not odometer_reading or odometer_reading <= 0:
+            logging.error(f"❌ Validation failed: Odometer reading is required (got: {odometer_reading}, original: {original_odometer})")
+            logging.error(f"❌ Check: not odometer_reading = {not odometer_reading}, odometer_reading <= 0 = {odometer_reading <= 0}")
             return JSONResponse({"success": False, "error": "Odometer reading is required"}, status_code=400)
         
-        logging.info("✅ Validation passed")
+        logging.info(f"✅ Validation passed - odometer: {odometer_reading}")
         
         # Generate inspection number with milliseconds and random suffix for uniqueness
         import datetime
@@ -28009,10 +28036,21 @@ async def save_inspection(request: Request):
         logging.info(f"🔢 Generated inspection number: {inspection_number}")
         
         # Calculate damage info
-        damage_count = len(damages)
-        has_damage = damage_count > 0
+        # For checkin, use damage_count from frontend (counts new damages)
+        # For checkout, count from damages array
+        if inspection_type == 'checkin':
+            damage_count = data.get('damage_count', 0)
+            # Also count damage photos
+            damage_photo_count = sum(1 for key in photos.keys() if key.startswith('damagePhoto'))
+            if damage_photo_count > 0:
+                damage_count = max(damage_count, damage_photo_count)
+            has_damage = damage_count > 0 or data.get('has_damage', False)
+        else:
+            damage_count = len(damages)
+            has_damage = damage_count > 0
+        
         damage_severity = 'severe' if damage_count > 3 else 'moderate' if damage_count > 1 else 'minor' if damage_count > 0 else 'none'
-        logging.info(f"⚠️ Damage info: count={damage_count}, severity={damage_severity}")
+        logging.info(f"⚠️ Damage info: count={damage_count}, severity={damage_severity}, has_damage={has_damage}")
         
         # Get current user and full name
         username = request.session.get('username', 'Unknown')
@@ -28336,6 +28374,73 @@ async def save_inspection(request: Request):
             else:
                 logging.warning(f"⚠️ No damage croqui to save")
             
+            # Save damage photos (damagePhoto_front, damagePhoto_back, etc.)
+            damage_photos_saved = 0
+            for photo_key in photos.keys():
+                if photo_key.startswith('damagePhoto'):
+                    try:
+                        logging.info(f"💾 Saving damage photo '{photo_key}' to database...")
+                        photo_data = photos[photo_key]
+                        
+                        # Extract base64 data
+                        if isinstance(photo_data, str) and 'base64,' in photo_data:
+                            photo_base64 = photo_data.split('base64,')[1]
+                        else:
+                            photo_base64 = photo_data
+                        
+                        # Convert base64 to bytes
+                        photo_bytes = base64.b64decode(photo_base64)
+                        logging.info(f"✅ Damage photo '{photo_key}' decoded: {len(photo_bytes)} bytes")
+                        
+                        # Extract side from damagePhoto_front, damagePhoto_back, etc.
+                        # If old format (damagePhoto1), use damage_photo_1
+                        if '_' in photo_key:
+                            side = photo_key.replace('damagePhoto_', '')
+                            photo_type = f'damage_{side}'
+                        else:
+                            photo_number = photo_key.replace('damagePhoto', '')
+                            photo_type = f'damage_photo_{photo_number}'
+                        
+                        if is_postgres:
+                            cursor.execute("""
+                                INSERT INTO inspection_photos
+                                (inspection_id, photo_type, photo_order, image_data, image_filename,
+                                 ai_analyzed, ai_has_damage, created_at)
+                                VALUES (%s, %s, %s, %s, %s, %s, %s, NOW())
+                            """, (
+                                inspection_id,
+                                photo_type,
+                                100 + int(photo_number),
+                                photo_bytes,
+                                f"{photo_type}.jpg",
+                                True,
+                                True
+                            ))
+                        else:
+                            cursor.execute("""
+                                INSERT INTO inspection_photos
+                                (inspection_id, photo_type, photo_order, image_data, image_filename,
+                                 ai_analyzed, ai_has_damage, created_at)
+                                VALUES (?, ?, ?, ?, ?, ?, ?, datetime('now'))
+                            """, (
+                                inspection_id,
+                                photo_type,
+                                100 + int(photo_number),
+                                photo_bytes,
+                                f"{photo_type}.jpg",
+                                1,
+                                1
+                            ))
+                        damage_photos_saved += 1
+                        logging.info(f"✅ Damage photo '{photo_key}' saved as '{photo_type}'")
+                    except Exception as damage_photo_error:
+                        logging.error(f"❌ Failed to save damage photo '{photo_key}': {damage_photo_error}")
+            
+            if damage_photos_saved > 0:
+                logging.info(f"✅ Total damage photos saved: {damage_photos_saved}")
+            else:
+                logging.warning(f"⚠️ No damage photos to save")
+            
             # Update vehicle in fleet management if vehicle_id exists
             if vehicle_id:
                 try:
@@ -28505,6 +28610,21 @@ async def save_inspection(request: Request):
                     else:
                         logging.warning(f"⚠️ No damage croqui image received! Damages count: {len(damages)}")
                     
+                    # Determine email title and content based on inspection type
+                    if inspection_type == 'checkin':
+                        email_title = "Relatório de Devolução"
+                        inspection_label = "Devolução"
+                        # Use colaborador from check-in data if available
+                        colaborador_name = colaborador or user_full_name
+                        location_label = "Local de Devolução"
+                        location_value = local or delivery_location or 'Não especificado'
+                    else:
+                        email_title = "Relatório de Entrega"
+                        inspection_label = "Entrega"
+                        colaborador_name = user_full_name
+                        location_label = "Local de Entrega"
+                        location_value = delivery_location or 'Não especificado'
+                    
                     # Create HTML email body with logo and complete information - MOBILE OPTIMIZED
                     html_message = f"""
                 <!DOCTYPE html>
@@ -28513,7 +28633,7 @@ async def save_inspection(request: Request):
                     <meta charset="UTF-8">
                     <meta name="viewport" content="width=device-width, initial-scale=1.0">
                     <meta name="x-apple-disable-message-reformatting">
-                    <title>Relatório de Entrega</title>
+                    <title>{email_title}</title>
                         <style type="text/css">
                             @media only screen and (max-width: 600px) {{
                                 .container {{ width: 100% !important; }}
@@ -28538,22 +28658,22 @@ async def save_inspection(request: Request):
                                     <!-- Header with Logo -->
                                     <tr><td class="header" style="background: #009cb6; padding: 25px 20px; text-align: center;">
                                         <img src="{logo_base64}" alt="Auto Prudente" style="height: 50px; max-width: 200px; margin-bottom: 12px;" />
-                                        <h1 style="margin: 8px 0 0 0; color: #ffffff; font-size: 24px; font-weight: 600;">Relatório de Entrega</h1>
+                                        <h1 style="margin: 8px 0 0 0; color: #ffffff; font-size: 24px; font-weight: 600;">{email_title}</h1>
                                         <p style="margin: 6px 0 0 0; color: #e0f7fa; font-size: 17px; font-weight: 500;">RA: {ra}</p>
                                         <p style="margin: 4px 0 0 0; color: #ffffff; font-size: 13px;">{current_datetime.strftime('%d de %B de %Y às %H:%M')}</p>
                                     </td></tr>
                                     
-                                    <!-- Delivery Information -->
+                                    <!-- Delivery/Pickup Information -->
                                     <tr><td class="content" style="padding: 20px; background: #f0f9fb; border-bottom: 1px solid #e2e8f0;">
                                         <table width="100%" cellpadding="0" cellspacing="0">
                                             <tr class="info-row">
                                                 <td class="info-cell" width="50%" style="padding: 8px; vertical-align: top;">
                                                     <div class="detail-label" style="font-size: 12px; color: #64748b; margin-bottom: 4px;">Colaborador</div>
-                                                    <div class="detail-value" style="font-size: 15px; font-weight: 600; color: #1f2937;">{user_full_name}</div>
+                                                    <div class="detail-value" style="font-size: 15px; font-weight: 600; color: #1f2937;">{colaborador_name}</div>
                                                 </td>
                                                 <td class="info-cell" width="50%" style="padding: 8px; vertical-align: top;">
-                                                    <div class="detail-label" style="font-size: 12px; color: #64748b; margin-bottom: 4px;">Local de Entrega</div>
-                                                    <div class="detail-value" style="font-size: 15px; font-weight: 600; color: #1f2937;">{delivery_location or 'Não especificado'}</div>
+                                                    <div class="detail-label" style="font-size: 12px; color: #64748b; margin-bottom: 4px;">{location_label}</div>
+                                                    <div class="detail-value" style="font-size: 15px; font-weight: 600; color: #1f2937;">{location_value}</div>
                                                 </td>
                                             </tr>
                                         </table>
@@ -28568,17 +28688,28 @@ async def save_inspection(request: Request):
                                                 <td style="padding: 10px 8px; border-bottom: 1px solid #e5e7eb; font-size: 14px;">{plate}</td>
                                             </tr>
                                             <tr>
-                                                <td style="padding: 10px 8px; border-bottom: 1px solid #e5e7eb; font-size: 14px;"><strong>Quilómetros:</strong></td>
+                                                <td style="padding: 10px 8px; border-bottom: 1px solid #e5e7eb; font-size: 14px;"><strong>Quilómetros de {inspection_label}:</strong></td>
                                                 <td style="padding: 10px 8px; border-bottom: 1px solid #e5e7eb; font-size: 14px;">{odometer_reading} km</td>
                                             </tr>
+                                            {f'''<tr>
+                                                <td style="padding: 10px 8px; border-bottom: 1px solid #e5e7eb; font-size: 14px;"><strong>Quilómetros de Entrega:</strong></td>
+                                                <td style="padding: 10px 8px; border-bottom: 1px solid #e5e7eb; font-size: 14px;">{delivery_kms} km</td>
+                                            </tr>
+                                            <tr>
+                                                <td style="padding: 10px 8px; border-bottom: 1px solid #e5e7eb; font-size: 14px;"><strong>Quilómetros Totais Percorridos:</strong></td>
+                                                <td style="padding: 10px 8px; border-bottom: 1px solid #e5e7eb; font-size: 14px; color: #009cb6; font-weight: 600;">{total_kms} km</td>
+                                            </tr>''' if inspection_type == 'checkin' and total_kms > 0 else ''}
                                             <tr>
                                                 <td style="padding: 10px 8px; border-bottom: 1px solid #e5e7eb; font-size: 14px;"><strong>Tipo de Inspeção:</strong></td>
-                                                <td style="padding: 10px 8px; border-bottom: 1px solid #e5e7eb; font-size: 14px;">Entrega</td>
+                                                <td style="padding: 10px 8px; border-bottom: 1px solid #e5e7eb; font-size: 14px;">{inspection_label}</td>
                                             </tr>
-                                            <tr>
+                                            {f'''<tr>
+                                                <td style="padding: 10px 8px; border-bottom: 1px solid #e5e7eb; font-size: 14px;"><strong>Novos Danos Identificados:</strong></td>
+                                                <td style="padding: 10px 8px; border-bottom: 1px solid #e5e7eb; font-size: 14px;">{new_damage_photos_count}</td>
+                                            </tr>''' if inspection_type == 'checkin' else f'''<tr>
                                                 <td style="padding: 10px 8px; border-bottom: 1px solid #e5e7eb; font-size: 14px;"><strong>Danos Identificados:</strong></td>
                                                 <td style="padding: 10px 8px; border-bottom: 1px solid #e5e7eb; font-size: 14px;">{damage_count}</td>
-                                            </tr>
+                                            </tr>'''}
                                         </table>
                                         
                                         <!-- Fuel Level -->
@@ -28589,12 +28720,18 @@ async def save_inspection(request: Request):
                                         
                                         {f'<div style="margin-top: 25px;"><h3 style="color: #009cb6; font-size: 18px;">Observações</h3><p style="background: #f9fafb; padding: 12px; border-radius: 6px; color: #1f2937; font-size: 14px; line-height: 1.5;">{observations}</p></div>' if observations else ''}
                                         
+                                        <!-- Success message for check-in without new damages -->
+                                        {f'''<div style="margin-top: 25px; background: linear-gradient(135deg, #10b981, #059669); padding: 20px; border-radius: 8px; text-align: center;">
+                                            <h3 style="color: #ffffff; margin: 0 0 8px 0; font-size: 20px;">✅ Devolução Bem Sucedida!</h3>
+                                            <p style="color: #d1fae5; margin: 0; font-size: 15px;">A viatura foi devolvida em perfeitas condições, sem novos danos identificados.</p>
+                                        </div>''' if inspection_type == 'checkin' and new_damage_photos_count == 0 else ''}
+                                        
                                         <!-- Damage Croqui (BEFORE photos) -->
                                         {damages_html}
                                         
                                         <!-- Photos -->
                                         <div style="margin-top: 25px;">
-                                            <h3 style="color: #009cb6; margin-bottom: 15px; font-size: 18px;">Fotografias do Veículo</h3>
+                                            <h3 style="color: #009cb6; margin-bottom: 15px; font-size: 18px;">{f'Fotografias de Novos Danos' if inspection_type == 'checkin' and new_damage_photos_count > 0 else 'Fotografias do Veículo'}</h3>
                                             {photos_html if photos_html else '<p style="color: #64748b; font-style: italic;">Nenhuma fotografia disponível</p>'}
                                         </div>
                                     </td></tr>
@@ -28656,26 +28793,14 @@ async def save_inspection(request: Request):
 
 @app.get("/inspection-history", response_class=HTMLResponse)
 async def inspection_history_page(request: Request):
-    """Inspection history page"""
-    try:
-        require_inspection_access(request)
-    except HTTPException as e:
-        if e.status_code == 403:
-            return templates.TemplateResponse("error.html", {
-                "request": request,
-                "error_title": "Acesso Negado",
-                "error_message": "Não tem permissão para aceder ao histórico de inspeções."
-            }, status_code=403)
-        return RedirectResponse(url="/login", status_code=HTTP_303_SEE_OTHER)
-    
-    # Load current user
+    """Inspection history page - No auth required"""
     current_user = None
     try:
         username = request.session.get('username')
         if username:
             current_user = _get_user_by_username(username)
     except Exception:
-        current_user = None
+        pass
     
     return templates.TemplateResponse("inspection_history.html", {
         "request": request,
@@ -39114,8 +39239,9 @@ async def create_vehicle_inspection(request: Request):
 
 @app.get("/api/inspections/history")
 async def get_inspections_history(request: Request):
-    """Get vehicle inspections history"""
+    """Get vehicle inspections history grouped by plate+RA"""
     try:
+        logging.info("📋 Loading inspections history...")
         conn = _db_connect()
         try:
             # Detect database type
@@ -39127,32 +39253,32 @@ async def get_inspections_history(request: Request):
             elif os.getenv('DATABASE_URL'):
                 is_postgres = True
             
-            if is_postgres:
-                cursor = conn.cursor()
-                cursor.execute("""
-                    SELECT inspection_number, vehicle_plate, contract_number, 
-                           inspection_type, inspector_name, created_at, 
-                           fuel_level, odometer_reading, damage_count, status
-                    FROM vehicle_inspections
-                    ORDER BY created_at DESC
-                    LIMIT 100
-                """)
-                rows = cursor.fetchall()
-            else:
-                cursor = conn.cursor()
-                cursor.execute("""
-                    SELECT inspection_number, vehicle_plate, contract_number, 
-                           inspection_type, inspector_name, created_at, 
-                           fuel_level, odometer_reading, damage_count, status
-                    FROM vehicle_inspections
-                    ORDER BY created_at DESC
-                    LIMIT 100
-                """)
-                rows = cursor.fetchall()
+            logging.info(f"🔍 Database type: {'PostgreSQL' if is_postgres else 'SQLite'}")
             
-            inspections = []
+            cursor = conn.cursor()
+            cursor.execute("""
+                SELECT inspection_number, vehicle_plate, contract_number, 
+                       inspection_type, inspector_name, created_at, 
+                       fuel_level, odometer_reading, damage_count, status
+                FROM vehicle_inspections
+                ORDER BY created_at DESC
+                LIMIT 200
+            """)
+            rows = cursor.fetchall()
+            
+            logging.info(f"📊 Found {len(rows)} inspections in database")
+            
+            # Group by plate + RA
+            grouped = {}
             for row in rows:
-                inspections.append({
+                plate = row[1]
+                ra = row[2]
+                inspection_type = row[3]
+                key = f"{plate}_{ra}"
+                
+                logging.info(f"  - {inspection_type}: {plate} / RA: {ra} / Date: {row[5]}")
+                
+                inspection_data = {
                     "inspection_number": row[0],
                     "vehicle_plate": row[1],
                     "contract_number": row[2],
@@ -39163,18 +39289,42 @@ async def get_inspections_history(request: Request):
                     "odometer_reading": row[7],
                     "damage_count": row[8],
                     "status": row[9]
-                })
+                }
+                
+                if key not in grouped:
+                    grouped[key] = {
+                        "vehicle_plate": plate,
+                        "contract_number": ra,
+                        "checkout": None,
+                        "checkin": None,
+                        "latest_date": str(row[5]) if row[5] else None
+                    }
+                
+                if row[3] == 'checkout':
+                    if not grouped[key]["checkout"]:
+                        grouped[key]["checkout"] = inspection_data
+                elif row[3] == 'checkin':
+                    if not grouped[key]["checkin"]:
+                        grouped[key]["checkin"] = inspection_data
+            
+            # Convert to list and sort by latest date
+            contracts = list(grouped.values())
+            contracts.sort(key=lambda x: x["latest_date"] if x["latest_date"] else "", reverse=True)
+            
+            logging.info(f"✅ Returning {len(contracts)} grouped contracts")
             
             return JSONResponse({
                 "ok": True,
-                "inspections": inspections
+                "contracts": contracts
             })
             
         finally:
             conn.close()
         
     except Exception as e:
-        logging.error(f"Error getting inspections history: {e}")
+        logging.error(f"❌ Error getting inspections history: {e}")
+        import traceback
+        logging.error(traceback.format_exc())
         return JSONResponse({
             "ok": False,
             "error": str(e)
@@ -39445,6 +39595,7 @@ async def get_inspection_details(inspection_number: str, request: Request):
             photos_rows = cursor.fetchall()
             photos = {}
             damage_croqui = None
+            damage_photos = {}
             import base64
             for photo_row in photos_rows:
                 photo_type = photo_row[0]
@@ -39453,9 +39604,11 @@ async def get_inspection_details(inspection_number: str, request: Request):
                     # Convert bytes to base64 string
                     photo_base64 = base64.b64encode(image_data).decode('utf-8')
                     
-                    # Separate damage croqui from regular photos
+                    # Separate damage croqui and damage photos from regular photos
                     if photo_type == 'damage_croqui':
                         damage_croqui = f"data:image/png;base64,{photo_base64}"
+                    elif photo_type.startswith('damage_photo_'):
+                        damage_photos[photo_type] = f"data:image/jpeg;base64,{photo_base64}"
                     else:
                         photos[photo_type] = f"data:image/jpeg;base64,{photo_base64}"
             
@@ -39472,7 +39625,8 @@ async def get_inspection_details(inspection_number: str, request: Request):
                 "created_at": str(inspection_row[10]) if inspection_row[10] else None,
                 "status": inspection_row[11],
                 "photos": photos,
-                "damage_croqui": damage_croqui
+                "damage_croqui": damage_croqui,
+                "damage_photos": damage_photos
             }
             
             return JSONResponse({

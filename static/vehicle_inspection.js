@@ -958,16 +958,34 @@ function showPickupDiagramUI() {
     // 2. Modify croqui to allow adding new damages in red
     setupPickupCroquiMode();
     
-    // 3. Prefill kms and fuel from delivery
+    // 3. Initialize canvas if function exists (from HTML)
+    if (typeof initializeCanvas === 'function') {
+        const canvasReady = initializeCanvas();
+        console.log('🎨 Canvas initialized:', canvasReady);
+    }
+    
+    // 4. Setup diagram events to enable clicking and drawing on croqui
+    if (typeof setupDiagramEvents === 'function') {
+        setupDiagramEvents();
+        console.log('✅ Diagram events activated for pickup mode');
+    }
+    
+    // 5. Select pin tool by default for adding damages
+    if (typeof selectTool === 'function') {
+        selectTool('pin');
+        console.log('✅ Pin tool selected by default');
+    }
+    
+    // 6. Prefill kms and fuel from delivery
     prefillPickupFieldsFromDelivery();
     
-    // 4. Hide "Continuar para Análise" button (only show "Terminar Recolha")
+    // 7. Hide "Continuar para Análise" button (only show "Terminar Recolha")
     hideAnalysisButtonInPickupMode();
     
-    // 5. Add pickup action buttons
+    // 8. Add pickup action buttons
     addPickupActionButtons();
     
-    // 6. Create and show delivery photos grid AFTER croqui
+    // 9. Create and show delivery photos grid AFTER croqui
     showDeliveryPhotosGrid();
 }
 
@@ -1000,12 +1018,12 @@ function prefillPickupFieldsFromDelivery() {
     
     console.log(`📍 Delivery values - Kms: ${deliveryKms}, Fuel: ${deliveryFuel}`);
     
-    // Set kms placeholder (not value, so user can see it's from delivery)
+    // Set kms value (from delivery)
     const odometerInput = document.getElementById('odometerReading');
     if (odometerInput) {
-        odometerInput.placeholder = `${deliveryKms} (Entrega)`;
+        odometerInput.value = deliveryKms;
         odometerInput.style.color = '#009cb6';
-        console.log(`✅ Kms placeholder set: ${deliveryKms}`);
+        console.log(`✅ Kms value set: ${deliveryKms}`);
     }
     
     // Set fuel value
@@ -1015,6 +1033,77 @@ function prefillPickupFieldsFromDelivery() {
         fuelSlider.dispatchEvent(new Event('input'));
         console.log(`✅ Fuel set: ${deliveryFuel}`);
     }
+}
+
+// Validate pickup odometer reading
+function validatePickupOdometer() {
+    if (!window.isPickupMode || !window.deliveryInspection) {
+        return true;
+    }
+    
+    const odometerInput = document.getElementById('odometerReading');
+    const currentKms = parseInt(odometerInput?.value) || 0;
+    const deliveryKms = window.deliveryInspection.odometer_reading || 0;
+    
+    // Check if current kms are less than delivery kms
+    if (currentKms > 0 && currentKms < deliveryKms) {
+        // Show clean popup
+        showCleanAlert(
+            '⚠️ Quilómetros Inválidos',
+            `Os quilómetros de recolha (${currentKms} km) não podem ser menores que os quilómetros de entrega (${deliveryKms} km).`,
+            'warning'
+        );
+        
+        // Reset to delivery kms
+        odometerInput.value = deliveryKms;
+        odometerInput.style.color = '#dc3545';
+        
+        return false;
+    }
+    
+    // Valid - set color to black
+    if (currentKms >= deliveryKms) {
+        odometerInput.style.color = '#000';
+    }
+    
+    return true;
+}
+
+// Show clean alert popup - simple toast style like showNotification
+function showCleanAlert(title, message, type = 'info') {
+    console.log(`[${type.toUpperCase()}] ${title}: ${message}`);
+    
+    // Create toast notification
+    const toast = document.createElement('div');
+    const bgColor = type === 'error' ? '#ef4444' : type === 'warning' ? '#ff9800' : '#009cb6';
+    
+    toast.style.cssText = `
+        position: fixed;
+        top: 20px;
+        right: 20px;
+        background: ${bgColor};
+        color: white;
+        padding: 16px 24px;
+        border-radius: 8px;
+        box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+        z-index: 10001;
+        font-weight: 500;
+        max-width: 350px;
+        animation: slideIn 0.3s ease-out;
+    `;
+    toast.innerHTML = `<strong>${title}</strong><br>${message}`;
+    
+    document.body.appendChild(toast);
+    
+    // Remove after 4 seconds
+    setTimeout(() => {
+        toast.style.animation = 'slideOut 0.3s ease-out';
+        setTimeout(() => {
+            if (toast.parentNode) {
+                document.body.removeChild(toast);
+            }
+        }, 300);
+    }, 4000);
 }
 
 // Show grid of delivery photos (clickable to enlarge)
@@ -1327,66 +1416,76 @@ function addPickupActionButtons() {
         diagramContainer.appendChild(buttonsContainer);
     }
 }
-
-// Load delivery damages on croqui
 function loadDeliveryDamagesOnCroqui() {
     console.log('📍 Loading delivery damages on croqui...');
     
-    // Check if we have delivery photos
-    if (!window.deliveryPhotos || window.deliveryPhotos.length === 0) {
-        console.log('⚠️ No delivery photos to load');
+    // Check if we have delivery inspection data with damages
+    if (!window.deliveryInspection) {
+        console.log('⚠️ No delivery inspection data');
         return;
     }
     
-    // Find the damage_croqui photo from delivery
-    const croquiPhoto = window.deliveryPhotos.find(p => p.photo_type === 'damage_croqui');
-    
-    if (!croquiPhoto || !croquiPhoto.image_data) {
-        console.log('⚠️ No damage croqui found in delivery photos');
-        return;
+    // Try to load damage croqui as background if available
+    if (window.deliveryPhotos && window.deliveryPhotos.length > 0) {
+        const croquiPhoto = window.deliveryPhotos.find(p => p.photo_type === 'damage_croqui');
+        
+        if (croquiPhoto && croquiPhoto.image_data) {
+            console.log('📍 Loading delivery damage croqui as background...');
+            
+            const carDiagram = document.getElementById('carDiagram');
+            if (carDiagram) {
+                // Create background div with delivery croqui
+                let bgLayer = document.getElementById('deliveryCroquiBackground');
+                if (!bgLayer) {
+                    bgLayer = document.createElement('div');
+                    bgLayer.id = 'deliveryCroquiBackground';
+                    bgLayer.style.cssText = `
+                        position: absolute;
+                        top: 0;
+                        left: 0;
+                        width: 100%;
+                        height: 100%;
+                        background-image: url('${croquiPhoto.image_data}');
+                        background-size: contain;
+                        background-repeat: no-repeat;
+                        background-position: center;
+                        pointer-events: none;
+                        z-index: 1;
+                        opacity: 0.7;
+                    `;
+                    carDiagram.insertBefore(bgLayer, carDiagram.firstChild);
+                }
+                console.log('✅ Delivery croqui loaded as background');
+            }
+        } else {
+            console.log('ℹ️ No damage croqui image in delivery photos - will load pins only');
+        }
     }
     
-    console.log('📍 Loading delivery damage croqui as background...');
-    
-    // Create a background image layer with the delivery croqui
-    const carDiagram = document.getElementById('carDiagram');
-    if (!carDiagram) {
-        console.error('❌ Car diagram not found');
-        return;
-    }
-    
-    // Create background div with delivery croqui
-    let bgLayer = document.getElementById('deliveryCroquiBackground');
-    if (!bgLayer) {
-        bgLayer = document.createElement('div');
-        bgLayer.id = 'deliveryCroquiBackground';
-        bgLayer.style.cssText = `
-            position: absolute;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background-image: url('${croquiPhoto.image_data}');
-            background-size: contain;
-            background-repeat: no-repeat;
-            background-position: center;
-            pointer-events: none;
-            z-index: 1;
-            opacity: 0.7;
-        `;
-        carDiagram.insertBefore(bgLayer, carDiagram.firstChild);
+    // Load delivery damage pins (blue) if available
+    if (window.deliveryInspection.diagram_data) {
+        try {
+            const diagramData = typeof window.deliveryInspection.diagram_data === 'string' 
+                ? JSON.parse(window.deliveryInspection.diagram_data) 
+                : window.deliveryInspection.diagram_data;
+            
+            if (diagramData && diagramData.damages && Array.isArray(diagramData.damages)) {
+                console.log(`📍 Loading ${diagramData.damages.length} delivery damage pins (blue)...`);
+                
+                diagramData.damages.forEach(damage => {
+                    if (damage.x && damage.y) {
+                        addPinAtPosition(damage.x, damage.y, false);
+                    }
+                });
+                
+                console.log('✅ Delivery damage pins loaded');
+            }
+        } catch (error) {
+            console.error('❌ Error parsing delivery diagram data:', error);
+        }
     } else {
-        bgLayer.style.backgroundImage = `url('${croquiPhoto.image_data}')`;
+        console.log('ℹ️ No diagram data in delivery inspection');
     }
-    
-    // Make sure the SVG croqui is above the background
-    const croquiImg = document.getElementById('carCroqui');
-    if (croquiImg) {
-        croquiImg.style.position = 'relative';
-        croquiImg.style.zIndex = '2';
-    }
-    
-    console.log('✅ Loaded delivery damage croqui as background');
 }
 
 // Add pin at specific position (for loading delivery damages)
@@ -1419,12 +1518,12 @@ function addPinAtPosition(x, y, isNewDamage = false) {
     // Blue for delivery damages, red for new pickup damages
     if (isNewDamage) {
         pin.style.background = '#dc3545'; // Red
-        pin.style.border = '2px solid #a71d2a';
+        pin.style.border = 'none'; // No border for pickup damages
         pin.style.width = '16px';
         pin.style.height = '16px';
     } else {
         pin.style.background = '#009cb6'; // Blue (delivery damages)
-        pin.style.border = '2px solid #007a8f';
+        pin.style.border = 'none'; // No border for delivery damages
         pin.style.width = '16px';
         pin.style.height = '16px';
     }
@@ -1632,67 +1731,110 @@ function finishPickup() {
     showPickupSummaryModal();
 }
 
-// Show pickup summary modal (like checkout summary)
+// Show pickup summary modal (same design as checkout)
 function showPickupSummaryModal() {
     const plate = document.getElementById('inputPlate')?.value?.trim();
     const ra = document.getElementById('inputRA')?.value?.trim();
     const odometer = document.getElementById('odometerReading')?.value;
     const fuel = document.getElementById('fuelSlider')?.value;
     
+    // Count delivery photos
+    const deliveryPhotosCount = window.deliveryPhotos ? window.deliveryPhotos.length : 0;
+    
     // Count new damage photos
     const newDamagePhotosCount = window.pickupDamagePhotos ? window.pickupDamagePhotos.length : 0;
     const newDamagesCount = window.pickupNewDamages ? window.pickupNewDamages.length : 0;
+    const hasDamages = newDamagesCount > 0 ? 'Sim' : 'Não';
+    
+    // Get client email
+    const clientEmail = window.currentRAData?.client_email || '';
     
     const modalHTML = `
         <div id="pickupSummaryModal" style="position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.9); z-index: 10000; display: flex; align-items: center; justify-content: center; padding: 20px; overflow-y: auto;">
             <div style="background: white; padding: 40px; border-radius: 12px; max-width: 800px; width: 100%; box-shadow: 0 10px 40px rgba(0,0,0,0.5);">
-                <h2 style="color: #28a745; font-size: 28px; font-weight: bold; margin-bottom: 10px; text-align: center;">
-                    ✅ Recolha de Viatura Completa
-                </h2>
-                <p style="color: #666; margin-bottom: 30px; text-align: center; font-size: 14px;">
-                    Todos os dados foram registados com sucesso
-                </p>
+                <!-- Header -->
+                <div style="text-center; margin-bottom: 32px;">
+                    <div style="width: 80px; height: 80px; background: rgba(0, 156, 182, 0.1); border-radius: 50%; display: flex; align-items: center; justify-content: center; margin: 0 auto 16px;">
+                        <svg style="width: 40px; height: 40px; color: #009cb6;" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
+                        </svg>
+                    </div>
+                    <h2 style="font-size: 28px; font-weight: bold; color: #009cb6; margin-bottom: 8px;">Inspeção Concluída!</h2>
+                    <p style="font-size: 18px; color: #666;">Todas as etapas foram completadas com sucesso</p>
+                </div>
                 
-                <!-- Summary Info -->
-                <div style="background: #f8f9fa; border-radius: 8px; padding: 20px; margin-bottom: 30px;">
-                    <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 15px;">
-                        <div>
-                            <div style="color: #666; font-size: 12px; margin-bottom: 5px;">Matrícula</div>
-                            <div style="color: #009cb6; font-size: 18px; font-weight: bold;">${plate}</div>
+                <!-- Summary Grid -->
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 24px; margin-bottom: 32px;">
+                    <!-- Summary Card -->
+                    <div style="background: #f8f9fa; border-radius: 12px; padding: 24px;">
+                        <h3 style="font-size: 18px; font-weight: 600; margin-bottom: 16px; color: #009cb6;">Resumo da Inspeção</h3>
+                        <div style="display: flex; flex-direction: column; gap: 12px;">
+                            <div style="display: flex; justify-content: space-between;">
+                                <span style="color: #666;">Fotos capturadas:</span>
+                                <span style="font-weight: 600; color: #009cb6;">${deliveryPhotosCount}/9</span>
+                            </div>
+                            <div style="display: flex; justify-content: space-between;">
+                                <span style="color: #666;">Danos marcados:</span>
+                                <span style="font-weight: 600; color: #009cb6;">${hasDamages}</span>
+                            </div>
+                            <div style="display: flex; justify-content: space-between;">
+                                <span style="color: #666;">Combustível:</span>
+                                <span style="font-weight: 600; color: #009cb6;">${fuel}%</span>
+                            </div>
+                            <div style="display: flex; justify-content: space-between;">
+                                <span style="color: #666;">Quilómetros:</span>
+                                <span style="font-weight: 600; color: #009cb6;">${odometer} km</span>
+                            </div>
                         </div>
-                        <div>
-                            <div style="color: #666; font-size: 12px; margin-bottom: 5px;">RA</div>
-                            <div style="color: #009cb6; font-size: 18px; font-weight: bold;">${ra}</div>
-                        </div>
-                        <div>
-                            <div style="color: #666; font-size: 12px; margin-bottom: 5px;">Km Entrada</div>
-                            <div style="color: #009cb6; font-size: 18px; font-weight: bold;">${odometer} km</div>
-                        </div>
-                        <div>
-                            <div style="color: #666; font-size: 12px; margin-bottom: 5px;">Combustível</div>
-                            <div style="color: #009cb6; font-size: 18px; font-weight: bold;">${fuel}%</div>
-                        </div>
-                        <div>
-                            <div style="color: #666; font-size: 12px; margin-bottom: 5px;">Fotos do Check-out</div>
-                            <div style="color: #009cb6; font-size: 18px; font-weight: bold;">${window.deliveryPhotos ? window.deliveryPhotos.length : 0}</div>
-                        </div>
-                        <div>
-                            <div style="color: #666; font-size: 12px; margin-bottom: 5px;">Novos Danos</div>
-                            <div style="color: #dc3545; font-size: 18px; font-weight: bold;">${newDamagesCount} (${newDamagePhotosCount} fotos)</div>
+                    </div>
+                    
+                    <!-- Actions Card -->
+                    <div style="background: rgba(0, 156, 182, 0.1); border-radius: 12px; padding: 24px;">
+                        <h3 style="font-size: 18px; font-weight: 600; margin-bottom: 16px; color: #009cb6;">Próximos Passos</h3>
+                        <div style="display: flex; flex-direction: column; gap: 16px;">
+                            <div style="display: flex; align-items: center; gap: 12px;">
+                                <div style="width: 32px; height: 32px; background: rgba(0, 156, 182, 0.2); border-radius: 50%; display: flex; align-items: center; justify-content: center;">
+                                    <span style="color: #009cb6; font-weight: 600; font-size: 14px;">1</span>
+                                </div>
+                                <span style="color: #333;">Enviar relatório por email</span>
+                            </div>
+                            <div style="display: flex; align-items: center; gap: 12px;">
+                                <div style="width: 32px; height: 32px; background: rgba(0, 156, 182, 0.2); border-radius: 50%; display: flex; align-items: center; justify-content: center;">
+                                    <span style="color: #009cb6; font-weight: 600; font-size: 14px;">2</span>
+                                </div>
+                                <span style="color: #333;">Guardar no histórico</span>
+                            </div>
+                            <div style="display: flex; align-items: center; gap: 12px;">
+                                <div style="width: 32px; height: 32px; background: rgba(0, 156, 182, 0.2); border-radius: 50%; display: flex; align-items: center; justify-content: center;">
+                                    <span style="color: #009cb6; font-weight: 600; font-size: 14px;">3</span>
+                                </div>
+                                <span style="color: #333;">Finalizar inspeção</span>
+                            </div>
                         </div>
                     </div>
                 </div>
                 
+                <!-- Email Input -->
+                <div style="margin-bottom: 24px;">
+                    <label style="display: block; font-size: 14px; font-weight: 500; color: #333; margin-bottom: 8px;">
+                        Email para envio do relatório (opcional):
+                    </label>
+                    <input type="email" id="pickupReportEmail" value="${clientEmail}" style="width: 100%; padding: 12px 16px; border: 1px solid #ddd; border-radius: 8px; font-size: 16px;" placeholder="exemplo@email.com">
+                </div>
+                
                 <!-- Action Buttons -->
-                <div style="display: flex; flex-direction: column; gap: 15px;">
-                    <button onclick="saveAndEmailPickup()" style="width: 100%; padding: 20px; background: #009cb6; color: white; border: none; border-radius: 8px; font-size: 18px; font-weight: bold; cursor: pointer; transition: background 0.2s;">
-                        💾 Guardar e Enviar Email
+                <div style="display: flex; gap: 16px;">
+                    <button onclick="saveAndEmailPickup()" style="flex: 1; background: #f6b511; color: white; padding: 16px 24px; border: none; border-radius: 8px; font-size: 18px; font-weight: 600; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 8px; transition: background 0.2s;" onmouseover="this.style.background='#e6a500'" onmouseout="this.style.background='#f6b511'">
+                        <svg style="width: 24px; height: 24px;" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 8l7.89 4.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"></path>
+                        </svg>
+                        Guardar e Enviar por Email
                     </button>
-                    <button onclick="savePickupOnly()" style="width: 100%; padding: 20px; background: #28a745; color: white; border: none; border-radius: 8px; font-size: 18px; font-weight: bold; cursor: pointer; transition: background 0.2s;">
-                        💾 Só Guardar
-                    </button>
-                    <button onclick="closePickupSummary()" style="width: 100%; padding: 15px; background: #6c757d; color: white; border: none; border-radius: 8px; font-size: 16px; font-weight: bold; cursor: pointer;">
-                        Cancelar
+                    <button onclick="savePickupOnly()" style="flex: 1; background: #009cb6; color: white; padding: 16px 24px; border: none; border-radius: 8px; font-size: 18px; font-weight: 600; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 8px; transition: background 0.2s;" onmouseover="this.style.background='#0086a1'" onmouseout="this.style.background='#009cb6'">
+                        <svg style="width: 24px; height: 24px;" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-3m-1 4l-3 3m0 0l-3-3m3 3V4"></path>
+                        </svg>
+                        Apenas Guardar
                     </button>
                 </div>
             </div>
@@ -1755,10 +1897,39 @@ async function savePickupInspection() {
         // Prepare inspection data
         const plate = document.getElementById('inputPlate')?.value?.trim();
         const ra = document.getElementById('inputRA')?.value?.trim();
-        const odometer = document.getElementById('odometerReading')?.value;
+        const odometerInput = document.getElementById('odometerReading');
+        const odometer = odometerInput?.value?.trim();
         const fuel = document.getElementById('fuelSlider')?.value;
         const receptionist = document.getElementById('inputReceptionist')?.value?.trim();
         const observations = document.getElementById('inputObservations')?.value?.trim();
+        
+        console.log('🔍 DEBUG - Odometer field value:', odometer);
+        console.log('🔍 DEBUG - Odometer field raw:', odometerInput?.value);
+        console.log('🔍 DEBUG - Odometer as int:', parseInt(odometer));
+        
+        // Validate odometer reading
+        const pickupKms = parseInt(odometer) || 0;
+        const deliveryKms = window.deliveryInspection?.odometer_reading || 0;
+        
+        if (!odometer || odometer === '' || pickupKms <= 0) {
+            showCleanAlert(
+                '❌ Campo Obrigatório',
+                'Por favor insira os quilómetros da recolha.',
+                'error'
+            );
+            odometerInput?.focus();
+            return false;
+        }
+        
+        if (pickupKms < deliveryKms) {
+            showCleanAlert(
+                '⚠️ Quilómetros Inválidos',
+                `Os quilómetros de recolha (${pickupKms} km) não podem ser menores que os quilómetros de entrega (${deliveryKms} km).`,
+                'warning'
+            );
+            odometerInput?.focus();
+            return false;
+        }
         
         // Get damage croqui (with new damages in red)
         const damageCroqui = await captureDamageCroqui();
@@ -1775,11 +1946,18 @@ async function savePickupInspection() {
             });
         }
         
-        // Add new damage photos with unique keys
-        if (window.pickupDamagePhotos) {
+        // Add new damage photos with side in the key (damagePhoto_front, damagePhoto_back, etc.)
+        console.log('🔍 window.pickupDamagePhotos:', window.pickupDamagePhotos);
+        console.log('🔍 pickupDamagePhotos length:', window.pickupDamagePhotos ? window.pickupDamagePhotos.length : 0);
+        if (window.pickupDamagePhotos && window.pickupDamagePhotos.length > 0) {
             window.pickupDamagePhotos.forEach((photo, index) => {
-                photos[`new_damage_${index}`] = photo.imageData;
+                const side = photo.side || photo.type || 'unknown';
+                const key = `damagePhoto_${side}`;
+                photos[key] = photo.imageData;
+                console.log(`✅ Added damage photo ${key}, data length: ${photo.imageData ? photo.imageData.length : 0}`);
             });
+        } else {
+            console.warn('⚠️ No pickup damage photos found!');
         }
         
         // Get current user data
@@ -1793,10 +1971,15 @@ async function savePickupInspection() {
         // Get location from rental agreement
         const local = window.currentRAData?.location || 'Não especificado';
         
-        // Calculate total kms (pickup - delivery)
-        const deliveryKms = window.deliveryInspection?.odometer_reading || 0;
-        const pickupKms = parseInt(odometer) || 0;
+        // Calculate total kms (pickup - delivery) - using variables already declared above
         const totalKms = pickupKms - deliveryKms;
+        
+        // Get email from modal field (if modal is open) or use default
+        let clientEmail = window.currentRAData?.client_email || '';
+        const emailField = document.getElementById('pickupReportEmail');
+        if (emailField) {
+            clientEmail = emailField.value.trim() || clientEmail;
+        }
         
         // Prepare request data
         const requestData = {
@@ -1812,12 +1995,12 @@ async function savePickupInspection() {
             delivery_kms: deliveryKms,
             total_kms: totalKms,
             observations: observations,
-            has_damage: (window.pickupNewDamages && window.pickupNewDamages.length > 0),
-            damage_count: window.pickupNewDamages ? window.pickupNewDamages.length : 0,
+            has_damage: (window.pickupNewDamages && window.pickupNewDamages.length > 0) || (window.damages && window.damages.filter(d => d.type === 'drawing').length > 0),
+            damage_count: (window.pickupNewDamages ? window.pickupNewDamages.length : 0) + (window.damages ? window.damages.filter(d => d.type === 'drawing').length : 0),
             new_damage_photos_count: window.pickupDamagePhotos ? window.pickupDamagePhotos.length : 0,
             photos: photos,
             damage_croqui: damageCroqui,
-            client_email: window.currentRAData?.client_email || ''
+            client_email: clientEmail
         };
         
         console.log('📤 Saving pickup inspection...', requestData);
@@ -1832,13 +2015,44 @@ async function savePickupInspection() {
         });
         
         if (!response.ok) {
-            throw new Error('Erro ao guardar recolha');
+            // Try to get error details from response
+            let errorMessage = 'Erro ao guardar recolha';
+            try {
+                const errorData = await response.json();
+                errorMessage = errorData.error || errorMessage;
+                console.error('❌ Server error details:', errorData);
+            } catch (e) {
+                console.error('❌ Could not parse error response');
+            }
+            throw new Error(errorMessage);
         }
         
         const data = await response.json();
         
-        if (data.ok) {
+        if (data.success || data.ok) {
             console.log('✅ Pickup inspection saved successfully');
+            
+            // Mark contract as pickup complete
+            const contractKey = getContractKey();
+            const contracts = getActiveContracts();
+            if (contracts[contractKey]) {
+                contracts[contractKey].pickupComplete = true;
+                contracts[contractKey].pickupDate = new Date().toISOString();
+                saveActiveContracts(contracts);
+                console.log('✅ Contract marked as pickup complete:', contractKey);
+            }
+            
+            // Close modal
+            closePickupSummary();
+            
+            // Show success message
+            showCleanAlert('✅ Check-in Guardado', 'Recolha guardada com sucesso! Email enviado ao cliente.', 'success');
+            
+            // Redirect after delay
+            setTimeout(() => {
+                window.location.href = '/vehicle-inspection';
+            }, 2000);
+            
             return true;
         } else {
             throw new Error(data.error || 'Erro desconhecido');
@@ -1876,12 +2090,36 @@ async function captureDamageCroqui() {
         tempCanvas.width = croquiImg.naturalWidth;
         tempCanvas.height = croquiImg.naturalHeight;
         
-        // Draw croqui image
+        // STEP 1: Draw base croqui image (car outline)
         tempCtx.drawImage(croquiImg, 0, 0);
         
-        // Draw canvas content (lines/drawings)
+        // STEP 2: If in pickup mode, draw delivery croqui (with checkout damages) on top
+        const bgLayer = document.getElementById('deliveryCroquiBackground');
+        if (bgLayer && window.deliveryPhotos) {
+            const croquiPhoto = window.deliveryPhotos.find(p => p.photo_type === 'damage_croqui');
+            if (croquiPhoto && croquiPhoto.image_data) {
+                console.log('📍 Including delivery croqui (checkout damages) in final capture...');
+                const bgImg = new Image();
+                bgImg.src = croquiPhoto.image_data;
+                await new Promise((resolve) => {
+                    bgImg.onload = () => {
+                        // Draw checkout croqui (contains checkout damages)
+                        tempCtx.drawImage(bgImg, 0, 0, tempCanvas.width, tempCanvas.height);
+                        console.log('✅ Checkout croqui drawn');
+                        resolve();
+                    };
+                    bgImg.onerror = () => {
+                        console.error('❌ Failed to load checkout croqui');
+                        resolve();
+                    };
+                });
+            }
+        }
+        
+        // STEP 3: Draw new canvas content (new lines/drawings in red)
         if (canvas.width > 0 && canvas.height > 0) {
             tempCtx.drawImage(canvas, 0, 0, tempCanvas.width, tempCanvas.height);
+            console.log('✅ New drawings drawn');
         }
         
         // Draw pins

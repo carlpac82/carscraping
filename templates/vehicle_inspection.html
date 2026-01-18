@@ -972,7 +972,9 @@
                                        placeholder="60578"
                                        style="font-family: 'Courier New', monospace; letter-spacing: 0.2em;"
                                        min="0"
-                                       max="999999">
+                                       max="999999"
+                                       onchange="validatePickupOdometer()"
+                                       onblur="validatePickupOdometer()">
                             </div>
                         </div>
                         
@@ -1212,7 +1214,7 @@
         };
         {% endif %}
     </script>
-    <script src="/static/vehicle_inspection.js?v=20260117203400"></script>
+    <script src="/static/vehicle_inspection.js?v=20260117220000"></script>
     
     <!-- Force correct photo sending - Override -->
     <script>
@@ -1542,6 +1544,7 @@
         let currentSize = 'small';
         let pinCounter = 0;
         let damages = [];
+        window.damages = damages; // Expose to global scope for counting
         let drawing = false;
         let canvas, ctx;
         
@@ -1869,7 +1872,7 @@
             const isNewDamage = window.isPickupMode === true;
             if (isNewDamage) {
                 pin.style.background = '#dc3545'; // Red color for new damages
-                pin.style.border = '2px solid #a71d2a';
+                pin.style.border = 'none'; // No border for pickup damages
             }
             
             // Double click/tap to remove
@@ -1967,7 +1970,8 @@
             
             // Set stroke properties before beginning path
             if (currentTool === 'draw') {
-                ctx.strokeStyle = '#000000'; // Black for damage marks
+                // Red for pickup mode, black for checkout mode
+                ctx.strokeStyle = window.isPickupMode ? '#dc3545' : '#000000';
                 ctx.lineWidth = currentSize === 'tiny' ? 2 : currentSize === 'small' ? 3 : currentSize === 'medium' ? 5 : 8;
                 ctx.globalCompositeOperation = 'source-over';
                 ctx.lineCap = 'round';
@@ -2018,6 +2022,7 @@
                     type: 'drawing',
                     dataURL: canvas.toDataURL()
                 });
+                window.damages = damages; // Update global reference
                 console.log('Drawing saved, total damages:', damages.length);
             }
         }
