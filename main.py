@@ -27899,6 +27899,7 @@ async def save_inspection(request: Request):
     
     try:
         import os
+        import base64
         logging.info("=" * 80)
         logging.info("🔍 SAVE INSPECTION - START")
         
@@ -28376,7 +28377,12 @@ async def save_inspection(request: Request):
             
             # Save damage photos (damagePhoto_front, damagePhoto_back, etc.)
             damage_photos_saved = 0
+            logging.info(f"🔍 DEBUG - Checking photos dict for damage photos...")
+            logging.info(f"🔍 DEBUG - Photos keys: {list(photos.keys())}")
+            logging.info(f"🔍 DEBUG - Total photos in dict: {len(photos)}")
+            
             for photo_key in photos.keys():
+                logging.info(f"🔍 DEBUG - Checking photo_key: {photo_key}")
                 if photo_key.startswith('damagePhoto'):
                     try:
                         logging.info(f"💾 Saving damage photo '{photo_key}' to database...")
@@ -28397,9 +28403,11 @@ async def save_inspection(request: Request):
                         if '_' in photo_key:
                             side = photo_key.replace('damagePhoto_', '')
                             photo_type = f'damage_{side}'
+                            photo_order = 100 + damage_photos_saved  # Use counter for order
                         else:
                             photo_number = photo_key.replace('damagePhoto', '')
                             photo_type = f'damage_photo_{photo_number}'
+                            photo_order = 100 + int(photo_number)
                         
                         if is_postgres:
                             cursor.execute("""
@@ -28410,7 +28418,7 @@ async def save_inspection(request: Request):
                             """, (
                                 inspection_id,
                                 photo_type,
-                                100 + int(photo_number),
+                                photo_order,
                                 photo_bytes,
                                 f"{photo_type}.jpg",
                                 True,
@@ -28425,7 +28433,7 @@ async def save_inspection(request: Request):
                             """, (
                                 inspection_id,
                                 photo_type,
-                                100 + int(photo_number),
+                                photo_order,
                                 photo_bytes,
                                 f"{photo_type}.jpg",
                                 1,
@@ -39578,6 +39586,9 @@ async def get_inspection_details(inspection_number: str, request: Request):
                 }, status_code=404)
             
             inspection_id = inspection_row[0]
+            inspection_type = inspection_row[2]
+            vehicle_plate = inspection_row[3]
+            contract_number = inspection_row[4]
             
             # Get photos for this inspection (including damage croqui)
             cursor.execute("""
@@ -39597,6 +39608,50 @@ async def get_inspection_details(inspection_number: str, request: Request):
             damage_croqui = None
             damage_photos = {}
             import base64
+            
+            # If this is a checkin, also get photos from the related checkout
+            if inspection_type == 'checkin':
+                # Find the checkout inspection for the same vehicle and contract
+                cursor.execute("""
+                    SELECT id
+                    FROM vehicle_inspections
+                    WHERE vehicle_plate = %s
+                      AND contract_number = %s
+                      AND inspection_type = 'checkout'
+                    ORDER BY created_at DESC
+                    LIMIT 1
+                """ if is_postgres else """
+                    SELECT id
+                    FROM vehicle_inspections
+                    WHERE vehicle_plate = ?
+                      AND contract_number = ?
+                      AND inspection_type = 'checkout'
+                    ORDER BY created_at DESC
+                    LIMIT 1
+                """, (vehicle_plate, contract_number))
+                
+                checkout_row = cursor.fetchone()
+                if checkout_row:
+                    checkout_id = checkout_row[0]
+                    # Get checkout photos (excluding damage_croqui)
+                    cursor.execute("""
+                        SELECT photo_type, image_data
+                        FROM inspection_photos
+                        WHERE inspection_id = %s
+                          AND photo_type != 'damage_croqui'
+                        ORDER BY photo_order
+                    """ if is_postgres else """
+                        SELECT photo_type, image_data
+                        FROM inspection_photos
+                        WHERE inspection_id = ?
+                          AND photo_type != 'damage_croqui'
+                        ORDER BY photo_order
+                    """, (checkout_id,))
+                    
+                    checkout_photos = cursor.fetchall()
+                    # Add checkout photos to photos_rows
+                    photos_rows.extend(checkout_photos)
+            
             for photo_row in photos_rows:
                 photo_type = photo_row[0]
                 image_data = photo_row[1]
@@ -39607,8 +39662,11 @@ async def get_inspection_details(inspection_number: str, request: Request):
                     # Separate damage croqui and damage photos from regular photos
                     if photo_type == 'damage_croqui':
                         damage_croqui = f"data:image/png;base64,{photo_base64}"
-                    elif photo_type.startswith('damage_photo_'):
-                        damage_photos[photo_type] = f"data:image/jpeg;base64,{photo_base64}"
+                    elif photo_type.startswith('damage_photo_') or photo_type.startswith('damage_'):
+                        # Handle both old format (damage_photo_1) and new format (damage_front, damage_back, etc.)
+                        # But exclude damage_croqui which is already handled above
+                        if photo_type != 'damage_croqui':
+                            damage_photos[photo_type] = f"data:image/jpeg;base64,{photo_base64}"
                     else:
                         photos[photo_type] = f"data:image/jpeg;base64,{photo_base64}"
             

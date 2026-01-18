@@ -1854,9 +1854,13 @@ function closePickupSummary() {
 
 // Save and email pickup
 async function saveAndEmailPickup() {
-    showNotification('Guardando recolha e enviando email...', 'info');
+    // Show loading overlay
+    showLoadingOverlay('A guardar e enviar email...');
     
     const success = await savePickupInspection();
+    
+    // Hide loading overlay
+    hideLoadingOverlay();
     
     if (success) {
         // Close summary modal
@@ -1874,9 +1878,13 @@ async function saveAndEmailPickup() {
 
 // Save pickup only
 async function savePickupOnly() {
-    showNotification('Guardando recolha...', 'info');
+    // Show loading overlay
+    showLoadingOverlay('A guardar recolha...');
     
     const success = await savePickupInspection();
+    
+    // Hide loading overlay
+    hideLoadingOverlay();
     
     if (success) {
         // Close summary modal
@@ -1934,17 +1942,11 @@ async function savePickupInspection() {
         // Get damage croqui (with new damages in red)
         const damageCroqui = await captureDamageCroqui();
         
-        // Prepare photos object (delivery photos + new damage photos)
+        // Prepare photos object - ONLY NEW DAMAGE PHOTOS (delivery photos already in DB)
         const photos = {};
         
-        // Add delivery photos
-        if (window.deliveryPhotos) {
-            window.deliveryPhotos.forEach(photo => {
-                if (photo.photo_type !== 'damage_croqui') {
-                    photos[photo.photo_type] = photo.image_data;
-                }
-            });
-        }
+        // DON'T send delivery photos - they're already in the database from checkout
+        // Only send new damage photos taken during checkin
         
         // Add new damage photos with side in the key (damagePhoto_front, damagePhoto_back, etc.)
         console.log('🔍 window.pickupDamagePhotos:', window.pickupDamagePhotos);
@@ -2003,7 +2005,12 @@ async function savePickupInspection() {
             client_email: clientEmail
         };
         
-        console.log('📤 Saving pickup inspection...', requestData);
+        // Calculate payload size
+        const payloadSize = JSON.stringify(requestData).length;
+        console.log('📤 Saving pickup inspection...');
+        console.log('📊 Payload size:', (payloadSize / 1024 / 1024).toFixed(2), 'MB');
+        console.log('📊 Number of photos:', Object.keys(photos).length);
+        console.log('📊 Has damage croqui:', !!damageCroqui);
         
         // Send to backend
         const response = await fetch('/api/save-inspection', {
@@ -2012,6 +2019,9 @@ async function savePickupInspection() {
                 'Content-Type': 'application/json'
             },
             body: JSON.stringify(requestData)
+        }).catch(fetchError => {
+            console.error('❌ Fetch error:', fetchError);
+            throw new Error('Erro de conexão: ' + fetchError.message);
         });
         
         if (!response.ok) {
@@ -3467,19 +3477,44 @@ function savePickupDamagePhoto(blob, photoType) {
         window.pickupDamagePhotos = [];
     }
     
-    // Convert blob to base64
+    // Compress image before saving
+    const img = new Image();
     const reader = new FileReader();
+    
     reader.onloadend = function() {
-        const base64data = reader.result;
+        img.src = reader.result;
+    };
+    
+    img.onload = function() {
+        // Create canvas to compress
+        const canvas = document.createElement('canvas');
+        const ctx = canvas.getContext('2d');
+        
+        // Resize to max 1280px width (maintain aspect ratio)
+        const maxWidth = 1280;
+        let width = img.width;
+        let height = img.height;
+        
+        if (width > maxWidth) {
+            height = (height * maxWidth) / width;
+            width = maxWidth;
+        }
+        
+        canvas.width = width;
+        canvas.height = height;
+        
+        // Draw and compress
+        ctx.drawImage(img, 0, 0, width, height);
+        const compressedBase64 = canvas.toDataURL('image/jpeg', 0.6); // 60% quality
         
         window.pickupDamagePhotos.push({
             type: photoType,
             side: window.currentDamageSide,
-            imageData: base64data,
+            imageData: compressedBase64,
             timestamp: new Date().toISOString()
         });
         
-        console.log('✅ Pickup damage photo saved:', photoType, window.pickupDamagePhotos.length, 'photos total');
+        console.log('✅ Pickup damage photo saved (compressed):', photoType, window.pickupDamagePhotos.length, 'photos total');
         showNotification(`Foto de dano guardada: ${formatPhotoType(photoType)}`, 'success');
         
         // Update photo grid
@@ -4488,5 +4523,36 @@ async function saveInspection() {
     } catch (error) {
         console.error('Save error:', error);
         showNotification('Error saving inspection: ' + error.message, 'error');
+    }
+}
+
+// Show loading overlay with message
+function showLoadingOverlay(message = 'A processar...') {
+    // Remove existing overlay if any
+    hideLoadingOverlay();
+    
+    const overlayHTML = `
+        <div id="loadingOverlay" style="position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0, 0, 0, 0.8); z-index: 99999; display: flex; align-items: center; justify-content: center;">
+            <div style="background: white; padding: 40px 60px; border-radius: 16px; text-align: center; box-shadow: 0 10px 40px rgba(0,0,0,0.3);">
+                <div style="width: 60px; height: 60px; border: 4px solid #f3f3f3; border-top: 4px solid #009cb6; border-radius: 50%; animation: spin 1s linear infinite; margin: 0 auto 20px;"></div>
+                <p style="font-size: 18px; font-weight: 600; color: #333; margin: 0;">${message}</p>
+            </div>
+        </div>
+        <style>
+            @keyframes spin {
+                0% { transform: rotate(0deg); }
+                100% { transform: rotate(360deg); }
+            }
+        </style>
+    `;
+    
+    document.body.insertAdjacentHTML('beforeend', overlayHTML);
+}
+
+// Hide loading overlay
+function hideLoadingOverlay() {
+    const overlay = document.getElementById('loadingOverlay');
+    if (overlay) {
+        overlay.remove();
     }
 }
