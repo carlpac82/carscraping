@@ -364,6 +364,11 @@
                         </div>
                         ` : ''}
                         
+                        <!-- Debug status area -->
+                        <div id="debugStatus" class="mb-4 p-3 bg-gray-100 rounded-lg text-xs text-gray-600 hidden">
+                            <div id="debugText">Aguardando...</div>
+                        </div>
+                        
                         <div class="flex gap-3">
                             <button id="cancelEmailBtn" type="button"
                                     class="flex-1 px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors">
@@ -420,10 +425,23 @@
             }
         }
         
+        function showDebug(message, isError = false) {
+            const debugStatus = document.getElementById('debugStatus');
+            const debugText = document.getElementById('debugText');
+            if (debugStatus && debugText) {
+                debugStatus.classList.remove('hidden');
+                debugStatus.className = `mb-4 p-3 rounded-lg text-xs ${isError ? 'bg-red-100 text-red-700' : 'bg-blue-100 text-blue-700'}`;
+                debugText.textContent = message;
+            }
+        }
+        
         async function sendEmailFromModal(checkoutNumber, checkinNumber) {
             const email = document.getElementById('emailInput').value.trim();
             
+            showDebug('🔍 Iniciando envio...', false);
+            
             if (!email) {
+                showDebug('❌ Email vazio', true);
                 showNotification('Por favor insira um email', 'error');
                 return;
             }
@@ -434,6 +452,8 @@
             radioButtons.forEach(radio => {
                 if (radio.checked) reportType = radio.value;
             });
+            
+            showDebug(`📋 Tipo: ${reportType}`, false);
             
             // Show loading state on all buttons in modal
             const modal = window.currentEmailModal;
@@ -450,6 +470,7 @@
                     inspectionNumber = checkinNumber;
                 }
                 
+                showDebug(`🔢 Inspeção: ${inspectionNumber}`, false);
                 console.log('📧 Sending email:', {
                     checkoutNumber,
                     checkinNumber,
@@ -460,6 +481,7 @@
                 
                 // Validate inspection number
                 if (!inspectionNumber || inspectionNumber === 'undefined' || inspectionNumber === 'null') {
+                    showDebug('❌ Número de inspeção inválido', true);
                     console.error('❌ Invalid inspection number');
                     showNotification('Erro: Número de inspeção inválido', 'error');
                     sendButton.disabled = false;
@@ -468,6 +490,7 @@
                     return;
                 }
                 
+                showDebug('🌐 Enviando para servidor...', false);
                 console.log('📧 Fetching API...');
                 const response = await fetch(`/api/inspections/${inspectionNumber}/email`, { 
                     method: 'POST',
@@ -475,19 +498,23 @@
                     body: JSON.stringify({ email: email })
                 });
                 
+                showDebug(`📡 Resposta: ${response.status}`, false);
                 console.log('📧 Response status:', response.status);
                 const data = await response.json();
                 console.log('📧 Response data:', data);
                 
                 if (data.ok) {
+                    showDebug('✅ Email enviado com sucesso!', false);
                     console.log('✅ Email sent successfully');
                     showNotification('Email enviado com sucesso', 'success');
-                    closeEmailModal();
+                    setTimeout(() => closeEmailModal(), 1000);
                 } else {
+                    showDebug(`❌ Erro: ${data.error}`, true);
                     console.error('❌ Email send failed:', data.error);
                     showNotification('Erro ao enviar email: ' + data.error, 'error');
                 }
             } catch (error) {
+                showDebug(`❌ Erro: ${error.message}`, true);
                 console.error('❌ Email send error:', error);
                 showNotification('Erro ao enviar email: ' + error.message, 'error');
             } finally {
