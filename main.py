@@ -30879,12 +30879,21 @@ async def send_inspection_email(request: Request, inspection_number: str):
         
         # T&C download URL based on language (use server endpoints)
         # Detect base URL from Railway environment or fallback to localhost
-        railway_domain = os.environ.get('RAILWAY_PUBLIC_DOMAIN')
+        railway_static = os.environ.get('RAILWAY_STATIC_URL')
+        railway_public = os.environ.get('RAILWAY_PUBLIC_DOMAIN')
         render_host = os.environ.get('RENDER_EXTERNAL_HOSTNAME')
         
-        if railway_domain:
-            base_url = f"https://{railway_domain}"
-            print(f"📧 Using Railway domain for T&C links: {base_url}")
+        # Railway detection - try multiple env vars
+        if railway_static:
+            base_url = railway_static.rstrip('/')
+            print(f"📧 Using Railway STATIC_URL for T&C links: {base_url}")
+        elif railway_public:
+            base_url = f"https://{railway_public}"
+            print(f"📧 Using Railway PUBLIC_DOMAIN for T&C links: {base_url}")
+        elif os.environ.get('RAILWAY_ENVIRONMENT'):
+            # If Railway env is detected but no URL, use known production domain
+            base_url = "https://carscraping-production.up.railway.app"
+            print(f"📧 Using Railway production domain for T&C links: {base_url}")
         elif render_host:
             base_url = f"https://{render_host}"
             print(f"📧 Using Render domain for T&C links: {base_url}")
