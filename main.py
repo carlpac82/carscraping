@@ -44150,11 +44150,11 @@ async def checkin_preview_fuel(request: Request):
         # Sem danos detectados
         has_damages = False
         
-        # Status Alert - VERMELHO (falta combustível)
+        # Status Alert - LARANJA (falta combustível)
         status_alert = """
-        <div style="padding: 20px; background-color: #fee2e2; border-left: 4px solid #ef4444; margin: 20px;">
-            <h3 style="color: #991b1b; margin: 0 0 10px 0; font-size: 16px; font-weight: bold;">⚠️ Incidência Detectada: Combustível em Falta</h3>
-            <p style="color: #b91c1c; margin: 0; font-size: 14px; line-height: 1.6;">
+        <div style="padding: 20px; background-color: #fff7ed; border-left: 4px solid #f97316; margin: 20px;">
+            <h3 style="color: #9a3412; margin: 0 0 10px 0; font-size: 16px; font-weight: bold;">⚠️ Incidência Detectada: Combustível em Falta</h3>
+            <p style="color: #c2410c; margin: 0; font-size: 14px; line-height: 1.6;">
                 Foi detectada uma diferença no nível de combustível. A viatura foi entregue com 100% e devolvida com 50%. 
                 Iremos analisar esta situação com os nossos colaboradores. Se necessário, entraremos em contacto consigo.
             </p>
@@ -44163,7 +44163,7 @@ async def checkin_preview_fuel(request: Request):
         
         # Fuel gauge
         fuel_percentage = 50
-        fuel_color = '#ef4444'
+        fuel_color = '#f97316'
         tank_height = 100
         fill_height = tank_height * fuel_percentage / 100
         fill_y = tank_height - fill_height
