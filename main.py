@@ -42034,11 +42034,108 @@ Please check:
 
 @app.put("/api/inspections/{inspection_number}/update")
 async def update_inspection(inspection_number: str, request: Request):
-    """Update inspection details"""
+    """Update inspection details (fuel, odometer, damage notes, croqui)"""
     try:
-        data = await request.json()
+        require_inspection_access(request)
         
-        logging.info(f"Updating inspection {inspection_number}: {data}")
+        data = await request.json()
+        logging.info(f"📝 Updating inspection {inspection_number}")
+        
+        conn = _db_connect()
+        cursor = conn.cursor()
+        
+        # Get inspection ID
+        if _USE_NEW_DB:
+            cursor.execute("SELECT id FROM vehicle_inspections WHERE inspection_number = %s", (inspection_number,))
+        else:
+            cursor.execute("SELECT id FROM vehicle_inspections WHERE inspection_number = ?", (inspection_number,))
+        
+        inspection_row = cursor.fetchone()
+        if not inspection_row:
+            conn.close()
+            return JSONResponse({"ok": False, "error": "Inspection not found"}, status_code=404)
+        
+        inspection_id = inspection_row[0]
+        
+        # Update inspection fields
+        update_fields = []
+        update_values = []
+        
+        if 'fuel_level' in data:
+            update_fields.append("fuel_level = %s" if _USE_NEW_DB else "fuel_level = ?")
+            update_values.append(data['fuel_level'])
+        
+        if 'odometer_reading' in data:
+            update_fields.append("odometer_reading = %s" if _USE_NEW_DB else "odometer_reading = ?")
+            update_values.append(data['odometer_reading'])
+        
+        if 'damage_notes' in data:
+            update_fields.append("observations = %s" if _USE_NEW_DB else "observations = ?")
+            update_values.append(data['damage_notes'])
+        
+        if update_fields:
+            update_values.append(inspection_number)
+            query = f"UPDATE vehicle_inspections SET {', '.join(update_fields)} WHERE inspection_number = {'%s' if _USE_NEW_DB else '?'}"
+            cursor.execute(query, tuple(update_values))
+            logging.info(f"✅ Updated inspection fields: {', '.join(update_fields)}")
+        
+        # Update damage croqui if provided
+        if 'damage_croqui' in data and data['damage_croqui']:
+            import base64
+            import re
+            
+            # Extract base64 data from data URL
+            croqui_data = data['damage_croqui']
+            if croqui_data.startswith('data:image'):
+                croqui_data = re.sub(r'^data:image/\w+;base64,', '', croqui_data)
+            
+            # Check if croqui already exists
+            if _USE_NEW_DB:
+                cursor.execute("""
+                    SELECT id FROM inspection_photos 
+                    WHERE inspection_id = %s AND photo_type = 'damage_croqui'
+                """, (inspection_id,))
+            else:
+                cursor.execute("""
+                    SELECT id FROM inspection_photos 
+                    WHERE inspection_id = ? AND photo_type = 'damage_croqui'
+                """, (inspection_id,))
+            
+            existing_croqui = cursor.fetchone()
+            
+            if existing_croqui:
+                # Update existing croqui
+                if _USE_NEW_DB:
+                    cursor.execute("""
+                        UPDATE inspection_photos 
+                        SET image_data = %s, updated_at = NOW()
+                        WHERE inspection_id = %s AND photo_type = 'damage_croqui'
+                    """, (croqui_data, inspection_id))
+                else:
+                    cursor.execute("""
+                        UPDATE inspection_photos 
+                        SET image_data = ?, updated_at = CURRENT_TIMESTAMP
+                        WHERE inspection_id = ? AND photo_type = 'damage_croqui'
+                    """, (croqui_data, inspection_id))
+                logging.info("✅ Updated existing damage croqui")
+            else:
+                # Insert new croqui
+                if _USE_NEW_DB:
+                    cursor.execute("""
+                        INSERT INTO inspection_photos (inspection_id, photo_type, image_data, created_at, updated_at)
+                        VALUES (%s, 'damage_croqui', %s, NOW(), NOW())
+                    """, (inspection_id, croqui_data))
+                else:
+                    cursor.execute("""
+                        INSERT INTO inspection_photos (inspection_id, photo_type, image_data, created_at, updated_at)
+                        VALUES (?, 'damage_croqui', ?, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
+                    """, (inspection_id, croqui_data))
+                logging.info("✅ Inserted new damage croqui")
+        
+        conn.commit()
+        conn.close()
+        
+        logging.info(f"✅ Inspection {inspection_number} updated successfully")
         
         return JSONResponse({
             "ok": True,
@@ -42046,7 +42143,9 @@ async def update_inspection(inspection_number: str, request: Request):
         })
         
     except Exception as e:
-        logging.error(f"Error updating inspection: {e}")
+        logging.error(f"❌ Error updating inspection: {e}")
+        import traceback
+        traceback.print_exc()
         return JSONResponse({
             "ok": False,
             "error": str(e)
