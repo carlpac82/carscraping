@@ -1070,6 +1070,9 @@
         function handleMouseDown(e) {
             if (currentTool !== 'draw') return;
             
+            e.preventDefault();
+            e.stopPropagation();
+            
             isDrawing = true;
             const rect = e.currentTarget.getBoundingClientRect();
             const scaleX = drawingCanvas.width / rect.width;
@@ -1078,11 +1081,13 @@
             const y = (e.clientY - rect.top) * scaleY;
             
             currentStroke = [{x, y}];
-            e.preventDefault();
         }
         
         function handleMouseMove(e) {
             if (!isDrawing || currentTool !== 'draw') return;
+            
+            e.preventDefault();
+            e.stopPropagation();
             
             const rect = e.currentTarget.getBoundingClientRect();
             const scaleX = drawingCanvas.width / rect.width;
@@ -1092,11 +1097,12 @@
             
             currentStroke.push({x, y});
             redrawCanvas();
-            e.preventDefault();
         }
         
         function handleMouseUp(e) {
             if (isDrawing && currentStroke.length > 0) {
+                e.preventDefault();
+                e.stopPropagation();
                 strokes.push([...currentStroke]);
                 currentStroke = [];
                 updateDamageCount();
@@ -1194,21 +1200,23 @@
             currentTool = tool;
             const pinBtn = document.getElementById('toolPin');
             const drawBtn = document.getElementById('toolDraw');
+            const carDiagram = document.getElementById('carDiagram');
             
             if (tool === 'pin') {
                 pinBtn.className = 'w-12 h-12 rounded-full bg-[#009cb6] text-white hover:bg-[#007a94] transition-all duration-200 flex items-center justify-center';
                 drawBtn.className = 'w-12 h-12 rounded-full bg-gray-400 text-white hover:bg-gray-500 transition-all duration-200 flex items-center justify-center';
                 const sizeControls = document.getElementById('sizeControls');
                 if (sizeControls) sizeControls.style.display = 'flex';
-                // Enable canvas pointer events for drawing
+                // Disable canvas pointer events for pins
                 if (drawingCanvas) drawingCanvas.style.pointerEvents = 'none';
+                if (carDiagram) carDiagram.style.cursor = 'crosshair';
             } else if (tool === 'draw') {
                 pinBtn.className = 'w-12 h-12 rounded-full bg-gray-400 text-white hover:bg-gray-500 transition-all duration-200 flex items-center justify-center';
                 drawBtn.className = 'w-12 h-12 rounded-full bg-[#009cb6] text-white hover:bg-[#007a94] transition-all duration-200 flex items-center justify-center';
                 const sizeControls = document.getElementById('sizeControls');
                 if (sizeControls) sizeControls.style.display = 'none';
-                // Enable canvas pointer events for drawing
-                if (drawingCanvas) drawingCanvas.style.pointerEvents = 'auto';
+                // Canvas stays with pointer-events: none, we handle events on carDiagram
+                if (carDiagram) carDiagram.style.cursor = 'crosshair';
             }
         }
         
