@@ -1059,7 +1059,24 @@
         
         function loadExistingCroquiAsBackground(base64Image) {
             console.log('📍 Loading existing croqui as background...');
+            
+            // Validate base64 image
+            if (!base64Image || base64Image.length < 100) {
+                console.warn('⚠️ No valid croqui image to load as background');
+                return;
+            }
+            
             const carDiagram = document.getElementById('carDiagram');
+            if (!carDiagram) {
+                console.error('❌ carDiagram element not found');
+                return;
+            }
+            
+            // Ensure base64 has proper prefix
+            let imageUrl = base64Image;
+            if (!imageUrl.startsWith('data:')) {
+                imageUrl = `data:image/png;base64,${imageUrl}`;
+            }
             
             // Create background layer with existing croqui
             let bgLayer = document.getElementById('existingCroquiBackground');
@@ -1072,7 +1089,7 @@
                     left: 0;
                     width: 100%;
                     height: 100%;
-                    background-image: url('${base64Image}');
+                    background-image: url('${imageUrl}');
                     background-size: contain;
                     background-repeat: no-repeat;
                     background-position: center;
@@ -1081,6 +1098,9 @@
                     opacity: 0.7;
                 `;
                 carDiagram.insertBefore(bgLayer, carDiagram.firstChild);
+            } else {
+                // Update existing background
+                bgLayer.style.backgroundImage = `url('${imageUrl}')`;
             }
             
             // Inicializar contador
@@ -1354,13 +1374,16 @@
                 });
                 
                 const result = await response.json();
+                console.log('✅ Update response:', result);
                 
                 if (result.ok) {
                     showNotification('Inspeção atualizada com sucesso!', 'success');
-                    closeEditModal();
+                    console.log('🔄 Refreshing history...');
                     // Aguardar 1 segundo antes de recarregar para garantir que o servidor processou
-                    setTimeout(() => {
-                        refreshHistory();
+                    setTimeout(async () => {
+                        await refreshHistory();
+                        console.log('✅ History refreshed, closing modal...');
+                        closeEditModal();
                     }, 1000);
                 } else {
                     throw new Error(result.error || 'Erro ao atualizar inspeção');
