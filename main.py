@@ -31067,20 +31067,17 @@ async def send_inspection_email(request: Request, inspection_number: str):
         tc_download_url = tc_url_map.get(detected_lang, tc_url_map['en'])
         print(f"📧 T&C Download URL for {detected_lang}: {tc_download_url}")
         
-        # Use HTTP URL for croqui instead of base64 for Outlook Mac compatibility
-        if croqui_row and croqui_row[0]:
-            # Use HTTP URL instead of base64 for better email client compatibility
-            # Add timestamp to prevent caching of old croqui versions
-            import time
-            cache_buster = int(time.time())
-            final_croqui = f"{base_url}/email-photo/{inspection_id}/damage_croqui?v={cache_buster}"
-            print(f"🔍 Using HTTP URL for croqui: {final_croqui}", flush=True)
+        # Use base64 inline for croqui for better email client compatibility
+        if croqui_image:
+            # Already converted to base64 inline above (lines 30886-30901)
+            final_croqui = croqui_image
+            print(f"🔍 Using base64 inline for croqui (length: {len(final_croqui)})", flush=True)
         else:
             # Fallback to empty croqui cache if no custom croqui
             final_croqui = EMPTY_CROQUI_CACHE or ""
             print(f"⚠️ No custom croqui, using empty cache (length: {len(final_croqui)})", flush=True)
         
-        logging.info(f"🔍 Croqui URL: {final_croqui if croqui_row else 'empty cache'}")
+        logging.info(f"🔍 Croqui: {'base64 inline' if croqui_image else 'empty cache'}")
         
         html_content = templates.get_template(template_name).render(
             LOGO_URL=logo_base64,
