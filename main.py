@@ -30734,8 +30734,9 @@ async def send_inspection_email(request: Request, inspection_number: str):
             }
             
             labels_map = photo_labels.get(detected_lang, photo_labels['en'])
-            photos_html = '<div class="photo-grid" style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px;">'
             
+            # Build photos as table (3x3 grid) for better email client compatibility
+            photos_list = []
             for photo_row in photos_rows:
                 photo_type = photo_row[0]
                 image_data = photo_row[1]
@@ -30773,13 +30774,25 @@ async def send_inspection_email(request: Request, inspection_number: str):
                     
                     photo_data = f"data:image/jpeg;base64,{photo_base64}"
                     label = labels_map.get(photo_type, photo_type)
-                    photos_html += f"""
-                    <div style="text-align: center;">
-                        <img src="{photo_data}" alt="{label}" style="width: 100%; height: auto; max-height: 150px; object-fit: cover; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1);" />
-                        <p style="color: #00bcd4; margin: 5px 0 0 0; font-size: 12px; font-weight: 600;">{label}</p>
-                    </div>
-                    """
-            photos_html += '</div>'
+                    photos_list.append({'data': photo_data, 'label': label})
+            
+            # Create 3x3 table grid
+            photos_html = '<table width="100%" cellpadding="5" cellspacing="0" style="margin: 0;">'
+            for i in range(0, len(photos_list), 3):
+                photos_html += '<tr>'
+                for j in range(3):
+                    if i + j < len(photos_list):
+                        photo = photos_list[i + j]
+                        photos_html += f'''
+                        <td style="width: 33.33%; text-align: center; padding: 5px; vertical-align: top;">
+                            <img src="{photo['data']}" alt="{photo['label']}" style="width: 100%; height: auto; max-height: 150px; object-fit: cover; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); display: block;" />
+                            <p style="color: #00bcd4; margin: 5px 0 0 0; font-size: 12px; font-weight: 600;">{photo['label']}</p>
+                        </td>
+                        '''
+                    else:
+                        photos_html += '<td style="width: 33.33%;"></td>'
+                photos_html += '</tr>'
+            photos_html += '</table>'
         
         # Create fuel gauge as PNG base64 (same as canvas)
         fuel_percentage = int(fuel_level)
