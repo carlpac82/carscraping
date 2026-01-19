@@ -29129,26 +29129,36 @@ async def save_inspection(request: Request):
                     logging.error(f"❌ Failed to send email via endpoint: {email_error}")
                     logging.error(f"❌ Email error traceback: {traceback.format_exc()}")
                     # Don't fail the inspection save if email fails
-            
-            # Return success response
-            return JSONResponse({
-                'success': True,
-                'inspection_number': inspection_number,
-                'message': 'Inspection saved successfully' + (' and email sent' if (email and send_email) else '')
-            })
-            
-        except Exception as e:
-            logging.error(f"❌ Error saving inspection: {str(e)}")
+        
+        except Exception as db_error:
+            logging.error(f"❌ Database error: {db_error}")
             logging.error(f"❌ Traceback: {traceback.format_exc()}")
             if conn:
                 conn.rollback()
-            return JSONResponse({
-                'success': False,
-                'error': str(e)
-            }, status_code=500)
+            raise
         finally:
             if conn:
                 conn.close()
+        
+        # Return success response
+        return JSONResponse({
+            'success': True,
+            'inspection_number': inspection_number,
+            'message': 'Inspection saved successfully' + (' and email sent' if (email and send_email) else '')
+        })
+        
+    except Exception as e:
+        logging.error(f"❌ Error saving inspection: {str(e)}")
+        logging.error(f"❌ Traceback: {traceback.format_exc()}")
+        if conn:
+            conn.rollback()
+        return JSONResponse({
+            'success': False,
+            'error': str(e)
+        }, status_code=500)
+    finally:
+        if conn:
+            conn.close()
 
 # Email endpoint is defined later in the file (line ~30709)
 
