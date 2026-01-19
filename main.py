@@ -42642,12 +42642,14 @@ async def serve_email_photo(inspection_id: int, photo_type: str):
             cursor.execute("""
                 SELECT image_data FROM inspection_photos 
                 WHERE inspection_id = %s AND photo_type = %s
+                ORDER BY id DESC
                 LIMIT 1
             """, (inspection_id, photo_type))
         else:
             cursor.execute("""
                 SELECT image_data FROM inspection_photos 
                 WHERE inspection_id = ? AND photo_type = ?
+                ORDER BY id DESC
                 LIMIT 1
             """, (inspection_id, photo_type))
         
