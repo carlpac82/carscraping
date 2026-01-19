@@ -150,7 +150,9 @@
                 if (data.ok) {
                     contracts = data.contracts || [];
                     console.log('✅ Loaded contracts:', contracts.length);
+                    console.log('🔄 Calling renderHistory with', contracts.length, 'contracts...');
                     renderHistory(contracts);
+                    console.log('✅ renderHistory completed');
                 } else {
                     showNotification('Erro ao carregar histórico', 'error');
                     renderHistory([]);
