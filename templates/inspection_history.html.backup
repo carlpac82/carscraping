@@ -118,10 +118,7 @@
 
     <script>
         let contracts = [];
-        const currentUser = {{ current_user | tojson if current_user else 'null' }};
         const isAdmin = {{ 'true' if current_user and (current_user.get('role') == 'admin' or current_user.get('is_admin')) else 'false' }};
-        console.log('👤 Current user:', currentUser);
-        console.log('🔐 Is admin:', isAdmin);
 
         async function loadHistory() {
             try {
@@ -266,6 +263,28 @@
                                     <button onclick="previewInspection('${contract.checkout.inspection_number}', 'checkout')" class="p-2 hover:bg-red-50 rounded-lg transition-colors" title="Ver Check-out (${checkoutTime})">
                                         <svg class="w-8 h-8 text-red-600" fill="currentColor" viewBox="0 0 24 24">
                                             <path d="M18.92 6.01C18.72 5.42 18.16 5 17.5 5h-11c-.66 0-1.21.42-1.42 1.01L3 12v8c0 .55.45 1 1 1h1c.55 0 1-.45 1-1v-1h12v1c0 .55.45 1 1 1h1c.55 0 1-.45 1-1v-8l-2.08-5.99zM6.5 16c-.83 0-1.5-.67-1.5-1.5S5.67 13 6.5 13s1.5.67 1.5 1.5S7.33 16 6.5 16zm11 0c-.83 0-1.5-.67-1.5-1.5s.67-1.5 1.5-1.5 1.5.67 1.5 1.5-.67 1.5-1.5 1.5zM5 11l1.5-4.5h11L19 11H5z"/>
+                                    </svg>
+                                </button>
+                                ` : ''}
+                                ${hasCheckin ? `
+                                <button onclick="previewInspection('${contract.checkin.inspection_number}', 'checkin')" class="p-2 hover:bg-green-50 rounded-lg transition-colors" title="Ver Check-in (${checkinTime})">
+                                    <svg class="w-8 h-8 text-green-600" fill="currentColor" viewBox="0 0 24 24">
+                                        <path d="M18.92 6.01C18.72 5.42 18.16 5 17.5 5h-11c-.66 0-1.21.42-1.42 1.01L3 12v8c0 .55.45 1 1 1h1c.55 0 1-.45 1-1v-1h12v1c0 .55.45 1 1 1h1c.55 0 1-.45 1-1v-8l-2.08-5.99zM6.5 16c-.83 0-1.5-.67-1.5-1.5S5.67 13 6.5 13s1.5.67 1.5 1.5S7.33 16 6.5 16zm11 0c-.83 0-1.5-.67-1.5-1.5s.67-1.5 1.5-1.5 1.5.67 1.5 1.5-.67 1.5-1.5 1.5zM5 11l1.5-4.5h11L19 11H5z"/>
+                                </svg>
+                            </button>
+                            ` : ''}
+                            <button onclick="showEmailModal('${contract.checkout ? contract.checkout.inspection_number : ''}', '${contract.checkin ? contract.checkin.inspection_number : ''}', '${contract.vehicle_plate}', '${contract.contract_number}')" class="p-2 text-[#f59e0b] hover:bg-yellow-50 rounded-lg transition-colors" title="Enviar por Email">
+                                <svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"/>
+                                </svg>
+                            </button>
+                            ${isAdmin && hasCheckout ? `
+                            <button onclick="deleteInspection('${contract.checkout.inspection_number}')" class="p-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors" title="Eliminar">
+                                <svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+                                </svg>
+                            </button>
+                            ` : ''}
                                         </svg>
                                     </button>
                                     ` : ''}
@@ -281,8 +300,8 @@
                                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"/>
                                         </svg>
                                     </button>
-                                    ${isAdmin && (hasCheckout || hasCheckin) ? `
-                                    <button onclick="deleteInspection('${hasCheckout ? contract.checkout.inspection_number : contract.checkin.inspection_number}')" class="p-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors" title="Eliminar">
+                                    ${isAdmin && hasCheckout ? `
+                                    <button onclick="deleteInspection('${contract.checkout.inspection_number}')" class="p-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors" title="Eliminar">
                                         <svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
                                         </svg>
@@ -317,12 +336,8 @@
             try {
                 const response = await fetch(`/api/get_inspection?plate=${plate}&ra=${ra}&type=${checkoutNumber ? 'checkout' : 'checkin'}`);
                 const data = await response.json();
-                console.log('📧 Inspection data:', data);
                 if (data.success && data.inspection) {
                     clientEmail = data.inspection.client_email || '';
-                    console.log('📧 Client email found:', clientEmail);
-                } else {
-                    console.log('❌ No inspection data or not successful');
                 }
             } catch (e) {
                 console.error('Error fetching client email:', e);
@@ -406,15 +421,6 @@
                 if (radio.checked) reportType = radio.value;
             });
             
-            // Show loading state on all buttons in modal
-            const modal = window.currentEmailModal;
-            const buttons = modal.querySelectorAll('button');
-            const sendButton = buttons[1]; // Second button is the send button
-            const originalText = sendButton.innerHTML;
-            sendButton.disabled = true;
-            sendButton.innerHTML = '<svg class="animate-spin h-5 w-5 mx-auto" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>';
-            buttons[0].disabled = true; // Disable cancel button too
-            
             try {
                 let inspectionNumber = checkoutNumber;
                 if (reportType === 'checkin') {
@@ -436,11 +442,6 @@
                 }
             } catch (error) {
                 showNotification('Erro ao enviar email: ' + error.message, 'error');
-            } finally {
-                // Restore button state
-                sendButton.disabled = false;
-                sendButton.innerHTML = originalText;
-                buttons[0].disabled = false; // Re-enable cancel button
             }
         }
 

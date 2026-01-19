@@ -2555,12 +2555,21 @@
                     </div>
                 `;
                 
-                // Preencher email automaticamente se disponível
+                // Preencher email automaticamente se disponível (com fallbacks)
                 setTimeout(() => {
                     const emailInput = document.getElementById('reportEmail');
-                    if (emailInput && window.currentRAData?.client_email) {
-                        emailInput.value = window.currentRAData.client_email;
-                        console.log('✅ Email preenchido automaticamente no modal final:', window.currentRAData.client_email);
+                    if (emailInput && window.currentRAData) {
+                        // Try multiple sources for email
+                        const email = window.currentRAData.client_email || 
+                                     window.currentRAData.extracted_data?.email || 
+                                     window.currentRAData.extracted_data?.clientEmail || 
+                                     '';
+                        if (email) {
+                            emailInput.value = email;
+                            console.log('✅ Email preenchido automaticamente no modal final:', email);
+                        } else {
+                            console.log('⚠️ Nenhum email encontrado no RA data');
+                        }
                     }
                 }, 100);
             }
@@ -2818,7 +2827,7 @@
         }
         
         // Replace existing RA after user confirmation
-        async function replaceExistingRA(pendingData) {
+        async function replaceExistingRA(pendingData, isVehicleChange = false) {
             try {
                 const { file, extractedData, vehicleInfo } = pendingData;
                 
@@ -2844,7 +2853,8 @@
                                 fuel_level: extractedData.fuel_level,
                                 pdf_filename: file.name,
                                 pdf_data: base64Data,
-                                extracted_data: JSON.stringify(extractedData)
+                                extracted_data: JSON.stringify(extractedData),
+                                is_vehicle_change: isVehicleChange
                             })
                         });
                         
@@ -2882,6 +2892,15 @@
                             if (vehicleInfo) {
                                 window.currentVehicleId = vehicleInfo.id;
                             }
+                            
+                            // Store RA data globally for email auto-fill
+                            window.currentRAData = {
+                                rental_agreement_number: extractedData.rental_agreement,
+                                license_plate: extractedData.license_plate,
+                                client_email: extractedData.email || extractedData.clientEmail,
+                                extracted_data: extractedData
+                            };
+                            console.log('✅ RA data stored in window.currentRAData:', window.currentRAData);
                             
                             showMinimalistAlert(`RA ${extractedData.rental_agreement} substituído`, 'success');
                         } else {
@@ -2945,6 +2964,25 @@
                         const oldPlate = data.existing_ra.license_plate;
                         const newPlate = data.data.license_plate;
                         
+                        console.log('🔍 RA Upload Response:', {
+                            contract_closed: data.contract_closed,
+                            has_checkout: data.has_checkout,
+                            has_checkin: data.has_checkin,
+                            vehicle_change: data.vehicle_change
+                        });
+                        
+                        // Check if contract is closed (has both checkout and checkin)
+                        if (data.contract_closed) {
+                            // Contract is closed - cannot update
+                            showMinimalistAlert(
+                                `RA ${raNumber} encerrado`,
+                                'error'
+                            );
+                            // Clear file input
+                            event.target.value = '';
+                            return;
+                        }
+                        
                         // Store data temporarily for potential replacement
                         window.pendingRAData = {
                             file: file,
@@ -2954,13 +2992,13 @@
                         
                         // Check if it's a vehicle change (same RA, different plate)
                         if (data.vehicle_change) {
-                            // Vehicle change detected
+                            // Vehicle change detected - allow creating new RA with same number
                             showMinimalistConfirm(
-                                `RA ${raNumber} - Troca de viatura`,
-                                `Rental Agreement já existe com matrícula ${oldPlate}. Nova matrícula: ${newPlate}. Deseja efectuar troca de viatura?`,
+                                `Troca de Viatura`,
+                                `O RA ${raNumber} já existe com a matrícula ${oldPlate}. Deseja proceder com a troca de viatura para ${newPlate}?`,
                                 async (confirmed) => {
                                     if (confirmed) {
-                                        await replaceExistingRA(window.pendingRAData);
+                                        await replaceExistingRA(window.pendingRAData, true); // Pass true for vehicle change
                                     } else {
                                         // Clear file input
                                         event.target.value = '';
@@ -2970,14 +3008,14 @@
                             );
                         } else {
                             // Same RA, same plate - check if inspection exists
-                            if (data.inspection_exists) {
+                            if (data.inspection_exists || data.has_checkout) {
                                 // RA exists AND inspection already done
                                 showMinimalistConfirm(
-                                    `RA ${raNumber} já existe`,
-                                    'Rental Agreement já existe com inspeção realizada. Deseja substituir e fazer nova inspeção?',
+                                    `Atualizar RA ${raNumber}`,
+                                    `O Rental Agreement ${raNumber} já foi carregado anteriormente. Deseja atualizar?`,
                                     async (confirmed) => {
                                         if (confirmed) {
-                                            await replaceExistingRA(window.pendingRAData);
+                                            await replaceExistingRA(window.pendingRAData, false); // Pass false for update
                                         } else {
                                             // Clear file input
                                             event.target.value = '';
@@ -2988,11 +3026,11 @@
                             } else {
                                 // RA exists but NO inspection done yet
                                 showMinimalistConfirm(
-                                    `RA ${raNumber} já existe`,
-                                    'Rental Agreement já existe mas inspeção não foi realizada. Deseja substituir?',
+                                    `Atualizar RA ${raNumber}`,
+                                    `O Rental Agreement ${raNumber} já foi carregado anteriormente. Deseja atualizar?`,
                                     async (confirmed) => {
                                         if (confirmed) {
-                                            await replaceExistingRA(window.pendingRAData);
+                                            await replaceExistingRA(window.pendingRAData, false); // Pass false for update
                                         } else {
                                             // Clear file input
                                             event.target.value = '';
@@ -3036,6 +3074,15 @@
                         } else {
                             window.currentVehicleId = null;
                         }
+                        
+                        // Store RA data globally for email auto-fill
+                        window.currentRAData = {
+                            rental_agreement_number: data.data.rental_agreement,
+                            license_plate: data.data.license_plate,
+                            client_email: data.data.email || data.data.clientEmail,
+                            extracted_data: data.data
+                        };
+                        console.log('✅ RA data stored in window.currentRAData:', window.currentRAData);
                         
                         const raNumber = data.data.rental_agreement || 'N/A';
                         showMinimalistAlert(`RA ${raNumber} carregado`, 'success');

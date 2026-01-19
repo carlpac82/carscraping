@@ -3920,7 +3920,7 @@ function showFinalPhotoCompletionMessage() {
                     margin: 0 0 20px;
                     opacity: 0.9;
                     animation: fadeInUp 0.6s ease-out 0.7s both;
-                ">6 fotos processadas com sucesso</p>
+                ">9 fotos processadas com sucesso</p>
                 <div style="
                     background: rgba(255, 255, 255, 0.2);
                     padding: 15px;
@@ -4241,7 +4241,7 @@ function showCompletionMessage() {
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
             </svg>
             <h2 style="font-size: 36px; font-weight: bold; margin-bottom: 16px;">Inspeção Terminada</h2>
-            <p style="font-size: 18px; opacity: 0.9;">Todas as 6 fotos foram capturadas com sucesso</p>
+            <p style="font-size: 18px; opacity: 0.9;">Todas as 9 fotos foram capturadas com sucesso</p>
             <p style="font-size: 16px; opacity: 0.8; margin-top: 12px;">A processar com AI...</p>
         </div>
     `;

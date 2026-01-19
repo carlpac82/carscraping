@@ -1,0 +1,108 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Contract Report</title>
+</head>
+<body style="margin: 0; padding: 0; font-family: Arial, sans-serif; background-color: #f4f4f4;">
+    <table width="100%" cellpadding="0" cellspacing="0" style="background-color: #f4f4f4;">
+        <tr>
+            <td align="center" style="padding: 20px 0;">
+                <table width="600" cellpadding="0" cellspacing="0" style="background-color: #ffffff; border-radius: 8px; overflow: hidden;">
+                    <!-- Header -->
+                    <tr>
+                        <td style="background: linear-gradient(135deg, #00bcd4 0%, #0097a7 100%); padding: 30px; text-align: center;">
+                            <table width="100%" cellpadding="0" cellspacing="0">
+                                <tr>
+                                    <td style="text-align: center;">
+                                        <img src="cid:logo" alt="Auto Prudente" style="max-width: 200px; height: auto;">
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <td style="padding-top: 20px;">
+                                        <h1 style="color: #ffffff; margin: 0; font-size: 24px;">Booking: {{CONTRACT_NUMBER}}</h1>
+                                        <p style="color: #ffffff; margin: 10px 0 0 0; font-size: 16px;">R.A.: {{RA_NUMBER}}</p>
+                                    </td>
+                                </tr>
+                            </table>
+                        </td>
+                    </tr>
+
+                    <!-- Greeting -->
+                    <tr>
+                        <td style="padding: 30px;">
+                            <h2 style="color: #333333; margin: 0 0 20px 0; font-size: 20px;">Hello {{CUSTOMER_NAME}},</h2>
+                            <p style="color: #666666; line-height: 1.6; margin: 0 0 15px 0;">Thank you for choosing Auto Prudente Rent a Car!</p>
+                            <p style="color: #666666; line-height: 1.6; margin: 0 0 15px 0;">We send the vehicle {{INSPECTION_TYPE}} report and the Terms and Conditions as an attachment.</p>
+                            <p style="color: #666666; line-height: 1.6; margin: 0;">If you have any questions or would like to make comments during the rental, do not hesitate to contact us.</p>
+                        </td>
+                    </tr>
+
+                    <!-- Contact -->
+                    <tr>
+                        <td style="padding: 0 30px 30px 30px; text-align: center;">
+                            <p style="color: #00bcd4; font-size: 18px; font-weight: bold; margin: 0;">☏ +351 289 542 160</p>
+                        </td>
+                    </tr>
+
+                    <!-- Fuel Policy Section -->
+                    <tr>
+                        <td style="padding: 30px; background-color: #f9f9f9;">
+                            <table width="100%" cellpadding="0" cellspacing="0">
+                                <tr>
+                                    <td style="text-align: center; padding-bottom: 20px;">
+                                        <img src="https://via.placeholder.com/80x80/00bcd4/ffffff?text=⛽" alt="Fuel" style="width: 80px; height: 80px; border-radius: 50%;">
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <td>
+                                        <h3 style="color: #333333; margin: 0 0 15px 0; text-align: center;">What is the Fuel policy?</h3>
+                                        <p style="color: #666666; line-height: 1.6; margin: 0 0 10px 0;">✓ You must return the vehicle with the same fuel level that was delivered to you.</p>
+                                        <p style="color: #666666; line-height: 1.6; margin: 0;">✓ You can check the fuel level in the delivery report sent as an attachment.</p>
+                                    </td>
+                                </tr>
+                            </table>
+                        </td>
+                    </tr>
+
+                    <!-- Inspection Details -->
+                    <tr>
+                        <td style="padding: 30px;">
+                            <h3 style="color: #333333; margin: 0 0 20px 0; text-align: center;">Inspection Details</h3>
+                            <table width="100%" cellpadding="10" cellspacing="0" style="border: 1px solid #e0e0e0; border-radius: 4px;">
+                                <tr>
+                                    <td style="background-color: #f9f9f9; border-bottom: 1px solid #e0e0e0; font-weight: bold; color: #333333;">Inspection Type:</td>
+                                    <td style="border-bottom: 1px solid #e0e0e0; color: #666666;">{{INSPECTION_TYPE}}</td>
+                                </tr>
+                                <tr>
+                                    <td style="background-color: #f9f9f9; border-bottom: 1px solid #e0e0e0; font-weight: bold; color: #333333;">Date:</td>
+                                    <td style="border-bottom: 1px solid #e0e0e0; color: #666666;">{{INSPECTION_DATE}}</td>
+                                </tr>
+                                <tr>
+                                    <td style="background-color: #f9f9f9; border-bottom: 1px solid #e0e0e0; font-weight: bold; color: #333333;">Vehicle:</td>
+                                    <td style="border-bottom: 1px solid #e0e0e0; color: #666666;">{{VEHICLE_PLATE}}</td>
+                                </tr>
+                                <tr>
+                                    <td style="background-color: #f9f9f9; font-weight: bold; color: #333333;">Inspector:</td>
+                                    <td style="color: #666666;">{{INSPECTOR_NAME}}</td>
+                                </tr>
+                            </table>
+                        </td>
+                    </tr>
+
+                    <!-- Footer -->
+                    <tr>
+                        <td style="background-color: #00bcd4; padding: 30px; text-align: center;">
+                            <p style="color: #ffffff; margin: 0 0 10px 0; font-size: 14px;">OFFICE: +351 289 542 160</p>
+                            <p style="color: #ffffff; margin: 0 0 10px 0; font-size: 14px;">TRAVEL ASSISTANCE: +351 273 880 250</p>
+                            <p style="color: #ffffff; margin: 0 0 20px 0; font-size: 14px;">EMERGENCY: 112</p>
+                            <p style="color: #ffffff; margin: 0; font-size: 12px; opacity: 0.8;">© 2026 Auto Prudente Rent a Car. All rights reserved.</p>
+                        </td>
+                    </tr>
+                </table>
+            </td>
+        </tr>
+    </table>
+</body>
+</html>

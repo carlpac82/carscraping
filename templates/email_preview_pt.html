@@ -1,0 +1,339 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Email Preview - Contract Report</title>
+    <style>
+        @media only screen and (max-width: 600px) {
+            .photo-grid {
+                display: grid !important;
+                grid-template-columns: repeat(3, 1fr) !important;
+                gap: 8px !important;
+            }
+            .photo-grid div {
+                margin: 0 !important;
+            }
+            .photo-grid img {
+                width: 100% !important;
+                height: auto !important;
+                max-height: 100px !important;
+            }
+            .promo-grid td {
+                width: 33.33% !important;
+                padding: 2px !important;
+            }
+            .promo-grid img {
+                width: 100% !important;
+                height: auto !important;
+            }
+            .travel-section h2 {
+                font-size: 18px !important;
+                margin-bottom: 15px !important;
+            }
+            .travel-section table {
+                display: block !important;
+            }
+            .travel-section tr {
+                display: block !important;
+            }
+            .travel-section td {
+                display: block !important;
+                width: 100% !important;
+                padding: 0 !important;
+                text-align: center !important;
+            }
+            .travel-section img {
+                max-width: 200px !important;
+                margin: 0 auto 15px !important;
+            }
+            .travel-section .travel-benefits {
+                margin-top: 15px !important;
+            }
+            .travel-section p {
+                font-size: 13px !important;
+            }
+        }
+    </style>
+</head>
+<body style="margin: 0; padding: 0; font-family: Arial, sans-serif; background-color: #f4f4f4;">
+    <div style="max-width: 600px; margin: 0 auto; background-color: #ffffff;">
+        
+        <!-- Header -->
+        <div style="background: linear-gradient(135deg, #00bcd4 0%, #0097a7 100%); padding: 20px;">
+            <table width="100%" cellpadding="0" cellspacing="0">
+                <tr>
+                    <td style="width: 50%; text-align: left; vertical-align: middle;">
+                        <img src="{{LOGO_URL}}" alt="Auto Prudente" style="height: 50px; width: auto;">
+                    </td>
+                    <td style="width: 50%; text-align: right; vertical-align: middle;">
+                        <div style="background: rgba(255,255,255,0.2); padding: 10px 15px; border-radius: 6px; display: inline-block;">
+                            <span style="color: #ffffff; font-size: 16px; font-weight: bold;">R.A.: {{RA_NUMBER}}</span>
+                        </div>
+                    </td>
+                </tr>
+            </table>
+        </div>
+
+        <!-- Greeting -->
+        <div style="padding: 20px;">
+            <h2 style="color: #333333; margin: 0 0 15px 0; font-size: 18px;">Olá {{FIRST_NAME}},</h2>
+            <p style="color: #666666; line-height: 1.6; margin: 0 0 12px 0; font-size: 14px;">Obrigado por escolher a Auto Prudente Rent a Car!</p>
+            <p style="color: #666666; line-height: 1.6; margin: 0 0 12px 0; font-size: 14px;">Segue abaixo o relatório de levantamento da viatura.</p>
+            <p style="color: #666666; line-height: 1.6; margin: 0; font-size: 14px;">Se tiver dúvidas ou quiser fazer comentários durante o aluguer, não hesite em contactar-nos.</p>
+        </div>
+
+        <!-- Detalhes do Veículo e Inspeção -->
+        <div style="padding: 20px; background-color: #f9f9f9;">
+            <h3 style="color: #00bcd4; margin: 0 0 15px 0; font-size: 18px;">Detalhes do Veículo e Inspeção</h3>
+            <table width="100%" cellpadding="10" cellspacing="0" style="background: white; border: 1px solid #e0e0e0; border-radius: 8px; font-size: 14px;">
+                <tr>
+                    <td style="background-color: #f9f9f9; border-bottom: 1px solid #e0e0e0; font-weight: bold; color: #333333; width: 40%;">Cliente:</td>
+                    <td style="border-bottom: 1px solid #e0e0e0; color: #1f2937; font-weight: 600;">{{CUSTOMER_NAME}}</td>
+                </tr>
+                <tr>
+                    <td style="background-color: #f9f9f9; border-bottom: 1px solid #e0e0e0; font-weight: bold; color: #333333; width: 40%;">Matrícula:</td>
+                    <td style="border-bottom: 1px solid #e0e0e0; color: #1f2937; font-weight: 600;">{{VEHICLE_PLATE}}</td>
+                </tr>
+                <tr>
+                    <td style="background-color: #f9f9f9; border-bottom: 1px solid #e0e0e0; font-weight: bold; color: #333333;">Marca:</td>
+                    <td style="border-bottom: 1px solid #e0e0e0; color: #666666;">{{VEHICLE_BRAND}}</td>
+                </tr>
+                <tr>
+                    <td style="background-color: #f9f9f9; border-bottom: 1px solid #e0e0e0; font-weight: bold; color: #333333;">Modelo:</td>
+                    <td style="border-bottom: 1px solid #e0e0e0; color: #666666;">{{VEHICLE_MODEL}}</td>
+                </tr>
+                <tr>
+                    <td style="background-color: #f9f9f9; border-bottom: 1px solid #e0e0e0; font-weight: bold; color: #333333;">Tipo de Inspeção:</td>
+                    <td style="border-bottom: 1px solid #e0e0e0; color: #666666;">{{INSPECTION_TYPE}}</td>
+                </tr>
+                <tr>
+                    <td style="background-color: #f9f9f9; border-bottom: 1px solid #e0e0e0; font-weight: bold; color: #333333;">Local de Entrega:</td>
+                    <td style="border-bottom: 1px solid #e0e0e0; color: #666666;">{{LOCATION}}</td>
+                </tr>
+                <tr>
+                    <td style="background-color: #f9f9f9; border-bottom: 1px solid #e0e0e0; font-weight: bold; color: #333333;">Data:</td>
+                    <td style="border-bottom: 1px solid #e0e0e0; color: #666666;">{{INSPECTION_DATE}}</td>
+                </tr>
+                <tr>
+                    <td style="background-color: #f9f9f9; border-bottom: 1px solid #e0e0e0; font-weight: bold; color: #333333;">Quilómetros:</td>
+                    <td style="border-bottom: 1px solid #e0e0e0; color: #666666;">{{ODOMETER}} km</td>
+                </tr>
+                <tr>
+                    <td style="background-color: #f9f9f9; font-weight: bold; color: #333333;">Inspetor:</td>
+                    <td style="color: #666666;">{{INSPECTOR_NAME}}</td>
+                </tr>
+            </table>
+        </div>
+
+        <!-- Nível de Combustível -->
+        <div style="padding: 20px;">
+            <h3 style="color: #00bcd4; margin: 0 0 15px 0; font-size: 18px; text-align: center;">Nível de Combustível</h3>
+            <div style="text-align: center;">
+                {{FUEL_GAUGE_SVG | safe}}
+            </div>
+            
+            <!-- Fuel Policy -->
+            <div style="background: #f0f9fb; padding: 20px; border-radius: 8px; margin-top: 20px; border: 2px solid #00bcd4;">
+                <h4 style="color: #333333; margin: 0 0 12px 0; text-align: center; font-size: 16px; font-weight: bold;">Qual a política de Combustível?</h4>
+                <p style="color: #666666; line-height: 1.6; margin: 0 0 8px 0; font-size: 14px;">✓ Tem que devolver a viatura com o mesmo nível de combustível que lhe foi entregue.</p>
+                <p style="color: #666666; line-height: 1.6; margin: 0; font-size: 14px;">✓ Pode consultar o nível de combustível no relatório de entrega enviado em anexo.</p>
+            </div>
+        </div>
+
+        <!-- Croqui de Danos -->
+        <div style="padding: 20px; background-color: #f9f9f9;">
+            <h3 style="color: #00bcd4; margin: 0 0 15px 0; font-size: 18px;">Croqui de Danos</h3>
+            <div style="text-align: center; background: white; padding: 15px; border-radius: 8px; border: 1px solid #e0e0e0;">
+                <img src="{{CROQUI_IMAGE}}" alt="Croqui de Danos" style="max-width: 100%; height: auto; border-radius: 8px;">
+            </div>
+        </div>
+
+        <!-- Fotos do Veículo -->
+        <div style="padding: 20px;">
+            <h3 style="color: #00bcd4; margin: 0 0 15px 0; font-size: 18px;">Fotos do Veículo</h3>
+            {{PHOTOS_HTML | safe}}
+        </div>
+
+        <!-- Separator Line -->
+        <div style="height: 2px; background: linear-gradient(to right, transparent, #00bcd4, transparent); margin: 30px 20px;"></div>
+
+        <!-- Promotional Content Section -->
+        <div style="padding: 30px 20px; background-color: #ffffff;">
+            <!-- Onde ficar? -->
+            <div style="margin-bottom: 30px;">
+                <h2 style="color: #333333; margin: 0 0 20px 0; font-size: 24px; font-weight: bold; text-align: center;">Onde ficar?</h2>
+                
+                <!-- 3 images grid -->
+                <table width="100%" cellpadding="5" cellspacing="0" style="margin-bottom: 20px;" class="promo-grid">
+                    <tr>
+                        <td style="width: 33.33%; text-align: center;">
+                            <img src="{{PROMO_IMAGE_1}}" alt="Terrace View" style="width: 100%; height: auto; border-radius: 8px;">
+                        </td>
+                        <td style="width: 33.33%; text-align: center;">
+                            <img src="{{PROMO_IMAGE_2}}" alt="Bedroom" style="width: 100%; height: auto; border-radius: 8px;">
+                        </td>
+                        <td style="width: 33.33%; text-align: center;">
+                            <img src="{{PROMO_IMAGE_3}}" alt="Pool" style="width: 100%; height: auto; border-radius: 8px;">
+                        </td>
+                    </tr>
+                </table>
+
+                <!-- Luxury apartments text -->
+                <h3 style="color: #333333; margin: 0 0 15px 0; font-size: 20px; font-weight: bold; text-align: center;">Apartamentos de luxo no Centro de Albufeira</h3>
+                <p style="color: #666666; margin: 0 0 20px 0; font-size: 14px; line-height: 1.6; text-align: justify;">
+                    Com localização privilegiada, em frente à praia dos pescadores no centro de Albufeira, um empreendimento com 6 andares, prima de uma privacidade ímpar, e uma impetuosa vista praia e cidade. Destaca-se ainda pelos seus 2 elevadores panorâmicos, piscina panorâmica no 3º piso e espaço envolvente. Parque de estacionamento privativo e elevador interior. Os nossos apartamentos estão completamente mobilados e equipados, com uma decoração elegante e charmosa, a pensar no seu conforto… Pode ainda encantar-se num fim de tarde, com um imperioso por do sol.
+                </p>
+                <div style="text-align: center;">
+                    <a href="https://albufeiraholidays.pt" target="_blank" rel="noopener" style="display: inline-block; background-color: #00bcd4; color: #ffffff; padding: 12px 30px; text-decoration: none; border-radius: 5px; font-size: 14px; font-weight: bold;">Mais Informação</a>
+                </div>
+            </div>
+
+            <!-- Traveling by car -->
+            <div class="travel-section" style="margin-bottom: 40px; padding: 25px; background-color: #f9f9f9; border-radius: 12px; border-left: 4px solid #00bcd4;">
+                <h2 style="color: #333333; margin: 0 0 25px 0; font-size: 22px; font-weight: bold; text-align: center;">Viajar de carro é uma experiência enriquecedora e inesquecível</h2>
+                
+                <table width="100%" cellpadding="0" cellspacing="0">
+                    <tr>
+                        <td style="width: 40%; padding-right: 20px; vertical-align: middle; text-align: center;">
+                            <img src="https://images.unsplash.com/photo-1524661135-423995f22d0b?w=400" alt="Travel Map" style="width: 100%; max-width: 250px; height: auto; border-radius: 12px; box-shadow: 0 4px 8px rgba(0,0,0,0.1);">
+                        </td>
+                        <td style="width: 60%; padding-left: 20px; vertical-align: middle;">
+                            <div class="travel-benefits" style="background: white; padding: 20px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.05);">
+                                <p style="color: #00bcd4; margin: 0 0 12px 0; font-size: 15px; line-height: 1.8; padding-left: 10px; border-left: 3px solid #00bcd4;">
+                                    <strong>✓</strong> Descubra destinos incríveis
+                                </p>
+                                <p style="color: #00bcd4; margin: 0 0 12px 0; font-size: 15px; line-height: 1.8; padding-left: 10px; border-left: 3px solid #00bcd4;">
+                                    <strong>✓</strong> Pode descobrir novas paisagens
+                                </p>
+                                <p style="color: #00bcd4; margin: 0 0 12px 0; font-size: 15px; line-height: 1.8; padding-left: 10px; border-left: 3px solid #00bcd4;">
+                                    <strong>✓</strong> Visite locais onde não poderia ir a pé
+                                </p>
+                                <p style="color: #00bcd4; margin: 0; font-size: 15px; line-height: 1.8; padding-left: 10px; border-left: 3px solid #00bcd4;">
+                                    <strong>✓</strong> No entanto, requer muito planeamento e organização
+                                </p>
+                            </div>
+                        </td>
+                    </tr>
+                </table>
+            </div>
+
+            <!-- Incredible places -->
+            <div style="margin-bottom: 20px;">
+                <h2 style="color: #333333; margin: 0 0 20px 0; font-size: 24px; font-weight: bold; text-align: center;">Locais incríveis a não perder!</h2>
+                
+                <!-- 3 destinations -->
+                <table width="100%" cellpadding="10" cellspacing="0">
+                    <tr>
+                        <td style="width: 33.33%; vertical-align: top;">
+                            <a href="https://www.google.com/maps/place/Benagil+Cave/@37.0871,-8.4264,15z" target="_blank" rel="noopener" style="text-decoration: none;">
+                                <img src="{{BENAGIL_IMAGE}}" alt="Benagil" style="width: 100%; height: auto; border-radius: 8px; margin-bottom: 10px; cursor: pointer;">
+                            </a>
+                            <a href="https://www.google.com/maps/place/Benagil+Cave/@37.0871,-8.4264,15z" target="_blank" rel="noopener" style="text-decoration: none;">
+                                <h4 style="color: #00bcd4; margin: 0 0 8px 0; font-size: 16px; font-weight: bold; cursor: pointer;">Benagil</h4>
+                            </a>
+                            <p style="color: #666666; margin: 0; font-size: 13px; line-height: 1.5;">
+                                Benagil é uma localidade piscatória no Algarve conhecida pelas grutas marinhas e as praias pitorescas. Junto à Praia de Benagil, a gruta do Algar de Benagil inclui uma claraboia natural e uma pequena praia.
+                            </p>
+                        </td>
+                        <td style="width: 33.33%; vertical-align: top;">
+                            <a href="https://www.google.com/maps/place/Lagos,+Portugal/@37.1028,-8.6742,13z" target="_blank" rel="noopener" style="text-decoration: none;">
+                                <img src="{{LAGOS_IMAGE}}" alt="Lagos" style="width: 100%; height: auto; border-radius: 8px; margin-bottom: 10px; cursor: pointer;">
+                            </a>
+                            <a href="https://www.google.com/maps/place/Lagos,+Portugal/@37.1028,-8.6742,13z" target="_blank" rel="noopener" style="text-decoration: none;">
+                                <h4 style="color: #00bcd4; margin: 0 0 8px 0; font-size: 16px; font-weight: bold; cursor: pointer;">Lagos</h4>
+                            </a>
+                            <p style="color: #666666; margin: 0; font-size: 13px; line-height: 1.5;">
+                                É conhecida pelas cidade velha amuralhada, pelos penhascos e pelas praias atlânticas. Uns degraus íngremes em madeira levam à enseada arenosa da Praia do Camilo.
+                            </p>
+                        </td>
+                        <td style="width: 33.33%; vertical-align: top;">
+                            <a href="https://www.google.com/maps/place/Sagres,+Portugal/@37.0084,-8.9481,14z" target="_blank" rel="noopener" style="text-decoration: none;">
+                                <img src="{{SAGRES_IMAGE}}" alt="Sagres" style="width: 100%; height: auto; border-radius: 8px; margin-bottom: 10px; cursor: pointer;">
+                            </a>
+                            <a href="https://www.google.com/maps/place/Sagres,+Portugal/@37.0084,-8.9481,14z" target="_blank" rel="noopener" style="text-decoration: none;">
+                                <h4 style="color: #00bcd4; margin: 0 0 8px 0; font-size: 16px; font-weight: bold; cursor: pointer;">Sagres</h4>
+                            </a>
+                            <p style="color: #666666; margin: 0; font-size: 13px; line-height: 1.5;">
+                                Cabo de São Vicente tornou-se o padroeiro de Lisboa, tendo como símbolos de Lisboa, os corvos e a nau, também conhecida como Promontório Sagrado, desde sempre que foi local usado para eventos religiosos.
+                            </p>
+                        </td>
+                    </tr>
+                </table>
+            </div>
+        </div>
+
+        <!-- Separator Line -->
+        <div style="height: 2px; background: linear-gradient(to right, transparent, #00bcd4, transparent); margin: 30px 20px;"></div>
+
+        <!-- Contactos Úteis Section -->
+        <div style="padding: 20px; background-color: #f0f9fb;">
+            <h3 style="color: #00bcd4; margin: 0 0 20px 0; font-size: 20px; text-align: center; font-weight: bold;">Contactos Úteis</h3>
+            
+            <!-- Contact Grid -->
+            <div style="max-width: 500px; margin: 0 auto;">
+                <table width="100%" cellpadding="10" cellspacing="0" style="background: white; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
+                    <tr>
+                        <td style="text-align: center; padding: 15px; border-bottom: 1px solid #e0e0e0;">
+                            <p style="color: #666666; margin: 0 0 5px 0; font-size: 13px; font-weight: bold;">ESCRITÓRIO</p>
+                            <p style="color: #00bcd4; margin: 0; font-size: 16px; font-weight: bold;">+351 289 542 160</p>
+                        </td>
+                    </tr>
+                    <tr>
+                        <td style="text-align: center; padding: 15px; border-bottom: 1px solid #e0e0e0;">
+                            <p style="color: #666666; margin: 0 0 5px 0; font-size: 13px; font-weight: bold;">ASSISTÊNCIA EM VIAGEM</p>
+                            <p style="color: #00bcd4; margin: 0; font-size: 16px; font-weight: bold;">+351 273 880 250</p>
+                        </td>
+                    </tr>
+                    <tr>
+                        <td style="text-align: center; padding: 15px;">
+                            <p style="color: #666666; margin: 0 0 5px 0; font-size: 13px; font-weight: bold;">EMERGÊNCIA</p>
+                            <p style="color: #dc3545; margin: 0; font-size: 16px; font-weight: bold;">112</p>
+                        </td>
+                    </tr>
+                </table>
+            </div>
+        </div>
+
+        <!-- Terms & Conditions -->
+        <div style="padding: 30px 20px; background-color: #f8f9fa; border-top: 2px solid #00bcd4;">
+            <div style="max-width: 560px; margin: 0 auto; text-align: center;">
+                <h3 style="color: #00bcd4; margin: 0 0 15px 0; font-size: 18px;">📄 Termos e Condições</h3>
+                <p style="color: #666666; margin: 0 0 20px 0; font-size: 14px; line-height: 1.6;">
+                    Para consultar os nossos Termos e Condições de aluguer, clique no botão abaixo:
+                </p>
+                <a href="{{TC_DOWNLOAD_URL}}" target="_blank" style="display: inline-block; background: linear-gradient(135deg, #00bcd4 0%, #0097a7 100%); color: #ffffff; text-decoration: none; padding: 12px 30px; border-radius: 6px; font-weight: bold; font-size: 14px; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
+                    📥 Descarregar Termos e Condições (PDF)
+                </a>
+                <p style="color: #999999; margin: 15px 0 0 0; font-size: 11px;">
+                    Ao assinar o contrato de aluguer, concorda com os nossos Termos e Condições.
+                </p>
+            </div>
+        </div>
+
+        <!-- Footer -->
+        <div style="background-color: #00bcd4; padding: 20px; text-align: center;">
+            <p style="color: #ffffff; margin: 0; font-size: 11px; opacity: 0.8;">© 2026 Auto Prudente Rent a Car. Todos os direitos reservados.</p>
+        </div>
+        
+        <!-- Legal Footer -->
+        <div style="background-color: #f4f4f4; padding: 20px; text-align: center; border-top: 1px solid #e0e0e0;">
+            <div style="max-width: 560px; margin: 0 auto;">
+                <p style="color: #666666; margin: 0 0 12px 0; font-size: 11px; line-height: 1.6; text-align: justify;">
+                    Está a receber este email porque assinou um contrato de aluguer de viatura com a Auto Prudente Rent a Car. 
+                    Na qualidade de responsável pelo tratamento de dados, a Auto Prudente Rent a Car Unipessoal, Lda. processa os seus dados pessoais para lhe enviar informações 
+                    e serviços relacionados com o seu aluguer, tratamento relacionado com a execução do seu contrato de aluguer de viatura. 
+                    Para mais informações sobre como a Auto Prudente Rent a Car processa os seus dados pessoais e os seus direitos ao abrigo da lei de proteção de dados, 
+                    consulte a nossa política de privacidade.
+                </p>
+                <p style="color: #666666; margin: 0; font-size: 10px; line-height: 1.5;">
+                    <strong>Auto Prudente Rent a Car Unipessoal, Lda.</strong> - Número Fiscal: PT 503 539 791<br>
+                    Sede: Estrada de Santa Eulália, Edifício Onda do Mar Loja E, 8200-269 Albufeira<br>
+                    Telefone +351 289 542 160 | E-mail: info@auto-prudente.com
+                </p>
+            </div>
+        </div>
+        
+    </div>
+</body>
+</html>
