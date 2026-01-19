@@ -1292,6 +1292,8 @@ def _ensure_rental_agreement_tables():
 @app.on_event("startup")
 async def startup_event():
     """Initialize database and create default users on startup"""
+    import datetime
+    logging.info(f"🚀 APPLICATION STARTED - VERSION 3.0 - {datetime.datetime.now().isoformat()}")
     print(f"========================================", flush=True)
     print(f"🚀 APP STARTUP - Rental Price Tracker", flush=True)
     print(f"🔍 Testing data persistence after deploy", flush=True)
