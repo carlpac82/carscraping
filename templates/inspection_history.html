@@ -1426,18 +1426,35 @@
                 
                 if (result.ok) {
                     showNotification('Inspeção atualizada com sucesso!', 'success');
-                    console.log('🔄 Refreshing history in 3 seconds...');
-                    // Aguardar 3 segundos antes de recarregar para garantir que o servidor processou
-                    setTimeout(async () => {
-                        console.log('⏰ 3 seconds elapsed, refreshing now...');
-                        await refreshHistory(true); // Force refresh with cache busting
-                        console.log('✅ History refreshed, waiting 500ms for DOM update...');
-                        // Wait for DOM to update visually before closing modal
-                        setTimeout(() => {
-                            console.log('✅ DOM updated, closing modal now...');
-                            closeEditModal();
-                        }, 500);
-                    }, 3000);
+                    
+                    // Update the card directly in the frontend without waiting for backend
+                    const contract = contracts.find(c => 
+                        (c.checkout && c.checkout.inspection_number === inspectionNumber) ||
+                        (c.checkin && c.checkin.inspection_number === inspectionNumber)
+                    );
+                    
+                    if (contract) {
+                        const inspection = contract.checkout?.inspection_number === inspectionNumber ? contract.checkout : contract.checkin;
+                        if (inspection) {
+                            // Update values directly
+                            inspection.fuel_level = updateData.fuel_level;
+                            inspection.odometer_reading = updateData.odometer_reading;
+                            if (updateData.damage_croqui) {
+                                inspection.damage_croqui = updateData.damage_croqui;
+                            }
+                            console.log('✅ Card updated directly in frontend');
+                            
+                            // Re-render immediately
+                            renderHistory(contracts);
+                            console.log('✅ History re-rendered with updated data');
+                        }
+                    }
+                    
+                    // Close modal after a short delay
+                    setTimeout(() => {
+                        console.log('✅ Closing modal...');
+                        closeEditModal();
+                    }, 500);
                 } else {
                     throw new Error(result.error || 'Erro ao atualizar inspeção');
                 }
