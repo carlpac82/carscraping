@@ -4336,15 +4336,25 @@ def _extract_base64_images_from_html(html_content):
         cid = f"image{counter}@autoprudente"
         counter += 1
         
-        # Store image info
-        images.append({
-            'cid': cid,
-            'data': base64.b64decode(image_data),
-            'mimetype': f'image/{mimetype}'
-        })
-        
-        # Replace with CID reference
-        return f'cid:{cid}'
+        try:
+            # Fix padding if needed
+            missing_padding = len(image_data) % 4
+            if missing_padding:
+                image_data += '=' * (4 - missing_padding)
+            
+            # Store image info
+            images.append({
+                'cid': cid,
+                'data': base64.b64decode(image_data),
+                'mimetype': f'image/{mimetype}'
+            })
+            
+            # Replace with CID reference
+            return f'cid:{cid}'
+        except Exception as e:
+            logging.error(f"❌ Failed to decode base64 image: {e}, keeping inline")
+            # Keep original data URL if decode fails
+            return match.group(0)
     
     # Replace all base64 images with CID references
     modified_html = re.sub(pattern, replace_with_cid, html_content)
@@ -29201,18 +29211,10 @@ async def save_inspection(request: Request):
                     # Use HTTP URL for croqui or empty cache
                     global EMPTY_CROQUI_CACHE
                     if croqui_row and croqui_row[0]:
-                        import base64
-                        image_data = croqui_row[0]
-                        if isinstance(image_data, str):
-                            # Already base64 string
-                            if image_data.startswith('data:image'):
-                                final_croqui = image_data
-                            else:
-                                final_croqui = f"data:image/png;base64,{image_data}"
-                        else:
-                            # Bytes, need to encode
-                            final_croqui = f"data:image/png;base64,{base64.b64encode(image_data).decode('utf-8')}"
-                        logging.info(f"🖼️ Croqui converted to base64 inline")
+                        import time
+                        cache_buster = int(time.time())
+                        final_croqui = f"{base_url}/email-photo/{inspection_id}/damage_croqui?v={cache_buster}"
+                        logging.info(f"🖼️ Croqui URL: {final_croqui}")
                     else:
                         final_croqui = EMPTY_CROQUI_CACHE or ""
                         logging.info(f"⚠️ No croqui, using empty cache")
@@ -29255,20 +29257,9 @@ async def save_inspection(request: Request):
                             photo_type = photo_row[0]
                             image_data = photo_row[1]
                             if image_data:
-                                # Convert to base64 inline for better email client compatibility
-                                import base64
-                                if isinstance(image_data, str):
-                                    # Already base64 string
-                                    if image_data.startswith('data:image'):
-                                        photo_base64 = image_data
-                                    else:
-                                        photo_base64 = f"data:image/png;base64,{image_data}"
-                                else:
-                                    # Bytes, need to encode
-                                    photo_base64 = f"data:image/png;base64,{base64.b64encode(image_data).decode('utf-8')}"
-                                
+                                photo_url = f"{base_url}/email-photo/{inspection_id}/{photo_type}"
                                 label = labels_map.get(photo_type, photo_type)
-                                photos_list.append({'url': photo_base64, 'label': label})
+                                photos_list.append({'url': photo_url, 'label': label})
                         
                         # Create 3x3 table grid
                         photos_html = '<table width="100%" cellpadding="5" cellspacing="0" style="margin: 0;">'
@@ -30887,8 +30878,6 @@ async def send_inspection_email(request: Request, inspection_number: str):
             # Check if image_data is already base64 string or bytes
             image_data = croqui_row[0]
             print(f"🖼️ Croqui data type: {type(image_data).__name__}, length: {len(image_data) if image_data else 0}", flush=True)
-            print(f"🖼️ Croqui first 100 chars: {str(image_data)[:100] if image_data else 'None'}", flush=True)
-            
             if isinstance(image_data, str):
                 # Already base64 string, just add data URL prefix if missing
                 if image_data.startswith('data:image'):
@@ -30897,15 +30886,10 @@ async def send_inspection_email(request: Request, inspection_number: str):
                 else:
                     croqui_image = f"data:image/png;base64,{image_data}"
                     print(f"🖼️ Added data URL prefix to croqui", flush=True)
-            elif isinstance(image_data, (bytes, memoryview)):
-                # Bytes or memoryview, need to encode
-                if isinstance(image_data, memoryview):
-                    image_data = bytes(image_data)
-                croqui_image = f"data:image/png;base64,{base64.b64encode(image_data).decode('utf-8')}"
-                print(f"🖼️ Encoded bytes/memoryview to base64", flush=True)
             else:
-                print(f"⚠️ Unexpected croqui data type: {type(image_data)}", flush=True)
-                croqui_image = None
+                # Bytes, need to encode
+                croqui_image = f"data:image/png;base64,{base64.b64encode(image_data).decode('utf-8')}"
+                print(f"🖼️ Encoded bytes to base64", flush=True)
         else:
             print(f"⚠️ No croqui found for inspection_id: {inspection_id}", flush=True)
         
@@ -30952,25 +30936,10 @@ async def send_inspection_email(request: Request, inspection_number: str):
                 photo_type = photo_row[0]
                 image_data = photo_row[1]
                 if image_data:
-                    # Convert to base64 inline for better email client compatibility
-                    import base64
-                    if isinstance(image_data, str):
-                        # Already base64 string
-                        if image_data.startswith('data:image'):
-                            photo_base64 = image_data
-                        else:
-                            photo_base64 = f"data:image/png;base64,{image_data}"
-                    elif isinstance(image_data, (bytes, memoryview)):
-                        # Bytes or memoryview, need to encode
-                        if isinstance(image_data, memoryview):
-                            image_data = bytes(image_data)
-                        photo_base64 = f"data:image/png;base64,{base64.b64encode(image_data).decode('utf-8')}"
-                    else:
-                        print(f"⚠️ Unexpected photo data type: {type(image_data)} for {photo_type}", flush=True)
-                        continue
-                    
+                    # Use HTTP URL instead of base64 for Outlook Mac compatibility
+                    photo_url = f"{base_url}/email-photo/{inspection_id}/{photo_type}"
                     label = labels_map.get(photo_type, photo_type)
-                    photos_list.append({'url': photo_base64, 'label': label})
+                    photos_list.append({'url': photo_url, 'label': label})
             
             # Create 3x3 table grid with HTTP URLs
             photos_html = '<table width="100%" cellpadding="5" cellspacing="0" style="margin: 0;">'
@@ -31079,23 +31048,20 @@ async def send_inspection_email(request: Request, inspection_number: str):
         tc_download_url = tc_url_map.get(detected_lang, tc_url_map['en'])
         print(f"📧 T&C Download URL for {detected_lang}: {tc_download_url}")
         
-        # Use base64 inline for croqui for better email client compatibility
-        if croqui_image:
-            # Already converted to base64 inline above (lines 30886-30901)
-            final_croqui = croqui_image
-            print(f"🔍 Using base64 inline for croqui (length: {len(final_croqui)})", flush=True)
+        # Use HTTP URL for croqui instead of base64 for Outlook Mac compatibility
+        if croqui_row and croqui_row[0]:
+            # Use HTTP URL instead of base64 for better email client compatibility
+            # Add timestamp to prevent caching of old croqui versions
+            import time
+            cache_buster = int(time.time())
+            final_croqui = f"{base_url}/email-photo/{inspection_id}/damage_croqui?v={cache_buster}"
+            print(f"🔍 Using HTTP URL for croqui: {final_croqui}", flush=True)
         else:
             # Fallback to empty croqui cache if no custom croqui
             final_croqui = EMPTY_CROQUI_CACHE or ""
             print(f"⚠️ No custom croqui, using empty cache (length: {len(final_croqui)})", flush=True)
         
-        logging.info(f"🔍 Croqui: {'base64 inline' if croqui_image else 'empty cache'}")
-        
-        # Debug: Check if croqui is base64 inline
-        if final_croqui and final_croqui.startswith('data:image'):
-            print(f"✅ Croqui is base64 inline (starts with 'data:image')", flush=True)
-        elif final_croqui and 'http' in final_croqui.lower():
-            print(f"❌ WARNING: Croqui contains HTTP URL: {final_croqui[:100]}", flush=True)
+        logging.info(f"🔍 Croqui URL: {final_croqui if croqui_row else 'empty cache'}")
         
         html_content = templates.get_template(template_name).render(
             LOGO_URL=logo_base64,
@@ -41440,122 +41406,6 @@ async def migrate_supplier_data_column():
         return JSONResponse({"ok": False, "error": str(e)}, status_code=500)
 
 
-@app.get("/migrate-image-data-to-text")
-async def migrate_image_data_to_text():
-    """Convert inspection_photos.image_data from BYTEA to TEXT for base64 inline support - NO AUTH REQUIRED"""
-    try:
-        if not _USE_NEW_DB:
-            return JSONResponse({
-                "ok": True,
-                "message": "SQLite - no migration needed"
-            })
-        
-        with _db_lock:
-            conn = _db_connect()
-            try:
-                
-                with conn.cursor() as cur:
-                    # Check current column type
-                    cur.execute("""
-                        SELECT data_type 
-                        FROM information_schema.columns 
-                        WHERE table_name = 'inspection_photos' 
-                        AND column_name = 'image_data'
-                    """)
-                    
-                    result = cur.fetchone()
-                    if not result:
-                        return JSONResponse({"ok": False, "error": "Column image_data not found"}, status_code=404)
-                    
-                    current_type = result[0]
-                    logging.info(f"📊 Current image_data type: {current_type}")
-                    
-                    if current_type == 'text':
-                        return JSONResponse({
-                            "ok": True,
-                            "message": "Column is already TEXT type"
-                        })
-                    
-                    # Step 1: Create temporary column
-                    logging.info("📝 Creating temporary TEXT column...")
-                    cur.execute("""
-                        ALTER TABLE inspection_photos 
-                        ADD COLUMN image_data_text TEXT
-                    """)
-                    conn.commit()
-                    
-                    # Step 2: Convert existing BYTEA data to base64 TEXT
-                    logging.info("🔄 Converting existing data from BYTEA to base64 TEXT...")
-                    cur.execute("""
-                        SELECT id, image_data, photo_type 
-                        FROM inspection_photos 
-                        WHERE image_data IS NOT NULL
-                    """)
-                    
-                    rows = cur.fetchall()
-                    logging.info(f"📊 Found {len(rows)} photos to convert")
-                    
-                    import base64
-                    converted = 0
-                    for row_id, image_data, photo_type in rows:
-                        try:
-                            if isinstance(image_data, memoryview):
-                                image_data = bytes(image_data)
-                            
-                            if isinstance(image_data, bytes):
-                                # Convert bytes to base64 string with data URL prefix
-                                base64_str = base64.b64encode(image_data).decode('utf-8')
-                                data_url = f"data:image/png;base64,{base64_str}"
-                                
-                                cur.execute("""
-                                    UPDATE inspection_photos 
-                                    SET image_data_text = %s 
-                                    WHERE id = %s
-                                """, (data_url, row_id))
-                                converted += 1
-                                
-                                if converted % 10 == 0:
-                                    logging.info(f"  Converted {converted}/{len(rows)} photos...")
-                                    
-                        except Exception as e:
-                            logging.warning(f"⚠️ Error converting photo {row_id} ({photo_type}): {e}")
-                            continue
-                    
-                    conn.commit()
-                    logging.info(f"✅ Converted {converted} photos to base64 TEXT")
-                    
-                    # Step 3: Drop old BYTEA column
-                    logging.info("🗑️ Dropping old BYTEA column...")
-                    cur.execute("""
-                        ALTER TABLE inspection_photos 
-                        DROP COLUMN image_data
-                    """)
-                    conn.commit()
-                    
-                    # Step 4: Rename new column to image_data
-                    logging.info("📝 Renaming new column to image_data...")
-                    cur.execute("""
-                        ALTER TABLE inspection_photos 
-                        RENAME COLUMN image_data_text TO image_data
-                    """)
-                    conn.commit()
-                    
-                    logging.info("🎉 Migration completed successfully!")
-                    return JSONResponse({
-                        "ok": True,
-                        "message": f"Migration completed - converted {converted} photos from BYTEA to TEXT"
-                    })
-                    
-            finally:
-                conn.close()
-                
-    except Exception as e:
-        logging.error(f"❌ Error in migration: {str(e)}")
-        import traceback
-        logging.error(traceback.format_exc())
-        return JSONResponse({"ok": False, "error": str(e)}, status_code=500)
-
-
 # ================================================================================
 # VEHICLE INSPECTION ROUTES - BASIC IMPLEMENTATION
 # ================================================================================
@@ -42615,18 +42465,10 @@ async def update_inspection(inspection_number: str, request: Request):
             import base64
             import re
             
-            # Keep the full data URL with base64 inline for email compatibility
+            # Extract base64 data from data URL
             croqui_data = data['damage_croqui']
-            print(f"🖼️ Received croqui data (first 100 chars): {croqui_data[:100] if croqui_data else 'None'}", flush=True)
-            
-            # Ensure it has the data:image prefix
-            if not croqui_data.startswith('data:image'):
-                croqui_data = f"data:image/png;base64,{croqui_data}"
-                print(f"🖼️ Added data:image prefix to croqui", flush=True)
-            else:
-                print(f"🖼️ Croqui already has data:image prefix", flush=True)
-            
-            print(f"🖼️ Saving croqui with length: {len(croqui_data)}", flush=True)
+            if croqui_data.startswith('data:image'):
+                croqui_data = re.sub(r'^data:image/\w+;base64,', '', croqui_data)
             
             # Check if croqui already exists
             if _USE_NEW_DB:
