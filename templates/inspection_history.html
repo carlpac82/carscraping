@@ -1407,13 +1407,14 @@
                 
                 if (result.ok) {
                     showNotification('Inspeção atualizada com sucesso!', 'success');
-                    console.log('🔄 Refreshing history...');
-                    // Aguardar 1 segundo antes de recarregar para garantir que o servidor processou
+                    console.log('🔄 Refreshing history in 2 seconds...');
+                    // Aguardar 2 segundos antes de recarregar para garantir que o servidor processou
                     setTimeout(async () => {
+                        console.log('⏰ 2 seconds elapsed, refreshing now...');
                         await refreshHistory();
                         console.log('✅ History refreshed, closing modal...');
                         closeEditModal();
-                    }, 1000);
+                    }, 2000);
                 } else {
                     throw new Error(result.error || 'Erro ao atualizar inspeção');
                 }
