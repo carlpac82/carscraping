@@ -1242,6 +1242,7 @@
                     const tempCanvas = document.createElement('canvas');
                     const tempCtx = tempCanvas.getContext('2d');
                     const croquiImg = document.querySelector('#carDiagram img');
+                    const container = document.getElementById('carDiagram');
                     
                     if (croquiImg && croquiImg.complete && croquiImg.naturalWidth > 0) {
                         tempCanvas.width = croquiImg.naturalWidth;
