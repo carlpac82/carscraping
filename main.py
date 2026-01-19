@@ -28862,38 +28862,37 @@ async def save_inspection(request: Request):
                     photo_data = photos[photo_type]
                     logging.info(f"📸 Processing photo '{photo_type}': data length={len(photo_data) if photo_data else 0}")
                     
-                    # Extract base64 data (remove data:image/jpeg;base64, prefix if present)
-                    if isinstance(photo_data, str) and 'base64,' in photo_data:
-                        photo_base64 = photo_data.split('base64,')[1]
+                    # Ensure it has data:image prefix for TEXT storage
+                    if not photo_data.startswith('data:image'):
+                        photo_data = f"data:image/jpeg;base64,{photo_data}"
+                    
+                    if is_postgres:
+                        # PostgreSQL: store as TEXT (data URL)
+                        cursor.execute("""
+                            INSERT INTO inspection_photos
+                            (inspection_id, photo_type, photo_order, image_data, image_filename,
+                             ai_analyzed, ai_has_damage, created_at)
+                            VALUES (%s, %s, %s, %s, %s, %s, %s, NOW())
+                        """, (
+                            inspection_id,
+                            photo_type,
+                            idx + 1,
+                            photo_data,
+                            f"{photo_type}.jpg",
+                            True,
+                            False
+                        ))
+                        photos_saved += 1
+                        logging.info(f"✅ Photo '{photo_type}' saved to database as TEXT")
                     else:
-                        photo_base64 = photo_data
-                    
-                    # Convert base64 to bytes for storage
-                    import base64
-                    try:
-                        photo_bytes = base64.b64decode(photo_base64)
-                        logging.info(f"✅ Photo '{photo_type}' decoded: {len(photo_bytes)} bytes")
-                    except Exception as decode_error:
-                        logging.error(f"❌ Failed to decode photo '{photo_type}': {decode_error}")
-                        photo_bytes = None
-                    
-                    if photo_bytes and len(photo_bytes) > 0:
-                        if is_postgres:
-                            cursor.execute("""
-                                INSERT INTO inspection_photos
-                                (inspection_id, photo_type, photo_order, image_data, image_filename,
-                                 ai_analyzed, ai_has_damage, created_at)
-                                VALUES (%s, %s, %s, %s, %s, %s, %s, NOW())
-                            """, (
-                                inspection_id,
-                                photo_type,
-                                idx + 1,
-                                photo_bytes,
-                                f"{photo_type}.jpg",
-                                True,
-                                False
-                            ))
+                        # SQLite: store as BYTEA (bytes)
+                        if 'base64,' in photo_data:
+                            photo_base64 = photo_data.split('base64,')[1]
                         else:
+                            photo_base64 = photo_data
+                        
+                        try:
+                            photo_bytes = base64.b64decode(photo_base64)
                             cursor.execute("""
                                 INSERT INTO inspection_photos
                                 (inspection_id, photo_type, photo_order, image_data, image_filename,
@@ -28908,10 +28907,10 @@ async def save_inspection(request: Request):
                                 1,
                                 0
                             ))
-                        photos_saved += 1
-                        logging.info(f"✅ Photo '{photo_type}' saved to database")
-                    else:
-                        logging.warning(f"⚠️ Photo '{photo_type}' is empty or invalid, skipping")
+                            photos_saved += 1
+                            logging.info(f"✅ Photo '{photo_type}' saved to database as BYTEA")
+                        except Exception as decode_error:
+                            logging.error(f"❌ Failed to decode photo '{photo_type}': {decode_error}")
                 else:
                     logging.warning(f"⚠️ Photo '{photo_type}' not found in photos dict")
             
@@ -28921,13 +28920,12 @@ async def save_inspection(request: Request):
             if damage_croqui and len(damage_croqui) > 100:
                 try:
                     logging.info(f"💾 Saving damage croqui to database...")
-                    if 'base64,' in damage_croqui:
-                        croqui_base64 = damage_croqui.split('base64,')[1]
-                    else:
-                        croqui_base64 = damage_croqui
                     
-                    croqui_bytes = base64.b64decode(croqui_base64)
-                    logging.info(f"✅ Damage croqui decoded: {len(croqui_bytes)} bytes")
+                    # Ensure it has data:image prefix for TEXT storage
+                    if not damage_croqui.startswith('data:image'):
+                        damage_croqui = f"data:image/png;base64,{damage_croqui}"
+                    
+                    logging.info(f"✅ Damage croqui prepared as data URL: {len(damage_croqui)} chars")
                     
                     if is_postgres:
                         cursor.execute("""
@@ -28939,12 +28937,19 @@ async def save_inspection(request: Request):
                             inspection_id,
                             'damage_croqui',
                             99,  # High order number to keep it separate
-                            croqui_bytes,
+                            damage_croqui,
                             'damage_croqui.png',
                             True,
                             True
                         ))
                     else:
+                        # SQLite still uses BYTEA, decode to bytes
+                        if 'base64,' in damage_croqui:
+                            croqui_base64 = damage_croqui.split('base64,')[1]
+                        else:
+                            croqui_base64 = damage_croqui
+                        croqui_bytes = base64.b64decode(croqui_base64)
+                        
                         cursor.execute("""
                             INSERT INTO inspection_photos
                             (inspection_id, photo_type, photo_order, image_data, image_filename,
@@ -28978,15 +28983,9 @@ async def save_inspection(request: Request):
                         logging.info(f"💾 Saving damage photo '{photo_key}' to database...")
                         photo_data = photos[photo_key]
                         
-                        # Extract base64 data
-                        if isinstance(photo_data, str) and 'base64,' in photo_data:
-                            photo_base64 = photo_data.split('base64,')[1]
-                        else:
-                            photo_base64 = photo_data
-                        
-                        # Convert base64 to bytes
-                        photo_bytes = base64.b64decode(photo_base64)
-                        logging.info(f"✅ Damage photo '{photo_key}' decoded: {len(photo_bytes)} bytes")
+                        # Ensure it has data:image prefix for TEXT storage
+                        if not photo_data.startswith('data:image'):
+                            photo_data = f"data:image/jpeg;base64,{photo_data}"
                         
                         # Extract side from damagePhoto_front, damagePhoto_back, etc.
                         # If old format (damagePhoto1), use damage_photo_1
@@ -29000,6 +28999,7 @@ async def save_inspection(request: Request):
                             photo_order = 100 + int(photo_number)
                         
                         if is_postgres:
+                            # PostgreSQL: store as TEXT (data URL)
                             cursor.execute("""
                                 INSERT INTO inspection_photos
                                 (inspection_id, photo_type, photo_order, image_data, image_filename,
@@ -29009,12 +29009,20 @@ async def save_inspection(request: Request):
                                 inspection_id,
                                 photo_type,
                                 photo_order,
-                                photo_bytes,
+                                photo_data,
                                 f"{photo_type}.jpg",
                                 True,
                                 True
                             ))
+                            logging.info(f"✅ Damage photo '{photo_key}' saved as TEXT: '{photo_type}'")
                         else:
+                            # SQLite: store as BYTEA (bytes)
+                            if 'base64,' in photo_data:
+                                photo_base64 = photo_data.split('base64,')[1]
+                            else:
+                                photo_base64 = photo_data
+                            photo_bytes = base64.b64decode(photo_base64)
+                            
                             cursor.execute("""
                                 INSERT INTO inspection_photos
                                 (inspection_id, photo_type, photo_order, image_data, image_filename,
@@ -29029,8 +29037,8 @@ async def save_inspection(request: Request):
                                 1,
                                 1
                             ))
+                            logging.info(f"✅ Damage photo '{photo_key}' saved as BYTEA: '{photo_type}'")
                         damage_photos_saved += 1
-                        logging.info(f"✅ Damage photo '{photo_key}' saved as '{photo_type}'")
                     except Exception as damage_photo_error:
                         logging.error(f"❌ Failed to save damage photo '{photo_key}': {damage_photo_error}")
             
@@ -29206,15 +29214,23 @@ async def save_inspection(request: Request):
                         """, (inspection_id,))
                     
                     croqui_row = cursor.fetchone()
-                    base_url = "https://carscraping.up.railway.app"
                     
-                    # Use HTTP URL for croqui or empty cache
+                    # Convert croqui to base64 inline
+                    final_croqui = ""
                     global EMPTY_CROQUI_CACHE
                     if croqui_row and croqui_row[0]:
-                        import time
-                        cache_buster = int(time.time())
-                        final_croqui = f"{base_url}/email-photo/{inspection_id}/damage_croqui?v={cache_buster}"
-                        logging.info(f"🖼️ Croqui URL: {final_croqui}")
+                        import base64
+                        image_data = croqui_row[0]
+                        if isinstance(image_data, str):
+                            # Already TEXT, ensure it has data URL prefix
+                            if image_data.startswith('data:image'):
+                                final_croqui = image_data
+                            else:
+                                final_croqui = f"data:image/png;base64,{image_data}"
+                        else:
+                            # Bytes, encode to base64
+                            final_croqui = f"data:image/png;base64,{base64.b64encode(image_data).decode('utf-8')}"
+                        logging.info(f"🖼️ Croqui converted to base64 inline")
                     else:
                         final_croqui = EMPTY_CROQUI_CACHE or ""
                         logging.info(f"⚠️ No croqui, using empty cache")
@@ -29252,16 +29268,28 @@ async def save_inspection(request: Request):
                         
                         labels_map = photo_labels.get(detected_lang, photo_labels['en'])
                         
+                        # Convert photos to base64 inline
                         photos_list = []
                         for photo_row in photos_rows:
                             photo_type = photo_row[0]
                             image_data = photo_row[1]
                             if image_data:
-                                photo_url = f"{base_url}/email-photo/{inspection_id}/{photo_type}"
+                                # Convert to base64 data URL if needed
+                                if isinstance(image_data, str):
+                                    # Already TEXT, ensure it has data URL prefix
+                                    if image_data.startswith('data:image'):
+                                        photo_url = image_data
+                                    else:
+                                        photo_url = f"data:image/jpeg;base64,{image_data}"
+                                else:
+                                    # Bytes, encode to base64
+                                    import base64
+                                    photo_url = f"data:image/jpeg;base64,{base64.b64encode(image_data).decode('utf-8')}"
+                                
                                 label = labels_map.get(photo_type, photo_type)
                                 photos_list.append({'url': photo_url, 'label': label})
                         
-                        # Create 3x3 table grid
+                        # Create 3x3 table grid with clickable images
                         photos_html = '<table width="100%" cellpadding="5" cellspacing="0" style="margin: 0;">'
                         for i in range(0, len(photos_list), 3):
                             photos_html += '<tr>'
@@ -29270,8 +29298,8 @@ async def save_inspection(request: Request):
                                     photo = photos_list[i + j]
                                     photos_html += f'''
                                     <td style="width: 33.33%; text-align: center; padding: 5px; vertical-align: top;">
-                                        <a href="{photo['url']}" target="_blank" style="text-decoration: none; display: block;">
-                                            <img src="{photo['url']}" alt="{photo['label']}" style="width: 100%; height: auto; max-height: 150px; object-fit: cover; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); display: block; border: 2px solid transparent;" />
+                                        <a href="{photo['url']}" target="_blank" style="text-decoration: none; display: block; cursor: pointer;">
+                                            <img src="{photo['url']}" alt="{photo['label']}" style="width: 100%; height: auto; max-height: 150px; object-fit: cover; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); display: block; border: 2px solid transparent; cursor: pointer;" />
                                         </a>
                                         <p style="color: #00bcd4; margin: 5px 0 0 0; font-size: 12px; font-weight: 600;">{photo['label']}</p>
                                     </td>
@@ -30927,21 +30955,28 @@ async def send_inspection_email(request: Request, inspection_number: str):
             
             labels_map = photo_labels.get(detected_lang, photo_labels['en'])
             
-            # Build photos as table (3x3 grid) for better email client compatibility
-            # Use HTTP URLs instead of base64 for Outlook Mac compatibility
-            base_url = "https://carscraping.up.railway.app"
-            
+            # Build photos as table (3x3 grid) with inline base64
             photos_list = []
             for photo_row in photos_rows:
                 photo_type = photo_row[0]
                 image_data = photo_row[1]
                 if image_data:
-                    # Use HTTP URL instead of base64 for Outlook Mac compatibility
-                    photo_url = f"{base_url}/email-photo/{inspection_id}/{photo_type}"
+                    # Convert to base64 data URL if needed
+                    if isinstance(image_data, str):
+                        # Already TEXT, ensure it has data URL prefix
+                        if image_data.startswith('data:image'):
+                            photo_url = image_data
+                        else:
+                            photo_url = f"data:image/jpeg;base64,{image_data}"
+                    else:
+                        # Bytes, encode to base64
+                        import base64
+                        photo_url = f"data:image/jpeg;base64,{base64.b64encode(image_data).decode('utf-8')}"
+                    
                     label = labels_map.get(photo_type, photo_type)
                     photos_list.append({'url': photo_url, 'label': label})
             
-            # Create 3x3 table grid with HTTP URLs
+            # Create 3x3 table grid with inline base64 and clickable images
             photos_html = '<table width="100%" cellpadding="5" cellspacing="0" style="margin: 0;">'
             for i in range(0, len(photos_list), 3):
                 photos_html += '<tr>'
@@ -30950,8 +30985,8 @@ async def send_inspection_email(request: Request, inspection_number: str):
                         photo = photos_list[i + j]
                         photos_html += f'''
                         <td style="width: 33.33%; text-align: center; padding: 5px; vertical-align: top;">
-                            <a href="{photo['url']}" target="_blank" style="text-decoration: none; display: block;">
-                                <img src="{photo['url']}" alt="{photo['label']}" style="width: 100%; height: auto; max-height: 150px; object-fit: cover; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); display: block; border: 2px solid transparent; transition: border-color 0.2s;" />
+                            <a href="{photo['url']}" target="_blank" style="text-decoration: none; display: block; cursor: pointer;">
+                                <img src="{photo['url']}" alt="{photo['label']}" style="width: 100%; height: auto; max-height: 150px; object-fit: cover; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); display: block; border: 2px solid transparent; cursor: pointer;" />
                             </a>
                             <p style="color: #00bcd4; margin: 5px 0 0 0; font-size: 12px; font-weight: 600;">{photo['label']}</p>
                         </td>
@@ -42658,10 +42693,8 @@ async def download_terms_en():
 
 @app.get("/email-photo/{inspection_id}/{photo_type}")
 async def serve_email_photo(inspection_id: int, photo_type: str):
-    """Serve inspection photo via HTTP for email compatibility (Outlook Mac)"""
+    """Serve inspection photo via HTTP for email compatibility (kept for backward compatibility)"""
     try:
-        from fastapi.responses import Response
-        
         conn = _db_connect()
         cursor = conn.cursor()
         
@@ -42669,14 +42702,12 @@ async def serve_email_photo(inspection_id: int, photo_type: str):
             cursor.execute("""
                 SELECT image_data FROM inspection_photos 
                 WHERE inspection_id = %s AND photo_type = %s
-                ORDER BY id DESC
                 LIMIT 1
             """, (inspection_id, photo_type))
         else:
             cursor.execute("""
                 SELECT image_data FROM inspection_photos 
                 WHERE inspection_id = ? AND photo_type = ?
-                ORDER BY id DESC
                 LIMIT 1
             """, (inspection_id, photo_type))
         
@@ -42684,104 +42715,27 @@ async def serve_email_photo(inspection_id: int, photo_type: str):
         conn.close()
         
         if not row or not row[0]:
-            raise HTTPException(status_code=404, detail="Photo not found")
+            return Response(content=b"", media_type="image/png", status_code=404)
         
-        # Compress and return image
-        from PIL import Image
-        import io
-        import base64
-        
-        # Handle both base64 string and bytes
         image_data = row[0]
-        logging.info(f"🖼️ Image data type: {type(image_data)}, length: {len(image_data) if hasattr(image_data, '__len__') else 'N/A'}")
         
+        # Handle both TEXT (base64 string) and BLOB (bytes)
         if isinstance(image_data, str):
-            # It's a base64 string, decode it
-            logging.info(f"🖼️ String data, first 100 chars: {image_data[:100]}")
-            if image_data.startswith('data:image'):
-                # Remove data:image/png;base64, prefix if present
-                image_data = image_data.split(',', 1)[1]
-                logging.info(f"🖼️ Removed data URI prefix")
-            try:
-                # Fix padding if needed
-                missing_padding = len(image_data) % 4
-                if missing_padding:
-                    image_data += '=' * (4 - missing_padding)
-                    logging.info(f"🖼️ Added {4 - missing_padding} padding chars")
-                
-                image_bytes = base64.b64decode(image_data)
-                logging.info(f"🖼️ Decoded base64 to {len(image_bytes)} bytes")
-            except Exception as e:
-                logging.error(f"❌ Failed to decode base64: {e}")
-                raise
-        elif isinstance(image_data, memoryview):
-            # Convert memoryview to bytes
-            image_bytes = bytes(image_data)
-            logging.info(f"🖼️ Converted memoryview to {len(image_bytes)} bytes")
-            # Check if it's actually base64 encoded
-            try:
-                # Try to decode as base64 first
-                decoded = base64.b64decode(image_bytes)
-                logging.info(f"🖼️ Memoryview was base64, decoded to {len(decoded)} bytes")
-                image_bytes = decoded
-            except:
-                logging.info(f"🖼️ Memoryview is raw bytes, not base64")
+            # TEXT: decode base64 string to bytes
+            import base64
+            image_bytes = base64.b64decode(image_data)
         else:
-            # Already bytes
+            # BLOB: already bytes
             image_bytes = image_data
-            logging.info(f"🖼️ Already bytes: {len(image_bytes)} bytes")
         
-        logging.info(f"🖼️ Final image_bytes length: {len(image_bytes)}, first 20 bytes: {image_bytes[:20]}")
+        # Determine media type based on photo type
+        media_type = "image/png" if photo_type == "damage_croqui" else "image/jpeg"
         
-        try:
-            img = Image.open(io.BytesIO(image_bytes))
-        except Exception as img_error:
-            logging.error(f"❌ PIL cannot open image: {img_error}")
-            logging.error(f"❌ Image bytes (first 200): {image_bytes[:200]}")
-            # Return a placeholder 1x1 transparent PNG instead of error
-            placeholder = base64.b64decode('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==')
-            return Response(
-                content=placeholder,
-                media_type="image/png",
-                headers={
-                    "Cache-Control": "no-cache",
-                    "Content-Disposition": f"inline; filename={photo_type}_error.png"
-                }
-            )
+        return Response(content=image_bytes, media_type=media_type)
         
-        # Resize to max width 400px
-        max_width = 400
-        if img.width > max_width:
-            ratio = max_width / img.width
-            new_height = int(img.height * ratio)
-            img = img.resize((max_width, new_height), Image.Resampling.LANCZOS)
-        
-        # Convert to RGB if needed
-        if img.mode in ('RGBA', 'LA', 'P'):
-            background = Image.new('RGB', img.size, (255, 255, 255))
-            if img.mode == 'P':
-                img = img.convert('RGBA')
-            background.paste(img, mask=img.split()[-1] if img.mode in ('RGBA', 'LA') else None)
-            img = background
-        
-        # Save as JPEG
-        buffer = io.BytesIO()
-        img.save(buffer, format='JPEG', quality=75, optimize=True)
-        buffer.seek(0)
-        
-        return Response(
-            content=buffer.getvalue(),
-            media_type="image/jpeg",
-            headers={
-                "Cache-Control": "public, max-age=86400",  # Cache for 24h
-                "Content-Disposition": f"inline; filename={photo_type}.jpg"
-            }
-        )
     except Exception as e:
-        logging.error(f"Error serving email photo: {e}")
-        # Return placeholder instead of error
-        placeholder = base64.b64decode('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==')
-        return Response(content=placeholder, media_type="image/png")
+        logging.error(f"❌ Error serving email photo: {e}")
+        return Response(content=b"", media_type="image/png", status_code=500)
 
 @app.post("/api/extract-rental-agreement")
 async def extract_rental_agreement(request: Request, pdf: UploadFile = File(...)):
