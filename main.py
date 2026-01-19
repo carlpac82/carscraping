@@ -42113,13 +42113,31 @@ async def get_inspection_details(inspection_number: str, request: Request):
                         # Already a string (base64)
                         photo_base64 = image_data
                     
+                    # Clean and validate base64 if it already has data URL prefix
+                    if isinstance(photo_base64, str) and photo_base64.startswith('data:image'):
+                        # Extract base64 part after comma
+                        parts = photo_base64.split(',', 1)
+                        if len(parts) == 2:
+                            base64_part = parts[1]
+                            # Validate and re-encode to ensure clean base64
+                            try:
+                                decoded = base64.b64decode(base64_part)
+                                photo_base64 = base64.b64encode(decoded).decode('utf-8')
+                            except Exception as e:
+                                logging.warning(f"⚠️ Invalid base64 in photo {photo_type}, skipping: {e}")
+                                continue
+                        else:
+                            # Malformed data URL, skip
+                            logging.warning(f"⚠️ Malformed data URL in photo {photo_type}, skipping")
+                            continue
+                    
                     # Separate damage croqui and damage photos from regular photos
                     if photo_type == 'damage_croqui':
                         # Ensure it has the data URI prefix
                         if not photo_base64.startswith('data:'):
                             damage_croqui = f"data:image/png;base64,{photo_base64}"
                         else:
-                            damage_croqui = photo_base64
+                            damage_croqui = f"data:image/png;base64,{photo_base64}"
                     elif photo_type.startswith('damage_photo_') or photo_type.startswith('damage_'):
                         # Handle both old format (damage_photo_1) and new format (damage_front, damage_back, etc.)
                         # But exclude damage_croqui which is already handled above
