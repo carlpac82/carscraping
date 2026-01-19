@@ -30808,16 +30808,32 @@ async def send_inspection_email(request: Request, inspection_number: str):
         
         # Generate horizontal fuel gauge using HTML/CSS (no base64 images)
         fuel_gauge_html = f"""
-        <div style="text-align: center; padding: 20px 0;">
-            <div style="display: flex; align-items: center; justify-content: center; gap: 15px; max-width: 320px; margin: 0 auto;">
-                <span style="color: #009cb6; font-size: 14px; font-weight: 600; min-width: 35px;">OUT</span>
-                <div style="position: relative; width: 200px; height: 20px; background: #e5e7eb; border-radius: 10px; border: 1px solid #ccc; overflow: hidden;">
-                    <div style="position: absolute; top: 0; left: 0; height: 100%; width: {fill_percentage}%; background: {fuel_color}; border-radius: 10px;"></div>
-                </div>
-                <span style="color: #009cb6; font-size: 14px; font-weight: 600; min-width: 15px;">F</span>
-            </div>
-            <p style="color: #333; margin: 10px 0 0 0; font-size: 16px; font-weight: 700;">{fuel_text}</p>
-        </div>
+        <table width="100%" cellpadding="0" cellspacing="0" style="margin: 20px 0;">
+            <tr>
+                <td align="center">
+                    <table cellpadding="0" cellspacing="0" style="margin: 0 auto;">
+                        <tr>
+                            <td style="padding-right: 15px; vertical-align: middle;">
+                                <span style="color: #009cb6; font-size: 14px; font-weight: 600;">R</span>
+                            </td>
+                            <td style="vertical-align: middle;">
+                                <div style="position: relative; width: 200px; height: 20px; background: #e5e7eb; border-radius: 10px; border: 1px solid #ccc; overflow: hidden;">
+                                    <div style="position: absolute; top: 0; left: 0; height: 100%; width: {fill_percentage}%; background: {fuel_color}; border-radius: 10px;"></div>
+                                </div>
+                            </td>
+                            <td style="padding-left: 15px; vertical-align: middle;">
+                                <span style="color: #009cb6; font-size: 14px; font-weight: 600;">F</span>
+                            </td>
+                        </tr>
+                        <tr>
+                            <td colspan="3" align="center" style="padding-top: 10px;">
+                                <p style="color: #333; margin: 0; font-size: 16px; font-weight: 700;">{fuel_text}</p>
+                            </td>
+                        </tr>
+                    </table>
+                </td>
+            </tr>
+        </table>
         """
         
         # Use pre-loaded cached images (loaded once at startup)
