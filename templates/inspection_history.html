@@ -883,36 +883,48 @@
                             <div>
                                 <label class="block text-sm font-medium text-gray-700 mb-2">Croqui de Danos</label>
                                 
-                                <!-- Drawing Tools -->
-                                <div class="flex gap-2 mb-3">
-                                    <button type="button" onclick="setDrawingMode('pin')" id="pinModeBtn"
-                                            class="flex-1 px-3 py-2 bg-[#009cb6] text-white text-sm rounded-lg hover:bg-[#007a8f] transition-colors font-semibold">
-                                        📍 Pontos
+                                <!-- Ferramentas Clean -->
+                                <div class="flex justify-center gap-4 mb-4">
+                                    <button type="button" id="toolPin" class="w-12 h-12 rounded-full bg-[#009cb6] text-white hover:bg-[#007a94] transition-all duration-200 flex items-center justify-center" onclick="selectTool('pin')" title="Pins">
+                                        <svg class="w-6 h-6" fill="currentColor" viewBox="0 0 24 24">
+                                            <path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z"/>
+                                        </svg>
                                     </button>
-                                    <button type="button" onclick="setDrawingMode('draw')" id="drawModeBtn"
-                                            class="flex-1 px-3 py-2 bg-gray-200 text-gray-700 text-sm rounded-lg hover:bg-gray-300 transition-colors font-semibold">
-                                        ✏️ Traços
+                                    <button type="button" id="toolDraw" class="w-12 h-12 rounded-full bg-gray-400 text-white hover:bg-gray-500 transition-all duration-200 flex items-center justify-center" onclick="selectTool('draw')" title="Desenhar">
+                                        <svg class="w-6 h-6" fill="currentColor" viewBox="0 0 24 24">
+                                            <path d="M3 17.25V21h3.75L17.81 9.94l-3.75-3.75L3 17.25zM20.71 7.04c.39-.39.39-1.02 0-1.41l-2.34-2.34c-.39-.39-1.02-.39-1.41 0l-1.83 1.83 3.75 3.75 1.83-1.83z"/>
+                                        </svg>
                                     </button>
-                                    <button type="button" onclick="undoLastDamage()" 
-                                            class="px-3 py-2 bg-red-500 text-white text-sm rounded-lg hover:bg-red-600 transition-colors">
-                                        ↶ Desfazer
+                                    <button type="button" class="w-12 h-12 rounded-full bg-gray-400 text-white hover:bg-gray-500 transition-all duration-200 flex items-center justify-center" onclick="clearAllDamages()" title="Limpar Tudo">
+                                        <svg class="w-6 h-6" fill="currentColor" viewBox="0 0 24 24">
+                                            <path d="M6 19c0 1.1.9 2 2 2h8c1.1 0 2-.9 2-2V7H6v12zM19 4h-3.5l-1-1h-5l-1 1H5v2h14V4z"/>
+                                        </svg>
                                     </button>
-                                    <button type="button" onclick="clearAllDamages()" 
-                                            class="px-3 py-2 bg-gray-600 text-white text-sm rounded-lg hover:bg-gray-700 transition-colors">
-                                        🗑️ Limpar
+                                </div>
+                                
+                                <!-- Tamanhos Clean -->
+                                <div id="sizeControls" class="flex justify-center gap-3 mb-4">
+                                    <button type="button" class="w-8 h-8 rounded-full bg-gray-200 hover:bg-gray-300 transition-all duration-200 flex items-center justify-center" onclick="selectSize('tiny')" id="sizeTiny" title="Pequeno">
+                                        <div class="w-1 h-1 bg-gray-600 rounded-full"></div>
+                                    </button>
+                                    <button type="button" class="w-8 h-8 rounded-full bg-[#009cb6] hover:bg-[#007a94] transition-all duration-200 flex items-center justify-center" onclick="selectSize('small')" id="sizeSmall" title="Médio">
+                                        <div class="w-2 h-2 bg-white rounded-full"></div>
+                                    </button>
+                                    <button type="button" class="w-8 h-8 rounded-full bg-gray-200 hover:bg-gray-300 transition-all duration-200 flex items-center justify-center" onclick="selectSize('medium')" id="sizeMedium" title="Grande">
+                                        <div class="w-3 h-3 bg-gray-600 rounded-full"></div>
+                                    </button>
+                                    <button type="button" class="w-8 h-8 rounded-full bg-gray-200 hover:bg-gray-300 transition-all duration-200 flex items-center justify-center" onclick="selectSize('large')" id="sizeLarge" title="Extra Grande">
+                                        <div class="w-4 h-4 bg-gray-600 rounded-full"></div>
                                     </button>
                                 </div>
                                 
                                 <!-- Canvas Container -->
-                                <div id="carDiagram" class="relative bg-gray-50 rounded-lg border-2 border-gray-300 overflow-hidden" style="position: relative;">
-                                    <img src="/static/images/Croqui.png" alt="Car Diagram" class="w-full" style="display: block;">
-                                    <canvas id="drawingCanvas" 
-                                            class="absolute top-0 left-0 w-full h-full cursor-crosshair" 
-                                            style="touch-action: none;"></canvas>
+                                <div class="car-svg-container" id="carDiagram" style="position: relative;">
+                                    <img src="/static/images/Croqui.png" alt="Croqui do Carro" style="width: 100%; height: auto; display: block;">
+                                    <canvas id="drawingCanvas" class="drawing-canvas" style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; pointer-events: auto;"></canvas>
                                 </div>
-                                <p class="text-xs text-gray-500 mt-2">
-                                    <span id="drawingModeText">Modo: <strong>Pontos</strong></span> | 
-                                    Total de danos: <span id="damageCount" class="font-semibold text-[#009cb6]">0</span>
+                                <p class="text-xs text-gray-500 mt-2 text-center">
+                                    Clique no croqui para adicionar danos. Total: <span id="damageCount" class="font-semibold text-[#009cb6]">0</span>
                                 </p>
                             </div>
                             
@@ -956,6 +968,7 @@
         let drawingCanvas = null;
         let drawingCtx = null;
         let drawingMode = 'pin'; // 'pin' or 'draw'
+        let drawingSize = 'small'; // 'tiny', 'small', 'medium', 'large'
         let isDrawing = false;
         let damages = [];
         let currentStroke = [];
@@ -1112,26 +1125,50 @@
         }
         
         function addPin(x, y) {
-            damages.push({type: 'pin', x, y});
+            damages.push({type: 'pin', x, y, size: drawingSize});
             redrawCanvas();
             updateDamageCount();
         }
         
-        function setDrawingMode(mode) {
-            drawingMode = mode;
-            const pinBtn = document.getElementById('pinModeBtn');
-            const drawBtn = document.getElementById('drawModeBtn');
-            const modeText = document.getElementById('drawingModeText');
+        function selectTool(tool) {
+            drawingMode = tool;
+            const pinBtn = document.getElementById('toolPin');
+            const drawBtn = document.getElementById('toolDraw');
             
-            if (mode === 'pin') {
-                pinBtn.className = 'flex-1 px-3 py-2 bg-[#009cb6] text-white text-sm rounded-lg hover:bg-[#007a8f] transition-colors font-semibold';
-                drawBtn.className = 'flex-1 px-3 py-2 bg-gray-200 text-gray-700 text-sm rounded-lg hover:bg-gray-300 transition-colors font-semibold';
-                modeText.innerHTML = 'Modo: <strong>Pontos</strong>';
+            if (tool === 'pin') {
+                pinBtn.className = 'w-12 h-12 rounded-full bg-[#009cb6] text-white hover:bg-[#007a94] transition-all duration-200 flex items-center justify-center';
+                drawBtn.className = 'w-12 h-12 rounded-full bg-gray-400 text-white hover:bg-gray-500 transition-all duration-200 flex items-center justify-center';
+                // Show size controls for pins
+                const sizeControls = document.getElementById('sizeControls');
+                if (sizeControls) sizeControls.style.display = 'flex';
             } else {
-                pinBtn.className = 'flex-1 px-3 py-2 bg-gray-200 text-gray-700 text-sm rounded-lg hover:bg-gray-300 transition-colors font-semibold';
-                drawBtn.className = 'flex-1 px-3 py-2 bg-[#009cb6] text-white text-sm rounded-lg hover:bg-[#007a8f] transition-colors font-semibold';
-                modeText.innerHTML = 'Modo: <strong>Traços</strong>';
+                pinBtn.className = 'w-12 h-12 rounded-full bg-gray-400 text-white hover:bg-gray-500 transition-all duration-200 flex items-center justify-center';
+                drawBtn.className = 'w-12 h-12 rounded-full bg-[#009cb6] text-white hover:bg-[#007a94] transition-all duration-200 flex items-center justify-center';
+                // Hide size controls for drawing
+                const sizeControls = document.getElementById('sizeControls');
+                if (sizeControls) sizeControls.style.display = 'none';
             }
+        }
+        
+        function selectSize(size) {
+            drawingSize = size;
+            
+            // Update button styles
+            const sizes = ['tiny', 'small', 'medium', 'large'];
+            sizes.forEach(s => {
+                const btn = document.getElementById('size' + s.charAt(0).toUpperCase() + s.slice(1));
+                if (btn) {
+                    if (s === size) {
+                        btn.className = 'w-8 h-8 rounded-full bg-[#009cb6] hover:bg-[#007a94] transition-all duration-200 flex items-center justify-center';
+                        const dot = btn.querySelector('div');
+                        if (dot) dot.className = dot.className.replace('bg-gray-600', 'bg-white');
+                    } else {
+                        btn.className = 'w-8 h-8 rounded-full bg-gray-200 hover:bg-gray-300 transition-all duration-200 flex items-center justify-center';
+                        const dot = btn.querySelector('div');
+                        if (dot) dot.className = dot.className.replace('bg-white', 'bg-gray-600');
+                    }
+                }
+            });
         }
         
         function undoLastDamage() {
@@ -1159,9 +1196,13 @@
             // Draw all damages (checkout = preto)
             damages.forEach((damage, index) => {
                 if (damage.type === 'pin') {
+                    // Get radius based on size
+                    const sizeMap = { tiny: 8, small: 12, medium: 16, large: 20 };
+                    const radius = sizeMap[damage.size || 'small'];
+                    
                     // Draw pin (black circle with white border for checkout)
                     drawingCtx.beginPath();
-                    drawingCtx.arc(damage.x, damage.y, 15, 0, 2 * Math.PI);
+                    drawingCtx.arc(damage.x, damage.y, radius, 0, 2 * Math.PI);
                     drawingCtx.fillStyle = 'rgba(0, 0, 0, 0.7)';
                     drawingCtx.fill();
                     drawingCtx.strokeStyle = '#fff';
@@ -1170,7 +1211,8 @@
                     
                     // Draw number
                     drawingCtx.fillStyle = '#fff';
-                    drawingCtx.font = 'bold 14px Arial';
+                    const fontSize = Math.max(10, radius - 2);
+                    drawingCtx.font = `bold ${fontSize}px Arial`;
                     drawingCtx.textAlign = 'center';
                     drawingCtx.textBaseline = 'middle';
                     drawingCtx.fillText(index + 1, damage.x, damage.y);
