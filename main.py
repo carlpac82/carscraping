@@ -898,26 +898,32 @@ def _preload_promotional_images():
     import base64
     from PIL import Image
     import io
+    from pathlib import Path
     
     logging.info("🖼️ Pre-loading promotional images...")
     
+    # Get base directory (works in both localhost and Railway)
+    base_dir = Path(__file__).parent
+    static_dir = base_dir / 'static'
+    
     # Load logo
     try:
-        with open('/Users/filipepacheco/CascadeProjects/carscraping/static/ap-heather.png', 'rb') as f:
+        logo_path = static_dir / 'ap-heather.png'
+        with open(logo_path, 'rb') as f:
             LOGO_CACHE = f"data:image/png;base64,{base64.b64encode(f.read()).decode('utf-8')}"
-        logging.info("✅ Logo cached")
+        logging.info(f"✅ Logo cached from {logo_path}")
     except Exception as e:
         logging.error(f"❌ Could not cache logo: {e}")
         LOGO_CACHE = "/static/ap-heather.png"
     
     # Load promotional images (order: image004, image005, image006)
     promo_files = {
-        'promo1': '/Users/filipepacheco/CascadeProjects/carscraping/static/image004.png',
-        'promo2': '/Users/filipepacheco/CascadeProjects/carscraping/static/image005.png',
-        'promo3': '/Users/filipepacheco/CascadeProjects/carscraping/static/image006.png',
-        'benagil': '/Users/filipepacheco/CascadeProjects/carscraping/static/image007.png',
-        'lagos': '/Users/filipepacheco/CascadeProjects/carscraping/static/image010.png',
-        'sagres': '/Users/filipepacheco/CascadeProjects/carscraping/static/image009.png'
+        'promo1': static_dir / 'image004.png',
+        'promo2': static_dir / 'image005.png',
+        'promo3': static_dir / 'image006.png',
+        'benagil': static_dir / 'image007.png',
+        'lagos': static_dir / 'image010.png',
+        'sagres': static_dir / 'image009.png'
     }
     
     for key, filepath in promo_files.items():
