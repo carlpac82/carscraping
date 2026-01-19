@@ -42703,6 +42703,12 @@ async def serve_email_photo(inspection_id: int, photo_type: str):
                 image_data = image_data.split(',', 1)[1]
                 logging.info(f"🖼️ Removed data URI prefix")
             try:
+                # Fix padding if needed
+                missing_padding = len(image_data) % 4
+                if missing_padding:
+                    image_data += '=' * (4 - missing_padding)
+                    logging.info(f"🖼️ Added {4 - missing_padding} padding chars")
+                
                 image_bytes = base64.b64decode(image_data)
                 logging.info(f"🖼️ Decoded base64 to {len(image_bytes)} bytes")
             except Exception as e:
