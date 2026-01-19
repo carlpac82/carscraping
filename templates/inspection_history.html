@@ -124,10 +124,22 @@
         console.log('👤 Current user:', currentUser);
         console.log('🔐 Is admin:', isAdmin);
 
-        async function loadHistory() {
+        async function loadHistory(forceRefresh = false) {
             try {
                 // Add timestamp to prevent browser caching
-                const response = await fetch(`/api/inspections/history?t=${Date.now()}`);
+                let url = `/api/inspections/history?t=${Date.now()}`;
+                
+                // If force refresh, add additional cache busting headers
+                const fetchOptions = forceRefresh ? {
+                    headers: {
+                        'Cache-Control': 'no-cache, no-store, must-revalidate',
+                        'Pragma': 'no-cache',
+                        'Expires': '0'
+                    }
+                } : {};
+                
+                console.log(`📡 Fetching history (forceRefresh: ${forceRefresh})...`);
+                const response = await fetch(url, fetchOptions);
                 const data = await response.json();
                 
                 if (data.ok) {
@@ -533,8 +545,8 @@
             }
         }
 
-        async function refreshHistory() {
-            await loadHistory();
+        async function refreshHistory(forceRefresh = false) {
+            await loadHistory(forceRefresh);
         }
 
         // Preview inspection document
@@ -1411,7 +1423,7 @@
                     // Aguardar 2 segundos antes de recarregar para garantir que o servidor processou
                     setTimeout(async () => {
                         console.log('⏰ 2 seconds elapsed, refreshing now...');
-                        await refreshHistory();
+                        await refreshHistory(true); // Force refresh with cache busting
                         console.log('✅ History refreshed, closing modal...');
                         closeEditModal();
                     }, 2000);
