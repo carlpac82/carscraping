@@ -42660,8 +42660,24 @@ async def serve_email_photo(inspection_id: int, photo_type: str):
         # Compress and return image
         from PIL import Image
         import io
+        import base64
         
-        img = Image.open(io.BytesIO(row[0]))
+        # Handle both base64 string and bytes
+        image_data = row[0]
+        if isinstance(image_data, str):
+            # It's a base64 string, decode it
+            if image_data.startswith('data:image'):
+                # Remove data:image/png;base64, prefix if present
+                image_data = image_data.split(',', 1)[1]
+            image_bytes = base64.b64decode(image_data)
+        elif isinstance(image_data, memoryview):
+            # Convert memoryview to bytes
+            image_bytes = bytes(image_data)
+        else:
+            # Already bytes
+            image_bytes = image_data
+        
+        img = Image.open(io.BytesIO(image_bytes))
         
         # Resize to max width 400px
         max_width = 400
