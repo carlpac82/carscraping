@@ -29106,324 +29106,51 @@ async def save_inspection(request: Request):
             
             if email and send_email:
                 try:
-                    logging.info(f"📧 Preparing to send inspection report to {email} - inspection {inspection_number}")
-                    logging.info(f"✅ send_email flag is TRUE - proceeding with email send")
-                    
-                    # Get current datetime
-                    from datetime import datetime
-                    current_datetime = datetime.now()
-                    
-                    # Convert logo to base64 for email embedding
-                    import base64
-                    import os
-                    logo_base64 = ""
-                    try:
-                        project_root = os.path.dirname(os.path.abspath(__file__))
-                        logo_path = os.path.join(project_root, 'logo_autoprudente 1.png')
-                        with open(logo_path, 'rb') as logo_file:
-                            logo_base64 = base64.b64encode(logo_file.read()).decode('utf-8')
-                            logo_base64 = f"data:image/png;base64,{logo_base64}"
-                            logging.info("✅ Logo converted to base64")
-                    except Exception as logo_error:
-                        logging.error(f"❌ Failed to load logo: {logo_error}")
-                        logo_base64 = "https://carrental-api-5r6g.onrender.com/static/logo.svg"
-                    
-                    # Create fuel gauge SVG (visual representation like in canvas)
-                    fuel_percentage = int(fuel_level)
-                    fuel_color = '#10b981' if fuel_percentage >= 75 else '#f59e0b' if fuel_percentage >= 50 else '#ef4444'
-                    
-                    # Calculate the fill for the tank visual representation
-                    tank_height = 100
-                    fill_height = tank_height * fuel_percentage / 100
-                    fill_y = tank_height - fill_height
-                    
-                    fuel_gauge_svg = f"""
-                <div style="text-align: center;">
-                    <svg width="80" height="120" viewBox="0 0 80 120" style="display: block; margin: 0 auto;">
-                        <rect x="20" y="10" width="40" height="100" rx="5" fill="#e5e7eb" stroke="#64748b" stroke-width="2"/>
-                        <rect x="22" y="{10 + fill_y}" width="36" height="{fill_height}" rx="3" fill="{fuel_color}"/>
-                        <path d="M 60 40 L 70 35 L 70 45 Z" fill="#64748b"/>
-                        <circle cx="40" cy="5" r="3" fill="#64748b"/>
-                    </svg>
-                    <p style="margin: 10px 0 0 0; color: #1f2937; font-size: 16px; font-weight: 600;">{fuel_percentage}%</p>
-                </div>
-                    """
-                    
-                    # Detect language from country field
-                    detected_lang = _detect_language_from_country(ra_country)
-                    logging.info(f"🌍 Detected language: {detected_lang} (from country: {ra_country})")
-                    
-                    # Get photo labels for detected language
-                    photo_labels = _get_photo_labels(detected_lang)
-                    
-                    # Create photos HTML
-                    photos_html = ""
-                    
-                    logging.info(f"📸 Processing {len(photos)} photos for email")
-                    # Filter out non-photo keys (damage_croqui_title, damage_croqui_alt)
-                    valid_photo_types = ['front', 'front_left', 'left', 'back_left', 'back', 'back_right', 'right', 'front_right', 'odometer']
-                    for photo_type in valid_photo_types:
-                        label = photo_labels.get(photo_type, photo_type)
-                        if photo_type in photos:
-                            photo_data = photos[photo_type]
-                            if photo_data:
-                                logging.info(f"🔍 Photo {photo_type}: length={len(photo_data)}")
-                                
-                                # Ensure photo data has the data URI prefix
-                                if not photo_data.startswith('data:'):
-                                    photo_data = f"data:image/jpeg;base64,{photo_data}"
-                                
-                                photos_html += f"""
-                                <div style="margin-bottom: 18px;">
-                                    <h4 style="color: #009cb6; margin-bottom: 8px; font-size: 16px;">{label}</h4>
-                                    <a href="{photo_data}" target="_blank" style="text-decoration: none; display: block;">
-                                        <img src="{photo_data}" alt="{label}" style="max-width: 100%; width: 100%; height: auto; border-radius: 6px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); display: block; border: 2px solid transparent;" />
-                                    </a>
-                                </div>
-                                """
-                                logging.info(f"✅ Added photo: {photo_type} ({label})")
-                            else:
-                                logging.warning(f"⚠️ Photo {photo_type} is empty or None")
-                    
-                    if not photos_html:
-                        logging.warning("⚠️ No photos were added to the email!")
-                    else:
-                        logging.info(f"✅ Total photos added to email: {len([k for k in valid_photo_types if k in photos and photos[k]])}")
-                    
-                    # Create damages croqui HTML (ONLY show image ONCE, never text list)
-                    damages_html = ""
-                    if damage_croqui and len(damage_croqui) > 100:
-                        logging.info(f"✅ Damage croqui received (length: {len(damage_croqui)} chars)")
-                        damages_html = f"""
-                        <div style="margin-top: 25px;">
-                            <h3 style="color: #009cb6; margin-bottom: 12px; font-size: 18px;">{photo_labels['damage_croqui_title']}</h3>
-                            <div style="text-align: center;">
-                                <img src="{damage_croqui}" alt="{photo_labels['damage_croqui_alt']}" style="max-width: 100%; width: 100%; height: auto; border-radius: 6px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); display: block; margin: 0 auto;" />
-                            </div>
-                        </div>
-                        """
-                    else:
-                        logging.warning(f"⚠️ No damage croqui image received! Damages count: {len(damages)}")
-                    
-                    # Get email templates for detected language (language already detected above)
-                    t = _get_email_templates(detected_lang, inspection_type)
-                    
-                    # Determine email title and content based on inspection type and language
-                    email_title = t['title']
-                    inspection_label = t['label']
-                    location_label = t['location_label']
-                    
-                    if inspection_type == 'checkin':
-                        # Use colaborador from check-in data if available
-                        colaborador_name = colaborador or user_full_name
-                        location_value = local or delivery_location or t.get('no_observations', 'Not specified')
-                    else:
-                        colaborador_name = user_full_name
-                        location_value = delivery_location or t.get('no_observations', 'Not specified')
-                    
-                    # Create HTML email body with logo and complete information - MOBILE OPTIMIZED
-                    html_message = f"""
-                <!DOCTYPE html>
-                <html>
-                <head>
-                    <meta charset="UTF-8">
-                    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-                    <meta name="x-apple-disable-message-reformatting">
-                    <title>{email_title}</title>
-                        <style type="text/css">
-                            @media only screen and (max-width: 600px) {{
-                                .container {{ width: 100% !important; }}
-                                .header {{ padding: 20px 15px !important; }}
-                                .header h1 {{ font-size: 22px !important; }}
-                                .header p {{ font-size: 16px !important; }}
-                                .content {{ padding: 20px 15px !important; }}
-                                .info-row {{ display: block !important; width: 100% !important; }}
-                                .info-cell {{ display: block !important; width: 100% !important; padding: 10px 0 !important; }}
-                                .detail-label {{ font-size: 14px !important; }}
-                                .detail-value {{ font-size: 16px !important; }}
-                                h2 {{ font-size: 20px !important; }}
-                                h3 {{ font-size: 18px !important; }}
-                                .photo-img {{ max-width: 100% !important; height: auto !important; }}
-                            }}
-                        </style>
-                    </head>
-                    <body style="margin: 0; padding: 0; background-color: #f8fafc; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;">
-                        <table width="100%" cellpadding="0" cellspacing="0" style="background-color: #f8fafc; padding: 10px 0;">
-                            <tr><td align="center">
-                                <table class="container" width="600" cellpadding="0" cellspacing="0" style="max-width: 600px; width: 100%; background-color: #ffffff; box-shadow: 0 2px 8px rgba(0,0,0,0.1);">
-                                    <!-- Header with Logo -->
-                                    <tr><td class="header" style="background: #009cb6; padding: 25px 20px; text-align: center;">
-                                        <img src="{logo_base64}" alt="Auto Prudente" style="height: 50px; max-width: 200px; margin-bottom: 12px;" />
-                                        <h1 style="margin: 8px 0 0 0; color: #ffffff; font-size: 24px; font-weight: 600;">{email_title}</h1>
-                                        <p style="margin: 6px 0 0 0; color: #e0f7fa; font-size: 17px; font-weight: 500;">RA: {ra}</p>
-                                        <p style="margin: 4px 0 0 0; color: #ffffff; font-size: 13px;">{current_datetime.strftime('%d de %B de %Y às %H:%M')}</p>
-                                    </td></tr>
-                                    
-                                    <!-- Delivery/Pickup Information -->
-                                    <tr><td class="content" style="padding: 20px; background: #f0f9fb; border-bottom: 1px solid #e2e8f0;">
-                                        <table width="100%" cellpadding="0" cellspacing="0">
-                                            <tr class="info-row">
-                                                <td class="info-cell" width="50%" style="padding: 8px; vertical-align: top;">
-                                                    <div class="detail-label" style="font-size: 12px; color: #64748b; margin-bottom: 4px;">{t['collaborator']}</div>
-                                                    <div class="detail-value" style="font-size: 15px; font-weight: 600; color: #1f2937;">{colaborador_name}</div>
-                                                </td>
-                                                <td class="info-cell" width="50%" style="padding: 8px; vertical-align: top;">
-                                                    <div class="detail-label" style="font-size: 12px; color: #64748b; margin-bottom: 4px;">{location_label}</div>
-                                                    <div class="detail-value" style="font-size: 15px; font-weight: 600; color: #1f2937;">{location_value}</div>
-                                                </td>
-                                            </tr>
-                                        </table>
-                                    </td></tr>
-                                    
-                                    <!-- Vehicle Details -->
-                                    <tr><td class="content" style="padding: 25px 20px;">
-                                        <h2 style="color: #009cb6; margin-top: 0; font-size: 20px;">{t['vehicle_details']}</h2>
-                                        <table style="width: 100%; border-collapse: collapse;">
-                                            <tr>
-                                                <td style="padding: 10px 8px; border-bottom: 1px solid #e5e7eb; font-size: 14px;"><strong>{t['license_plate']}:</strong></td>
-                                                <td style="padding: 10px 8px; border-bottom: 1px solid #e5e7eb; font-size: 14px;">{plate}</td>
-                                            </tr>
-                                            <tr>
-                                                <td style="padding: 10px 8px; border-bottom: 1px solid #e5e7eb; font-size: 14px;"><strong>{t['odometer']}:</strong></td>
-                                                <td style="padding: 10px 8px; border-bottom: 1px solid #e5e7eb; font-size: 14px;">{odometer_reading} km</td>
-                                            </tr>
-                                            {f'''<tr>
-                                                <td style="padding: 10px 8px; border-bottom: 1px solid #e5e7eb; font-size: 14px;"><strong>{t['delivery_kms']}:</strong></td>
-                                                <td style="padding: 10px 8px; border-bottom: 1px solid #e5e7eb; font-size: 14px;">{delivery_kms} km</td>
-                                            </tr>
-                                            <tr>
-                                                <td style="padding: 10px 8px; border-bottom: 1px solid #e5e7eb; font-size: 14px;"><strong>{t['total_kms']}:</strong></td>
-                                                <td style="padding: 10px 8px; border-bottom: 1px solid #e5e7eb; font-size: 14px; color: #009cb6; font-weight: 600;">{total_kms} km</td>
-                                            </tr>''' if inspection_type == 'checkin' and total_kms > 0 else ''}
-                                            <tr>
-                                                <td style="padding: 10px 8px; border-bottom: 1px solid #e5e7eb; font-size: 14px;"><strong>{t['inspection_type']}:</strong></td>
-                                                <td style="padding: 10px 8px; border-bottom: 1px solid #e5e7eb; font-size: 14px;">{inspection_label}</td>
-                                            </tr>
-                                            {f'''<tr>
-                                                <td style="padding: 10px 8px; border-bottom: 1px solid #e5e7eb; font-size: 14px;"><strong>{t['new_damages']}:</strong></td>
-                                                <td style="padding: 10px 8px; border-bottom: 1px solid #e5e7eb; font-size: 14px;">{new_damage_photos_count}</td>
-                                            </tr>''' if inspection_type == 'checkin' else f'''<tr>
-                                                <td style="padding: 10px 8px; border-bottom: 1px solid #e5e7eb; font-size: 14px;"><strong>{t['damages_identified']}:</strong></td>
-                                                <td style="padding: 10px 8px; border-bottom: 1px solid #e5e7eb; font-size: 14px;">{damage_count}</td>
-                                            </tr>'''}
-                                        </table>
-                                        
-                                        <!-- Fuel Level -->
-                                        <div style="margin-top: 25px;">
-                                            <h3 style="color: #009cb6; margin-bottom: 12px; font-size: 18px; text-align: center;">{t['fuel_level']}</h3>
-                                            {fuel_gauge_svg}
-                                        </div>
-                                        
-                                        {f'<div style="margin-top: 25px;"><h3 style="color: #009cb6; font-size: 18px;">{t["observations"]}</h3><p style="background: #f9fafb; padding: 12px; border-radius: 6px; color: #1f2937; font-size: 14px; line-height: 1.5;">{observations}</p></div>' if observations else ''}
-                                        
-                                        <!-- Success message for check-in without new damages -->
-                                        {f'''<div style="margin-top: 25px; background: linear-gradient(135deg, #10b981, #059669); padding: 20px; border-radius: 8px; text-align: center;">
-                                            <h3 style="color: #ffffff; margin: 0 0 8px 0; font-size: 20px;">{t['success_title']}</h3>
-                                            <p style="color: #d1fae5; margin: 0; font-size: 15px;">{t['success_msg']}</p>
-                                        </div>''' if inspection_type == 'checkin' and new_damage_photos_count == 0 else ''}
-                                        
-                                        <!-- Damage Croqui (BEFORE photos) -->
-                                        {damages_html}
-                                        
-                                        <!-- Photos -->
-                                        <div style="margin-top: 25px;">
-                                            <h3 style="color: #009cb6; margin-bottom: 15px; font-size: 18px;">{t['damage_photos'] if inspection_type == 'checkin' and new_damage_photos_count > 0 else t['vehicle_photos']}</h3>
-                                            {photos_html if photos_html else f'<p style="color: #64748b; font-style: italic;">{t["no_photos"]}</p>'}
-                                        </div>
-                                    </td></tr>
-                                    
-                                    <!-- Footer -->
-                                    <tr><td style="background: #f8fafc; padding: 20px; text-align: center; border-top: 1px solid #e2e8f0;">
-                                        <p style="margin: 0; font-size: 11px; color: #94a3b8;">
-                                            {t['footer'].format(year=current_datetime.year)}
-                                        </p>
-                                        <p style="margin: 6px 0 0 0; font-size: 10px; color: #cbd5e1;">
-                                            {t['auto_generated'].format(number=inspection_number)}
-                                        </p>
-                                    </td></tr>
-                                </table>
-                            </td></tr>
-                        </table>
-                </body>
-                </html>
-                    """
-                    
-                    # Load Terms & Conditions PDF based on detected language
-                    # PT -> T&C-PT.pdf, FR -> T&C-FR.pdf, others -> T&C-EN.pdf
-                    attachments = []
-                    try:
-                        import os
-                        project_root = os.path.dirname(os.path.abspath(__file__))
+                    logging.info(f"📧 Calling email endpoint for inspection {inspection_number}")
+                    # Call the proper email endpoint using internal HTTP client
+                    import httpx
+                    async with httpx.AsyncClient() as client:
+                        # Get auth token from request if available
+                        auth_header = request.headers.get('authorization', '')
                         
-                        # Select PDF based on language
-                        if detected_lang == 'pt':
-                            pdf_filename = 'T&C-PT.pdf'
-                        elif detected_lang == 'fr':
-                            pdf_filename = 'T&C-FR.pdf'
+                        response = await client.post(
+                            f"http://localhost:8000/api/inspections/{inspection_number}/email",
+                            json={'email': email},
+                            headers={'Authorization': auth_header} if auth_header else {},
+                            timeout=30.0
+                        )
+                        
+                        if response.status_code == 200:
+                            logging.info(f"✅ Email sent successfully via endpoint")
                         else:
-                            # Default to English for all other languages
-                            pdf_filename = 'T&C-EN.pdf'
-                        
-                        pdf_path = os.path.join(project_root, pdf_filename)
-                        
-                        if os.path.exists(pdf_path):
-                            with open(pdf_path, 'rb') as pdf_file:
-                                pdf_content = pdf_file.read()
-                                attachments.append({
-                                    'filename': pdf_filename,
-                                    'content': pdf_content,
-                                    'mimetype': 'application/pdf'
-                                })
-                                logging.info(f"✅ Loaded T&C PDF: {pdf_filename} for language '{detected_lang}' ({len(pdf_content)} bytes)")
-                        else:
-                            logging.warning(f"⚠️ T&C PDF not found: {pdf_path} for language '{detected_lang}'")
-                    except Exception as pdf_error:
-                        logging.error(f"❌ Failed to load T&C PDF: {pdf_error}")
-                    
-                    # Use existing Gmail OAuth function
-                    logging.info("📤 Calling _send_notification_email function...")
-                    email_subject = f"{email_title} - RA {ra}"
-                    logging.info(f"📧 Email subject: {email_subject}")
-                    logging.info(f"📎 Attachments: {len(attachments)} file(s)")
-                    _send_notification_email(
-                        to_email=email,
-                        subject=email_subject,
-                        message=html_message,
-                        attachments=attachments if attachments else None
-                    )
-                    
-                    logging.info(f"✅ Email sent successfully to {email}")
+                            logging.error(f"❌ Email endpoint returned status {response.status_code}: {response.text}")
                     
                 except Exception as email_error:
-                    logging.error(f"❌ Failed to send email: {email_error}")
+                    logging.error(f"❌ Failed to send email via endpoint: {email_error}")
                     logging.error(f"❌ Email error traceback: {traceback.format_exc()}")
                     # Don't fail the inspection save if email fails
-            elif email and not send_email:
-                logging.info(f"ℹ️ Email NOT sent - send_email flag is FALSE (email={email}, send_email={send_email})")
-            elif not email:
-                logging.info(f"ℹ️ Email NOT sent - no email address provided")
             
-            logging.info(f"✅ Vehicle inspection saved: {inspection_number} ({inspection_type})")
-            logging.info(f"🎯 Returning success response to frontend...")
-            
+            # Return success response
             return JSONResponse({
-                "success": True,
-                "inspection_number": inspection_number,
-                "inspection_id": inspection_id,
-                "message": "Inspection saved successfully"
+                'success': True,
+                'inspection_number': inspection_number,
+                'message': 'Inspection saved successfully' + (' and email sent' if (email and send_email) else '')
             })
             
+        except Exception as e:
+            logging.error(f"❌ Error saving inspection: {str(e)}")
+            logging.error(f"❌ Traceback: {traceback.format_exc()}")
+            if conn:
+                conn.rollback()
+            return JSONResponse({
+                'success': False,
+                'error': str(e)
+            }, status_code=500)
         finally:
-            conn.close()
-    
-    except Exception as e:
-        logging.error(f"Error saving inspection: {e}")
-        import traceback
-        traceback.print_exc()
-        return JSONResponse({
-            "success": False,
-            "error": str(e)
-        }, status_code=500)
+            if conn:
+                conn.close()
+
+# Email endpoint is defined later in the file (line ~30709)
 
 @app.get("/inspection-history", response_class=HTMLResponse)
 async def inspection_history_page(request: Request):
