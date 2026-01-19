@@ -28400,6 +28400,7 @@ async def save_inspection(request: Request):
         import os
         import base64
         import json
+        import traceback
         logging.info("=" * 80)
         logging.info("🔍 SAVE INSPECTION - START [VERSION 2.0 - EMAIL DEBUG]")
         logging.info("=" * 80)
@@ -29108,7 +29109,7 @@ async def save_inspection(request: Request):
                 try:
                     logging.info(f"📧 Sending email for inspection {inspection_number} to {email}")
                     
-                    # Get RA data for language detection
+                    # Get RA data for language detection and client info
                     ra_base = ra.split('-')[0] if '-' in ra else ra
                     
                     if is_postgres:
@@ -29130,6 +29131,9 @@ async def save_inspection(request: Request):
                     detected_lang = 'en'
                     client_name = 'Customer'
                     first_name = 'Customer'
+                    delivery_location = ra_pickup_location or 'N/A'
+                    vehicle_brand = 'N/A'
+                    vehicle_model = 'N/A'
                     
                     if ra_row and ra_row[0]:
                         import json
@@ -29143,15 +29147,37 @@ async def save_inspection(request: Request):
                                 name_parts = client_name.strip().split()
                                 first_name = name_parts[0].title() if name_parts else 'Customer'
                             
+                            # Get location from RA if not in inspection
+                            if delivery_location == 'N/A' or not delivery_location:
+                                delivery_location = extracted_data.get('pickupLocation', 'N/A')
+                            
                             # Detect language
                             if country in ('PORTUGAL', 'PT'):
                                 detected_lang = 'pt'
                             elif country in ('FRANCE', 'FR', 'FRANÇA'):
                                 detected_lang = 'fr'
                             
-                            logging.info(f"🌍 Language: {detected_lang}, Client: {client_name}, First: {first_name}")
+                            logging.info(f"🌍 Language: {detected_lang}, Client: {client_name}, First: {first_name}, Location: {delivery_location}")
                         except Exception as e:
                             logging.error(f"❌ Error parsing RA data: {e}")
+                    
+                    # Get vehicle data from fleet
+                    if is_postgres:
+                        cursor.execute("""
+                            SELECT marca, modelo FROM vehicles 
+                            WHERE matricula = %s
+                        """, (plate,))
+                    else:
+                        cursor.execute("""
+                            SELECT marca, modelo FROM vehicles 
+                            WHERE matricula = ?
+                        """, (plate,))
+                    
+                    vehicle_row = cursor.fetchone()
+                    if vehicle_row:
+                        vehicle_brand = vehicle_row[0] or 'N/A'
+                        vehicle_model = vehicle_row[1] or 'N/A'
+                        logging.info(f"🚗 Vehicle: {vehicle_brand} {vehicle_model}")
                     
                     # Get croqui
                     if is_postgres:
@@ -29184,11 +29210,13 @@ async def save_inspection(request: Request):
                         CUSTOMER_NAME=first_name,
                         FULL_CUSTOMER_NAME=client_name,
                         VEHICLE_PLATE=plate,
+                        VEHICLE_BRAND=vehicle_brand,
+                        VEHICLE_MODEL=vehicle_model,
                         INSPECTION_TYPE=inspection_type,
-                        DELIVERY_LOCATION=ra_pickup_location or 'N/A',
+                        DELIVERY_LOCATION=delivery_location,
                         FUEL_LEVEL=fuel_level,
                         ODOMETER=odometer_reading,
-                        INSPECTOR=user_full_name,
+                        INSPECTOR=receptionist,
                         OBSERVATIONS=observations,
                         CROQUI_IMAGE=croqui_url,
                         base_url="https://carscraping.up.railway.app"
