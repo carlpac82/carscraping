@@ -42230,8 +42230,9 @@ async def download_inspection_pdf(inspection_number: str, request: Request):
 async def download_terms_pt():
     """Download Terms & Conditions in Portuguese"""
     try:
-        tc_path = Path("/Users/filipepacheco/CascadeProjects/carscraping/static/T&C-PT.pdf")
+        tc_path = Path(__file__).parent / "static" / "T&C-PT.pdf"
         if not tc_path.exists():
+            logging.error(f"T&C PT PDF not found at: {tc_path}")
             raise HTTPException(status_code=404, detail="T&C PDF not found")
         
         return FileResponse(
@@ -42247,8 +42248,9 @@ async def download_terms_pt():
 async def download_terms_en():
     """Download Terms & Conditions in English"""
     try:
-        tc_path = Path("/Users/filipepacheco/CascadeProjects/carscraping/static/T&C-EN.pdf")
+        tc_path = Path(__file__).parent / "static" / "T&C-EN.pdf"
         if not tc_path.exists():
+            logging.error(f"T&C EN PDF not found at: {tc_path}")
             raise HTTPException(status_code=404, detail="T&C PDF not found")
         
         return FileResponse(
