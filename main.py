@@ -41786,12 +41786,30 @@ async def get_inspection_details(inspection_number: str, request: Request):
                 photo_type = photo_row[0]
                 image_data = photo_row[1]
                 if image_data:
-                    # Convert bytes to base64 string
-                    photo_base64 = base64.b64encode(image_data).decode('utf-8')
+                    # Check if data is already base64 string or binary
+                    if isinstance(image_data, (bytes, memoryview)):
+                        # Convert memoryview to bytes if needed
+                        if isinstance(image_data, memoryview):
+                            image_data = image_data.tobytes()
+                        
+                        # Check if it's binary PNG/JPEG data or base64 string in bytes
+                        if image_data.startswith(b'\x89PNG') or image_data.startswith(b'\xff\xd8\xff'):
+                            # It's binary image data, encode to base64
+                            photo_base64 = base64.b64encode(image_data).decode('utf-8')
+                        else:
+                            # It's base64 string in bytes, just decode to string
+                            photo_base64 = image_data.decode('utf-8')
+                    else:
+                        # Already a string (base64)
+                        photo_base64 = image_data
                     
                     # Separate damage croqui and damage photos from regular photos
                     if photo_type == 'damage_croqui':
-                        damage_croqui = f"data:image/png;base64,{photo_base64}"
+                        # Ensure it has the data URI prefix
+                        if not photo_base64.startswith('data:'):
+                            damage_croqui = f"data:image/png;base64,{photo_base64}"
+                        else:
+                            damage_croqui = photo_base64
                     elif photo_type.startswith('damage_photo_') or photo_type.startswith('damage_'):
                         # Handle both old format (damage_photo_1) and new format (damage_front, damage_back, etc.)
                         # But exclude damage_croqui which is already handled above
