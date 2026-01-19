@@ -30694,19 +30694,22 @@ async def send_inspection_email(request: Request, inspection_number: str):
         logging.info(f"📍 Location for {inspection_type}: {location} (pickup={pickup_location}, return={return_location})")
         
         # Get RA data to detect language
-        # Use LIKE to match RAs with or without suffix (e.g., 06716 matches 06716-09)
+        # Remove suffix like -09 from RA number (e.g., 06716-09 -> 06716)
+        ra_base = ra.split('-')[0] if '-' in ra else ra
+        logging.info(f"🔍 Searching for RA: {ra} (base: {ra_base})")
+        
         if _USE_NEW_DB:
             cursor.execute("""
                 SELECT extracted_data FROM rental_agreements 
                 WHERE rental_agreement_number LIKE %s
                 LIMIT 1
-            """, (f"{ra}%",))
+            """, (f"{ra_base}%",))
         else:
             cursor.execute("""
                 SELECT extracted_data FROM rental_agreements 
                 WHERE rental_agreement_number LIKE ?
                 LIMIT 1
-            """, (f"{ra}%",))
+            """, (f"{ra_base}%",))
         
         ra_row = cursor.fetchone()
         
