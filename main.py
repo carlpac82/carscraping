@@ -43090,6 +43090,7 @@ async def get_latest_ra_by_plate(request: Request, plate: str):
         
         # Override inspection_completed based on actual inspection existence
         ra_data["inspection_completed"] = has_checkout_inspection
+        logging.info(f"🔍 Checkout inspection check: has_checkout={has_checkout_inspection}, inspection_completed={ra_data['inspection_completed']}")
         
         # Get inspection info if inspection exists
         inspection_info = None
