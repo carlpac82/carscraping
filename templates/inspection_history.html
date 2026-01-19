@@ -339,6 +339,7 @@
 
         // Show email modal with editable email field
         async function showEmailModal(checkoutNumber, checkinNumber, plate, ra) {
+            console.log('📧 showEmailModal called with:', { checkoutNumber, checkinNumber, plate, ra });
             const inspectionNumber = checkoutNumber || checkinNumber;
             if (!inspectionNumber) return;
             

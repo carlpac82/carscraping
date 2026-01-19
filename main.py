@@ -30327,11 +30327,14 @@ async def email_preview_fr(request: Request, ra: str = "06716-09"):
 @app.get("/api/get_inspection")
 async def get_inspection(request: Request, plate: str, ra: str, type: str = 'checkout'):
     """Get inspection data (photos and damages) for pickup process"""
+    print(f"🔍 GET /api/get_inspection called with plate={plate}, ra={ra}, type={type}", flush=True)
     logging.info(f"🔍 GET /api/get_inspection called with plate={plate}, ra={ra}, type={type}")
     
     try:
         require_auth(request)
-    except HTTPException:
+        print(f"✅ Auth passed", flush=True)
+    except HTTPException as e:
+        print(f"❌ Unauthorized access to get_inspection: {e}", flush=True)
         logging.warning("❌ Unauthorized access to get_inspection")
         return JSONResponse({"success": False, "error": "Unauthorized"}, status_code=403)
     
@@ -30389,18 +30392,45 @@ async def get_inspection(request: Request, plate: str, ra: str, type: str = 'che
             
             # Get client email from Rental Agreement extracted_data
             try:
-                print(f"🔍 Looking for RA: {ra}", flush=True)
-                logging.info(f"🔍 Looking for RA: {ra}")
+                # Remove suffix -XX from RA (e.g., 06716-09 -> 06716)
+                ra_base = ra.split('-')[0] if '-' in ra else ra
+                print(f"🔍 Looking for RA: {ra} (base: {ra_base})", flush=True)
+                logging.info(f"🔍 Looking for RA: {ra} (base: {ra_base})")
+                
+                # Try exact match with full RA first
                 cursor.execute("""
-                    SELECT extracted_data FROM rental_agreements 
-                    WHERE rental_agreement_number LIKE %s
-                """, (f"%{ra}%",))
+                    SELECT rental_agreement_number, extracted_data FROM rental_agreements 
+                    WHERE rental_agreement_number = %s
+                """, (ra,))
                 ra_row = cursor.fetchone()
+                
+                # If not found, try with base RA (without suffix)
+                if not ra_row:
+                    print(f"🔍 Full RA not found, trying base RA: {ra_base}", flush=True)
+                    cursor.execute("""
+                        SELECT rental_agreement_number, extracted_data FROM rental_agreements 
+                        WHERE rental_agreement_number = %s
+                    """, (ra_base,))
+                    ra_row = cursor.fetchone()
+                
+                # If still not found, try LIKE
+                if not ra_row:
+                    print(f"🔍 Base RA not found, trying LIKE pattern", flush=True)
+                    cursor.execute("""
+                        SELECT rental_agreement_number, extracted_data FROM rental_agreements 
+                        WHERE rental_agreement_number LIKE %s
+                        LIMIT 1
+                    """, (f"%{ra_base}%",))
+                    ra_row = cursor.fetchone()
+                
                 print(f"🔍 RA row found: {ra_row is not None}", flush=True)
+                if ra_row:
+                    print(f"🔍 RA number in DB: {ra_row[0]}", flush=True)
                 logging.info(f"🔍 RA row found: {ra_row is not None}")
-                if ra_row and ra_row[0]:
+                
+                if ra_row and ra_row[1]:
                     import json
-                    extracted_data = json.loads(ra_row[0])
+                    extracted_data = json.loads(ra_row[1])
                     print(f"🔍 Extracted data keys: {list(extracted_data.keys())}", flush=True)
                     logging.info(f"🔍 Extracted data keys: {list(extracted_data.keys())}")
                     inspection["client_email"] = extracted_data.get('clientEmail', '')
@@ -30409,6 +30439,10 @@ async def get_inspection(request: Request, plate: str, ra: str, type: str = 'che
                 else:
                     print(f"⚠️ No RA found or empty extracted_data for RA: {ra}", flush=True)
                     logging.warning(f"⚠️ No RA found or empty extracted_data for RA: {ra}")
+                    # Try to list all RAs to debug
+                    cursor.execute("SELECT rental_agreement_number FROM rental_agreements LIMIT 10")
+                    all_ras = cursor.fetchall()
+                    print(f"🔍 Sample RAs in DB: {[r[0] for r in all_ras]}", flush=True)
             except Exception as e:
                 print(f"⚠️ Could not fetch client email from RA: {e}", flush=True)
                 logging.warning(f"⚠️ Could not fetch client email from RA: {e}")
@@ -30621,7 +30655,7 @@ async def send_inspection_email(request: Request, inspection_number: str):
         if _USE_NEW_DB:
             cursor.execute("""
                 SELECT id, contract_number, vehicle_plate, inspection_type, 
-                       fuel_level, odometer_reading, pickup_location, 
+                       fuel_level, odometer_reading, pickup_location, return_location,
                        inspector_name, created_at, observations
                 FROM vehicle_inspections 
                 WHERE inspection_number = %s
@@ -30629,7 +30663,7 @@ async def send_inspection_email(request: Request, inspection_number: str):
         else:
             cursor.execute("""
                 SELECT id, contract_number, vehicle_plate, inspection_type, 
-                       fuel_level, odometer_reading, pickup_location, 
+                       fuel_level, odometer_reading, pickup_location, return_location,
                        inspector_name, created_at, observations
                 FROM vehicle_inspections 
                 WHERE inspection_number = ?
@@ -30647,10 +30681,17 @@ async def send_inspection_email(request: Request, inspection_number: str):
         inspection_type = inspection[3]
         fuel_level = inspection[4] or 100
         odometer = inspection[5] or 0
-        location = inspection[6] or 'N/A'
-        inspector = inspection[7] or 'N/A'
-        created_at = inspection[8]
-        observations = inspection[9] or ''
+        pickup_location = inspection[6] or 'N/A'
+        return_location = inspection[7] or 'N/A'
+        inspector = inspection[8] or 'N/A'
+        created_at = inspection[9]
+        observations = inspection[10] or ''
+        
+        # Use correct location based on inspection type
+        # Checkout (delivery) = pickup location (where customer picks up car)
+        # Checkin (return) = return location (where customer returns car)
+        location = pickup_location if inspection_type == 'checkout' else return_location
+        logging.info(f"📍 Location for {inspection_type}: {location} (pickup={pickup_location}, return={return_location})")
         
         # Get RA data to detect language
         if _USE_NEW_DB:
@@ -30673,12 +30714,24 @@ async def send_inspection_email(request: Request, inspection_number: str):
         vehicle_model = 'N/A'
         vehicle_type = 'N/A'
         
+        logging.info(f"🔍 DEBUG RA DATA:")
+        logging.info(f"   RA number: {ra}")
+        logging.info(f"   RA row found: {ra_row is not None}")
+        
         if ra_row and ra_row[0]:
             import json
             try:
                 extracted_data = json.loads(ra_row[0])
+                logging.info(f"   ✅ Extracted data parsed successfully")
+                logging.info(f"   📋 Available fields: {list(extracted_data.keys())}")
+                
                 country = extracted_data.get('country', '').upper()
                 client_name = extracted_data.get('clientName', 'Customer')
+                
+                logging.info(f"   🌍 Country: '{country}'")
+                logging.info(f"   👤 Client name: '{client_name}'")
+                logging.info(f"   📍 Pickup location from RA: '{extracted_data.get('pickupLocation', 'N/A')}'")
+                logging.info(f"   📍 Return location from RA: '{extracted_data.get('returnLocation', 'N/A')}'")
                 
                 # Detect language based on country
                 if country == 'PORTUGAL' or country == 'PT':
@@ -30688,9 +30741,13 @@ async def send_inspection_email(request: Request, inspection_number: str):
                 else:
                     detected_lang = 'en'
                 
-                logging.info(f"🌍 Detected country: {country} → Language: {detected_lang}")
-            except:
-                pass
+                logging.info(f"   🌍 Detected language: {detected_lang}")
+            except Exception as e:
+                logging.error(f"❌ Error parsing RA data: {e}")
+                import traceback
+                logging.error(traceback.format_exc())
+        else:
+            logging.warning(f"⚠️ No RA data found for RA: {ra}")
         
         # Get vehicle data from fleet manager by plate
         if _USE_NEW_DB:
@@ -30734,6 +30791,7 @@ async def send_inspection_email(request: Request, inspection_number: str):
         
         # Get croqui image
         croqui_image = ""
+        print(f"🖼️ Looking for croqui for inspection_id: {inspection_id}", flush=True)
         if _USE_NEW_DB:
             cursor.execute("""
                 SELECT image_data FROM inspection_photos 
@@ -30748,19 +30806,26 @@ async def send_inspection_email(request: Request, inspection_number: str):
             """, (inspection_id,))
         
         croqui_row = cursor.fetchone()
+        print(f"🖼️ Croqui row found: {croqui_row is not None}", flush=True)
         if croqui_row and croqui_row[0]:
             import base64
             # Check if image_data is already base64 string or bytes
             image_data = croqui_row[0]
+            print(f"🖼️ Croqui data type: {type(image_data).__name__}, length: {len(image_data) if image_data else 0}", flush=True)
             if isinstance(image_data, str):
                 # Already base64 string, just add data URL prefix if missing
                 if image_data.startswith('data:image'):
                     croqui_image = image_data
+                    print(f"🖼️ Croqui already has data URL prefix", flush=True)
                 else:
                     croqui_image = f"data:image/png;base64,{image_data}"
+                    print(f"🖼️ Added data URL prefix to croqui", flush=True)
             else:
                 # Bytes, need to encode
                 croqui_image = f"data:image/png;base64,{base64.b64encode(image_data).decode('utf-8')}"
+                print(f"🖼️ Encoded bytes to base64", flush=True)
+        else:
+            print(f"⚠️ No croqui found for inspection_id: {inspection_id}", flush=True)
         
         # Get photos
         if _USE_NEW_DB:
@@ -30918,9 +30983,17 @@ async def send_inspection_email(request: Request, inspection_number: str):
         tc_download_url = tc_url_map.get(detected_lang, tc_url_map['en'])
         print(f"📧 T&C Download URL for {detected_lang}: {tc_download_url}")
         
-        # Debug croqui image usage
-        final_croqui = croqui_image if croqui_image else (EMPTY_CROQUI_CACHE or "")
-        logging.info(f"🔍 Croqui image status: has_custom={bool(croqui_image)}, has_empty_cache={bool(EMPTY_CROQUI_CACHE)}, final_length={len(final_croqui)}")
+        # Use HTTP URL for croqui instead of base64 for Outlook Mac compatibility
+        if croqui_row and croqui_row[0]:
+            # Use HTTP URL instead of base64 for better email client compatibility
+            final_croqui = f"{base_url}/email-photo/{inspection_id}/damage_croqui"
+            print(f"🔍 Using HTTP URL for croqui: {final_croqui}", flush=True)
+        else:
+            # Fallback to empty croqui cache if no custom croqui
+            final_croqui = EMPTY_CROQUI_CACHE or ""
+            print(f"⚠️ No custom croqui, using empty cache (length: {len(final_croqui)})", flush=True)
+        
+        logging.info(f"🔍 Croqui URL: {final_croqui if croqui_row else 'empty cache'}")
         
         html_content = templates.get_template(template_name).render(
             LOGO_URL=logo_base64,
