@@ -30550,18 +30550,49 @@ async def get_inspection(request: Request, plate: str, ra: str, type: str = 'che
                         image_base64 = base64.b64encode(image_data).decode('utf-8')
                         image_data_url = f"data:image/jpeg;base64,{image_base64}"
                     else:
-                        image_data_url = image_data
+                        # String: validate and clean base64
+                        if isinstance(image_data, str):
+                            # If already has data URL prefix, extract and validate base64 part
+                            if image_data.startswith('data:image'):
+                                # Extract base64 part after comma
+                                parts = image_data.split(',', 1)
+                                if len(parts) == 2:
+                                    base64_part = parts[1]
+                                    # Validate base64 by trying to decode/encode it
+                                    try:
+                                        # Test decode to validate
+                                        decoded = base64.b64decode(base64_part)
+                                        # Re-encode to ensure it's clean
+                                        clean_base64 = base64.b64encode(decoded).decode('utf-8')
+                                        image_data_url = f"data:image/jpeg;base64,{clean_base64}"
+                                    except Exception as e:
+                                        logging.warning(f"⚠️ Invalid base64 in photo {photo_row[1]}, skipping: {e}")
+                                        image_data_url = None
+                                else:
+                                    image_data_url = image_data
+                            else:
+                                # No prefix, assume it's raw base64
+                                try:
+                                    decoded = base64.b64decode(image_data)
+                                    clean_base64 = base64.b64encode(decoded).decode('utf-8')
+                                    image_data_url = f"data:image/jpeg;base64,{clean_base64}"
+                                except Exception as e:
+                                    logging.warning(f"⚠️ Invalid base64 in photo {photo_row[1]}, skipping: {e}")
+                                    image_data_url = None
+                        else:
+                            image_data_url = image_data
                     
-                    photos.append({
-                        "id": photo_row[0],
-                        "photo_type": photo_row[1],
-                        "photo_order": photo_row[2],
-                        "image_data": image_data_url,
-                        "image_filename": photo_row[4],
-                        "ai_analyzed": photo_row[5],
-                        "ai_has_damage": photo_row[6],
-                        "created_at": str(photo_row[7])
-                    })
+                    if image_data_url:
+                        photos.append({
+                            "id": photo_row[0],
+                            "photo_type": photo_row[1],
+                            "photo_order": photo_row[2],
+                            "image_data": image_data_url,
+                            "image_filename": photo_row[4],
+                            "ai_analyzed": photo_row[5],
+                            "ai_has_damage": photo_row[6],
+                            "created_at": str(photo_row[7])
+                        })
             
             # Get damages (from damage croqui if exists)
             damages = []
