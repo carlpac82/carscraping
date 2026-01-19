@@ -986,25 +986,26 @@
                             <div class="bg-gray-50 rounded-lg p-4 border-2 border-gray-300">
                                 <!-- Fuel Level Selector -->
                                 <div class="fuel-selector">
-                                    <div class="flex items-center justify-between mb-2">
-                                        <span class="text-sm font-semibold text-[#009cb6]">OUT</span>
-                                        <span class="text-sm font-semibold text-[#009cb6]">R</span>
-                                        <span class="text-sm font-semibold text-[#009cb6]">1/4</span>
-                                        <span class="text-sm font-semibold text-[#009cb6]">1/2</span>
-                                        <span class="text-sm font-semibold text-[#009cb6]">3/4</span>
-                                        <span class="text-sm font-semibold text-[#009cb6]">F</span>
+                                    <!-- Labels alinhados com as linhas (acima da barra) -->
+                                    <div class="relative max-w-xs mx-auto mb-1" style="height: 20px;">
+                                        <div class="relative">
+                                            <span class="text-xs font-semibold text-[#009cb6] absolute" style="left: 0%; transform: translateX(-50%);">R</span>
+                                            <span class="text-xs font-semibold text-[#009cb6] absolute" style="left: 25%; transform: translateX(-50%);">1/4</span>
+                                            <span class="text-xs font-semibold text-[#009cb6] absolute" style="left: 50%; transform: translateX(-50%);">1/2</span>
+                                            <span class="text-xs font-semibold text-[#009cb6] absolute" style="left: 75%; transform: translateX(-50%);">3/4</span>
+                                            <span class="text-xs font-semibold text-[#009cb6] absolute" style="right: 0%; transform: translateX(50%);">F</span>
+                                        </div>
                                     </div>
                                     
-                                    <!-- Fuel Level Bar - Made narrower -->
+                                    <!-- Fuel Level Bar -->
                                     <div class="relative bg-white border-2 border-[#009cb6] rounded-lg h-8 mb-2 max-w-xs mx-auto">
-                                        <!-- Fuel level indicators -->
-                                        <div class="absolute inset-0 flex items-center justify-between px-1">
-                                            <div class="fuel-tick" data-level="0"></div>
-                                            <div class="fuel-tick" data-level="1"></div>
-                                            <div class="fuel-tick" data-level="25"></div>
-                                            <div class="fuel-tick" data-level="50"></div>
-                                            <div class="fuel-tick" data-level="75"></div>
-                                            <div class="fuel-tick" data-level="100"></div>
+                                        <!-- Fuel level indicators at 0%, 25%, 50%, 75%, 100% -->
+                                        <div class="absolute inset-0 flex items-center">
+                                            <div class="w-0.5 h-4 bg-[#009cb6]" style="position: absolute; left: 0%;"></div>
+                                            <div class="w-0.5 h-4 bg-[#009cb6]" style="position: absolute; left: 25%;"></div>
+                                            <div class="w-0.5 h-4 bg-[#009cb6]" style="position: absolute; left: 50%;"></div>
+                                            <div class="w-0.5 h-4 bg-[#009cb6]" style="position: absolute; left: 75%;"></div>
+                                            <div class="w-0.5 h-4 bg-[#009cb6]" style="position: absolute; right: 0%;"></div>
                                         </div>
                                         
                                         <!-- Fuel level fill -->
