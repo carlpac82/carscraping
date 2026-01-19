@@ -844,6 +844,8 @@
                 }
                 
                 const inspection = data.inspection;
+                console.log('📋 Inspection data:', inspection);
+                console.log('🖼️ Damage croqui:', inspection.damage_croqui ? `${inspection.damage_croqui.substring(0, 100)}... (${inspection.damage_croqui.length} chars)` : 'EMPTY');
                 
                 // Create edit modal
                 const modal = document.createElement('div');
