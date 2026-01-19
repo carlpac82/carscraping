@@ -3162,6 +3162,7 @@
                             
                             // Store inspection status for later check when clicking "Iniciar Entrega"
                             window.inspectionCompleted = ra.inspection_completed;
+                            console.log('🔍 inspection_completed from backend:', ra.inspection_completed, 'type:', typeof ra.inspection_completed);
                             
                             // Update pickup button state after setting inspection status
                             if (typeof updatePickupButtonState === 'function') {
