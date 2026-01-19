@@ -28660,9 +28660,11 @@ async def save_inspection(request: Request):
                 
                 if ra:
                     try:
+                        # Remove suffix like -09 from RA number (e.g., 06716-09 -> 06716)
+                        ra_base = ra.split('-')[0] if '-' in ra else ra
                         cursor.execute("""
-                            SELECT extracted_data FROM rental_agreements WHERE rental_agreement_number = %s
-                        """, (ra,))
+                            SELECT extracted_data FROM rental_agreements WHERE rental_agreement_number LIKE %s LIMIT 1
+                        """, (f"{ra_base}%",))
                         ra_row = cursor.fetchone()
                         if ra_row and ra_row[0]:
                             import json
@@ -28673,7 +28675,9 @@ async def save_inspection(request: Request):
                             ra_return_date = ra_data.get('returnDate', '')
                             ra_return_location = ra_data.get('returnLocation', '')
                             ra_country = ra_data.get('country', '')
-                            logging.info(f"📋 RA Data: client={ra_client_name}, pickup={ra_pickup_date}/{ra_pickup_location}, return={ra_return_date}/{ra_return_location}, country={ra_country}")
+                            logging.info(f"📋 RA Data found for {ra} (base: {ra_base}): client={ra_client_name}, pickup={ra_pickup_date}/{ra_pickup_location}, return={ra_return_date}/{ra_return_location}, country={ra_country}")
+                        else:
+                            logging.warning(f"⚠️ No RA data found for: {ra} (base: {ra_base})")
                     except Exception as e:
                         logging.warning(f"⚠️ Could not fetch RA data: {e}")
                 
@@ -28775,9 +28779,11 @@ async def save_inspection(request: Request):
                 
                 if ra:
                     try:
+                        # Remove suffix like -09 from RA number (e.g., 06716-09 -> 06716)
+                        ra_base = ra.split('-')[0] if '-' in ra else ra
                         cursor.execute("""
-                            SELECT extracted_data FROM rental_agreements WHERE rental_agreement_number = ?
-                        """, (ra,))
+                            SELECT extracted_data FROM rental_agreements WHERE rental_agreement_number LIKE ? LIMIT 1
+                        """, (f"{ra_base}%",))
                         ra_row = cursor.fetchone()
                         if ra_row and ra_row[0]:
                             import json
@@ -28788,7 +28794,9 @@ async def save_inspection(request: Request):
                             ra_return_date = ra_data.get('returnDate', '')
                             ra_return_location = ra_data.get('returnLocation', '')
                             ra_country = ra_data.get('country', '')
-                            logging.info(f"📋 RA Data: client={ra_client_name}, pickup={ra_pickup_date}/{ra_pickup_location}, return={ra_return_date}/{ra_return_location}, country={ra_country}")
+                            logging.info(f"📋 RA Data found for {ra} (base: {ra_base}): client={ra_client_name}, pickup={ra_pickup_date}/{ra_pickup_location}, return={ra_return_date}/{ra_return_location}, country={ra_country}")
+                        else:
+                            logging.warning(f"⚠️ No RA data found for: {ra} (base: {ra_base})")
                     except Exception as e:
                         logging.warning(f"⚠️ Could not fetch RA data: {e}")
                 
@@ -30716,6 +30724,7 @@ async def send_inspection_email(request: Request, inspection_number: str):
         # Detect language from RA country and extract vehicle data
         detected_lang = 'en'
         client_name = 'Customer'
+        first_name = 'Customer'
         vehicle_brand = 'N/A'
         vehicle_model = 'N/A'
         vehicle_type = 'N/A'
@@ -30734,10 +30743,35 @@ async def send_inspection_email(request: Request, inspection_number: str):
                 country = extracted_data.get('country', '').upper()
                 client_name = extracted_data.get('clientName', 'Customer')
                 
+                logging.info(f"   🔍 RAW client_name from RA: '{client_name}' (type: {type(client_name)})")
+                
+                # Extract first name from full name
+                if client_name and client_name != 'Customer' and isinstance(client_name, str):
+                    # Split by space and get first word, then title case it
+                    name_parts = client_name.strip().split()
+                    first_name = name_parts[0].title() if name_parts else 'Customer'
+                    logging.info(f"   ✂️ Split name into parts: {name_parts}")
+                    logging.info(f"   ✅ Extracted first_name: '{first_name}'")
+                else:
+                    first_name = 'Customer'
+                    logging.info(f"   ⚠️ Using default first_name: '{first_name}'")
+                
+                # Override location if inspection table has N/A but RA has data
+                ra_pickup = extracted_data.get('pickupLocation', '')
+                ra_return = extracted_data.get('returnLocation', '')
+                
+                if location == 'N/A' or not location:
+                    if inspection_type == 'checkout' and ra_pickup:
+                        location = ra_pickup
+                        logging.info(f"   📍 Using pickup location from RA: '{location}'")
+                    elif inspection_type == 'checkin' and ra_return:
+                        location = ra_return
+                        logging.info(f"   📍 Using return location from RA: '{location}'")
+                
                 logging.info(f"   🌍 Country: '{country}'")
                 logging.info(f"   👤 Client name: '{client_name}'")
-                logging.info(f"   📍 Pickup location from RA: '{extracted_data.get('pickupLocation', 'N/A')}'")
-                logging.info(f"   📍 Return location from RA: '{extracted_data.get('returnLocation', 'N/A')}'")
+                logging.info(f"   👤 First name: '{first_name}'")
+                logging.info(f"   📍 Final location: '{location}'")
                 
                 # Detect language based on country
                 if country == 'PORTUGAL' or country == 'PT':
@@ -30973,7 +31007,6 @@ async def send_inspection_email(request: Request, inspection_number: str):
         logging.info(f"✅ Using cached promotional images from startup")
         
         # Render email HTML
-        first_name = client_name.split()[0].title() if client_name else "Customer"
         inspection_date = created_at.strftime('%d/%m/%Y %H:%M') if created_at else 'N/A'
         
         # T&C download URL - ALWAYS use production domain
