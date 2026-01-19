@@ -30892,7 +30892,7 @@ async def send_inspection_email(request: Request, inspection_number: str):
             print(f"📧 Using Railway PUBLIC_DOMAIN for T&C links: {base_url}")
         elif os.environ.get('RAILWAY_ENVIRONMENT'):
             # If Railway env is detected but no URL, use known production domain
-            base_url = "https://carscraping-production.up.railway.app"
+            base_url = "https://carscraping.up.railway.app"
             print(f"📧 Using Railway production domain for T&C links: {base_url}")
         elif render_host:
             base_url = f"https://{render_host}"
