@@ -1048,16 +1048,8 @@
                 carDiagram.insertBefore(bgLayer, carDiagram.firstChild);
             }
             
-            // Contar danos existentes na imagem de fundo
-            // Assumir que o croqui existente tem pelo menos 1 dano
-            // (se tiver croqui guardado, significa que tinha danos)
-            const existingDamageCount = 1; // Placeholder - representa danos do checkout
-            
-            // Atualizar contador para mostrar danos existentes
-            const countEl = document.getElementById('damageCount');
-            if (countEl) {
-                countEl.innerHTML = `<span style="color: #666;">${existingDamageCount} existente(s)</span> + <span style="color: #009cb6;">0 novo(s)</span>`;
-            }
+            // Inicializar contador
+            updateDamageCount();
             
             console.log('✅ Existing croqui loaded as background');
         }
@@ -1233,15 +1225,7 @@
         function updateDamageCount() {
             const countEl = document.getElementById('damageCount');
             if (countEl) {
-                const bgLayer = document.getElementById('existingCroquiBackground');
-                const existingCount = bgLayer ? 1 : 0; // Se tem background, tem danos existentes
-                const newCount = damages.length;
-                
-                if (existingCount > 0) {
-                    countEl.innerHTML = `<span style="color: #666;">${existingCount} existente(s)</span> + <span style="color: #009cb6;">${newCount} novo(s)</span>`;
-                } else {
-                    countEl.textContent = newCount;
-                }
+                countEl.textContent = damages.length;
             }
         }
         
