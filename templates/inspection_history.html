@@ -1357,10 +1357,18 @@
                 
                 // Capture updated croqui (merge background + new damages)
                 let updatedCroqui = null;
+                console.log('🔍 Checking drawingCanvas:', {
+                    exists: !!drawingCanvas,
+                    width: drawingCanvas?.width,
+                    height: drawingCanvas?.height
+                });
+                
                 if (drawingCanvas) {
                     console.log('🖼️ Capturing final croqui...');
                     updatedCroqui = await captureFinalCroqui();
                     console.log('🖼️ Croqui captured:', updatedCroqui ? `${updatedCroqui.substring(0, 100)}... (${updatedCroqui.length} chars)` : 'NULL');
+                } else {
+                    console.error('❌ drawingCanvas not found - cannot capture croqui');
                 }
                 
                 const updateData = {
