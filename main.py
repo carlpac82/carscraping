@@ -28399,12 +28399,14 @@ async def save_inspection(request: Request):
     try:
         import os
         import base64
+        import json
         logging.info("=" * 80)
         logging.info("🔍 SAVE INSPECTION - START [VERSION 2.0 - EMAIL DEBUG]")
         logging.info("=" * 80)
         
         # Get JSON data from request
         data = await request.json()
+        logging.info(f"📦 RAW JSON: {json.dumps({k: v if k not in ['photos', 'damageCroqui', 'damage_croqui'] else f'<{len(str(v))} chars>' for k, v in data.items()}, indent=2)}")
         logging.info(f"📦 Received data keys: {list(data.keys())}")
         
         # Extract inspection data
