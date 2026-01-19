@@ -29386,6 +29386,9 @@ async def save_inspection(request: Request):
                     from datetime import datetime
                     inspection_date = datetime.now().strftime('%d/%m/%Y %H:%M')
                     
+                    # Base URL for links
+                    base_url = "https://carscraping.up.railway.app"
+                    
                     # T&C download URL
                     tc_url_map = {
                         'pt': f'{base_url}/download/tc-pt',
