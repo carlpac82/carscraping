@@ -331,7 +331,8 @@
             try {
                 
                 const modal = document.createElement('div');
-                modal.className = 'fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50';
+                modal.className = 'fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-[9999]';
+                modal.style.touchAction = 'none';
                 modal.innerHTML = `
                     <div class="bg-white rounded-lg p-6 max-w-md w-full mx-4">
                         <h3 class="text-xl font-bold text-[#009cb6] mb-4">Enviar Relatório por Email</h3>
@@ -364,11 +365,11 @@
                         ` : ''}
                         
                         <div class="flex gap-3">
-                            <button onclick="closeEmailModal()" 
+                            <button id="cancelEmailBtn" type="button"
                                     class="flex-1 px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors">
                                 Cancelar
                             </button>
-                            <button onclick="sendEmailFromModal('${checkoutNumber}', '${checkinNumber}')" 
+                            <button id="sendEmailBtn" type="button"
                                     class="flex-1 px-4 py-2 bg-[#009cb6] text-white rounded-lg hover:bg-[#007a8f] transition-colors font-semibold">
                                 Enviar
                             </button>
@@ -378,6 +379,30 @@
                 
                 document.body.appendChild(modal);
                 window.currentEmailModal = modal;
+                
+                // Add event listeners for mobile compatibility
+                const cancelBtn = modal.querySelector('#cancelEmailBtn');
+                const sendBtn = modal.querySelector('#sendEmailBtn');
+                
+                cancelBtn.addEventListener('click', (e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    closeEmailModal();
+                });
+                
+                sendBtn.addEventListener('click', (e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    sendEmailFromModal('${checkoutNumber}', '${checkinNumber}');
+                });
+                
+                // Focus email input for better UX
+                setTimeout(() => {
+                    const emailInput = document.getElementById('emailInput');
+                    if (emailInput && window.innerWidth > 768) {
+                        emailInput.focus();
+                    }
+                }, 100);
                 
             } catch (error) {
                 showNotification('Erro ao abrir modal de email: ' + error.message, 'error');
