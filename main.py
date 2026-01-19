@@ -28917,13 +28917,18 @@ async def save_inspection(request: Request):
             logging.info(f"✅ Total photos saved to database: {photos_saved}/{len(photo_types)}")
             
             # Save damage croqui if present
+            logging.info(f"🔍 DEBUG SAVE CROQUI - Received: {bool(damage_croqui)}, Length: {len(damage_croqui) if damage_croqui else 0}")
             if damage_croqui and len(damage_croqui) > 100:
                 try:
                     logging.info(f"💾 Saving damage croqui to database...")
                     
+                    # Log first 100 chars to verify format
+                    logging.info(f"🔍 DEBUG SAVE CROQUI - First 100 chars: {damage_croqui[:100]}")
+                    
                     # Ensure it has data:image prefix for TEXT storage
                     if not damage_croqui.startswith('data:image'):
                         damage_croqui = f"data:image/png;base64,{damage_croqui}"
+                        logging.info(f"🔍 DEBUG SAVE CROQUI - Added data URL prefix")
                     
                     logging.info(f"✅ Damage croqui prepared as data URL: {len(damage_croqui)} chars")
                     
@@ -29218,22 +29223,29 @@ async def save_inspection(request: Request):
                     # Convert croqui to base64 inline
                     final_croqui = ""
                     global EMPTY_CROQUI_CACHE
+                    logging.info(f"🔍 DEBUG CROQUI - Row found: {croqui_row is not None}")
                     if croqui_row and croqui_row[0]:
                         import base64
                         image_data = croqui_row[0]
+                        logging.info(f"🔍 DEBUG CROQUI - Data type: {type(image_data).__name__}, length: {len(image_data) if image_data else 0}")
                         if isinstance(image_data, str):
                             # Already TEXT, ensure it has data URL prefix
                             if image_data.startswith('data:image'):
                                 final_croqui = image_data
+                                logging.info(f"🖼️ Croqui already has data URL prefix")
                             else:
                                 final_croqui = f"data:image/png;base64,{image_data}"
+                                logging.info(f"🖼️ Added data URL prefix to croqui")
                         else:
                             # Bytes, encode to base64
                             final_croqui = f"data:image/png;base64,{base64.b64encode(image_data).decode('utf-8')}"
-                        logging.info(f"🖼️ Croqui converted to base64 inline")
+                            logging.info(f"🖼️ Encoded bytes to base64")
+                        logging.info(f"✅ Croqui converted to base64 inline, final length: {len(final_croqui)}")
                     else:
                         final_croqui = EMPTY_CROQUI_CACHE or ""
-                        logging.info(f"⚠️ No croqui, using empty cache")
+                        logging.info(f"⚠️ No croqui found in DB, using empty cache")
+                        if not final_croqui:
+                            logging.warning(f"❌ EMPTY_CROQUI_CACHE is also empty!")
                     
                     # Get photos
                     if is_postgres:
