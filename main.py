@@ -42489,9 +42489,16 @@ async def update_inspection(inspection_number: str, request: Request):
             
             # Keep the full data URL with base64 inline for email compatibility
             croqui_data = data['damage_croqui']
+            print(f"🖼️ Received croqui data (first 100 chars): {croqui_data[:100] if croqui_data else 'None'}", flush=True)
+            
             # Ensure it has the data:image prefix
             if not croqui_data.startswith('data:image'):
                 croqui_data = f"data:image/png;base64,{croqui_data}"
+                print(f"🖼️ Added data:image prefix to croqui", flush=True)
+            else:
+                print(f"🖼️ Croqui already has data:image prefix", flush=True)
+            
+            print(f"🖼️ Saving croqui with length: {len(croqui_data)}", flush=True)
             
             # Check if croqui already exists
             if _USE_NEW_DB:
