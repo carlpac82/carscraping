@@ -41432,16 +41432,15 @@ async def migrate_supplier_data_column():
 async def migrate_image_data_to_text():
     """Convert inspection_photos.image_data from BYTEA to TEXT for base64 inline support - NO AUTH REQUIRED"""
     try:
+        if not _USE_NEW_DB:
+            return JSONResponse({
+                "ok": True,
+                "message": "SQLite - no migration needed"
+            })
+        
         with _db_lock:
             conn = _db_connect()
             try:
-                is_postgres = conn.__class__.__module__ == 'psycopg2.extensions'
-                
-                if not is_postgres:
-                    return JSONResponse({
-                        "ok": True,
-                        "message": "SQLite - no migration needed"
-                    })
                 
                 with conn.cursor() as cur:
                     # Check current column type
