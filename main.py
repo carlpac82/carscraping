@@ -19954,6 +19954,17 @@ async def startup_automated_scheduler():
     print("="*80, flush=True)
     print("🤖 INITIALIZING AUTOMATED SCHEDULER", flush=True)
     print("="*80, flush=True)
+    
+    # Pre-load promotional images cache
+    try:
+        print(f"🖼️ Pre-loading promotional images cache...", flush=True)
+        _preload_promotional_images()
+        print(f"   ✅ Promotional images cached", flush=True)
+    except Exception as e:
+        print(f"⚠️  Promotional images cache error: {e}", flush=True)
+        import traceback
+        traceback.print_exc()
+    
     try:
         logging.info("🤖 Starting automated reports scheduler...")
         print("📦 Importing automated_scheduler module...", flush=True)
