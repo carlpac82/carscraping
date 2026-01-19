@@ -1229,9 +1229,16 @@
             let damageCroquiBase64 = '';
             try {
                 const canvas = document.getElementById('drawingCanvas');
-                const container = document.getElementById('carDiagram');
+                const croquiImg = document.getElementById('croquiImg');
                 
-                if (canvas && canvas.width > 0 && canvas.height > 0) {
+                console.log('🖼️ Checking croqui elements:', {
+                    canvas: !!canvas,
+                    croquiImg: !!croquiImg,
+                    canvasWidth: canvas?.width,
+                    canvasHeight: canvas?.height
+                });
+                
+                if (canvas && croquiImg) {
                     const tempCanvas = document.createElement('canvas');
                     const tempCtx = tempCanvas.getContext('2d');
                     const croquiImg = document.querySelector('#carDiagram img');
