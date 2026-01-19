@@ -1385,7 +1385,8 @@
                 receptionist: document.getElementById('inputReceptionist')?.value || '',
                 date: document.getElementById('inputDate')?.value || '',
                 time: document.getElementById('inputTime')?.value || '',
-                email: email,
+                client_email: email,
+                send_email: !!email,  // Send email only if email is provided
                 vehicle_id: window.currentVehicleId || null,
                 damageCroqui: damageCroquiBase64
             };
