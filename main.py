@@ -42046,55 +42046,7 @@ async def update_inspection(inspection_number: str, request: Request):
             "error": str(e)
         }, status_code=500)
 
-@app.post("/api/inspections/{inspection_number}/email")
-async def send_inspection_email(inspection_number: str, request: Request):
-    """
-    Send inspection via email
-    
-    IMPORTANTE:
-    - Para Check-out: Usa coordenadas mapeadas em /admin/contracts (checkout-mapper)
-    - Anexa PDF Check-out mapeado + PDF T&C (checkout_tc_filename)
-    - Para Check-in: Usa coordenadas próprias (quando implementado)
-    - Anexa PDF Check-in mapeado (sem T&C)
-    
-    NÃO usa coordenadas do Damage Report!
-    
-    PÁGINAS DO PDF:
-    - PDF tem 3 páginas total
-    - Check-out: Gerar PDF apenas com páginas 1 e 2 + anexar T&C
-    - Check-in: Gerar PDF apenas com página 3 (sem T&C)
-    """
-    try:
-        data = await request.json()
-        email = data.get("email", "")
-        
-        # TODO: Implementar geração de PDF Check-out com coordenadas corretas
-        # 1. Buscar inspeção da base de dados
-        # 2. Identificar tipo (checkout vs checkin)
-        # 3. Buscar coordenadas de Check-out (não Damage Report)
-        # 4. Gerar PDF com campos mapeados:
-        #    - Check-out: páginas 1 e 2
-        #    - Check-in: página 3 (futuro)
-        # 5. Se Check-out, buscar T&C: _get_setting('checkout_tc_path')
-        # 6. Anexar PDFs ao email:
-        #    - Check-out: PDF inspeção (pág 1-2) + T&C
-        #    - Check-in: PDF inspeção (pág 3) apenas
-        # 7. Enviar email
-        
-        logging.info(f"Sending inspection {inspection_number} to email: {email}")
-        logging.warning("⚠️  Email implementation needed: use checkout coordinates + attach T&C")
-        
-        return JSONResponse({
-            "ok": True,
-            "message": "Email sent successfully (implementation pending)"
-        })
-        
-    except Exception as e:
-        logging.error(f"Error sending email: {e}")
-        return JSONResponse({
-            "ok": False,
-            "error": str(e)
-        }, status_code=500)
+# Endpoint duplicado removido - usar o endpoint funcional na linha ~30556
 
 @app.get("/api/inspections/{inspection_number}/preview")
 async def preview_inspection_pdf(inspection_number: str, request: Request):
