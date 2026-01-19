@@ -30723,6 +30723,16 @@ async def send_inspection_email(request: Request, inspection_number: str):
         if not email:
             return JSONResponse({"ok": False, "error": "Email is required"}, status_code=400)
         
+        # Clean and validate email address
+        import re
+        # Remove any whitespace, convert to lowercase
+        email = email.lower().strip()
+        # Validate email format
+        email_pattern = r'^[a-z0-9._%+-]+@[a-z0-9.-]+\.[a-z]{2,}$'
+        if not re.match(email_pattern, email):
+            logging.error(f"❌ Invalid email format: '{email}'")
+            return JSONResponse({"ok": False, "error": f"Invalid email format: {email}"}, status_code=400)
+        
         logging.info(f"📧 Sending inspection {inspection_number} to {email}")
         
         # Get inspection data
@@ -42738,6 +42748,10 @@ async def serve_email_photo(inspection_id: int, photo_type: str):
         if isinstance(image_data, str):
             # TEXT: decode base64 string to bytes
             import base64
+            # Remove data URL prefix if present (e.g., "data:image/png;base64,")
+            if image_data.startswith('data:image'):
+                # Extract only the base64 part after the comma
+                image_data = image_data.split(',', 1)[1] if ',' in image_data else image_data
             image_bytes = base64.b64decode(image_data)
         else:
             # BLOB: already bytes
