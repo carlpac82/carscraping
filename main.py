@@ -41428,6 +41428,123 @@ async def migrate_supplier_data_column():
         return JSONResponse({"ok": False, "error": str(e)}, status_code=500)
 
 
+@app.get("/migrate-image-data-to-text")
+async def migrate_image_data_to_text():
+    """Convert inspection_photos.image_data from BYTEA to TEXT for base64 inline support - NO AUTH REQUIRED"""
+    try:
+        with _db_lock:
+            conn = _db_connect()
+            try:
+                is_postgres = conn.__class__.__module__ == 'psycopg2.extensions'
+                
+                if not is_postgres:
+                    return JSONResponse({
+                        "ok": True,
+                        "message": "SQLite - no migration needed"
+                    })
+                
+                with conn.cursor() as cur:
+                    # Check current column type
+                    cur.execute("""
+                        SELECT data_type 
+                        FROM information_schema.columns 
+                        WHERE table_name = 'inspection_photos' 
+                        AND column_name = 'image_data'
+                    """)
+                    
+                    result = cur.fetchone()
+                    if not result:
+                        return JSONResponse({"ok": False, "error": "Column image_data not found"}, status_code=404)
+                    
+                    current_type = result[0]
+                    logging.info(f"📊 Current image_data type: {current_type}")
+                    
+                    if current_type == 'text':
+                        return JSONResponse({
+                            "ok": True,
+                            "message": "Column is already TEXT type"
+                        })
+                    
+                    # Step 1: Create temporary column
+                    logging.info("📝 Creating temporary TEXT column...")
+                    cur.execute("""
+                        ALTER TABLE inspection_photos 
+                        ADD COLUMN image_data_text TEXT
+                    """)
+                    conn.commit()
+                    
+                    # Step 2: Convert existing BYTEA data to base64 TEXT
+                    logging.info("🔄 Converting existing data from BYTEA to base64 TEXT...")
+                    cur.execute("""
+                        SELECT id, image_data, photo_type 
+                        FROM inspection_photos 
+                        WHERE image_data IS NOT NULL
+                    """)
+                    
+                    rows = cur.fetchall()
+                    logging.info(f"📊 Found {len(rows)} photos to convert")
+                    
+                    import base64
+                    converted = 0
+                    for row_id, image_data, photo_type in rows:
+                        try:
+                            if isinstance(image_data, memoryview):
+                                image_data = bytes(image_data)
+                            
+                            if isinstance(image_data, bytes):
+                                # Convert bytes to base64 string with data URL prefix
+                                base64_str = base64.b64encode(image_data).decode('utf-8')
+                                data_url = f"data:image/png;base64,{base64_str}"
+                                
+                                cur.execute("""
+                                    UPDATE inspection_photos 
+                                    SET image_data_text = %s 
+                                    WHERE id = %s
+                                """, (data_url, row_id))
+                                converted += 1
+                                
+                                if converted % 10 == 0:
+                                    logging.info(f"  Converted {converted}/{len(rows)} photos...")
+                                    
+                        except Exception as e:
+                            logging.warning(f"⚠️ Error converting photo {row_id} ({photo_type}): {e}")
+                            continue
+                    
+                    conn.commit()
+                    logging.info(f"✅ Converted {converted} photos to base64 TEXT")
+                    
+                    # Step 3: Drop old BYTEA column
+                    logging.info("🗑️ Dropping old BYTEA column...")
+                    cur.execute("""
+                        ALTER TABLE inspection_photos 
+                        DROP COLUMN image_data
+                    """)
+                    conn.commit()
+                    
+                    # Step 4: Rename new column to image_data
+                    logging.info("📝 Renaming new column to image_data...")
+                    cur.execute("""
+                        ALTER TABLE inspection_photos 
+                        RENAME COLUMN image_data_text TO image_data
+                    """)
+                    conn.commit()
+                    
+                    logging.info("🎉 Migration completed successfully!")
+                    return JSONResponse({
+                        "ok": True,
+                        "message": f"Migration completed - converted {converted} photos from BYTEA to TEXT"
+                    })
+                    
+            finally:
+                conn.close()
+                
+    except Exception as e:
+        logging.error(f"❌ Error in migration: {str(e)}")
+        import traceback
+        logging.error(traceback.format_exc())
+        return JSONResponse({"ok": False, "error": str(e)}, status_code=500)
+
+
 # ================================================================================
 # VEHICLE INSPECTION ROUTES - BASIC IMPLEMENTATION
 # ================================================================================
