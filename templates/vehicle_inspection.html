@@ -1402,7 +1402,11 @@
             console.log('📦 Sending inspection data:', {
                 photos: Object.keys(inspectionData.photos),
                 damages: inspectionData.damages.length,
-                hasCroqui: !!inspectionData.damageCroqui
+                hasCroqui: !!inspectionData.damageCroqui,
+                client_email: inspectionData.client_email,
+                send_email: inspectionData.send_email,
+                email_type: typeof inspectionData.client_email,
+                send_email_type: typeof inspectionData.send_email
             });
             
             // Make API call
