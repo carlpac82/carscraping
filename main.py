@@ -29095,6 +29095,9 @@ async def save_inspection(request: Request):
             logging.info("✅ Transaction committed successfully")
             
             # Send email ONLY if explicitly requested via send_email flag
+            logging.info(f"🔍 Email send check: email='{email}' (type: {type(email).__name__}), send_email={send_email} (type: {type(send_email).__name__})")
+            logging.info(f"🔍 Condition check: email={bool(email)}, send_email={bool(send_email)}, both={bool(email and send_email)}")
+            
             if email and send_email:
                 try:
                     logging.info(f"📧 Preparing to send inspection report to {email} - inspection {inspection_number}")
