@@ -29389,7 +29389,7 @@ async def save_inspection(request: Request):
                     elif detected_lang == 'fr':
                         subject = f"Inspection du Véhicule - {ra}"
                     
-                    await _send_notification_email(email, subject, html_content)
+                    _send_notification_email(email, subject, html_content)
                     logging.info(f"✅ Email sent successfully to {email}")
                     
                 except Exception as email_error:
