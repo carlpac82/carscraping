@@ -1087,7 +1087,15 @@
         
         function handleCanvasMouseUp(e) {
             if (isDrawing && currentStroke.length > 0) {
-                damages.push({type: 'drawing', points: [...currentStroke]});
+                // Guardar tamanho da linha
+                const sizeMap = { tiny: 2, small: 4, medium: 6, large: 8 };
+                const lineWidth = sizeMap[currentSize] || 4;
+                
+                damages.push({
+                    type: 'drawing', 
+                    points: [...currentStroke],
+                    lineWidth: lineWidth
+                });
                 currentStroke = [];
                 redrawCanvas();
                 updateDamageCount();
@@ -1127,14 +1135,14 @@
                     drawingCtx.lineWidth = 2;
                     drawingCtx.stroke();
                 } else if (damage.type === 'drawing' && damage.points.length > 1) {
-                    // Draw stroke (black line)
+                    // Draw stroke (black line with variable width)
                     drawingCtx.beginPath();
                     drawingCtx.moveTo(damage.points[0].x, damage.points[0].y);
                     for (let i = 1; i < damage.points.length; i++) {
                         drawingCtx.lineTo(damage.points[i].x, damage.points[i].y);
                     }
                     drawingCtx.strokeStyle = 'rgba(0, 0, 0, 0.8)';
-                    drawingCtx.lineWidth = 4;
+                    drawingCtx.lineWidth = damage.lineWidth || 4;
                     drawingCtx.lineCap = 'round';
                     drawingCtx.lineJoin = 'round';
                     drawingCtx.stroke();
@@ -1143,13 +1151,16 @@
             
             // Draw current stroke being drawn
             if (currentStroke.length > 1) {
+                const sizeMap = { tiny: 2, small: 4, medium: 6, large: 8 };
+                const lineWidth = sizeMap[currentSize] || 4;
+                
                 drawingCtx.beginPath();
                 drawingCtx.moveTo(currentStroke[0].x, currentStroke[0].y);
                 for (let i = 1; i < currentStroke.length; i++) {
                     drawingCtx.lineTo(currentStroke[i].x, currentStroke[i].y);
                 }
                 drawingCtx.strokeStyle = 'rgba(0, 0, 0, 0.8)';
-                drawingCtx.lineWidth = 4;
+                drawingCtx.lineWidth = lineWidth;
                 drawingCtx.lineCap = 'round';
                 drawingCtx.lineJoin = 'round';
                 drawingCtx.stroke();
@@ -1171,8 +1182,9 @@
             } else if (tool === 'draw') {
                 pinBtn.className = 'w-12 h-12 rounded-full bg-gray-400 text-white hover:bg-gray-500 transition-all duration-200 flex items-center justify-center';
                 drawBtn.className = 'w-12 h-12 rounded-full bg-[#009cb6] text-white hover:bg-[#007a94] transition-all duration-200 flex items-center justify-center';
+                // Mostrar tamanhos também no modo desenhar
                 const sizeControls = document.getElementById('sizeControls');
-                if (sizeControls) sizeControls.style.display = 'none';
+                if (sizeControls) sizeControls.style.display = 'flex';
             }
         }
         
