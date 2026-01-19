@@ -919,9 +919,11 @@
                                     </button>
                                 </div>
                                 
-                                <!-- Croqui Container (sem canvas, apenas pins DOM) -->
+                                <!-- Croqui Container (pins DOM + canvas para desenho) -->
                                 <div class="car-svg-container" id="carDiagram" style="position: relative; cursor: crosshair;">
                                     <img src="/static/images/Croqui.png" alt="Croqui do Carro" style="width: 100%; height: auto; display: block; pointer-events: none;">
+                                    <!-- Canvas para desenho de riscos -->
+                                    <canvas id="drawingCanvas" style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none;"></canvas>
                                     <!-- Pins serão adicionados aqui dinamicamente -->
                                 </div>
                                 <p class="text-xs text-gray-500 mt-2 text-center">
@@ -965,11 +967,18 @@
             }
         }
         
-        // Croqui editor state (usando pins DOM como no checkout)
+        // Croqui editor state (pins DOM + canvas para desenho)
         let currentTool = 'pin';
         let currentSize = 'small';
         let pinCounter = 0;
         let damagePins = [];
+        
+        // Canvas drawing state
+        let drawingCanvas = null;
+        let drawingCtx = null;
+        let isDrawing = false;
+        let currentStroke = [];
+        let strokes = [];
         
         // Initialize croqui editor
         async function initializeCroquiEditor(existingCroquiBase64, inspectionId) {
@@ -982,6 +991,19 @@
             // Reset state
             pinCounter = 0;
             damagePins = [];
+            strokes = [];
+            
+            // Initialize canvas for drawing
+            drawingCanvas = document.getElementById('drawingCanvas');
+            if (drawingCanvas) {
+                drawingCtx = drawingCanvas.getContext('2d');
+                const img = carDiagram.querySelector('img');
+                if (img.complete) {
+                    setupCanvas(img);
+                } else {
+                    img.onload = () => setupCanvas(img);
+                }
+            }
             
             // Load existing croqui as background if available
             if (existingCroquiBase64) {
@@ -991,7 +1013,19 @@
             // Setup click event to add pins
             carDiagram.onclick = handleDiagramClick;
             
+            // Setup drawing events
+            carDiagram.onmousedown = handleMouseDown;
+            carDiagram.onmousemove = handleMouseMove;
+            carDiagram.onmouseup = handleMouseUp;
+            carDiagram.onmouseleave = handleMouseUp;
+            
             console.log('✅ Croqui editor initialized');
+        }
+        
+        function setupCanvas(img) {
+            drawingCanvas.width = img.naturalWidth;
+            drawingCanvas.height = img.naturalHeight;
+            console.log(`Canvas size: ${drawingCanvas.width}x${drawingCanvas.height}`);
         }
         
         function loadExistingCroquiAsBackground(base64Image, carDiagram) {
@@ -1024,12 +1058,86 @@
         
         function handleDiagramClick(e) {
             if (currentTool !== 'pin') return;
+            if (isDrawing) return; // Don't add pin while drawing
             
             const rect = e.currentTarget.getBoundingClientRect();
             const x = e.clientX - rect.left;
             const y = e.clientY - rect.top;
             
             addPinAtPosition(x, y);
+        }
+        
+        function handleMouseDown(e) {
+            if (currentTool !== 'draw') return;
+            
+            isDrawing = true;
+            const rect = e.currentTarget.getBoundingClientRect();
+            const scaleX = drawingCanvas.width / rect.width;
+            const scaleY = drawingCanvas.height / rect.height;
+            const x = (e.clientX - rect.left) * scaleX;
+            const y = (e.clientY - rect.top) * scaleY;
+            
+            currentStroke = [{x, y}];
+            e.preventDefault();
+        }
+        
+        function handleMouseMove(e) {
+            if (!isDrawing || currentTool !== 'draw') return;
+            
+            const rect = e.currentTarget.getBoundingClientRect();
+            const scaleX = drawingCanvas.width / rect.width;
+            const scaleY = drawingCanvas.height / rect.height;
+            const x = (e.clientX - rect.left) * scaleX;
+            const y = (e.clientY - rect.top) * scaleY;
+            
+            currentStroke.push({x, y});
+            redrawCanvas();
+            e.preventDefault();
+        }
+        
+        function handleMouseUp(e) {
+            if (isDrawing && currentStroke.length > 0) {
+                strokes.push([...currentStroke]);
+                currentStroke = [];
+                updateDamageCount();
+            }
+            isDrawing = false;
+        }
+        
+        function redrawCanvas() {
+            if (!drawingCtx) return;
+            
+            drawingCtx.clearRect(0, 0, drawingCanvas.width, drawingCanvas.height);
+            
+            // Draw all completed strokes
+            strokes.forEach(stroke => {
+                if (stroke.length > 1) {
+                    drawingCtx.beginPath();
+                    drawingCtx.moveTo(stroke[0].x, stroke[0].y);
+                    for (let i = 1; i < stroke.length; i++) {
+                        drawingCtx.lineTo(stroke[i].x, stroke[i].y);
+                    }
+                    drawingCtx.strokeStyle = 'rgba(0, 0, 0, 0.8)';
+                    drawingCtx.lineWidth = 4;
+                    drawingCtx.lineCap = 'round';
+                    drawingCtx.lineJoin = 'round';
+                    drawingCtx.stroke();
+                }
+            });
+            
+            // Draw current stroke being drawn
+            if (currentStroke.length > 1) {
+                drawingCtx.beginPath();
+                drawingCtx.moveTo(currentStroke[0].x, currentStroke[0].y);
+                for (let i = 1; i < currentStroke.length; i++) {
+                    drawingCtx.lineTo(currentStroke[i].x, currentStroke[i].y);
+                }
+                drawingCtx.strokeStyle = 'rgba(0, 0, 0, 0.8)';
+                drawingCtx.lineWidth = 4;
+                drawingCtx.lineCap = 'round';
+                drawingCtx.lineJoin = 'round';
+                drawingCtx.stroke();
+            }
         }
         
         function addPinAtPosition(x, y) {
@@ -1092,8 +1200,15 @@
                 drawBtn.className = 'w-12 h-12 rounded-full bg-gray-400 text-white hover:bg-gray-500 transition-all duration-200 flex items-center justify-center';
                 const sizeControls = document.getElementById('sizeControls');
                 if (sizeControls) sizeControls.style.display = 'flex';
-            } else {
-                showNotification('Modo de desenho não disponível na edição', 'info');
+                // Enable canvas pointer events for drawing
+                if (drawingCanvas) drawingCanvas.style.pointerEvents = 'none';
+            } else if (tool === 'draw') {
+                pinBtn.className = 'w-12 h-12 rounded-full bg-gray-400 text-white hover:bg-gray-500 transition-all duration-200 flex items-center justify-center';
+                drawBtn.className = 'w-12 h-12 rounded-full bg-[#009cb6] text-white hover:bg-[#007a94] transition-all duration-200 flex items-center justify-center';
+                const sizeControls = document.getElementById('sizeControls');
+                if (sizeControls) sizeControls.style.display = 'none';
+                // Enable canvas pointer events for drawing
+                if (drawingCanvas) drawingCanvas.style.pointerEvents = 'auto';
             }
         }
         
@@ -1127,6 +1242,14 @@
                 });
                 damagePins = [];
                 pinCounter = 0;
+                
+                // Clear all strokes
+                strokes = [];
+                currentStroke = [];
+                if (drawingCtx) {
+                    drawingCtx.clearRect(0, 0, drawingCanvas.width, drawingCanvas.height);
+                }
+                
                 updateDamageCount();
             }
         }
@@ -1135,7 +1258,8 @@
         function updateDamageCount() {
             const countEl = document.getElementById('damageCount');
             if (countEl) {
-                countEl.textContent = damagePins.length;
+                const totalDamages = damagePins.length + strokes.length;
+                countEl.textContent = totalDamages;
             }
         }
         
