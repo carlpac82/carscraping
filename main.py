@@ -29436,11 +29436,11 @@ async def save_inspection(request: Request):
                     )
                     
                     # Send email
-                    subject = f"Vehicle Inspection - {ra}"
+                    subject = f"Delivery Report R.A. {ra}"
                     if detected_lang == 'pt':
-                        subject = f"Inspeção de Veículo - {ra}"
+                        subject = f"Relatorio de Entrega R.A. {ra}"
                     elif detected_lang == 'fr':
-                        subject = f"Inspection du Véhicule - {ra}"
+                        subject = f"Rapport de Livraison R.A. {ra}"
                     
                     _send_notification_email(email, subject, html_content)
                     logging.info(f"✅ Email sent successfully to {email}")
