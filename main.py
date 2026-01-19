@@ -41792,13 +41792,18 @@ async def get_inspection_details(inspection_number: str, request: Request):
                         if isinstance(image_data, memoryview):
                             image_data = image_data.tobytes()
                         
-                        # Check if it's binary PNG/JPEG data or base64 string in bytes
-                        if image_data.startswith(b'\x89PNG') or image_data.startswith(b'\xff\xd8\xff'):
-                            # It's binary image data, encode to base64
+                        # Try to decode as UTF-8 first (base64 string stored as bytes)
+                        try:
+                            decoded_str = image_data.decode('utf-8')
+                            # Check if it looks like base64 (starts with valid base64 chars)
+                            if decoded_str and (decoded_str[0].isalnum() or decoded_str[0] in '/+'):
+                                photo_base64 = decoded_str
+                            else:
+                                # Not base64, encode binary data
+                                photo_base64 = base64.b64encode(image_data).decode('utf-8')
+                        except UnicodeDecodeError:
+                            # Binary data, encode to base64
                             photo_base64 = base64.b64encode(image_data).decode('utf-8')
-                        else:
-                            # It's base64 string in bytes, just decode to string
-                            photo_base64 = image_data.decode('utf-8')
                     else:
                         # Already a string (base64)
                         photo_base64 = image_data
