@@ -882,22 +882,38 @@
                             <!-- Damage Croqui Editor -->
                             <div>
                                 <label class="block text-sm font-medium text-gray-700 mb-2">Croqui de Danos</label>
-                                <div class="relative bg-gray-50 rounded-lg border-2 border-gray-300 overflow-hidden">
-                                    <canvas id="croquiCanvas" 
-                                            class="w-full cursor-crosshair" 
-                                            style="max-height: 400px; touch-action: none;"></canvas>
-                                    <div class="absolute top-2 right-2 flex gap-2">
-                                        <button type="button" onclick="undoLastDamage()" 
-                                                class="px-3 py-1 bg-red-500 text-white text-xs rounded-lg hover:bg-red-600 transition-colors">
-                                            ↶ Desfazer
-                                        </button>
-                                        <button type="button" onclick="clearAllDamages()" 
-                                                class="px-3 py-1 bg-gray-600 text-white text-xs rounded-lg hover:bg-gray-700 transition-colors">
-                                            🗑️ Limpar
-                                        </button>
-                                    </div>
+                                
+                                <!-- Drawing Tools -->
+                                <div class="flex gap-2 mb-3">
+                                    <button type="button" onclick="setDrawingMode('pin')" id="pinModeBtn"
+                                            class="flex-1 px-3 py-2 bg-[#009cb6] text-white text-sm rounded-lg hover:bg-[#007a8f] transition-colors font-semibold">
+                                        📍 Pontos
+                                    </button>
+                                    <button type="button" onclick="setDrawingMode('draw')" id="drawModeBtn"
+                                            class="flex-1 px-3 py-2 bg-gray-200 text-gray-700 text-sm rounded-lg hover:bg-gray-300 transition-colors font-semibold">
+                                        ✏️ Traços
+                                    </button>
+                                    <button type="button" onclick="undoLastDamage()" 
+                                            class="px-3 py-2 bg-red-500 text-white text-sm rounded-lg hover:bg-red-600 transition-colors">
+                                        ↶ Desfazer
+                                    </button>
+                                    <button type="button" onclick="clearAllDamages()" 
+                                            class="px-3 py-2 bg-gray-600 text-white text-sm rounded-lg hover:bg-gray-700 transition-colors">
+                                        🗑️ Limpar
+                                    </button>
                                 </div>
-                                <p class="text-xs text-gray-500 mt-2">Clique no croqui para adicionar danos. Total: <span id="damageCount" class="font-semibold text-[#009cb6]">0</span></p>
+                                
+                                <!-- Canvas Container -->
+                                <div id="carDiagram" class="relative bg-gray-50 rounded-lg border-2 border-gray-300 overflow-hidden" style="position: relative;">
+                                    <img src="/static/images/Croqui.png" alt="Car Diagram" class="w-full" style="display: block;">
+                                    <canvas id="drawingCanvas" 
+                                            class="absolute top-0 left-0 w-full h-full cursor-crosshair" 
+                                            style="touch-action: none;"></canvas>
+                                </div>
+                                <p class="text-xs text-gray-500 mt-2">
+                                    <span id="drawingModeText">Modo: <strong>Pontos</strong></span> | 
+                                    Total de danos: <span id="damageCount" class="font-semibold text-[#009cb6]">0</span>
+                                </p>
                             </div>
                             
                             <!-- Damage Notes -->
@@ -937,161 +953,312 @@
         }
         
         // Croqui editor state
-        let croquiDamages = [];
-        let croquiCanvas = null;
-        let croquiCtx = null;
-        let croquiImage = null;
+        let drawingCanvas = null;
+        let drawingCtx = null;
+        let drawingMode = 'pin'; // 'pin' or 'draw'
+        let isDrawing = false;
+        let damages = [];
+        let currentStroke = [];
         
         // Initialize croqui editor
         async function initializeCroquiEditor(existingCroquiBase64, inspectionId) {
-            croquiCanvas = document.getElementById('croquiCanvas');
-            if (!croquiCanvas) return;
+            drawingCanvas = document.getElementById('drawingCanvas');
+            if (!drawingCanvas) {
+                console.error('Drawing canvas not found');
+                return;
+            }
             
-            croquiCtx = croquiCanvas.getContext('2d');
-            croquiDamages = [];
+            drawingCtx = drawingCanvas.getContext('2d');
+            damages = [];
             
-            // Load car template image
-            const carTemplate = new Image();
-            carTemplate.crossOrigin = 'anonymous';
-            carTemplate.src = '/static/images/Croqui.png';
+            // Get the car diagram container and image
+            const carDiagram = document.getElementById('carDiagram');
+            const carImg = carDiagram.querySelector('img');
             
-            carTemplate.onload = () => {
-                // Set canvas size
-                croquiCanvas.width = carTemplate.width;
-                croquiCanvas.height = carTemplate.height;
-                croquiImage = carTemplate;
-                
-                // If there's an existing croqui, load it to extract damage positions
-                if (existingCroquiBase64) {
-                    loadExistingCroqui(existingCroquiBase64);
-                } else {
-                    redrawCroqui();
-                }
-            };
-            
-            carTemplate.onerror = () => {
-                console.error('Failed to load car template');
-                showNotification('Erro ao carregar template do croqui', 'error');
-            };
-            
-            // Add click event to add damages
-            croquiCanvas.addEventListener('click', addDamageAtPosition);
-            croquiCanvas.addEventListener('touchend', (e) => {
-                e.preventDefault();
-                const rect = croquiCanvas.getBoundingClientRect();
-                const touch = e.changedTouches[0];
-                const x = (touch.clientX - rect.left) * (croquiCanvas.width / rect.width);
-                const y = (touch.clientY - rect.top) * (croquiCanvas.height / rect.height);
-                addDamageAtPosition({offsetX: x, offsetY: y});
-            });
-        }
-        
-        // Load existing croqui and extract damage positions
-        function loadExistingCroqui(base64Image) {
-            const img = new Image();
-            img.src = base64Image;
-            
-            img.onload = () => {
-                // Create temporary canvas to analyze the image
-                const tempCanvas = document.createElement('canvas');
-                tempCanvas.width = img.width;
-                tempCanvas.height = img.height;
-                const tempCtx = tempCanvas.getContext('2d');
-                tempCtx.drawImage(img, 0, 0);
-                
-                // Scan for red circles (damage markers)
-                const imageData = tempCtx.getImageData(0, 0, img.width, img.height);
-                const data = imageData.data;
-                const foundDamages = [];
-                
-                // Simple algorithm: look for red pixels and cluster them
-                for (let y = 0; y < img.height; y += 10) {
-                    for (let x = 0; x < img.width; x += 10) {
-                        const i = (y * img.width + x) * 4;
-                        const r = data[i];
-                        const g = data[i + 1];
-                        const b = data[i + 2];
-                        
-                        // Check if pixel is red (damage marker)
-                        if (r > 200 && g < 100 && b < 100) {
-                            // Check if this is a new damage (not close to existing ones)
-                            const isNew = !foundDamages.some(d => 
-                                Math.abs(d.x - x) < 30 && Math.abs(d.y - y) < 30
-                            );
-                            
-                            if (isNew) {
-                                foundDamages.push({x, y});
-                            }
-                        }
-                    }
-                }
-                
-                croquiDamages = foundDamages;
-                console.log(`✅ Loaded ${croquiDamages.length} existing damages from croqui`);
-                redrawCroqui();
-            };
-        }
-        
-        // Add damage at clicked position
-        function addDamageAtPosition(e) {
-            const rect = croquiCanvas.getBoundingClientRect();
-            const x = e.offsetX || ((e.clientX - rect.left) * (croquiCanvas.width / rect.width));
-            const y = e.offsetY || ((e.clientY - rect.top) * (croquiCanvas.height / rect.height));
-            
-            croquiDamages.push({x, y});
-            redrawCroqui();
-        }
-        
-        // Undo last damage
-        function undoLastDamage() {
-            if (croquiDamages.length > 0) {
-                croquiDamages.pop();
-                redrawCroqui();
+            // Wait for image to load
+            if (carImg.complete) {
+                setupCanvas(carImg, existingCroquiBase64);
+            } else {
+                carImg.onload = () => setupCanvas(carImg, existingCroquiBase64);
             }
         }
         
-        // Clear all damages
+        function setupCanvas(carImg, existingCroquiBase64) {
+            // Set canvas size to match image
+            drawingCanvas.width = carImg.naturalWidth;
+            drawingCanvas.height = carImg.naturalHeight;
+            
+            console.log(`Canvas size: ${drawingCanvas.width}x${drawingCanvas.height}`);
+            
+            // If there's an existing croqui, load it as background
+            if (existingCroquiBase64) {
+                loadExistingCroquiAsBackground(existingCroquiBase64);
+            }
+            
+            // Setup drawing events
+            setupDrawingEvents();
+            updateDamageCount();
+        }
+        
+        function loadExistingCroquiAsBackground(base64Image) {
+            console.log('📍 Loading existing croqui as background...');
+            const carDiagram = document.getElementById('carDiagram');
+            
+            // Create background layer with existing croqui
+            let bgLayer = document.getElementById('existingCroquiBackground');
+            if (!bgLayer) {
+                bgLayer = document.createElement('div');
+                bgLayer.id = 'existingCroquiBackground';
+                bgLayer.style.cssText = `
+                    position: absolute;
+                    top: 0;
+                    left: 0;
+                    width: 100%;
+                    height: 100%;
+                    background-image: url('${base64Image}');
+                    background-size: contain;
+                    background-repeat: no-repeat;
+                    background-position: center;
+                    pointer-events: none;
+                    z-index: 1;
+                `;
+                carDiagram.insertBefore(bgLayer, drawingCanvas);
+            }
+            
+            // Set canvas z-index to be on top
+            drawingCanvas.style.zIndex = '2';
+            drawingCanvas.style.position = 'relative';
+            
+            console.log('✅ Existing croqui loaded as background');
+        }
+        
+        function setupDrawingEvents() {
+            // Mouse events
+            drawingCanvas.addEventListener('mousedown', startDrawing);
+            drawingCanvas.addEventListener('mousemove', draw);
+            drawingCanvas.addEventListener('mouseup', stopDrawing);
+            drawingCanvas.addEventListener('mouseleave', stopDrawing);
+            
+            // Touch events
+            drawingCanvas.addEventListener('touchstart', handleTouchStart);
+            drawingCanvas.addEventListener('touchmove', handleTouchMove);
+            drawingCanvas.addEventListener('touchend', handleTouchEnd);
+        }
+        
+        function startDrawing(e) {
+            const rect = drawingCanvas.getBoundingClientRect();
+            const x = (e.clientX - rect.left) * (drawingCanvas.width / rect.width);
+            const y = (e.clientY - rect.top) * (drawingCanvas.height / rect.height);
+            
+            if (drawingMode === 'pin') {
+                addPin(x, y);
+            } else {
+                isDrawing = true;
+                currentStroke = [{x, y}];
+            }
+        }
+        
+        function draw(e) {
+            if (!isDrawing || drawingMode !== 'draw') return;
+            
+            const rect = drawingCanvas.getBoundingClientRect();
+            const x = (e.clientX - rect.left) * (drawingCanvas.width / rect.width);
+            const y = (e.clientY - rect.top) * (drawingCanvas.height / rect.height);
+            
+            currentStroke.push({x, y});
+            redrawCanvas();
+        }
+        
+        function stopDrawing() {
+            if (isDrawing && currentStroke.length > 0) {
+                damages.push({type: 'drawing', points: currentStroke});
+                currentStroke = [];
+                updateDamageCount();
+            }
+            isDrawing = false;
+        }
+        
+        function handleTouchStart(e) {
+            e.preventDefault();
+            const touch = e.touches[0];
+            const rect = drawingCanvas.getBoundingClientRect();
+            const x = (touch.clientX - rect.left) * (drawingCanvas.width / rect.width);
+            const y = (touch.clientY - rect.top) * (drawingCanvas.height / rect.height);
+            
+            if (drawingMode === 'pin') {
+                addPin(x, y);
+            } else {
+                isDrawing = true;
+                currentStroke = [{x, y}];
+            }
+        }
+        
+        function handleTouchMove(e) {
+            if (!isDrawing || drawingMode !== 'draw') return;
+            e.preventDefault();
+            
+            const touch = e.touches[0];
+            const rect = drawingCanvas.getBoundingClientRect();
+            const x = (touch.clientX - rect.left) * (drawingCanvas.width / rect.width);
+            const y = (touch.clientY - rect.top) * (drawingCanvas.height / rect.height);
+            
+            currentStroke.push({x, y});
+            redrawCanvas();
+        }
+        
+        function handleTouchEnd(e) {
+            e.preventDefault();
+            stopDrawing();
+        }
+        
+        function addPin(x, y) {
+            damages.push({type: 'pin', x, y});
+            redrawCanvas();
+            updateDamageCount();
+        }
+        
+        function setDrawingMode(mode) {
+            drawingMode = mode;
+            const pinBtn = document.getElementById('pinModeBtn');
+            const drawBtn = document.getElementById('drawModeBtn');
+            const modeText = document.getElementById('drawingModeText');
+            
+            if (mode === 'pin') {
+                pinBtn.className = 'flex-1 px-3 py-2 bg-[#009cb6] text-white text-sm rounded-lg hover:bg-[#007a8f] transition-colors font-semibold';
+                drawBtn.className = 'flex-1 px-3 py-2 bg-gray-200 text-gray-700 text-sm rounded-lg hover:bg-gray-300 transition-colors font-semibold';
+                modeText.innerHTML = 'Modo: <strong>Pontos</strong>';
+            } else {
+                pinBtn.className = 'flex-1 px-3 py-2 bg-gray-200 text-gray-700 text-sm rounded-lg hover:bg-gray-300 transition-colors font-semibold';
+                drawBtn.className = 'flex-1 px-3 py-2 bg-[#009cb6] text-white text-sm rounded-lg hover:bg-[#007a8f] transition-colors font-semibold';
+                modeText.innerHTML = 'Modo: <strong>Traços</strong>';
+            }
+        }
+        
+        function undoLastDamage() {
+            if (damages.length > 0) {
+                damages.pop();
+                redrawCanvas();
+                updateDamageCount();
+            }
+        }
+        
         function clearAllDamages() {
             if (confirm('Tem certeza que deseja limpar todos os danos?')) {
-                croquiDamages = [];
-                redrawCroqui();
+                damages = [];
+                redrawCanvas();
+                updateDamageCount();
             }
         }
         
-        // Redraw croqui with all damages
-        function redrawCroqui() {
-            if (!croquiCtx || !croquiImage) return;
+        function redrawCanvas() {
+            if (!drawingCtx) return;
             
             // Clear canvas
-            croquiCtx.clearRect(0, 0, croquiCanvas.width, croquiCanvas.height);
+            drawingCtx.clearRect(0, 0, drawingCanvas.width, drawingCanvas.height);
             
-            // Draw car template
-            croquiCtx.drawImage(croquiImage, 0, 0);
-            
-            // Draw all damage markers
-            croquiDamages.forEach((damage, index) => {
-                // Draw red circle
-                croquiCtx.beginPath();
-                croquiCtx.arc(damage.x, damage.y, 15, 0, 2 * Math.PI);
-                croquiCtx.fillStyle = 'rgba(255, 0, 0, 0.7)';
-                croquiCtx.fill();
-                croquiCtx.strokeStyle = '#fff';
-                croquiCtx.lineWidth = 2;
-                croquiCtx.stroke();
-                
-                // Draw number
-                croquiCtx.fillStyle = '#fff';
-                croquiCtx.font = 'bold 14px Arial';
-                croquiCtx.textAlign = 'center';
-                croquiCtx.textBaseline = 'middle';
-                croquiCtx.fillText(index + 1, damage.x, damage.y);
+            // Draw all damages (checkout = preto)
+            damages.forEach((damage, index) => {
+                if (damage.type === 'pin') {
+                    // Draw pin (black circle with white border for checkout)
+                    drawingCtx.beginPath();
+                    drawingCtx.arc(damage.x, damage.y, 15, 0, 2 * Math.PI);
+                    drawingCtx.fillStyle = 'rgba(0, 0, 0, 0.7)';
+                    drawingCtx.fill();
+                    drawingCtx.strokeStyle = '#fff';
+                    drawingCtx.lineWidth = 2;
+                    drawingCtx.stroke();
+                    
+                    // Draw number
+                    drawingCtx.fillStyle = '#fff';
+                    drawingCtx.font = 'bold 14px Arial';
+                    drawingCtx.textAlign = 'center';
+                    drawingCtx.textBaseline = 'middle';
+                    drawingCtx.fillText(index + 1, damage.x, damage.y);
+                } else if (damage.type === 'drawing') {
+                    // Draw stroke (black line for checkout)
+                    if (damage.points && damage.points.length > 1) {
+                        drawingCtx.beginPath();
+                        drawingCtx.moveTo(damage.points[0].x, damage.points[0].y);
+                        for (let i = 1; i < damage.points.length; i++) {
+                            drawingCtx.lineTo(damage.points[i].x, damage.points[i].y);
+                        }
+                        drawingCtx.strokeStyle = 'rgba(0, 0, 0, 0.7)';
+                        drawingCtx.lineWidth = 4;
+                        drawingCtx.lineCap = 'round';
+                        drawingCtx.lineJoin = 'round';
+                        drawingCtx.stroke();
+                    }
+                }
             });
             
-            // Update damage count
+            // Draw current stroke being drawn
+            if (currentStroke.length > 1) {
+                drawingCtx.beginPath();
+                drawingCtx.moveTo(currentStroke[0].x, currentStroke[0].y);
+                for (let i = 1; i < currentStroke.length; i++) {
+                    drawingCtx.lineTo(currentStroke[i].x, currentStroke[i].y);
+                }
+                drawingCtx.strokeStyle = 'rgba(0, 0, 0, 0.7)';
+                drawingCtx.lineWidth = 4;
+                drawingCtx.lineCap = 'round';
+                drawingCtx.lineJoin = 'round';
+                drawingCtx.stroke();
+            }
+        }
+        
+        function updateDamageCount() {
             const countEl = document.getElementById('damageCount');
             if (countEl) {
-                countEl.textContent = croquiDamages.length;
+                countEl.textContent = damages.length;
             }
+        }
+        
+        // Capture final croqui (background + new damages)
+        async function captureFinalCroqui() {
+            return new Promise((resolve) => {
+                const carDiagram = document.getElementById('carDiagram');
+                const carImg = carDiagram.querySelector('img');
+                const bgLayer = document.getElementById('existingCroquiBackground');
+                
+                // Create temporary canvas for final capture
+                const tempCanvas = document.createElement('canvas');
+                tempCanvas.width = carImg.naturalWidth;
+                tempCanvas.height = carImg.naturalHeight;
+                const tempCtx = tempCanvas.getContext('2d');
+                
+                // Step 1: Draw base car image
+                tempCtx.drawImage(carImg, 0, 0);
+                
+                // Step 2: If there's existing croqui background, draw it
+                if (bgLayer) {
+                    const bgImage = new Image();
+                    const bgUrl = bgLayer.style.backgroundImage.match(/url\(['"]?([^'"]+)['"]?\)/);
+                    if (bgUrl && bgUrl[1]) {
+                        bgImage.src = bgUrl[1];
+                        bgImage.onload = () => {
+                            tempCtx.drawImage(bgImage, 0, 0, tempCanvas.width, tempCanvas.height);
+                            
+                            // Step 3: Draw new damages from canvas
+                            tempCtx.drawImage(drawingCanvas, 0, 0);
+                            
+                            resolve(tempCanvas.toDataURL('image/png'));
+                        };
+                        bgImage.onerror = () => {
+                            // If background fails, just draw canvas
+                            tempCtx.drawImage(drawingCanvas, 0, 0);
+                            resolve(tempCanvas.toDataURL('image/png'));
+                        };
+                    } else {
+                        // No background URL, just draw canvas
+                        tempCtx.drawImage(drawingCanvas, 0, 0);
+                        resolve(tempCanvas.toDataURL('image/png'));
+                    }
+                } else {
+                    // No background layer, just draw canvas
+                    tempCtx.drawImage(drawingCanvas, 0, 0);
+                    resolve(tempCanvas.toDataURL('image/png'));
+                }
+            });
         }
         
         // Update fuel level display
@@ -1114,10 +1281,10 @@
                 const odometerReading = document.getElementById('odometerReading').value;
                 const damageNotes = document.getElementById('damageNotes').value;
                 
-                // Capture updated croqui
+                // Capture updated croqui (merge background + new damages)
                 let updatedCroqui = null;
-                if (croquiCanvas && croquiDamages.length > 0) {
-                    updatedCroqui = croquiCanvas.toDataURL('image/png');
+                if (drawingCanvas) {
+                    updatedCroqui = await captureFinalCroqui();
                 }
                 
                 const updateData = {
