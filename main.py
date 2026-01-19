@@ -30785,6 +30785,8 @@ async def send_inspection_email(request: Request, inspection_number: str):
                     photos_list.append({'data': photo_data, 'label': label})
             
             # Create 3x3 table grid
+            # Note: Outlook desktop has security restrictions with data URIs (base64 images)
+            # This may prompt users to "open in application" - this is an Outlook limitation
             photos_html = '<table width="100%" cellpadding="5" cellspacing="0" style="margin: 0;">'
             for i in range(0, len(photos_list), 3):
                 photos_html += '<tr>'
@@ -30793,7 +30795,9 @@ async def send_inspection_email(request: Request, inspection_number: str):
                         photo = photos_list[i + j]
                         photos_html += f'''
                         <td style="width: 33.33%; text-align: center; padding: 5px; vertical-align: top;">
-                            <img src="{photo['data']}" alt="{photo['label']}" style="width: 100%; height: auto; max-height: 150px; object-fit: cover; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); display: block;" />
+                            <a href="{photo['data']}" target="_blank" style="text-decoration: none; display: block;">
+                                <img src="{photo['data']}" alt="{photo['label']}" style="width: 100%; height: auto; max-height: 150px; object-fit: cover; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); display: block; border: 2px solid transparent; transition: border-color 0.2s;" />
+                            </a>
                             <p style="color: #00bcd4; margin: 5px 0 0 0; font-size: 12px; font-weight: 600;">{photo['label']}</p>
                         </td>
                         '''
@@ -30877,29 +30881,10 @@ async def send_inspection_email(request: Request, inspection_number: str):
         first_name = client_name.split()[0].title() if client_name else "Customer"
         inspection_date = created_at.strftime('%d/%m/%Y %H:%M') if created_at else 'N/A'
         
-        # T&C download URL based on language (use server endpoints)
-        # Detect base URL from Railway environment or fallback to localhost
-        railway_static = os.environ.get('RAILWAY_STATIC_URL')
-        railway_public = os.environ.get('RAILWAY_PUBLIC_DOMAIN')
-        render_host = os.environ.get('RENDER_EXTERNAL_HOSTNAME')
-        
-        # Railway detection - try multiple env vars
-        if railway_static:
-            base_url = railway_static.rstrip('/')
-            print(f"📧 Using Railway STATIC_URL for T&C links: {base_url}")
-        elif railway_public:
-            base_url = f"https://{railway_public}"
-            print(f"📧 Using Railway PUBLIC_DOMAIN for T&C links: {base_url}")
-        elif os.environ.get('RAILWAY_ENVIRONMENT'):
-            # If Railway env is detected but no URL, use known production domain
-            base_url = "https://carscraping.up.railway.app"
-            print(f"📧 Using Railway production domain for T&C links: {base_url}")
-        elif render_host:
-            base_url = f"https://{render_host}"
-            print(f"📧 Using Render domain for T&C links: {base_url}")
-        else:
-            base_url = "http://localhost:8000"
-            print(f"⚠️ Using localhost for T&C links: {base_url}")
+        # T&C download URL - ALWAYS use production domain
+        # Force Railway production domain to avoid localhost issues
+        base_url = "https://carscraping.up.railway.app"
+        print(f"📧 Using Railway production domain for T&C links: {base_url}")
         
         tc_url_map = {
             'pt': f'{base_url}/download/tc-pt',
