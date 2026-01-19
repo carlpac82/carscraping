@@ -29134,6 +29134,7 @@ async def save_inspection(request: Request):
                     delivery_location = ra_pickup_location or 'N/A'
                     vehicle_brand = 'N/A'
                     vehicle_model = 'N/A'
+                    vehicle_type = 'N/A'
                     
                     if ra_row and ra_row[0]:
                         import json
@@ -29164,12 +29165,12 @@ async def save_inspection(request: Request):
                     # Get vehicle data from fleet
                     if is_postgres:
                         cursor.execute("""
-                            SELECT marca, modelo FROM vehicles 
+                            SELECT marca, modelo, grupo FROM vehicles 
                             WHERE matricula = %s
                         """, (plate,))
                     else:
                         cursor.execute("""
-                            SELECT marca, modelo FROM vehicles 
+                            SELECT marca, modelo, grupo FROM vehicles 
                             WHERE matricula = ?
                         """, (plate,))
                     
@@ -29177,7 +29178,8 @@ async def save_inspection(request: Request):
                     if vehicle_row:
                         vehicle_brand = vehicle_row[0] or 'N/A'
                         vehicle_model = vehicle_row[1] or 'N/A'
-                        logging.info(f"🚗 Vehicle: {vehicle_brand} {vehicle_model}")
+                        vehicle_type = vehicle_row[2] or 'N/A'
+                        logging.info(f"🚗 Vehicle: {vehicle_brand} {vehicle_model} ({vehicle_type})")
                     
                     # Get croqui
                     if is_postgres:
@@ -29194,40 +29196,198 @@ async def save_inspection(request: Request):
                         """, (inspection_id,))
                     
                     croqui_row = cursor.fetchone()
-                    croqui_url = ''
+                    base_url = "https://carscraping.up.railway.app"
+                    
+                    # Use HTTP URL for croqui or empty cache
+                    global EMPTY_CROQUI_CACHE
                     if croqui_row and croqui_row[0]:
-                        croqui_url = f"https://carscraping.up.railway.app/email-photo/{inspection_id}/damage_croqui"
-                        logging.info(f"🖼️ Croqui URL: {croqui_url}")
+                        import time
+                        cache_buster = int(time.time())
+                        final_croqui = f"{base_url}/email-photo/{inspection_id}/damage_croqui?v={cache_buster}"
+                        logging.info(f"🖼️ Croqui URL: {final_croqui}")
+                    else:
+                        final_croqui = EMPTY_CROQUI_CACHE or ""
+                        logging.info(f"⚠️ No croqui, using empty cache")
+                    
+                    # Get photos
+                    if is_postgres:
+                        cursor.execute("""
+                            SELECT photo_type, image_data FROM inspection_photos 
+                            WHERE inspection_id = %s AND photo_type != 'damage_croqui'
+                            ORDER BY photo_order
+                        """, (inspection_id,))
+                    else:
+                        cursor.execute("""
+                            SELECT photo_type, image_data FROM inspection_photos 
+                            WHERE inspection_id = ? AND photo_type != 'damage_croqui'
+                            ORDER BY photo_order
+                        """, (inspection_id,))
+                    
+                    photos_rows = cursor.fetchall()
+                    
+                    # Build photos HTML
+                    photos_html = ""
+                    if photos_rows:
+                        photo_labels = {
+                            'pt': {'front': 'Frente', 'front_left': 'Frente Esquerda', 'left': 'Lado Esquerdo',
+                                   'back_left': 'Traseira Esquerda', 'back': 'Traseira', 'back_right': 'Traseira Direita',
+                                   'right': 'Lado Direito', 'front_right': 'Frente Direita', 'odometer': 'Quilómetros'},
+                            'fr': {'front': 'Avant', 'front_left': 'Avant Gauche', 'left': 'Côté Gauche',
+                                   'back_left': 'Arrière Gauche', 'back': 'Arrière', 'back_right': 'Arrière Droit',
+                                   'right': 'Côté Droit', 'front_right': 'Avant Droit', 'odometer': 'Kilométrage'},
+                            'en': {'front': 'Front', 'front_left': 'Front Left', 'left': 'Left Side',
+                                   'back_left': 'Back Left', 'back': 'Back', 'back_right': 'Back Right',
+                                   'right': 'Right Side', 'front_right': 'Front Right', 'odometer': 'Odometer'}
+                        }
+                        
+                        labels_map = photo_labels.get(detected_lang, photo_labels['en'])
+                        
+                        photos_list = []
+                        for photo_row in photos_rows:
+                            photo_type = photo_row[0]
+                            image_data = photo_row[1]
+                            if image_data:
+                                photo_url = f"{base_url}/email-photo/{inspection_id}/{photo_type}"
+                                label = labels_map.get(photo_type, photo_type)
+                                photos_list.append({'url': photo_url, 'label': label})
+                        
+                        # Create 3x3 table grid
+                        photos_html = '<table width="100%" cellpadding="5" cellspacing="0" style="margin: 0;">'
+                        for i in range(0, len(photos_list), 3):
+                            photos_html += '<tr>'
+                            for j in range(3):
+                                if i + j < len(photos_list):
+                                    photo = photos_list[i + j]
+                                    photos_html += f'''
+                                    <td style="width: 33.33%; text-align: center; padding: 5px; vertical-align: top;">
+                                        <a href="{photo['url']}" target="_blank" style="text-decoration: none; display: block;">
+                                            <img src="{photo['url']}" alt="{photo['label']}" style="width: 100%; height: auto; max-height: 150px; object-fit: cover; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); display: block; border: 2px solid transparent;" />
+                                        </a>
+                                        <p style="color: #00bcd4; margin: 5px 0 0 0; font-size: 12px; font-weight: 600;">{photo['label']}</p>
+                                    </td>
+                                    '''
+                                else:
+                                    photos_html += '<td style="width: 33.33%;"></td>'
+                            photos_html += '</tr>'
+                        photos_html += '</table>'
+                    
+                    # Create fuel gauge HTML
+                    fuel_percentage = int(fuel_level)
+                    fuel_text = "Cheio" if fuel_percentage == 100 else f"{fuel_percentage}%"
+                    if fuel_percentage == 87.5:
+                        fuel_text = "7/8"
+                    elif fuel_percentage == 75:
+                        fuel_text = "3/4"
+                    elif fuel_percentage == 62.5:
+                        fuel_text = "5/8"
+                    elif fuel_percentage == 50:
+                        fuel_text = "1/2"
+                    elif fuel_percentage == 37.5:
+                        fuel_text = "3/8"
+                    elif fuel_percentage == 25:
+                        fuel_text = "1/4"
+                    elif fuel_percentage == 12.5:
+                        fuel_text = "1/8"
+                    elif fuel_percentage < 12.5:
+                        fuel_text = "Reserva"
+                    
+                    fuel_gauge_html = f"""
+                    <table width="100%" cellpadding="0" cellspacing="0" style="margin: 20px 0;">
+                        <tr>
+                            <td align="center">
+                                <table cellpadding="0" cellspacing="0" style="margin: 0 auto;">
+                                    <tr>
+                                        <td style="padding-right: 15px; vertical-align: middle;">
+                                            <span style="color: #009cb6; font-size: 14px; font-weight: 600;">R</span>
+                                        </td>
+                                        <td style="vertical-align: middle;">
+                                            <div style="position: relative; width: 200px; height: 20px; background: #e5e7eb; border-radius: 10px; border: 1px solid #ccc; overflow: hidden;">
+                                                <div style="position: absolute; top: 0; left: 0; height: 100%; width: {fuel_percentage}%; background: #00bcd4; border-radius: 10px;"></div>
+                                            </div>
+                                        </td>
+                                        <td style="padding-left: 15px; vertical-align: middle;">
+                                            <span style="color: #009cb6; font-size: 14px; font-weight: 600;">F</span>
+                                        </td>
+                                    </tr>
+                                    <tr>
+                                        <td colspan="3" align="center" style="padding-top: 10px;">
+                                            <p style="color: #333; margin: 0; font-size: 16px; font-weight: 700;">{fuel_text}</p>
+                                        </td>
+                                    </tr>
+                                </table>
+                            </td>
+                        </tr>
+                    </table>
+                    """
+                    
+                    # Use cached promotional images and logo
+                    global PROMO_IMAGES_CACHE, LOGO_CACHE
+                    logo_base64 = LOGO_CACHE or "/static/ap-heather.png"
+                    promo_base64 = {
+                        'promo1': PROMO_IMAGES_CACHE.get('promo1', ''),
+                        'promo2': PROMO_IMAGES_CACHE.get('promo2', ''),
+                        'promo3': PROMO_IMAGES_CACHE.get('promo3', ''),
+                        'benagil': PROMO_IMAGES_CACHE.get('benagil', ''),
+                        'lagos': PROMO_IMAGES_CACHE.get('lagos', ''),
+                        'sagres': PROMO_IMAGES_CACHE.get('sagres', '')
+                    }
+                    
+                    # Format inspection date
+                    from datetime import datetime
+                    inspection_date = datetime.now().strftime('%d/%m/%Y %H:%M')
+                    
+                    # T&C download URL
+                    tc_url_map = {
+                        'pt': f'{base_url}/download/tc-pt',
+                        'en': f'{base_url}/download/tc-en',
+                        'fr': f'{base_url}/download/tc-en'
+                    }
+                    tc_download_url = tc_url_map.get(detected_lang, tc_url_map['en'])
+                    
+                    # Inspection type label
+                    t_labels = {
+                        'checkout': {'pt': 'Entrega', 'fr': 'Livraison', 'en': 'Checkout'},
+                        'checkin': {'pt': 'Devolução', 'fr': 'Retour', 'en': 'Check-in'}
+                    }
+                    inspection_type_label = t_labels.get(inspection_type, {}).get(detected_lang, inspection_type)
                     
                     # Select template based on language
                     template_name = f"email_preview_{detected_lang}.html" if detected_lang in ['pt', 'fr'] else "email_preview.html"
                     
-                    # Prepare email content
-                    from jinja2 import Template
+                    # Prepare email content with ALL variables
                     template = templates.get_template(template_name)
-                    
                     html_content = template.render(
-                        CUSTOMER_NAME=first_name,
-                        FULL_CUSTOMER_NAME=client_name,
+                        LOGO_URL=logo_base64,
+                        RA_NUMBER=ra,
+                        CUSTOMER_NAME=client_name,
+                        FIRST_NAME=first_name,
                         VEHICLE_PLATE=plate,
                         VEHICLE_BRAND=vehicle_brand,
                         VEHICLE_MODEL=vehicle_model,
-                        INSPECTION_TYPE=inspection_type,
-                        DELIVERY_LOCATION=delivery_location,
-                        FUEL_LEVEL=fuel_level,
-                        ODOMETER=odometer_reading,
-                        INSPECTOR=receptionist,
-                        OBSERVATIONS=observations,
-                        CROQUI_IMAGE=croqui_url,
-                        base_url="https://carscraping.up.railway.app"
+                        VEHICLE_TYPE=vehicle_type,
+                        INSPECTION_TYPE=inspection_type_label,
+                        LOCATION=delivery_location,
+                        INSPECTION_DATE=inspection_date,
+                        ODOMETER=str(odometer_reading),
+                        INSPECTOR_NAME=receptionist,
+                        FUEL_GAUGE_SVG=fuel_gauge_html,
+                        CROQUI_IMAGE=final_croqui,
+                        PHOTOS_HTML=photos_html,
+                        PROMO_IMAGE_1=promo_base64.get('promo1', ''),
+                        PROMO_IMAGE_2=promo_base64.get('promo2', ''),
+                        PROMO_IMAGE_3=promo_base64.get('promo3', ''),
+                        BENAGIL_IMAGE=promo_base64.get('benagil', ''),
+                        LAGOS_IMAGE=promo_base64.get('lagos', ''),
+                        SAGRES_IMAGE=promo_base64.get('sagres', ''),
+                        TC_DOWNLOAD_URL=tc_download_url
                     )
                     
                     # Send email
-                    subject = f"Vehicle Inspection - {plate}"
+                    subject = f"Vehicle Inspection - {ra}"
                     if detected_lang == 'pt':
-                        subject = f"Inspeção de Veículo - {plate}"
+                        subject = f"Inspeção de Veículo - {ra}"
                     elif detected_lang == 'fr':
-                        subject = f"Inspection du Véhicule - {plate}"
+                        subject = f"Inspection du Véhicule - {ra}"
                     
                     await _send_notification_email(email, subject, html_content)
                     logging.info(f"✅ Email sent successfully to {email}")
