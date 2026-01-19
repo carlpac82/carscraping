@@ -31069,6 +31069,66 @@ async def send_inspection_email(request: Request, inspection_number: str):
         traceback.print_exc()
         return JSONResponse({"ok": False, "error": str(e)}, status_code=500)
 
+@app.get("/api/debug/ra/{ra_number}")
+async def debug_ra_data(request: Request, ra_number: str):
+    """DEBUG: Ver dados do RA guardados na base de dados"""
+    require_auth(request)
+    
+    try:
+        with _db_lock:
+            conn = _db_connect()
+            cursor = conn.cursor()
+            
+            if _USE_NEW_DB:
+                cursor.execute("""
+                    SELECT rental_agreement_number, license_plate, extracted_data, created_at
+                    FROM rental_agreements 
+                    WHERE rental_agreement_number LIKE %s
+                    ORDER BY created_at DESC
+                    LIMIT 1
+                """, (f"{ra_number}%",))
+            else:
+                cursor.execute("""
+                    SELECT rental_agreement_number, license_plate, extracted_data, created_at
+                    FROM rental_agreements 
+                    WHERE rental_agreement_number LIKE ?
+                    ORDER BY created_at DESC
+                    LIMIT 1
+                """, (f"{ra_number}%",))
+            
+            row = cursor.fetchone()
+            conn.close()
+            
+            if not row:
+                return JSONResponse({
+                    "ok": False,
+                    "error": f"RA {ra_number} not found"
+                })
+            
+            import json
+            extracted_data = json.loads(row[2]) if row[2] else {}
+            
+            return JSONResponse({
+                "ok": True,
+                "ra_number": row[0],
+                "license_plate": row[1],
+                "created_at": str(row[3]),
+                "extracted_data": extracted_data,
+                "fields": {
+                    "clientName": extracted_data.get('clientName', 'NOT FOUND'),
+                    "country": extracted_data.get('country', 'NOT FOUND'),
+                    "pickupLocation": extracted_data.get('pickupLocation', 'NOT FOUND'),
+                    "returnLocation": extracted_data.get('returnLocation', 'NOT FOUND'),
+                    "clientEmail": extracted_data.get('clientEmail', 'NOT FOUND'),
+                }
+            })
+    
+    except Exception as e:
+        return JSONResponse({
+            "ok": False,
+            "error": str(e)
+        }, status_code=500)
+
 @app.delete("/api/inspections/{inspection_number}")
 async def delete_inspection(request: Request, inspection_number: str):
     """Delete an inspection and all related inspections (both check-in and check-out) for the same RA"""
