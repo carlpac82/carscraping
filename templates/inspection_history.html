@@ -1431,8 +1431,12 @@
                     setTimeout(async () => {
                         console.log('⏰ 2 seconds elapsed, refreshing now...');
                         await refreshHistory(true); // Force refresh with cache busting
-                        console.log('✅ History refreshed, closing modal...');
-                        closeEditModal();
+                        console.log('✅ History refreshed, waiting 300ms for DOM update...');
+                        // Wait for DOM to update visually before closing modal
+                        setTimeout(() => {
+                            console.log('✅ DOM updated, closing modal now...');
+                            closeEditModal();
+                        }, 300);
                     }, 2000);
                 } else {
                     throw new Error(result.error || 'Erro ao atualizar inspeção');
