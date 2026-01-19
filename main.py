@@ -29106,27 +29106,106 @@ async def save_inspection(request: Request):
             
             if email and send_email:
                 try:
-                    logging.info(f"📧 Calling email endpoint for inspection {inspection_number}")
-                    # Call the proper email endpoint using internal HTTP client
-                    import httpx
-                    async with httpx.AsyncClient() as client:
-                        # Get auth token from request if available
-                        auth_header = request.headers.get('authorization', '')
-                        
-                        response = await client.post(
-                            f"http://localhost:8000/api/inspections/{inspection_number}/email",
-                            json={'email': email},
-                            headers={'Authorization': auth_header} if auth_header else {},
-                            timeout=30.0
-                        )
-                        
-                        if response.status_code == 200:
-                            logging.info(f"✅ Email sent successfully via endpoint")
-                        else:
-                            logging.error(f"❌ Email endpoint returned status {response.status_code}: {response.text}")
+                    logging.info(f"📧 Sending email for inspection {inspection_number} to {email}")
+                    
+                    # Get RA data for language detection
+                    ra_base = ra.split('-')[0] if '-' in ra else ra
+                    
+                    if is_postgres:
+                        cursor.execute("""
+                            SELECT extracted_data FROM rental_agreements 
+                            WHERE rental_agreement_number LIKE %s
+                            LIMIT 1
+                        """, (f"{ra_base}%",))
+                    else:
+                        cursor.execute("""
+                            SELECT extracted_data FROM rental_agreements 
+                            WHERE rental_agreement_number LIKE ?
+                            LIMIT 1
+                        """, (f"{ra_base}%",))
+                    
+                    ra_row = cursor.fetchone()
+                    
+                    # Detect language and extract client name
+                    detected_lang = 'en'
+                    client_name = 'Customer'
+                    first_name = 'Customer'
+                    
+                    if ra_row and ra_row[0]:
+                        import json
+                        try:
+                            extracted_data = json.loads(ra_row[0])
+                            country = extracted_data.get('country', '').upper()
+                            client_name = extracted_data.get('clientName', 'Customer')
+                            
+                            # Extract first name
+                            if client_name and client_name != 'Customer' and isinstance(client_name, str):
+                                name_parts = client_name.strip().split()
+                                first_name = name_parts[0].title() if name_parts else 'Customer'
+                            
+                            # Detect language
+                            if country in ('PORTUGAL', 'PT'):
+                                detected_lang = 'pt'
+                            elif country in ('FRANCE', 'FR', 'FRANÇA'):
+                                detected_lang = 'fr'
+                            
+                            logging.info(f"🌍 Language: {detected_lang}, Client: {client_name}, First: {first_name}")
+                        except Exception as e:
+                            logging.error(f"❌ Error parsing RA data: {e}")
+                    
+                    # Get croqui
+                    if is_postgres:
+                        cursor.execute("""
+                            SELECT image_data FROM inspection_photos 
+                            WHERE inspection_id = %s AND photo_type = 'damage_croqui'
+                            LIMIT 1
+                        """, (inspection_id,))
+                    else:
+                        cursor.execute("""
+                            SELECT image_data FROM inspection_photos 
+                            WHERE inspection_id = ? AND photo_type = 'damage_croqui'
+                            LIMIT 1
+                        """, (inspection_id,))
+                    
+                    croqui_row = cursor.fetchone()
+                    croqui_url = ''
+                    if croqui_row and croqui_row[0]:
+                        croqui_url = f"https://carscraping.up.railway.app/email-photo/{inspection_id}/damage_croqui"
+                        logging.info(f"🖼️ Croqui URL: {croqui_url}")
+                    
+                    # Select template based on language
+                    template_name = f"email_preview_{detected_lang}.html" if detected_lang in ['pt', 'fr'] else "email_preview.html"
+                    
+                    # Prepare email content
+                    from jinja2 import Template
+                    template = templates.get_template(template_name)
+                    
+                    html_content = template.render(
+                        CUSTOMER_NAME=first_name,
+                        FULL_CUSTOMER_NAME=client_name,
+                        VEHICLE_PLATE=plate,
+                        INSPECTION_TYPE=inspection_type,
+                        DELIVERY_LOCATION=ra_pickup_location or 'N/A',
+                        FUEL_LEVEL=fuel_level,
+                        ODOMETER=odometer_reading,
+                        INSPECTOR=user_full_name,
+                        OBSERVATIONS=observations,
+                        CROQUI_IMAGE=croqui_url,
+                        base_url="https://carscraping.up.railway.app"
+                    )
+                    
+                    # Send email
+                    subject = f"Vehicle Inspection - {plate}"
+                    if detected_lang == 'pt':
+                        subject = f"Inspeção de Veículo - {plate}"
+                    elif detected_lang == 'fr':
+                        subject = f"Inspection du Véhicule - {plate}"
+                    
+                    await _send_notification_email(email, subject, html_content)
+                    logging.info(f"✅ Email sent successfully to {email}")
                     
                 except Exception as email_error:
-                    logging.error(f"❌ Failed to send email via endpoint: {email_error}")
+                    logging.error(f"❌ Failed to send email: {email_error}")
                     logging.error(f"❌ Email error traceback: {traceback.format_exc()}")
                     # Don't fail the inspection save if email fails
         
