@@ -41270,6 +41270,66 @@ async def create_vehicle_inspection(request: Request):
         }, status_code=500)
 
 
+@app.get("/api/inspections/active")
+async def check_active_inspection(request: Request, plate: str, ra: str):
+    """Check if there's an active inspection (checkout without checkin) for a vehicle"""
+    try:
+        require_inspection_access(request)
+        
+        conn = _db_connect()
+        cursor = conn.cursor()
+        
+        # Check if there's a checkout inspection without corresponding checkin
+        if _USE_NEW_DB:
+            cursor.execute("""
+                SELECT contract_number 
+                FROM vehicle_inspections 
+                WHERE vehicle_plate = %s 
+                  AND inspection_type = 'checkout'
+                  AND contract_number != %s
+                  AND NOT EXISTS (
+                      SELECT 1 FROM vehicle_inspections ci 
+                      WHERE ci.vehicle_plate = vehicle_inspections.vehicle_plate 
+                        AND ci.contract_number = vehicle_inspections.contract_number
+                        AND ci.inspection_type = 'checkin'
+                  )
+                LIMIT 1
+            """, (plate, ra))
+        else:
+            cursor.execute("""
+                SELECT contract_number 
+                FROM vehicle_inspections 
+                WHERE vehicle_plate = ? 
+                  AND inspection_type = 'checkout'
+                  AND contract_number != ?
+                  AND NOT EXISTS (
+                      SELECT 1 FROM vehicle_inspections ci 
+                      WHERE ci.vehicle_plate = vehicle_inspections.vehicle_plate 
+                        AND ci.contract_number = vehicle_inspections.contract_number
+                        AND ci.inspection_type = 'checkin'
+                  )
+                LIMIT 1
+            """, (plate, ra))
+        
+        active_inspection = cursor.fetchone()
+        conn.close()
+        
+        if active_inspection:
+            return JSONResponse({
+                "has_active_inspection": True,
+                "active_ra": active_inspection[0]
+            })
+        else:
+            return JSONResponse({
+                "has_active_inspection": False
+            })
+            
+    except Exception as e:
+        logging.error(f"Error checking active inspection: {e}")
+        return JSONResponse({
+            "has_active_inspection": False
+        }, status_code=500)
+
 @app.get("/api/inspections/history")
 async def get_inspections_history(request: Request):
     """Get vehicle inspections history grouped by plate+RA"""

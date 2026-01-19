@@ -585,27 +585,29 @@ function saveActiveContracts(contracts) {
     localStorage.setItem('activeContracts', JSON.stringify(contracts));
 }
 
-function checkExistingContract() {
+async function checkExistingContract() {
     const plate = document.getElementById('inputPlate').value.trim();
     const ra = document.getElementById('inputRA').value.trim();
-    const contractKey = getContractKey();
-    const contracts = getActiveContracts();
     
-    // Check if there's an active contract for this vehicle with different RA
-    for (const [key, contract] of Object.entries(contracts)) {
-        const [contractPlate, contractRA] = key.split('_');
+    // Check if there's an active inspection (checkout without checkin) in the database
+    try {
+        const response = await fetch(`/api/inspections/active?plate=${encodeURIComponent(plate)}&ra=${encodeURIComponent(ra)}`);
+        const data = await response.json();
         
-        // Same vehicle, different RA, and previous contract not completed (no pickup)
-        if (contractPlate === plate && contractRA !== ra && !contract.pickupComplete) {
+        if (data.has_active_inspection) {
             return {
                 exists: true,
-                ra: contractRA,
-                deliveryComplete: contract.deliveryComplete
+                ra: data.active_ra,
+                deliveryComplete: true
             };
         }
+        
+        return { exists: false };
+    } catch (error) {
+        console.error('Error checking active inspections:', error);
+        // Em caso de erro, não bloquear
+        return { exists: false };
     }
-    
-    return { exists: false };
 }
 
 // ENTREGA (Delivery/Check-out) - Start inspection process
@@ -642,11 +644,11 @@ function startDelivery() {
 }
 
 // Helper function to proceed with delivery
-function proceedWithDelivery() {
-    // Check if there's an incomplete contract for this vehicle
-    const existingContract = checkExistingContract();
+async function proceedWithDelivery() {
+    // Check if there's an incomplete inspection for this vehicle
+    const existingContract = await checkExistingContract();
     if (existingContract.exists) {
-        showNotification(`❌ Existe um contrato ativo (RA: ${existingContract.ra}) para esta viatura que ainda não foi finalizado com check-in (recolha). Complete o check-in primeiro!`, 'error');
+        showNotification(`❌ Existe uma inspeção ativa (RA: ${existingContract.ra}) para esta viatura que ainda não foi finalizada com check-in (recolha). Complete o check-in primeiro!`, 'error');
         return;
     }
     
