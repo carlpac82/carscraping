@@ -673,15 +673,6 @@
                             <div class="mb-6">
                                 <h4 class="text-lg font-bold text-gray-900 mb-4">Nível de Combustível</h4>
                                 <div class="fuel-selector">
-                                    <div class="flex items-center justify-between mb-2">
-                                        <span class="text-sm font-semibold text-[#009cb6]">OUT</span>
-                                        <span class="text-sm font-semibold text-[#009cb6]">R</span>
-                                        <span class="text-sm font-semibold text-[#009cb6]">1/4</span>
-                                        <span class="text-sm font-semibold text-[#009cb6]">1/2</span>
-                                        <span class="text-sm font-semibold text-[#009cb6]">3/4</span>
-                                        <span class="text-sm font-semibold text-[#009cb6]">F</span>
-                                    </div>
-                                    
                                     <!-- Fuel Level Bar -->
                                     <div class="relative bg-white border-2 border-[#009cb6] rounded-lg h-8 mb-2 max-w-xs mx-auto">
                                         <!-- Fuel level indicators -->
@@ -696,6 +687,17 @@
                                         
                                         <!-- Fuel level fill -->
                                         <div class="h-full bg-[#009cb6] rounded-lg transition-all duration-300" style="width: ${inspection.fuel_level || 0}%;"></div>
+                                    </div>
+                                    
+                                    <!-- Labels alinhados com as linhas -->
+                                    <div class="relative max-w-xs mx-auto">
+                                        <div class="flex items-center justify-between">
+                                            <span class="text-xs font-semibold text-[#009cb6]" style="margin-left: -2px;">R</span>
+                                            <span class="text-xs font-semibold text-[#009cb6]" style="margin-left: -4px;">1/4</span>
+                                            <span class="text-xs font-semibold text-[#009cb6]" style="margin-left: -4px;">1/2</span>
+                                            <span class="text-xs font-semibold text-[#009cb6]" style="margin-left: -4px;">3/4</span>
+                                            <span class="text-xs font-semibold text-[#009cb6]" style="margin-right: -2px;">F</span>
+                                        </div>
                                     </div>
                                     
                                     <!-- Selected fuel level display -->
@@ -863,14 +865,6 @@
                             <div>
                                 <label class="block text-sm font-medium text-gray-700 mb-4">Nível de Combustível</label>
                                 <div class="fuel-selector">
-                                    <div class="flex items-center justify-between mb-2">
-                                        <span class="text-sm font-semibold text-[#009cb6]">R</span>
-                                        <span class="text-sm font-semibold text-[#009cb6]">1/4</span>
-                                        <span class="text-sm font-semibold text-[#009cb6]">1/2</span>
-                                        <span class="text-sm font-semibold text-[#009cb6]">3/4</span>
-                                        <span class="text-sm font-semibold text-[#009cb6]">F</span>
-                                    </div>
-                                    
                                     <!-- Fuel Level Bar -->
                                     <div class="relative bg-white border-2 border-[#009cb6] rounded-lg h-8 mb-2">
                                         <!-- Fuel level indicators -->
@@ -885,6 +879,17 @@
                                         
                                         <!-- Fuel level fill -->
                                         <div id="fuelFillEdit" class="h-full bg-[#009cb6] rounded-lg transition-all duration-300" style="width: ${inspection.fuel_level || 0}%;"></div>
+                                    </div>
+                                    
+                                    <!-- Labels alinhados com as linhas -->
+                                    <div class="relative mb-2">
+                                        <div class="flex items-center justify-between">
+                                            <span class="text-xs font-semibold text-[#009cb6]" style="margin-left: -2px;">R</span>
+                                            <span class="text-xs font-semibold text-[#009cb6]" style="margin-left: -4px;">1/4</span>
+                                            <span class="text-xs font-semibold text-[#009cb6]" style="margin-left: -4px;">1/2</span>
+                                            <span class="text-xs font-semibold text-[#009cb6]" style="margin-left: -4px;">3/4</span>
+                                            <span class="text-xs font-semibold text-[#009cb6]" style="margin-right: -2px;">F</span>
+                                        </div>
                                     </div>
                                     
                                     <!-- Fuel level slider -->
