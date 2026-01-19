@@ -906,6 +906,9 @@ def _preload_promotional_images():
     # Get base directory (works in both localhost and Railway)
     base_dir = Path(__file__).parent
     static_dir = base_dir / 'static'
+    logging.info(f"🔍 Base directory: {base_dir}")
+    logging.info(f"🔍 Static directory: {static_dir}")
+    logging.info(f"🔍 Static directory exists: {static_dir.exists()}")
     
     # Load logo
     try:
