@@ -30945,10 +30945,20 @@ async def send_inspection_email(request: Request, inspection_number: str):
                 photo_type = photo_row[0]
                 image_data = photo_row[1]
                 if image_data:
-                    # Use HTTP URL instead of base64 for Outlook Mac compatibility
-                    photo_url = f"{base_url}/email-photo/{inspection_id}/{photo_type}"
+                    # Convert to base64 inline for better email client compatibility
+                    import base64
+                    if isinstance(image_data, str):
+                        # Already base64 string
+                        if image_data.startswith('data:image'):
+                            photo_base64 = image_data
+                        else:
+                            photo_base64 = f"data:image/png;base64,{image_data}"
+                    else:
+                        # Bytes, need to encode
+                        photo_base64 = f"data:image/png;base64,{base64.b64encode(image_data).decode('utf-8')}"
+                    
                     label = labels_map.get(photo_type, photo_type)
-                    photos_list.append({'url': photo_url, 'label': label})
+                    photos_list.append({'url': photo_base64, 'label': label})
             
             # Create 3x3 table grid with HTTP URLs
             photos_html = '<table width="100%" cellpadding="5" cellspacing="0" style="margin: 0;">'
