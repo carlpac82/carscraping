@@ -44033,6 +44033,303 @@ async def get_vehicles_stats(request: Request):
             "error": str(e)
         }, status_code=500)
 
+@app.get("/checkin-preview-ok", response_class=HTMLResponse)
+async def checkin_preview_ok(request: Request):
+    """Preview de email de Check-in SEM PROBLEMAS (verde)"""
+    try:
+        global EMPTY_CROQUI_CACHE, LOGO_CACHE
+        
+        # Mock data para preview
+        ra = "06716-09"
+        customer_name = "João Silva"
+        first_name = "João"
+        vehicle_plate = "AB-12-CD"
+        vehicle_brand = "SEAT"
+        vehicle_model = "IBIZA"
+        location = "Aeroporto de Faro"
+        inspection_date = "19/01/2026 22:30"
+        odometer = "45250"
+        inspector = "Filipe Pacheco"
+        
+        # Combustível igual ao checkout (100%)
+        fuel_level_checkout = 100
+        fuel_level_checkin = 100
+        
+        # Sem danos detectados
+        has_damages = False
+        
+        # Status Alert - VERDE (sem problemas)
+        status_alert = """
+        <div style="padding: 20px; background-color: #d1fae5; border-left: 4px solid #10b981; margin: 20px;">
+            <h3 style="color: #065f46; margin: 0 0 10px 0; font-size: 16px; font-weight: bold;">✅ Devolução sem Incidências</h3>
+            <p style="color: #047857; margin: 0; font-size: 14px; line-height: 1.6;">
+                Não foram encontradas incidências na devolução da viatura. Obrigado por cuidar tão bem do nosso veículo!
+            </p>
+        </div>
+        """
+        
+        # Fuel gauge
+        fuel_color = '#10b981'
+        tank_height = 100
+        fill_height = tank_height
+        fill_y = 0
+        
+        fuel_gauge_html = f"""
+        <div style="text-align: center;">
+            <svg width="80" height="120" viewBox="0 0 80 120" style="display: block; margin: 0 auto;">
+                <rect x="20" y="10" width="40" height="100" rx="5" fill="#e5e7eb" stroke="#64748b" stroke-width="2"/>
+                <rect x="22" y="{10 + fill_y}" width="36" height="{fill_height}" rx="3" fill="{fuel_color}"/>
+                <path d="M 60 40 L 70 35 L 70 45 Z" fill="#64748b"/>
+                <circle cx="40" cy="5" r="3" fill="#64748b"/>
+            </svg>
+            <p style="margin: 10px 0 0 0; color: #1f2937; font-size: 16px; font-weight: 600;">{fuel_level_checkin}%</p>
+        </div>
+        """
+        
+        # Croqui title e image (só croqui de entrega)
+        croqui_title = "Croqui de Danos da Entrega"
+        croqui_image = EMPTY_CROQUI_CACHE or ""
+        
+        # Sem fotos (não há danos)
+        photos_section = ""
+        
+        # Logo
+        logo_url = LOGO_CACHE or "/static/ap-heather.png"
+        
+        # Render template
+        html_content = templates.get_template("email_checkin_pt.html").render(
+            request=request,
+            LOGO_URL=logo_url,
+            RA_NUMBER=ra,
+            CUSTOMER_NAME=customer_name,
+            FIRST_NAME=first_name,
+            VEHICLE_PLATE=vehicle_plate,
+            VEHICLE_BRAND=vehicle_brand,
+            VEHICLE_MODEL=vehicle_model,
+            LOCATION=location,
+            INSPECTION_DATE=inspection_date,
+            ODOMETER=odometer,
+            INSPECTOR_NAME=inspector,
+            STATUS_ALERT=status_alert,
+            FUEL_GAUGE_SVG=fuel_gauge_html,
+            CROQUI_TITLE=croqui_title,
+            CROQUI_IMAGE=croqui_image,
+            PHOTOS_SECTION=photos_section
+        )
+        
+        return HTMLResponse(content=html_content)
+        
+    except Exception as e:
+        logging.error(f"Error in checkin preview OK: {e}")
+        import traceback
+        traceback.print_exc()
+        return HTMLResponse(content=f"<h1>Erro</h1><pre>{str(e)}</pre>")
+
+@app.get("/checkin-preview-fuel", response_class=HTMLResponse)
+async def checkin_preview_fuel(request: Request):
+    """Preview de email de Check-in com FALTA DE COMBUSTÍVEL (vermelho)"""
+    try:
+        global EMPTY_CROQUI_CACHE, LOGO_CACHE
+        
+        # Mock data
+        ra = "06716-09"
+        customer_name = "João Silva"
+        first_name = "João"
+        vehicle_plate = "AB-12-CD"
+        vehicle_brand = "SEAT"
+        vehicle_model = "IBIZA"
+        location = "Aeroporto de Faro"
+        inspection_date = "19/01/2026 22:30"
+        odometer = "45250"
+        inspector = "Filipe Pacheco"
+        
+        # Combustível MENOR que checkout
+        fuel_level_checkout = 100
+        fuel_level_checkin = 50
+        
+        # Sem danos detectados
+        has_damages = False
+        
+        # Status Alert - VERMELHO (falta combustível)
+        status_alert = """
+        <div style="padding: 20px; background-color: #fee2e2; border-left: 4px solid #ef4444; margin: 20px;">
+            <h3 style="color: #991b1b; margin: 0 0 10px 0; font-size: 16px; font-weight: bold;">⚠️ Incidência Detectada: Combustível em Falta</h3>
+            <p style="color: #b91c1c; margin: 0; font-size: 14px; line-height: 1.6;">
+                Foi detectada uma diferença no nível de combustível. A viatura foi entregue com 100% e devolvida com 50%. 
+                Iremos analisar esta situação com os nossos colaboradores. Se necessário, entraremos em contacto consigo.
+            </p>
+        </div>
+        """
+        
+        # Fuel gauge
+        fuel_percentage = 50
+        fuel_color = '#ef4444'
+        tank_height = 100
+        fill_height = tank_height * fuel_percentage / 100
+        fill_y = tank_height - fill_height
+        
+        fuel_gauge_html = f"""
+        <div style="text-align: center;">
+            <svg width="80" height="120" viewBox="0 0 80 120" style="display: block; margin: 0 auto;">
+                <rect x="20" y="10" width="40" height="100" rx="5" fill="#e5e7eb" stroke="#64748b" stroke-width="2"/>
+                <rect x="22" y="{10 + fill_y}" width="36" height="{fill_height}" rx="3" fill="{fuel_color}"/>
+                <path d="M 60 40 L 70 35 L 70 45 Z" fill="#64748b"/>
+                <circle cx="40" cy="5" r="3" fill="#64748b"/>
+            </svg>
+            <p style="margin: 10px 0 0 0; color: #1f2937; font-size: 16px; font-weight: 600;">{fuel_percentage}%</p>
+        </div>
+        """
+        
+        # Croqui title e image
+        croqui_title = "Croqui de Danos da Entrega"
+        croqui_image = EMPTY_CROQUI_CACHE or ""
+        
+        # Sem fotos
+        photos_section = ""
+        
+        # Logo
+        logo_url = LOGO_CACHE or "/static/ap-heather.png"
+        
+        # Render template
+        html_content = templates.get_template("email_checkin_pt.html").render(
+            request=request,
+            LOGO_URL=logo_url,
+            RA_NUMBER=ra,
+            CUSTOMER_NAME=customer_name,
+            FIRST_NAME=first_name,
+            VEHICLE_PLATE=vehicle_plate,
+            VEHICLE_BRAND=vehicle_brand,
+            VEHICLE_MODEL=vehicle_model,
+            LOCATION=location,
+            INSPECTION_DATE=inspection_date,
+            ODOMETER=odometer,
+            INSPECTOR_NAME=inspector,
+            STATUS_ALERT=status_alert,
+            FUEL_GAUGE_SVG=fuel_gauge_html,
+            CROQUI_TITLE=croqui_title,
+            CROQUI_IMAGE=croqui_image,
+            PHOTOS_SECTION=photos_section
+        )
+        
+        return HTMLResponse(content=html_content)
+        
+    except Exception as e:
+        logging.error(f"Error in checkin preview FUEL: {e}")
+        import traceback
+        traceback.print_exc()
+        return HTMLResponse(content=f"<h1>Erro</h1><pre>{str(e)}</pre>")
+
+@app.get("/checkin-preview-damages", response_class=HTMLResponse)
+async def checkin_preview_damages(request: Request):
+    """Preview de email de Check-in com DANOS DETECTADOS (vermelho)"""
+    try:
+        global EMPTY_CROQUI_CACHE, LOGO_CACHE
+        
+        # Mock data
+        ra = "06716-09"
+        customer_name = "João Silva"
+        first_name = "João"
+        vehicle_plate = "AB-12-CD"
+        vehicle_brand = "SEAT"
+        vehicle_model = "IBIZA"
+        location = "Aeroporto de Faro"
+        inspection_date = "19/01/2026 22:30"
+        odometer = "45250"
+        inspector = "Filipe Pacheco"
+        
+        # Combustível OK
+        fuel_level_checkout = 100
+        fuel_level_checkin = 100
+        
+        # COM danos detectados
+        has_damages = True
+        
+        # Status Alert - VERMELHO (danos detectados)
+        status_alert = """
+        <div style="padding: 20px; background-color: #fee2e2; border-left: 4px solid #ef4444; margin: 20px;">
+            <h3 style="color: #991b1b; margin: 0 0 10px 0; font-size: 16px; font-weight: bold;">⚠️ Danos Detectados na Recolha</h3>
+            <p style="color: #b91c1c; margin: 0; font-size: 14px; line-height: 1.6;">
+                Foram detectados danos na recolha da viatura que não estavam presentes na entrega. 
+                Iremos analisar esta situação e, se necessário, entraremos em contacto consigo.
+            </p>
+        </div>
+        """
+        
+        # Fuel gauge
+        fuel_color = '#10b981'
+        tank_height = 100
+        fill_height = tank_height
+        fill_y = 0
+        
+        fuel_gauge_html = f"""
+        <div style="text-align: center;">
+            <svg width="80" height="120" viewBox="0 0 80 120" style="display: block; margin: 0 auto;">
+                <rect x="20" y="10" width="40" height="100" rx="5" fill="#e5e7eb" stroke="#64748b" stroke-width="2"/>
+                <rect x="22" y="{10 + fill_y}" width="36" height="{fill_height}" rx="3" fill="{fuel_color}"/>
+                <path d="M 60 40 L 70 35 L 70 45 Z" fill="#64748b"/>
+                <circle cx="40" cy="5" r="3" fill="#64748b"/>
+            </svg>
+            <p style="margin: 10px 0 0 0; color: #1f2937; font-size: 16px; font-weight: 600;">100%</p>
+        </div>
+        """
+        
+        # Croqui title e image (combinado: entrega + recolha)
+        croqui_title = "Croqui de Danos (Entrega + Recolha)"
+        croqui_image = EMPTY_CROQUI_CACHE or ""  # TODO: Implementar combinação de croquis
+        
+        # COM fotos de danos
+        photos_section = """
+        <div style="padding: 20px;">
+            <h3 style="color: #00bcd4; margin: 0 0 15px 0; font-size: 18px;">Fotos dos Danos Detectados na Recolha</h3>
+            <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px;">
+                <div style="text-align: center;">
+                    <img src="https://via.placeholder.com/200x150/ef4444/ffffff?text=Dano+Frontal" alt="Dano Frontal" style="width: 100%; height: 150px; object-fit: cover; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); border: 2px solid #ef4444;" />
+                    <p style="color: #ef4444; margin: 5px 0 0 0; font-size: 12px; font-weight: 600;">Dano Frontal</p>
+                </div>
+                <div style="text-align: center;">
+                    <img src="https://via.placeholder.com/200x150/ef4444/ffffff?text=Dano+Lateral" alt="Dano Lateral" style="width: 100%; height: 150px; object-fit: cover; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); border: 2px solid #ef4444;" />
+                    <p style="color: #ef4444; margin: 5px 0 0 0; font-size: 12px; font-weight: 600;">Dano Lateral</p>
+                </div>
+                <div style="text-align: center;">
+                    <img src="https://via.placeholder.com/200x150/ef4444/ffffff?text=Dano+Traseiro" alt="Dano Traseiro" style="width: 100%; height: 150px; object-fit: cover; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); border: 2px solid #ef4444;" />
+                    <p style="color: #ef4444; margin: 5px 0 0 0; font-size: 12px; font-weight: 600;">Dano Traseiro</p>
+                </div>
+            </div>
+        </div>
+        """
+        
+        # Logo
+        logo_url = LOGO_CACHE or "/static/ap-heather.png"
+        
+        # Render template
+        html_content = templates.get_template("email_checkin_pt.html").render(
+            request=request,
+            LOGO_URL=logo_url,
+            RA_NUMBER=ra,
+            CUSTOMER_NAME=customer_name,
+            FIRST_NAME=first_name,
+            VEHICLE_PLATE=vehicle_plate,
+            VEHICLE_BRAND=vehicle_brand,
+            VEHICLE_MODEL=vehicle_model,
+            LOCATION=location,
+            INSPECTION_DATE=inspection_date,
+            ODOMETER=odometer,
+            INSPECTOR_NAME=inspector,
+            STATUS_ALERT=status_alert,
+            FUEL_GAUGE_SVG=fuel_gauge_html,
+            CROQUI_TITLE=croqui_title,
+            CROQUI_IMAGE=croqui_image,
+            PHOTOS_SECTION=photos_section
+        )
+        
+        return HTMLResponse(content=html_content)
+        
+    except Exception as e:
+        logging.error(f"Error in checkin preview DAMAGES: {e}")
+        import traceback
+        traceback.print_exc()
+        return HTMLResponse(content=f"<h1>Erro</h1><pre>{str(e)}</pre>")
+
 if __name__ == "__main__":
     import uvicorn
     uvicorn.run(app, host="0.0.0.0", port=8000)
