@@ -1418,15 +1418,22 @@
             .then(response => response.json())
             .then(data => {
                 if (data.success) {
-                    alert(email ? 'Inspeção guardada com sucesso!\nRelatório enviado por email.' : 'Inspeção guardada no histórico com sucesso!');
-                    window.location.href = '/check-in';
+                    const successMessage = email ? 
+                        'Inspeção guardada com sucesso! Relatório enviado por email.' : 
+                        'Inspeção guardada no histórico com sucesso!';
+                    showNotification(successMessage, 'success');
+                    
+                    // Redirect after short delay to show notification
+                    setTimeout(() => {
+                        window.location.href = '/check-in';
+                    }, 1500);
                 } else {
-                    alert('Erro ao guardar inspeção: ' + (data.error || 'Erro desconhecido'));
+                    showNotification('Erro ao guardar inspeção: ' + (data.error || 'Erro desconhecido'), 'error');
                 }
             })
             .catch(error => {
                 console.error('Error saving inspection:', error);
-                alert('Erro ao guardar inspeção. Tente novamente.');
+                showNotification('Erro ao guardar inspeção. Tente novamente.', 'error');
             });
         };
         
@@ -2820,15 +2827,17 @@
                 if (data.success) {
                     // Show success message
                     const successMessage = email ? 
-                        'Inspeção guardada com sucesso!\nRelatório enviado por email.' :
+                        'Inspeção guardada com sucesso! Relatório enviado por email.' :
                         'Inspeção guardada no histórico com sucesso!';
-                        
-                    alert(successMessage);
                     
-                    // Redirect to check-in page
-                    window.location.href = '/check-in';
+                    showNotification(successMessage, 'success');
+                    
+                    // Redirect after short delay to show notification
+                    setTimeout(() => {
+                        window.location.href = '/check-in';
+                    }, 1500);
                 } else {
-                    alert('Erro ao guardar inspeção: ' + (data.error || 'Erro desconhecido'));
+                    showNotification('Erro ao guardar inspeção: ' + (data.error || 'Erro desconhecido'), 'error');
                 }
             })
             .catch(error => {
@@ -2837,7 +2846,7 @@
                 isSaving = false; // Reset flag
                 
                 console.error('Error saving inspection:', error);
-                alert('Erro ao guardar inspeção. Tente novamente.');
+                showNotification('Erro ao guardar inspeção. Tente novamente.', 'error');
             });
         }
         
