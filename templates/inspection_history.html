@@ -859,16 +859,46 @@
                         <form id="editForm" class="space-y-6">
                             <!-- Fuel Level -->
                             <div>
-                                <label class="block text-sm font-medium text-gray-700 mb-2">Nível de Combustível</label>
-                                <div class="flex items-center gap-4">
-                                    <input type="range" id="fuelLevel" min="0" max="100" value="${inspection.fuel_level || 50}" 
-                                           class="flex-1" oninput="updateFuelDisplay(this.value)">
-                                    <span id="fuelDisplay" class="text-sm font-semibold text-[#009cb6] min-w-[60px]">${inspection.fuel_level || 50}%</span>
-                                </div>
-                                <div class="flex justify-between text-xs text-gray-500 mt-1">
-                                    <span>Vazio (E)</span>
-                                    <span>Meio (1/2)</span>
-                                    <span>Cheio (F)</span>
+                                <label class="block text-sm font-medium text-gray-700 mb-4">Nível de Combustível</label>
+                                <div class="fuel-selector">
+                                    <div class="flex items-center justify-between mb-2">
+                                        <span class="text-sm font-semibold text-[#009cb6]">R</span>
+                                        <span class="text-sm font-semibold text-[#009cb6]">1/4</span>
+                                        <span class="text-sm font-semibold text-[#009cb6]">1/2</span>
+                                        <span class="text-sm font-semibold text-[#009cb6]">3/4</span>
+                                        <span class="text-sm font-semibold text-[#009cb6]">F</span>
+                                    </div>
+                                    
+                                    <!-- Fuel Level Bar -->
+                                    <div class="relative bg-white border-2 border-[#009cb6] rounded-lg h-8 mb-2">
+                                        <!-- Fuel level indicators -->
+                                        <div class="absolute inset-0 flex items-center justify-between px-1">
+                                            <div class="w-0.5 h-4 bg-[#009cb6]"></div>
+                                            <div class="w-0.5 h-4 bg-[#009cb6]"></div>
+                                            <div class="w-0.5 h-4 bg-[#009cb6]"></div>
+                                            <div class="w-0.5 h-4 bg-[#009cb6]"></div>
+                                            <div class="w-0.5 h-4 bg-[#009cb6]"></div>
+                                            <div class="w-0.5 h-4 bg-[#009cb6]"></div>
+                                        </div>
+                                        
+                                        <!-- Fuel level fill -->
+                                        <div id="fuelFillEdit" class="h-full bg-[#009cb6] rounded-lg transition-all duration-300" style="width: ${inspection.fuel_level || 0}%;"></div>
+                                    </div>
+                                    
+                                    <!-- Fuel level slider -->
+                                    <input type="range" 
+                                           id="fuelLevel" 
+                                           class="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer"
+                                           min="0" 
+                                           max="100" 
+                                           value="${inspection.fuel_level || 50}"
+                                           step="1"
+                                           oninput="updateFuelDisplay(this.value)">
+                                    
+                                    <div class="text-center mt-2">
+                                        <span class="text-sm text-gray-600">Nível: </span>
+                                        <span id="fuelDisplay" class="text-lg font-bold text-[#009cb6]">${inspection.fuel_level || 50}%</span>
+                                    </div>
                                 </div>
                             </div>
                             
@@ -1276,6 +1306,10 @@
         // Update fuel level display
         function updateFuelDisplay(value) {
             document.getElementById('fuelDisplay').textContent = value + '%';
+            const fuelFill = document.getElementById('fuelFillEdit');
+            if (fuelFill) {
+                fuelFill.style.width = value + '%';
+            }
         }
         
         // Close edit modal
