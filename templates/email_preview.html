@@ -69,10 +69,16 @@
     </style>
 </head>
 <body style="margin: 0; padding: 0; font-family: Arial, sans-serif; background-color: #f4f4f4;">
-    <div class="email-container" style="max-width: 600px; min-width: 320px; margin: 0 auto; background-color: #ffffff;">
-        
-        <!-- Header -->
-        <div style="background: linear-gradient(135deg, #00bcd4 0%, #0097a7 100%); padding: 20px;">
+    <!-- Outlook-specific wrapper table -->
+    <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="margin: 0; padding: 0;">
+        <tr>
+            <td align="center" style="padding: 0;">
+                <table role="presentation" width="600" cellpadding="0" cellspacing="0" border="0" style="margin: 0 auto; background-color: #ffffff; width: 600px !important;">
+                    <tr>
+                        <td style="padding: 0;">
+    
+    <!-- Header -->
+    <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="background: linear-gradient(135deg, #00bcd4 0%, #0097a7 100%); background-color: #00bcd4; padding: 20px;">
             <table width="100%" cellpadding="0" cellspacing="0">
                 <tr>
                     <td style="width: 50%; text-align: left; vertical-align: middle;">
@@ -350,6 +356,11 @@
             </div>
         </div>
         
-    </div>
+                        </td>
+                    </tr>
+                </table>
+            </td>
+        </tr>
+    </table>
 </body>
 </html>
