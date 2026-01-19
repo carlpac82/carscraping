@@ -29113,9 +29113,12 @@ async def save_inspection(request: Request):
                     
                     # Convert logo to base64 for email embedding
                     import base64
+                    import os
                     logo_base64 = ""
                     try:
-                        with open('/Users/filipepacheco/CascadeProjects/carscraping/logo_autoprudente 1.png', 'rb') as logo_file:
+                        project_root = os.path.dirname(os.path.abspath(__file__))
+                        logo_path = os.path.join(project_root, 'logo_autoprudente 1.png')
+                        with open(logo_path, 'rb') as logo_file:
                             logo_base64 = base64.b64encode(logo_file.read()).decode('utf-8')
                             logo_base64 = f"data:image/png;base64,{logo_base64}"
                             logging.info("✅ Logo converted to base64")
@@ -41748,7 +41751,8 @@ async def resend_last_inspection(request: Request):
             
             # Read logo
             logo_base64 = ''
-            logo_path = '/Users/filipepacheco/CascadeProjects/carscraping/logo_autoprudente 1.png'
+            project_root = os.path.dirname(os.path.abspath(__file__))
+            logo_path = os.path.join(project_root, 'logo_autoprudente 1.png')
             try:
                 with open(logo_path, 'rb') as f:
                     logo_base64 = base64.b64encode(f.read()).decode('utf-8')
