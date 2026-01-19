@@ -42147,13 +42147,13 @@ async def update_inspection(inspection_number: str, request: Request):
                 if _USE_NEW_DB:
                     cursor.execute("""
                         UPDATE inspection_photos 
-                        SET image_data = %s, updated_at = NOW()
+                        SET image_data = %s
                         WHERE inspection_id = %s AND photo_type = 'damage_croqui'
                     """, (croqui_data, inspection_id))
                 else:
                     cursor.execute("""
                         UPDATE inspection_photos 
-                        SET image_data = ?, updated_at = CURRENT_TIMESTAMP
+                        SET image_data = ?
                         WHERE inspection_id = ? AND photo_type = 'damage_croqui'
                     """, (croqui_data, inspection_id))
                 logging.info("✅ Updated existing damage croqui")
@@ -42161,13 +42161,13 @@ async def update_inspection(inspection_number: str, request: Request):
                 # Insert new croqui
                 if _USE_NEW_DB:
                     cursor.execute("""
-                        INSERT INTO inspection_photos (inspection_id, photo_type, image_data, created_at, updated_at)
-                        VALUES (%s, 'damage_croqui', %s, NOW(), NOW())
+                        INSERT INTO inspection_photos (inspection_id, photo_type, image_data, created_at)
+                        VALUES (%s, 'damage_croqui', %s, NOW())
                     """, (inspection_id, croqui_data))
                 else:
                     cursor.execute("""
-                        INSERT INTO inspection_photos (inspection_id, photo_type, image_data, created_at, updated_at)
-                        VALUES (?, 'damage_croqui', ?, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
+                        INSERT INTO inspection_photos (inspection_id, photo_type, image_data, created_at)
+                        VALUES (?, 'damage_croqui', ?, CURRENT_TIMESTAMP)
                     """, (inspection_id, croqui_data))
                 logging.info("✅ Inserted new damage croqui")
         
