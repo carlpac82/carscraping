@@ -29201,10 +29201,18 @@ async def save_inspection(request: Request):
                     # Use HTTP URL for croqui or empty cache
                     global EMPTY_CROQUI_CACHE
                     if croqui_row and croqui_row[0]:
-                        import time
-                        cache_buster = int(time.time())
-                        final_croqui = f"{base_url}/email-photo/{inspection_id}/damage_croqui?v={cache_buster}"
-                        logging.info(f"🖼️ Croqui URL: {final_croqui}")
+                        import base64
+                        image_data = croqui_row[0]
+                        if isinstance(image_data, str):
+                            # Already base64 string
+                            if image_data.startswith('data:image'):
+                                final_croqui = image_data
+                            else:
+                                final_croqui = f"data:image/png;base64,{image_data}"
+                        else:
+                            # Bytes, need to encode
+                            final_croqui = f"data:image/png;base64,{base64.b64encode(image_data).decode('utf-8')}"
+                        logging.info(f"🖼️ Croqui converted to base64 inline")
                     else:
                         final_croqui = EMPTY_CROQUI_CACHE or ""
                         logging.info(f"⚠️ No croqui, using empty cache")
@@ -29247,9 +29255,20 @@ async def save_inspection(request: Request):
                             photo_type = photo_row[0]
                             image_data = photo_row[1]
                             if image_data:
-                                photo_url = f"{base_url}/email-photo/{inspection_id}/{photo_type}"
+                                # Convert to base64 inline for better email client compatibility
+                                import base64
+                                if isinstance(image_data, str):
+                                    # Already base64 string
+                                    if image_data.startswith('data:image'):
+                                        photo_base64 = image_data
+                                    else:
+                                        photo_base64 = f"data:image/png;base64,{image_data}"
+                                else:
+                                    # Bytes, need to encode
+                                    photo_base64 = f"data:image/png;base64,{base64.b64encode(image_data).decode('utf-8')}"
+                                
                                 label = labels_map.get(photo_type, photo_type)
-                                photos_list.append({'url': photo_url, 'label': label})
+                                photos_list.append({'url': photo_base64, 'label': label})
                         
                         # Create 3x3 table grid
                         photos_html = '<table width="100%" cellpadding="5" cellspacing="0" style="margin: 0;">'
