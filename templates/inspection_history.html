@@ -276,7 +276,7 @@
                                         </svg>
                                     </button>
                                     ` : ''}
-                                    <button onclick="showEmailModal('${contract.checkout ? contract.checkout.inspection_number : ''}', '${contract.checkin ? contract.checkin.inspection_number : ''}', '${contract.vehicle_plate}', '${contract.contract_number}')" class="p-2 text-[#f59e0b] hover:bg-yellow-50 rounded-lg transition-colors" title="Enviar por Email">
+                                    <button onclick="showEmailModal(${contract.checkout ? `'${contract.checkout.inspection_number}'` : 'null'}, ${contract.checkin ? `'${contract.checkin.inspection_number}'` : 'null'}, '${contract.vehicle_plate}', '${contract.contract_number}')" class="p-2 text-[#f59e0b] hover:bg-yellow-50 rounded-lg transition-colors" title="Enviar por Email">
                                         <svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"/>
                                         </svg>
@@ -446,6 +446,20 @@
                     inspectionNumber = checkinNumber;
                 }
                 
+                console.log('📧 Sending email:', {
+                    checkoutNumber,
+                    checkinNumber,
+                    reportType,
+                    inspectionNumber,
+                    email
+                });
+                
+                // Validate inspection number
+                if (!inspectionNumber || inspectionNumber === 'undefined' || inspectionNumber === 'null') {
+                    showNotification('Erro: Número de inspeção inválido', 'error');
+                    return;
+                }
+                
                 const response = await fetch(`/api/inspections/${inspectionNumber}/email`, { 
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
@@ -460,6 +474,7 @@
                     showNotification('Erro ao enviar email: ' + data.error, 'error');
                 }
             } catch (error) {
+                console.error('❌ Email send error:', error);
                 showNotification('Erro ao enviar email: ' + error.message, 'error');
             } finally {
                 // Restore button state
