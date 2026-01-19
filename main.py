@@ -31025,7 +31025,10 @@ async def send_inspection_email(request: Request, inspection_number: str):
         # Use HTTP URL for croqui instead of base64 for Outlook Mac compatibility
         if croqui_row and croqui_row[0]:
             # Use HTTP URL instead of base64 for better email client compatibility
-            final_croqui = f"{base_url}/email-photo/{inspection_id}/damage_croqui"
+            # Add timestamp to prevent caching of old croqui versions
+            import time
+            cache_buster = int(time.time())
+            final_croqui = f"{base_url}/email-photo/{inspection_id}/damage_croqui?v={cache_buster}"
             print(f"🔍 Using HTTP URL for croqui: {final_croqui}", flush=True)
         else:
             # Fallback to empty croqui cache if no custom croqui
