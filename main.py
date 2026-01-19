@@ -43033,9 +43033,35 @@ async def get_latest_ra_by_plate(request: Request, plate: str):
                     "status": vehicle_row[8]
                 }
         
+        # Check if there's an actual checkout inspection in the database
+        # (not just the flag in rental_agreements)
+        has_checkout_inspection = False
+        if is_postgres:
+            with conn.cursor() as cur:
+                cur.execute("""
+                    SELECT COUNT(*) 
+                    FROM vehicle_inspections 
+                    WHERE contract_number = %s 
+                      AND inspection_type = 'checkout'
+                """, (ra_data["rental_agreement_number"],))
+                count = cur.fetchone()[0]
+                has_checkout_inspection = count > 0
+        else:
+            cursor = conn.execute("""
+                SELECT COUNT(*) 
+                FROM vehicle_inspections 
+                WHERE contract_number = ? 
+                  AND inspection_type = 'checkout'
+            """, (ra_data["rental_agreement_number"],))
+            count = cursor.fetchone()[0]
+            has_checkout_inspection = count > 0
+        
+        # Override inspection_completed based on actual inspection existence
+        ra_data["inspection_completed"] = has_checkout_inspection
+        
         # Get inspection info if inspection exists
         inspection_info = None
-        if ra_data["inspection_completed"] and ra_data["inspection_id"]:
+        if has_checkout_inspection and ra_data["inspection_id"]:
             if is_postgres:
                 with conn.cursor() as cur:
                     cur.execute("""
