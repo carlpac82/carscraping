@@ -29113,7 +29113,9 @@ async def save_inspection(request: Request):
                                 photos_html += f"""
                                 <div style="margin-bottom: 18px;">
                                     <h4 style="color: #009cb6; margin-bottom: 8px; font-size: 16px;">{label}</h4>
-                                    <img src="{photo_data}" alt="{label}" onclick="var w=window.open('','_blank');w.document.write('<img src=\\''+this.src+'\\' style=\\'max-width:100%;height:auto\\'/>');" style="max-width: 100%; width: 100%; height: auto; border-radius: 6px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); display: block; cursor: pointer; transition: transform 0.2s;" onmouseover="this.style.transform='scale(1.02)'" onmouseout="this.style.transform='scale(1)'" />
+                                    <a href="{photo_data}" target="_blank" style="text-decoration: none; display: block;">
+                                        <img src="{photo_data}" alt="{label}" style="max-width: 100%; width: 100%; height: auto; border-radius: 6px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); display: block; border: 2px solid transparent;" />
+                                    </a>
                                 </div>
                                 """
                                 logging.info(f"✅ Added photo: {photo_type} ({label})")
@@ -29832,7 +29834,9 @@ async def email_preview(request: Request, ra: str = "06716-09"):
                         
                         photos_html += f"""
                         <div style="text-align: center;">
-                            <img src="{photo_data}" alt="{label}" onclick="var w=window.open('','_blank');w.document.write('<img src=\\''+this.src+'\\' style=\\'max-width:100%;height:auto\\'/>');" style="width: 100%; height: 150px; object-fit: cover; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); cursor: pointer; transition: transform 0.2s;" onmouseover="this.style.transform='scale(1.05)'" onmouseout="this.style.transform='scale(1)'" />
+                            <a href="{photo_data}" target="_blank" style="text-decoration: none; display: block;">
+                                <img src="{photo_data}" alt="{label}" style="width: 100%; height: 150px; object-fit: cover; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); display: block; border: 2px solid transparent; transition: border-color 0.2s;" />
+                            </a>
                             <p style="color: #00bcd4; margin: 5px 0 0 0; font-size: 12px; font-weight: 600;">{label}</p>
                         </div>
                         """
@@ -29996,7 +30000,9 @@ async def email_preview_pt(request: Request, ra: str = "06716-09"):
                                 label = photo_labels_map.get(photo_type, photo_type)
                                 photos_html += f"""
                                 <div style="text-align: center;">
-                                    <img src="{photo_data}" alt="{label}" style="width: 100%; height: 150px; object-fit: cover; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); cursor: pointer;" />
+                                    <a href="{photo_data}" target="_blank" style="text-decoration: none; display: block;">
+                                        <img src="{photo_data}" alt="{label}" style="width: 100%; height: 150px; object-fit: cover; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); display: block; border: 2px solid transparent;" />
+                                    </a>
                                     <p style="color: #00bcd4; margin: 5px 0 0 0; font-size: 12px; font-weight: 600;">{label}</p>
                                 </div>
                                 """
@@ -30192,7 +30198,9 @@ async def email_preview_fr(request: Request, ra: str = "06716-09"):
                                 label = photo_labels_map.get(photo_type, photo_type)
                                 photos_html += f"""
                                 <div style="text-align: center;">
-                                    <img src="{photo_data}" alt="{label}" style="width: 100%; height: 150px; object-fit: cover; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); cursor: pointer;" />
+                                    <a href="{photo_data}" target="_blank" style="text-decoration: none; display: block;">
+                                        <img src="{photo_data}" alt="{label}" style="width: 100%; height: 150px; object-fit: cover; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); display: block; border: 2px solid transparent;" />
+                                    </a>
                                     <p style="color: #00bcd4; margin: 5px 0 0 0; font-size: 12px; font-weight: 600;">{label}</p>
                                 </div>
                                 """
