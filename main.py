@@ -30384,7 +30384,7 @@ async def get_inspection(request: Request, plate: str, ra: str, type: str = 'che
                 "status": inspection_row[13],
                 "photo_count": inspection_row[14],
                 "created_at": str(inspection_row[15]),
-                "client_email": ''
+                "client_email": inspection_row[16] if len(inspection_row) > 16 else ''
             }
             
             # Get client email from Rental Agreement extracted_data
@@ -30750,7 +30750,17 @@ async def send_inspection_email(request: Request, inspection_number: str):
         croqui_row = cursor.fetchone()
         if croqui_row and croqui_row[0]:
             import base64
-            croqui_image = f"data:image/png;base64,{base64.b64encode(croqui_row[0]).decode('utf-8')}"
+            # Check if image_data is already base64 string or bytes
+            image_data = croqui_row[0]
+            if isinstance(image_data, str):
+                # Already base64 string, just add data URL prefix if missing
+                if image_data.startswith('data:image'):
+                    croqui_image = image_data
+                else:
+                    croqui_image = f"data:image/png;base64,{image_data}"
+            else:
+                # Bytes, need to encode
+                croqui_image = f"data:image/png;base64,{base64.b64encode(image_data).decode('utf-8')}"
         
         # Get photos
         if _USE_NEW_DB:
