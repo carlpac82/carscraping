@@ -186,10 +186,16 @@
         }
 
         function renderHistory(data) {
+            console.log('🎨 renderHistory called with', data.length, 'contracts');
             const container = document.getElementById('historyContainer');
             
             // Force clear container to ensure fresh render
             container.innerHTML = '';
+            
+            // Force reflow to ensure DOM updates
+            void container.offsetHeight;
+            
+            console.log('🧹 Container cleared, rendering', data.length, 'contracts');
             
             if (data.length === 0) {
                 container.innerHTML = `
