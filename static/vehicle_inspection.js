@@ -160,7 +160,7 @@ function updatePickupButtonState() {
     
     // Check if there's a completed delivery
     // Priority 1: Check window.inspectionCompleted (from RA database)
-    // Priority 2: Check localStorage contracts
+    // Priority 2: Check localStorage contracts (only if backend hasn't been checked yet)
     const plate = document.getElementById('inputPlate')?.value.trim();
     const ra = document.getElementById('inputRA')?.value.trim();
     
@@ -171,7 +171,12 @@ function updatePickupButtonState() {
         hasCompletedDelivery = true;
         console.log('✅ Check-in enabled: inspection_completed from database');
     } 
-    // Fallback: Check localStorage contracts
+    // If backend explicitly says false, respect it (don't check localStorage)
+    else if (window.inspectionCompleted === false) {
+        hasCompletedDelivery = false;
+        console.log('❌ Check-in disabled: backend says no checkout inspection exists');
+    }
+    // Fallback: Check localStorage contracts (only if backend hasn't been checked yet)
     else if (plate && ra) {
         const contractKey = `${plate}_${ra}`;
         const contracts = getActiveContracts();
@@ -179,7 +184,7 @@ function updatePickupButtonState() {
         // Check if this specific contract has completed delivery
         if (contracts[contractKey] && contracts[contractKey].deliveryComplete) {
             hasCompletedDelivery = true;
-            console.log('✅ Check-in enabled: deliveryComplete from localStorage');
+            console.log('✅ Check-in enabled: deliveryComplete from localStorage (backend not checked yet)');
         }
     }
     
