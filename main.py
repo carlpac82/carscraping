@@ -42703,7 +42703,22 @@ async def serve_email_photo(inspection_id: int, photo_type: str):
             logging.info(f"🖼️ Already bytes: {len(image_bytes)} bytes")
         
         logging.info(f"🖼️ Final image_bytes length: {len(image_bytes)}, first 20 bytes: {image_bytes[:20]}")
-        img = Image.open(io.BytesIO(image_bytes))
+        
+        try:
+            img = Image.open(io.BytesIO(image_bytes))
+        except Exception as img_error:
+            logging.error(f"❌ PIL cannot open image: {img_error}")
+            logging.error(f"❌ Image bytes (first 200): {image_bytes[:200]}")
+            # Return a placeholder 1x1 transparent PNG instead of error
+            placeholder = base64.b64decode('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==')
+            return Response(
+                content=placeholder,
+                media_type="image/png",
+                headers={
+                    "Cache-Control": "no-cache",
+                    "Content-Disposition": f"inline; filename={photo_type}_error.png"
+                }
+            )
         
         # Resize to max width 400px
         max_width = 400
@@ -42735,7 +42750,9 @@ async def serve_email_photo(inspection_id: int, photo_type: str):
         )
     except Exception as e:
         logging.error(f"Error serving email photo: {e}")
-        raise HTTPException(status_code=500, detail=str(e))
+        # Return placeholder instead of error
+        placeholder = base64.b64decode('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==')
+        return Response(content=placeholder, media_type="image/png")
 
 @app.post("/api/extract-rental-agreement")
 async def extract_rental_agreement(request: Request, pdf: UploadFile = File(...)):
