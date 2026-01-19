@@ -30887,6 +30887,8 @@ async def send_inspection_email(request: Request, inspection_number: str):
             # Check if image_data is already base64 string or bytes
             image_data = croqui_row[0]
             print(f"🖼️ Croqui data type: {type(image_data).__name__}, length: {len(image_data) if image_data else 0}", flush=True)
+            print(f"🖼️ Croqui first 100 chars: {str(image_data)[:100] if image_data else 'None'}", flush=True)
+            
             if isinstance(image_data, str):
                 # Already base64 string, just add data URL prefix if missing
                 if image_data.startswith('data:image'):
@@ -30895,10 +30897,15 @@ async def send_inspection_email(request: Request, inspection_number: str):
                 else:
                     croqui_image = f"data:image/png;base64,{image_data}"
                     print(f"🖼️ Added data URL prefix to croqui", flush=True)
-            else:
-                # Bytes, need to encode
+            elif isinstance(image_data, (bytes, memoryview)):
+                # Bytes or memoryview, need to encode
+                if isinstance(image_data, memoryview):
+                    image_data = bytes(image_data)
                 croqui_image = f"data:image/png;base64,{base64.b64encode(image_data).decode('utf-8')}"
-                print(f"🖼️ Encoded bytes to base64", flush=True)
+                print(f"🖼️ Encoded bytes/memoryview to base64", flush=True)
+            else:
+                print(f"⚠️ Unexpected croqui data type: {type(image_data)}", flush=True)
+                croqui_image = None
         else:
             print(f"⚠️ No croqui found for inspection_id: {inspection_id}", flush=True)
         
@@ -30953,9 +30960,14 @@ async def send_inspection_email(request: Request, inspection_number: str):
                             photo_base64 = image_data
                         else:
                             photo_base64 = f"data:image/png;base64,{image_data}"
-                    else:
-                        # Bytes, need to encode
+                    elif isinstance(image_data, (bytes, memoryview)):
+                        # Bytes or memoryview, need to encode
+                        if isinstance(image_data, memoryview):
+                            image_data = bytes(image_data)
                         photo_base64 = f"data:image/png;base64,{base64.b64encode(image_data).decode('utf-8')}"
+                    else:
+                        print(f"⚠️ Unexpected photo data type: {type(image_data)} for {photo_type}", flush=True)
+                        continue
                     
                     label = labels_map.get(photo_type, photo_type)
                     photos_list.append({'url': photo_base64, 'label': label})
