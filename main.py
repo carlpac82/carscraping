@@ -30870,9 +30870,13 @@ async def send_inspection_email(request: Request, inspection_number: str):
         inspection_date = created_at.strftime('%d/%m/%Y %H:%M') if created_at else 'N/A'
         
         # T&C download URL based on language (use server endpoints)
-        # Detect base URL from request or environment
+        # Detect base URL from Railway environment or fallback to localhost
+        railway_domain = os.environ.get('RAILWAY_PUBLIC_DOMAIN')
         render_host = os.environ.get('RENDER_EXTERNAL_HOSTNAME')
-        if render_host:
+        
+        if railway_domain:
+            base_url = f"https://{railway_domain}"
+        elif render_host:
             base_url = f"https://{render_host}"
         else:
             base_url = "http://localhost:8000"
