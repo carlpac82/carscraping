@@ -988,15 +988,31 @@
 
         // Send inspection email directly
         async function sendInspectionEmail(inspectionNumber, plate, ra) {
-            // Reuse the existing showEmailModal function
-            const checkoutNumber = inspectionNumber.includes('checkout') ? inspectionNumber : '';
-            const checkinNumber = inspectionNumber.includes('checkin') ? inspectionNumber : '';
+            console.log('📧 sendInspectionEmail called:', { inspectionNumber, plate, ra });
+            
+            // Determine if this is checkout or checkin based on inspection number format
+            let checkoutNumber = '';
+            let checkinNumber = '';
+            
+            // Inspection numbers typically end with -checkout or -checkin
+            if (inspectionNumber.toLowerCase().includes('checkout')) {
+                checkoutNumber = inspectionNumber;
+            } else if (inspectionNumber.toLowerCase().includes('checkin')) {
+                checkinNumber = inspectionNumber;
+            } else {
+                // If no suffix, assume it's a checkout
+                checkoutNumber = inspectionNumber;
+            }
+            
+            console.log('📧 Determined:', { checkoutNumber, checkinNumber });
             
             // Close preview modal first
             closePreviewModal();
             
-            // Open email modal
-            showEmailModal(checkoutNumber, checkinNumber, plate, ra);
+            // Small delay to ensure modal is closed before opening new one
+            setTimeout(() => {
+                showEmailModal(checkoutNumber, checkinNumber, plate, ra);
+            }, 100);
         }
 
         // Open photo in new tab (handles base64 images correctly)
