@@ -126,6 +126,11 @@
 
         async function loadHistory(forceRefresh = false) {
             try {
+                // If forceRefresh is an Event object, convert to boolean
+                if (forceRefresh && typeof forceRefresh === 'object' && forceRefresh.type) {
+                    forceRefresh = false;
+                }
+                
                 // Add timestamp to prevent browser caching
                 let url = `/api/inspections/history?t=${Date.now()}`;
                 
