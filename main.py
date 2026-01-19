@@ -28420,6 +28420,8 @@ async def save_inspection(request: Request):
         vehicle_id = data.get('vehicle_id', None)
         damage_croqui = data.get('damage_croqui', data.get('damageCroqui', ''))  # Base64 image of damage croqui
         
+        logging.info(f"📧 Email config - email: '{email}', send_email: {send_email} (type: {type(send_email).__name__})")
+        
         # New fields for check-in (pickup/recolha)
         colaborador = data.get('colaborador', '')
         data_hora = data.get('data_hora', '')
