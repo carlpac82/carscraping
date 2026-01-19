@@ -9,6 +9,7 @@
     <title>Histórico de Inspeções - v12.0</title>
     <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
     <script src="/static/notifications.js?v=20260117223900"></script>
     <style>
         * { 
@@ -918,10 +919,10 @@
                                     </button>
                                 </div>
                                 
-                                <!-- Canvas Container -->
-                                <div class="car-svg-container" id="carDiagram" style="position: relative;">
+                                <!-- Croqui Container (sem canvas, apenas pins DOM) -->
+                                <div class="car-svg-container" id="carDiagram" style="position: relative; cursor: crosshair;">
                                     <img src="/static/images/Croqui.png" alt="Croqui do Carro" style="width: 100%; height: auto; display: block;">
-                                    <canvas id="drawingCanvas" class="drawing-canvas" style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; pointer-events: auto;"></canvas>
+                                    <!-- Pins serão adicionados aqui dinamicamente -->
                                 </div>
                                 <p class="text-xs text-gray-500 mt-2 text-center">
                                     Clique no croqui para adicionar danos. Total: <span id="damageCount" class="font-semibold text-[#009cb6]">0</span>
@@ -964,58 +965,37 @@
             }
         }
         
-        // Croqui editor state
-        let drawingCanvas = null;
-        let drawingCtx = null;
-        let drawingMode = 'pin'; // 'pin' or 'draw'
-        let drawingSize = 'small'; // 'tiny', 'small', 'medium', 'large'
-        let isDrawing = false;
-        let damages = [];
-        let currentStroke = [];
+        // Croqui editor state (usando pins DOM como no checkout)
+        let currentTool = 'pin';
+        let currentSize = 'small';
+        let pinCounter = 0;
+        let damagePins = [];
         
         // Initialize croqui editor
         async function initializeCroquiEditor(existingCroquiBase64, inspectionId) {
-            drawingCanvas = document.getElementById('drawingCanvas');
-            if (!drawingCanvas) {
-                console.error('Drawing canvas not found');
+            const carDiagram = document.getElementById('carDiagram');
+            if (!carDiagram) {
+                console.error('Car diagram not found');
                 return;
             }
             
-            drawingCtx = drawingCanvas.getContext('2d');
-            damages = [];
+            // Reset state
+            pinCounter = 0;
+            damagePins = [];
             
-            // Get the car diagram container and image
-            const carDiagram = document.getElementById('carDiagram');
-            const carImg = carDiagram.querySelector('img');
-            
-            // Wait for image to load
-            if (carImg.complete) {
-                setupCanvas(carImg, existingCroquiBase64);
-            } else {
-                carImg.onload = () => setupCanvas(carImg, existingCroquiBase64);
-            }
-        }
-        
-        function setupCanvas(carImg, existingCroquiBase64) {
-            // Set canvas size to match image
-            drawingCanvas.width = carImg.naturalWidth;
-            drawingCanvas.height = carImg.naturalHeight;
-            
-            console.log(`Canvas size: ${drawingCanvas.width}x${drawingCanvas.height}`);
-            
-            // If there's an existing croqui, load it as background
+            // Load existing croqui as background if available
             if (existingCroquiBase64) {
-                loadExistingCroquiAsBackground(existingCroquiBase64);
+                loadExistingCroquiAsBackground(existingCroquiBase64, carDiagram);
             }
             
-            // Setup drawing events
-            setupDrawingEvents();
-            updateDamageCount();
+            // Setup click event to add pins
+            carDiagram.onclick = handleDiagramClick;
+            
+            console.log('✅ Croqui editor initialized');
         }
         
-        function loadExistingCroquiAsBackground(base64Image) {
+        function loadExistingCroquiAsBackground(base64Image, carDiagram) {
             console.log('📍 Loading existing croqui as background...');
-            const carDiagram = document.getElementById('carDiagram');
             
             // Create background layer with existing croqui
             let bgLayer = document.getElementById('existingCroquiBackground');
@@ -1034,126 +1014,92 @@
                     background-position: center;
                     pointer-events: none;
                     z-index: 1;
+                    opacity: 0.7;
                 `;
-                carDiagram.insertBefore(bgLayer, drawingCanvas);
+                carDiagram.insertBefore(bgLayer, carDiagram.firstChild);
             }
-            
-            // Set canvas z-index to be on top
-            drawingCanvas.style.zIndex = '2';
-            drawingCanvas.style.position = 'relative';
             
             console.log('✅ Existing croqui loaded as background');
         }
         
-        function setupDrawingEvents() {
-            // Mouse events
-            drawingCanvas.addEventListener('mousedown', startDrawing);
-            drawingCanvas.addEventListener('mousemove', draw);
-            drawingCanvas.addEventListener('mouseup', stopDrawing);
-            drawingCanvas.addEventListener('mouseleave', stopDrawing);
+        function handleDiagramClick(e) {
+            if (currentTool !== 'pin') return;
             
-            // Touch events
-            drawingCanvas.addEventListener('touchstart', handleTouchStart);
-            drawingCanvas.addEventListener('touchmove', handleTouchMove);
-            drawingCanvas.addEventListener('touchend', handleTouchEnd);
+            const rect = e.currentTarget.getBoundingClientRect();
+            const x = e.clientX - rect.left;
+            const y = e.clientY - rect.top;
+            
+            addPinAtPosition(x, y);
         }
         
-        function startDrawing(e) {
-            const rect = drawingCanvas.getBoundingClientRect();
-            const x = (e.clientX - rect.left) * (drawingCanvas.width / rect.width);
-            const y = (e.clientY - rect.top) * (drawingCanvas.height / rect.height);
+        function addPinAtPosition(x, y) {
+            const carDiagram = document.getElementById('carDiagram');
+            if (!carDiagram) return;
             
-            if (drawingMode === 'pin') {
-                addPin(x, y);
-            } else {
-                isDrawing = true;
-                currentStroke = [{x, y}];
-            }
-        }
-        
-        function draw(e) {
-            if (!isDrawing || drawingMode !== 'draw') return;
+            pinCounter++;
+            const pinId = `editPin-${pinCounter}`;
             
-            const rect = drawingCanvas.getBoundingClientRect();
-            const x = (e.clientX - rect.left) * (drawingCanvas.width / rect.width);
-            const y = (e.clientY - rect.top) * (drawingCanvas.height / rect.height);
+            // Get size in pixels
+            const sizeMap = { tiny: 8, small: 12, medium: 16, large: 20 };
+            const pinSize = sizeMap[currentSize] || 12;
             
-            currentStroke.push({x, y});
-            redrawCanvas();
-        }
-        
-        function stopDrawing() {
-            if (isDrawing && currentStroke.length > 0) {
-                damages.push({type: 'drawing', points: currentStroke});
-                currentStroke = [];
+            // Create pin element (div)
+            const pin = document.createElement('div');
+            pin.id = pinId;
+            pin.className = 'damage-pin';
+            pin.style.cssText = `
+                position: absolute;
+                left: ${x}px;
+                top: ${y}px;
+                width: ${pinSize}px;
+                height: ${pinSize}px;
+                background: rgba(0, 0, 0, 0.8);
+                border-radius: 50%;
+                transform: translate(-50%, -50%);
+                cursor: pointer;
+                z-index: 10;
+                border: 2px solid white;
+            `;
+            
+            // Double click to remove
+            pin.ondblclick = () => {
+                pin.remove();
+                damagePins = damagePins.filter(p => p.id !== pinId);
                 updateDamageCount();
-            }
-            isDrawing = false;
-        }
-        
-        function handleTouchStart(e) {
-            e.preventDefault();
-            const touch = e.touches[0];
-            const rect = drawingCanvas.getBoundingClientRect();
-            const x = (touch.clientX - rect.left) * (drawingCanvas.width / rect.width);
-            const y = (touch.clientY - rect.top) * (drawingCanvas.height / rect.height);
+            };
             
-            if (drawingMode === 'pin') {
-                addPin(x, y);
-            } else {
-                isDrawing = true;
-                currentStroke = [{x, y}];
-            }
-        }
-        
-        function handleTouchMove(e) {
-            if (!isDrawing || drawingMode !== 'draw') return;
-            e.preventDefault();
+            carDiagram.appendChild(pin);
             
-            const touch = e.touches[0];
-            const rect = drawingCanvas.getBoundingClientRect();
-            const x = (touch.clientX - rect.left) * (drawingCanvas.width / rect.width);
-            const y = (touch.clientY - rect.top) * (drawingCanvas.height / rect.height);
+            // Save to array
+            damagePins.push({
+                id: pinId,
+                x: x,
+                y: y,
+                size: currentSize
+            });
             
-            currentStroke.push({x, y});
-            redrawCanvas();
-        }
-        
-        function handleTouchEnd(e) {
-            e.preventDefault();
-            stopDrawing();
-        }
-        
-        function addPin(x, y) {
-            damages.push({type: 'pin', x, y, size: drawingSize});
-            redrawCanvas();
             updateDamageCount();
         }
         
+        
         function selectTool(tool) {
-            drawingMode = tool;
+            currentTool = tool;
             const pinBtn = document.getElementById('toolPin');
             const drawBtn = document.getElementById('toolDraw');
             
             if (tool === 'pin') {
                 pinBtn.className = 'w-12 h-12 rounded-full bg-[#009cb6] text-white hover:bg-[#007a94] transition-all duration-200 flex items-center justify-center';
                 drawBtn.className = 'w-12 h-12 rounded-full bg-gray-400 text-white hover:bg-gray-500 transition-all duration-200 flex items-center justify-center';
-                // Show size controls for pins
                 const sizeControls = document.getElementById('sizeControls');
                 if (sizeControls) sizeControls.style.display = 'flex';
             } else {
-                pinBtn.className = 'w-12 h-12 rounded-full bg-gray-400 text-white hover:bg-gray-500 transition-all duration-200 flex items-center justify-center';
-                drawBtn.className = 'w-12 h-12 rounded-full bg-[#009cb6] text-white hover:bg-[#007a94] transition-all duration-200 flex items-center justify-center';
-                // Hide size controls for drawing
-                const sizeControls = document.getElementById('sizeControls');
-                if (sizeControls) sizeControls.style.display = 'none';
+                showNotification('Modo de desenho não disponível na edição', 'info');
             }
         }
         
         function selectSize(size) {
-            drawingSize = size;
+            currentSize = size;
             
-            // Update button styles
             const sizes = ['tiny', 'small', 'medium', 'large'];
             sizes.forEach(s => {
                 const btn = document.getElementById('size' + s.charAt(0).toUpperCase() + s.slice(1));
@@ -1171,136 +1117,45 @@
             });
         }
         
-        function undoLastDamage() {
-            if (damages.length > 0) {
-                damages.pop();
-                redrawCanvas();
-                updateDamageCount();
-            }
-        }
         
         function clearAllDamages() {
             if (confirm('Tem certeza que deseja limpar todos os danos?')) {
-                damages = [];
-                redrawCanvas();
+                // Remove all pin elements
+                damagePins.forEach(pin => {
+                    const pinEl = document.getElementById(pin.id);
+                    if (pinEl) pinEl.remove();
+                });
+                damagePins = [];
+                pinCounter = 0;
                 updateDamageCount();
             }
         }
         
-        function redrawCanvas() {
-            if (!drawingCtx) return;
-            
-            // Clear canvas
-            drawingCtx.clearRect(0, 0, drawingCanvas.width, drawingCanvas.height);
-            
-            // Draw all damages (checkout = preto)
-            damages.forEach((damage, index) => {
-                if (damage.type === 'pin') {
-                    // Get radius based on size
-                    const sizeMap = { tiny: 8, small: 12, medium: 16, large: 20 };
-                    const radius = sizeMap[damage.size || 'small'];
-                    
-                    // Draw pin (black circle with white border for checkout)
-                    drawingCtx.beginPath();
-                    drawingCtx.arc(damage.x, damage.y, radius, 0, 2 * Math.PI);
-                    drawingCtx.fillStyle = 'rgba(0, 0, 0, 0.7)';
-                    drawingCtx.fill();
-                    drawingCtx.strokeStyle = '#fff';
-                    drawingCtx.lineWidth = 2;
-                    drawingCtx.stroke();
-                    
-                    // Draw number
-                    drawingCtx.fillStyle = '#fff';
-                    const fontSize = Math.max(10, radius - 2);
-                    drawingCtx.font = `bold ${fontSize}px Arial`;
-                    drawingCtx.textAlign = 'center';
-                    drawingCtx.textBaseline = 'middle';
-                    drawingCtx.fillText(index + 1, damage.x, damage.y);
-                } else if (damage.type === 'drawing') {
-                    // Draw stroke (black line for checkout)
-                    if (damage.points && damage.points.length > 1) {
-                        drawingCtx.beginPath();
-                        drawingCtx.moveTo(damage.points[0].x, damage.points[0].y);
-                        for (let i = 1; i < damage.points.length; i++) {
-                            drawingCtx.lineTo(damage.points[i].x, damage.points[i].y);
-                        }
-                        drawingCtx.strokeStyle = 'rgba(0, 0, 0, 0.7)';
-                        drawingCtx.lineWidth = 4;
-                        drawingCtx.lineCap = 'round';
-                        drawingCtx.lineJoin = 'round';
-                        drawingCtx.stroke();
-                    }
-                }
-            });
-            
-            // Draw current stroke being drawn
-            if (currentStroke.length > 1) {
-                drawingCtx.beginPath();
-                drawingCtx.moveTo(currentStroke[0].x, currentStroke[0].y);
-                for (let i = 1; i < currentStroke.length; i++) {
-                    drawingCtx.lineTo(currentStroke[i].x, currentStroke[i].y);
-                }
-                drawingCtx.strokeStyle = 'rgba(0, 0, 0, 0.7)';
-                drawingCtx.lineWidth = 4;
-                drawingCtx.lineCap = 'round';
-                drawingCtx.lineJoin = 'round';
-                drawingCtx.stroke();
-            }
-        }
         
         function updateDamageCount() {
             const countEl = document.getElementById('damageCount');
             if (countEl) {
-                countEl.textContent = damages.length;
+                countEl.textContent = damagePins.length;
             }
         }
         
-        // Capture final croqui (background + new damages)
+        // Capture final croqui using html2canvas
         async function captureFinalCroqui() {
-            return new Promise((resolve) => {
-                const carDiagram = document.getElementById('carDiagram');
-                const carImg = carDiagram.querySelector('img');
-                const bgLayer = document.getElementById('existingCroquiBackground');
-                
-                // Create temporary canvas for final capture
-                const tempCanvas = document.createElement('canvas');
-                tempCanvas.width = carImg.naturalWidth;
-                tempCanvas.height = carImg.naturalHeight;
-                const tempCtx = tempCanvas.getContext('2d');
-                
-                // Step 1: Draw base car image
-                tempCtx.drawImage(carImg, 0, 0);
-                
-                // Step 2: If there's existing croqui background, draw it
-                if (bgLayer) {
-                    const bgImage = new Image();
-                    const bgUrl = bgLayer.style.backgroundImage.match(/url\(['"]?([^'"]+)['"]?\)/);
-                    if (bgUrl && bgUrl[1]) {
-                        bgImage.src = bgUrl[1];
-                        bgImage.onload = () => {
-                            tempCtx.drawImage(bgImage, 0, 0, tempCanvas.width, tempCanvas.height);
-                            
-                            // Step 3: Draw new damages from canvas
-                            tempCtx.drawImage(drawingCanvas, 0, 0);
-                            
-                            resolve(tempCanvas.toDataURL('image/png'));
-                        };
-                        bgImage.onerror = () => {
-                            // If background fails, just draw canvas
-                            tempCtx.drawImage(drawingCanvas, 0, 0);
-                            resolve(tempCanvas.toDataURL('image/png'));
-                        };
-                    } else {
-                        // No background URL, just draw canvas
-                        tempCtx.drawImage(drawingCanvas, 0, 0);
-                        resolve(tempCanvas.toDataURL('image/png'));
-                    }
-                } else {
-                    // No background layer, just draw canvas
-                    tempCtx.drawImage(drawingCanvas, 0, 0);
-                    resolve(tempCanvas.toDataURL('image/png'));
-                }
-            });
+            const carDiagram = document.getElementById('carDiagram');
+            if (!carDiagram) return null;
+            
+            try {
+                // Use html2canvas to capture the entire diagram with pins
+                const canvas = await html2canvas(carDiagram, {
+                    backgroundColor: null,
+                    scale: 2,
+                    logging: false
+                });
+                return canvas.toDataURL('image/png');
+            } catch (error) {
+                console.error('Error capturing croqui:', error);
+                return null;
+            }
         }
         
         // Update fuel level display
