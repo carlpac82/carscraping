@@ -30876,10 +30876,13 @@ async def send_inspection_email(request: Request, inspection_number: str):
         
         if railway_domain:
             base_url = f"https://{railway_domain}"
+            print(f"📧 Using Railway domain for T&C links: {base_url}")
         elif render_host:
             base_url = f"https://{render_host}"
+            print(f"📧 Using Render domain for T&C links: {base_url}")
         else:
             base_url = "http://localhost:8000"
+            print(f"⚠️ Using localhost for T&C links: {base_url}")
         
         tc_url_map = {
             'pt': f'{base_url}/download/tc-pt',
@@ -30887,6 +30890,7 @@ async def send_inspection_email(request: Request, inspection_number: str):
             'fr': f'{base_url}/download/tc-en'  # French uses English T&C
         }
         tc_download_url = tc_url_map.get(detected_lang, tc_url_map['en'])
+        print(f"📧 T&C Download URL for {detected_lang}: {tc_download_url}")
         
         html_content = templates.get_template(template_name).render(
             LOGO_URL=logo_base64,
