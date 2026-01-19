@@ -983,6 +983,83 @@ def _preload_promotional_images():
     
     logging.info(f"✅ Promotional images cache ready: {len(PROMO_IMAGES_CACHE)} images")
 
+def combine_croqui_with_damages(delivery_croqui_base64=None, pickup_damages=None):
+    """
+    Combina o croqui de entrega com os danos extra da recolha (pins vermelhos).
+    
+    Args:
+        delivery_croqui_base64: Croqui de entrega (com danos azuis) em base64
+        pickup_damages: Lista de danos extra da recolha [{'x': int, 'y': int, 'type': 'pin'/'scratch'}]
+    
+    Returns:
+        String base64 do croqui combinado ou None
+    """
+    try:
+        from PIL import Image, ImageDraw
+        import base64
+        import io
+        
+        # Se não houver danos extra, retornar o croqui de entrega original
+        if not pickup_damages or len(pickup_damages) == 0:
+            return delivery_croqui_base64
+        
+        # Se não houver croqui de entrega, usar o croqui vazio
+        if not delivery_croqui_base64:
+            delivery_croqui_base64 = EMPTY_CROQUI_CACHE
+        
+        if not delivery_croqui_base64:
+            logging.warning("⚠️ Nenhum croqui base disponível")
+            return None
+        
+        # Decodificar base64
+        if delivery_croqui_base64.startswith('data:image'):
+            delivery_croqui_base64 = delivery_croqui_base64.split(',')[1]
+        
+        img_data = base64.b64decode(delivery_croqui_base64)
+        img = Image.open(io.BytesIO(img_data))
+        
+        # Converter para RGB se necessário
+        if img.mode != 'RGB':
+            img = img.convert('RGB')
+        
+        # Criar canvas para desenhar
+        draw = ImageDraw.Draw(img)
+        
+        # Desenhar danos extra em vermelho
+        for damage in pickup_damages:
+            x = damage.get('x', 0)
+            y = damage.get('y', 0)
+            damage_type = damage.get('type', 'pin')
+            
+            if damage_type == 'pin':
+                # Desenhar pin vermelho (círculo)
+                radius = 8
+                draw.ellipse(
+                    [(x - radius, y - radius), (x + radius, y + radius)],
+                    fill='#dc3545',  # Vermelho
+                    outline='#dc3545'
+                )
+            elif damage_type == 'scratch':
+                # Desenhar risco vermelho (linha)
+                x2 = damage.get('x2', x + 20)
+                y2 = damage.get('y2', y + 20)
+                draw.line([(x, y), (x2, y2)], fill='#dc3545', width=3)
+        
+        # Converter de volta para base64
+        buffer = io.BytesIO()
+        img.save(buffer, format='PNG')
+        combined_data = buffer.getvalue()
+        combined_base64 = f"data:image/png;base64,{base64.b64encode(combined_data).decode('utf-8')}"
+        
+        logging.info(f"✅ Croqui combinado criado com {len(pickup_damages)} danos extra")
+        return combined_base64
+        
+    except Exception as e:
+        logging.error(f"❌ Erro ao combinar croquis: {e}")
+        import traceback
+        logging.error(traceback.format_exc())
+        return delivery_croqui_base64
+
 # Aumentar limite de payload para permitir dados completos (284 carros × ~2KB = ~568KB)
 app = FastAPI(
     title="Rental Price Tracker",
@@ -44060,19 +44137,26 @@ async def checkin_preview_ok(request: Request):
         
         # Status Alert - VERDE (sem problemas)
         status_alert = """
-        <div style="padding: 20px; background-color: #d1fae5; border-left: 4px solid #10b981; margin: 20px;">
-            <h3 style="color: #065f46; margin: 0 0 10px 0; font-size: 16px; font-weight: bold;">✅ Devolução sem Incidências</h3>
-            <p style="color: #047857; margin: 0; font-size: 14px; line-height: 1.6;">
-                Não foram encontradas incidências na devolução da viatura. Obrigado por cuidar tão bem do nosso veículo!
+        <div style="padding: 20px; background-color: #ecfdf5; border-left: 5px solid #10b981; margin: 20px; border-radius: 8px; box-shadow: 0 1px 3px rgba(0,0,0,0.1);">
+            <h3 style="color: #065f46; margin: 0 0 8px 0; font-size: 15px; font-weight: 600; display: flex; align-items: center; gap: 8px;">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#10b981" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path>
+                    <polyline points="22 4 12 14.01 9 11.01"></polyline>
+                </svg>
+                Devolução sem Incidências
+            </h3>
+            <p style="color: #059669; margin: 0; font-size: 13px; line-height: 1.5;">
+                Não foram encontradas incidências na devolução da viatura. Agradecemos a confiança depositada nos nossos serviços.
             </p>
         </div>
         """
         
-        # Fuel gauge
-        fuel_color = '#10b981'
+        # Fuel gauge (mesmo design do checkout)
+        fuel_percentage = fuel_level_checkin
+        fuel_color = '#10b981' if fuel_percentage >= 75 else '#f59e0b' if fuel_percentage >= 50 else '#ef4444'
         tank_height = 100
-        fill_height = tank_height
-        fill_y = 0
+        fill_height = tank_height * fuel_percentage / 100
+        fill_y = tank_height - fill_height
         
         fuel_gauge_html = f"""
         <div style="text-align: center;">
@@ -44082,13 +44166,22 @@ async def checkin_preview_ok(request: Request):
                 <path d="M 60 40 L 70 35 L 70 45 Z" fill="#64748b"/>
                 <circle cx="40" cy="5" r="3" fill="#64748b"/>
             </svg>
-            <p style="margin: 10px 0 0 0; color: #1f2937; font-size: 16px; font-weight: 600;">{fuel_level_checkin}%</p>
+            <p style="margin: 10px 0 0 0; color: #1f2937; font-size: 16px; font-weight: 600;">{fuel_percentage}%</p>
         </div>
         """
         
-        # Croqui title e image (só croqui de entrega)
-        croqui_title = "Croqui de Danos da Entrega"
-        croqui_image = EMPTY_CROQUI_CACHE or ""
+        # Croqui title e image (só croqui de entrega, sem danos extra)
+        croqui_title = "Croqui de Danos de Recolha"
+        
+        # Sem danos extra da recolha (lista vazia)
+        pickup_damages = []
+        
+        # Como não há danos extra, retorna apenas o croqui de entrega
+        # (neste caso mock, seria o croqui da entrega com danos azuis)
+        croqui_image = combine_croqui_with_damages(
+            delivery_croqui_base64=EMPTY_CROQUI_CACHE,
+            pickup_damages=pickup_damages
+        ) or EMPTY_CROQUI_CACHE or ""
         
         # Sem fotos (não há danos)
         photos_section = ""
@@ -44152,18 +44245,24 @@ async def checkin_preview_fuel(request: Request):
         
         # Status Alert - LARANJA (falta combustível)
         status_alert = """
-        <div style="padding: 20px; background-color: #fff7ed; border-left: 4px solid #f97316; margin: 20px;">
-            <h3 style="color: #9a3412; margin: 0 0 10px 0; font-size: 16px; font-weight: bold;">⚠️ Incidência Detectada: Combustível em Falta</h3>
-            <p style="color: #c2410c; margin: 0; font-size: 14px; line-height: 1.6;">
-                Foi detectada uma diferença no nível de combustível. A viatura foi entregue com 100% e devolvida com 50%. 
-                Iremos analisar esta situação com os nossos colaboradores. Se necessário, entraremos em contacto consigo.
+        <div style="padding: 20px; background-color: #fffbeb; border-left: 5px solid #f59e0b; margin: 20px; border-radius: 8px; box-shadow: 0 1px 3px rgba(0,0,0,0.1);">
+            <h3 style="color: #92400e; margin: 0 0 8px 0; font-size: 15px; font-weight: 600; display: flex; align-items: center; gap: 8px;">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#f59e0b" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path>
+                    <line x1="12" y1="9" x2="12" y2="13"></line>
+                    <line x1="12" y1="17" x2="12.01" y2="17"></line>
+                </svg>
+                Incidência Detectada: Combustível em Falta
+            </h3>
+            <p style="color: #b45309; margin: 0; font-size: 13px; line-height: 1.5;">
+                Foi detectada uma diferença no nível de combustível. Iremos analisar esta situação com os nossos colaboradores. Se necessário, entraremos em contacto consigo.
             </p>
         </div>
         """
         
-        # Fuel gauge
+        # Fuel gauge (mesmo design do checkout)
         fuel_percentage = 50
-        fuel_color = '#f97316'
+        fuel_color = '#10b981' if fuel_percentage >= 75 else '#f59e0b' if fuel_percentage >= 50 else '#ef4444'
         tank_height = 100
         fill_height = tank_height * fuel_percentage / 100
         fill_y = tank_height - fill_height
@@ -44180,9 +44279,17 @@ async def checkin_preview_fuel(request: Request):
         </div>
         """
         
-        # Croqui title e image
-        croqui_title = "Croqui de Danos da Entrega"
-        croqui_image = EMPTY_CROQUI_CACHE or ""
+        # Croqui title e image (só croqui de entrega, sem danos extra)
+        croqui_title = "Croqui de Danos de Recolha"
+        
+        # Sem danos extra da recolha (lista vazia)
+        pickup_damages = []
+        
+        # Como não há danos extra, retorna apenas o croqui de entrega
+        croqui_image = combine_croqui_with_damages(
+            delivery_croqui_base64=EMPTY_CROQUI_CACHE,
+            pickup_damages=pickup_damages
+        ) or EMPTY_CROQUI_CACHE or ""
         
         # Sem fotos
         photos_section = ""
@@ -44246,20 +44353,27 @@ async def checkin_preview_damages(request: Request):
         
         # Status Alert - VERMELHO (danos detectados)
         status_alert = """
-        <div style="padding: 20px; background-color: #fee2e2; border-left: 4px solid #ef4444; margin: 20px;">
-            <h3 style="color: #991b1b; margin: 0 0 10px 0; font-size: 16px; font-weight: bold;">⚠️ Danos Detectados na Recolha</h3>
-            <p style="color: #b91c1c; margin: 0; font-size: 14px; line-height: 1.6;">
-                Foram detectados danos na recolha da viatura que não estavam presentes na entrega. 
-                Iremos analisar esta situação e, se necessário, entraremos em contacto consigo.
+        <div style="padding: 20px; background-color: #fef2f2; border-left: 5px solid #ef4444; margin: 20px; border-radius: 8px; box-shadow: 0 1px 3px rgba(0,0,0,0.1);">
+            <h3 style="color: #991b1b; margin: 0 0 8px 0; font-size: 15px; font-weight: 600; display: flex; align-items: center; gap: 8px;">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#ef4444" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                    <circle cx="12" cy="12" r="10"></circle>
+                    <line x1="12" y1="8" x2="12" y2="12"></line>
+                    <line x1="12" y1="16" x2="12.01" y2="16"></line>
+                </svg>
+                Danos Detectados na Recolha
+            </h3>
+            <p style="color: #dc2626; margin: 0; font-size: 13px; line-height: 1.5;">
+                Foram detectados danos na recolha da viatura que não estavam presentes na entrega. Iremos analisar esta situação e, se necessário, entraremos em contacto consigo.
             </p>
         </div>
         """
         
-        # Fuel gauge
-        fuel_color = '#10b981'
+        # Fuel gauge (mesmo design do checkout)
+        fuel_percentage = 100
+        fuel_color = '#10b981' if fuel_percentage >= 75 else '#f59e0b' if fuel_percentage >= 50 else '#ef4444'
         tank_height = 100
-        fill_height = tank_height
-        fill_y = 0
+        fill_height = tank_height * fuel_percentage / 100
+        fill_y = tank_height - fill_height
         
         fuel_gauge_html = f"""
         <div style="text-align: center;">
@@ -44269,13 +44383,25 @@ async def checkin_preview_damages(request: Request):
                 <path d="M 60 40 L 70 35 L 70 45 Z" fill="#64748b"/>
                 <circle cx="40" cy="5" r="3" fill="#64748b"/>
             </svg>
-            <p style="margin: 10px 0 0 0; color: #1f2937; font-size: 16px; font-weight: 600;">100%</p>
+            <p style="margin: 10px 0 0 0; color: #1f2937; font-size: 16px; font-weight: 600;">{fuel_percentage}%</p>
         </div>
         """
         
         # Croqui title e image (combinado: entrega + recolha)
         croqui_title = "Croqui de Danos (Entrega + Recolha)"
-        croqui_image = EMPTY_CROQUI_CACHE or ""  # TODO: Implementar combinação de croquis
+        
+        # Simular danos extra da recolha (pins vermelhos)
+        pickup_damages = [
+            {'x': 150, 'y': 100, 'type': 'pin'},  # Dano frontal
+            {'x': 250, 'y': 200, 'type': 'pin'},  # Dano lateral
+            {'x': 180, 'y': 300, 'type': 'pin'}   # Dano traseiro
+        ]
+        
+        # Combinar croqui de entrega (vazio neste caso) com danos extra da recolha
+        croqui_image = combine_croqui_with_damages(
+            delivery_croqui_base64=EMPTY_CROQUI_CACHE,
+            pickup_damages=pickup_damages
+        ) or EMPTY_CROQUI_CACHE or ""
         
         # COM fotos de danos
         photos_section = """
