@@ -891,10 +891,11 @@ DATAMAP_RX = re.compile(r"var\s+dataMap\s*=\s*(\[.*?\]);", re.S)
 # Global cache for promotional images (loaded once at startup)
 PROMO_IMAGES_CACHE = {}
 LOGO_CACHE = None
+EMPTY_CROQUI_CACHE = None
 
 def _preload_promotional_images():
     """Pre-load and compress promotional images at startup"""
-    global PROMO_IMAGES_CACHE, LOGO_CACHE
+    global PROMO_IMAGES_CACHE, LOGO_CACHE, EMPTY_CROQUI_CACHE
     import base64
     from PIL import Image
     import io
@@ -915,6 +916,26 @@ def _preload_promotional_images():
     except Exception as e:
         logging.error(f"❌ Could not cache logo: {e}")
         LOGO_CACHE = "/static/ap-heather.png"
+    
+    # Load empty croqui template (car without damages)
+    try:
+        croqui_path = static_dir / 'images' / 'Croqui.png'
+        logging.info(f"🔍 Attempting to load empty croqui from: {croqui_path}")
+        logging.info(f"🔍 File exists: {croqui_path.exists()}")
+        if croqui_path.exists():
+            with open(croqui_path, 'rb') as f:
+                croqui_data = f.read()
+                logging.info(f"🔍 Croqui file size: {len(croqui_data)} bytes")
+                EMPTY_CROQUI_CACHE = f"data:image/png;base64,{base64.b64encode(croqui_data).decode('utf-8')}"
+                logging.info(f"✅ Empty croqui template cached (base64 length: {len(EMPTY_CROQUI_CACHE)})")
+        else:
+            logging.error(f"❌ Croqui file not found at {croqui_path}")
+            EMPTY_CROQUI_CACHE = None
+    except Exception as e:
+        logging.error(f"❌ Could not cache empty croqui: {e}")
+        import traceback
+        logging.error(traceback.format_exc())
+        EMPTY_CROQUI_CACHE = None
     
     # Load promotional images (order: image004, image005, image006)
     promo_files = {
@@ -29875,7 +29896,7 @@ async def email_preview(request: Request, ra: str = "06716-09"):
             INSPECTOR_NAME=inspector,
             FUEL_GAUGE_SVG=fuel_gauge_html,
             FUEL_PERCENTAGE=fuel_level,
-            CROQUI_IMAGE=croqui_image if croqui_image else "https://via.placeholder.com/600x400/f0f0f0/666666?text=No+Damage+Croqui",
+            CROQUI_IMAGE=croqui_image if croqui_image else (EMPTY_CROQUI_CACHE or ""),
             PHOTOS_HTML=photos_html
         )
         
@@ -30080,7 +30101,7 @@ async def email_preview_pt(request: Request, ra: str = "06716-09"):
             ODOMETER=odometer,
             INSPECTOR_NAME=inspector,
             FUEL_GAUGE_SVG=fuel_gauge_html,
-            CROQUI_IMAGE=croqui_image if croqui_image else "https://via.placeholder.com/600x400/f0f0f0/666666?text=Sem+Croqui",
+            CROQUI_IMAGE=croqui_image if croqui_image else (EMPTY_CROQUI_CACHE or ""),
             PHOTOS_HTML=photos_html
         )
         
@@ -30275,7 +30296,7 @@ async def email_preview_fr(request: Request, ra: str = "06716-09"):
             ODOMETER=odometer,
             INSPECTOR_NAME=inspector,
             FUEL_GAUGE_SVG=fuel_gauge_html,
-            CROQUI_IMAGE=croqui_image if croqui_image else "https://via.placeholder.com/600x400/f0f0f0/666666?text=Pas+de+Croquis",
+            CROQUI_IMAGE=croqui_image if croqui_image else (EMPTY_CROQUI_CACHE or ""),
             PHOTOS_HTML=photos_html
         )
         
@@ -30839,7 +30860,7 @@ async def send_inspection_email(request: Request, inspection_number: str):
         """
         
         # Use pre-loaded cached images (loaded once at startup)
-        global PROMO_IMAGES_CACHE, LOGO_CACHE
+        global PROMO_IMAGES_CACHE, LOGO_CACHE, EMPTY_CROQUI_CACHE
         
         logo_base64 = LOGO_CACHE or "/static/ap-heather.png"
         
@@ -30871,6 +30892,10 @@ async def send_inspection_email(request: Request, inspection_number: str):
         tc_download_url = tc_url_map.get(detected_lang, tc_url_map['en'])
         print(f"📧 T&C Download URL for {detected_lang}: {tc_download_url}")
         
+        # Debug croqui image usage
+        final_croqui = croqui_image if croqui_image else (EMPTY_CROQUI_CACHE or "")
+        logging.info(f"🔍 Croqui image status: has_custom={bool(croqui_image)}, has_empty_cache={bool(EMPTY_CROQUI_CACHE)}, final_length={len(final_croqui)}")
+        
         html_content = templates.get_template(template_name).render(
             LOGO_URL=logo_base64,
             RA_NUMBER=ra,
@@ -30886,7 +30911,7 @@ async def send_inspection_email(request: Request, inspection_number: str):
             ODOMETER=str(odometer),
             INSPECTOR_NAME=inspector,
             FUEL_GAUGE_SVG=fuel_gauge_html,
-            CROQUI_IMAGE=croqui_image if croqui_image else "https://via.placeholder.com/600x400/f0f0f0/666666?text=No+Croqui",
+            CROQUI_IMAGE=final_croqui,
             PHOTOS_HTML=photos_html,
             PROMO_IMAGE_1=promo_base64.get('promo1', ''),
             PROMO_IMAGE_2=promo_base64.get('promo2', ''),
