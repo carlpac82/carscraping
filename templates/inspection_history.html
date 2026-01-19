@@ -1358,7 +1358,9 @@
                 // Capture updated croqui (merge background + new damages)
                 let updatedCroqui = null;
                 if (drawingCanvas) {
+                    console.log('🖼️ Capturing final croqui...');
                     updatedCroqui = await captureFinalCroqui();
+                    console.log('🖼️ Croqui captured:', updatedCroqui ? `${updatedCroqui.substring(0, 100)}... (${updatedCroqui.length} chars)` : 'NULL');
                 }
                 
                 const updateData = {
@@ -1367,6 +1369,13 @@
                     odometer_reading: odometerReading ? parseInt(odometerReading) : null,
                     damage_notes: damageNotes.trim()
                 };
+                
+                console.log('📦 Update data:', {
+                    hasCroqui: !!updateData.damage_croqui,
+                    croquiLength: updateData.damage_croqui ? updateData.damage_croqui.length : 0,
+                    fuel_level: updateData.fuel_level,
+                    odometer_reading: updateData.odometer_reading
+                });
                 
                 const response = await fetch(`/api/inspections/${inspectionNumber}/update`, {
                     method: 'PUT',
