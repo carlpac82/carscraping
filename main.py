@@ -30744,49 +30744,20 @@ async def send_inspection_email(request: Request, inspection_number: str):
             labels_map = photo_labels.get(detected_lang, photo_labels['en'])
             
             # Build photos as table (3x3 grid) for better email client compatibility
+            # Use HTTP URLs instead of base64 for Outlook Mac compatibility
+            base_url = "https://carscraping.up.railway.app"
+            
             photos_list = []
             for photo_row in photos_rows:
                 photo_type = photo_row[0]
                 image_data = photo_row[1]
                 if image_data:
-                    import base64
-                    from PIL import Image
-                    import io
-                    
-                    # Compress image to reduce email size
-                    try:
-                        img = Image.open(io.BytesIO(image_data))
-                        # Resize to max width 400px for email
-                        max_width = 400
-                        if img.width > max_width:
-                            ratio = max_width / img.width
-                            new_height = int(img.height * ratio)
-                            img = img.resize((max_width, new_height), Image.Resampling.LANCZOS)
-                        
-                        # Convert to RGB if needed
-                        if img.mode in ('RGBA', 'LA', 'P'):
-                            background = Image.new('RGB', img.size, (255, 255, 255))
-                            if img.mode == 'P':
-                                img = img.convert('RGBA')
-                            background.paste(img, mask=img.split()[-1] if img.mode in ('RGBA', 'LA') else None)
-                            img = background
-                        
-                        # Save with compression
-                        buffer = io.BytesIO()
-                        img.save(buffer, format='JPEG', quality=65, optimize=True)
-                        compressed_data = buffer.getvalue()
-                        photo_base64 = base64.b64encode(compressed_data).decode('utf-8')
-                    except:
-                        # Fallback to original if compression fails
-                        photo_base64 = base64.b64encode(image_data).decode('utf-8')
-                    
-                    photo_data = f"data:image/jpeg;base64,{photo_base64}"
+                    # Use HTTP URL instead of base64 for Outlook Mac compatibility
+                    photo_url = f"{base_url}/email-photo/{inspection_id}/{photo_type}"
                     label = labels_map.get(photo_type, photo_type)
-                    photos_list.append({'data': photo_data, 'label': label})
+                    photos_list.append({'url': photo_url, 'label': label})
             
-            # Create 3x3 table grid
-            # Note: Outlook desktop has security restrictions with data URIs (base64 images)
-            # This may prompt users to "open in application" - this is an Outlook limitation
+            # Create 3x3 table grid with HTTP URLs
             photos_html = '<table width="100%" cellpadding="5" cellspacing="0" style="margin: 0;">'
             for i in range(0, len(photos_list), 3):
                 photos_html += '<tr>'
@@ -30795,8 +30766,8 @@ async def send_inspection_email(request: Request, inspection_number: str):
                         photo = photos_list[i + j]
                         photos_html += f'''
                         <td style="width: 33.33%; text-align: center; padding: 5px; vertical-align: top;">
-                            <a href="{photo['data']}" target="_blank" style="text-decoration: none; display: block;">
-                                <img src="{photo['data']}" alt="{photo['label']}" style="width: 100%; height: auto; max-height: 150px; object-fit: cover; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); display: block; border: 2px solid transparent; transition: border-color 0.2s;" />
+                            <a href="{photo['url']}" target="_blank" style="text-decoration: none; display: block;">
+                                <img src="{photo['url']}" alt="{photo['label']}" style="width: 100%; height: auto; max-height: 150px; object-fit: cover; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); display: block; border: 2px solid transparent; transition: border-color 0.2s;" />
                             </a>
                             <p style="color: #00bcd4; margin: 5px 0 0 0; font-size: 12px; font-weight: 600;">{photo['label']}</p>
                         </td>
@@ -42245,6 +42216,72 @@ async def download_terms_en():
         )
     except Exception as e:
         logging.error(f"Error downloading T&C EN: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.get("/email-photo/{inspection_id}/{photo_type}")
+async def serve_email_photo(inspection_id: int, photo_type: str):
+    """Serve inspection photo via HTTP for email compatibility (Outlook Mac)"""
+    try:
+        from fastapi.responses import Response
+        
+        conn = _db_connect()
+        cursor = conn.cursor()
+        
+        if _USE_NEW_DB:
+            cursor.execute("""
+                SELECT image_data FROM inspection_photos 
+                WHERE inspection_id = %s AND photo_type = %s
+                LIMIT 1
+            """, (inspection_id, photo_type))
+        else:
+            cursor.execute("""
+                SELECT image_data FROM inspection_photos 
+                WHERE inspection_id = ? AND photo_type = ?
+                LIMIT 1
+            """, (inspection_id, photo_type))
+        
+        row = cursor.fetchone()
+        conn.close()
+        
+        if not row or not row[0]:
+            raise HTTPException(status_code=404, detail="Photo not found")
+        
+        # Compress and return image
+        from PIL import Image
+        import io
+        
+        img = Image.open(io.BytesIO(row[0]))
+        
+        # Resize to max width 400px
+        max_width = 400
+        if img.width > max_width:
+            ratio = max_width / img.width
+            new_height = int(img.height * ratio)
+            img = img.resize((max_width, new_height), Image.Resampling.LANCZOS)
+        
+        # Convert to RGB if needed
+        if img.mode in ('RGBA', 'LA', 'P'):
+            background = Image.new('RGB', img.size, (255, 255, 255))
+            if img.mode == 'P':
+                img = img.convert('RGBA')
+            background.paste(img, mask=img.split()[-1] if img.mode in ('RGBA', 'LA') else None)
+            img = background
+        
+        # Save as JPEG
+        buffer = io.BytesIO()
+        img.save(buffer, format='JPEG', quality=75, optimize=True)
+        buffer.seek(0)
+        
+        return Response(
+            content=buffer.getvalue(),
+            media_type="image/jpeg",
+            headers={
+                "Cache-Control": "public, max-age=86400",  # Cache for 24h
+                "Content-Disposition": f"inline; filename={photo_type}.jpg"
+            }
+        )
+    except Exception as e:
+        logging.error(f"Error serving email photo: {e}")
         raise HTTPException(status_code=500, detail=str(e))
 
 @app.post("/api/extract-rental-agreement")
