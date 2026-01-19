@@ -1450,10 +1450,15 @@
                         }
                     }
                     
-                    // Close modal after a short delay
+                    // Close all modals after a short delay
                     setTimeout(() => {
-                        console.log('✅ Closing modal...');
+                        console.log('✅ Closing all modals...');
                         closeEditModal();
+                        // Also close view modal if it exists
+                        const viewModal = document.querySelector('.fixed.inset-0.bg-black.bg-opacity-50');
+                        if (viewModal && viewModal !== window.currentEditModal) {
+                            document.body.removeChild(viewModal);
+                        }
                     }, 500);
                 } else {
                     throw new Error(result.error || 'Erro ao atualizar inspeção');
