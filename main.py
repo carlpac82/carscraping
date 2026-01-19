@@ -41395,12 +41395,25 @@ async def get_inspections_history(request: Request):
                 
                 if croqui_row and croqui_row[0]:
                     damage_croqui = croqui_row[0]
-                    # Convert memoryview to string if needed (PostgreSQL returns memoryview)
+                    # Convert memoryview to bytes if needed (PostgreSQL returns memoryview)
                     if isinstance(damage_croqui, memoryview):
-                        damage_croqui = damage_croqui.tobytes().decode('utf-8')
-                    # Ensure it has the data:image prefix
-                    if not damage_croqui.startswith('data:'):
-                        damage_croqui = f'data:image/png;base64,{damage_croqui}'
+                        damage_croqui = damage_croqui.tobytes()
+                    
+                    # Check if it's binary PNG data (starts with PNG signature)
+                    if isinstance(damage_croqui, bytes):
+                        if damage_croqui.startswith(b'\x89PNG'):
+                            # It's binary PNG, convert to base64
+                            import base64
+                            damage_croqui = f'data:image/png;base64,{base64.b64encode(damage_croqui).decode("utf-8")}'
+                        else:
+                            # It's base64 string in bytes, decode to string
+                            damage_croqui = damage_croqui.decode('utf-8')
+                            if not damage_croqui.startswith('data:'):
+                                damage_croqui = f'data:image/png;base64,{damage_croqui}'
+                    elif isinstance(damage_croqui, str):
+                        # It's already a string, ensure it has the data:image prefix
+                        if not damage_croqui.startswith('data:'):
+                            damage_croqui = f'data:image/png;base64,{damage_croqui}'
                 
                 inspection_data = {
                     "inspection_number": row[0],
