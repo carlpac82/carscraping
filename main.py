@@ -31079,6 +31079,12 @@ async def send_inspection_email(request: Request, inspection_number: str):
         
         logging.info(f"🔍 Croqui: {'base64 inline' if croqui_image else 'empty cache'}")
         
+        # Debug: Check if croqui is base64 inline
+        if final_croqui and final_croqui.startswith('data:image'):
+            print(f"✅ Croqui is base64 inline (starts with 'data:image')", flush=True)
+        elif final_croqui and 'http' in final_croqui.lower():
+            print(f"❌ WARNING: Croqui contains HTTP URL: {final_croqui[:100]}", flush=True)
+        
         html_content = templates.get_template(template_name).render(
             LOGO_URL=logo_base64,
             RA_NUMBER=ra,
