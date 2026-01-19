@@ -460,21 +460,31 @@
                 
                 // Validate inspection number
                 if (!inspectionNumber || inspectionNumber === 'undefined' || inspectionNumber === 'null') {
+                    console.error('❌ Invalid inspection number');
                     showNotification('Erro: Número de inspeção inválido', 'error');
+                    sendButton.disabled = false;
+                    sendButton.innerHTML = originalText;
+                    buttons[0].disabled = false;
                     return;
                 }
                 
+                console.log('📧 Fetching API...');
                 const response = await fetch(`/api/inspections/${inspectionNumber}/email`, { 
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ email: email })
                 });
+                
+                console.log('📧 Response status:', response.status);
                 const data = await response.json();
+                console.log('📧 Response data:', data);
                 
                 if (data.ok) {
+                    console.log('✅ Email sent successfully');
                     showNotification('Email enviado com sucesso', 'success');
                     closeEmailModal();
                 } else {
+                    console.error('❌ Email send failed:', data.error);
                     showNotification('Erro ao enviar email: ' + data.error, 'error');
                 }
             } catch (error) {
@@ -482,9 +492,15 @@
                 showNotification('Erro ao enviar email: ' + error.message, 'error');
             } finally {
                 // Restore button state
-                sendButton.disabled = false;
-                sendButton.innerHTML = originalText;
-                buttons[0].disabled = false; // Re-enable cancel button
+                console.log('📧 Restoring button state');
+                if (sendButton && !document.body.contains(modal)) {
+                    // Modal was closed, don't restore buttons
+                    console.log('📧 Modal already closed, skipping button restore');
+                } else {
+                    sendButton.disabled = false;
+                    sendButton.innerHTML = originalText;
+                    buttons[0].disabled = false;
+                }
             }
         }
 
