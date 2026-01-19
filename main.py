@@ -28397,7 +28397,8 @@ async def save_inspection(request: Request):
         import os
         import base64
         logging.info("=" * 80)
-        logging.info("🔍 SAVE INSPECTION - START")
+        logging.info("🔍 SAVE INSPECTION - START [VERSION 2.0 - EMAIL DEBUG]")
+        logging.info("=" * 80)
         
         # Get JSON data from request
         data = await request.json()
