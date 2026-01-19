@@ -1356,12 +1356,12 @@
                 const result = await response.json();
                 
                 if (result.ok) {
-                    closeEditModal();
                     showNotification('Inspeção atualizada com sucesso!', 'success');
-                    // Aguardar um pouco antes de recarregar para garantir que o servidor processou
+                    closeEditModal();
+                    // Aguardar 1 segundo antes de recarregar para garantir que o servidor processou
                     setTimeout(() => {
                         refreshHistory();
-                    }, 300);
+                    }, 1000);
                 } else {
                     throw new Error(result.error || 'Erro ao atualizar inspeção');
                 }

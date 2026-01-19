@@ -41350,11 +41350,11 @@ async def get_inspections_history(request: Request):
             
             cursor = conn.cursor()
             cursor.execute("""
-                SELECT inspection_number, vehicle_plate, contract_number, 
-                       inspection_type, inspector_name, created_at, 
-                       fuel_level, odometer_reading, damage_count, status
-                FROM vehicle_inspections
-                ORDER BY created_at DESC
+                SELECT vi.inspection_number, vi.vehicle_plate, vi.contract_number, 
+                       vi.inspection_type, vi.inspector_name, vi.created_at, 
+                       vi.fuel_level, vi.odometer_reading, vi.damage_count, vi.status, vi.id
+                FROM vehicle_inspections vi
+                ORDER BY vi.created_at DESC
                 LIMIT 200
             """)
             rows = cursor.fetchall()
@@ -41367,9 +41367,37 @@ async def get_inspections_history(request: Request):
                 plate = row[1]
                 ra = row[2]
                 inspection_type = row[3]
+                inspection_id = row[10]
                 key = f"{plate}_{ra}"
                 
                 logging.info(f"  - {inspection_type}: {plate} / RA: {ra} / Date: {row[5]}")
+                
+                # Get damage croqui for this inspection
+                damage_croqui = None
+                if is_postgres:
+                    cursor2 = conn.cursor()
+                    cursor2.execute("""
+                        SELECT image_data FROM inspection_photos 
+                        WHERE inspection_id = %s AND photo_type = 'damage_croqui'
+                        LIMIT 1
+                    """, (inspection_id,))
+                    croqui_row = cursor2.fetchone()
+                    cursor2.close()
+                else:
+                    cursor2 = conn.cursor()
+                    cursor2.execute("""
+                        SELECT image_data FROM inspection_photos 
+                        WHERE inspection_id = ? AND photo_type = 'damage_croqui'
+                        LIMIT 1
+                    """, (inspection_id,))
+                    croqui_row = cursor2.fetchone()
+                    cursor2.close()
+                
+                if croqui_row and croqui_row[0]:
+                    damage_croqui = croqui_row[0]
+                    # Ensure it has the data:image prefix
+                    if not damage_croqui.startswith('data:'):
+                        damage_croqui = f'data:image/png;base64,{damage_croqui}'
                 
                 inspection_data = {
                     "inspection_number": row[0],
@@ -41381,7 +41409,8 @@ async def get_inspections_history(request: Request):
                     "fuel_level": row[6],
                     "odometer_reading": row[7],
                     "damage_count": row[8],
-                    "status": row[9]
+                    "status": row[9],
+                    "damage_croqui": damage_croqui
                 }
                 
                 if key not in grouped:
