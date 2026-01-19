@@ -1423,10 +1423,10 @@
                         'Inspeção guardada no histórico com sucesso!';
                     showNotification(successMessage, 'success');
                     
-                    // Redirect after short delay to show notification
+                    // Redirect after delay to show notification
                     setTimeout(() => {
                         window.location.href = '/check-in';
-                    }, 1500);
+                    }, 2500);
                 } else {
                     showNotification('Erro ao guardar inspeção: ' + (data.error || 'Erro desconhecido'), 'error');
                 }
@@ -2832,10 +2832,10 @@
                     
                     showNotification(successMessage, 'success');
                     
-                    // Redirect after short delay to show notification
+                    // Redirect after delay to show notification
                     setTimeout(() => {
                         window.location.href = '/check-in';
-                    }, 1500);
+                    }, 2500);
                 } else {
                     showNotification('Erro ao guardar inspeção: ' + (data.error || 'Erro desconhecido'), 'error');
                 }
