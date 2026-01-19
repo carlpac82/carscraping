@@ -2,26 +2,25 @@
 import os
 import sys
 import json
+import sqlite3
 
-# Determine which DB to use
-_USE_NEW_DB = os.getenv('USE_POSTGRES', 'true').lower() == 'true'
+# Use SQLite local
+conn = sqlite3.connect('fleet_management.db')
+cursor = conn.cursor()
 
-if _USE_NEW_DB:
-    import psycopg2
-    conn = psycopg2.connect(
-        host=os.getenv('DB_HOST', 'localhost'),
-        port=os.getenv('DB_PORT', '5432'),
-        database=os.getenv('DB_NAME', 'fleet_management'),
-        user=os.getenv('DB_USER', 'postgres'),
-        password=os.getenv('DB_PASSWORD', 'postgres')
-    )
-    cursor = conn.cursor()
-    cursor.execute("SELECT rental_agreement_number, license_plate, extracted_data FROM rental_agreements WHERE rental_agreement_number LIKE %s", ('06716%',))
-else:
-    import sqlite3
-    conn = sqlite3.connect('fleet_management.db')
-    cursor = conn.cursor()
-    cursor.execute("SELECT rental_agreement_number, license_plate, extracted_data FROM rental_agreements WHERE rental_agreement_number LIKE ?", ('06716%',))
+# Get the most recent RA
+cursor.execute("SELECT rental_agreement_number, license_plate, extracted_data FROM rental_agreements ORDER BY created_at DESC LIMIT 5")
+rows = cursor.fetchall()
+
+print(f"📋 Found {len(rows)} recent RAs:\n")
+for row in rows:
+    print(f"   • RA: {row[0]} | Plate: {row[1]}")
+
+print("\n" + "="*80)
+print("Checking most recent RA...")
+print("="*80 + "\n")
+
+cursor.execute("SELECT rental_agreement_number, license_plate, extracted_data FROM rental_agreements ORDER BY created_at DESC LIMIT 1")
 
 row = cursor.fetchone()
 if row:

@@ -28392,6 +28392,7 @@ async def save_inspection(request: Request):
     Save vehicle inspection data from the new inspection form
     Compatible with the frontend inspection system
     """
+    logging.info("🚀 ENDPOINT /api/save-inspection CALLED [VERSION 3.0]")
     
     try:
         import os
