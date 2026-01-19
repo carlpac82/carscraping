@@ -42487,10 +42487,11 @@ async def update_inspection(inspection_number: str, request: Request):
             import base64
             import re
             
-            # Extract base64 data from data URL
+            # Keep the full data URL with base64 inline for email compatibility
             croqui_data = data['damage_croqui']
-            if croqui_data.startswith('data:image'):
-                croqui_data = re.sub(r'^data:image/\w+;base64,', '', croqui_data)
+            # Ensure it has the data:image prefix
+            if not croqui_data.startswith('data:image'):
+                croqui_data = f"data:image/png;base64,{croqui_data}"
             
             # Check if croqui already exists
             if _USE_NEW_DB:
