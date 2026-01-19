@@ -675,14 +675,13 @@
                                 <div class="fuel-selector">
                                     <!-- Fuel Level Bar -->
                                     <div class="relative bg-white border-2 border-[#009cb6] rounded-lg h-8 mb-2 max-w-xs mx-auto">
-                                        <!-- Fuel level indicators -->
-                                        <div class="absolute inset-0 flex items-center justify-between px-1">
-                                            <div class="w-0.5 h-4 bg-[#009cb6]"></div>
-                                            <div class="w-0.5 h-4 bg-[#009cb6]"></div>
-                                            <div class="w-0.5 h-4 bg-[#009cb6]"></div>
-                                            <div class="w-0.5 h-4 bg-[#009cb6]"></div>
-                                            <div class="w-0.5 h-4 bg-[#009cb6]"></div>
-                                            <div class="w-0.5 h-4 bg-[#009cb6]"></div>
+                                        <!-- Fuel level indicators at 0%, 25%, 50%, 75%, 100% -->
+                                        <div class="absolute inset-0 flex items-center">
+                                            <div class="w-0.5 h-4 bg-[#009cb6]" style="position: absolute; left: 0%;"></div>
+                                            <div class="w-0.5 h-4 bg-[#009cb6]" style="position: absolute; left: 25%;"></div>
+                                            <div class="w-0.5 h-4 bg-[#009cb6]" style="position: absolute; left: 50%;"></div>
+                                            <div class="w-0.5 h-4 bg-[#009cb6]" style="position: absolute; left: 75%;"></div>
+                                            <div class="w-0.5 h-4 bg-[#009cb6]" style="position: absolute; right: 0%;"></div>
                                         </div>
                                         
                                         <!-- Fuel level fill -->
@@ -691,12 +690,12 @@
                                     
                                     <!-- Labels alinhados com as linhas -->
                                     <div class="relative max-w-xs mx-auto">
-                                        <div class="flex items-center justify-between">
-                                            <span class="text-xs font-semibold text-[#009cb6]" style="margin-left: -2px;">R</span>
-                                            <span class="text-xs font-semibold text-[#009cb6]" style="margin-left: -4px;">1/4</span>
-                                            <span class="text-xs font-semibold text-[#009cb6]" style="margin-left: -4px;">1/2</span>
-                                            <span class="text-xs font-semibold text-[#009cb6]" style="margin-left: -4px;">3/4</span>
-                                            <span class="text-xs font-semibold text-[#009cb6]" style="margin-right: -2px;">F</span>
+                                        <div class="relative">
+                                            <span class="text-xs font-semibold text-[#009cb6] absolute" style="left: 0%; transform: translateX(-50%);">R</span>
+                                            <span class="text-xs font-semibold text-[#009cb6] absolute" style="left: 25%; transform: translateX(-50%);">1/4</span>
+                                            <span class="text-xs font-semibold text-[#009cb6] absolute" style="left: 50%; transform: translateX(-50%);">1/2</span>
+                                            <span class="text-xs font-semibold text-[#009cb6] absolute" style="left: 75%; transform: translateX(-50%);">3/4</span>
+                                            <span class="text-xs font-semibold text-[#009cb6] absolute" style="right: 0%; transform: translateX(50%);">F</span>
                                         </div>
                                     </div>
                                     
@@ -867,14 +866,13 @@
                                 <div class="fuel-selector">
                                     <!-- Fuel Level Bar -->
                                     <div class="relative bg-white border-2 border-[#009cb6] rounded-lg h-8 mb-2">
-                                        <!-- Fuel level indicators -->
-                                        <div class="absolute inset-0 flex items-center justify-between px-1">
-                                            <div class="w-0.5 h-4 bg-[#009cb6]"></div>
-                                            <div class="w-0.5 h-4 bg-[#009cb6]"></div>
-                                            <div class="w-0.5 h-4 bg-[#009cb6]"></div>
-                                            <div class="w-0.5 h-4 bg-[#009cb6]"></div>
-                                            <div class="w-0.5 h-4 bg-[#009cb6]"></div>
-                                            <div class="w-0.5 h-4 bg-[#009cb6]"></div>
+                                        <!-- Fuel level indicators at 0%, 25%, 50%, 75%, 100% -->
+                                        <div class="absolute inset-0 flex items-center">
+                                            <div class="w-0.5 h-4 bg-[#009cb6]" style="position: absolute; left: 0%;"></div>
+                                            <div class="w-0.5 h-4 bg-[#009cb6]" style="position: absolute; left: 25%;"></div>
+                                            <div class="w-0.5 h-4 bg-[#009cb6]" style="position: absolute; left: 50%;"></div>
+                                            <div class="w-0.5 h-4 bg-[#009cb6]" style="position: absolute; left: 75%;"></div>
+                                            <div class="w-0.5 h-4 bg-[#009cb6]" style="position: absolute; right: 0%;"></div>
                                         </div>
                                         
                                         <!-- Fuel level fill -->
@@ -883,12 +881,12 @@
                                     
                                     <!-- Labels alinhados com as linhas -->
                                     <div class="relative mb-2">
-                                        <div class="flex items-center justify-between">
-                                            <span class="text-xs font-semibold text-[#009cb6]" style="margin-left: -2px;">R</span>
-                                            <span class="text-xs font-semibold text-[#009cb6]" style="margin-left: -4px;">1/4</span>
-                                            <span class="text-xs font-semibold text-[#009cb6]" style="margin-left: -4px;">1/2</span>
-                                            <span class="text-xs font-semibold text-[#009cb6]" style="margin-left: -4px;">3/4</span>
-                                            <span class="text-xs font-semibold text-[#009cb6]" style="margin-right: -2px;">F</span>
+                                        <div class="relative">
+                                            <span class="text-xs font-semibold text-[#009cb6] absolute" style="left: 0%; transform: translateX(-50%);">R</span>
+                                            <span class="text-xs font-semibold text-[#009cb6] absolute" style="left: 25%; transform: translateX(-50%);">1/4</span>
+                                            <span class="text-xs font-semibold text-[#009cb6] absolute" style="left: 50%; transform: translateX(-50%);">1/2</span>
+                                            <span class="text-xs font-semibold text-[#009cb6] absolute" style="left: 75%; transform: translateX(-50%);">3/4</span>
+                                            <span class="text-xs font-semibold text-[#009cb6] absolute" style="right: 0%; transform: translateX(50%);">F</span>
                                         </div>
                                     </div>
                                     
