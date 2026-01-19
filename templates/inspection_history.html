@@ -380,6 +380,10 @@
                 document.body.appendChild(modal);
                 window.currentEmailModal = modal;
                 
+                // Store inspection numbers for the event listener
+                const checkoutNum = checkoutNumber;
+                const checkinNum = checkinNumber;
+                
                 // Add event listeners for mobile compatibility
                 const cancelBtn = modal.querySelector('#cancelEmailBtn');
                 const sendBtn = modal.querySelector('#sendEmailBtn');
@@ -393,7 +397,7 @@
                 sendBtn.addEventListener('click', (e) => {
                     e.preventDefault();
                     e.stopPropagation();
-                    sendEmailFromModal('${checkoutNumber}', '${checkinNumber}');
+                    sendEmailFromModal(checkoutNum, checkinNum);
                 });
                 
                 // Focus email input for better UX
