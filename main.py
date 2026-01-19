@@ -42666,19 +42666,39 @@ async def serve_email_photo(inspection_id: int, photo_type: str):
         
         # Handle both base64 string and bytes
         image_data = row[0]
+        logging.info(f"🖼️ Image data type: {type(image_data)}, length: {len(image_data) if hasattr(image_data, '__len__') else 'N/A'}")
+        
         if isinstance(image_data, str):
             # It's a base64 string, decode it
+            logging.info(f"🖼️ String data, first 100 chars: {image_data[:100]}")
             if image_data.startswith('data:image'):
                 # Remove data:image/png;base64, prefix if present
                 image_data = image_data.split(',', 1)[1]
-            image_bytes = base64.b64decode(image_data)
+                logging.info(f"🖼️ Removed data URI prefix")
+            try:
+                image_bytes = base64.b64decode(image_data)
+                logging.info(f"🖼️ Decoded base64 to {len(image_bytes)} bytes")
+            except Exception as e:
+                logging.error(f"❌ Failed to decode base64: {e}")
+                raise
         elif isinstance(image_data, memoryview):
             # Convert memoryview to bytes
             image_bytes = bytes(image_data)
+            logging.info(f"🖼️ Converted memoryview to {len(image_bytes)} bytes")
+            # Check if it's actually base64 encoded
+            try:
+                # Try to decode as base64 first
+                decoded = base64.b64decode(image_bytes)
+                logging.info(f"🖼️ Memoryview was base64, decoded to {len(decoded)} bytes")
+                image_bytes = decoded
+            except:
+                logging.info(f"🖼️ Memoryview is raw bytes, not base64")
         else:
             # Already bytes
             image_bytes = image_data
+            logging.info(f"🖼️ Already bytes: {len(image_bytes)} bytes")
         
+        logging.info(f"🖼️ Final image_bytes length: {len(image_bytes)}, first 20 bytes: {image_bytes[:20]}")
         img = Image.open(io.BytesIO(image_bytes))
         
         # Resize to max width 400px
