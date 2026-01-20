@@ -1432,41 +1432,29 @@ function loadDeliveryDamagesOnCroqui() {
         return;
     }
     
-    // Try to load damage croqui as background if available
-    if (window.deliveryPhotos && window.deliveryPhotos.length > 0) {
-        const croquiPhoto = window.deliveryPhotos.find(p => p.photo_type === 'damage_croqui');
+    // Try to load damage croqui directly on canvas if available
+    if (window.deliveryInspection.damage_croqui) {
+        console.log('📍 Loading delivery damage croqui on canvas...');
         
-        if (croquiPhoto && croquiPhoto.image_data) {
-            console.log('📍 Loading delivery damage croqui as background...');
-            
-            const carDiagram = document.getElementById('carDiagram');
-            if (carDiagram) {
-                // Create background div with delivery croqui
-                let bgLayer = document.getElementById('deliveryCroquiBackground');
-                if (!bgLayer) {
-                    bgLayer = document.createElement('div');
-                    bgLayer.id = 'deliveryCroquiBackground';
-                    bgLayer.style.cssText = `
-                        position: absolute;
-                        top: 0;
-                        left: 0;
-                        width: 100%;
-                        height: 100%;
-                        background-image: url('${croquiPhoto.image_data}');
-                        background-size: contain;
-                        background-repeat: no-repeat;
-                        background-position: center;
-                        pointer-events: none;
-                        z-index: 1;
-                        opacity: 0.7;
-                    `;
-                    carDiagram.insertBefore(bgLayer, carDiagram.firstChild);
-                }
-                console.log('✅ Delivery croqui loaded as background');
-            }
+        const canvas = document.getElementById('damageCanvas');
+        const ctx = canvas ? canvas.getContext('2d') : null;
+        
+        if (canvas && ctx) {
+            const img = new Image();
+            img.onload = function() {
+                // Draw the checkout croqui on the canvas
+                ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+                console.log('✅ Delivery croqui loaded on canvas');
+            };
+            img.onerror = function() {
+                console.error('❌ Failed to load delivery croqui image');
+            };
+            img.src = window.deliveryInspection.damage_croqui;
         } else {
-            console.log('ℹ️ No damage croqui image in delivery photos - will load pins only');
+            console.error('❌ Canvas not found or not initialized');
         }
+    } else {
+        console.log('ℹ️ No damage croqui in delivery inspection');
     }
     
     // Load delivery damage pins (blue) if available
