@@ -24581,13 +24581,20 @@ def _validate_checkin_incidents(cursor, is_postgres, ra, plate, checkin_fuel_lev
         logging.info(f"📊 Checkout data: Fuel={checkout_fuel}%, Damages={checkout_damage_count}")
         logging.info(f"📊 Check-in data: Fuel={checkin_fuel_level}%, Damages={checkin_damage_count}")
         
-        # Validate fuel (allow 5% tolerance for measurement differences)
+        # Validate fuel - ONLY alert if there's LESS fuel (fuel shortage)
+        # If client returns with MORE fuel, no incident (they added fuel, which is OK)
         fuel_diff = checkout_fuel - float(checkin_fuel_level)
         result['fuel_diff'] = fuel_diff
         
-        if fuel_diff > 5:  # More than 5% difference
+        # Only flag incident if fuel_diff > 5% (meaning checkin has LESS fuel than checkout)
+        # Allow 5% tolerance for measurement differences
+        if fuel_diff > 5:  # Client returned with LESS fuel than received
             result['has_fuel_incident'] = True
-            logging.warning(f"⚠️ FUEL INCIDENT: Difference of {fuel_diff}% (checkout: {checkout_fuel}%, checkin: {checkin_fuel_level}%)")
+            logging.warning(f"⚠️ FUEL INCIDENT: Shortage of {fuel_diff}% (checkout: {checkout_fuel}%, checkin: {checkin_fuel_level}%)")
+        elif fuel_diff < -5:  # Client returned with MORE fuel than received (no incident)
+            logging.info(f"✅ FUEL OK: Client returned with MORE fuel (+{abs(fuel_diff)}%) - No incident")
+        else:
+            logging.info(f"✅ FUEL OK: Within tolerance ({fuel_diff}%)")
         
         # Validate damages - check if there are NEW damage photos in check-in
         if is_postgres:
