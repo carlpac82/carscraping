@@ -3934,6 +3934,110 @@ def init_db():
             safe_create_index(conn, "CREATE INDEX IF NOT EXISTS idx_ra_number ON rental_agreements(rental_agreement_number)", "idx_ra_number")
             safe_create_index(conn, "CREATE INDEX IF NOT EXISTS idx_ra_completed ON rental_agreements(inspection_completed)", "idx_ra_completed")
             
+            # Migration: Add self check-in columns to rental_agreements
+            if is_postgres:
+                with conn.cursor() as cur:
+                    cur.execute("""
+                        SELECT column_name FROM information_schema.columns 
+                        WHERE table_name='rental_agreements'
+                    """)
+                    existing_columns = [row[0] for row in cur.fetchall()]
+                    
+                    if 'self_checkin_token' not in existing_columns:
+                        cur.execute("ALTER TABLE rental_agreements ADD COLUMN self_checkin_token TEXT UNIQUE")
+                        logging.info("✅ Coluna self_checkin_token adicionada (PostgreSQL)")
+                    
+                    if 'self_checkin_email' not in existing_columns:
+                        cur.execute("ALTER TABLE rental_agreements ADD COLUMN self_checkin_email TEXT")
+                        logging.info("✅ Coluna self_checkin_email adicionada (PostgreSQL)")
+                    
+                    if 'self_checkin_scheduled_date' not in existing_columns:
+                        cur.execute("ALTER TABLE rental_agreements ADD COLUMN self_checkin_scheduled_date TEXT")
+                        logging.info("✅ Coluna self_checkin_scheduled_date adicionada (PostgreSQL)")
+                    
+                    if 'self_checkin_sent' not in existing_columns:
+                        cur.execute("ALTER TABLE rental_agreements ADD COLUMN self_checkin_sent BOOLEAN DEFAULT FALSE")
+                        logging.info("✅ Coluna self_checkin_sent adicionada (PostgreSQL)")
+                    
+                    if 'self_checkin_completed' not in existing_columns:
+                        cur.execute("ALTER TABLE rental_agreements ADD COLUMN self_checkin_completed BOOLEAN DEFAULT FALSE")
+                        logging.info("✅ Coluna self_checkin_completed adicionada (PostgreSQL)")
+                    
+                    if 'self_checkin_validated' not in existing_columns:
+                        cur.execute("ALTER TABLE rental_agreements ADD COLUMN self_checkin_validated BOOLEAN")
+                        logging.info("✅ Coluna self_checkin_validated adicionada (PostgreSQL)")
+                    
+                    if 'self_checkin_inspection_id' not in existing_columns:
+                        cur.execute("ALTER TABLE rental_agreements ADD COLUMN self_checkin_inspection_id INTEGER")
+                        logging.info("✅ Coluna self_checkin_inspection_id adicionada (PostgreSQL)")
+                    
+                    if 'return_date' not in existing_columns:
+                        cur.execute("ALTER TABLE rental_agreements ADD COLUMN return_date TEXT")
+                        logging.info("✅ Coluna return_date adicionada (PostgreSQL)")
+                    
+                    if 'client_email' not in existing_columns:
+                        cur.execute("ALTER TABLE rental_agreements ADD COLUMN client_email TEXT")
+                        logging.info("✅ Coluna client_email adicionada (PostgreSQL)")
+                    
+                    conn.commit()
+            else:
+                # SQLite: Usar try/except
+                try:
+                    conn.execute("ALTER TABLE rental_agreements ADD COLUMN self_checkin_token TEXT UNIQUE")
+                    logging.info("✅ Coluna self_checkin_token adicionada (SQLite)")
+                except Exception:
+                    pass
+                
+                try:
+                    conn.execute("ALTER TABLE rental_agreements ADD COLUMN self_checkin_email TEXT")
+                    logging.info("✅ Coluna self_checkin_email adicionada (SQLite)")
+                except Exception:
+                    pass
+                
+                try:
+                    conn.execute("ALTER TABLE rental_agreements ADD COLUMN self_checkin_scheduled_date TEXT")
+                    logging.info("✅ Coluna self_checkin_scheduled_date adicionada (SQLite)")
+                except Exception:
+                    pass
+                
+                try:
+                    conn.execute("ALTER TABLE rental_agreements ADD COLUMN self_checkin_sent INTEGER DEFAULT 0")
+                    logging.info("✅ Coluna self_checkin_sent adicionada (SQLite)")
+                except Exception:
+                    pass
+                
+                try:
+                    conn.execute("ALTER TABLE rental_agreements ADD COLUMN self_checkin_completed INTEGER DEFAULT 0")
+                    logging.info("✅ Coluna self_checkin_completed adicionada (SQLite)")
+                except Exception:
+                    pass
+                
+                try:
+                    conn.execute("ALTER TABLE rental_agreements ADD COLUMN self_checkin_validated INTEGER")
+                    logging.info("✅ Coluna self_checkin_validated adicionada (SQLite)")
+                except Exception:
+                    pass
+                
+                try:
+                    conn.execute("ALTER TABLE rental_agreements ADD COLUMN self_checkin_inspection_id INTEGER")
+                    logging.info("✅ Coluna self_checkin_inspection_id adicionada (SQLite)")
+                except Exception:
+                    pass
+                
+                try:
+                    conn.execute("ALTER TABLE rental_agreements ADD COLUMN return_date TEXT")
+                    logging.info("✅ Coluna return_date adicionada (SQLite)")
+                except Exception:
+                    pass
+                
+                try:
+                    conn.execute("ALTER TABLE rental_agreements ADD COLUMN client_email TEXT")
+                    logging.info("✅ Coluna client_email adicionada (SQLite)")
+                except Exception:
+                    pass
+                
+                conn.commit()
+            
             # Tabela para coordenadas dos campos do Rental Agreement
             conn.execute(
                 """
