@@ -3633,6 +3633,10 @@ def init_db():
     
     with _db_lock:
         conn = _db_connect()  # Use _db_connect() instead of direct sqlite3.connect()
+        
+        # Detect if we're using PostgreSQL or SQLite
+        import os
+        is_postgres = 'psycopg' in type(conn).__name__.lower() or bool(os.getenv('DATABASE_URL'))
         try:
             conn.execute(
                 """
