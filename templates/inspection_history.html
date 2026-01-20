@@ -352,6 +352,28 @@
                                         <span class="hidden sm:inline text-sm font-medium text-green-600">Recolha</span>
                                     </button>
                                     ` : ''}
+                                    ${hasCheckin && contract.checkin.is_self_checkin && contract.checkin.status === 'pending' ? `
+                                    <button onclick="validateSelfCheckin('${contract.checkin.inspection_number}')" class="flex items-center gap-2 px-3 py-2 bg-blue-50 hover:bg-blue-100 rounded-lg transition-colors" title="Validar Self Check-in">
+                                        <svg class="w-6 h-6 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                                        </svg>
+                                        <span class="hidden sm:inline text-sm font-medium text-blue-600">Validar</span>
+                                    </button>
+                                    <button onclick="invalidateSelfCheckin('${contract.checkin.inspection_number}')" class="flex items-center gap-2 px-3 py-2 bg-orange-50 hover:bg-orange-100 rounded-lg transition-colors" title="Invalidar Self Check-in">
+                                        <svg class="w-6 h-6 text-orange-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/>
+                                        </svg>
+                                        <span class="hidden sm:inline text-sm font-medium text-orange-600">Invalidar</span>
+                                    </button>
+                                    ` : ''}
+                                    ${hasCheckin && contract.checkin.is_self_checkin ? `
+                                    <button onclick="resendSelfCheckinLink('${contract.contract_number}')" class="flex items-center gap-2 px-3 py-2 bg-purple-50 hover:bg-purple-100 rounded-lg transition-colors" title="Reenviar Link de Self Check-in">
+                                        <svg class="w-6 h-6 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/>
+                                        </svg>
+                                        <span class="hidden sm:inline text-sm font-medium text-purple-600">Reenviar Link</span>
+                                    </button>
+                                    ` : ''}
                                     <button onclick="showEmailModal(${contract.checkout ? `'${contract.checkout.inspection_number}'` : 'null'}, ${contract.checkin ? `'${contract.checkin.inspection_number}'` : 'null'}, '${contract.vehicle_plate}', '${contract.contract_number}')" class="flex items-center gap-2 px-3 py-2 bg-yellow-50 hover:bg-yellow-100 rounded-lg transition-colors" title="Enviar por Email">
                                         <svg class="w-6 h-6 text-[#f59e0b]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"/>
@@ -1583,6 +1605,99 @@
                 </html>
             `);
             newWindow.document.close();
+        }
+
+        // Validate self check-in
+        async function validateSelfCheckin(inspectionNumber) {
+            if (!confirm('Tem a certeza que deseja validar este self check-in? O contrato será fechado e será enviado um email de confirmação ao cliente.')) {
+                return;
+            }
+            
+            try {
+                const response = await fetch('/api/self-checkin/validate', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        inspection_number: inspectionNumber
+                    })
+                });
+                
+                const result = await response.json();
+                
+                if (result.success) {
+                    showNotification('Self check-in validado com sucesso! Email de confirmação enviado.', 'success');
+                    await loadHistory(true);
+                } else {
+                    showNotification('Erro ao validar self check-in: ' + (result.error || 'Erro desconhecido'), 'error');
+                }
+            } catch (error) {
+                console.error('Error validating self check-in:', error);
+                showNotification('Erro ao validar self check-in: ' + error.message, 'error');
+            }
+        }
+
+        // Invalidate self check-in
+        async function invalidateSelfCheckin(inspectionNumber) {
+            if (!confirm('Tem a certeza que deseja invalidar este self check-in? Será enviado um email ao cliente informando sobre incidências e será necessário realizar uma inspeção presencial.')) {
+                return;
+            }
+            
+            try {
+                const response = await fetch('/api/self-checkin/invalidate', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        inspection_number: inspectionNumber
+                    })
+                });
+                
+                const result = await response.json();
+                
+                if (result.success) {
+                    showNotification('Self check-in invalidado. Email de incidências enviado ao cliente.', 'warning');
+                    await loadHistory(true);
+                } else {
+                    showNotification('Erro ao invalidar self check-in: ' + (result.error || 'Erro desconhecido'), 'error');
+                }
+            } catch (error) {
+                console.error('Error invalidating self check-in:', error);
+                showNotification('Erro ao invalidar self check-in: ' + error.message, 'error');
+            }
+        }
+
+        // Resend self check-in link
+        async function resendSelfCheckinLink(raNumber) {
+            if (!confirm('Tem a certeza que deseja reenviar o link de self check-in? Um novo link será gerado e enviado por email ao cliente.')) {
+                return;
+            }
+            
+            try {
+                const response = await fetch('/api/self-checkin/resend-link', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        rental_agreement_number: raNumber
+                    })
+                });
+                
+                const result = await response.json();
+                
+                if (result.success) {
+                    showNotification(result.message || 'Link de self check-in reenviado com sucesso!', 'success');
+                    await loadHistory(true);
+                } else {
+                    showNotification('Erro ao reenviar link: ' + (result.error || 'Erro desconhecido'), 'error');
+                }
+            } catch (error) {
+                console.error('Error resending self check-in link:', error);
+                showNotification('Erro ao reenviar link: ' + error.message, 'error');
+            }
         }
 
         // Load on page load

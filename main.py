@@ -4787,6 +4787,186 @@ def _send_notification_email_smtp(to_email: str, subject: str, message: str, att
                 s.login(user, pwd)
             s.send_message(msg)
 
+def _send_self_checkin_invitation_email(to_email: str, client_name: str, ra_number: str, plate: str, return_date: str, token: str):
+    """Enviar email de convite para self check-in"""
+    try:
+        # Construir link de self check-in
+        base_url = os.getenv("BASE_URL", "http://localhost:8000")
+        checkin_link = f"{base_url}/self-checkin/{token}"
+        
+        subject = f"🚗 Self Check-in - RA {ra_number}"
+        
+        html_content = f"""
+        <!DOCTYPE html>
+        <html>
+        <head>
+            <meta charset="UTF-8">
+        </head>
+        <body style="font-family: 'Segoe UI', sans-serif; background: #f8fafc; padding: 20px;">
+            <div style="max-width: 600px; margin: 0 auto; background: white; border-radius: 8px; overflow: hidden; box-shadow: 0 2px 8px rgba(0,0,0,0.1);">
+                <div style="background: linear-gradient(135deg, #009cb6 0%, #007a91 100%); padding: 30px; text-align: center;">
+                    <h1 style="margin: 0; color: white; font-size: 24px;">🚗 Self Check-in Disponível</h1>
+                </div>
+                <div style="padding: 30px;">
+                    <p style="margin: 0 0 20px 0; color: #1e293b; font-size: 16px;">Olá {client_name},</p>
+                    
+                    <p style="margin: 0 0 20px 0; color: #475569; font-size: 14px; line-height: 1.6;">
+                        A data de recolha do seu veículo <strong>{plate}</strong> (RA {ra_number}) aproxima-se.
+                    </p>
+                    
+                    <p style="margin: 0 0 20px 0; color: #475569; font-size: 14px; line-height: 1.6;">
+                        Para facilitar o processo, pode realizar o <strong>self check-in</strong> através do link abaixo:
+                    </p>
+                    
+                    <div style="text-align: center; margin: 30px 0;">
+                        <a href="{checkin_link}" style="display: inline-block; background: #009cb6; color: white; padding: 15px 40px; text-decoration: none; border-radius: 6px; font-weight: 600; font-size: 16px;">
+                            Realizar Self Check-in
+                        </a>
+                    </div>
+                    
+                    <p style="margin: 20px 0 0 0; color: #64748b; font-size: 13px; line-height: 1.6;">
+                        <strong>Data de recolha:</strong> {return_date}<br>
+                        <strong>O que precisa fazer:</strong>
+                    </p>
+                    <ul style="color: #64748b; font-size: 13px; line-height: 1.6; margin: 10px 0;">
+                        <li>Tirar 9 fotografias do veículo</li>
+                        <li>Fotografar eventuais danos</li>
+                        <li>Indicar o nível de combustível</li>
+                        <li>Indicar os quilómetros</li>
+                    </ul>
+                    
+                    <p style="margin: 20px 0 0 0; color: #94a3b8; font-size: 12px; font-style: italic;">
+                        Este link é único e válido apenas para este rental agreement.
+                    </p>
+                </div>
+                <div style="background: #f8fafc; padding: 20px; text-align: center; border-top: 1px solid #e2e8f0;">
+                    <p style="margin: 0; font-size: 12px; color: #94a3b8;">
+                        Auto Prudente © 2025 - Sistema de Self Check-in
+                    </p>
+                </div>
+            </div>
+        </body>
+        </html>
+        """
+        
+        _send_notification_email(to_email, subject, html_content)
+        logging.info(f"✅ Self check-in invitation email sent to {to_email} for RA {ra_number}")
+        
+    except Exception as e:
+        logging.error(f"❌ Failed to send self check-in invitation email: {str(e)}")
+        raise
+
+
+def _send_self_checkin_confirmation_email(to_email: str, client_name: str, ra_number: str, plate: str):
+    """Enviar email de confirmação após validação de self check-in"""
+    try:
+        subject = f"✅ Self Check-in Validado - RA {ra_number}"
+        
+        html_content = f"""
+        <!DOCTYPE html>
+        <html>
+        <head>
+            <meta charset="UTF-8">
+        </head>
+        <body style="font-family: 'Segoe UI', sans-serif; background: #f8fafc; padding: 20px;">
+            <div style="max-width: 600px; margin: 0 auto; background: white; border-radius: 8px; overflow: hidden; box-shadow: 0 2px 8px rgba(0,0,0,0.1);">
+                <div style="background: linear-gradient(135deg, #10b981 0%, #059669 100%); padding: 30px; text-align: center;">
+                    <h1 style="margin: 0; color: white; font-size: 24px;">✅ Self Check-in Validado</h1>
+                </div>
+                <div style="padding: 30px;">
+                    <p style="margin: 0 0 20px 0; color: #1e293b; font-size: 16px;">Olá {client_name},</p>
+                    
+                    <p style="margin: 0 0 20px 0; color: #475569; font-size: 14px; line-height: 1.6;">
+                        O seu <strong>self check-in</strong> do veículo <strong>{plate}</strong> (RA {ra_number}) foi validado com sucesso!
+                    </p>
+                    
+                    <div style="background: #f0fdf4; border-left: 4px solid #10b981; padding: 15px; margin: 20px 0; border-radius: 4px;">
+                        <p style="margin: 0; color: #166534; font-size: 14px; font-weight: 600;">
+                            ✓ Contrato encerrado
+                        </p>
+                        <p style="margin: 5px 0 0 0; color: #15803d; font-size: 13px;">
+                            O processo de devolução está concluído.
+                        </p>
+                    </div>
+                    
+                    <p style="margin: 20px 0 0 0; color: #64748b; font-size: 13px; line-height: 1.6;">
+                        Agradecemos a sua preferência e esperamos vê-lo novamente em breve!
+                    </p>
+                </div>
+                <div style="background: #f8fafc; padding: 20px; text-align: center; border-top: 1px solid #e2e8f0;">
+                    <p style="margin: 0; font-size: 12px; color: #94a3b8;">
+                        Auto Prudente © 2025 - Sistema de Self Check-in
+                    </p>
+                </div>
+            </div>
+        </body>
+        </html>
+        """
+        
+        _send_notification_email(to_email, subject, html_content)
+        logging.info(f"✅ Self check-in confirmation email sent to {to_email} for RA {ra_number}")
+        
+    except Exception as e:
+        logging.error(f"❌ Failed to send self check-in confirmation email: {str(e)}")
+        raise
+
+
+def _send_self_checkin_incident_email(to_email: str, client_name: str, ra_number: str, plate: str):
+    """Enviar email de incidências após invalidação de self check-in"""
+    try:
+        subject = f"⚠️ Self Check-in - Inspeção Presencial Necessária - RA {ra_number}"
+        
+        html_content = f"""
+        <!DOCTYPE html>
+        <html>
+        <head>
+            <meta charset="UTF-8">
+        </head>
+        <body style="font-family: 'Segoe UI', sans-serif; background: #f8fafc; padding: 20px;">
+            <div style="max-width: 600px; margin: 0 auto; background: white; border-radius: 8px; overflow: hidden; box-shadow: 0 2px 8px rgba(0,0,0,0.1);">
+                <div style="background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%); padding: 30px; text-align: center;">
+                    <h1 style="margin: 0; color: white; font-size: 24px;">⚠️ Inspeção Presencial Necessária</h1>
+                </div>
+                <div style="padding: 30px;">
+                    <p style="margin: 0 0 20px 0; color: #1e293b; font-size: 16px;">Olá {client_name},</p>
+                    
+                    <p style="margin: 0 0 20px 0; color: #475569; font-size: 14px; line-height: 1.6;">
+                        Após análise do seu <strong>self check-in</strong> do veículo <strong>{plate}</strong> (RA {ra_number}), 
+                        identificámos algumas situações que requerem uma <strong>inspeção presencial</strong>.
+                    </p>
+                    
+                    <div style="background: #fffbeb; border-left: 4px solid #f59e0b; padding: 15px; margin: 20px 0; border-radius: 4px;">
+                        <p style="margin: 0; color: #92400e; font-size: 14px; font-weight: 600;">
+                            ⚠️ Ação Necessária
+                        </p>
+                        <p style="margin: 5px 0 0 0; color: #b45309; font-size: 13px;">
+                            Por favor, aguarde a visita de um dos nossos colaboradores para realizar a inspeção presencial do veículo.
+                        </p>
+                    </div>
+                    
+                    <p style="margin: 20px 0 0 0; color: #64748b; font-size: 13px; line-height: 1.6;">
+                        Entraremos em contacto brevemente para agendar a inspeção. Caso tenha alguma dúvida, 
+                        não hesite em contactar-nos.
+                    </p>
+                </div>
+                <div style="background: #f8fafc; padding: 20px; text-align: center; border-top: 1px solid #e2e8f0;">
+                    <p style="margin: 0; font-size: 12px; color: #94a3b8;">
+                        Auto Prudente © 2025 - Sistema de Self Check-in
+                    </p>
+                </div>
+            </div>
+        </body>
+        </html>
+        """
+        
+        _send_notification_email(to_email, subject, html_content)
+        logging.info(f"✅ Self check-in incident email sent to {to_email} for RA {ra_number}")
+        
+    except Exception as e:
+        logging.error(f"❌ Failed to send self check-in incident email: {str(e)}")
+        raise
+
+
 def get_file_from_db(filepath: str):
     """Obter ficheiro da base de dados"""
     try:
@@ -29604,72 +29784,103 @@ async def save_inspection(request: Request):
                 try:
                     # Se é checkout, gerar token de self check-in e agendar email
                     if inspection_type == 'checkout':
-                        # Gerar token único
-                        self_checkin_token = generate_self_checkin_token(ra, plate)
+                        # Verificar se o local de recolha é "Aeroporto de Faro"
+                        # Self check-in só é configurado automaticamente para este local
+                        is_faro_airport = False
+                        if ra_pickup_location:
+                            pickup_lower = ra_pickup_location.lower()
+                            is_faro_airport = 'aeroporto' in pickup_lower and 'faro' in pickup_lower
+                            logging.info(f"📍 Pickup location: {ra_pickup_location} | Is Faro Airport: {is_faro_airport}")
                         
-                        # Obter data de recolha do RA
-                        return_date = None
-                        try:
+                        if is_faro_airport:
+                            # Gerar token único
+                            self_checkin_token = generate_self_checkin_token(ra, plate)
+                            
+                            # Obter data de recolha do RA
+                            return_date = None
+                            try:
+                                if is_postgres:
+                                    cursor.execute("""
+                                        SELECT extracted_data FROM rental_agreements 
+                                        WHERE rental_agreement_number = %s
+                                    """, (ra,))
+                                else:
+                                    cursor.execute("""
+                                        SELECT extracted_data FROM rental_agreements 
+                                        WHERE rental_agreement_number = ?
+                                    """, (ra,))
+                                
+                                ra_row = cursor.fetchone()
+                                if ra_row and ra_row[0]:
+                                    import json
+                                    extracted = json.loads(ra_row[0])
+                                    return_date = extracted.get('data_entrega') or extracted.get('return_date')
+                                    logging.info(f"📅 Return date from RA: {return_date}")
+                            except Exception as date_error:
+                                logging.error(f"❌ Error getting return date: {date_error}")
+                            
+                            # Calcular data agendada (2 dias antes da recolha)
+                            scheduled_date = None
+                            if return_date:
+                                scheduled_date = calculate_scheduled_date(return_date, days_before=2)
+                            
+                            # Atualizar RA com dados de self check-in
                             if is_postgres:
                                 cursor.execute("""
-                                    SELECT extracted_data FROM rental_agreements 
+                                    UPDATE rental_agreements
+                                    SET inspection_completed = TRUE,
+                                        inspection_id = %s,
+                                        updated_at = NOW(),
+                                        self_checkin_token = %s,
+                                        self_checkin_email = %s,
+                                        self_checkin_scheduled_date = %s,
+                                        self_checkin_sent = FALSE,
+                                        self_checkin_completed = FALSE,
+                                        return_date = %s,
+                                        client_email = %s
                                     WHERE rental_agreement_number = %s
-                                """, (ra,))
+                                      AND UPPER(license_plate) = UPPER(%s)
+                                """, (inspection_id, self_checkin_token, email, scheduled_date, return_date, email, ra, plate))
                             else:
                                 cursor.execute("""
-                                    SELECT extracted_data FROM rental_agreements 
+                                    UPDATE rental_agreements
+                                    SET inspection_completed = 1,
+                                        inspection_id = ?,
+                                        updated_at = datetime('now'),
+                                        self_checkin_token = ?,
+                                        self_checkin_email = ?,
+                                        self_checkin_scheduled_date = ?,
+                                        self_checkin_sent = 0,
+                                        self_checkin_completed = 0,
+                                        return_date = ?,
+                                        client_email = ?
                                     WHERE rental_agreement_number = ?
-                                """, (ra,))
+                                      AND UPPER(license_plate) = UPPER(?)
+                                """, (inspection_id, self_checkin_token, email, scheduled_date, return_date, email, ra, plate))
                             
-                            ra_row = cursor.fetchone()
-                            if ra_row and ra_row[0]:
-                                import json
-                                extracted = json.loads(ra_row[0])
-                                return_date = extracted.get('data_entrega') or extracted.get('return_date')
-                                logging.info(f"📅 Return date from RA: {return_date}")
-                        except Exception as date_error:
-                            logging.error(f"❌ Error getting return date: {date_error}")
-                        
-                        # Calcular data agendada (2 dias antes da recolha)
-                        scheduled_date = None
-                        if return_date:
-                            scheduled_date = calculate_scheduled_date(return_date, days_before=2)
-                        
-                        # Atualizar RA com dados de self check-in
-                        if is_postgres:
-                            cursor.execute("""
-                                UPDATE rental_agreements
-                                SET inspection_completed = TRUE,
-                                    inspection_id = %s,
-                                    updated_at = NOW(),
-                                    self_checkin_token = %s,
-                                    self_checkin_email = %s,
-                                    self_checkin_scheduled_date = %s,
-                                    self_checkin_sent = FALSE,
-                                    self_checkin_completed = FALSE,
-                                    return_date = %s,
-                                    client_email = %s
-                                WHERE rental_agreement_number = %s
-                                  AND UPPER(license_plate) = UPPER(%s)
-                            """, (inspection_id, self_checkin_token, email, scheduled_date, return_date, email, ra, plate))
+                            logging.info(f"✅ Self check-in configured for RA {ra} (Aeroporto de Faro): token={self_checkin_token[:16]}..., email={email}, scheduled={scheduled_date}")
                         else:
-                            cursor.execute("""
-                                UPDATE rental_agreements
-                                SET inspection_completed = 1,
-                                    inspection_id = ?,
-                                    updated_at = datetime('now'),
-                                    self_checkin_token = ?,
-                                    self_checkin_email = ?,
-                                    self_checkin_scheduled_date = ?,
-                                    self_checkin_sent = 0,
-                                    self_checkin_completed = 0,
-                                    return_date = ?,
-                                    client_email = ?
-                                WHERE rental_agreement_number = ?
-                                  AND UPPER(license_plate) = UPPER(?)
-                            """, (inspection_id, self_checkin_token, email, scheduled_date, return_date, email, ra, plate))
-                        
-                        logging.info(f"✅ Self check-in configured for RA {ra}: token={self_checkin_token[:16]}..., email={email}, scheduled={scheduled_date}")
+                            # Outros locais: apenas marcar inspeção como completa, sem self check-in automático
+                            if is_postgres:
+                                cursor.execute("""
+                                    UPDATE rental_agreements
+                                    SET inspection_completed = TRUE,
+                                        inspection_id = %s,
+                                        updated_at = NOW()
+                                    WHERE rental_agreement_number = %s
+                                      AND UPPER(license_plate) = UPPER(%s)
+                                """, (inspection_id, ra, plate))
+                            else:
+                                cursor.execute("""
+                                    UPDATE rental_agreements
+                                    SET inspection_completed = 1,
+                                        inspection_id = ?,
+                                        updated_at = datetime('now')
+                                    WHERE rental_agreement_number = ?
+                                      AND UPPER(license_plate) = UPPER(?)
+                                """, (inspection_id, ra, plate))
+                            
+                            logging.info(f"ℹ️ Self check-in NOT configured for RA {ra} (location: {ra_pickup_location}) - only Aeroporto de Faro gets automatic self check-in")
                     else:
                         # Check-in normal - apenas marcar como completo
                         if is_postgres:
@@ -30327,8 +30538,10 @@ async def get_self_checkin_data(token: str):
             return JSONResponse({
                 "success": False,
                 "error": "Self check-in já foi realizado",
-                "completed": True
-            }, status_code=400)
+                "completed": True,
+                "rental_agreement_number": row[1],
+                "license_plate": row[2]
+            }, status_code=200)
         
         # Preparar dados para retornar
         import json
@@ -30527,6 +30740,398 @@ async def submit_self_checkin(token: str, request: Request):
         if conn:
             conn.rollback()
         logging.error(f"Error submitting self check-in: {e}")
+        traceback.print_exc()
+        return JSONResponse({
+            "success": False,
+            "error": str(e)
+        }, status_code=500)
+    finally:
+        if conn:
+            conn.close()
+
+
+@app.post("/api/self-checkin/validate")
+async def validate_self_checkin(request: Request):
+    """
+    Validar self check-in
+    Fecha o contrato e envia email de confirmação ao cliente
+    """
+    require_auth(request)
+    conn = None
+    try:
+        data = await request.json()
+        inspection_number = data.get('inspection_number')
+        
+        if not inspection_number:
+            return JSONResponse({
+                "success": False,
+                "error": "Número de inspeção não fornecido"
+            }, status_code=400)
+        
+        conn = _db_connect()
+        is_postgres = _is_postgresql_connection(conn)
+        
+        # Buscar inspeção e dados do RA
+        if is_postgres:
+            cursor = conn.cursor()
+            cursor.execute("""
+                SELECT 
+                    vi.id, vi.license_plate, vi.rental_agreement, vi.is_self_checkin, vi.status,
+                    ra.self_checkin_email, ra.extracted_data
+                FROM vehicle_inspections vi
+                LEFT JOIN rental_agreements ra ON vi.rental_agreement = ra.rental_agreement_number
+                WHERE vi.inspection_number = %s
+            """, (inspection_number,))
+        else:
+            cursor = conn.execute("""
+                SELECT 
+                    vi.id, vi.license_plate, vi.rental_agreement, vi.is_self_checkin, vi.status,
+                    ra.self_checkin_email, ra.extracted_data
+                FROM vehicle_inspections vi
+                LEFT JOIN rental_agreements ra ON vi.rental_agreement = ra.rental_agreement_number
+                WHERE vi.inspection_number = ?
+            """, (inspection_number,))
+        
+        row = cursor.fetchone()
+        
+        if not row:
+            return JSONResponse({
+                "success": False,
+                "error": "Inspeção não encontrada"
+            }, status_code=404)
+        
+        inspection_id, plate, ra_number, is_self_checkin, status, client_email, extracted_data = row
+        
+        if not is_self_checkin:
+            return JSONResponse({
+                "success": False,
+                "error": "Esta não é uma inspeção de self check-in"
+            }, status_code=400)
+        
+        if status == 'validated':
+            return JSONResponse({
+                "success": False,
+                "error": "Self check-in já foi validado"
+            }, status_code=400)
+        
+        # Atualizar status da inspeção para validado
+        if is_postgres:
+            cursor.execute("""
+                UPDATE vehicle_inspections
+                SET status = 'validated',
+                    updated_at = NOW()
+                WHERE id = %s
+            """, (inspection_id,))
+        else:
+            cursor.execute("""
+                UPDATE vehicle_inspections
+                SET status = 'validated',
+                    updated_at = datetime('now')
+                WHERE id = ?
+            """, (inspection_id,))
+        
+        # Atualizar RA como validado
+        if is_postgres:
+            cursor.execute("""
+                UPDATE rental_agreements
+                SET self_checkin_validated = TRUE,
+                    updated_at = NOW()
+                WHERE rental_agreement_number = %s
+            """, (ra_number,))
+        else:
+            cursor.execute("""
+                UPDATE rental_agreements
+                SET self_checkin_validated = 1,
+                    updated_at = datetime('now')
+                WHERE rental_agreement_number = ?
+            """, (ra_number,))
+        
+        conn.commit()
+        
+        # Enviar email de confirmação ao cliente
+        if client_email:
+            try:
+                import json
+                client_name = "Cliente"
+                if extracted_data:
+                    try:
+                        data_dict = json.loads(extracted_data)
+                        client_name = data_dict.get('client_name') or data_dict.get('nome_cliente') or "Cliente"
+                    except:
+                        pass
+                
+                _send_self_checkin_confirmation_email(client_email, client_name, ra_number, plate)
+            except Exception as email_err:
+                logging.error(f"Failed to send confirmation email: {email_err}")
+        
+        logging.info(f"✅ Self check-in validated: {inspection_number}")
+        
+        return JSONResponse({
+            "success": True,
+            "message": "Self check-in validado com sucesso"
+        })
+        
+    except Exception as e:
+        if conn:
+            conn.rollback()
+        logging.error(f"Error validating self check-in: {e}")
+        traceback.print_exc()
+        return JSONResponse({
+            "success": False,
+            "error": str(e)
+        }, status_code=500)
+    finally:
+        if conn:
+            conn.close()
+
+
+@app.post("/api/self-checkin/invalidate")
+async def invalidate_self_checkin(request: Request):
+    """
+    Invalidar self check-in
+    Marca como invalidado e envia email ao cliente sobre incidências
+    Colaborador deverá fazer inspeção presencial
+    """
+    require_auth(request)
+    conn = None
+    try:
+        data = await request.json()
+        inspection_number = data.get('inspection_number')
+        
+        if not inspection_number:
+            return JSONResponse({
+                "success": False,
+                "error": "Número de inspeção não fornecido"
+            }, status_code=400)
+        
+        conn = _db_connect()
+        is_postgres = _is_postgresql_connection(conn)
+        
+        # Buscar inspeção e dados do RA
+        if is_postgres:
+            cursor = conn.cursor()
+            cursor.execute("""
+                SELECT 
+                    vi.id, vi.license_plate, vi.rental_agreement, vi.is_self_checkin, vi.status,
+                    ra.self_checkin_email, ra.extracted_data
+                FROM vehicle_inspections vi
+                LEFT JOIN rental_agreements ra ON vi.rental_agreement = ra.rental_agreement_number
+                WHERE vi.inspection_number = %s
+            """, (inspection_number,))
+        else:
+            cursor = conn.execute("""
+                SELECT 
+                    vi.id, vi.license_plate, vi.rental_agreement, vi.is_self_checkin, vi.status,
+                    ra.self_checkin_email, ra.extracted_data
+                FROM vehicle_inspections vi
+                LEFT JOIN rental_agreements ra ON vi.rental_agreement = ra.rental_agreement_number
+                WHERE vi.inspection_number = ?
+            """, (inspection_number,))
+        
+        row = cursor.fetchone()
+        
+        if not row:
+            return JSONResponse({
+                "success": False,
+                "error": "Inspeção não encontrada"
+            }, status_code=404)
+        
+        inspection_id, plate, ra_number, is_self_checkin, status, client_email, extracted_data = row
+        
+        if not is_self_checkin:
+            return JSONResponse({
+                "success": False,
+                "error": "Esta não é uma inspeção de self check-in"
+            }, status_code=400)
+        
+        if status == 'invalidated':
+            return JSONResponse({
+                "success": False,
+                "error": "Self check-in já foi invalidado"
+            }, status_code=400)
+        
+        # Atualizar status da inspeção para invalidado
+        if is_postgres:
+            cursor.execute("""
+                UPDATE vehicle_inspections
+                SET status = 'invalidated',
+                    updated_at = NOW()
+                WHERE id = %s
+            """, (inspection_id,))
+        else:
+            cursor.execute("""
+                UPDATE vehicle_inspections
+                SET status = 'invalidated',
+                    updated_at = datetime('now')
+                WHERE id = ?
+            """, (inspection_id,))
+        
+        # Atualizar RA - manter como não validado
+        if is_postgres:
+            cursor.execute("""
+                UPDATE rental_agreements
+                SET self_checkin_validated = FALSE,
+                    updated_at = NOW()
+                WHERE rental_agreement_number = %s
+            """, (ra_number,))
+        else:
+            cursor.execute("""
+                UPDATE rental_agreements
+                SET self_checkin_validated = 0,
+                    updated_at = datetime('now')
+                WHERE rental_agreement_number = ?
+            """, (ra_number,))
+        
+        conn.commit()
+        
+        # Enviar email de incidências ao cliente
+        if client_email:
+            try:
+                import json
+                client_name = "Cliente"
+                if extracted_data:
+                    try:
+                        data_dict = json.loads(extracted_data)
+                        client_name = data_dict.get('client_name') or data_dict.get('nome_cliente') or "Cliente"
+                    except:
+                        pass
+                
+                _send_self_checkin_incident_email(client_email, client_name, ra_number, plate)
+            except Exception as email_err:
+                logging.error(f"Failed to send incident email: {email_err}")
+        
+        logging.info(f"⚠️ Self check-in invalidated: {inspection_number}")
+        
+        return JSONResponse({
+            "success": True,
+            "message": "Self check-in invalidado. Cliente será notificado."
+        })
+        
+    except Exception as e:
+        if conn:
+            conn.rollback()
+        logging.error(f"Error invalidating self check-in: {e}")
+        traceback.print_exc()
+        return JSONResponse({
+            "success": False,
+            "error": str(e)
+        }, status_code=500)
+    finally:
+        if conn:
+            conn.close()
+
+
+@app.post("/api/self-checkin/resend-link")
+async def resend_self_checkin_link(request: Request):
+    """
+    Reenviar link de self check-in para o cliente
+    Gera novo token e envia email de convite
+    """
+    require_auth(request)
+    conn = None
+    try:
+        data = await request.json()
+        ra_number = data.get('rental_agreement_number')
+        
+        if not ra_number:
+            return JSONResponse({
+                "success": False,
+                "error": "Número de RA não fornecido"
+            }, status_code=400)
+        
+        conn = _db_connect()
+        is_postgres = _is_postgresql_connection(conn)
+        
+        # Buscar dados do RA
+        if is_postgres:
+            cursor = conn.cursor()
+            cursor.execute("""
+                SELECT 
+                    ra.id, ra.rental_agreement_number, ra.license_plate, 
+                    ra.self_checkin_email, ra.extracted_data, ra.vehicle_id,
+                    v.marca, v.modelo, v.grupo
+                FROM rental_agreements ra
+                LEFT JOIN vehicles v ON ra.vehicle_id = v.id
+                WHERE ra.rental_agreement_number = %s
+            """, (ra_number,))
+        else:
+            cursor = conn.execute("""
+                SELECT 
+                    ra.id, ra.rental_agreement_number, ra.license_plate, 
+                    ra.self_checkin_email, ra.extracted_data, ra.vehicle_id,
+                    v.marca, v.modelo, v.grupo
+                FROM rental_agreements ra
+                LEFT JOIN vehicles v ON ra.vehicle_id = v.id
+                WHERE ra.rental_agreement_number = ?
+            """, (ra_number,))
+        
+        row = cursor.fetchone()
+        
+        if not row:
+            return JSONResponse({
+                "success": False,
+                "error": "Rental Agreement não encontrado"
+            }, status_code=404)
+        
+        ra_id, ra_num, plate, email, extracted_data_json, vehicle_id, marca, modelo, grupo = row
+        
+        if not email:
+            return JSONResponse({
+                "success": False,
+                "error": "Email do cliente não encontrado no RA"
+            }, status_code=400)
+        
+        # Gerar novo token
+        import hashlib
+        import time
+        token_string = f"{ra_num}_{plate}_{email}_{time.time()}"
+        new_token = hashlib.sha256(token_string.encode()).hexdigest()
+        
+        # Atualizar token e resetar flag de completado
+        if is_postgres:
+            cursor.execute("""
+                UPDATE rental_agreements
+                SET self_checkin_token = %s,
+                    self_checkin_completed = FALSE,
+                    updated_at = NOW()
+                WHERE id = %s
+            """, (new_token, ra_id))
+        else:
+            cursor.execute("""
+                UPDATE rental_agreements
+                SET self_checkin_token = ?,
+                    self_checkin_completed = 0,
+                    updated_at = datetime('now')
+                WHERE id = ?
+            """, (new_token, ra_id))
+        
+        conn.commit()
+        
+        # Extrair nome do cliente
+        import json
+        client_name = "Cliente"
+        if extracted_data_json:
+            try:
+                extracted_data = json.loads(extracted_data_json)
+                client_name = extracted_data.get('client_name') or extracted_data.get('nome_cliente') or "Cliente"
+            except:
+                pass
+        
+        # Enviar email de convite
+        vehicle_info = f"{marca} {modelo}" if marca and modelo else "Veículo"
+        _send_self_checkin_invitation_email(email, client_name, ra_num, plate, vehicle_info, new_token)
+        
+        logging.info(f"✉️ Self check-in link resent for RA {ra_num} to {email}")
+        
+        return JSONResponse({
+            "success": True,
+            "message": f"Link de self check-in reenviado para {email}"
+        })
+        
+    except Exception as e:
+        if conn:
+            conn.rollback()
+        logging.error(f"Error resending self check-in link: {e}")
         traceback.print_exc()
         return JSONResponse({
             "success": False,
@@ -42924,7 +43529,8 @@ async def get_inspections_history(request: Request):
             cursor.execute("""
                 SELECT vi.inspection_number, vi.vehicle_plate, vi.contract_number, 
                        vi.inspection_type, vi.inspector_name, vi.created_at, 
-                       vi.fuel_level, vi.odometer_reading, vi.damage_count, vi.status, vi.id
+                       vi.fuel_level, vi.odometer_reading, vi.damage_count, vi.status, vi.id,
+                       vi.is_self_checkin
                 FROM vehicle_inspections vi
                 ORDER BY vi.created_at DESC
                 LIMIT 200
@@ -43000,7 +43606,8 @@ async def get_inspections_history(request: Request):
                     "odometer_reading": row[7],
                     "damage_count": row[8],
                     "status": row[9],
-                    "damage_croqui": damage_croqui
+                    "damage_croqui": damage_croqui,
+                    "is_self_checkin": bool(row[11]) if len(row) > 11 else False
                 }
                 
                 if key not in grouped:

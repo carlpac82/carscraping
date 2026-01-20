@@ -293,6 +293,11 @@
                 const data = await response.json();
 
                 if (!data.success) {
+                    // Check if already completed
+                    if (data.completed) {
+                        showCompletedMessage(data.rental_agreement_number, data.license_plate);
+                        return;
+                    }
                     alert(data.error || 'Erro ao carregar dados');
                     return;
                 }
@@ -311,6 +316,62 @@
             } finally {
                 showLoading(false);
             }
+        }
+
+        function showCompletedMessage(raNumber, plate) {
+            document.body.innerHTML = `
+                <div class="min-h-screen bg-gray-50 flex items-center justify-center px-4">
+                    <div class="max-w-2xl w-full bg-white rounded-lg shadow-xl p-8">
+                        <div class="text-center mb-6">
+                            <svg class="w-20 h-20 text-green-500 mx-auto mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                            </svg>
+                            <h1 class="text-3xl font-bold text-gray-800 mb-2">Self Check-in Já Realizado</h1>
+                            <p class="text-gray-600">RA: <strong>${raNumber}</strong> | Matrícula: <strong>${plate}</strong></p>
+                        </div>
+
+                        <div class="bg-blue-50 border-l-4 border-blue-500 p-4 mb-6">
+                            <p class="text-blue-800">
+                                O self check-in para este rental agreement já foi completado. 
+                                Este link só pode ser utilizado uma vez por motivos de segurança.
+                            </p>
+                        </div>
+
+                        <div class="bg-gray-50 rounded-lg p-6 mb-6">
+                            <h2 class="text-xl font-bold text-gray-800 mb-4">Precisa de Ajuda?</h2>
+                            <p class="text-gray-700 mb-4">
+                                Se cometeu algum erro ou precisa de fazer alterações, por favor contacte o nosso escritório:
+                            </p>
+                            
+                            <div class="space-y-3">
+                                <div class="flex items-center">
+                                    <svg class="w-6 h-6 text-[#009cb6] mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z"></path>
+                                    </svg>
+                                    <div>
+                                        <p class="text-sm text-gray-600">Telefone</p>
+                                        <a href="tel:+351289542160" class="text-lg font-semibold text-[#009cb6] hover:underline">+351 289 542 160</a>
+                                    </div>
+                                </div>
+
+                                <div class="flex items-center">
+                                    <svg class="w-6 h-6 text-[#009cb6] mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"></path>
+                                    </svg>
+                                    <div>
+                                        <p class="text-sm text-gray-600">Email</p>
+                                        <a href="mailto:info@auto-prudente.com" class="text-lg font-semibold text-[#009cb6] hover:underline">info@auto-prudente.com</a>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="text-center text-gray-500 text-sm">
+                            <p>A nossa equipa terá todo o gosto em ajudá-lo e, se necessário, enviar-lhe um novo link.</p>
+                        </div>
+                    </div>
+                </div>
+            `;
         }
 
         function showLoading(show) {
