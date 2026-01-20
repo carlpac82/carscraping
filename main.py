@@ -29784,6 +29784,8 @@ async def save_inspection(request: Request):
                         )
                         
                         logging.info(f"📊 Incidents validation result: {incidents}")
+                        logging.info(f"🔍 [DEBUG] has_fuel_incident: {incidents.get('has_fuel_incident', False)} (type: {type(incidents.get('has_fuel_incident', False)).__name__})")
+                        logging.info(f"🔍 [DEBUG] has_damage_incident: {incidents.get('has_damage_incident', False)} (type: {type(incidents.get('has_damage_incident', False)).__name__})")
                         
                         # Generate STATUS_ALERT based on incidents
                         status_alert_html = _generate_checkin_status_alert(
@@ -29791,6 +29793,9 @@ async def save_inspection(request: Request):
                             incidents['has_fuel_incident'],
                             incidents['has_damage_incident']
                         )
+                        
+                        logging.info(f"📧 [DEBUG] Status alert HTML length: {len(status_alert_html)}")
+                        logging.info(f"📧 [DEBUG] Status alert preview: {status_alert_html[:200] if status_alert_html else 'EMPTY'}")
                         
                         # Build PHOTOS_SECTION based on incidents
                         # If fuel incident: show odometer photo as proof
