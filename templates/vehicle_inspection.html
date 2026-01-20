@@ -2725,9 +2725,10 @@
         function saveInspectionWithEmail(email) {
             // Capture damage croqui as base64 image
             let damageCroquiBase64 = '';
+            console.log('🎨 [CROQUI CAPTURE] Starting croqui capture...');
             try {
                 const canvas = document.getElementById('drawingCanvas');
-                console.log('🔍 Canvas found:', !!canvas);
+                console.log('🔍 [CROQUI CAPTURE] Canvas found:', !!canvas);
                 
                 if (canvas && canvas.width > 0 && canvas.height > 0) {
                     console.log('🔍 Canvas size:', canvas.width, 'x', canvas.height);
