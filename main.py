@@ -42144,16 +42144,18 @@ async def get_inspections_history(request: Request):
             
             logging.info(f"📊 Found {len(rows)} inspections in database")
             
-            # Group by plate + RA
+            # Group by plate + RA (using RA base to handle suffixes like -09)
             grouped = {}
             for row in rows:
                 plate = row[1]
                 ra = row[2]
+                # Normalize RA: remove suffix like -09 to group checkout and checkin together
+                ra_base = ra.split('-')[0] if ra and '-' in ra else ra
                 inspection_type = row[3]
                 inspection_id = row[10]
-                key = f"{plate}_{ra}"
+                key = f"{plate}_{ra_base}"
                 
-                logging.info(f"  - {inspection_type}: {plate} / RA: {ra} / Date: {row[5]}")
+                logging.info(f"  - {inspection_type}: {plate} / RA: {ra} (base: {ra_base}) / Date: {row[5]}")
                 
                 # Get damage croqui for this inspection
                 damage_croqui = None
@@ -42215,7 +42217,7 @@ async def get_inspections_history(request: Request):
                 if key not in grouped:
                     grouped[key] = {
                         "vehicle_plate": plate,
-                        "contract_number": ra,
+                        "contract_number": ra_base,  # Use RA base for grouping
                         "checkout": None,
                         "checkin": None,
                         "latest_date": str(row[5]) if row[5] else None
