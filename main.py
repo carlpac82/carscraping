@@ -24610,7 +24610,8 @@ def _validate_checkin_incidents(cursor, is_postgres, ra, plate, checkin_fuel_lev
                 AND (photo_type LIKE 'damage%' OR photo_type = 'damage_croqui')
             """, (checkin_inspection_id,))
         
-        checkin_damage_photos = cursor.fetchone()[0] if cursor.fetchone() else 0
+        result = cursor.fetchone()
+        checkin_damage_photos = result[0] if result else 0
         
         # Reset cursor position
         if is_postgres:
