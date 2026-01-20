@@ -484,52 +484,30 @@
             <div class="flex items-center justify-between">
                 <!-- Left: Logo -->
                 <div class="flex items-center">
-                    <img src="/static/ap-heather.png" alt="Auto Prudente" class="h-12 w-auto" />
+                    <img src="/static/ap-heather.png" alt="Auto Prudente" class="h-10 sm:h-12 w-auto" />
                 </div>
                 
-                <!-- Center: Page Title -->
-                <div class="absolute left-1/2 transform -translate-x-1/2">
-                    <h1 class="text-sm sm:text-base md:text-xl font-semibold text-white">
-                        {% if inspection_type == 'checkout' %}
-                        <span class="hidden sm:inline">Check-out - Entrega</span>
-                        <span class="sm:hidden">Check-out</span>
-                        {% else %}
-                        <span class="hidden sm:inline">Check-out - Entrega</span>
-                        <span class="sm:hidden">Check-out</span>
-                        {% endif %}
-                    </h1>
-                </div>
-                
-                <!-- Right: Actions -->
-                
-                <!-- Mobile Menu Button -->
-                <button onclick="toggleMobileMenu()" class="md:hidden p-2 text-white hover:bg-[#0088a0] rounded-lg">
-                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"/>
-                    </svg>
-                </button>
-                
-                <!-- Desktop Icons -->
-                <div class="hidden md:flex items-center gap-3">
+                <!-- Right: Navigation Icons (sempre visíveis) -->
+                <div class="flex items-center gap-2 sm:gap-3">
                     {% if request.session.get('is_admin') or request.session.get('role') in ['admin', 'user'] %}
-                    <!-- Home Icon (Blue) - Only for admin and regular users -->
-                    <a href="/" class="p-2 hover:bg-[#0088a0] rounded-lg transition-all" title="Voltar à Homepage">
-                        <svg class="w-6 h-6 text-white hover:text-[#f6b511] transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <!-- Home Icon -->
+                    <a href="/" class="p-1.5 sm:p-2 hover:bg-[#0088a0] rounded-lg transition-all group" title="Voltar à Homepage">
+                        <svg class="w-5 h-5 sm:w-6 sm:h-6 text-white group-hover:text-[#f6b511] transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"/>
                         </svg>
                     </a>
                     {% endif %}
                     
-                    <!-- Check-out Icon (Blue Car) -->
-                    <a href="/vehicle-checkout" class="nav-icon-checkout p-2 hover:bg-[#0088a0] rounded-lg transition-all" title="Check-out">
-                        <svg class="w-6 h-6 text-white" viewBox="0 0 24 24" fill="currentColor">
+                    <!-- Check-out Icon -->
+                    <a href="/vehicle-checkout" class="p-1.5 sm:p-2 hover:bg-[#0088a0] rounded-lg transition-all group" title="Check-out">
+                        <svg class="w-5 h-5 sm:w-6 sm:h-6 text-white group-hover:text-[#f6b511] transition-colors" viewBox="0 0 24 24" fill="currentColor">
                             <path d="M18.92 6.01C18.72 5.42 18.16 5 17.5 5h-11c-.66 0-1.21.42-1.42 1.01L3 12v8c0 .55.45 1 1 1h1c.55 0 1-.45 1-1v-1h12v1c0 .55.45 1 1 1h1c.55 0 1-.45 1-1v-8l-2.08-5.99zM6.5 16c-.83 0-1.5-.67-1.5-1.5S5.67 13 6.5 13s1.5.67 1.5 1.5S7.33 16 6.5 16zm11 0c-.83 0-1.5-.67-1.5-1.5s.67-1.5 1.5-1.5 1.5.67 1.5 1.5-.67 1.5-1.5 1.5zM5 11l1.5-4.5h11L19 11H5z"/>
                         </svg>
                     </a>
                     
-                    <!-- History Icon (Blue Circle Clock) -->
-                    <a href="/inspection-history" class="nav-icon-history p-2 hover:bg-[#0088a0] rounded-lg transition-all" title="Histórico">
-                        <svg class="w-6 h-6 text-white" fill="currentColor" viewBox="0 0 24 24">
+                    <!-- History Icon -->
+                    <a href="/inspection-history" class="p-1.5 sm:p-2 hover:bg-[#0088a0] rounded-lg transition-all group" title="Histórico">
+                        <svg class="w-5 h-5 sm:w-6 sm:h-6 text-white group-hover:text-[#f6b511] transition-colors" fill="currentColor" viewBox="0 0 24 24">
                             <circle cx="12" cy="12" r="10" fill="none" stroke="currentColor" stroke-width="2"/>
                             <path d="M12 6v6l4 2" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
                         </svg>
@@ -540,9 +518,9 @@
                     <div class="relative group">
                         <button class="flex items-center hover:scale-105 transition-transform">
                             {% if current_user.profile_picture_path %}
-                            <img src="{{ current_user.profile_picture_path }}" alt="Profile" class="w-10 h-10 rounded-full object-cover border-2 border-white shadow-lg" />
+                            <img src="{{ current_user.profile_picture_path }}" alt="Profile" class="w-8 h-8 sm:w-10 sm:h-10 rounded-full object-cover border-2 border-white shadow-lg" />
                             {% else %}
-                            <div class="w-10 h-10 rounded-full bg-gradient-to-br from-[#009cb6] to-[#0077a3] flex items-center justify-center text-white font-bold text-sm border-2 border-white shadow-lg">
+                            <div class="w-8 h-8 sm:w-10 sm:h-10 rounded-full bg-gradient-to-br from-[#009cb6] to-[#0077a3] flex items-center justify-center text-white font-bold text-xs sm:text-sm border-2 border-white shadow-lg">
                                 {{ (current_user.first_name[:1] or current_user.username[:1] or 'U') | upper }}
                             </div>
                             {% endif %}
@@ -707,6 +685,9 @@
         <!-- STEP 1: Photo Capture (previously Step 2) -->
         <div id="stepPhotos" class="step-content">
             <div class="max-w-4xl mx-auto">
+                <!-- Page Title -->
+                <h1 class="text-2xl sm:text-3xl font-bold text-white text-center mb-6">Entrega e Devolução da Viatura</h1>
+                
                 <!-- Matrícula and RA - Above Car -->
                 <div class="flex flex-col sm:flex-row items-center justify-center gap-4 mb-8">
                     <div class="w-full sm:w-auto">
