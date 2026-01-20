@@ -31772,6 +31772,33 @@ async def send_inspection_email(request: Request, inspection_number: str):
         }
         inspection_type_label = t_labels.get(inspection_type, {}).get(detected_lang, inspection_type)
         
+        # Calculate kilometers driven (for check-in only)
+        km_driven = 0
+        if inspection_type == 'checkin':
+            # Get checkout odometer reading
+            if _USE_NEW_DB:
+                cursor.execute("""
+                    SELECT odometer_reading FROM vehicle_inspections 
+                    WHERE vehicle_plate = %s AND contract_number = %s 
+                    AND inspection_type = 'checkout'
+                    ORDER BY created_at DESC
+                    LIMIT 1
+                """, (vehicle_plate, ra))
+            else:
+                cursor.execute("""
+                    SELECT odometer_reading FROM vehicle_inspections 
+                    WHERE vehicle_plate = ? AND contract_number = ? 
+                    AND inspection_type = 'checkout'
+                    ORDER BY created_at DESC
+                    LIMIT 1
+                """, (vehicle_plate, ra))
+            
+            checkout_row = cursor.fetchone()
+            if checkout_row and checkout_row[0]:
+                checkout_odometer = int(checkout_row[0])
+                km_driven = int(odometer) - checkout_odometer
+                logging.info(f"📊 KM Driven: {km_driven} km (Check-in: {odometer} - Checkout: {checkout_odometer})")
+        
         html_content = templates.get_template(template_name).render(
             LOGO_URL=logo_base64,
             RA_NUMBER=ra,
@@ -31785,6 +31812,7 @@ async def send_inspection_email(request: Request, inspection_number: str):
             LOCATION=location,
             INSPECTION_DATE=inspection_date,
             ODOMETER=str(odometer),
+            KM_DRIVEN=str(km_driven),
             INSPECTOR_NAME=inspector,
             FUEL_GAUGE_SVG=fuel_gauge_html,
             CROQUI_IMAGE=final_croqui,
