@@ -43878,47 +43878,77 @@ async def get_latest_ra_by_plate(request: Request, plate: str):
         has_checkin_inspection = False
         contract_closed = False
         
+        # Extract base RA number (remove suffix like -09)
+        ra_number = ra_data["rental_agreement_number"]
+        ra_base = ra_number.split('-')[0] if '-' in ra_number else ra_number
+        
+        logging.info(f"🔍 Checking inspections for RA: {ra_number} (base: {ra_base})")
+        
         if is_postgres:
             with conn.cursor() as cur:
-                # Check for checkout
+                # Check for checkout - use LIKE to match base RA
                 cur.execute("""
-                    SELECT COUNT(*) 
+                    SELECT COUNT(*), contract_number
                     FROM vehicle_inspections 
-                    WHERE contract_number = %s 
+                    WHERE contract_number LIKE %s 
                       AND inspection_type = 'checkout'
-                """, (ra_data["rental_agreement_number"],))
-                checkout_count = cur.fetchone()[0]
+                    GROUP BY contract_number
+                """, (f"{ra_base}%",))
+                checkout_row = cur.fetchone()
+                checkout_count = checkout_row[0] if checkout_row else 0
                 has_checkout_inspection = checkout_count > 0
+                if checkout_row:
+                    logging.info(f"✅ Found {checkout_count} checkout(s) for contract: {checkout_row[1]}")
+                else:
+                    logging.info(f"❌ No checkout found for RA base: {ra_base}")
                 
-                # Check for check-in
+                # Check for check-in - use LIKE to match base RA
                 cur.execute("""
-                    SELECT COUNT(*) 
+                    SELECT COUNT(*), contract_number
                     FROM vehicle_inspections 
-                    WHERE contract_number = %s 
+                    WHERE contract_number LIKE %s 
                       AND inspection_type = 'checkin'
-                """, (ra_data["rental_agreement_number"],))
-                checkin_count = cur.fetchone()[0]
+                    GROUP BY contract_number
+                """, (f"{ra_base}%",))
+                checkin_row = cur.fetchone()
+                checkin_count = checkin_row[0] if checkin_row else 0
                 has_checkin_inspection = checkin_count > 0
+                if checkin_row:
+                    logging.info(f"✅ Found {checkin_count} check-in(s) for contract: {checkin_row[1]}")
+                else:
+                    logging.info(f"❌ No check-in found for RA base: {ra_base}")
         else:
-            # Check for checkout
+            # Check for checkout - use LIKE to match base RA
             cursor = conn.execute("""
-                SELECT COUNT(*) 
+                SELECT COUNT(*), contract_number
                 FROM vehicle_inspections 
-                WHERE contract_number = ? 
+                WHERE contract_number LIKE ? 
                   AND inspection_type = 'checkout'
-            """, (ra_data["rental_agreement_number"],))
-            checkout_count = cursor.fetchone()[0]
+                GROUP BY contract_number
+            """, (f"{ra_base}%",))
+            checkout_row = cursor.fetchone()
+            checkout_count = checkout_row[0] if checkout_row else 0
             has_checkout_inspection = checkout_count > 0
+            if checkout_row:
+                logging.info(f"✅ Found {checkout_count} checkout(s) for contract: {checkout_row[1]}")
+            else:
+                logging.info(f"❌ No checkout found for RA base: {ra_base}")
             
-            # Check for check-in
+            # Check for check-in - use LIKE to match base RA
             cursor = conn.execute("""
-                SELECT COUNT(*) 
+                SELECT COUNT(*), contract_number
                 FROM vehicle_inspections 
-                WHERE contract_number = ? 
+                WHERE contract_number LIKE ? 
                   AND inspection_type = 'checkin'
-            """, (ra_data["rental_agreement_number"],))
-            checkin_count = cursor.fetchone()[0]
+                GROUP BY contract_number
+            """, (f"{ra_base}%",))
+            checkin_row = cursor.fetchone()
+            checkin_count = checkin_row[0] if checkin_row else 0
             has_checkin_inspection = checkin_count > 0
+            if checkin_row:
+                logging.info(f"✅ Found {checkin_count} check-in(s) for contract: {checkin_row[1]}")
+            else:
+                logging.info(f"❌ No check-in found for RA base: {ra_base}")
         
         # Contract is closed if both checkout and check-in exist
         contract_closed = has_checkout_inspection and has_checkin_inspection
