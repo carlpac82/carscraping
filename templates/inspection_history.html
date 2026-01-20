@@ -599,6 +599,15 @@
                 
                 const inspection = data.inspection;
                 
+                // Debug logging for damage_croqui
+                console.log('🔍 Inspection data received:', {
+                    inspection_number: inspection.inspection_number,
+                    inspection_type: inspection.inspection_type,
+                    has_damage_croqui: !!inspection.damage_croqui,
+                    damage_croqui_length: inspection.damage_croqui ? inspection.damage_croqui.length : 0,
+                    damage_croqui_preview: inspection.damage_croqui ? inspection.damage_croqui.substring(0, 50) : 'NONE'
+                });
+                
                 // Calculate KMs driven for checkin
                 if (type === 'checkin' && checkoutData) {
                     const checkoutKm = checkoutData.odometer_reading || 0;
