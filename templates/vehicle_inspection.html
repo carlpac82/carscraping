@@ -2605,11 +2605,15 @@
                 return;
             }
             
-            const email = document.getElementById('reportEmail').value.trim();
+            const emailInput = document.getElementById('reportEmail');
+            console.log('📧 Email input element:', emailInput);
+            
+            const email = emailInput ? emailInput.value.trim() : '';
+            console.log('📧 Email value extracted:', email);
             
             if (!email) {
                 alert('Por favor, insira um email válido para envio do relatório.');
-                document.getElementById('reportEmail').focus();
+                if (emailInput) emailInput.focus();
                 return;
             }
             
@@ -2617,6 +2621,8 @@
             
             // Show saving overlay
             showSavingOverlay('Guardando inspeção e enviando por email...');
+            
+            console.log('📧 Calling saveInspectionWithEmail with email:', email);
             
             // Save inspection with email
             saveInspectionWithEmail(email);
@@ -2809,6 +2815,8 @@
             };
             
             console.log('📦 Saving inspection with photos:', Object.keys(inspectionData.photos));
+            console.log('📧 [FRONTEND] Email in inspectionData:', inspectionData.client_email);
+            console.log('📧 [FRONTEND] send_email flag:', inspectionData.send_email);
             
             // Make actual API call to save inspection
             fetch('/api/save-inspection', {
