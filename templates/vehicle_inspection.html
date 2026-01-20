@@ -3197,6 +3197,13 @@
                             // Auto-fill RA number
                             document.getElementById('inputRA').value = ra.rental_agreement_number;
                             
+                            // Auto-fill email if available
+                            const emailInput = document.getElementById('reportEmail');
+                            if (emailInput && ra.client_email) {
+                                emailInput.value = ra.client_email;
+                                console.log('✅ Email preenchido automaticamente:', ra.client_email);
+                            }
+                            
                             // Store inspection status for later check when clicking "Iniciar Entrega"
                             window.inspectionCompleted = ra.inspection_completed;
                             window.hasCheckout = ra.has_checkout;
