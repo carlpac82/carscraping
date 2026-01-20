@@ -28764,7 +28764,12 @@ async def save_inspection(request: Request):
         fuel_level = data.get('fuel_level', data.get('fuelLevel', 100))
         odometer_reading = data.get('odometer_reading', data.get('odometerReading', 0))
         plate = data.get('plate', '').strip()
-        ra = data.get('ra', '').strip()
+        ra_original = data.get('ra', '').strip()
+        # Normalize RA: remove suffix like -09 to ensure checkout and checkin use same RA
+        ra = ra_original.split('-')[0] if '-' in ra_original else ra_original
+        if ra != ra_original:
+            logging.info(f"🔄 RA normalized: '{ra_original}' -> '{ra}'")
+        
         receptionist = data.get('receptionist', '')
         date = data.get('date', '')
         time = data.get('time', '')
