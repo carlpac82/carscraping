@@ -910,6 +910,9 @@
 
         // Edit inspection (fuel, sketch, kilometers)
         async function editInspection(inspectionNumber, type) {
+            // Set current inspection type for color coding
+            currentInspectionType = type;
+            
             // Check if this is a checkout and if checkin already exists
             if (type === 'checkout') {
                 const contract = contracts.find(c => 
@@ -1095,6 +1098,7 @@
         let drawingCanvas = null;
         let drawingCtx = null;
         let isDrawing = false;
+        let currentInspectionType = 'checkout'; // 'checkout' or 'checkin'
         
         // Damages array (pins + strokes)
         let damages = [];
@@ -1269,25 +1273,29 @@
             
             drawingCtx.clearRect(0, 0, drawingCanvas.width, drawingCanvas.height);
             
+            // Determine color based on inspection type
+            // Checkin (recolha) = red, Checkout (entrega) = black
+            const damageColor = currentInspectionType === 'checkin' ? '#dc3545' : 'rgba(0, 0, 0, 0.8)';
+            
             // Draw all damages
             damages.forEach(damage => {
                 if (damage.type === 'pin') {
-                    // Draw pin (black circle with white border)
+                    // Draw pin with color based on inspection type
                     drawingCtx.beginPath();
                     drawingCtx.arc(damage.x, damage.y, damage.radius, 0, 2 * Math.PI);
-                    drawingCtx.fillStyle = 'rgba(0, 0, 0, 0.8)';
+                    drawingCtx.fillStyle = damageColor;
                     drawingCtx.fill();
                     drawingCtx.strokeStyle = '#fff';
                     drawingCtx.lineWidth = 2;
                     drawingCtx.stroke();
                 } else if (damage.type === 'drawing' && damage.points.length > 1) {
-                    // Draw stroke (black line with variable width)
+                    // Draw stroke with color based on inspection type
                     drawingCtx.beginPath();
                     drawingCtx.moveTo(damage.points[0].x, damage.points[0].y);
                     for (let i = 1; i < damage.points.length; i++) {
                         drawingCtx.lineTo(damage.points[i].x, damage.points[i].y);
                     }
-                    drawingCtx.strokeStyle = 'rgba(0, 0, 0, 0.8)';
+                    drawingCtx.strokeStyle = damageColor;
                     drawingCtx.lineWidth = damage.lineWidth || 4;
                     drawingCtx.lineCap = 'round';
                     drawingCtx.lineJoin = 'round';
@@ -1299,13 +1307,14 @@
             if (currentStroke.length > 1) {
                 const sizeMap = { tiny: 2, small: 4, medium: 6, large: 8 };
                 const lineWidth = sizeMap[currentSize] || 4;
+                const damageColor = currentInspectionType === 'checkin' ? '#dc3545' : 'rgba(0, 0, 0, 0.8)';
                 
                 drawingCtx.beginPath();
                 drawingCtx.moveTo(currentStroke[0].x, currentStroke[0].y);
                 for (let i = 1; i < currentStroke.length; i++) {
                     drawingCtx.lineTo(currentStroke[i].x, currentStroke[i].y);
                 }
-                drawingCtx.strokeStyle = 'rgba(0, 0, 0, 0.8)';
+                drawingCtx.strokeStyle = damageColor;
                 drawingCtx.lineWidth = lineWidth;
                 drawingCtx.lineCap = 'round';
                 drawingCtx.lineJoin = 'round';
