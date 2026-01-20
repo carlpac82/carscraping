@@ -488,7 +488,7 @@
                 </div>
                 
                 <!-- Right: Navigation Icons (sempre visíveis) -->
-                <div class="flex items-center gap-2 ml-auto">
+                <div class="flex items-center gap-1 ml-4 sm:ml-auto">
                     {% if request.session.get('is_admin') or request.session.get('role') in ['admin', 'user'] %}
                     <!-- Home Icon -->
                     <a href="/" class="p-2 hover:bg-[#0088a0] rounded-lg transition-all group" title="Voltar à Homepage">
