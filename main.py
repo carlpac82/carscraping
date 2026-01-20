@@ -44151,21 +44151,39 @@ async def checkin_preview_ok(request: Request):
         </div>
         """
         
-        # Fuel gauge (mesmo design do checkout)
+        # Fuel gauge (barra horizontal - design do checkout)
         fuel_percentage = fuel_level_checkin
-        fuel_color = '#10b981' if fuel_percentage >= 75 else '#f59e0b' if fuel_percentage >= 50 else '#ef4444'
-        tank_height = 100
-        fill_height = tank_height * fuel_percentage / 100
-        fill_y = tank_height - fill_height
         
         fuel_gauge_html = f"""
-        <div style="text-align: center;">
-            <svg width="80" height="120" viewBox="0 0 80 120" style="display: block; margin: 0 auto;">
-                <rect x="20" y="10" width="40" height="100" rx="5" fill="none" stroke="#64748b" stroke-width="3"/>
-                <rect x="23" y="{10 + fill_y}" width="34" height="{fill_height}" rx="3" fill="{fuel_color}"/>
-                <path d="M 60 40 L 70 35 L 70 45 Z" fill="#64748b"/>
-            </svg>
-            <p style="margin: 10px 0 0 0; color: #1f2937; font-size: 16px; font-weight: 600;">{fuel_percentage}%</p>
+        <div style="max-width: 400px; margin: 0 auto;">
+            <!-- Labels R, 1/4, 1/2, 3/4, F -->
+            <div style="position: relative; height: 20px; margin-bottom: 5px;">
+                <span style="position: absolute; left: 0%; transform: translateX(-50%); font-size: 12px; font-weight: 600; color: #00bcd4;">R</span>
+                <span style="position: absolute; left: 25%; transform: translateX(-50%); font-size: 12px; font-weight: 600; color: #00bcd4;">1/4</span>
+                <span style="position: absolute; left: 50%; transform: translateX(-50%); font-size: 12px; font-weight: 600; color: #00bcd4;">1/2</span>
+                <span style="position: absolute; left: 75%; transform: translateX(-50%); font-size: 12px; font-weight: 600; color: #00bcd4;">3/4</span>
+                <span style="position: absolute; right: 0%; transform: translateX(50%); font-size: 12px; font-weight: 600; color: #00bcd4;">F</span>
+            </div>
+            
+            <!-- Barra de combustível -->
+            <div style="position: relative; background: white; border: 2px solid #00bcd4; border-radius: 8px; height: 32px; margin-bottom: 10px;">
+                <!-- Marcadores verticais -->
+                <div style="position: absolute; inset: 0; display: flex; align-items: center;">
+                    <div style="position: absolute; left: 0%; width: 2px; height: 16px; background: #00bcd4;"></div>
+                    <div style="position: absolute; left: 25%; width: 2px; height: 16px; background: #00bcd4;"></div>
+                    <div style="position: absolute; left: 50%; width: 2px; height: 16px; background: #00bcd4;"></div>
+                    <div style="position: absolute; left: 75%; width: 2px; height: 16px; background: #00bcd4;"></div>
+                    <div style="position: absolute; right: 0%; width: 2px; height: 16px; background: #00bcd4;"></div>
+                </div>
+                
+                <!-- Preenchimento -->
+                <div style="height: 100%; background: #00bcd4; border-radius: 6px; width: {fuel_percentage}%;"></div>
+            </div>
+            
+            <!-- Texto do nível -->
+            <div style="text-align: center;">
+                <span style="font-size: 14px; font-weight: 600; color: #1f2937;">Cheio</span>
+            </div>
         </div>
         """
         
@@ -44259,21 +44277,39 @@ async def checkin_preview_fuel(request: Request):
         </div>
         """
         
-        # Fuel gauge (mesmo design do checkout)
+        # Fuel gauge (barra horizontal - design do checkout)
         fuel_percentage = 50
-        fuel_color = '#10b981' if fuel_percentage >= 75 else '#f59e0b' if fuel_percentage >= 50 else '#ef4444'
-        tank_height = 100
-        fill_height = tank_height * fuel_percentage / 100
-        fill_y = tank_height - fill_height
         
         fuel_gauge_html = f"""
-        <div style="text-align: center;">
-            <svg width="80" height="120" viewBox="0 0 80 120" style="display: block; margin: 0 auto;">
-                <rect x="20" y="10" width="40" height="100" rx="5" fill="none" stroke="#64748b" stroke-width="3"/>
-                <rect x="23" y="{10 + fill_y}" width="34" height="{fill_height}" rx="3" fill="{fuel_color}"/>
-                <path d="M 60 40 L 70 35 L 70 45 Z" fill="#64748b"/>
-            </svg>
-            <p style="margin: 10px 0 0 0; color: #1f2937; font-size: 16px; font-weight: 600;">{fuel_percentage}%</p>
+        <div style="max-width: 400px; margin: 0 auto;">
+            <!-- Labels R, 1/4, 1/2, 3/4, F -->
+            <div style="position: relative; height: 20px; margin-bottom: 5px;">
+                <span style="position: absolute; left: 0%; transform: translateX(-50%); font-size: 12px; font-weight: 600; color: #00bcd4;">R</span>
+                <span style="position: absolute; left: 25%; transform: translateX(-50%); font-size: 12px; font-weight: 600; color: #00bcd4;">1/4</span>
+                <span style="position: absolute; left: 50%; transform: translateX(-50%); font-size: 12px; font-weight: 600; color: #00bcd4;">1/2</span>
+                <span style="position: absolute; left: 75%; transform: translateX(-50%); font-size: 12px; font-weight: 600; color: #00bcd4;">3/4</span>
+                <span style="position: absolute; right: 0%; transform: translateX(50%); font-size: 12px; font-weight: 600; color: #00bcd4;">F</span>
+            </div>
+            
+            <!-- Barra de combustível -->
+            <div style="position: relative; background: white; border: 2px solid #00bcd4; border-radius: 8px; height: 32px; margin-bottom: 10px;">
+                <!-- Marcadores verticais -->
+                <div style="position: absolute; inset: 0; display: flex; align-items: center;">
+                    <div style="position: absolute; left: 0%; width: 2px; height: 16px; background: #00bcd4;"></div>
+                    <div style="position: absolute; left: 25%; width: 2px; height: 16px; background: #00bcd4;"></div>
+                    <div style="position: absolute; left: 50%; width: 2px; height: 16px; background: #00bcd4;"></div>
+                    <div style="position: absolute; left: 75%; width: 2px; height: 16px; background: #00bcd4;"></div>
+                    <div style="position: absolute; right: 0%; width: 2px; height: 16px; background: #00bcd4;"></div>
+                </div>
+                
+                <!-- Preenchimento -->
+                <div style="height: 100%; background: #00bcd4; border-radius: 6px; width: {fuel_percentage}%;"></div>
+            </div>
+            
+            <!-- Texto do nível -->
+            <div style="text-align: center;">
+                <span style="font-size: 14px; font-weight: 600; color: #1f2937;">1/2</span>
+            </div>
         </div>
         """
         
@@ -44366,21 +44402,39 @@ async def checkin_preview_damages(request: Request):
         </div>
         """
         
-        # Fuel gauge (mesmo design do checkout)
+        # Fuel gauge (barra horizontal - design do checkout)
         fuel_percentage = 100
-        fuel_color = '#10b981' if fuel_percentage >= 75 else '#f59e0b' if fuel_percentage >= 50 else '#ef4444'
-        tank_height = 100
-        fill_height = tank_height * fuel_percentage / 100
-        fill_y = tank_height - fill_height
         
         fuel_gauge_html = f"""
-        <div style="text-align: center;">
-            <svg width="80" height="120" viewBox="0 0 80 120" style="display: block; margin: 0 auto;">
-                <rect x="20" y="10" width="40" height="100" rx="5" fill="none" stroke="#64748b" stroke-width="3"/>
-                <rect x="23" y="{10 + fill_y}" width="34" height="{fill_height}" rx="3" fill="{fuel_color}"/>
-                <path d="M 60 40 L 70 35 L 70 45 Z" fill="#64748b"/>
-            </svg>
-            <p style="margin: 10px 0 0 0; color: #1f2937; font-size: 16px; font-weight: 600;">{fuel_percentage}%</p>
+        <div style="max-width: 400px; margin: 0 auto;">
+            <!-- Labels R, 1/4, 1/2, 3/4, F -->
+            <div style="position: relative; height: 20px; margin-bottom: 5px;">
+                <span style="position: absolute; left: 0%; transform: translateX(-50%); font-size: 12px; font-weight: 600; color: #00bcd4;">R</span>
+                <span style="position: absolute; left: 25%; transform: translateX(-50%); font-size: 12px; font-weight: 600; color: #00bcd4;">1/4</span>
+                <span style="position: absolute; left: 50%; transform: translateX(-50%); font-size: 12px; font-weight: 600; color: #00bcd4;">1/2</span>
+                <span style="position: absolute; left: 75%; transform: translateX(-50%); font-size: 12px; font-weight: 600; color: #00bcd4;">3/4</span>
+                <span style="position: absolute; right: 0%; transform: translateX(50%); font-size: 12px; font-weight: 600; color: #00bcd4;">F</span>
+            </div>
+            
+            <!-- Barra de combustível -->
+            <div style="position: relative; background: white; border: 2px solid #00bcd4; border-radius: 8px; height: 32px; margin-bottom: 10px;">
+                <!-- Marcadores verticais -->
+                <div style="position: absolute; inset: 0; display: flex; align-items: center;">
+                    <div style="position: absolute; left: 0%; width: 2px; height: 16px; background: #00bcd4;"></div>
+                    <div style="position: absolute; left: 25%; width: 2px; height: 16px; background: #00bcd4;"></div>
+                    <div style="position: absolute; left: 50%; width: 2px; height: 16px; background: #00bcd4;"></div>
+                    <div style="position: absolute; left: 75%; width: 2px; height: 16px; background: #00bcd4;"></div>
+                    <div style="position: absolute; right: 0%; width: 2px; height: 16px; background: #00bcd4;"></div>
+                </div>
+                
+                <!-- Preenchimento -->
+                <div style="height: 100%; background: #00bcd4; border-radius: 6px; width: {fuel_percentage}%;"></div>
+            </div>
+            
+            <!-- Texto do nível -->
+            <div style="text-align: center;">
+                <span style="font-size: 14px; font-weight: 600; color: #1f2937;">Cheio</span>
+            </div>
         </div>
         """
         
