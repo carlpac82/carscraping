@@ -31409,9 +31409,7 @@ async def send_inspection_email(request: Request, inspection_number: str):
         if inspection_type == 'checkin':
             logging.info("🔍 CHECK-IN DETECTED - Validating incidents...")
             
-            # Get damage count from inspection
-            conn = _db_connect()
-            cursor = conn.cursor()
+            # Get damage count from inspection (reuse existing cursor)
             if _USE_NEW_DB:
                 cursor.execute("""
                     SELECT damage_count FROM vehicle_inspections 
@@ -31426,94 +31424,94 @@ async def send_inspection_email(request: Request, inspection_number: str):
             damage_row = cursor.fetchone()
             damage_count = damage_row[0] if damage_row and damage_row[0] else 0
             
-            # Validate incidents by comparing with checkout
-            incidents = _validate_checkin_incidents(
-                cursor, _USE_NEW_DB, ra, vehicle_plate,
-                float(fuel_level), damage_count, inspection_id
-            )
-            
-            conn.close()
-            
-            logging.info(f"📊 Incidents validation result: {incidents}")
-            
-            # Generate STATUS_ALERT based on incidents
-            status_alert_html = _generate_checkin_status_alert(
-                detected_lang,
-                incidents['has_fuel_incident'],
-                incidents['has_damage_incident']
-            )
-            
-            # Build PHOTOS_SECTION based on incidents
-            if incidents['has_fuel_incident'] or incidents['has_damage_incident']:
-                # Get odometer photo for fuel incidents
-                odometer_photo_html = ""
-                if incidents['has_fuel_incident']:
-                    conn = _db_connect()
-                    cursor = conn.cursor()
-                    if _USE_NEW_DB:
-                        cursor.execute("""
-                            SELECT image_data FROM inspection_photos 
-                            WHERE inspection_id = %s AND photo_type = 'odometer'
-                            LIMIT 1
-                        """, (inspection_id,))
-                    else:
-                        cursor.execute("""
-                            SELECT image_data FROM inspection_photos 
-                            WHERE inspection_id = ? AND photo_type = 'odometer'
-                            LIMIT 1
-                        """, (inspection_id,))
+            # Validate incidents by comparing with checkout (reuse existing cursor)
+            try:
+                incidents = _validate_checkin_incidents(
+                    cursor, _USE_NEW_DB, ra, vehicle_plate,
+                    float(fuel_level), damage_count, inspection_id
+                )
+                
+                logging.info(f"📊 Incidents validation result: {incidents}")
+                
+                # Generate STATUS_ALERT based on incidents
+                if incidents:
+                    status_alert_html = _generate_checkin_status_alert(
+                        detected_lang,
+                        incidents.get('has_fuel_incident', False),
+                        incidents.get('has_damage_incident', False)
+                    )
                     
-                    odometer_row = cursor.fetchone()
-                    conn.close()
-                    
-                    if odometer_row and odometer_row[0]:
-                        import base64
-                        image_data = odometer_row[0]
-                        if isinstance(image_data, str):
-                            if image_data.startswith('data:image'):
-                                odometer_url = image_data
+                    # Build PHOTOS_SECTION based on incidents
+                    if incidents.get('has_fuel_incident') or incidents.get('has_damage_incident'):
+                        # Get odometer photo for fuel incidents
+                        odometer_photo_html = ""
+                        if incidents.get('has_fuel_incident'):
+                            if _USE_NEW_DB:
+                                cursor.execute("""
+                                    SELECT image_data FROM inspection_photos 
+                                    WHERE inspection_id = %s AND photo_type = 'odometer'
+                                    LIMIT 1
+                                """, (inspection_id,))
                             else:
-                                odometer_url = f"data:image/jpeg;base64,{image_data}"
-                        else:
-                            odometer_url = f"data:image/jpeg;base64,{base64.b64encode(image_data).decode('utf-8')}"
+                                cursor.execute("""
+                                    SELECT image_data FROM inspection_photos 
+                                    WHERE inspection_id = ? AND photo_type = 'odometer'
+                                    LIMIT 1
+                                """, (inspection_id,))
+                            
+                            odometer_row = cursor.fetchone()
+                            
+                            if odometer_row and odometer_row[0]:
+                                import base64
+                                image_data = odometer_row[0]
+                                if isinstance(image_data, str):
+                                    if image_data.startswith('data:image'):
+                                        odometer_url = image_data
+                                    else:
+                                        odometer_url = f"data:image/jpeg;base64,{image_data}"
+                                else:
+                                    odometer_url = f"data:image/jpeg;base64,{base64.b64encode(image_data).decode('utf-8')}"
+                                
+                                # Translate "Odometer" label
+                                odometer_label = {
+                                    'pt': 'Quilómetros',
+                                    'en': 'Odometer',
+                                    'fr': 'Kilométrage'
+                                }.get(detected_lang, 'Odometer')
+                                
+                                odometer_photo_html = f"""
+                                <div style="padding: 20px; background-color: #ffffff; border-bottom: 1px solid #e5e7eb;">
+                                    <h3 style="color: #00bcd4; margin: 0 0 15px 0; font-size: 18px;">{odometer_label}</h3>
+                                    <div style="text-align: center;">
+                                        <a href="{odometer_url}" target="_blank" style="text-decoration: none; display: inline-block; cursor: pointer;">
+                                            <img src="{odometer_url}" alt="{odometer_label}" 
+                                                 style="max-width: 300px; width: 100%; height: auto; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
+                                        </a>
+                                    </div>
+                                </div>
+                                """
                         
-                        # Translate "Odometer" label
-                        odometer_label = {
-                            'pt': 'Quilómetros',
-                            'en': 'Odometer',
-                            'fr': 'Kilométrage'
-                        }.get(detected_lang, 'Odometer')
+                        # Get damage photos for damage incidents
+                        damage_photos_html = ""
+                        if incidents.get('has_damage_incident'):
+                            # photos_html will be built later, so we'll add this section after
+                            damage_label = {
+                                'pt': 'Fotos dos Danos',
+                                'en': 'Damage Photos',
+                                'fr': 'Photos des Dommages'
+                            }.get(detected_lang, 'Damage Photos')
+                            
+                            # Mark that we need to add damage photos (will be added after photos_html is built)
+                            damage_photos_html = f"__DAMAGE_PHOTOS_PLACEHOLDER__:{damage_label}"
                         
-                        odometer_photo_html = f"""
-                        <div style="padding: 20px; background-color: #ffffff; border-bottom: 1px solid #e5e7eb;">
-                            <h3 style="color: #00bcd4; margin: 0 0 15px 0; font-size: 18px;">{odometer_label}</h3>
-                            <div style="text-align: center;">
-                                <a href="{odometer_url}" target="_blank" style="text-decoration: none; display: inline-block; cursor: pointer;">
-                                    <img src="{odometer_url}" alt="{odometer_label}" 
-                                         style="max-width: 300px; width: 100%; height: auto; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
-                                </a>
-                            </div>
-                        </div>
-                        """
-                
-                # Get damage photos for damage incidents
-                damage_photos_html = ""
-                if incidents['has_damage_incident'] and photos_html:
-                    damage_label = {
-                        'pt': 'Fotos dos Danos',
-                        'en': 'Damage Photos',
-                        'fr': 'Photos des Dommages'
-                    }.get(detected_lang, 'Damage Photos')
-                    
-                    damage_photos_html = f"""
-                    <div style="padding: 20px; background-color: #ffffff;">
-                        <h3 style="color: #00bcd4; margin: 0 0 15px 0; font-size: 18px;">{damage_label}</h3>
-                        {photos_html}
-                    </div>
-                    """
-                
-                # Combine sections
-                photos_section_html = odometer_photo_html + damage_photos_html
+                        # Combine sections (damage photos will be added later)
+                        photos_section_html = odometer_photo_html + damage_photos_html
+                else:
+                    logging.warning("⚠️ Incidents validation returned None")
+            except Exception as e:
+                logging.error(f"❌ Error validating check-in incidents: {e}")
+                import traceback
+                logging.error(traceback.format_exc())
             
             # Use check-in template
             template_name = f"email_checkin_{detected_lang}.html" if detected_lang in ['pt', 'fr', 'en'] else "email_checkin_en.html"
@@ -31653,6 +31651,17 @@ async def send_inspection_email(request: Request, inspection_number: str):
                         photos_html += '<td style="width: 33.33%;"></td>'
                 photos_html += '</tr>'
             photos_html += '</table>'
+        
+        # Replace damage photos placeholder if needed (for check-in with damage incidents)
+        if inspection_type == 'checkin' and '__DAMAGE_PHOTOS_PLACEHOLDER__' in photos_section_html and photos_html:
+            damage_label = photos_section_html.split('__DAMAGE_PHOTOS_PLACEHOLDER__:')[1] if '__DAMAGE_PHOTOS_PLACEHOLDER__:' in photos_section_html else 'Damage Photos'
+            damage_photos_html = f"""
+            <div style="padding: 20px; background-color: #ffffff;">
+                <h3 style="color: #00bcd4; margin: 0 0 15px 0; font-size: 18px;">{damage_label}</h3>
+                {photos_html}
+            </div>
+            """
+            photos_section_html = photos_section_html.replace(f'__DAMAGE_PHOTOS_PLACEHOLDER__:{damage_label}', damage_photos_html)
         
         # Create fuel gauge as PNG base64 (same as canvas)
         fuel_percentage = int(fuel_level)
