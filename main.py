@@ -4787,70 +4787,47 @@ def _send_notification_email_smtp(to_email: str, subject: str, message: str, att
                 s.login(user, pwd)
             s.send_message(msg)
 
-def _send_self_checkin_invitation_email(to_email: str, client_name: str, ra_number: str, plate: str, return_date: str, token: str):
-    """Enviar email de convite para self check-in"""
+def _send_self_checkin_invitation_email(to_email: str, client_name: str, ra_number: str, plate: str, return_date: str, token: str, country: str = None):
+    """Enviar email de convite para self check-in com suporte multi-idioma"""
     try:
-        # Construir link de self check-in
+        # Determinar idioma baseado no país
+        language = 'pt'  # Default
+        if country:
+            country_lower = country.lower()
+            if any(x in country_lower for x in ['france', 'frança', 'french', 'belgique', 'belgium', 'suisse', 'switzerland']):
+                language = 'fr'
+            elif any(x in country_lower for x in ['united kingdom', 'uk', 'england', 'ireland', 'usa', 'canada', 'australia', 'reino unido', 'irlanda']):
+                language = 'en'
+        
+        # Construir link de self check-in com idioma
         base_url = os.getenv("BASE_URL", "http://localhost:8000")
-        checkin_link = f"{base_url}/self-checkin/{token}"
+        checkin_link = f"{base_url}/self-checkin/{token}?lang={language}"
         
-        subject = f"🚗 Self Check-in - RA {ra_number}"
+        # Carregar template HTML baseado no idioma
+        template_path = f"templates/email_selfcheckin_invite_{language}.html"
+        try:
+            with open(template_path, 'r', encoding='utf-8') as f:
+                html_content = f.read()
+        except FileNotFoundError:
+            logging.warning(f"Template {template_path} not found, using Portuguese")
+            with open("templates/email_selfcheckin_invite_pt.html", 'r', encoding='utf-8') as f:
+                html_content = f.read()
         
-        html_content = f"""
-        <!DOCTYPE html>
-        <html>
-        <head>
-            <meta charset="UTF-8">
-        </head>
-        <body style="font-family: 'Segoe UI', sans-serif; background: #f8fafc; padding: 20px;">
-            <div style="max-width: 600px; margin: 0 auto; background: white; border-radius: 8px; overflow: hidden; box-shadow: 0 2px 8px rgba(0,0,0,0.1);">
-                <div style="background: linear-gradient(135deg, #009cb6 0%, #007a91 100%); padding: 30px; text-align: center;">
-                    <h1 style="margin: 0; color: white; font-size: 24px;">🚗 Self Check-in Disponível</h1>
-                </div>
-                <div style="padding: 30px;">
-                    <p style="margin: 0 0 20px 0; color: #1e293b; font-size: 16px;">Olá {client_name},</p>
-                    
-                    <p style="margin: 0 0 20px 0; color: #475569; font-size: 14px; line-height: 1.6;">
-                        A data de recolha do seu veículo <strong>{plate}</strong> (RA {ra_number}) aproxima-se.
-                    </p>
-                    
-                    <p style="margin: 0 0 20px 0; color: #475569; font-size: 14px; line-height: 1.6;">
-                        Para facilitar o processo, pode realizar o <strong>self check-in</strong> através do link abaixo:
-                    </p>
-                    
-                    <div style="text-align: center; margin: 30px 0;">
-                        <a href="{checkin_link}" style="display: inline-block; background: #009cb6; color: white; padding: 15px 40px; text-decoration: none; border-radius: 6px; font-weight: 600; font-size: 16px;">
-                            Realizar Self Check-in
-                        </a>
-                    </div>
-                    
-                    <p style="margin: 20px 0 0 0; color: #64748b; font-size: 13px; line-height: 1.6;">
-                        <strong>Data de recolha:</strong> {return_date}<br>
-                        <strong>O que precisa fazer:</strong>
-                    </p>
-                    <ul style="color: #64748b; font-size: 13px; line-height: 1.6; margin: 10px 0;">
-                        <li>Tirar 9 fotografias do veículo</li>
-                        <li>Fotografar eventuais danos</li>
-                        <li>Indicar o nível de combustível</li>
-                        <li>Indicar os quilómetros</li>
-                    </ul>
-                    
-                    <p style="margin: 20px 0 0 0; color: #94a3b8; font-size: 12px; font-style: italic;">
-                        Este link é único e válido apenas para este rental agreement.
-                    </p>
-                </div>
-                <div style="background: #f8fafc; padding: 20px; text-align: center; border-top: 1px solid #e2e8f0;">
-                    <p style="margin: 0; font-size: 12px; color: #94a3b8;">
-                        Auto Prudente © 2025 - Sistema de Self Check-in
-                    </p>
-                </div>
-            </div>
-        </body>
-        </html>
-        """
+        # Substituir placeholders
+        html_content = html_content.replace('{{RA_NUMBER}}', ra_number)
+        html_content = html_content.replace('{{CLIENT_NAME}}', client_name)
+        html_content = html_content.replace('{{CHECKIN_LINK}}', checkin_link)
+        
+        # Subject sem emojis
+        subjects = {
+            'pt': f"Self Check-in Disponível - RA {ra_number}",
+            'en': f"Self Check-in Available - RA {ra_number}",
+            'fr': f"Self Check-in Disponible - RA {ra_number}"
+        }
+        subject = subjects.get(language, subjects['pt'])
         
         _send_notification_email(to_email, subject, html_content)
-        logging.info(f"✅ Self check-in invitation email sent to {to_email} for RA {ra_number}")
+        logging.info(f"✅ Self check-in invitation email sent to {to_email} for RA {ra_number} (language: {language})")
         
     except Exception as e:
         logging.error(f"❌ Failed to send self check-in invitation email: {str(e)}")
@@ -31107,19 +31084,21 @@ async def resend_self_checkin_link(request: Request):
         
         conn.commit()
         
-        # Extrair nome do cliente
+        # Extrair nome do cliente e país
         import json
         client_name = "Cliente"
+        country = None
         if extracted_data_json:
             try:
                 extracted_data = json.loads(extracted_data_json)
                 client_name = extracted_data.get('client_name') or extracted_data.get('nome_cliente') or "Cliente"
+                country = extracted_data.get('country') or extracted_data.get('pais')
             except:
                 pass
         
         # Enviar email de convite
         vehicle_info = f"{marca} {modelo}" if marca and modelo else "Veículo"
-        _send_self_checkin_invitation_email(email, client_name, ra_num, plate, vehicle_info, new_token)
+        _send_self_checkin_invitation_email(email, client_name, ra_num, plate, vehicle_info, new_token, country)
         
         logging.info(f"✉️ Self check-in link resent for RA {ra_num} to {email}")
         
