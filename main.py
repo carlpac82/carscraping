@@ -30890,7 +30890,11 @@ async def get_inspection(request: Request, plate: str, ra: str, type: str = 'che
         if is_postgres:
             cursor = conn.cursor()
             
-            # Get inspection
+            # Extract base RA (remove suffix like -09)
+            ra_base = ra.split('-')[0] if '-' in ra else ra
+            logging.info(f"🔍 Searching inspection with RA base: {ra_base} (from: {ra})")
+            
+            # Get inspection using LIKE to match base RA
             cursor.execute("""
                 SELECT id, inspection_number, inspection_type, vehicle_plate, vehicle_id,
                        contract_number, inspector_name, inspector_notes, has_damage,
@@ -30898,11 +30902,11 @@ async def get_inspection(request: Request, plate: str, ra: str, type: str = 'che
                        status, photo_count, created_at, client_email
                 FROM vehicle_inspections
                 WHERE UPPER(vehicle_plate) = UPPER(%s)
-                  AND contract_number = %s
+                  AND contract_number LIKE %s
                   AND inspection_type = %s
                 ORDER BY created_at DESC
                 LIMIT 1
-            """, (plate, ra, type))
+            """, (plate, f"{ra_base}%", type))
             
             inspection_row = cursor.fetchone()
             
@@ -31080,7 +31084,11 @@ async def get_inspection(request: Request, plate: str, ra: str, type: str = 'che
             # SQLite
             cursor = conn.cursor()
             
-            # Get inspection
+            # Extract base RA (remove suffix like -09)
+            ra_base = ra.split('-')[0] if '-' in ra else ra
+            logging.info(f"🔍 Searching inspection with RA base: {ra_base} (from: {ra})")
+            
+            # Get inspection using LIKE to match base RA
             cursor.execute("""
                 SELECT id, inspection_number, inspection_type, vehicle_plate, vehicle_id,
                        contract_number, inspector_name, inspector_notes, has_damage,
@@ -31088,11 +31096,11 @@ async def get_inspection(request: Request, plate: str, ra: str, type: str = 'che
                        status, photo_count, created_at, client_email
                 FROM vehicle_inspections
                 WHERE UPPER(vehicle_plate) = UPPER(?)
-                  AND contract_number = ?
+                  AND contract_number LIKE ?
                   AND inspection_type = ?
                 ORDER BY created_at DESC
                 LIMIT 1
-            """, (plate, ra, type))
+            """, (plate, f"{ra_base}%", type))
             
             inspection_row = cursor.fetchone()
             
