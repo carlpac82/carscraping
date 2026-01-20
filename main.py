@@ -24526,6 +24526,258 @@ def _detect_language_from_country(country_code):
     logging.info(f"🌍 Country '{country_code}' → Language '{detected}'")
     return detected
 
+def _validate_checkin_incidents(cursor, is_postgres, ra, plate, checkin_fuel_level, checkin_damage_count, checkin_inspection_id):
+    """
+    Validate check-in incidents by comparing with checkout data
+    Returns: dict with 'has_fuel_incident', 'has_damage_incident', 'fuel_diff', 'checkout_fuel', 'checkout_damage_count'
+    """
+    logging.info(f"🔍 Validating check-in incidents for RA={ra}, Plate={plate}")
+    
+    result = {
+        'has_fuel_incident': False,
+        'has_damage_incident': False,
+        'fuel_diff': 0,
+        'checkout_fuel': 100,
+        'checkout_damage_count': 0,
+        'checkin_has_damage_photos': False
+    }
+    
+    try:
+        # Get checkout inspection data for same RA and plate
+        if is_postgres:
+            cursor.execute("""
+                SELECT fuel_level, damage_count, id
+                FROM vehicle_inspections
+                WHERE contract_number = %s
+                AND vehicle_plate = %s
+                AND inspection_type = 'checkout'
+                ORDER BY created_at DESC
+                LIMIT 1
+            """, (ra, plate))
+        else:
+            cursor.execute("""
+                SELECT fuel_level, damage_count, id
+                FROM vehicle_inspections
+                WHERE contract_number = ?
+                AND vehicle_plate = ?
+                AND inspection_type = 'checkout'
+                ORDER BY created_at DESC
+                LIMIT 1
+            """, (ra, plate))
+        
+        checkout_row = cursor.fetchone()
+        
+        if not checkout_row:
+            logging.warning(f"⚠️ No checkout inspection found for RA={ra}, Plate={plate}")
+            return result
+        
+        checkout_fuel = float(checkout_row[0]) if checkout_row[0] else 100
+        checkout_damage_count = int(checkout_row[1]) if checkout_row[1] else 0
+        checkout_id = checkout_row[2]
+        
+        result['checkout_fuel'] = checkout_fuel
+        result['checkout_damage_count'] = checkout_damage_count
+        
+        logging.info(f"📊 Checkout data: Fuel={checkout_fuel}%, Damages={checkout_damage_count}")
+        logging.info(f"📊 Check-in data: Fuel={checkin_fuel_level}%, Damages={checkin_damage_count}")
+        
+        # Validate fuel (allow 5% tolerance for measurement differences)
+        fuel_diff = checkout_fuel - float(checkin_fuel_level)
+        result['fuel_diff'] = fuel_diff
+        
+        if fuel_diff > 5:  # More than 5% difference
+            result['has_fuel_incident'] = True
+            logging.warning(f"⚠️ FUEL INCIDENT: Difference of {fuel_diff}% (checkout: {checkout_fuel}%, checkin: {checkin_fuel_level}%)")
+        
+        # Validate damages - check if there are NEW damage photos in check-in
+        if is_postgres:
+            cursor.execute("""
+                SELECT COUNT(*) FROM inspection_photos
+                WHERE inspection_id = %s
+                AND (photo_type LIKE 'damage%%' OR photo_type = 'damage_croqui')
+            """, (checkin_inspection_id,))
+        else:
+            cursor.execute("""
+                SELECT COUNT(*) FROM inspection_photos
+                WHERE inspection_id = ?
+                AND (photo_type LIKE 'damage%' OR photo_type = 'damage_croqui')
+            """, (checkin_inspection_id,))
+        
+        checkin_damage_photos = cursor.fetchone()[0] if cursor.fetchone() else 0
+        
+        # Reset cursor position
+        if is_postgres:
+            cursor.execute("""
+                SELECT COUNT(*) FROM inspection_photos
+                WHERE inspection_id = %s
+                AND (photo_type LIKE 'damage%%' OR photo_type = 'damage_croqui')
+            """, (checkin_inspection_id,))
+        else:
+            cursor.execute("""
+                SELECT COUNT(*) FROM inspection_photos
+                WHERE inspection_id = ?
+                AND (photo_type LIKE 'damage%' OR photo_type = 'damage_croqui')
+            """, (checkin_inspection_id,))
+        
+        checkin_damage_photos = cursor.fetchone()[0]
+        result['checkin_has_damage_photos'] = checkin_damage_photos > 0
+        
+        # If check-in has more damages than checkout, it's an incident
+        if checkin_damage_count > checkout_damage_count or checkin_damage_photos > 0:
+            result['has_damage_incident'] = True
+            logging.warning(f"⚠️ DAMAGE INCIDENT: Check-in has {checkin_damage_count} damages (checkout had {checkout_damage_count}), {checkin_damage_photos} damage photos")
+        
+        logging.info(f"✅ Validation complete: Fuel incident={result['has_fuel_incident']}, Damage incident={result['has_damage_incident']}")
+        
+    except Exception as e:
+        logging.error(f"❌ Error validating check-in incidents: {e}")
+        import traceback
+        traceback.print_exc()
+    
+    return result
+
+def _generate_checkin_status_alert(lang, has_fuel_incident, has_damage_incident):
+    """
+    Generate STATUS_ALERT HTML for check-in emails based on incidents
+    Returns: HTML string for status alert
+    """
+    alerts = []
+    
+    # Translations for alerts
+    translations = {
+        'pt': {
+            'no_incidents': {
+                'title': 'Devolução sem Incidências',
+                'message': 'Não foram encontradas incidências na devolução da viatura. Agradecemos a confiança depositada nos nossos serviços.',
+                'color': '#10b981',
+                'icon': '<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="vertical-align: middle; margin-right: 8px;"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path><polyline points="22 4 12 14.01 9 11.01"></polyline></svg>'
+            },
+            'fuel': {
+                'title': 'Incidência Detectada: Combustível em Falta',
+                'message': 'Foi detectada uma diferença no nível de combustível. Iremos analisar esta situação com os nossos colaboradores. Se necessário, entraremos em contacto consigo.',
+                'color': '#f59e0b',
+                'icon': '<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="vertical-align: middle; margin-right: 8px;"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="8" x2="12" y2="12"></line><line x1="12" y1="16" x2="12.01" y2="16"></line></svg>'
+            },
+            'damage': {
+                'title': 'Danos Detectados na Recolha',
+                'message': 'Foram detectados danos na recolha da viatura que não estavam presentes na entrega. Iremos analisar esta situação e, se necessário, entraremos em contacto consigo.',
+                'color': '#ef4444',
+                'icon': '<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="vertical-align: middle; margin-right: 8px;"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="8" x2="12" y2="12"></line><line x1="12" y1="16" x2="12.01" y2="16"></line></svg>'
+            }
+        },
+        'en': {
+            'no_incidents': {
+                'title': 'Return Without Incidents',
+                'message': 'No incidents were found during the vehicle return. We appreciate your trust in our services.',
+                'color': '#10b981',
+                'icon': '<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="vertical-align: middle; margin-right: 8px;"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path><polyline points="22 4 12 14.01 9 11.01"></polyline></svg>'
+            },
+            'fuel': {
+                'title': 'Incident Detected: Fuel Shortage',
+                'message': 'A difference in fuel level was detected. We will analyze this situation with our staff. If necessary, we will contact you.',
+                'color': '#f59e0b',
+                'icon': '<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="vertical-align: middle; margin-right: 8px;"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="8" x2="12" y2="12"></line><line x1="12" y1="16" x2="12.01" y2="16"></line></svg>'
+            },
+            'damage': {
+                'title': 'Damages Detected at Return',
+                'message': 'Damages were detected at vehicle return that were not present at delivery. We will analyze this situation and, if necessary, contact you.',
+                'color': '#ef4444',
+                'icon': '<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="vertical-align: middle; margin-right: 8px;"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="8" x2="12" y2="12"></line><line x1="12" y1="16" x2="12.01" y2="16"></line></svg>'
+            }
+        },
+        'fr': {
+            'no_incidents': {
+                'title': 'Retour Sans Incidents',
+                'message': 'Aucun incident n\'a été trouvé lors du retour du véhicule. Nous apprécions votre confiance en nos services.',
+                'color': '#10b981',
+                'icon': '<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="vertical-align: middle; margin-right: 8px;"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path><polyline points="22 4 12 14.01 9 11.01"></polyline></svg>'
+            },
+            'fuel': {
+                'title': 'Incident Détecté: Manque de Carburant',
+                'message': 'Une différence de niveau de carburant a été détectée. Nous analyserons cette situation avec notre personnel. Si nécessaire, nous vous contacterons.',
+                'color': '#f59e0b',
+                'icon': '<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="vertical-align: middle; margin-right: 8px;"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="8" x2="12" y2="12"></line><line x1="12" y1="16" x2="12.01" y2="16"></line></svg>'
+            },
+            'damage': {
+                'title': 'Dommages Détectés au Retour',
+                'message': 'Des dommages ont été détectés au retour du véhicule qui n\'étaient pas présents à la livraison. Nous analyserons cette situation et, si nécessaire, vous contacterons.',
+                'color': '#ef4444',
+                'icon': '<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="vertical-align: middle; margin-right: 8px;"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="8" x2="12" y2="12"></line><line x1="12" y1="16" x2="12.01" y2="16"></line></svg>'
+            }
+        }
+    }
+    
+    lang_texts = translations.get(lang, translations['en'])
+    
+    # Determine which alerts to show
+    if not has_fuel_incident and not has_damage_incident:
+        # No incidents - green alert
+        alert_data = lang_texts['no_incidents']
+        alerts.append(f"""
+        <div style="background: {alert_data['color']}15; border-left: 4px solid {alert_data['color']}; padding: 20px; margin: 20px; border-radius: 8px;">
+            <h3 style="color: {alert_data['color']}; margin: 0 0 10px 0; font-size: 16px; font-weight: 600;">
+                {alert_data['icon']}
+                {alert_data['title']}
+            </h3>
+            <p style="color: {alert_data['color'].replace('#', '#').replace('81', '69')}; margin: 0; font-size: 13px; line-height: 1.5;">
+                {alert_data['message']}
+            </p>
+        </div>
+        """)
+    else:
+        # Has incidents - show fuel first (if exists), then damage
+        if has_fuel_incident:
+            alert_data = lang_texts['fuel']
+            alerts.append(f"""
+            <div style="background: {alert_data['color']}15; border-left: 4px solid {alert_data['color']}; padding: 20px; margin: 20px; border-radius: 8px;">
+                <h3 style="color: {alert_data['color']}; margin: 0 0 10px 0; font-size: 16px; font-weight: 600;">
+                    {alert_data['icon']}
+                    {alert_data['title']}
+                </h3>
+                <p style="color: #b45309; margin: 0; font-size: 13px; line-height: 1.5;">
+                    {alert_data['message']}
+                </p>
+            </div>
+            """)
+        
+        if has_damage_incident:
+            alert_data = lang_texts['damage']
+            alerts.append(f"""
+            <div style="background: {alert_data['color']}15; border-left: 4px solid {alert_data['color']}; padding: 20px; margin: 20px; border-radius: 8px;">
+                <h3 style="color: {alert_data['color']}; margin: 0 0 10px 0; font-size: 16px; font-weight: 600;">
+                    {alert_data['icon']}
+                    {alert_data['title']}
+                </h3>
+                <p style="color: #dc2626; margin: 0; font-size: 13px; line-height: 1.5;">
+                    {alert_data['message']}
+                </p>
+            </div>
+            """)
+    
+    return '\n'.join(alerts)
+
+def _get_checkin_email_subject(lang, ra_number):
+    """
+    Get email subject for check-in based on language
+    """
+    subjects = {
+        'pt': f'Relatório de Recolha RA. {ra_number}',
+        'en': f'Return Report RA. {ra_number}',
+        'fr': f'Rapport de Retour RA. {ra_number}'
+    }
+    return subjects.get(lang, subjects['en'])
+
+def _get_checkin_croqui_title(lang):
+    """
+    Get croqui title for check-in based on language
+    """
+    titles = {
+        'pt': 'Croqui de Danos (Entrega + Recolha)',
+        'en': 'Damage Sketch (Delivery + Return)',
+        'fr': 'Croquis des Dommages (Livraison + Retour)'
+    }
+    return titles.get(lang, titles['en'])
+
 @app.get("/api/damage-reports/email-templates")
 async def get_email_templates(request: Request):
     """List all email templates (all languages)"""
@@ -29481,8 +29733,59 @@ async def save_inspection(request: Request):
                     }
                     inspection_type_label = t_labels.get(inspection_type, {}).get(detected_lang, inspection_type)
                     
-                    # Select template based on language
-                    template_name = f"email_preview_{detected_lang}.html" if detected_lang in ['pt', 'fr'] else "email_preview.html"
+                    # Check if this is a check-in (pickup/recolha) - validate incidents
+                    status_alert_html = ""
+                    photos_section_html = ""
+                    
+                    if inspection_type == 'checkin':
+                        logging.info("🔍 CHECK-IN DETECTED - Validating incidents...")
+                        
+                        # Validate incidents by comparing with checkout
+                        incidents = _validate_checkin_incidents(
+                            cursor, is_postgres, ra, plate,
+                            float(fuel_level), damage_count, inspection_id
+                        )
+                        
+                        logging.info(f"📊 Incidents validation result: {incidents}")
+                        
+                        # Generate STATUS_ALERT based on incidents
+                        status_alert_html = _generate_checkin_status_alert(
+                            detected_lang,
+                            incidents['has_fuel_incident'],
+                            incidents['has_damage_incident']
+                        )
+                        
+                        # If there are damage incidents, include photos section
+                        if incidents['has_damage_incident'] and photos_html:
+                            photos_section_html = f"""
+                            <div style="padding: 20px; background-color: #ffffff;">
+                                <h3 style="color: #00bcd4; margin: 0 0 15px 0; font-size: 18px;">Fotos dos Danos</h3>
+                                {photos_html}
+                            </div>
+                            """
+                        
+                        # Use check-in template
+                        template_name = f"email_checkin_{detected_lang}.html" if detected_lang in ['pt', 'fr', 'en'] else "email_checkin_en.html"
+                        
+                        # Get check-in specific subject and croqui title
+                        subject = _get_checkin_email_subject(detected_lang, ra)
+                        croqui_title = _get_checkin_croqui_title(detected_lang)
+                        
+                        logging.info(f"📧 Using check-in template: {template_name}")
+                        logging.info(f"📧 Subject: {subject}")
+                        logging.info(f"📧 Croqui title: {croqui_title}")
+                        
+                    else:
+                        # Checkout - use existing logic
+                        template_name = f"email_preview_{detected_lang}.html" if detected_lang in ['pt', 'fr'] else "email_preview.html"
+                        croqui_title = "Croqui de Danos" if detected_lang == 'pt' else "Damage Sketch" if detected_lang == 'en' else "Croquis des Dommages"
+                        
+                        # Checkout subject
+                        subject = f"Delivery Report R.A. {ra}"
+                        if detected_lang == 'pt':
+                            subject = f"Relatorio de Entrega R.A. {ra}"
+                        elif detected_lang == 'fr':
+                            subject = f"Rapport de Livraison R.A. {ra}"
                     
                     # Prepare email content with ALL variables
                     template = templates.get_template(template_name)
@@ -29502,6 +29805,9 @@ async def save_inspection(request: Request):
                         INSPECTOR_NAME=receptionist,
                         FUEL_GAUGE_SVG=fuel_gauge_html,
                         CROQUI_IMAGE=final_croqui,
+                        CROQUI_TITLE=croqui_title,
+                        STATUS_ALERT=status_alert_html,
+                        PHOTOS_SECTION=photos_section_html,
                         PHOTOS_HTML=photos_html,
                         PROMO_IMAGE_1=promo_base64.get('promo1', ''),
                         PROMO_IMAGE_2=promo_base64.get('promo2', ''),
@@ -29513,14 +29819,8 @@ async def save_inspection(request: Request):
                     )
                     
                     # Send email
-                    subject = f"Delivery Report R.A. {ra}"
-                    if detected_lang == 'pt':
-                        subject = f"Relatorio de Entrega R.A. {ra}"
-                    elif detected_lang == 'fr':
-                        subject = f"Rapport de Livraison R.A. {ra}"
-                    
                     _send_notification_email(email, subject, html_content)
-                    logging.info(f"✅ Email sent successfully to {email}")
+                    logging.info(f"✅ Email sent successfully to {email} (Type: {inspection_type}, Subject: {subject})")
                     
                 except Exception as email_error:
                     logging.error(f"❌ Failed to send email: {email_error}")
