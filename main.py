@@ -28770,11 +28770,13 @@ async def save_inspection(request: Request):
         date = data.get('date', '')
         time = data.get('time', '')
         email = data.get('client_email', data.get('email', ''))
-        send_email = data.get('send_email', False)  # Only send email if explicitly requested
+        send_email_raw = data.get('send_email', False)
+        send_email = bool(send_email_raw)  # Force to boolean
         vehicle_id = data.get('vehicle_id', None)
         damage_croqui = data.get('damage_croqui', data.get('damageCroqui', ''))  # Base64 image of damage croqui
         
-        print(f"📧 [EARLY LOG] Email config - email: '{email}', send_email: {send_email}, type: {inspection_type}", flush=True)
+        print(f"📧 [BACKEND] RAW send_email from JSON: {repr(send_email_raw)} (type: {type(send_email_raw).__name__})", flush=True)
+        print(f"📧 [BACKEND] Email config - email: '{email}', send_email: {send_email}, type: {inspection_type}", flush=True)
         logging.info(f"📧 Email config - email: '{email}', send_email: {send_email} (type: {type(send_email).__name__})")
         
         # New fields for check-in (pickup/recolha)
