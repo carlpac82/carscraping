@@ -43,12 +43,12 @@
                 </div>
                 
                 <!-- Right: Navigation Icons -->
-                <div class="flex items-center gap-3">
+                <div class="flex items-center gap-2 ml-auto">
                     {% if request.session.get('is_admin') or request.session.get('role') in ['admin', 'user'] %}
                     <!-- Home Icon -->
                     <a href="/" class="p-2 hover:bg-[#0088a0] rounded-lg transition-all group" title="Voltar à Homepage">
                         <svg class="w-6 h-6 text-white group-hover:text-[#f6b511] transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"/>
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"/>
                         </svg>
                     </a>
                     {% endif %}
@@ -63,8 +63,8 @@
                     <!-- History Icon (Active) -->
                     <a href="/inspection-history" class="p-2 bg-[#0088a0] rounded-lg transition-all group" title="Histórico">
                         <svg class="w-6 h-6 text-white group-hover:text-[#f6b511] transition-colors" fill="currentColor" viewBox="0 0 24 24">
-                            <circle cx="12" cy="12" r="10" fill="none" stroke="currentColor" stroke-width="2"/>
-                            <path d="M12 6v6l4 2" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+                            <circle cx="12" cy="12" r="10" fill="none" stroke="currentColor" stroke-width="1.5"/>
+                            <path d="M12 6v6l4 2" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
                         </svg>
                     </a>
                     
@@ -89,7 +89,7 @@
                             </div>
                             <a href="/logout" onclick="return confirm('Tem a certeza que deseja terminar a sessão?');" class="w-full text-left px-4 py-2 text-sm text-red-600 hover:bg-red-50 transition-colors flex items-center gap-2">
                                 <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"/>
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"/>
                                 </svg>
                                 Terminar Sessão
                             </a>
