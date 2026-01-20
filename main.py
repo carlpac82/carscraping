@@ -29616,13 +29616,25 @@ async def save_inspection(request: Request):
                         photo_labels = {
                             'pt': {'front': 'Frente', 'front_left': 'Frente Esquerda', 'left': 'Lado Esquerdo',
                                    'back_left': 'Traseira Esquerda', 'back': 'Traseira', 'back_right': 'Traseira Direita',
-                                   'right': 'Lado Direito', 'front_right': 'Frente Direita', 'odometer': 'Quilómetros'},
+                                   'right': 'Lado Direito', 'front_right': 'Frente Direita', 'odometer': 'Quilómetros',
+                                   # Damage photo translations
+                                   'photo_1': 'Dano 1', 'photo_2': 'Dano 2', 'photo_3': 'Dano 3',
+                                   'photo_4': 'Dano 4', 'photo_5': 'Dano 5', 'photo_6': 'Dano 6',
+                                   'photo_7': 'Dano 7', 'photo_8': 'Dano 8', 'photo_9': 'Dano 9'},
                             'fr': {'front': 'Avant', 'front_left': 'Avant Gauche', 'left': 'Côté Gauche',
                                    'back_left': 'Arrière Gauche', 'back': 'Arrière', 'back_right': 'Arrière Droit',
-                                   'right': 'Côté Droit', 'front_right': 'Avant Droit', 'odometer': 'Kilométrage'},
+                                   'right': 'Côté Droit', 'front_right': 'Avant Droit', 'odometer': 'Kilométrage',
+                                   # Damage photo translations
+                                   'photo_1': 'Dommage 1', 'photo_2': 'Dommage 2', 'photo_3': 'Dommage 3',
+                                   'photo_4': 'Dommage 4', 'photo_5': 'Dommage 5', 'photo_6': 'Dommage 6',
+                                   'photo_7': 'Dommage 7', 'photo_8': 'Dommage 8', 'photo_9': 'Dommage 9'},
                             'en': {'front': 'Front', 'front_left': 'Front Left', 'left': 'Left Side',
                                    'back_left': 'Back Left', 'back': 'Back', 'back_right': 'Back Right',
-                                   'right': 'Right Side', 'front_right': 'Front Right', 'odometer': 'Odometer'}
+                                   'right': 'Right Side', 'front_right': 'Front Right', 'odometer': 'Odometer',
+                                   # Damage photo translations
+                                   'photo_1': 'Damage 1', 'photo_2': 'Damage 2', 'photo_3': 'Damage 3',
+                                   'photo_4': 'Damage 4', 'photo_5': 'Damage 5', 'photo_6': 'Damage 6',
+                                   'photo_7': 'Damage 7', 'photo_8': 'Damage 8', 'photo_9': 'Damage 9'}
                         }
                         
                         labels_map = photo_labels.get(detected_lang, photo_labels['en'])
@@ -29651,13 +29663,8 @@ async def save_inspection(request: Request):
                                     damage_part = photo_type.replace('damage_', '')
                                     if damage_part.startswith('photo_'):
                                         # damage_photo_1, damage_photo_2, etc.
-                                        photo_num = damage_part.replace('photo_', '')
-                                        if detected_lang == 'pt':
-                                            label = f'Dano {photo_num}'
-                                        elif detected_lang == 'fr':
-                                            label = f'Dommage {photo_num}'
-                                        else:
-                                            label = f'Damage {photo_num}'
+                                        # Use labels_map directly for clean translation
+                                        label = labels_map.get(damage_part, damage_part)
                                     else:
                                         # damage_front, damage_left, etc.
                                         base_label = labels_map.get(damage_part, damage_part.title())
