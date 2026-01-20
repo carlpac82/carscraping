@@ -42847,6 +42847,11 @@ async def get_inspection_details(inspection_number: str, request: Request):
                 "damage_photos": damage_photos
             }
             
+            # Debug logging
+            logging.info(f"🔍 Returning inspection {inspection_row[1]}: has_damage_croqui={damage_croqui is not None}, croqui_length={len(damage_croqui) if damage_croqui else 0}")
+            if damage_croqui:
+                logging.info(f"🔍 Damage croqui preview: {damage_croqui[:50]}...")
+            
             return JSONResponse({
                 "ok": True,
                 "inspection": inspection
