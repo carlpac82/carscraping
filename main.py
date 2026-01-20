@@ -24597,6 +24597,24 @@ def _validate_checkin_incidents(cursor, is_postgres, ra, plate, checkin_fuel_lev
             logging.info(f"✅ FUEL OK: Within tolerance ({fuel_diff}%)")
         
         # Validate damages - check if there are NEW damage photos in check-in
+        # Get checkout damage photos count
+        if is_postgres:
+            cursor.execute("""
+                SELECT COUNT(*) FROM inspection_photos
+                WHERE inspection_id = %s
+                AND (photo_type LIKE 'damage%%' OR photo_type = 'damage_croqui')
+            """, (checkout_id,))
+        else:
+            cursor.execute("""
+                SELECT COUNT(*) FROM inspection_photos
+                WHERE inspection_id = ?
+                AND (photo_type LIKE 'damage%' OR photo_type = 'damage_croqui')
+            """, (checkout_id,))
+        
+        checkout_photo_count_row = cursor.fetchone()
+        checkout_damage_photos = checkout_photo_count_row[0] if checkout_photo_count_row else 0
+        
+        # Get checkin damage photos count
         if is_postgres:
             cursor.execute("""
                 SELECT COUNT(*) FROM inspection_photos
@@ -24614,10 +24632,13 @@ def _validate_checkin_incidents(cursor, is_postgres, ra, plate, checkin_fuel_lev
         checkin_damage_photos = photo_count_row[0] if photo_count_row else 0
         result['checkin_has_damage_photos'] = checkin_damage_photos > 0
         
-        # If check-in has more damages than checkout, it's an incident
-        if checkin_damage_count > checkout_damage_count or checkin_damage_photos > 0:
+        # If check-in has MORE damages than checkout, it's an incident
+        # Compare both damage_count AND photo count
+        if checkin_damage_count > checkout_damage_count or checkin_damage_photos > checkout_damage_photos:
             result['has_damage_incident'] = True
-            logging.warning(f"⚠️ DAMAGE INCIDENT: Check-in has {checkin_damage_count} damages (checkout had {checkout_damage_count}), {checkin_damage_photos} damage photos")
+            logging.warning(f"⚠️ DAMAGE INCIDENT: Check-in has {checkin_damage_count} damages vs {checkout_damage_count} in checkout, {checkin_damage_photos} photos vs {checkout_damage_photos} in checkout")
+        else:
+            logging.info(f"✅ DAMAGE OK: No new damages (checkin: {checkin_damage_count} damages, {checkin_damage_photos} photos | checkout: {checkout_damage_count} damages, {checkout_damage_photos} photos)")
         
         logging.info(f"✅ Validation complete: Fuel incident={result['has_fuel_incident']}, Damage incident={result['has_damage_incident']}")
         
