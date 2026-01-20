@@ -1398,7 +1398,7 @@
                 date: document.getElementById('inputDate')?.value || '',
                 time: document.getElementById('inputTime')?.value || '',
                 client_email: email,
-                send_email: !!email,  // Send email only if email is provided
+                send_email: true,  // ALWAYS true when this function is called (only called from saveAndSendInspection)
                 vehicle_id: window.currentVehicleId || null,
                 damageCroqui: damageCroquiBase64
             };
