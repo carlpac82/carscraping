@@ -1224,6 +1224,10 @@
         
         window.saveInspectionWithEmail = function(email) {
             console.log('🔧 OVERRIDE: saveInspectionWithEmail called with email:', email);
+            console.log('🔧 OVERRIDE: email type:', typeof email);
+            console.log('🔧 OVERRIDE: email is null?', email === null);
+            console.log('🔧 OVERRIDE: email is undefined?', email === undefined);
+            console.log('🔧 OVERRIDE: !!email =', !!email);
             
             // Capture damage croqui as base64 image (including pins)
             let damageCroquiBase64 = '';
