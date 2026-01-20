@@ -43969,19 +43969,30 @@ async def get_latest_ra_by_plate(request: Request, plate: str):
         is_postgres = _is_postgresql_connection(conn)
         
         # Normalize plate: remove spaces and convert to uppercase
-        normalized_plate = plate.replace(" ", "").upper()
+        normalized_plate = plate.replace(" ", "").replace("-", "").upper()
         logging.info(f"🔍 Searching for plate: '{plate}' (normalized: '{normalized_plate}')")
         
         # Get latest RA for this plate (highest RA number)
         if is_postgres:
             with conn.cursor() as cur:
+                # First, let's see all plates in the database for debugging
+                cur.execute("""
+                    SELECT license_plate, rental_agreement_number, 
+                           REPLACE(REPLACE(UPPER(license_plate), ' ', ''), '-', '') as normalized
+                    FROM rental_agreements
+                    ORDER BY rental_agreement_number DESC
+                    LIMIT 10
+                """)
+                all_plates = cur.fetchall()
+                logging.info(f"📋 Recent plates in DB: {[(p[0], p[1], p[2]) for p in all_plates]}")
+                
                 cur.execute("""
                     SELECT ra.id, ra.rental_agreement_number, ra.license_plate, 
                            ra.vehicle_id, ra.odometer, ra.fuel_level, 
                            ra.inspection_completed, ra.inspection_id,
                            ra.created_at, ra.updated_at, ra.extracted_data
                     FROM rental_agreements ra
-                    WHERE REPLACE(UPPER(ra.license_plate), ' ', '') = %s
+                    WHERE REPLACE(REPLACE(UPPER(ra.license_plate), ' ', ''), '-', '') = %s
                     ORDER BY ra.rental_agreement_number DESC
                     LIMIT 1
                 """, (normalized_plate,))
@@ -43993,7 +44004,7 @@ async def get_latest_ra_by_plate(request: Request, plate: str):
                        ra.inspection_completed, ra.inspection_id,
                        ra.created_at, ra.updated_at, ra.extracted_data
                 FROM rental_agreements ra
-                WHERE REPLACE(UPPER(ra.license_plate), ' ', '') = ?
+                WHERE REPLACE(REPLACE(UPPER(ra.license_plate), ' ', ''), '-', '') = ?
                 ORDER BY ra.rental_agreement_number DESC
                 LIMIT 1
             """, (normalized_plate,))
