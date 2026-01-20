@@ -2507,7 +2507,7 @@
                                 <div class="flex justify-between">
                                     <span class="text-gray-600">Fotos capturadas:</span>
                                     <span class="font-semibold text-[#009cb6]">${(() => {
-                                        // Contar fotos de múltiplas fontes
+                                        // Contar TODAS as fotos (obrigatórias + danos adicionais)
                                         let count = 0;
                                         
                                         // Verificar window.inspectionData.photos
@@ -2522,33 +2522,53 @@
                                             }
                                         } catch(e) {}
                                         
-                                        return count;
-                                    })()}/6</span>
+                                        // Contar fotos de danos adicionais
+                                        const damagePhotos = window.inspectionData?.damagePhotos || {};
+                                        const damageCount = Object.keys(damagePhotos).length;
+                                        
+                                        const totalPhotos = count + damageCount;
+                                        const requiredPhotos = 9; // 8 vistas + odómetro
+                                        
+                                        return totalPhotos > requiredPhotos ? \`\${totalPhotos} (\${requiredPhotos} obrigatórias + \${totalPhotos - requiredPhotos} danos)\` : \`\${totalPhotos}/\${requiredPhotos}\`;
+                                    })()}</span>
                                 </div>
                                 <div class="flex justify-between">
                                     <span class="text-gray-600">Danos marcados:</span>
                                     <span class="font-semibold text-[#009cb6]">${(() => {
-                                        // Verificar pins e desenhos
+                                        // Verificar pins no diagrama
                                         const pins = document.querySelectorAll('.damage-pin');
-                                        const hasDrawings = window.diagramData?.damages && window.diagramData.damages.length > 0;
-                                        const hasCanvas = canvas && ctx && canvas.width > 0 && canvas.height > 0;
                                         
-                                        // Verificar se há conteúdo no canvas
+                                        // Verificar window.diagramData.damages
+                                        const hasDiagramDamages = window.diagramData?.damages && window.diagramData.damages.length > 0;
+                                        
+                                        // Verificar fotos de danos adicionais
+                                        const damagePhotos = window.inspectionData?.damagePhotos || {};
+                                        const hasDamagePhotos = Object.keys(damagePhotos).length > 0;
+                                        
+                                        // Verificar canvas (drawingCanvas)
+                                        const drawingCanvas = document.getElementById('drawingCanvas');
                                         let hasCanvasContent = false;
-                                        if (hasCanvas) {
+                                        if (drawingCanvas) {
                                             try {
-                                                const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+                                                const ctx = drawingCanvas.getContext('2d');
+                                                const imageData = ctx.getImageData(0, 0, drawingCanvas.width, drawingCanvas.height);
                                                 const data = imageData.data;
+                                                // Verificar se há pixels não transparentes (excluindo a imagem de fundo)
                                                 for (let i = 0; i < data.length; i += 4) {
-                                                    if (data[i + 3] > 0) { // Alpha > 0 significa pixel desenhado
+                                                    if (data[i + 3] > 0) {
                                                         hasCanvasContent = true;
                                                         break;
                                                     }
                                                 }
-                                            } catch(e) {}
+                                            } catch(e) {
+                                                console.log('Erro ao verificar canvas:', e);
+                                            }
                                         }
                                         
-                                        return (pins.length > 0 || hasDrawings || hasCanvasContent) ? 'Sim' : 'Não';
+                                        const hasDamages = pins.length > 0 || hasDiagramDamages || hasDamagePhotos || hasCanvasContent;
+                                        console.log('🔍 Damage check:', { pins: pins.length, diagramDamages: hasDiagramDamages, damagePhotos: hasDamagePhotos, canvasContent: hasCanvasContent, result: hasDamages });
+                                        
+                                        return hasDamages ? 'Sim' : 'Não';
                                     })()}</span>
                                 </div>
                                 <div class="flex justify-between">
