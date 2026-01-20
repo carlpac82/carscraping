@@ -307,47 +307,60 @@
                     
                     html += `
                         <div class="p-4 hover:bg-gray-50 transition-colors">
-                            <div class="flex items-center justify-between">
-                                <div class="flex items-center gap-4">
-                                    <!-- Plate and RA -->
-                                    
-                                    <div class="flex flex-col">
-                                        <div class="flex items-center gap-3">
-                                            <span class="font-bold text-gray-900 text-lg">${contract.vehicle_plate || 'N/A'}</span>
-                                            <span class="text-gray-600">RA: ${contract.contract_number || 'N/A'}</span>
-                                            ${statusBadge}
-                                        </div>
-                                        <div class="flex items-center gap-4 text-sm text-gray-500 mt-1">
-                                            ${hasCheckout ? `<span>Entregue por: ${contract.checkout.inspector_name || 'N/A'} às ${checkoutTime} de ${checkoutDate}</span>` : ''}
-                                            ${hasCheckin ? `<span>Recolhido por: ${contract.checkin.inspector_name || 'N/A'} às ${checkinTime} de ${checkinDate}</span>` : ''}
-                                        </div>
+                            <!-- Mobile-first layout -->
+                            <div class="flex flex-col gap-3">
+                                <!-- Header: Plate, RA and Status -->
+                                <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
+                                    <div class="flex flex-col gap-1">
+                                        <span class="font-bold text-gray-900 text-xl">${contract.vehicle_plate || 'N/A'}</span>
+                                        <span class="text-gray-600 text-sm">RA: ${contract.contract_number || 'N/A'}</span>
                                     </div>
+                                    ${statusBadge}
                                 </div>
                                 
-                                <div class="flex items-center gap-2">
-                                    <!-- Car Icons -->
+                                <!-- Info: Inspector and times -->
+                                <div class="flex flex-col gap-1 text-sm text-gray-600">
                                     ${hasCheckout ? `
-                                    <button onclick="previewInspection('${contract.checkout.inspection_number}', 'checkout')" class="p-2 hover:bg-red-50 rounded-lg transition-colors" title="Ver Check-out (${checkoutTime})">
-                                        <svg class="w-8 h-8 text-red-600" fill="currentColor" viewBox="0 0 24 24">
+                                    <div class="flex items-center gap-2">
+                                        <span class="font-medium">Entregue por:</span>
+                                        <span>${contract.checkout.inspector_name || 'N/A'} às ${checkoutTime} de ${checkoutDate}</span>
+                                    </div>
+                                    ` : ''}
+                                    ${hasCheckin ? `
+                                    <div class="flex items-center gap-2">
+                                        <span class="font-medium">Recolhido por:</span>
+                                        <span>${contract.checkin.inspector_name || 'N/A'} às ${checkinTime} de ${checkinDate}</span>
+                                    </div>
+                                    ` : ''}
+                                </div>
+                                
+                                <!-- Actions: Car icons and email -->
+                                <div class="flex items-center justify-end gap-3 pt-2 border-t border-gray-100">
+                                    ${hasCheckout ? `
+                                    <button onclick="previewInspection('${contract.checkout.inspection_number}', 'checkout')" class="flex items-center gap-2 px-3 py-2 bg-red-50 hover:bg-red-100 rounded-lg transition-colors" title="Ver Check-out">
+                                        <svg class="w-6 h-6 text-red-600" fill="currentColor" viewBox="0 0 24 24">
                                             <path d="M18.92 6.01C18.72 5.42 18.16 5 17.5 5h-11c-.66 0-1.21.42-1.42 1.01L3 12v8c0 .55.45 1 1 1h1c.55 0 1-.45 1-1v-1h12v1c0 .55.45 1 1 1h1c.55 0 1-.45 1-1v-8l-2.08-5.99zM6.5 16c-.83 0-1.5-.67-1.5-1.5S5.67 13 6.5 13s1.5.67 1.5 1.5S7.33 16 6.5 16zm11 0c-.83 0-1.5-.67-1.5-1.5s.67-1.5 1.5-1.5 1.5.67 1.5 1.5-.67 1.5-1.5 1.5zM5 11l1.5-4.5h11L19 11H5z"/>
                                         </svg>
+                                        <span class="hidden sm:inline text-sm font-medium text-red-600">Entrega</span>
                                     </button>
                                     ` : ''}
                                     ${hasCheckin ? `
-                                    <button onclick="previewInspection('${contract.checkin.inspection_number}', 'checkin')" class="p-2 hover:bg-green-50 rounded-lg transition-colors" title="Ver Check-in (${checkinTime})">
-                                        <svg class="w-8 h-8 text-green-600" fill="currentColor" viewBox="0 0 24 24">
+                                    <button onclick="previewInspection('${contract.checkin.inspection_number}', 'checkin')" class="flex items-center gap-2 px-3 py-2 bg-green-50 hover:bg-green-100 rounded-lg transition-colors" title="Ver Check-in">
+                                        <svg class="w-6 h-6 text-green-600" fill="currentColor" viewBox="0 0 24 24">
                                             <path d="M18.92 6.01C18.72 5.42 18.16 5 17.5 5h-11c-.66 0-1.21.42-1.42 1.01L3 12v8c0 .55.45 1 1 1h1c.55 0 1-.45 1-1v-1h12v1c0 .55.45 1 1 1h1c.55 0 1-.45 1-1v-8l-2.08-5.99zM6.5 16c-.83 0-1.5-.67-1.5-1.5S5.67 13 6.5 13s1.5.67 1.5 1.5S7.33 16 6.5 16zm11 0c-.83 0-1.5-.67-1.5-1.5s.67-1.5 1.5-1.5 1.5.67 1.5 1.5-.67 1.5-1.5 1.5zM5 11l1.5-4.5h11L19 11H5z"/>
                                         </svg>
+                                        <span class="hidden sm:inline text-sm font-medium text-green-600">Recolha</span>
                                     </button>
                                     ` : ''}
-                                    <button onclick="showEmailModal(${contract.checkout ? `'${contract.checkout.inspection_number}'` : 'null'}, ${contract.checkin ? `'${contract.checkin.inspection_number}'` : 'null'}, '${contract.vehicle_plate}', '${contract.contract_number}')" class="p-2 text-[#f59e0b] hover:bg-yellow-50 rounded-lg transition-colors" title="Enviar por Email">
-                                        <svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <button onclick="showEmailModal(${contract.checkout ? `'${contract.checkout.inspection_number}'` : 'null'}, ${contract.checkin ? `'${contract.checkin.inspection_number}'` : 'null'}, '${contract.vehicle_plate}', '${contract.contract_number}')" class="flex items-center gap-2 px-3 py-2 bg-yellow-50 hover:bg-yellow-100 rounded-lg transition-colors" title="Enviar por Email">
+                                        <svg class="w-6 h-6 text-[#f59e0b]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"/>
                                         </svg>
+                                        <span class="hidden sm:inline text-sm font-medium text-[#f59e0b]">Email</span>
                                     </button>
                                     ${isAdmin && (hasCheckout || hasCheckin) ? `
-                                    <button onclick="deleteInspection('${hasCheckout ? contract.checkout.inspection_number : contract.checkin.inspection_number}')" class="p-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors" title="Eliminar">
-                                        <svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <button onclick="deleteInspection('${hasCheckout ? contract.checkout.inspection_number : contract.checkin.inspection_number}')" class="flex items-center gap-2 px-3 py-2 bg-red-50 hover:bg-red-100 rounded-lg transition-colors" title="Eliminar">
+                                        <svg class="w-6 h-6 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
                                         </svg>
                                     </button>
