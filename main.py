@@ -31023,8 +31023,10 @@ async def get_inspection(request: Request, plate: str, ra: str, type: str = 'che
             """, (inspection_id,))
             
             photos = []
+            damage_croqui = None
             for photo_row in cursor.fetchall():
                 import base64
+                photo_type = photo_row[1]
                 image_data = photo_row[3]
                 if image_data:
                     # Convert bytes/memoryview to base64 string
@@ -31033,7 +31035,11 @@ async def get_inspection(request: Request, plate: str, ra: str, type: str = 'che
                         if isinstance(image_data, memoryview):
                             image_data = image_data.tobytes()
                         image_base64 = base64.b64encode(image_data).decode('utf-8')
-                        image_data_url = f"data:image/jpeg;base64,{image_base64}"
+                        # Use PNG for damage_croqui, JPEG for others
+                        if photo_type == 'damage_croqui':
+                            image_data_url = f"data:image/png;base64,{image_base64}"
+                        else:
+                            image_data_url = f"data:image/jpeg;base64,{image_base64}"
                     else:
                         # String: validate and clean base64
                         if isinstance(image_data, str):
@@ -31049,9 +31055,13 @@ async def get_inspection(request: Request, plate: str, ra: str, type: str = 'che
                                         decoded = base64.b64decode(base64_part)
                                         # Re-encode to ensure it's clean
                                         clean_base64 = base64.b64encode(decoded).decode('utf-8')
-                                        image_data_url = f"data:image/jpeg;base64,{clean_base64}"
+                                        # Use PNG for damage_croqui, JPEG for others
+                                        if photo_type == 'damage_croqui':
+                                            image_data_url = f"data:image/png;base64,{clean_base64}"
+                                        else:
+                                            image_data_url = f"data:image/jpeg;base64,{clean_base64}"
                                     except Exception as e:
-                                        logging.warning(f"⚠️ Invalid base64 in photo {photo_row[1]}, skipping: {e}")
+                                        logging.warning(f"⚠️ Invalid base64 in photo {photo_type}, skipping: {e}")
                                         image_data_url = None
                                 else:
                                     image_data_url = image_data
@@ -31060,24 +31070,36 @@ async def get_inspection(request: Request, plate: str, ra: str, type: str = 'che
                                 try:
                                     decoded = base64.b64decode(image_data)
                                     clean_base64 = base64.b64encode(decoded).decode('utf-8')
-                                    image_data_url = f"data:image/jpeg;base64,{clean_base64}"
+                                    # Use PNG for damage_croqui, JPEG for others
+                                    if photo_type == 'damage_croqui':
+                                        image_data_url = f"data:image/png;base64,{clean_base64}"
+                                    else:
+                                        image_data_url = f"data:image/jpeg;base64,{clean_base64}"
                                 except Exception as e:
-                                    logging.warning(f"⚠️ Invalid base64 in photo {photo_row[1]}, skipping: {e}")
+                                    logging.warning(f"⚠️ Invalid base64 in photo {photo_type}, skipping: {e}")
                                     image_data_url = None
                         else:
                             image_data_url = image_data
                     
                     if image_data_url:
-                        photos.append({
-                            "id": photo_row[0],
-                            "photo_type": photo_row[1],
-                            "photo_order": photo_row[2],
-                            "image_data": image_data_url,
-                            "image_filename": photo_row[4],
-                            "ai_analyzed": photo_row[5],
-                            "ai_has_damage": photo_row[6],
-                            "created_at": str(photo_row[7])
-                        })
+                        # Separate damage_croqui from regular photos
+                        if photo_type == 'damage_croqui':
+                            damage_croqui = image_data_url
+                            logging.info(f"✅ Found damage_croqui for inspection {inspection_row[1]}")
+                        else:
+                            photos.append({
+                                "id": photo_row[0],
+                                "photo_type": photo_type,
+                                "photo_order": photo_row[2],
+                                "image_data": image_data_url,
+                                "image_filename": photo_row[4],
+                                "ai_analyzed": photo_row[5],
+                                "ai_has_damage": photo_row[6],
+                                "created_at": str(photo_row[7])
+                            })
+            
+            # Add damage_croqui to inspection object
+            inspection['damage_croqui'] = damage_croqui
             
             # Get damages (from damage croqui if exists)
             damages = []
@@ -31086,8 +31108,10 @@ async def get_inspection(request: Request, plate: str, ra: str, type: str = 'che
             conn.close()
             
             print(f"📧 [PostgreSQL] Returning inspection with client_email: {inspection.get('client_email', 'NOT SET')}", flush=True)
+            print(f"🖼️ [PostgreSQL] Has damage_croqui: {damage_croqui is not None}", flush=True)
             print(f"📧 Inspection object keys: {list(inspection.keys())}", flush=True)
             logging.info(f"📧 [PostgreSQL] Returning inspection with client_email: {inspection.get('client_email', 'NOT SET')}")
+            logging.info(f"🖼️ [PostgreSQL] Has damage_croqui: {damage_croqui is not None}")
             
             return JSONResponse({
                 "success": True,
