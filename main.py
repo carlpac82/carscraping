@@ -29645,7 +29645,31 @@ async def save_inspection(request: Request):
                                     import base64
                                     photo_url = f"data:image/jpeg;base64,{base64.b64encode(image_data).decode('utf-8')}"
                                 
-                                label = labels_map.get(photo_type, photo_type)
+                                # Translate damage photo labels
+                                if photo_type.startswith('damage_'):
+                                    # Extract damage photo number or type
+                                    damage_part = photo_type.replace('damage_', '')
+                                    if damage_part.startswith('photo_'):
+                                        # damage_photo_1, damage_photo_2, etc.
+                                        photo_num = damage_part.replace('photo_', '')
+                                        if detected_lang == 'pt':
+                                            label = f'Dano {photo_num}'
+                                        elif detected_lang == 'fr':
+                                            label = f'Dommage {photo_num}'
+                                        else:
+                                            label = f'Damage {photo_num}'
+                                    else:
+                                        # damage_front, damage_left, etc.
+                                        base_label = labels_map.get(damage_part, damage_part.title())
+                                        if detected_lang == 'pt':
+                                            label = f'Dano - {base_label}'
+                                        elif detected_lang == 'fr':
+                                            label = f'Dommage - {base_label}'
+                                        else:
+                                            label = f'Damage - {base_label}'
+                                else:
+                                    label = labels_map.get(photo_type, photo_type)
+                                
                                 photos_list.append({'url': photo_url, 'label': label})
                         
                         # Create 3x3 table grid with clickable images
