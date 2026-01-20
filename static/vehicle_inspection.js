@@ -1435,19 +1435,25 @@ function loadDeliveryDamagesOnCroqui() {
     // Try to load damage croqui directly on canvas if available
     if (window.deliveryInspection.damage_croqui) {
         console.log('📍 Loading delivery damage croqui on canvas...');
+        console.log('🔍 Croqui data length:', window.deliveryInspection.damage_croqui.length);
+        console.log('🔍 Croqui preview:', window.deliveryInspection.damage_croqui.substring(0, 100));
         
-        const canvas = document.getElementById('damageCanvas');
+        const canvas = document.getElementById('drawingCanvas');
         const ctx = canvas ? canvas.getContext('2d') : null;
+        
+        console.log('🔍 Canvas found:', !!canvas);
+        console.log('🔍 Canvas size:', canvas ? `${canvas.width}x${canvas.height}` : 'N/A');
         
         if (canvas && ctx) {
             const img = new Image();
             img.onload = function() {
                 // Draw the checkout croqui on the canvas
+                ctx.clearRect(0, 0, canvas.width, canvas.height);
                 ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
                 console.log('✅ Delivery croqui loaded on canvas');
             };
-            img.onerror = function() {
-                console.error('❌ Failed to load delivery croqui image');
+            img.onerror = function(error) {
+                console.error('❌ Failed to load delivery croqui image:', error);
             };
             img.src = window.deliveryInspection.damage_croqui;
         } else {
