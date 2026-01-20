@@ -877,6 +877,57 @@ AUDIT_RETENTION_DAYS = int(os.getenv("AUDIT_RETENTION_DAYS", "90") or 90)
 IMAGE_CACHE_DAYS = int(os.getenv("IMAGE_CACHE_DAYS", "365") or 365)
 PRICES_CACHE_TTL_SECONDS = int(os.getenv("PRICES_CACHE_TTL_SECONDS", "300") or 300)
 BULK_CONCURRENCY = int(os.getenv("BULK_CONCURRENCY", "6") or 6)
+
+# ============================================================
+# SELF CHECK-IN HELPER FUNCTIONS
+# ============================================================
+
+def generate_self_checkin_token(ra_number: str, license_plate: str) -> str:
+    """
+    Gera um token único para self check-in usando SHA256
+    Formato: hash(ra_number + license_plate + timestamp + random)
+    """
+    import secrets
+    import datetime
+    
+    # Combinar RA, matrícula, timestamp e random para garantir unicidade
+    timestamp = datetime.datetime.now().isoformat()
+    random_part = secrets.token_hex(16)
+    data = f"{ra_number}|{license_plate}|{timestamp}|{random_part}"
+    
+    # Gerar hash SHA256
+    token = hashlib.sha256(data.encode()).hexdigest()
+    
+    logging.info(f"🔑 Generated self check-in token for RA {ra_number}: {token[:16]}...")
+    return token
+
+def calculate_scheduled_date(return_date_str: str, days_before: int = 2) -> str:
+    """
+    Calcula a data agendada para enviar o email de self check-in
+    (X dias antes da data de recolha)
+    """
+    import datetime
+    
+    try:
+        # Parse return date (formato esperado: YYYY-MM-DD ou DD/MM/YYYY)
+        if '/' in return_date_str:
+            # Formato DD/MM/YYYY
+            return_date = datetime.datetime.strptime(return_date_str, '%d/%m/%Y')
+        else:
+            # Formato YYYY-MM-DD
+            return_date = datetime.datetime.strptime(return_date_str, '%Y-%m-%d')
+        
+        # Subtrair X dias
+        scheduled_date = return_date - datetime.timedelta(days=days_before)
+        
+        logging.info(f"📅 Scheduled self check-in email for {scheduled_date.strftime('%Y-%m-%d')} ({days_before} days before {return_date_str})")
+        return scheduled_date.strftime('%Y-%m-%d')
+    except Exception as e:
+        logging.error(f"❌ Error calculating scheduled date: {e}")
+        # Fallback: agendar para daqui a 1 dia
+        fallback_date = (datetime.datetime.now() + datetime.timedelta(days=1)).strftime('%Y-%m-%d')
+        logging.warning(f"⚠️ Using fallback scheduled date: {fallback_date}")
+        return fallback_date
 BULK_MAX_RETRIES = int(os.getenv("BULK_MAX_RETRIES", "2") or 2)
 GLOBAL_FETCH_RPS = float(os.getenv("GLOBAL_FETCH_RPS", "5") or 5.0)
 
@@ -29547,24 +29598,94 @@ async def save_inspection(request: Request):
             # Update rental agreement as inspection completed
             if ra and plate:
                 try:
-                    if is_postgres:
-                        cursor.execute("""
-                            UPDATE rental_agreements
-                            SET inspection_completed = TRUE,
-                                inspection_id = %s,
-                                updated_at = NOW()
-                            WHERE rental_agreement_number = %s
-                              AND UPPER(license_plate) = UPPER(%s)
-                        """, (inspection_id, ra, plate))
+                    # Se é checkout, gerar token de self check-in e agendar email
+                    if inspection_type == 'checkout':
+                        # Gerar token único
+                        self_checkin_token = generate_self_checkin_token(ra, plate)
+                        
+                        # Obter data de recolha do RA
+                        return_date = None
+                        try:
+                            if is_postgres:
+                                cursor.execute("""
+                                    SELECT extracted_data FROM rental_agreements 
+                                    WHERE rental_agreement_number = %s
+                                """, (ra,))
+                            else:
+                                cursor.execute("""
+                                    SELECT extracted_data FROM rental_agreements 
+                                    WHERE rental_agreement_number = ?
+                                """, (ra,))
+                            
+                            ra_row = cursor.fetchone()
+                            if ra_row and ra_row[0]:
+                                import json
+                                extracted = json.loads(ra_row[0])
+                                return_date = extracted.get('data_entrega') or extracted.get('return_date')
+                                logging.info(f"📅 Return date from RA: {return_date}")
+                        except Exception as date_error:
+                            logging.error(f"❌ Error getting return date: {date_error}")
+                        
+                        # Calcular data agendada (2 dias antes da recolha)
+                        scheduled_date = None
+                        if return_date:
+                            scheduled_date = calculate_scheduled_date(return_date, days_before=2)
+                        
+                        # Atualizar RA com dados de self check-in
+                        if is_postgres:
+                            cursor.execute("""
+                                UPDATE rental_agreements
+                                SET inspection_completed = TRUE,
+                                    inspection_id = %s,
+                                    updated_at = NOW(),
+                                    self_checkin_token = %s,
+                                    self_checkin_email = %s,
+                                    self_checkin_scheduled_date = %s,
+                                    self_checkin_sent = FALSE,
+                                    self_checkin_completed = FALSE,
+                                    return_date = %s,
+                                    client_email = %s
+                                WHERE rental_agreement_number = %s
+                                  AND UPPER(license_plate) = UPPER(%s)
+                            """, (inspection_id, self_checkin_token, email, scheduled_date, return_date, email, ra, plate))
+                        else:
+                            cursor.execute("""
+                                UPDATE rental_agreements
+                                SET inspection_completed = 1,
+                                    inspection_id = ?,
+                                    updated_at = datetime('now'),
+                                    self_checkin_token = ?,
+                                    self_checkin_email = ?,
+                                    self_checkin_scheduled_date = ?,
+                                    self_checkin_sent = 0,
+                                    self_checkin_completed = 0,
+                                    return_date = ?,
+                                    client_email = ?
+                                WHERE rental_agreement_number = ?
+                                  AND UPPER(license_plate) = UPPER(?)
+                            """, (inspection_id, self_checkin_token, email, scheduled_date, return_date, email, ra, plate))
+                        
+                        logging.info(f"✅ Self check-in configured for RA {ra}: token={self_checkin_token[:16]}..., email={email}, scheduled={scheduled_date}")
                     else:
-                        cursor.execute("""
-                            UPDATE rental_agreements
-                            SET inspection_completed = 1,
-                                inspection_id = ?,
-                                updated_at = datetime('now')
-                            WHERE rental_agreement_number = ?
-                              AND UPPER(license_plate) = UPPER(?)
-                        """, (inspection_id, ra, plate))
+                        # Check-in normal - apenas marcar como completo
+                        if is_postgres:
+                            cursor.execute("""
+                                UPDATE rental_agreements
+                                SET inspection_completed = TRUE,
+                                    inspection_id = %s,
+                                    updated_at = NOW()
+                                WHERE rental_agreement_number = %s
+                                  AND UPPER(license_plate) = UPPER(%s)
+                            """, (inspection_id, ra, plate))
+                        else:
+                            cursor.execute("""
+                                UPDATE rental_agreements
+                                SET inspection_completed = 1,
+                                    inspection_id = ?,
+                                    updated_at = datetime('now')
+                                WHERE rental_agreement_number = ?
+                                  AND UPPER(license_plate) = UPPER(?)
+                            """, (inspection_id, ra, plate))
                     
                     logging.info(f"✅ Rental Agreement {ra} marked as inspection completed (inspection_id: {inspection_id})")
                 except Exception as ra_update_error:
