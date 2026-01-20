@@ -29762,14 +29762,76 @@ async def save_inspection(request: Request):
                             incidents['has_damage_incident']
                         )
                         
-                        # If there are damage incidents, include photos section
-                        if incidents['has_damage_incident'] and photos_html:
-                            photos_section_html = f"""
-                            <div style="padding: 20px; background-color: #ffffff;">
-                                <h3 style="color: #00bcd4; margin: 0 0 15px 0; font-size: 18px;">Fotos dos Danos</h3>
-                                {photos_html}
-                            </div>
-                            """
+                        # Build PHOTOS_SECTION based on incidents
+                        # If fuel incident: show odometer photo as proof
+                        # If damage incident: show all damage photos
+                        if incidents['has_fuel_incident'] or incidents['has_damage_incident']:
+                            # Get odometer photo for fuel incidents
+                            odometer_photo_html = ""
+                            if incidents['has_fuel_incident']:
+                                # Extract odometer photo from photos_rows
+                                if is_postgres:
+                                    cursor.execute("""
+                                        SELECT image_data FROM inspection_photos 
+                                        WHERE inspection_id = %s AND photo_type = 'odometer'
+                                        LIMIT 1
+                                    """, (inspection_id,))
+                                else:
+                                    cursor.execute("""
+                                        SELECT image_data FROM inspection_photos 
+                                        WHERE inspection_id = ? AND photo_type = 'odometer'
+                                        LIMIT 1
+                                    """, (inspection_id,))
+                                
+                                odometer_row = cursor.fetchone()
+                                if odometer_row and odometer_row[0]:
+                                    import base64
+                                    image_data = odometer_row[0]
+                                    if isinstance(image_data, str):
+                                        if image_data.startswith('data:image'):
+                                            odometer_url = image_data
+                                        else:
+                                            odometer_url = f"data:image/jpeg;base64,{image_data}"
+                                    else:
+                                        odometer_url = f"data:image/jpeg;base64,{base64.b64encode(image_data).decode('utf-8')}"
+                                    
+                                    # Translate "Odometer" label
+                                    odometer_label = {
+                                        'pt': 'Quilómetros',
+                                        'en': 'Odometer',
+                                        'fr': 'Kilométrage'
+                                    }.get(detected_lang, 'Odometer')
+                                    
+                                    odometer_photo_html = f"""
+                                    <div style="padding: 20px; background-color: #ffffff; border-bottom: 1px solid #e5e7eb;">
+                                        <h3 style="color: #00bcd4; margin: 0 0 15px 0; font-size: 18px;">{odometer_label}</h3>
+                                        <div style="text-align: center;">
+                                            <a href="{odometer_url}" target="_blank" style="text-decoration: none; display: inline-block; cursor: pointer;">
+                                                <img src="{odometer_url}" alt="{odometer_label}" 
+                                                     style="max-width: 300px; width: 100%; height: auto; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
+                                            </a>
+                                        </div>
+                                    </div>
+                                    """
+                            
+                            # Get damage photos for damage incidents
+                            damage_photos_html = ""
+                            if incidents['has_damage_incident'] and photos_html:
+                                damage_label = {
+                                    'pt': 'Fotos dos Danos',
+                                    'en': 'Damage Photos',
+                                    'fr': 'Photos des Dommages'
+                                }.get(detected_lang, 'Damage Photos')
+                                
+                                damage_photos_html = f"""
+                                <div style="padding: 20px; background-color: #ffffff;">
+                                    <h3 style="color: #00bcd4; margin: 0 0 15px 0; font-size: 18px;">{damage_label}</h3>
+                                    {photos_html}
+                                </div>
+                                """
+                            
+                            # Combine sections
+                            photos_section_html = odometer_photo_html + damage_photos_html
                         
                         # Use check-in template
                         template_name = f"email_checkin_{detected_lang}.html" if detected_lang in ['pt', 'fr', 'en'] else "email_checkin_en.html"
