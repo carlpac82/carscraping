@@ -44161,10 +44161,9 @@ async def checkin_preview_ok(request: Request):
         fuel_gauge_html = f"""
         <div style="text-align: center;">
             <svg width="80" height="120" viewBox="0 0 80 120" style="display: block; margin: 0 auto;">
-                <rect x="20" y="10" width="40" height="100" rx="5" fill="#e5e7eb" stroke="#64748b" stroke-width="2"/>
-                <rect x="22" y="{10 + fill_y}" width="36" height="{fill_height}" rx="3" fill="{fuel_color}"/>
+                <rect x="20" y="10" width="40" height="100" rx="5" fill="none" stroke="#64748b" stroke-width="3"/>
+                <rect x="23" y="{10 + fill_y}" width="34" height="{fill_height}" rx="3" fill="{fuel_color}"/>
                 <path d="M 60 40 L 70 35 L 70 45 Z" fill="#64748b"/>
-                <circle cx="40" cy="5" r="3" fill="#64748b"/>
             </svg>
             <p style="margin: 10px 0 0 0; color: #1f2937; font-size: 16px; font-weight: 600;">{fuel_percentage}%</p>
         </div>
@@ -44270,10 +44269,9 @@ async def checkin_preview_fuel(request: Request):
         fuel_gauge_html = f"""
         <div style="text-align: center;">
             <svg width="80" height="120" viewBox="0 0 80 120" style="display: block; margin: 0 auto;">
-                <rect x="20" y="10" width="40" height="100" rx="5" fill="#e5e7eb" stroke="#64748b" stroke-width="2"/>
-                <rect x="22" y="{10 + fill_y}" width="36" height="{fill_height}" rx="3" fill="{fuel_color}"/>
+                <rect x="20" y="10" width="40" height="100" rx="5" fill="none" stroke="#64748b" stroke-width="3"/>
+                <rect x="23" y="{10 + fill_y}" width="34" height="{fill_height}" rx="3" fill="{fuel_color}"/>
                 <path d="M 60 40 L 70 35 L 70 45 Z" fill="#64748b"/>
-                <circle cx="40" cy="5" r="3" fill="#64748b"/>
             </svg>
             <p style="margin: 10px 0 0 0; color: #1f2937; font-size: 16px; font-weight: 600;">{fuel_percentage}%</p>
         </div>
@@ -44378,10 +44376,9 @@ async def checkin_preview_damages(request: Request):
         fuel_gauge_html = f"""
         <div style="text-align: center;">
             <svg width="80" height="120" viewBox="0 0 80 120" style="display: block; margin: 0 auto;">
-                <rect x="20" y="10" width="40" height="100" rx="5" fill="#e5e7eb" stroke="#64748b" stroke-width="2"/>
-                <rect x="22" y="{10 + fill_y}" width="36" height="{fill_height}" rx="3" fill="{fuel_color}"/>
+                <rect x="20" y="10" width="40" height="100" rx="5" fill="none" stroke="#64748b" stroke-width="3"/>
+                <rect x="23" y="{10 + fill_y}" width="34" height="{fill_height}" rx="3" fill="{fuel_color}"/>
                 <path d="M 60 40 L 70 35 L 70 45 Z" fill="#64748b"/>
-                <circle cx="40" cy="5" r="3" fill="#64748b"/>
             </svg>
             <p style="margin: 10px 0 0 0; color: #1f2937; font-size: 16px; font-weight: 600;">{fuel_percentage}%</p>
         </div>
