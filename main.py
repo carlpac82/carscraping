@@ -24610,24 +24610,8 @@ def _validate_checkin_incidents(cursor, is_postgres, ra, plate, checkin_fuel_lev
                 AND (photo_type LIKE 'damage%' OR photo_type = 'damage_croqui')
             """, (checkin_inspection_id,))
         
-        result = cursor.fetchone()
-        checkin_damage_photos = result[0] if result else 0
-        
-        # Reset cursor position
-        if is_postgres:
-            cursor.execute("""
-                SELECT COUNT(*) FROM inspection_photos
-                WHERE inspection_id = %s
-                AND (photo_type LIKE 'damage%%' OR photo_type = 'damage_croqui')
-            """, (checkin_inspection_id,))
-        else:
-            cursor.execute("""
-                SELECT COUNT(*) FROM inspection_photos
-                WHERE inspection_id = ?
-                AND (photo_type LIKE 'damage%' OR photo_type = 'damage_croqui')
-            """, (checkin_inspection_id,))
-        
-        checkin_damage_photos = cursor.fetchone()[0]
+        photo_count_row = cursor.fetchone()
+        checkin_damage_photos = photo_count_row[0] if photo_count_row else 0
         result['checkin_has_damage_photos'] = checkin_damage_photos > 0
         
         # If check-in has more damages than checkout, it's an incident
