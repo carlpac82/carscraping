@@ -30889,7 +30889,7 @@ async def get_inspection(request: Request, plate: str, ra: str, type: str = 'che
                 SELECT id, inspection_number, inspection_type, vehicle_plate, vehicle_id,
                        contract_number, inspector_name, inspector_notes, has_damage,
                        damage_count, damage_severity, odometer_reading, fuel_level,
-                       status, photo_count, created_at, client_email
+                       status, photo_count, created_at, diagram_data
                 FROM vehicle_inspections
                 WHERE UPPER(vehicle_plate) = UPPER(%s)
                   AND contract_number LIKE %s
@@ -30923,8 +30923,13 @@ async def get_inspection(request: Request, plate: str, ra: str, type: str = 'che
                 "status": inspection_row[13],
                 "photo_count": inspection_row[14],
                 "created_at": str(inspection_row[15]),
-                "client_email": inspection_row[16] if len(inspection_row) > 16 else ''
+                "client_email": '',
+                "diagram_data": inspection_row[16] if len(inspection_row) > 16 else None
             }
+            
+            print(f"🔍 DEBUG - inspection_row length: {len(inspection_row)}", flush=True)
+            print(f"🔍 DEBUG - diagram_data value: {inspection_row[16] if len(inspection_row) > 16 else 'NOT FOUND'}", flush=True)
+            logging.info(f"🔍 DEBUG - diagram_data: {inspection['diagram_data']}")
             
             # Get client email from Rental Agreement extracted_data
             try:
@@ -31083,7 +31088,7 @@ async def get_inspection(request: Request, plate: str, ra: str, type: str = 'che
                 SELECT id, inspection_number, inspection_type, vehicle_plate, vehicle_id,
                        contract_number, inspector_name, inspector_notes, has_damage,
                        damage_count, damage_severity, odometer_reading, fuel_level,
-                       status, photo_count, created_at, client_email
+                       status, photo_count, created_at, diagram_data
                 FROM vehicle_inspections
                 WHERE UPPER(vehicle_plate) = UPPER(?)
                   AND contract_number LIKE ?
@@ -31117,7 +31122,8 @@ async def get_inspection(request: Request, plate: str, ra: str, type: str = 'che
                 "status": inspection_row[13],
                 "photo_count": inspection_row[14],
                 "created_at": str(inspection_row[15]),
-                "client_email": ''
+                "client_email": '',
+                "diagram_data": inspection_row[16] if len(inspection_row) > 16 else None
             }
             
             # Get client email from Rental Agreement extracted_data
@@ -34062,6 +34068,23 @@ def _ensure_missing_tables():
                         logging.info("✅ vehicle_inspections RA columns ensured (client_name, pickup_date, pickup_location, return_date, return_location, country)")
                     except Exception as e:
                         logging.warning(f"⚠️ vehicle_inspections RA columns: {e}")
+                    
+                    # 8b. Add diagram_data column for storing damage croqui data
+                    try:
+                        conn.execute("""
+                            DO $$ 
+                            BEGIN
+                                IF NOT EXISTS (
+                                    SELECT 1 FROM information_schema.columns 
+                                    WHERE table_name='vehicle_inspections' AND column_name='diagram_data'
+                                ) THEN
+                                    ALTER TABLE vehicle_inspections ADD COLUMN diagram_data TEXT;
+                                END IF;
+                            END $$;
+                        """)
+                        logging.info("✅ vehicle_inspections diagram_data column ensured")
+                    except Exception as e:
+                        logging.warning(f"⚠️ vehicle_inspections diagram_data column: {e}")
                     
                     # 9. Reset vehicle_inspections sequence to prevent duplicate key errors
                     try:
