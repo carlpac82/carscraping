@@ -1190,11 +1190,11 @@
                         }
                         
                         pins.forEach((pin, index) => {
-                            console.log(`\n📍 Processing Pin ${index}:`);
-                            console.log(`  - ID: ${pin.id}`);
-                            console.log(`  - Classes: ${pin.className}`);
-                            console.log(`  - style.left: "${pin.style.left}"`);
-                            console.log(`  - style.top: "${pin.style.top}"`);
+                            console.log('📍 Processing Pin ' + index + ':');
+                            console.log('  - ID: ' + pin.id);
+                            console.log('  - Classes: ' + pin.className);
+                            console.log('  - style.left: "' + pin.style.left + '"');
+                            console.log('  - style.top: "' + pin.style.top + '"');
                             
                             // Get pin position from style (already in container coordinates)
                             const pinLeft = parseFloat(pin.style.left) || 0;
@@ -2436,7 +2436,7 @@
                                         const totalPhotos = count + damageCount;
                                         const requiredPhotos = 9; // 8 vistas + odómetro
                                         
-                                        return totalPhotos > requiredPhotos ? \`\${totalPhotos} (\${requiredPhotos} obrigatórias + \${totalPhotos - requiredPhotos} danos)\` : \`\${totalPhotos}/\${requiredPhotos}\`;
+                                        return totalPhotos > requiredPhotos ? `${totalPhotos} (${requiredPhotos} obrigatórias + ${totalPhotos - requiredPhotos} danos)` : `${totalPhotos}/${requiredPhotos}`;
                                     })()}</span>
                                 </div>
                                 <div class="flex justify-between">
