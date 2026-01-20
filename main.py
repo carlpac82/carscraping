@@ -31399,22 +31399,145 @@ async def send_inspection_email(request: Request, inspection_number: str):
         else:
             logging.warning(f"⚠️ Vehicle {vehicle_plate} not found in fleet manager")
         
-        # Get email templates for translations (but use fixed subject)
-        t = _get_email_templates(detected_lang, inspection_type)
+        # Initialize variables for check-in validation
+        status_alert_html = ""
+        photos_section_html = ""
+        croqui_title = ""
+        damage_count = 0
         
-        # Fixed email subject in Portuguese (no translation)
-        if inspection_type == 'checkout':
-            email_title = 'Relatorio de Entrega R.A.'
+        # Check if this is a check-in - validate incidents
+        if inspection_type == 'checkin':
+            logging.info("🔍 CHECK-IN DETECTED - Validating incidents...")
+            
+            # Get damage count from inspection
+            conn = _db_connect()
+            cursor = conn.cursor()
+            if _USE_NEW_DB:
+                cursor.execute("""
+                    SELECT damage_count FROM vehicle_inspections 
+                    WHERE id = %s
+                """, (inspection_id,))
+            else:
+                cursor.execute("""
+                    SELECT damage_count FROM vehicle_inspections 
+                    WHERE id = ?
+                """, (inspection_id,))
+            
+            damage_row = cursor.fetchone()
+            damage_count = damage_row[0] if damage_row and damage_row[0] else 0
+            
+            # Validate incidents by comparing with checkout
+            incidents = _validate_checkin_incidents(
+                cursor, _USE_NEW_DB, ra, vehicle_plate,
+                float(fuel_level), damage_count, inspection_id
+            )
+            
+            conn.close()
+            
+            logging.info(f"📊 Incidents validation result: {incidents}")
+            
+            # Generate STATUS_ALERT based on incidents
+            status_alert_html = _generate_checkin_status_alert(
+                detected_lang,
+                incidents['has_fuel_incident'],
+                incidents['has_damage_incident']
+            )
+            
+            # Build PHOTOS_SECTION based on incidents
+            if incidents['has_fuel_incident'] or incidents['has_damage_incident']:
+                # Get odometer photo for fuel incidents
+                odometer_photo_html = ""
+                if incidents['has_fuel_incident']:
+                    conn = _db_connect()
+                    cursor = conn.cursor()
+                    if _USE_NEW_DB:
+                        cursor.execute("""
+                            SELECT image_data FROM inspection_photos 
+                            WHERE inspection_id = %s AND photo_type = 'odometer'
+                            LIMIT 1
+                        """, (inspection_id,))
+                    else:
+                        cursor.execute("""
+                            SELECT image_data FROM inspection_photos 
+                            WHERE inspection_id = ? AND photo_type = 'odometer'
+                            LIMIT 1
+                        """, (inspection_id,))
+                    
+                    odometer_row = cursor.fetchone()
+                    conn.close()
+                    
+                    if odometer_row and odometer_row[0]:
+                        import base64
+                        image_data = odometer_row[0]
+                        if isinstance(image_data, str):
+                            if image_data.startswith('data:image'):
+                                odometer_url = image_data
+                            else:
+                                odometer_url = f"data:image/jpeg;base64,{image_data}"
+                        else:
+                            odometer_url = f"data:image/jpeg;base64,{base64.b64encode(image_data).decode('utf-8')}"
+                        
+                        # Translate "Odometer" label
+                        odometer_label = {
+                            'pt': 'Quilómetros',
+                            'en': 'Odometer',
+                            'fr': 'Kilométrage'
+                        }.get(detected_lang, 'Odometer')
+                        
+                        odometer_photo_html = f"""
+                        <div style="padding: 20px; background-color: #ffffff; border-bottom: 1px solid #e5e7eb;">
+                            <h3 style="color: #00bcd4; margin: 0 0 15px 0; font-size: 18px;">{odometer_label}</h3>
+                            <div style="text-align: center;">
+                                <a href="{odometer_url}" target="_blank" style="text-decoration: none; display: inline-block; cursor: pointer;">
+                                    <img src="{odometer_url}" alt="{odometer_label}" 
+                                         style="max-width: 300px; width: 100%; height: auto; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
+                                </a>
+                            </div>
+                        </div>
+                        """
+                
+                # Get damage photos for damage incidents
+                damage_photos_html = ""
+                if incidents['has_damage_incident'] and photos_html:
+                    damage_label = {
+                        'pt': 'Fotos dos Danos',
+                        'en': 'Damage Photos',
+                        'fr': 'Photos des Dommages'
+                    }.get(detected_lang, 'Damage Photos')
+                    
+                    damage_photos_html = f"""
+                    <div style="padding: 20px; background-color: #ffffff;">
+                        <h3 style="color: #00bcd4; margin: 0 0 15px 0; font-size: 18px;">{damage_label}</h3>
+                        {photos_html}
+                    </div>
+                    """
+                
+                # Combine sections
+                photos_section_html = odometer_photo_html + damage_photos_html
+            
+            # Use check-in template
+            template_name = f"email_checkin_{detected_lang}.html" if detected_lang in ['pt', 'fr', 'en'] else "email_checkin_en.html"
+            
+            # Get check-in specific subject and croqui title
+            email_title = _get_checkin_email_subject(detected_lang, ra)
+            croqui_title = _get_checkin_croqui_title(detected_lang)
+            
+            logging.info(f"📧 Using check-in template: {template_name}")
+            logging.info(f"📧 Subject: {email_title}")
+            logging.info(f"📧 Croqui title: {croqui_title}")
+            
         else:
-            email_title = 'Relatorio de Devolucao R.A.'
-        
-        # Select correct template based on language
-        if detected_lang == 'pt':
-            template_name = 'email_preview_pt.html'
-        elif detected_lang == 'fr':
-            template_name = 'email_preview_fr.html'
-        else:
-            template_name = 'email_preview.html'
+            # Checkout - use existing logic
+            template_name = f"email_preview_{detected_lang}.html" if detected_lang in ['pt', 'fr'] else "email_preview.html"
+            croqui_title = "Croqui de Danos" if detected_lang == 'pt' else "Damage Sketch" if detected_lang == 'en' else "Croquis des Dommages"
+            
+            # Checkout subject
+            if detected_lang == 'pt':
+                email_title = f"Relatorio de Entrega R.A. {ra}"
+            elif detected_lang == 'fr':
+                email_title = f"Rapport de Livraison R.A. {ra}"
+            else:
+                email_title = f"Delivery Report R.A. {ra}"
         
         logging.info(f"📧 Using template: {template_name}")
         
@@ -31633,6 +31756,13 @@ async def send_inspection_email(request: Request, inspection_number: str):
         
         logging.info(f"🔍 Croqui URL: {final_croqui if croqui_row else 'empty cache'}")
         
+        # Inspection type label for templates
+        t_labels = {
+            'checkout': {'pt': 'Entrega', 'fr': 'Livraison', 'en': 'Checkout'},
+            'checkin': {'pt': 'Devolução', 'fr': 'Retour', 'en': 'Check-in'}
+        }
+        inspection_type_label = t_labels.get(inspection_type, {}).get(detected_lang, inspection_type)
+        
         html_content = templates.get_template(template_name).render(
             LOGO_URL=logo_base64,
             RA_NUMBER=ra,
@@ -31642,13 +31772,16 @@ async def send_inspection_email(request: Request, inspection_number: str):
             VEHICLE_BRAND=vehicle_brand,
             VEHICLE_MODEL=vehicle_model,
             VEHICLE_TYPE=vehicle_type,
-            INSPECTION_TYPE=t['label'],
+            INSPECTION_TYPE=inspection_type_label,
             LOCATION=location,
             INSPECTION_DATE=inspection_date,
             ODOMETER=str(odometer),
             INSPECTOR_NAME=inspector,
             FUEL_GAUGE_SVG=fuel_gauge_html,
             CROQUI_IMAGE=final_croqui,
+            CROQUI_TITLE=croqui_title,
+            STATUS_ALERT=status_alert_html,
+            PHOTOS_SECTION=photos_section_html,
             PHOTOS_HTML=photos_html,
             PROMO_IMAGE_1=promo_base64.get('promo1', ''),
             PROMO_IMAGE_2=promo_base64.get('promo2', ''),
@@ -31681,7 +31814,12 @@ async def send_inspection_email(request: Request, inspection_number: str):
         logging.info(f"ℹ️ T&C PDF attachment disabled to reduce email size")
         
         # Send email
-        email_subject = f"{email_title} {ra}"
+        # For check-in, email_title already includes RA, for checkout we need to add it
+        if inspection_type == 'checkin':
+            email_subject = email_title  # Already includes RA from _get_checkin_email_subject
+        else:
+            email_subject = email_title  # Already includes RA from above
+        
         logging.info(f"📧 Sending email with subject: {email_subject}")
         
         _send_notification_email(
