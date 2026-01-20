@@ -2809,14 +2809,16 @@
                 date: document.getElementById('inputDate')?.value || '',
                 time: document.getElementById('inputTime')?.value || '',
                 client_email: email,
-                send_email: email ? true : false, // CRITICAL: Tell backend to send email
+                send_email: !!email, // CRITICAL: Tell backend to send email (force boolean)
                 vehicle_id: window.currentVehicleId || null, // Add vehicle_id from fleet
                 damageCroqui: damageCroquiBase64 // Add damage croqui image
             };
             
             console.log('📦 Saving inspection with photos:', Object.keys(inspectionData.photos));
+            console.log('📧 [FRONTEND] Email parameter passed to function:', email);
             console.log('📧 [FRONTEND] Email in inspectionData:', inspectionData.client_email);
             console.log('📧 [FRONTEND] send_email flag:', inspectionData.send_email);
+            console.log('📧 [FRONTEND] send_email type:', typeof inspectionData.send_email);
             
             // Make actual API call to save inspection
             fetch('/api/save-inspection', {
