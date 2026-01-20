@@ -1413,6 +1413,10 @@
                 send_email_type: typeof inspectionData.send_email
             });
             
+            console.log('🔍 FULL inspectionData object:', inspectionData);
+            console.log('🔍 inspectionData.send_email VALUE:', inspectionData.send_email);
+            console.log('🔍 JSON that will be sent:', JSON.stringify(inspectionData));
+            
             // Make API call
             fetch('/api/save-inspection', {
                 method: 'POST',
