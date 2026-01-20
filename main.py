@@ -42821,7 +42821,7 @@ async def get_inspection_details(inspection_number: str, request: Request):
                         if not photo_base64.startswith('data:'):
                             damage_croqui = f"data:image/png;base64,{photo_base64}"
                         else:
-                            damage_croqui = f"data:image/png;base64,{photo_base64}"
+                            damage_croqui = photo_base64
                     elif photo_type.startswith('damage_photo_') or photo_type.startswith('damage_'):
                         # Handle both old format (damage_photo_1) and new format (damage_front, damage_back, etc.)
                         # But exclude damage_croqui which is already handled above
