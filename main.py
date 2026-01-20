@@ -29718,9 +29718,28 @@ async def save_inspection(request: Request):
                         'sagres': PROMO_IMAGES_CACHE.get('sagres', '')
                     }
                     
-                    # Format inspection date
+                    # Get inspection date from database (created_at timestamp)
                     from datetime import datetime
-                    inspection_date = datetime.now().strftime('%d/%m/%Y %H:%M')
+                    if is_postgres:
+                        cursor.execute("""
+                            SELECT created_at FROM vehicle_inspections 
+                            WHERE id = %s
+                        """, (inspection_id,))
+                    else:
+                        cursor.execute("""
+                            SELECT created_at FROM vehicle_inspections 
+                            WHERE id = ?
+                        """, (inspection_id,))
+                    
+                    inspection_date_row = cursor.fetchone()
+                    if inspection_date_row and inspection_date_row[0]:
+                        # Format the timestamp from DB
+                        inspection_date = inspection_date_row[0].strftime('%d/%m/%Y %H:%M') if hasattr(inspection_date_row[0], 'strftime') else str(inspection_date_row[0])
+                        logging.info(f"📅 Inspection date from DB: {inspection_date}")
+                    else:
+                        # Fallback to current time if not found
+                        inspection_date = datetime.now().strftime('%d/%m/%Y %H:%M')
+                        logging.warning(f"⚠️ Could not get inspection date from DB, using current time: {inspection_date}")
                     
                     # Base URL for links
                     base_url = "https://carscraping.up.railway.app"
