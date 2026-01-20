@@ -30240,6 +30240,289 @@ async def inspection_history_page(request: Request):
     })
 
 
+# ============================================================
+# SELF CHECK-IN - Cliente acede sem login via token único
+# ============================================================
+
+@app.get("/api/self-checkin/{token}")
+async def get_self_checkin_data(token: str):
+    """
+    Endpoint público (sem autenticação) para self check-in
+    Cliente acede via link único enviado por email
+    """
+    conn = None
+    try:
+        conn = _db_connect()
+        is_postgres = _is_postgresql_connection(conn)
+        
+        # Buscar RA pelo token
+        if is_postgres:
+            cursor = conn.cursor()
+            cursor.execute("""
+                SELECT 
+                    ra.id,
+                    ra.rental_agreement_number,
+                    ra.license_plate,
+                    ra.vehicle_id,
+                    ra.self_checkin_email,
+                    ra.self_checkin_scheduled_date,
+                    ra.self_checkin_sent,
+                    ra.self_checkin_completed,
+                    ra.self_checkin_validated,
+                    ra.return_date,
+                    ra.extracted_data,
+                    v.marca,
+                    v.modelo,
+                    v.grupo
+                FROM rental_agreements ra
+                LEFT JOIN vehicles v ON ra.vehicle_id = v.id
+                WHERE ra.self_checkin_token = %s
+            """, (token,))
+        else:
+            cursor = conn.execute("""
+                SELECT 
+                    ra.id,
+                    ra.rental_agreement_number,
+                    ra.license_plate,
+                    ra.vehicle_id,
+                    ra.self_checkin_email,
+                    ra.self_checkin_scheduled_date,
+                    ra.self_checkin_sent,
+                    ra.self_checkin_completed,
+                    ra.self_checkin_validated,
+                    ra.return_date,
+                    ra.extracted_data,
+                    v.marca,
+                    v.modelo,
+                    v.grupo
+                FROM rental_agreements ra
+                LEFT JOIN vehicles v ON ra.vehicle_id = v.id
+                WHERE ra.self_checkin_token = ?
+            """, (token,))
+        
+        row = cursor.fetchone()
+        
+        if not row:
+            return JSONResponse({
+                "success": False,
+                "error": "Token inválido ou expirado"
+            }, status_code=404)
+        
+        # Verificar se já foi completado
+        if row[7]:  # self_checkin_completed
+            return JSONResponse({
+                "success": False,
+                "error": "Self check-in já foi realizado",
+                "completed": True
+            }, status_code=400)
+        
+        # Preparar dados para retornar
+        import json
+        extracted_data = {}
+        if row[10]:  # extracted_data
+            try:
+                extracted_data = json.loads(row[10])
+            except:
+                pass
+        
+        return JSONResponse({
+            "success": True,
+            "data": {
+                "ra_id": row[0],
+                "rental_agreement_number": row[1],
+                "license_plate": row[2],
+                "vehicle_id": row[3],
+                "email": row[4],
+                "scheduled_date": row[5],
+                "return_date": row[9],
+                "vehicle": {
+                    "marca": row[11],
+                    "modelo": row[12],
+                    "grupo": row[13]
+                } if row[11] else None,
+                "client_name": extracted_data.get('client_name') or extracted_data.get('nome_cliente'),
+                "completed": row[7],
+                "validated": row[8]
+            }
+        })
+        
+    except Exception as e:
+        logging.error(f"Error getting self check-in data: {e}")
+        traceback.print_exc()
+        return JSONResponse({
+            "success": False,
+            "error": str(e)
+        }, status_code=500)
+    finally:
+        if conn:
+            conn.close()
+
+
+@app.post("/api/self-checkin/{token}/submit")
+async def submit_self_checkin(token: str, request: Request):
+    """
+    Submeter self check-in do cliente
+    Guarda fotos, kms, combustível (sem croqui)
+    """
+    conn = None
+    try:
+        data = await request.json()
+        
+        conn = _db_connect()
+        is_postgres = _is_postgresql_connection(conn)
+        
+        # Verificar token e obter RA
+        if is_postgres:
+            cursor = conn.cursor()
+            cursor.execute("""
+                SELECT id, rental_agreement_number, license_plate, vehicle_id, self_checkin_completed
+                FROM rental_agreements
+                WHERE self_checkin_token = %s
+            """, (token,))
+        else:
+            cursor = conn.execute("""
+                SELECT id, rental_agreement_number, license_plate, vehicle_id, self_checkin_completed
+                FROM rental_agreements
+                WHERE self_checkin_token = ?
+            """, (token,))
+        
+        row = cursor.fetchone()
+        
+        if not row:
+            return JSONResponse({
+                "success": False,
+                "error": "Token inválido"
+            }, status_code=404)
+        
+        if row[4]:  # já completado
+            return JSONResponse({
+                "success": False,
+                "error": "Self check-in já foi realizado"
+            }, status_code=400)
+        
+        ra_id, ra_number, plate, vehicle_id, _ = row
+        
+        # Criar inspeção de self check-in
+        import datetime
+        inspection_number = f"SC-{ra_number}-{datetime.datetime.now().strftime('%Y%m%d%H%M%S')}"
+        
+        # Extrair dados do formulário
+        odometer = data.get('odometer')
+        fuel_level = data.get('fuel_level')
+        photos = data.get('photos', {})  # 9 fotos da grid
+        damage_photos = data.get('damage_photos', [])  # fotos de danos
+        
+        # Guardar inspeção
+        if is_postgres:
+            cursor.execute("""
+                INSERT INTO vehicle_inspections (
+                    inspection_number, inspection_type, license_plate, 
+                    rental_agreement, odometer_reading, fuel_level,
+                    is_self_checkin, created_at
+                ) VALUES (%s, %s, %s, %s, %s, %s, %s, NOW())
+                RETURNING id
+            """, (inspection_number, 'checkin', plate, ra_number, odometer, fuel_level, True))
+            inspection_id = cursor.fetchone()[0]
+        else:
+            cursor.execute("""
+                INSERT INTO vehicle_inspections (
+                    inspection_number, inspection_type, license_plate, 
+                    rental_agreement, odometer_reading, fuel_level,
+                    is_self_checkin, created_at
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, datetime('now'))
+            """, (inspection_number, 'checkin', plate, ra_number, odometer, fuel_level, 1))
+            inspection_id = cursor.lastrowid
+        
+        # Guardar fotos da grid (9 fotos)
+        for photo_key, photo_data in photos.items():
+            if photo_data and photo_data.startswith('data:image'):
+                try:
+                    import base64
+                    photo_bytes = base64.b64decode(photo_data.split(',')[1])
+                    
+                    if is_postgres:
+                        cursor.execute("""
+                            INSERT INTO inspection_photos (
+                                inspection_id, photo_type, photo_data, created_at
+                            ) VALUES (%s, %s, %s, NOW())
+                        """, (inspection_id, photo_key, photo_bytes))
+                    else:
+                        cursor.execute("""
+                            INSERT INTO inspection_photos (
+                                inspection_id, photo_type, photo_data, created_at
+                            ) VALUES (?, ?, ?, datetime('now'))
+                        """, (inspection_id, photo_key, photo_bytes))
+                except Exception as photo_err:
+                    logging.error(f"Error saving photo {photo_key}: {photo_err}")
+        
+        # Guardar fotos de danos
+        for damage_photo in damage_photos:
+            photo_data = damage_photo.get('photo')
+            description = damage_photo.get('description', '')
+            
+            if photo_data and photo_data.startswith('data:image'):
+                try:
+                    import base64
+                    photo_bytes = base64.b64decode(photo_data.split(',')[1])
+                    
+                    if is_postgres:
+                        cursor.execute("""
+                            INSERT INTO damage_photos (
+                                inspection_id, photo_data, description, created_at
+                            ) VALUES (%s, %s, %s, NOW())
+                        """, (inspection_id, photo_bytes, description))
+                    else:
+                        cursor.execute("""
+                            INSERT INTO damage_photos (
+                                inspection_id, photo_data, description, created_at
+                            ) VALUES (?, ?, ?, datetime('now'))
+                        """, (inspection_id, photo_bytes, description))
+                except Exception as damage_err:
+                    logging.error(f"Error saving damage photo: {damage_err}")
+        
+        # Atualizar RA como self check-in completado
+        if is_postgres:
+            cursor.execute("""
+                UPDATE rental_agreements
+                SET self_checkin_completed = TRUE,
+                    self_checkin_inspection_id = %s,
+                    updated_at = NOW()
+                WHERE id = %s
+            """, (inspection_id, ra_id))
+        else:
+            cursor.execute("""
+                UPDATE rental_agreements
+                SET self_checkin_completed = 1,
+                    self_checkin_inspection_id = ?,
+                    updated_at = datetime('now')
+                WHERE id = ?
+            """, (inspection_id, ra_id))
+        
+        conn.commit()
+        
+        logging.info(f"✅ Self check-in submitted: RA={ra_number}, Inspection={inspection_number}")
+        
+        return JSONResponse({
+            "success": True,
+            "inspection_id": inspection_id,
+            "inspection_number": inspection_number,
+            "message": "Self check-in submetido com sucesso. Aguarde validação."
+        })
+        
+    except Exception as e:
+        if conn:
+            conn.rollback()
+        logging.error(f"Error submitting self check-in: {e}")
+        traceback.print_exc()
+        return JSONResponse({
+            "success": False,
+            "error": str(e)
+        }, status_code=500)
+    finally:
+        if conn:
+            conn.close()
+
+
 @app.get("/api/test_endpoint")
 async def test_endpoint():
     """Test endpoint to verify routing works"""
