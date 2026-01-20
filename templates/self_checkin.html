@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Self Check-in - Rentify</title>
+    <title>Self Check-in - Auto Prudente</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
         .photo-grid {
@@ -28,13 +28,13 @@
         }
         
         .photo-slot:hover {
-            border-color: #009cb6;
+            border-color: #00bcd4;
             background: #e6f7f9;
         }
         
         .photo-slot.has-photo {
             border-style: solid;
-            border-color: #009cb6;
+            border-color: #00bcd4;
             padding: 0;
         }
         
@@ -83,7 +83,7 @@
             height: 24px;
             border-radius: 50%;
             background: white;
-            border: 3px solid #009cb6;
+            border: 3px solid #00bcd4;
             cursor: pointer;
             box-shadow: 0 2px 4px rgba(0,0,0,0.2);
         }
@@ -93,7 +93,7 @@
             height: 24px;
             border-radius: 50%;
             background: white;
-            border: 3px solid #009cb6;
+            border: 3px solid #00bcd4;
             cursor: pointer;
             box-shadow: 0 2px 4px rgba(0,0,0,0.2);
         }
@@ -113,7 +113,7 @@
         
         .spinner {
             border: 4px solid #f3f3f3;
-            border-top: 4px solid #009cb6;
+            border-top: 4px solid #00bcd4;
             border-radius: 50%;
             width: 50px;
             height: 50px;
@@ -137,29 +137,28 @@
     <div class="min-h-screen py-8 px-4">
         <div class="max-w-4xl mx-auto">
             <!-- Header -->
-            <div class="bg-white rounded-lg shadow-md p-6 mb-6">
+            <div class="bg-gradient-to-r from-[#00bcd4] to-[#0097a7] rounded-lg shadow-md p-6 mb-6">
                 <div class="flex items-center justify-between mb-4">
-                    <h1 class="text-3xl font-bold text-gray-800">Self Check-in</h1>
-                    <img src="/static/logo.png" alt="Rentify" class="h-12" onerror="this.style.display='none'">
+                    <img src="/static/ap-heather.png" alt="Auto Prudente" class="h-12" onerror="this.style.display='none'">
+                    <h1 class="text-3xl font-bold text-white" id="pageTitle">Self Check-in</h1>
                 </div>
-                <div id="vehicleInfo" class="text-gray-600">
-                    <p><strong>RA:</strong> <span id="raNumber">-</span></p>
-                    <p><strong>Matrícula:</strong> <span id="licensePlate">-</span></p>
-                    <p><strong>Veículo:</strong> <span id="vehicleDetails">-</span></p>
+                <div id="vehicleInfo" class="text-white bg-white bg-opacity-20 rounded-lg p-4 mt-4">
+                    <p><strong id="labelRA">RA:</strong> <span id="raNumber">-</span></p>
+                    <p><strong id="labelPlate">Matrícula:</strong> <span id="licensePlate">-</span></p>
+                    <p><strong id="labelVehicle">Veículo:</strong> <span id="vehicleDetails">-</span></p>
                 </div>
             </div>
 
             <!-- Instructions -->
-            <div class="bg-blue-50 border-l-4 border-blue-500 p-4 mb-6 rounded">
-                <p class="text-blue-800">
-                    <strong>Instruções:</strong> Por favor, tire 9 fotos do veículo, adicione fotos de eventuais danos, 
-                    indique o nível de combustível e os quilómetros. Depois, clique em "Submeter Check-in".
+            <div class="bg-blue-50 border-l-4 border-[#00bcd4] p-4 mb-6 rounded">
+                <p class="text-gray-800">
+                    <strong id="instructionsTitle">Instruções:</strong> <span id="instructionsText">Por favor, tire 9 fotos do veículo, adicione fotos de eventuais danos, indique o nível de combustível e os quilómetros. Depois, clique em "Submeter Check-in".</span>
                 </p>
             </div>
 
             <!-- Photo Grid -->
             <div class="bg-white rounded-lg shadow-md p-6 mb-6">
-                <h2 class="text-xl font-bold text-gray-800 mb-4">Fotos do Veículo (9 fotos obrigatórias)</h2>
+                <h2 class="text-xl font-bold text-[#00bcd4] mb-4" id="photosTitle">Fotos do Veículo (9 fotos obrigatórias)</h2>
                 <div class="photo-grid">
                     <div class="photo-slot" data-photo="front" onclick="triggerPhotoUpload('front')">
                         <svg class="w-12 h-12 text-gray-400 mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -230,19 +229,19 @@
 
             <!-- Damage Photos -->
             <div class="bg-white rounded-lg shadow-md p-6 mb-6">
-                <h2 class="text-xl font-bold text-gray-800 mb-4">Fotos de Danos (opcional)</h2>
+                <h2 class="text-xl font-bold text-[#00bcd4] mb-4" id="damageTitle">Fotos de Danos (opcional)</h2>
                 <div id="damagePhotosContainer"></div>
-                <button onclick="addDamagePhoto()" class="mt-4 bg-orange-500 hover:bg-orange-600 text-white font-semibold py-2 px-4 rounded">
+                <button onclick="addDamagePhoto()" class="mt-4 bg-[#FFC107] hover:bg-[#FFB300] text-gray-800 font-semibold py-2 px-4 rounded" id="addDamageBtn">
                     + Adicionar Foto de Dano
                 </button>
             </div>
 
             <!-- Fuel & Odometer -->
             <div class="bg-white rounded-lg shadow-md p-6 mb-6">
-                <h2 class="text-xl font-bold text-gray-800 mb-4">Combustível e Quilómetros</h2>
+                <h2 class="text-xl font-bold text-[#00bcd4] mb-4" id="fuelOdometerTitle">Combustível e Quilómetros</h2>
                 
                 <div class="mb-6">
-                    <label class="block text-gray-700 font-semibold mb-2">Nível de Combustível</label>
+                    <label class="block text-gray-700 font-semibold mb-2" id="fuelLabel">Nível de Combustível</label>
                     <input type="range" id="fuelSlider" class="fuel-slider" min="0" max="8" step="1" value="8" oninput="updateFuelDisplay()">
                     <div class="text-center mt-2">
                         <span id="fuelDisplay" class="text-2xl font-bold text-gray-800">Full</span>
@@ -250,14 +249,14 @@
                 </div>
 
                 <div>
-                    <label class="block text-gray-700 font-semibold mb-2">Quilómetros</label>
+                    <label class="block text-gray-700 font-semibold mb-2" id="odometerLabel">Quilómetros</label>
                     <input type="number" id="odometerInput" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent" placeholder="Ex: 45000">
                 </div>
             </div>
 
             <!-- Submit Button -->
             <div class="text-center">
-                <button onclick="submitCheckIn()" class="bg-[#009cb6] hover:bg-[#007a8f] text-white font-bold py-3 px-8 rounded-lg text-lg shadow-lg transition">
+                <button onclick="submitCheckIn()" class="bg-[#00bcd4] hover:bg-[#0097a7] text-white font-bold py-3 px-8 rounded-lg text-lg shadow-lg transition" id="submitBtn">
                     Submeter Check-in
                 </button>
             </div>
@@ -270,8 +269,166 @@
         let damagePhotos = [];
         let token = null;
         let raData = null;
+        let currentLang = 'pt';
 
         const fuelLevels = ['Empty', '1/8', '1/4', '3/8', '1/2', '5/8', '3/4', '7/8', 'Full'];
+
+        // Translations
+        const translations = {
+            pt: {
+                pageTitle: 'Self Check-in',
+                labelRA: 'RA:',
+                labelPlate: 'Matrícula:',
+                labelVehicle: 'Veículo:',
+                instructionsTitle: 'Instruções:',
+                instructionsText: 'Por favor, tire 9 fotos do veículo, adicione fotos de eventuais danos, indique o nível de combustível e os quilómetros. Depois, clique em "Submeter Check-in".',
+                photosTitle: 'Fotos do Veículo (9 fotos obrigatórias)',
+                damageTitle: 'Fotos de Danos (opcional)',
+                addDamageBtn: '+ Adicionar Foto de Dano',
+                fuelOdometerTitle: 'Combustível e Quilómetros',
+                fuelLabel: 'Nível de Combustível',
+                odometerLabel: 'Quilómetros',
+                submitBtn: 'Submeter Check-in',
+                loading: 'A carregar...',
+                photoLabels: {
+                    front: 'Frente',
+                    front_left: 'Frente Esquerda',
+                    left: 'Lateral Esquerda',
+                    back_left: 'Traseira Esquerda',
+                    back: 'Traseira',
+                    back_right: 'Traseira Direita',
+                    right: 'Lateral Direita',
+                    front_right: 'Frente Direita',
+                    interior: 'Interior'
+                },
+                alertMissingPhotos: 'Por favor, tire todas as 9 fotos obrigatórias. Faltam:',
+                alertOdometer: 'Por favor, insira os quilómetros',
+                alertSuccess: 'Self check-in submetido com sucesso! Aguarde a validação da nossa equipa.',
+                alertError: 'Erro:',
+                alertSubmitError: 'Erro ao submeter check-in. Tente novamente.',
+                completedTitle: 'Self Check-in Já Realizado',
+                completedMessage: 'O self check-in para este rental agreement já foi completado. Este link só pode ser utilizado uma vez por motivos de segurança.',
+                needHelpTitle: 'Precisa de Ajuda?',
+                needHelpText: 'Se cometeu algum erro ou precisa de fazer alterações, por favor contacte o nosso escritório:',
+                phone: 'Telefone',
+                email: 'Email',
+                helpFooter: 'A nossa equipa terá todo o gosto em ajudá-lo e, se necessário, enviar-lhe um novo link.'
+            },
+            en: {
+                pageTitle: 'Self Check-in',
+                labelRA: 'RA:',
+                labelPlate: 'License Plate:',
+                labelVehicle: 'Vehicle:',
+                instructionsTitle: 'Instructions:',
+                instructionsText: 'Please take 9 photos of the vehicle, add photos of any damages, indicate the fuel level and mileage. Then click "Submit Check-in".',
+                photosTitle: 'Vehicle Photos (9 photos required)',
+                damageTitle: 'Damage Photos (optional)',
+                addDamageBtn: '+ Add Damage Photo',
+                fuelOdometerTitle: 'Fuel and Mileage',
+                fuelLabel: 'Fuel Level',
+                odometerLabel: 'Mileage (km)',
+                submitBtn: 'Submit Check-in',
+                loading: 'Loading...',
+                photoLabels: {
+                    front: 'Front',
+                    front_left: 'Front Left',
+                    left: 'Left Side',
+                    back_left: 'Rear Left',
+                    back: 'Rear',
+                    back_right: 'Rear Right',
+                    right: 'Right Side',
+                    front_right: 'Front Right',
+                    interior: 'Interior'
+                },
+                alertMissingPhotos: 'Please take all 9 required photos. Missing:',
+                alertOdometer: 'Please enter the mileage',
+                alertSuccess: 'Self check-in submitted successfully! Please wait for our team validation.',
+                alertError: 'Error:',
+                alertSubmitError: 'Error submitting check-in. Please try again.',
+                completedTitle: 'Self Check-in Already Completed',
+                completedMessage: 'The self check-in for this rental agreement has already been completed. This link can only be used once for security reasons.',
+                needHelpTitle: 'Need Help?',
+                needHelpText: 'If you made a mistake or need to make changes, please contact our office:',
+                phone: 'Phone',
+                email: 'Email',
+                helpFooter: 'Our team will be happy to help you and, if necessary, send you a new link.'
+            },
+            fr: {
+                pageTitle: 'Self Check-in',
+                labelRA: 'RA:',
+                labelPlate: 'Plaque:',
+                labelVehicle: 'Véhicule:',
+                instructionsTitle: 'Instructions:',
+                instructionsText: 'Veuillez prendre 9 photos du véhicule, ajouter des photos de tout dommage, indiquer le niveau de carburant et le kilométrage. Ensuite, cliquez sur "Soumettre le Check-in".',
+                photosTitle: 'Photos du Véhicule (9 photos obligatoires)',
+                damageTitle: 'Photos de Dommages (optionnel)',
+                addDamageBtn: '+ Ajouter Photo de Dommage',
+                fuelOdometerTitle: 'Carburant et Kilométrage',
+                fuelLabel: 'Niveau de Carburant',
+                odometerLabel: 'Kilométrage (km)',
+                submitBtn: 'Soumettre le Check-in',
+                loading: 'Chargement...',
+                photoLabels: {
+                    front: 'Avant',
+                    front_left: 'Avant Gauche',
+                    left: 'Côté Gauche',
+                    back_left: 'Arrière Gauche',
+                    back: 'Arrière',
+                    back_right: 'Arrière Droit',
+                    right: 'Côté Droit',
+                    front_right: 'Avant Droit',
+                    interior: 'Intérieur'
+                },
+                alertMissingPhotos: 'Veuillez prendre toutes les 9 photos obligatoires. Manquantes:',
+                alertOdometer: 'Veuillez saisir le kilométrage',
+                alertSuccess: 'Self check-in soumis avec succès! Veuillez attendre la validation de notre équipe.',
+                alertError: 'Erreur:',
+                alertSubmitError: 'Erreur lors de la soumission du check-in. Veuillez réessayer.',
+                completedTitle: 'Self Check-in Déjà Effectué',
+                completedMessage: 'Le self check-in pour ce contrat de location a déjà été effectué. Ce lien ne peut être utilisé qu\'une seule fois pour des raisons de sécurité.',
+                needHelpTitle: 'Besoin d\'Aide?',
+                needHelpText: 'Si vous avez fait une erreur ou devez apporter des modifications, veuillez contacter notre bureau:',
+                phone: 'Téléphone',
+                email: 'Email',
+                helpFooter: 'Notre équipe se fera un plaisir de vous aider et, si nécessaire, de vous envoyer un nouveau lien.'
+            }
+        };
+
+        // Get language from URL parameter
+        function getLanguageFromURL() {
+            const urlParams = new URLSearchParams(window.location.search);
+            const lang = urlParams.get('lang');
+            return ['pt', 'en', 'fr'].includes(lang) ? lang : 'pt';
+        }
+
+        // Apply translations
+        function applyTranslations() {
+            currentLang = getLanguageFromURL();
+            const t = translations[currentLang];
+            
+            document.getElementById('pageTitle').textContent = t.pageTitle;
+            document.getElementById('labelRA').textContent = t.labelRA;
+            document.getElementById('labelPlate').textContent = t.labelPlate;
+            document.getElementById('labelVehicle').textContent = t.labelVehicle;
+            document.getElementById('instructionsTitle').textContent = t.instructionsTitle;
+            document.getElementById('instructionsText').textContent = t.instructionsText;
+            document.getElementById('photosTitle').textContent = t.photosTitle;
+            document.getElementById('damageTitle').textContent = t.damageTitle;
+            document.getElementById('addDamageBtn').textContent = t.addDamageBtn;
+            document.getElementById('fuelOdometerTitle').textContent = t.fuelOdometerTitle;
+            document.getElementById('fuelLabel').textContent = t.fuelLabel;
+            document.getElementById('odometerLabel').textContent = t.odometerLabel;
+            document.getElementById('submitBtn').textContent = t.submitBtn;
+            
+            // Update photo labels
+            document.querySelectorAll('.photo-slot').forEach(slot => {
+                const photoType = slot.getAttribute('data-photo');
+                const label = slot.querySelector('.text-sm');
+                if (label && t.photoLabels[photoType]) {
+                    label.textContent = t.photoLabels[photoType];
+                }
+            });
+        }
 
         // Extract token from URL
         function getTokenFromURL() {
@@ -345,22 +502,22 @@
                             
                             <div class="space-y-3">
                                 <div class="flex items-center">
-                                    <svg class="w-6 h-6 text-[#009cb6] mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <svg class="w-6 h-6 text-[#00bcd4] mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z"></path>
                                     </svg>
                                     <div>
                                         <p class="text-sm text-gray-600">Telefone</p>
-                                        <a href="tel:+351289542160" class="text-lg font-semibold text-[#009cb6] hover:underline">+351 289 542 160</a>
+                                        <a href="tel:+351289542160" class="text-lg font-semibold text-[#00bcd4] hover:underline">+351 289 542 160</a>
                                     </div>
                                 </div>
 
                                 <div class="flex items-center">
-                                    <svg class="w-6 h-6 text-[#009cb6] mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <svg class="w-6 h-6 text-[#00bcd4] mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"></path>
                                     </svg>
                                     <div>
                                         <p class="text-sm text-gray-600">Email</p>
-                                        <a href="mailto:info@auto-prudente.com" class="text-lg font-semibold text-[#009cb6] hover:underline">info@auto-prudente.com</a>
+                                        <a href="mailto:info@auto-prudente.com" class="text-lg font-semibold text-[#00bcd4] hover:underline">info@auto-prudente.com</a>
                                     </div>
                                 </div>
                             </div>
@@ -422,18 +579,8 @@
         }
 
         function getPhotoLabel(photoType) {
-            const labels = {
-                'front': 'Frente',
-                'front_left': 'Frente Esquerda',
-                'left': 'Lateral Esquerda',
-                'back_left': 'Traseira Esquerda',
-                'back': 'Traseira',
-                'back_right': 'Traseira Direita',
-                'right': 'Lateral Direita',
-                'front_right': 'Frente Direita',
-                'interior': 'Interior'
-            };
-            return labels[photoType] || photoType;
+            const t = translations[currentLang];
+            return t.photoLabels[photoType] || photoType;
         }
 
         function addDamagePhoto() {
@@ -486,19 +633,21 @@
         }
 
         async function submitCheckIn() {
+            const t = translations[currentLang];
+            
             // Validate 9 photos
             const requiredPhotos = ['front', 'front_left', 'left', 'back_left', 'back', 'back_right', 'right', 'front_right', 'interior'];
             const missingPhotos = requiredPhotos.filter(p => !photos[p]);
             
             if (missingPhotos.length > 0) {
-                alert(`Por favor, tire todas as 9 fotos obrigatórias. Faltam: ${missingPhotos.length}`);
+                alert(`${t.alertMissingPhotos} ${missingPhotos.length}`);
                 return;
             }
 
             // Validate odometer
             const odometer = document.getElementById('odometerInput').value;
             if (!odometer || odometer <= 0) {
-                alert('Por favor, insira os quilómetros');
+                alert(t.alertOdometer);
                 return;
             }
 
@@ -537,14 +686,14 @@
                 const data = await response.json();
 
                 if (data.success) {
-                    alert('✅ Self check-in submetido com sucesso! Aguarde a validação da nossa equipa.');
+                    alert(t.alertSuccess);
                     window.location.href = '/self-checkin-success';
                 } else {
-                    alert('Erro: ' + (data.error || 'Erro desconhecido'));
+                    alert(t.alertError + ' ' + (data.error || 'Erro desconhecido'));
                 }
             } catch (error) {
                 console.error('Error submitting check-in:', error);
-                alert('Erro ao submeter check-in. Tente novamente.');
+                alert(t.alertSubmitError);
             } finally {
                 showLoading(false);
             }
@@ -552,6 +701,7 @@
 
         // Initialize
         document.addEventListener('DOMContentLoaded', function() {
+            applyTranslations();
             loadRAData();
             updateFuelDisplay();
         });
