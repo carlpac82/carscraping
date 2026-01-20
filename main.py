@@ -44188,7 +44188,7 @@ async def checkin_preview_ok(request: Request):
         """
         
         # Croqui title e image (só croqui de entrega, sem danos extra)
-        croqui_title = "Croqui de Danos de Recolha"
+        croqui_title = "Croqui de Danos (Entrega + Recolha)"
         
         # Sem danos extra da recolha (lista vazia)
         pickup_damages = []
@@ -44314,7 +44314,7 @@ async def checkin_preview_fuel(request: Request):
         """
         
         # Croqui title e image (só croqui de entrega, sem danos extra)
-        croqui_title = "Croqui de Danos de Recolha"
+        croqui_title = "Croqui de Danos (Entrega + Recolha)"
         
         # Sem danos extra da recolha (lista vazia)
         pickup_damages = []
