@@ -1,0 +1,499 @@
+<!DOCTYPE html>
+<html lang="pt">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Self Check-in - Rentify</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        .photo-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 1rem;
+        }
+        
+        .photo-slot {
+            aspect-ratio: 4/3;
+            border: 2px dashed #cbd5e0;
+            border-radius: 0.5rem;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: all 0.3s;
+            position: relative;
+            overflow: hidden;
+            background: #f7fafc;
+        }
+        
+        .photo-slot:hover {
+            border-color: #009cb6;
+            background: #e6f7f9;
+        }
+        
+        .photo-slot.has-photo {
+            border-style: solid;
+            border-color: #009cb6;
+            padding: 0;
+        }
+        
+        .photo-slot img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+        
+        .photo-slot .remove-btn {
+            position: absolute;
+            top: 0.5rem;
+            right: 0.5rem;
+            background: rgba(239, 68, 68, 0.9);
+            color: white;
+            border-radius: 50%;
+            width: 2rem;
+            height: 2rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            z-index: 10;
+        }
+        
+        .damage-photo-item {
+            border: 2px solid #e2e8f0;
+            border-radius: 0.5rem;
+            padding: 1rem;
+            margin-bottom: 1rem;
+        }
+        
+        .fuel-slider {
+            width: 100%;
+            height: 8px;
+            border-radius: 5px;
+            background: linear-gradient(to right, #ef4444 0%, #f59e0b 50%, #10b981 100%);
+            outline: none;
+            -webkit-appearance: none;
+        }
+        
+        .fuel-slider::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 24px;
+            height: 24px;
+            border-radius: 50%;
+            background: white;
+            border: 3px solid #009cb6;
+            cursor: pointer;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+        }
+        
+        .fuel-slider::-moz-range-thumb {
+            width: 24px;
+            height: 24px;
+            border-radius: 50%;
+            background: white;
+            border: 3px solid #009cb6;
+            cursor: pointer;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+        }
+        
+        .loading-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.7);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 9999;
+        }
+        
+        .spinner {
+            border: 4px solid #f3f3f3;
+            border-top: 4px solid #009cb6;
+            border-radius: 50%;
+            width: 50px;
+            height: 50px;
+            animation: spin 1s linear infinite;
+        }
+        
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+    </style>
+</head>
+<body class="bg-gray-50">
+    <div id="loadingOverlay" class="loading-overlay hidden">
+        <div class="bg-white p-8 rounded-lg shadow-xl text-center">
+            <div class="spinner mx-auto mb-4"></div>
+            <p class="text-gray-700 font-semibold">A carregar...</p>
+        </div>
+    </div>
+
+    <div class="min-h-screen py-8 px-4">
+        <div class="max-w-4xl mx-auto">
+            <!-- Header -->
+            <div class="bg-white rounded-lg shadow-md p-6 mb-6">
+                <div class="flex items-center justify-between mb-4">
+                    <h1 class="text-3xl font-bold text-gray-800">Self Check-in</h1>
+                    <img src="/static/logo.png" alt="Rentify" class="h-12" onerror="this.style.display='none'">
+                </div>
+                <div id="vehicleInfo" class="text-gray-600">
+                    <p><strong>RA:</strong> <span id="raNumber">-</span></p>
+                    <p><strong>Matrícula:</strong> <span id="licensePlate">-</span></p>
+                    <p><strong>Veículo:</strong> <span id="vehicleDetails">-</span></p>
+                </div>
+            </div>
+
+            <!-- Instructions -->
+            <div class="bg-blue-50 border-l-4 border-blue-500 p-4 mb-6 rounded">
+                <p class="text-blue-800">
+                    <strong>Instruções:</strong> Por favor, tire 9 fotos do veículo, adicione fotos de eventuais danos, 
+                    indique o nível de combustível e os quilómetros. Depois, clique em "Submeter Check-in".
+                </p>
+            </div>
+
+            <!-- Photo Grid -->
+            <div class="bg-white rounded-lg shadow-md p-6 mb-6">
+                <h2 class="text-xl font-bold text-gray-800 mb-4">Fotos do Veículo (9 fotos obrigatórias)</h2>
+                <div class="photo-grid">
+                    <div class="photo-slot" data-photo="front" onclick="triggerPhotoUpload('front')">
+                        <svg class="w-12 h-12 text-gray-400 mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z"></path>
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 13a3 3 0 11-6 0 3 3 0 016 0z"></path>
+                        </svg>
+                        <span class="text-sm text-gray-600">Frente</span>
+                    </div>
+                    <div class="photo-slot" data-photo="front_left" onclick="triggerPhotoUpload('front_left')">
+                        <svg class="w-12 h-12 text-gray-400 mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z"></path>
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 13a3 3 0 11-6 0 3 3 0 016 0z"></path>
+                        </svg>
+                        <span class="text-sm text-gray-600">Frente Esquerda</span>
+                    </div>
+                    <div class="photo-slot" data-photo="left" onclick="triggerPhotoUpload('left')">
+                        <svg class="w-12 h-12 text-gray-400 mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z"></path>
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 13a3 3 0 11-6 0 3 3 0 016 0z"></path>
+                        </svg>
+                        <span class="text-sm text-gray-600">Lateral Esquerda</span>
+                    </div>
+                    <div class="photo-slot" data-photo="back_left" onclick="triggerPhotoUpload('back_left')">
+                        <svg class="w-12 h-12 text-gray-400 mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z"></path>
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 13a3 3 0 11-6 0 3 3 0 016 0z"></path>
+                        </svg>
+                        <span class="text-sm text-gray-600">Traseira Esquerda</span>
+                    </div>
+                    <div class="photo-slot" data-photo="back" onclick="triggerPhotoUpload('back')">
+                        <svg class="w-12 h-12 text-gray-400 mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z"></path>
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 13a3 3 0 11-6 0 3 3 0 016 0z"></path>
+                        </svg>
+                        <span class="text-sm text-gray-600">Traseira</span>
+                    </div>
+                    <div class="photo-slot" data-photo="back_right" onclick="triggerPhotoUpload('back_right')">
+                        <svg class="w-12 h-12 text-gray-400 mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z"></path>
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 13a3 3 0 11-6 0 3 3 0 016 0z"></path>
+                        </svg>
+                        <span class="text-sm text-gray-600">Traseira Direita</span>
+                    </div>
+                    <div class="photo-slot" data-photo="right" onclick="triggerPhotoUpload('right')">
+                        <svg class="w-12 h-12 text-gray-400 mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z"></path>
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 13a3 3 0 11-6 0 3 3 0 016 0z"></path>
+                        </svg>
+                        <span class="text-sm text-gray-600">Lateral Direita</span>
+                    </div>
+                    <div class="photo-slot" data-photo="front_right" onclick="triggerPhotoUpload('front_right')">
+                        <svg class="w-12 h-12 text-gray-400 mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z"></path>
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 13a3 3 0 11-6 0 3 3 0 016 0z"></path>
+                        </svg>
+                        <span class="text-sm text-gray-600">Frente Direita</span>
+                    </div>
+                    <div class="photo-slot" data-photo="interior" onclick="triggerPhotoUpload('interior')">
+                        <svg class="w-12 h-12 text-gray-400 mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z"></path>
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 13a3 3 0 11-6 0 3 3 0 016 0z"></path>
+                        </svg>
+                        <span class="text-sm text-gray-600">Interior</span>
+                    </div>
+                </div>
+                <input type="file" id="photoInput" accept="image/*" capture="environment" class="hidden" onchange="handlePhotoCapture(event)">
+            </div>
+
+            <!-- Damage Photos -->
+            <div class="bg-white rounded-lg shadow-md p-6 mb-6">
+                <h2 class="text-xl font-bold text-gray-800 mb-4">Fotos de Danos (opcional)</h2>
+                <div id="damagePhotosContainer"></div>
+                <button onclick="addDamagePhoto()" class="mt-4 bg-orange-500 hover:bg-orange-600 text-white font-semibold py-2 px-4 rounded">
+                    + Adicionar Foto de Dano
+                </button>
+            </div>
+
+            <!-- Fuel & Odometer -->
+            <div class="bg-white rounded-lg shadow-md p-6 mb-6">
+                <h2 class="text-xl font-bold text-gray-800 mb-4">Combustível e Quilómetros</h2>
+                
+                <div class="mb-6">
+                    <label class="block text-gray-700 font-semibold mb-2">Nível de Combustível</label>
+                    <input type="range" id="fuelSlider" class="fuel-slider" min="0" max="8" step="1" value="8" oninput="updateFuelDisplay()">
+                    <div class="text-center mt-2">
+                        <span id="fuelDisplay" class="text-2xl font-bold text-gray-800">Full</span>
+                    </div>
+                </div>
+
+                <div>
+                    <label class="block text-gray-700 font-semibold mb-2">Quilómetros</label>
+                    <input type="number" id="odometerInput" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent" placeholder="Ex: 45000">
+                </div>
+            </div>
+
+            <!-- Submit Button -->
+            <div class="text-center">
+                <button onclick="submitCheckIn()" class="bg-[#009cb6] hover:bg-[#007a8f] text-white font-bold py-3 px-8 rounded-lg text-lg shadow-lg transition">
+                    Submeter Check-in
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let currentPhotoType = null;
+        let photos = {};
+        let damagePhotos = [];
+        let token = null;
+        let raData = null;
+
+        const fuelLevels = ['Empty', '1/8', '1/4', '3/8', '1/2', '5/8', '3/4', '7/8', 'Full'];
+
+        // Extract token from URL
+        function getTokenFromURL() {
+            const pathParts = window.location.pathname.split('/');
+            return pathParts[pathParts.length - 1];
+        }
+
+        // Load RA data
+        async function loadRAData() {
+            token = getTokenFromURL();
+            if (!token) {
+                alert('Token inválido');
+                return;
+            }
+
+            showLoading(true);
+            try {
+                const response = await fetch(`/api/self-checkin/${token}`);
+                const data = await response.json();
+
+                if (!data.success) {
+                    alert(data.error || 'Erro ao carregar dados');
+                    return;
+                }
+
+                raData = data.data;
+                document.getElementById('raNumber').textContent = raData.rental_agreement_number;
+                document.getElementById('licensePlate').textContent = raData.license_plate;
+                
+                if (raData.vehicle) {
+                    document.getElementById('vehicleDetails').textContent = 
+                        `${raData.vehicle.marca} ${raData.vehicle.modelo} (${raData.vehicle.grupo})`;
+                }
+            } catch (error) {
+                console.error('Error loading RA data:', error);
+                alert('Erro ao carregar dados do rental agreement');
+            } finally {
+                showLoading(false);
+            }
+        }
+
+        function showLoading(show) {
+            document.getElementById('loadingOverlay').classList.toggle('hidden', !show);
+        }
+
+        function triggerPhotoUpload(photoType) {
+            currentPhotoType = photoType;
+            document.getElementById('photoInput').click();
+        }
+
+        function handlePhotoCapture(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                photos[currentPhotoType] = e.target.result;
+                displayPhoto(currentPhotoType, e.target.result);
+            };
+            reader.readAsDataURL(file);
+
+            // Reset input
+            event.target.value = '';
+        }
+
+        function displayPhoto(photoType, dataUrl) {
+            const slot = document.querySelector(`[data-photo="${photoType}"]`);
+            slot.classList.add('has-photo');
+            slot.innerHTML = `
+                <img src="${dataUrl}" alt="${photoType}">
+                <div class="remove-btn" onclick="removePhoto('${photoType}', event)">×</div>
+            `;
+        }
+
+        function removePhoto(photoType, event) {
+            event.stopPropagation();
+            delete photos[photoType];
+            const slot = document.querySelector(`[data-photo="${photoType}"]`);
+            slot.classList.remove('has-photo');
+            slot.innerHTML = `
+                <svg class="w-12 h-12 text-gray-400 mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z"></path>
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 13a3 3 0 11-6 0 3 3 0 016 0z"></path>
+                </svg>
+                <span class="text-sm text-gray-600">${getPhotoLabel(photoType)}</span>
+            `;
+        }
+
+        function getPhotoLabel(photoType) {
+            const labels = {
+                'front': 'Frente',
+                'front_left': 'Frente Esquerda',
+                'left': 'Lateral Esquerda',
+                'back_left': 'Traseira Esquerda',
+                'back': 'Traseira',
+                'back_right': 'Traseira Direita',
+                'right': 'Lateral Direita',
+                'front_right': 'Frente Direita',
+                'interior': 'Interior'
+            };
+            return labels[photoType] || photoType;
+        }
+
+        function addDamagePhoto() {
+            const container = document.getElementById('damagePhotosContainer');
+            const index = damagePhotos.length;
+            
+            const div = document.createElement('div');
+            div.className = 'damage-photo-item';
+            div.id = `damage-${index}`;
+            div.innerHTML = `
+                <div class="flex justify-between items-center mb-2">
+                    <h3 class="font-semibold text-gray-700">Dano #${index + 1}</h3>
+                    <button onclick="removeDamagePhoto(${index})" class="text-red-500 hover:text-red-700">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                        </svg>
+                    </button>
+                </div>
+                <input type="file" id="damagePhotoInput-${index}" accept="image/*" capture="environment" class="mb-2" onchange="handleDamagePhoto(${index}, event)">
+                <img id="damagePhotoPreview-${index}" class="hidden w-full h-48 object-cover rounded mb-2">
+                <textarea id="damageDescription-${index}" placeholder="Descrição do dano..." class="w-full px-3 py-2 border border-gray-300 rounded" rows="2"></textarea>
+            `;
+            
+            container.appendChild(div);
+            damagePhotos.push({ photo: null, description: '' });
+        }
+
+        function handleDamagePhoto(index, event) {
+            const file = event.target.files[0];
+            if (!file) return;
+
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                damagePhotos[index].photo = e.target.result;
+                const preview = document.getElementById(`damagePhotoPreview-${index}`);
+                preview.src = e.target.result;
+                preview.classList.remove('hidden');
+            };
+            reader.readAsDataURL(file);
+        }
+
+        function removeDamagePhoto(index) {
+            document.getElementById(`damage-${index}`).remove();
+            damagePhotos[index] = null;
+        }
+
+        function updateFuelDisplay() {
+            const value = parseInt(document.getElementById('fuelSlider').value);
+            document.getElementById('fuelDisplay').textContent = fuelLevels[value];
+        }
+
+        async function submitCheckIn() {
+            // Validate 9 photos
+            const requiredPhotos = ['front', 'front_left', 'left', 'back_left', 'back', 'back_right', 'right', 'front_right', 'interior'];
+            const missingPhotos = requiredPhotos.filter(p => !photos[p]);
+            
+            if (missingPhotos.length > 0) {
+                alert(`Por favor, tire todas as 9 fotos obrigatórias. Faltam: ${missingPhotos.length}`);
+                return;
+            }
+
+            // Validate odometer
+            const odometer = document.getElementById('odometerInput').value;
+            if (!odometer || odometer <= 0) {
+                alert('Por favor, insira os quilómetros');
+                return;
+            }
+
+            // Get fuel level
+            const fuelValue = parseInt(document.getElementById('fuelSlider').value);
+            const fuelLevel = fuelLevels[fuelValue];
+
+            // Collect damage photos with descriptions
+            const validDamagePhotos = [];
+            damagePhotos.forEach((damage, index) => {
+                if (damage && damage.photo) {
+                    const description = document.getElementById(`damageDescription-${index}`)?.value || '';
+                    validDamagePhotos.push({
+                        photo: damage.photo,
+                        description: description
+                    });
+                }
+            });
+
+            // Submit
+            showLoading(true);
+            try {
+                const response = await fetch(`/api/self-checkin/${token}/submit`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        photos: photos,
+                        damage_photos: validDamagePhotos,
+                        odometer: parseInt(odometer),
+                        fuel_level: fuelLevel
+                    })
+                });
+
+                const data = await response.json();
+
+                if (data.success) {
+                    alert('✅ Self check-in submetido com sucesso! Aguarde a validação da nossa equipa.');
+                    window.location.href = '/self-checkin-success';
+                } else {
+                    alert('Erro: ' + (data.error || 'Erro desconhecido'));
+                }
+            } catch (error) {
+                console.error('Error submitting check-in:', error);
+                alert('Erro ao submeter check-in. Tente novamente.');
+            } finally {
+                showLoading(false);
+            }
+        }
+
+        // Initialize
+        document.addEventListener('DOMContentLoaded', function() {
+            loadRAData();
+            updateFuelDisplay();
+        });
+    </script>
+</body>
+</html>

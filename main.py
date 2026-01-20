@@ -30244,6 +30244,20 @@ async def inspection_history_page(request: Request):
 # SELF CHECK-IN - Cliente acede sem login via token único
 # ============================================================
 
+@app.get("/self-checkin/{token}", response_class=HTMLResponse)
+async def self_checkin_page(token: str, request: Request):
+    """Self check-in page - No auth required, accessed via unique token"""
+    return templates.TemplateResponse("self_checkin.html", {
+        "request": request
+    })
+
+@app.get("/self-checkin-success", response_class=HTMLResponse)
+async def self_checkin_success_page(request: Request):
+    """Success page after self check-in submission"""
+    return templates.TemplateResponse("self_checkin_success.html", {
+        "request": request
+    })
+
 @app.get("/api/self-checkin/{token}")
 async def get_self_checkin_data(token: str):
     """
