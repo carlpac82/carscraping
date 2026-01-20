@@ -3185,7 +3185,37 @@
                             
                             // Store inspection status for later check when clicking "Iniciar Entrega"
                             window.inspectionCompleted = ra.inspection_completed;
-                            console.log('🔍 inspection_completed from backend:', ra.inspection_completed, 'type:', typeof ra.inspection_completed);
+                            window.hasCheckout = ra.has_checkout;
+                            window.hasCheckin = ra.has_checkin;
+                            window.contractClosed = ra.contract_closed;
+                            
+                            console.log('🔍 Contract status from backend:');
+                            console.log('  - inspection_completed:', ra.inspection_completed, 'type:', typeof ra.inspection_completed);
+                            console.log('  - has_checkout:', ra.has_checkout);
+                            console.log('  - has_checkin:', ra.has_checkin);
+                            console.log('  - contract_closed:', ra.contract_closed);
+                            
+                            // Check if contract is closed (both checkout and check-in completed)
+                            if (ra.contract_closed === true) {
+                                // Show popup warning
+                                showNotification('⚠️ Contrato Encerrado! Este contrato já tem check-out e check-in completos. Não é possível fazer mais inspeções.', 'error');
+                                
+                                // Disable both buttons
+                                const deliveryButton = document.querySelector('[onclick*="startDelivery"]');
+                                const pickupButton = document.querySelector('[onclick*="startPickup"]');
+                                
+                                if (deliveryButton) {
+                                    deliveryButton.disabled = true;
+                                    deliveryButton.classList.add('opacity-50', 'cursor-not-allowed');
+                                }
+                                
+                                if (pickupButton) {
+                                    pickupButton.disabled = true;
+                                    pickupButton.classList.add('opacity-50', 'cursor-not-allowed');
+                                }
+                                
+                                console.log('🚫 Contract closed: both buttons disabled');
+                            }
                             
                             // Update pickup button state after setting inspection status
                             if (typeof updatePickupButtonState === 'function') {

@@ -43873,32 +43873,63 @@ async def get_latest_ra_by_plate(request: Request, plate: str):
                     "status": vehicle_row[8]
                 }
         
-        # Check if there's an actual checkout inspection in the database
-        # (not just the flag in rental_agreements)
+        # Check contract status: checkout and check-in inspections
         has_checkout_inspection = False
+        has_checkin_inspection = False
+        contract_closed = False
+        
         if is_postgres:
             with conn.cursor() as cur:
+                # Check for checkout
                 cur.execute("""
                     SELECT COUNT(*) 
                     FROM vehicle_inspections 
                     WHERE contract_number = %s 
                       AND inspection_type = 'checkout'
                 """, (ra_data["rental_agreement_number"],))
-                count = cur.fetchone()[0]
-                has_checkout_inspection = count > 0
+                checkout_count = cur.fetchone()[0]
+                has_checkout_inspection = checkout_count > 0
+                
+                # Check for check-in
+                cur.execute("""
+                    SELECT COUNT(*) 
+                    FROM vehicle_inspections 
+                    WHERE contract_number = %s 
+                      AND inspection_type = 'checkin'
+                """, (ra_data["rental_agreement_number"],))
+                checkin_count = cur.fetchone()[0]
+                has_checkin_inspection = checkin_count > 0
         else:
+            # Check for checkout
             cursor = conn.execute("""
                 SELECT COUNT(*) 
                 FROM vehicle_inspections 
                 WHERE contract_number = ? 
                   AND inspection_type = 'checkout'
             """, (ra_data["rental_agreement_number"],))
-            count = cursor.fetchone()[0]
-            has_checkout_inspection = count > 0
+            checkout_count = cursor.fetchone()[0]
+            has_checkout_inspection = checkout_count > 0
+            
+            # Check for check-in
+            cursor = conn.execute("""
+                SELECT COUNT(*) 
+                FROM vehicle_inspections 
+                WHERE contract_number = ? 
+                  AND inspection_type = 'checkin'
+            """, (ra_data["rental_agreement_number"],))
+            checkin_count = cursor.fetchone()[0]
+            has_checkin_inspection = checkin_count > 0
+        
+        # Contract is closed if both checkout and check-in exist
+        contract_closed = has_checkout_inspection and has_checkin_inspection
         
         # Override inspection_completed based on actual inspection existence
         ra_data["inspection_completed"] = has_checkout_inspection
-        logging.info(f"🔍 Checkout inspection check: has_checkout={has_checkout_inspection}, inspection_completed={ra_data['inspection_completed']}")
+        ra_data["has_checkout"] = has_checkout_inspection
+        ra_data["has_checkin"] = has_checkin_inspection
+        ra_data["contract_closed"] = contract_closed
+        
+        logging.info(f"🔍 Contract status - Checkout: {has_checkout_inspection}, Check-in: {has_checkin_inspection}, Closed: {contract_closed}")
         
         # Get inspection info if inspection exists
         inspection_info = None
