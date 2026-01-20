@@ -42,11 +42,6 @@
                     <img src="/static/ap-heather.png" alt="Auto Prudente" class="h-12 w-auto" />
                 </div>
                 
-                <!-- Center: Page Title -->
-                <div class="absolute left-1/2 transform -translate-x-1/2">
-                    <h1 class="text-sm sm:text-base md:text-xl font-semibold text-white">Histórico de Inspeções</h1>
-                </div>
-                
                 <!-- Right: Navigation Icons -->
                 <div class="flex items-center gap-3">
                     {% if request.session.get('is_admin') or request.session.get('role') in ['admin', 'user'] %}
@@ -107,6 +102,9 @@
     </header>
 
     <main class="max-w-7xl mx-auto px-4 py-6">
+        <!-- Page Title -->
+        <h1 class="text-2xl sm:text-3xl font-bold text-gray-800 mb-6">Histórico de Inspeções</h1>
+        
         <!-- Search Filters -->
         <div class="bg-white rounded-lg shadow-md p-6 mb-6">
             <h3 class="text-lg font-semibold text-gray-800 mb-4">Pesquisar Inspeções</h3>
