@@ -30357,8 +30357,8 @@ async def save_inspection(request: Request):
                     
                     # Choose template based on inspection type
                     if inspection_type == 'checkout':
-                        # CHECK-OUT (recolha) - use email_checkin template
-                        template_name = f"email_checkin_{detected_lang}.html" if detected_lang in ['pt', 'fr', 'en'] else "email_checkin_en.html"
+                        # CHECK-OUT (recolha) - use email_checkout template
+                        template_name = f"email_checkout_{detected_lang}.html" if detected_lang in ['pt', 'fr', 'en'] else "email_checkout_en.html"
                         subject = _get_checkin_email_subject(detected_lang, ra)
                         croqui_title = _get_checkin_croqui_title(detected_lang)
                         
@@ -30366,11 +30366,11 @@ async def save_inspection(request: Request):
                         logging.info(f"📧 Subject: {subject}")
                         
                     elif inspection_type == 'checkin':
-                        # CHECK-IN (entrega) - use email_preview template
-                        template_name = f"email_preview_{detected_lang}.html" if detected_lang in ['pt', 'fr'] else "email_preview.html"
+                        # CHECK-IN (entrega) - use email_checkin template
+                        template_name = f"email_checkin_{detected_lang}.html" if detected_lang in ['pt', 'fr', 'en'] else "email_checkin_en.html"
                         croqui_title = "Croqui de Danos" if detected_lang == 'pt' else "Damage Sketch" if detected_lang == 'en' else "Croquis des Dommages"
                         
-                        # Checkout subject
+                        # Checkin subject
                         subject = f"Delivery Report R.A. {ra}"
                         if detected_lang == 'pt':
                             subject = f"Relatório de Entrega R.A. {ra}"
@@ -30382,7 +30382,7 @@ async def save_inspection(request: Request):
                         
                     else:
                         # Default fallback
-                        template_name = f"email_preview_{detected_lang}.html" if detected_lang in ['pt', 'fr'] else "email_preview.html"
+                        template_name = f"email_checkin_{detected_lang}.html" if detected_lang in ['pt', 'fr', 'en'] else "email_checkin_en.html"
                         croqui_title = "Croqui de Danos" if detected_lang == 'pt' else "Damage Sketch" if detected_lang == 'en' else "Croquis des Dommages"
                         subject = f"Inspection Report R.A. {ra}"
                     
