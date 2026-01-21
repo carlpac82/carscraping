@@ -29945,6 +29945,33 @@ async def save_inspection(request: Request):
             conn.commit()
             logging.info("✅ Transaction committed successfully")
             
+            # VALIDATE INCIDENTS FOR CHECK-OUT (RECOLHA) - ALWAYS, regardless of email
+            incidents = {
+                'has_fuel_incident': False,
+                'has_damage_incident': False,
+                'fuel_diff': 0,
+                'checkout_fuel': 100,
+                'checkout_damage_count': 0,
+                'checkin_has_damage_photos': False
+            }
+            
+            if inspection_type == 'checkout':
+                logging.info("🔍 CHECK-OUT (recolha) DETECTED - Validating incidents...")
+                try:
+                    incidents = _validate_checkin_incidents(
+                        cursor, is_postgres, ra, plate,
+                        float(fuel_level), damage_count, inspection_id
+                    )
+                    logging.info(f"📊 Incidents validation result: {incidents}")
+                    logging.info(f"🔍 [DEBUG] has_fuel_incident: {incidents.get('has_fuel_incident', False)}")
+                    logging.info(f"🔍 [DEBUG] has_damage_incident: {incidents.get('has_damage_incident', False)}")
+                except Exception as incident_error:
+                    logging.error(f"❌ Error validating incidents: {incident_error}")
+                    import traceback
+                    logging.error(f"❌ Traceback: {traceback.format_exc()}")
+            else:
+                logging.info("🔍 CHECK-IN (entrega) DETECTED - No incident validation (damages are expected)")
+            
             # Send email ONLY if explicitly requested via send_email flag
             logging.info(f"🔍 Email send check: email='{email}' (type: {type(email).__name__}), send_email={send_email} (type: {type(send_email).__name__})")
             logging.info(f"🔍 Condition check: email={bool(email)}, send_email={bool(send_email)}, both={bool(email and send_email)}")
@@ -30276,54 +30303,21 @@ async def save_inspection(request: Request):
                     }
                     inspection_type_label = t_labels.get(inspection_type, {}).get(detected_lang, inspection_type)
                     
-                    # Validate incidents
+                    # Use incidents already validated before email block
                     status_alert_html = ""
                     photos_section_html = ""
                     
-                    # IMPORTANTE: checkin (DB) = CHECK-IN (entrega), checkout (DB) = CHECK-OUT (recolha)
-                    # For CHECK-OUT (recolha/checkout DB): check if there are NEW damages (compare with checkin/entrega)
-                    # For CHECK-IN (entrega/checkin DB): NO alerts - damages are expected and documented
+                    # Generate STATUS_ALERT based on incidents (already validated above)
                     if inspection_type == 'checkout':
-                        logging.info("🔍 CHECK-OUT (recolha) DETECTED - Validating incidents...")
-                        
-                        # Validate incidents by comparing with checkin (entrega)
-                        incidents = _validate_checkin_incidents(
-                            cursor, is_postgres, ra, plate,
-                            float(fuel_level), damage_count, inspection_id
-                        )
-                        
-                        logging.info(f"📊 Incidents validation result: {incidents}")
-                        logging.info(f"🔍 [DEBUG] has_fuel_incident: {incidents.get('has_fuel_incident', False)} (type: {type(incidents.get('has_fuel_incident', False)).__name__})")
-                        logging.info(f"🔍 [DEBUG] has_damage_incident: {incidents.get('has_damage_incident', False)} (type: {type(incidents.get('has_damage_incident', False)).__name__})")
-                        
-                        # Generate STATUS_ALERT based on incidents
+                        logging.info("📧 Generating STATUS_ALERT for CHECK-OUT email...")
                         status_alert_html = _generate_checkin_status_alert(
                             detected_lang,
                             incidents['has_fuel_incident'],
                             incidents['has_damage_incident']
                         )
-                        
-                    elif inspection_type == 'checkin':
-                        logging.info("🔍 CHECK-IN (entrega) DETECTED - No incident validation (damages are expected)")
-                        
-                        # For check-in (entrega), we don't validate incidents
-                        # Damages are expected and documented, not incidents
-                        incidents = {
-                            'has_fuel_incident': False,
-                            'has_damage_incident': False,
-                            'checkin_has_damage_photos': damage_count > 0
-                        }
-                        
-                        # NO STATUS_ALERT for check-in
-                        status_alert_html = ""
-                        
                     else:
-                        # No validation for other types
-                        incidents = {
-                            'has_fuel_incident': False,
-                            'has_damage_incident': False,
-                            'checkin_has_damage_photos': False
-                        }
+                        logging.info("📧 CHECK-IN email - No STATUS_ALERT needed")
+                        status_alert_html = ""
                     
                     logging.info(f"📧 [DEBUG] Status alert HTML length: {len(status_alert_html)}")
                     logging.info(f"📧 [DEBUG] Status alert preview: {status_alert_html[:200] if status_alert_html else 'EMPTY'}")
