@@ -29811,14 +29811,15 @@ async def save_inspection(request: Request):
                             SET km_atual = %s, 
                                 nivel_combustivel = %s,
                                 status = CASE 
-                                    WHEN %s = 'checkin' THEN 'disponivel'
                                     WHEN %s = 'checkout' THEN 'alugado'
+                                    WHEN %s = 'checkin' THEN 'disponivel'
                                     ELSE status
                                 END
                             WHERE id = %s
                         """, (int(odometer_reading), str(fuel_level), inspection_type, inspection_type, vehicle_id))
                     else:
-                        new_status = 'disponivel' if inspection_type == 'checkin' else 'alugado' if inspection_type == 'checkout' else None
+                        # checkout (DB) = check-in (entrega) = alugado, checkin (DB) = check-out (recolha) = disponível
+                        new_status = 'alugado' if inspection_type == 'checkout' else 'disponivel' if inspection_type == 'checkin' else None
                         if new_status:
                             cursor.execute("""
                                 UPDATE vehicles 
@@ -30309,9 +30310,10 @@ async def save_inspection(request: Request):
                     status_alert_html = ""
                     photos_section_html = ""
                     
-                    # For CHECK-OUT (recolha): check if there are NEW damages (compare with checkout/entrega)
-                    # For CHECK-IN (entrega): NO alerts - damages are expected and documented
-                    if inspection_type == 'checkout':
+                    # IMPORTANTE: checkout (DB) = CHECK-IN (entrega), checkin (DB) = CHECK-OUT (recolha)
+                    # For CHECK-OUT (recolha/checkin DB): check if there are NEW damages (compare with checkout/entrega)
+                    # For CHECK-IN (entrega/checkout DB): NO alerts - damages are expected and documented
+                    if inspection_type == 'checkin':
                         logging.info("🔍 CHECK-OUT (recolha) DETECTED - Validating incidents...")
                         
                         # Validate incidents by comparing with check-in (entrega)
@@ -30331,7 +30333,7 @@ async def save_inspection(request: Request):
                             incidents['has_damage_incident']
                         )
                         
-                    elif inspection_type == 'checkin':
+                    elif inspection_type == 'checkout':
                         logging.info("🔍 CHECK-IN (entrega) DETECTED - No incident validation (damages are expected)")
                         
                         # For check-in (entrega), we don't validate incidents
