@@ -30305,11 +30305,35 @@ async def save_inspection(request: Request):
                     }
                     inspection_type_label = t_labels.get(inspection_type, {}).get(detected_lang, inspection_type)
                     
-                    # Check if this is a check-in (pickup/recolha) - validate incidents
+                    # Validate incidents for BOTH checkout and check-in
                     status_alert_html = ""
                     photos_section_html = ""
                     
-                    if inspection_type == 'checkin':
+                    # For CHECKOUT (devolução): check if there are ANY damages marked
+                    # For CHECK-IN (recolha): compare with previous checkout
+                    if inspection_type == 'checkout':
+                        logging.info("🔍 CHECKOUT DETECTED - Checking for damages...")
+                        
+                        # For checkout, simply check if there are damages marked
+                        has_damage_incident = damage_count > 0
+                        has_fuel_incident = False  # Fuel validation only for check-in
+                        
+                        logging.info(f"📊 Checkout validation: damage_count={damage_count}, has_damage={has_damage_incident}")
+                        
+                        # Generate STATUS_ALERT based on damages
+                        status_alert_html = _generate_checkin_status_alert(
+                            detected_lang,
+                            has_fuel_incident,
+                            has_damage_incident
+                        )
+                        
+                        incidents = {
+                            'has_fuel_incident': has_fuel_incident,
+                            'has_damage_incident': has_damage_incident,
+                            'checkin_has_damage_photos': damage_count > 0
+                        }
+                        
+                    elif inspection_type == 'checkin':
                         logging.info("🔍 CHECK-IN DETECTED - Validating incidents...")
                         
                         # Validate incidents by comparing with checkout
@@ -30328,13 +30352,21 @@ async def save_inspection(request: Request):
                             incidents['has_fuel_incident'],
                             incidents['has_damage_incident']
                         )
-                        
-                        logging.info(f"📧 [DEBUG] Status alert HTML length: {len(status_alert_html)}")
-                        logging.info(f"📧 [DEBUG] Status alert preview: {status_alert_html[:200] if status_alert_html else 'EMPTY'}")
-                        
-                        # Build PHOTOS_SECTION based on incidents
-                        # If fuel incident: show odometer photo as proof
-                        # If damage incident: show all damage photos
+                    else:
+                        # No validation for other types
+                        incidents = {
+                            'has_fuel_incident': False,
+                            'has_damage_incident': False,
+                            'checkin_has_damage_photos': False
+                        }
+                    
+                    logging.info(f"📧 [DEBUG] Status alert HTML length: {len(status_alert_html)}")
+                    logging.info(f"📧 [DEBUG] Status alert preview: {status_alert_html[:200] if status_alert_html else 'EMPTY'}")
+                    
+                    # Build PHOTOS_SECTION based on incidents
+                    # If fuel incident: show odometer photo as proof
+                    # If damage incident: show all damage photos
+                    if inspection_type in ['checkout', 'checkin']:
                         if incidents['has_fuel_incident'] or incidents['has_damage_incident']:
                             # Get odometer photo for fuel incidents
                             odometer_photo_html = ""
@@ -32713,24 +32745,56 @@ async def send_inspection_email(request: Request, inspection_number: str):
         croqui_title = ""
         damage_count = 0
         
-        # Check if this is a check-in - validate incidents
-        if inspection_type == 'checkin':
+        # Get damage count from inspection (for both checkout and check-in)
+        if _USE_NEW_DB:
+            cursor.execute("""
+                SELECT damage_count FROM vehicle_inspections 
+                WHERE id = %s
+            """, (inspection_id,))
+        else:
+            cursor.execute("""
+                SELECT damage_count FROM vehicle_inspections 
+                WHERE id = ?
+            """, (inspection_id,))
+        
+        damage_row = cursor.fetchone()
+        damage_count = damage_row[0] if damage_row and damage_row[0] else 0
+        
+        # Validate incidents for BOTH checkout and check-in
+        if inspection_type == 'checkout':
+            logging.info("🔍 CHECKOUT DETECTED - Checking for damages...")
+            
+            # For checkout, simply check if there are damages marked
+            has_damage_incident = damage_count > 0
+            has_fuel_incident = False  # Fuel validation only for check-in
+            
+            logging.info(f"📊 Checkout validation: damage_count={damage_count}, has_damage={has_damage_incident}")
+            
+            # Generate STATUS_ALERT based on damages
+            status_alert_html = _generate_checkin_status_alert(
+                detected_lang,
+                has_fuel_incident,
+                has_damage_incident
+            )
+            
+            incidents = {
+                'has_fuel_incident': has_fuel_incident,
+                'has_damage_incident': has_damage_incident
+            }
+            
+            # Build PHOTOS_SECTION for checkout damages
+            if incidents.get('has_damage_incident'):
+                damage_label = {
+                    'pt': 'Fotos dos Danos',
+                    'en': 'Damage Photos',
+                    'fr': 'Photos des Dommages'
+                }.get(detected_lang, 'Damage Photos')
+                
+                # Mark that we need to add damage photos (will be added after photos_html is built)
+                photos_section_html = f"__DAMAGE_PHOTOS_PLACEHOLDER__:{damage_label}"
+            
+        elif inspection_type == 'checkin':
             logging.info("🔍 CHECK-IN DETECTED - Validating incidents...")
-            
-            # Get damage count from inspection (reuse existing cursor)
-            if _USE_NEW_DB:
-                cursor.execute("""
-                    SELECT damage_count FROM vehicle_inspections 
-                    WHERE id = %s
-                """, (inspection_id,))
-            else:
-                cursor.execute("""
-                    SELECT damage_count FROM vehicle_inspections 
-                    WHERE id = ?
-                """, (inspection_id,))
-            
-            damage_row = cursor.fetchone()
-            damage_count = damage_row[0] if damage_row and damage_row[0] else 0
             
             # Validate incidents by comparing with checkout (reuse existing cursor)
             try:
