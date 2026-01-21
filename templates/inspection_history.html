@@ -530,7 +530,8 @@
             }
             
             // Get selected report type
-            let reportType = 'checkout';
+            // Default to whichever is available
+            let reportType = checkoutNumber ? 'checkout' : 'checkin';
             const radioButtons = document.querySelectorAll('input[name="reportType"]');
             radioButtons.forEach(radio => {
                 if (radio.checked) reportType = radio.value;
