@@ -32754,9 +32754,37 @@ async def send_inspection_email(request: Request, inspection_number: str):
         damage_count = damage_row[0] if damage_row and damage_row[0] else 0
         
         # Validate incidents
-        # CHECK-OUT (recolha): validate new damages by comparing with check-in (entrega)
-        # CHECK-IN (entrega): NO alerts - damages are expected and documented
-        if inspection_type == 'checkout':
+        # CHECK-IN (entrega): NO alerts - just document damages, fuel, photos
+        # CHECK-OUT (recolha): validate incidents by comparing with check-in (entrega)
+        if inspection_type == 'checkin':
+            logging.info("🔍 CHECK-IN (entrega) DETECTED - No validation, just documenting...")
+            
+            # Damages are expected and documented, not incidents
+            incidents = {
+                'has_fuel_incident': False,
+                'has_damage_incident': False,
+                'checkin_has_damage_photos': damage_count > 0
+            }
+            
+            # NO STATUS_ALERT for check-in (entrega)
+            status_alert_html = ""
+            
+            # Use simple template without incident alerts
+            template_name = f"email_preview_{detected_lang}.html" if detected_lang in ['pt', 'fr'] else "email_preview.html"
+            croqui_title = "Croqui de Danos" if detected_lang == 'pt' else "Damage Sketch" if detected_lang == 'en' else "Croquis des Dommages"
+            
+            # Check-in (entrega) subject
+            if detected_lang == 'pt':
+                email_title = f"Relatorio de Entrega R.A. {ra}"
+            elif detected_lang == 'fr':
+                email_title = f"Rapport de Livraison R.A. {ra}"
+            else:
+                email_title = f"Delivery Report R.A. {ra}"
+            
+            logging.info(f"📧 Using check-in template: {template_name}")
+            logging.info(f"📧 Subject: {email_title}")
+            
+        elif inspection_type == 'checkout':
             logging.info("🔍 CHECK-OUT (recolha) DETECTED - Validating incidents...")
             
             # Validate incidents by comparing with check-in (entrega)
@@ -32848,41 +32876,16 @@ async def send_inspection_email(request: Request, inspection_number: str):
                 import traceback
                 logging.error(traceback.format_exc())
             
-            # Use check-out template (old check-in)
+            # Use check-out template with incident alerts
             template_name = f"email_checkin_{detected_lang}.html" if detected_lang in ['pt', 'fr', 'en'] else "email_checkin_en.html"
             
-            # Get check-out specific subject and croqui title
+            # Get check-out (recolha) specific subject and croqui title
             email_title = _get_checkin_email_subject(detected_lang, ra)
             croqui_title = _get_checkin_croqui_title(detected_lang)
             
             logging.info(f"📧 Using check-out template: {template_name}")
             logging.info(f"📧 Subject: {email_title}")
             logging.info(f"📧 Croqui title: {croqui_title}")
-            
-        elif inspection_type == 'checkin':
-            logging.info("🔍 CHECK-IN (entrega) DETECTED - No validation, just documenting damages...")
-            
-            # Damages are expected and documented, not incidents
-            incidents = {
-                'has_fuel_incident': False,
-                'has_damage_incident': False,
-                'checkin_has_damage_photos': damage_count > 0
-            }
-            
-            # NO STATUS_ALERT for check-in
-            status_alert_html = ""
-            
-            # Use check-in template (old checkout)
-            template_name = f"email_preview_{detected_lang}.html" if detected_lang in ['pt', 'fr'] else "email_preview.html"
-            croqui_title = "Croqui de Danos" if detected_lang == 'pt' else "Damage Sketch" if detected_lang == 'en' else "Croquis des Dommages"
-            
-            # Check-in subject
-            if detected_lang == 'pt':
-                email_title = f"Relatorio de Entrega R.A. {ra}"
-            elif detected_lang == 'fr':
-                email_title = f"Rapport de Livraison R.A. {ra}"
-            else:
-                email_title = f"Delivery Report R.A. {ra}"
                 
         else:
             # Unknown type - no validation
