@@ -24863,14 +24863,15 @@ def _validate_checkin_incidents(cursor, is_postgres, ra, plate, checkin_fuel_lev
     }
     
     try:
-        # Get checkout inspection data for same RA and plate
+        # Get checkin (entrega) inspection data for same RA and plate to compare with checkout (recolha)
+        # checkout (recolha) deve comparar com checkin (entrega anterior)
         if is_postgres:
             cursor.execute("""
                 SELECT fuel_level, damage_count, id
                 FROM vehicle_inspections
                 WHERE contract_number = %s
                 AND vehicle_plate = %s
-                AND inspection_type = 'checkout'
+                AND inspection_type = 'checkin'
                 ORDER BY created_at DESC
                 LIMIT 1
             """, (ra, plate))
@@ -24880,61 +24881,64 @@ def _validate_checkin_incidents(cursor, is_postgres, ra, plate, checkin_fuel_lev
                 FROM vehicle_inspections
                 WHERE contract_number = ?
                 AND vehicle_plate = ?
-                AND inspection_type = 'checkout'
+                AND inspection_type = 'checkin'
                 ORDER BY created_at DESC
                 LIMIT 1
             """, (ra, plate))
         
-        checkout_row = cursor.fetchone()
+        checkin_row = cursor.fetchone()
         
-        if not checkout_row:
-            logging.warning(f"⚠️ No checkout inspection found for RA={ra}, Plate={plate}")
+        if not checkin_row:
+            logging.warning(f"⚠️ No checkin (entrega) inspection found for RA={ra}, Plate={plate}")
             return result
         
-        checkout_fuel = float(checkout_row[0]) if checkout_row[0] else 100
-        checkout_damage_count = int(checkout_row[1]) if checkout_row[1] else 0
-        checkout_id = checkout_row[2]
+        # checkin_row = dados da ENTREGA (checkin)
+        # checkin_fuel_level e checkin_damage_count = dados da RECOLHA (checkout)
+        entrega_fuel = float(checkin_row[0]) if checkin_row[0] else 100
+        entrega_damage_count = int(checkin_row[1]) if checkin_row[1] else 0
+        entrega_id = checkin_row[2]
         
-        result['checkout_fuel'] = checkout_fuel
-        result['checkout_damage_count'] = checkout_damage_count
+        result['checkout_fuel'] = entrega_fuel
+        result['checkout_damage_count'] = entrega_damage_count
         
-        logging.info(f"📊 Checkout data: Fuel={checkout_fuel}%, Damages={checkout_damage_count}")
-        logging.info(f"📊 Check-in data: Fuel={checkin_fuel_level}%, Damages={checkin_damage_count}")
+        logging.info(f"📊 ENTREGA (checkin) data: Fuel={entrega_fuel}%, Damages={entrega_damage_count}")
+        logging.info(f"📊 RECOLHA (checkout) data: Fuel={checkin_fuel_level}%, Damages={checkin_damage_count}")
         
         # Validate fuel - ONLY alert if there's LESS fuel (fuel shortage)
-        # If client returns with MORE fuel, no incident (they added fuel, which is OK)
-        fuel_diff = checkout_fuel - float(checkin_fuel_level)
+        # RECOLHA (checkout/checkin_fuel_level) vs ENTREGA (checkin/entrega_fuel)
+        # If client returns with LESS fuel than received, it's an incident
+        fuel_diff = entrega_fuel - float(checkin_fuel_level)
         result['fuel_diff'] = fuel_diff
         
-        # Only flag incident if fuel_diff > 5% (meaning checkin has LESS fuel than checkout)
+        # Only flag incident if fuel_diff > 5% (meaning recolha has LESS fuel than entrega)
         # Allow 5% tolerance for measurement differences
         if fuel_diff > 5:  # Client returned with LESS fuel than received
             result['has_fuel_incident'] = True
-            logging.warning(f"⚠️ FUEL INCIDENT: Shortage of {fuel_diff}% (checkout: {checkout_fuel}%, checkin: {checkin_fuel_level}%)")
+            logging.warning(f"⚠️ FUEL INCIDENT: Shortage of {fuel_diff}% (entrega: {entrega_fuel}%, recolha: {checkin_fuel_level}%)")
         elif fuel_diff < -5:  # Client returned with MORE fuel than received (no incident)
             logging.info(f"✅ FUEL OK: Client returned with MORE fuel (+{abs(fuel_diff)}%) - No incident")
         else:
             logging.info(f"✅ FUEL OK: Within tolerance ({fuel_diff}%)")
         
-        # Validate damages - check if there are NEW damage photos in check-in
-        # Get checkout damage photos count
+        # Validate damages - check if there are NEW damage photos in recolha (checkout)
+        # Get entrega (checkin) damage photos count
         if is_postgres:
             cursor.execute("""
                 SELECT COUNT(*) FROM inspection_photos
                 WHERE inspection_id = %s
                 AND (photo_type LIKE 'damage%%' OR photo_type = 'damage_croqui')
-            """, (checkout_id,))
+            """, (entrega_id,))
         else:
             cursor.execute("""
                 SELECT COUNT(*) FROM inspection_photos
                 WHERE inspection_id = ?
                 AND (photo_type LIKE 'damage%' OR photo_type = 'damage_croqui')
-            """, (checkout_id,))
+            """, (entrega_id,))
         
-        checkout_photo_count_row = cursor.fetchone()
-        checkout_damage_photos = checkout_photo_count_row[0] if checkout_photo_count_row else 0
+        entrega_photo_count_row = cursor.fetchone()
+        entrega_damage_photos = entrega_photo_count_row[0] if entrega_photo_count_row else 0
         
-        # Get checkin damage photos count
+        # Get recolha (checkout) damage photos count
         if is_postgres:
             cursor.execute("""
                 SELECT COUNT(*) FROM inspection_photos
@@ -24949,16 +24953,16 @@ def _validate_checkin_incidents(cursor, is_postgres, ra, plate, checkin_fuel_lev
             """, (checkin_inspection_id,))
         
         photo_count_row = cursor.fetchone()
-        checkin_damage_photos = photo_count_row[0] if photo_count_row else 0
-        result['checkin_has_damage_photos'] = checkin_damage_photos > 0
+        recolha_damage_photos = photo_count_row[0] if photo_count_row else 0
+        result['checkin_has_damage_photos'] = recolha_damage_photos > 0
         
-        # If check-in has MORE damages than checkout, it's an incident
+        # If recolha (checkout) has MORE damages than entrega (checkin), it's an incident
         # Compare both damage_count AND photo count
-        if checkin_damage_count > checkout_damage_count or checkin_damage_photos > checkout_damage_photos:
+        if checkin_damage_count > entrega_damage_count or recolha_damage_photos > entrega_damage_photos:
             result['has_damage_incident'] = True
-            logging.warning(f"⚠️ DAMAGE INCIDENT: Check-in has {checkin_damage_count} damages vs {checkout_damage_count} in checkout, {checkin_damage_photos} photos vs {checkout_damage_photos} in checkout")
+            logging.warning(f"⚠️ DAMAGE INCIDENT: Recolha has {checkin_damage_count} damages vs {entrega_damage_count} in entrega, {recolha_damage_photos} photos vs {entrega_damage_photos} in entrega")
         else:
-            logging.info(f"✅ DAMAGE OK: No new damages (checkin: {checkin_damage_count} damages, {checkin_damage_photos} photos | checkout: {checkout_damage_count} damages, {checkout_damage_photos} photos)")
+            logging.info(f"✅ DAMAGE OK: No new damages (recolha: {checkin_damage_count} damages, {recolha_damage_photos} photos | entrega: {entrega_damage_count} damages, {entrega_damage_photos} photos)")
         
         logging.info(f"✅ Validation complete: Fuel incident={result['has_fuel_incident']}, Damage incident={result['has_damage_incident']}")
         
