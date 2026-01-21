@@ -29084,6 +29084,7 @@ async def save_inspection(request: Request):
         
         # Extract inspection data
         inspection_type = data.get('inspection_type', data.get('type', 'checkin'))
+        logging.info(f"🔍 INSPECTION TYPE RECEIVED: '{inspection_type}' (from inspection_type: {data.get('inspection_type')}, from type: {data.get('type')})")
         photos = data.get('photos', {})
         damages = data.get('damages', [])
         observations = data.get('observations', '')
@@ -33154,11 +33155,11 @@ async def send_inspection_email(request: Request, inspection_number: str):
         logging.info(f"ℹ️ T&C PDF attachment disabled to reduce email size")
         
         # Send email
-        # For check-in, email_title already includes RA, for checkout we need to add it
+        # email_title already includes RA for both check-in and check-out
         if inspection_type == 'checkin':
-            email_subject = email_title  # Already includes RA from _get_checkout_email_subject
+            email_subject = email_title  # From lines 32710-32716 (Relatório de Entrega)
         else:
-            email_subject = email_title  # Already includes RA from above
+            email_subject = email_title  # From _get_checkout_email_subject (Relatório de Recolha)
         
         logging.info(f"📧 Sending email with subject: {email_subject}")
         
