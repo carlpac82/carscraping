@@ -25006,6 +25006,7 @@ def _validate_checkin_incidents(cursor, is_postgres, ra, plate, checkin_fuel_lev
     except Exception as e:
         logging.error(f"❌ Error validating check-in incidents: {e}")
         import traceback
+        logging.error(f"❌ Traceback: {traceback.format_exc()}")
         traceback.print_exc()
     
     return result
