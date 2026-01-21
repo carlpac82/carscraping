@@ -2489,6 +2489,21 @@ async function openCameraWithStream(photoType) {
         cameraStream = window.pendingCameraStream;
         // DON'T clear pendingCameraStream - we need it for next photos
         
+        // Get video track for flash control
+        currentTrack = cameraStream.getVideoTracks()[0];
+        
+        // Check if flash is supported and show button
+        if (currentTrack) {
+            const capabilities = currentTrack.getCapabilities();
+            if (capabilities.torch) {
+                const flashButton = document.getElementById('flashButton');
+                if (flashButton) {
+                    flashButton.style.display = 'block';
+                    console.log('✅ Flash supported in openCameraWithStream');
+                }
+            }
+        }
+        
         // Set video source
         const video = document.getElementById('cameraPreview');
         video.srcObject = cameraStream;
@@ -2557,46 +2572,17 @@ advanced: [{ torch: false }]
 
 // Get video track for flash control
 currentTrack = cameraStream.getVideoTracks()[0];
-console.log('🔍 currentTrack:', currentTrack);
 
 // Check if flash is supported and show button every time camera opens
-const flashButton = document.getElementById('flashButton');
-console.log('🔍 flashButton element:', flashButton);
-
 if (currentTrack) {
 const capabilities = currentTrack.getCapabilities();
-console.log('🔍 Flash capabilities:', capabilities);
-console.log('🔍 capabilities.torch:', capabilities.torch);
-
-// TEMPORARY DEBUG: Show flash button ALWAYS for testing
-if (flashButton) {
-flashButton.style.display = 'block';
-flashButton.style.backgroundColor = 'red'; // Make it visible for debug
-flashButton.style.border = '2px solid yellow';
-console.log('✅ Flash button forced visible for debug');
-}
-
 if (capabilities.torch) {
-console.log('✅ Flash supported');
-// Show notification on screen
-setTimeout(() => {
-showNotification('Flash suportado! Botão deve estar visível', 'success');
-}, 1000);
-} else {
-console.log('❌ Flash not supported on this device');
-setTimeout(() => {
-showNotification('Flash NÃO suportado neste dispositivo', 'error');
-}, 1000);
-}
-} else {
-console.error('❌ currentTrack is null or undefined');
+const flashButton = document.getElementById('flashButton');
 if (flashButton) {
 flashButton.style.display = 'block';
-flashButton.style.backgroundColor = 'orange';
+console.log('✅ Flash supported, button shown');
 }
-setTimeout(() => {
-showNotification('ERRO: currentTrack não encontrado', 'error');
-}, 1000);
+}
 }
     
 // Set video source
