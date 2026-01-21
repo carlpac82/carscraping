@@ -29303,15 +29303,24 @@ async def save_inspection(request: Request):
         logging.info(f"🔢 Generated inspection number: {inspection_number}")
         
         # Calculate damage info
-        # For checkin, use damage_count from frontend (counts new damages)
-        # For checkout, count from damages array
+        # For checkin (recolha/check-out), count damages from:
+        # 1. damages array (pins marcados no croqui)
+        # 2. damage photos (fotos individuais de danos)
+        # 3. damage_count explícito do frontend
+        # For checkout (entrega/check-in), count from damages array
         if inspection_type == 'checkin':
-            damage_count = data.get('damage_count', 0)
-            # Also count damage photos
+            # Count from damages array (pins no croqui)
+            damage_count_from_array = len(damages)
+            # Count damage photos
             damage_photo_count = sum(1 for key in photos.keys() if key.startswith('damagePhoto'))
-            if damage_photo_count > 0:
-                damage_count = max(damage_count, damage_photo_count)
+            # Get explicit damage_count from frontend
+            damage_count_explicit = data.get('damage_count', 0)
+            
+            # Use the maximum of all three sources
+            damage_count = max(damage_count_from_array, damage_photo_count, damage_count_explicit)
             has_damage = damage_count > 0 or data.get('has_damage', False)
+            
+            logging.info(f"📊 Check-out damage count calculation: array={damage_count_from_array}, photos={damage_photo_count}, explicit={damage_count_explicit}, final={damage_count}")
         else:
             damage_count = len(damages)
             has_damage = damage_count > 0
