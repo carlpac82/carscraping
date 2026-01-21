@@ -1644,6 +1644,9 @@
         window.damages = damages; // Expose to global scope for counting
         let drawing = false;
         let canvas, ctx;
+        let savedCanvasWidth = 0;  // Store canvas dimensions for capture
+        let savedCanvasHeight = 0;
+        let savedCanvasDataURL = null;  // Store canvas content as data URL before it's resized to 0x0
         
         // Initialize canvas
         function initializeCanvas() {
@@ -1677,7 +1680,12 @@
             const resizeCanvas = () => {
                 canvas.width = img.offsetWidth;
                 canvas.height = img.offsetHeight;
-                console.log(`Canvas resized to ${canvas.width}x${canvas.height}`);
+                // Save dimensions for later use in capture (before canvas might be resized to 0x0)
+                if (canvas.width > 0 && canvas.height > 0) {
+                    savedCanvasWidth = canvas.width;
+                    savedCanvasHeight = canvas.height;
+                }
+                console.log(`Canvas resized to ${canvas.width}x${canvas.height} (saved: ${savedCanvasWidth}x${savedCanvasHeight})`);
                 redrawCanvas();
             };
             
@@ -2724,7 +2732,7 @@
             window.scrollTo({ top: 0, behavior: 'smooth' });
         }
         
-        function saveAndSendInspection() {
+        async function saveAndSendInspection() {
             if (isSaving) {
                 console.log('⚠️ Already saving, ignoring duplicate click');
                 return;
@@ -2746,7 +2754,7 @@
             
             // CRITICAL: Capture croqui NOW while diagram is still visible
             console.log('🎨 [PRE-CAPTURE] Capturing croqui before hiding diagram...');
-            window.preCapturedCroqui = captureCroquiBeforeSave();
+            window.preCapturedCroqui = await captureCroquiBeforeSave();
             console.log('🎨 [PRE-CAPTURE] Captured length:', window.preCapturedCroqui?.length || 0);
             
             // Show saving overlay
@@ -2759,7 +2767,7 @@
         }
         
         // Capture croqui while diagram is visible (before modal/overlay hides it)
-        function captureCroquiBeforeSave() {
+        async function captureCroquiBeforeSave() {
             try {
                 const canvas = document.getElementById('drawingCanvas');
                 const container = document.getElementById('carDiagram');
@@ -2785,20 +2793,42 @@
                 // Draw background
                 tempCtx.drawImage(croquiImg, 0, 0);
                 
-                // Calculate scale
-                const canvasWidth = canvas && canvas.width > 0 ? canvas.width : croquiImg.offsetWidth || croquiImg.naturalWidth;
-                const canvasHeight = canvas && canvas.height > 0 ? canvas.height : croquiImg.offsetHeight || croquiImg.naturalHeight;
+                // Calculate scale using SAVED dimensions (canvas might be 0x0 at this point)
+                const canvasWidth = savedCanvasWidth > 0 ? savedCanvasWidth : (canvas && canvas.width > 0 ? canvas.width : croquiImg.offsetWidth || croquiImg.naturalWidth);
+                const canvasHeight = savedCanvasHeight > 0 ? savedCanvasHeight : (canvas && canvas.height > 0 ? canvas.height : croquiImg.offsetHeight || croquiImg.naturalHeight);
                 const scaleX = tempCanvas.width / canvasWidth;
                 const scaleY = tempCanvas.height / canvasHeight;
                 
-                console.log('✅ Scale:', scaleX.toFixed(3), 'x', scaleY.toFixed(3));
+                console.log('✅ Scale:', scaleX.toFixed(3), 'x', scaleY.toFixed(3), '(using saved dims:', canvasWidth, 'x', canvasHeight, ')');
                 
-                // Draw canvas overlay
-                if (canvas && canvas.width > 0 && canvas.height > 0) {
-                    tempCtx.save();
-                    tempCtx.scale(scaleX, scaleY);
-                    tempCtx.drawImage(canvas, 0, 0);
-                    tempCtx.restore();
+                // Draw canvas overlay - use saved drawings from damages array
+                // This works even if canvas is 0x0 because we saved the drawings as dataURL
+                const drawings = window.damages ? window.damages.filter(d => d.type === 'drawing') : [];
+                console.log('🎨 Found', drawings.length, 'saved drawings to render');
+                
+                if (drawings.length > 0) {
+                    // Get the last drawing (which contains all accumulated drawings)
+                    const lastDrawing = drawings[drawings.length - 1];
+                    const drawingImg = new Image();
+                    
+                    // Wait for image to load before continuing
+                    await new Promise((resolve) => {
+                        drawingImg.onload = () => {
+                            tempCtx.save();
+                            tempCtx.scale(scaleX, scaleY);
+                            tempCtx.drawImage(drawingImg, 0, 0);
+                            tempCtx.restore();
+                            console.log('✅ Drawings rendered on croqui');
+                            resolve();
+                        };
+                        drawingImg.onerror = () => {
+                            console.error('❌ Failed to load drawing image');
+                            resolve();
+                        };
+                        drawingImg.src = lastDrawing.dataURL;
+                    });
+                } else {
+                    console.log('⚠️ No saved drawings found in damages array');
                 }
                 
                 // Draw pins
