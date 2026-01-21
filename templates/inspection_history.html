@@ -451,11 +451,11 @@
                             <div class="space-y-2">
                                 <label class="flex items-center">
                                     <input type="radio" name="reportType" value="checkout" checked class="mr-2">
-                                    <span>Check-out (Entrega)</span>
+                                    <span>Recolha (Check-out)</span>
                                 </label>
                                 <label class="flex items-center">
                                     <input type="radio" name="reportType" value="checkin" class="mr-2">
-                                    <span>Check-in (Recolha)</span>
+                                    <span>Entrega (Check-in)</span>
                                 </label>
                                 <label class="flex items-center">
                                     <input type="radio" name="reportType" value="both" class="mr-2">
@@ -546,9 +546,15 @@
             buttons[0].disabled = true; // Disable cancel button too
             
             try {
-                let inspectionNumber = checkoutNumber;
+                // Determine which inspection number to use based on report type
+                let inspectionNumber;
                 if (reportType === 'checkin') {
                     inspectionNumber = checkinNumber;
+                } else if (reportType === 'checkout') {
+                    inspectionNumber = checkoutNumber;
+                } else {
+                    // Default: use whichever is available
+                    inspectionNumber = checkoutNumber || checkinNumber;
                 }
                 
                 console.log('📧 Sending email:', {
@@ -560,7 +566,7 @@
                 });
                 
                 // Validate inspection number
-                if (!inspectionNumber || inspectionNumber === 'undefined' || inspectionNumber === 'null') {
+                if (!inspectionNumber || inspectionNumber === 'undefined' || inspectionNumber === 'null' || inspectionNumber === 'null') {
                     console.error('❌ Invalid inspection number');
                     showNotification('Erro: Número de inspeção inválido', 'error');
                     sendButton.disabled = false;
