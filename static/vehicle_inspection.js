@@ -2084,8 +2084,8 @@ async function savePickupInspection() {
             // Close modal
             closePickupSummary();
             
-            // Show success message
-            showCleanAlert('✅ Check-in Guardado', 'Recolha guardada com sucesso! Email enviado ao cliente.', 'success');
+            // Success notification is already shown by the backend/template
+            // No need to show duplicate notification here
             
             // Redirect after delay
             setTimeout(() => {
