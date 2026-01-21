@@ -221,7 +221,7 @@
             #carMiniature {
                 width: 70px !important;
                 height: 70px !important;
-                top: 15px !important;
+                top: 60px !important;
                 right: 15px !important;
             }
             
@@ -310,6 +310,60 @@
         .close-camera-button:hover {
             background: rgba(220, 38, 38, 1);
             transform: scale(1.1);
+        }
+        
+        /* Flash button */
+        .flash-button {
+            width: 50px;
+            height: 50px;
+            background: rgba(0, 0, 0, 0.5);
+            border: none;
+            border-radius: 50%;
+            color: white;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.2s;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+        }
+        
+        .flash-button.active {
+            background: rgba(255, 193, 7, 0.9);
+            color: #000;
+        }
+        
+        .flash-button:hover {
+            transform: scale(1.1);
+        }
+        
+        @media (max-width: 768px) {
+            .flash-button {
+                width: 40px !important;
+                height: 40px !important;
+                top: 10px !important;
+                right: 10px !important;
+            }
+        }
+        
+        /* Landscape orientation support */
+        @media (orientation: landscape) and (max-width: 896px) {
+            .camera-header {
+                padding: 0.75rem !important;
+                padding-left: 60px !important;
+                padding-right: 60px !important;
+            }
+            
+            .camera-header p {
+                font-size: 0.9rem !important;
+            }
+            
+            #carMiniature {
+                width: 60px !important;
+                height: 60px !important;
+                top: 10px !important;
+                right: 10px !important;
+            }
         }
     </style>
 </head>
@@ -563,12 +617,19 @@
                 ×
             </button>
             
+            <!-- Flash button -->
+            <button onclick="toggleFlash()" id="flashButton" class="flash-button" style="position: fixed; top: 20px; right: 20px; z-index: 10000; display: none;">
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor">
+                    <path d="M7 2v11h3v9l7-12h-4l4-8z"/>
+                </svg>
+            </button>
+            
             <!-- Camera Preview -->
             <div class="relative w-full h-full">
                 <video id="cameraPreview" autoplay playsinline style="width: 100%; height: 100vh; object-fit: cover;"></video>
                 
                 <!-- Car Miniature -->
-                <div id="carMiniature" style="position: fixed; top: 20px; right: 20px; width: 100px; height: 100px; z-index: 9999; display: none;">
+                <div id="carMiniature" style="position: fixed; top: 80px; right: 20px; width: 100px; height: 100px; z-index: 9999; display: none;">
                     <img id="carMiniatureImg" src="" alt="Car Position" style="width: 100%; height: 100%; object-fit: contain;">
                 </div>
             </div>
@@ -929,6 +990,8 @@
 
         let cameraStream = null;
         let currentDamageIndex = null;
+        let flashEnabled = false;
+        let currentTrack = null;
         
         const photoTypes = {
             'front': { label: 'Vista Frontal', instruction: 'Centre a frente do veículo', image: 'Vista Frontal.png' },
@@ -1009,11 +1072,23 @@
             if (!photo) return;
             
             try {
-                // Request camera access
+                // Request camera access with flash support
                 if (!cameraStream) {
                     cameraStream = await navigator.mediaDevices.getUserMedia({ 
-                        video: { facingMode: 'environment' } 
+                        video: { 
+                            facingMode: 'environment',
+                            advanced: [{ torch: false }]
+                        } 
                     });
+                    
+                    // Get video track for flash control
+                    currentTrack = cameraStream.getVideoTracks()[0];
+                    
+                    // Check if flash is supported
+                    const capabilities = currentTrack.getCapabilities();
+                    if (capabilities.torch) {
+                        document.getElementById('flashButton').style.display = 'flex';
+                    }
                 }
                 
                 // Show camera modal
@@ -1048,11 +1123,44 @@
             }
         }
 
+        async function toggleFlash() {
+            if (!currentTrack) return;
+            
+            try {
+                const capabilities = currentTrack.getCapabilities();
+                if (!capabilities.torch) return;
+                
+                flashEnabled = !flashEnabled;
+                await currentTrack.applyConstraints({
+                    advanced: [{ torch: flashEnabled }]
+                });
+                
+                const flashButton = document.getElementById('flashButton');
+                if (flashEnabled) {
+                    flashButton.classList.add('active');
+                } else {
+                    flashButton.classList.remove('active');
+                }
+            } catch (error) {
+                console.error('Flash error:', error);
+            }
+        }
+        
         function closeCamera() {
             const modal = document.getElementById('cameraModal');
             document.body.classList.remove('modal-open');
             modal.classList.remove('active');
             document.getElementById('cameraButtons').style.display = 'none';
+            document.getElementById('flashButton').style.display = 'none';
+            
+            // Turn off flash when closing
+            if (flashEnabled && currentTrack) {
+                flashEnabled = false;
+                currentTrack.applyConstraints({
+                    advanced: [{ torch: false }]
+                }).catch(err => console.error('Flash off error:', err));
+                document.getElementById('flashButton').classList.remove('active');
+            }
         }
 
         function capturePhoto() {
