@@ -35404,6 +35404,23 @@ def _ensure_missing_tables():
                     except Exception as e:
                         logging.warning(f"⚠️ vehicle_inspections diagram_data column: {e}")
                     
+                    # 8c. Add is_self_checkin column to distinguish self check-ins from normal check-ins
+                    try:
+                        conn.execute("""
+                            DO $$ 
+                            BEGIN
+                                IF NOT EXISTS (
+                                    SELECT 1 FROM information_schema.columns 
+                                    WHERE table_name='vehicle_inspections' AND column_name='is_self_checkin'
+                                ) THEN
+                                    ALTER TABLE vehicle_inspections ADD COLUMN is_self_checkin BOOLEAN DEFAULT FALSE;
+                                END IF;
+                            END $$;
+                        """)
+                        logging.info("✅ vehicle_inspections is_self_checkin column ensured")
+                    except Exception as e:
+                        logging.warning(f"⚠️ vehicle_inspections is_self_checkin column: {e}")
+                    
                     # 9. Reset vehicle_inspections sequence to prevent duplicate key errors
                     try:
                         conn.execute("""
