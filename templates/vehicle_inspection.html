@@ -3441,6 +3441,20 @@
                                     pickupButton.disabled = true;
                                     pickupButton.style.pointerEvents = 'none';
                                     pickupButton.classList.add('opacity-50', 'cursor-not-allowed');
+                                    
+                                    // Change icon color to gray (keep it gray, don't turn green)
+                                    const pickupIcon = document.getElementById('pickupIcon');
+                                    if (pickupIcon) {
+                                        pickupIcon.setAttribute('fill', '#6c757d');
+                                    }
+                                    
+                                    // Change text color to gray
+                                    const pickupText = document.getElementById('pickupText');
+                                    if (pickupText) {
+                                        pickupText.classList.remove('group-hover:text-green-500');
+                                        pickupText.classList.add('text-gray-400');
+                                    }
+                                    
                                     console.log('🚫 Pickup button disabled');
                                 }
                                 
