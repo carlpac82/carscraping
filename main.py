@@ -30305,38 +30305,16 @@ async def save_inspection(request: Request):
                     }
                     inspection_type_label = t_labels.get(inspection_type, {}).get(detected_lang, inspection_type)
                     
-                    # Validate incidents for BOTH checkout and check-in
+                    # Validate incidents
                     status_alert_html = ""
                     photos_section_html = ""
                     
-                    # For CHECKOUT (devolução): check if there are ANY damages marked
-                    # For CHECK-IN (recolha): compare with previous checkout
+                    # For CHECK-OUT (recolha): check if there are NEW damages (compare with checkout/entrega)
+                    # For CHECK-IN (entrega): NO alerts - damages are expected and documented
                     if inspection_type == 'checkout':
-                        logging.info("🔍 CHECKOUT DETECTED - Checking for damages...")
+                        logging.info("🔍 CHECK-OUT (recolha) DETECTED - Validating incidents...")
                         
-                        # For checkout, simply check if there are damages marked
-                        has_damage_incident = damage_count > 0
-                        has_fuel_incident = False  # Fuel validation only for check-in
-                        
-                        logging.info(f"📊 Checkout validation: damage_count={damage_count}, has_damage={has_damage_incident}")
-                        
-                        # Generate STATUS_ALERT based on damages
-                        status_alert_html = _generate_checkin_status_alert(
-                            detected_lang,
-                            has_fuel_incident,
-                            has_damage_incident
-                        )
-                        
-                        incidents = {
-                            'has_fuel_incident': has_fuel_incident,
-                            'has_damage_incident': has_damage_incident,
-                            'checkin_has_damage_photos': damage_count > 0
-                        }
-                        
-                    elif inspection_type == 'checkin':
-                        logging.info("🔍 CHECK-IN DETECTED - Validating incidents...")
-                        
-                        # Validate incidents by comparing with checkout
+                        # Validate incidents by comparing with check-in (entrega)
                         incidents = _validate_checkin_incidents(
                             cursor, is_postgres, ra, plate,
                             float(fuel_level), damage_count, inspection_id
@@ -30352,6 +30330,21 @@ async def save_inspection(request: Request):
                             incidents['has_fuel_incident'],
                             incidents['has_damage_incident']
                         )
+                        
+                    elif inspection_type == 'checkin':
+                        logging.info("🔍 CHECK-IN (entrega) DETECTED - No incident validation (damages are expected)")
+                        
+                        # For check-in (entrega), we don't validate incidents
+                        # Damages are expected and documented, not incidents
+                        incidents = {
+                            'has_fuel_incident': False,
+                            'has_damage_incident': False,
+                            'checkin_has_damage_photos': damage_count > 0
+                        }
+                        
+                        # NO STATUS_ALERT for check-in
+                        status_alert_html = ""
+                        
                     else:
                         # No validation for other types
                         incidents = {
@@ -32760,43 +32753,13 @@ async def send_inspection_email(request: Request, inspection_number: str):
         damage_row = cursor.fetchone()
         damage_count = damage_row[0] if damage_row and damage_row[0] else 0
         
-        # Validate incidents for BOTH checkout and check-in
+        # Validate incidents
+        # CHECK-OUT (recolha): validate new damages by comparing with check-in (entrega)
+        # CHECK-IN (entrega): NO alerts - damages are expected and documented
         if inspection_type == 'checkout':
-            logging.info("🔍 CHECKOUT DETECTED - Checking for damages...")
+            logging.info("🔍 CHECK-OUT (recolha) DETECTED - Validating incidents...")
             
-            # For checkout, simply check if there are damages marked
-            has_damage_incident = damage_count > 0
-            has_fuel_incident = False  # Fuel validation only for check-in
-            
-            logging.info(f"📊 Checkout validation: damage_count={damage_count}, has_damage={has_damage_incident}")
-            
-            # Generate STATUS_ALERT based on damages
-            status_alert_html = _generate_checkin_status_alert(
-                detected_lang,
-                has_fuel_incident,
-                has_damage_incident
-            )
-            
-            incidents = {
-                'has_fuel_incident': has_fuel_incident,
-                'has_damage_incident': has_damage_incident
-            }
-            
-            # Build PHOTOS_SECTION for checkout damages
-            if incidents.get('has_damage_incident'):
-                damage_label = {
-                    'pt': 'Fotos dos Danos',
-                    'en': 'Damage Photos',
-                    'fr': 'Photos des Dommages'
-                }.get(detected_lang, 'Damage Photos')
-                
-                # Mark that we need to add damage photos (will be added after photos_html is built)
-                photos_section_html = f"__DAMAGE_PHOTOS_PLACEHOLDER__:{damage_label}"
-            
-        elif inspection_type == 'checkin':
-            logging.info("🔍 CHECK-IN DETECTED - Validating incidents...")
-            
-            # Validate incidents by comparing with checkout (reuse existing cursor)
+            # Validate incidents by comparing with check-in (entrega)
             try:
                 incidents = _validate_checkin_incidents(
                     cursor, _USE_NEW_DB, ra, vehicle_plate,
@@ -32881,33 +32844,64 @@ async def send_inspection_email(request: Request, inspection_number: str):
                 else:
                     logging.warning("⚠️ Incidents validation returned None")
             except Exception as e:
-                logging.error(f"❌ Error validating check-in incidents: {e}")
+                logging.error(f"❌ Error validating check-out incidents: {e}")
                 import traceback
                 logging.error(traceback.format_exc())
             
-            # Use check-in template
+            # Use check-out template (old check-in)
             template_name = f"email_checkin_{detected_lang}.html" if detected_lang in ['pt', 'fr', 'en'] else "email_checkin_en.html"
             
-            # Get check-in specific subject and croqui title
+            # Get check-out specific subject and croqui title
             email_title = _get_checkin_email_subject(detected_lang, ra)
             croqui_title = _get_checkin_croqui_title(detected_lang)
             
-            logging.info(f"📧 Using check-in template: {template_name}")
+            logging.info(f"📧 Using check-out template: {template_name}")
             logging.info(f"📧 Subject: {email_title}")
             logging.info(f"📧 Croqui title: {croqui_title}")
             
-        else:
-            # Checkout - use existing logic
+        elif inspection_type == 'checkin':
+            logging.info("🔍 CHECK-IN (entrega) DETECTED - No validation, just documenting damages...")
+            
+            # Damages are expected and documented, not incidents
+            incidents = {
+                'has_fuel_incident': False,
+                'has_damage_incident': False,
+                'checkin_has_damage_photos': damage_count > 0
+            }
+            
+            # NO STATUS_ALERT for check-in
+            status_alert_html = ""
+            
+            # Use check-in template (old checkout)
             template_name = f"email_preview_{detected_lang}.html" if detected_lang in ['pt', 'fr'] else "email_preview.html"
             croqui_title = "Croqui de Danos" if detected_lang == 'pt' else "Damage Sketch" if detected_lang == 'en' else "Croquis des Dommages"
             
-            # Checkout subject
+            # Check-in subject
             if detected_lang == 'pt':
                 email_title = f"Relatorio de Entrega R.A. {ra}"
             elif detected_lang == 'fr':
                 email_title = f"Rapport de Livraison R.A. {ra}"
             else:
                 email_title = f"Delivery Report R.A. {ra}"
+                
+        else:
+            # Unknown type - no validation
+            incidents = {
+                'has_fuel_incident': False,
+                'has_damage_incident': False,
+                'checkin_has_damage_photos': False
+            }
+            
+            # Default template
+            template_name = f"email_preview_{detected_lang}.html" if detected_lang in ['pt', 'fr'] else "email_preview.html"
+            croqui_title = "Croqui de Danos" if detected_lang == 'pt' else "Damage Sketch" if detected_lang == 'en' else "Croquis des Dommages"
+            
+            if detected_lang == 'pt':
+                email_title = f"Relatorio de Inspeção R.A. {ra}"
+            elif detected_lang == 'fr':
+                email_title = f"Rapport d'Inspection R.A. {ra}"
+            else:
+                email_title = f"Inspection Report R.A. {ra}"
         
         logging.info(f"📧 Using template: {template_name}")
         
