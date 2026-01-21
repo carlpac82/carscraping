@@ -177,24 +177,38 @@
         
         /* Camera Modal Styles */
         .camera-modal {
-            position: fixed;
-            inset: 0;
-            background: rgba(0,0,0,0.98);
+            position: fixed !important;
+            top: 0 !important;
+            left: 0 !important;
+            right: 0 !important;
+            bottom: 0 !important;
+            background: rgba(0,0,0,0.98) !important;
             display: none;
-            z-index: 99999;
-            width: 100vw;
-            height: 100vh;
-            height: 100dvh;
+            z-index: 99999 !important;
+            width: 100vw !important;
+            height: 100vh !important;
+            height: 100dvh !important;
+            margin: 0 !important;
+            padding: 0 !important;
+            overflow: hidden !important;
         }
         
         .camera-modal.active {
-            display: flex;
+            display: flex !important;
         }
         
         .camera-modal video {
-            width: 100%;
-            height: 100%;
-            object-fit: cover;
+            width: 100% !important;
+            height: 100% !important;
+            object-fit: cover !important;
+        }
+        
+        /* Prevent body scroll when modal is active */
+        body.modal-open {
+            overflow: hidden !important;
+            position: fixed !important;
+            width: 100% !important;
+            height: 100% !important;
         }
         
         /* Mobile adjustments for camera */
@@ -932,22 +946,27 @@
             const countdownOverlay = document.createElement('div');
             countdownOverlay.id = 'countdownOverlay';
             countdownOverlay.style.cssText = `
-                position: fixed;
-                top: 0;
-                left: 0;
-                right: 0;
-                bottom: 0;
-                width: 100vw;
-                height: 100vh;
-                background: rgba(0, 188, 212, 0.85); /* Blue background with more transparency */
-                display: flex;
-                flex-direction: column;
-                align-items: center;
-                justify-content: center;
-                z-index: 99998;
-                margin: 0;
-                padding: 0;
+                position: fixed !important;
+                top: 0 !important;
+                left: 0 !important;
+                right: 0 !important;
+                bottom: 0 !important;
+                width: 100vw !important;
+                height: 100vh !important;
+                height: 100dvh !important;
+                background: rgba(0, 188, 212, 0.85) !important;
+                display: flex !important;
+                flex-direction: column !important;
+                align-items: center !important;
+                justify-content: center !important;
+                z-index: 99998 !important;
+                margin: 0 !important;
+                padding: 0 !important;
+                overflow: hidden !important;
             `;
+            
+            // Prevent body scroll
+            document.body.classList.add('modal-open');
             
             countdownOverlay.innerHTML = `
                 <div style="text-align: center;">
@@ -969,6 +988,7 @@
                     numberEl.textContent = count;
                 } else {
                     clearInterval(interval);
+                    document.body.classList.remove('modal-open');
                     countdownOverlay.remove();
                     openCamera(photoType);
                 }
@@ -989,7 +1009,11 @@
                 
                 // Show camera modal
                 const modal = document.getElementById('cameraModal');
+                document.body.classList.add('modal-open');
                 modal.classList.add('active');
+                
+                // Force reflow to ensure styles are applied
+                modal.offsetHeight;
                 
                 // Update header
                 document.getElementById('cameraLocation').textContent = photo.label.toUpperCase();
@@ -1017,6 +1041,7 @@
 
         function closeCamera() {
             const modal = document.getElementById('cameraModal');
+            document.body.classList.remove('modal-open');
             modal.classList.remove('active');
             document.getElementById('cameraButtons').style.display = 'none';
         }
