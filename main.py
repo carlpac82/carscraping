@@ -45501,12 +45501,13 @@ async def get_latest_ra_by_plate(request: Request, plate: str):
         contract_closed = has_checkout_inspection and has_checkin_inspection
         
         # Override inspection_completed based on actual inspection existence
-        ra_data["inspection_completed"] = has_checkout_inspection
+        # inspection_completed = True means CHECK-IN (entrega) was completed, so CHECK-OUT (recolha) button should be enabled
+        ra_data["inspection_completed"] = has_checkin_inspection
         ra_data["has_checkout"] = has_checkout_inspection
         ra_data["has_checkin"] = has_checkin_inspection
         ra_data["contract_closed"] = contract_closed
         
-        logging.info(f"🔍 Contract status - Checkout: {has_checkout_inspection}, Check-in: {has_checkin_inspection}, Closed: {contract_closed}")
+        logging.info(f"🔍 Contract status - Checkout: {has_checkout_inspection}, Check-in: {has_checkin_inspection}, Closed: {contract_closed}, inspection_completed: {has_checkin_inspection}")
         
         # Get inspection info if inspection exists
         inspection_info = None
