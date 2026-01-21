@@ -30446,6 +30446,15 @@ async def self_checkin_success_page(request: Request):
         "request": request
     })
 
+@app.get("/test-selfcheckin", response_class=HTMLResponse)
+async def test_selfcheckin_page(request: Request):
+    """Test page for self check-in with debug console - No auth required"""
+    html_path = BASE_DIR / "test_selfcheckin_debug.html"
+    if html_path.exists():
+        return FileResponse(html_path)
+    else:
+        raise HTTPException(status_code=404, detail="Test page not found")
+
 @app.get("/api/self-checkin/{token}")
 async def get_self_checkin_data(token: str):
     """
