@@ -30227,9 +30227,10 @@ async def save_inspection(request: Request):
                     tc_download_url = tc_url_map.get(detected_lang, tc_url_map['en'])
                     
                     # Inspection type label
+                    # checkout = RECOLHA (devolução), checkin = ENTREGA
                     t_labels = {
-                        'checkout': {'pt': 'Entrega', 'fr': 'Livraison', 'en': 'Checkout'},
-                        'checkin': {'pt': 'Devolução', 'fr': 'Retour', 'en': 'Check-in'}
+                        'checkout': {'pt': 'Recolha', 'fr': 'Retour', 'en': 'Return'},
+                        'checkin': {'pt': 'Entrega', 'fr': 'Livraison', 'en': 'Delivery'}
                     }
                     inspection_type_label = t_labels.get(inspection_type, {}).get(detected_lang, inspection_type)
                     
@@ -33070,9 +33071,10 @@ async def send_inspection_email(request: Request, inspection_number: str):
         logging.info(f"🔍 Croqui URL: {final_croqui if croqui_row else 'empty cache'}")
         
         # Inspection type label for templates
+        # checkout = RECOLHA (devolução), checkin = ENTREGA
         t_labels = {
-            'checkout': {'pt': 'Entrega', 'fr': 'Livraison', 'en': 'Checkout'},
-            'checkin': {'pt': 'Devolução', 'fr': 'Retour', 'en': 'Check-in'}
+            'checkout': {'pt': 'Recolha', 'fr': 'Retour', 'en': 'Return'},
+            'checkin': {'pt': 'Entrega', 'fr': 'Livraison', 'en': 'Delivery'}
         }
         inspection_type_label = t_labels.get(inspection_type, {}).get(detected_lang, inspection_type)
         
