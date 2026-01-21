@@ -291,9 +291,10 @@
                 `;
 
                 dayItems.forEach(contract => {
-                    const hasCheckout = contract.checkout !== null;
-                    const hasCheckin = contract.checkin !== null;
-                    const isOpen = hasCheckout && !hasCheckin;
+                    const hasCheckout = contract.checkout !== null;  // checkout = recolha
+                    const hasCheckin = contract.checkin !== null;    // checkin = entrega
+                    // Contract is OPEN when has checkin (entrega) but no checkout (recolha)
+                    const isOpen = hasCheckin && !hasCheckout;
                     const isClosed = hasCheckout && hasCheckin;
                     
                     const statusBadge = isOpen 
