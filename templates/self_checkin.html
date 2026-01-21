@@ -535,11 +535,11 @@
             <!-- Camera Preview -->
             <div class="relative w-full h-full" style="position: fixed; top: 0; left: 0; right: 0; bottom: 0;">
                 <video id="cameraPreview" autoplay playsinline style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; object-fit: cover;"></video>
-                
-                <!-- Car Miniature -->
-                <div id="carMiniature" style="position: fixed; top: 20px; right: 20px; width: 100px; height: 100px; z-index: 9999;">
-                    <img id="carMiniatureImg" src="" alt="Car Position" style="width: 100%; height: 100%; object-fit: contain;" onerror="this.style.display='none'">
-                </div>
+            </div>
+            
+            <!-- Car Miniature -->
+            <div id="carMiniature" style="position: fixed; top: 20px; right: 20px; width: 100px; height: 100px; z-index: 10001; display: block;">
+                <img id="carMiniatureImg" src="" alt="Car Position" style="width: 100%; height: 100%; object-fit: contain; background: rgba(255, 255, 255, 0.9); border-radius: 8px; padding: 4px;" onerror="this.style.display='none'">
             </div>
             
             <!-- iPhone-style camera button -->
@@ -1011,7 +1011,6 @@
             const modal = document.getElementById('cameraModal');
             modal.classList.remove('active');
             document.getElementById('cameraButtons').style.display = 'none';
-            document.getElementById('carMiniature').style.display = 'none';
         }
 
         function capturePhoto() {
