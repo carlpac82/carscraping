@@ -9,30 +9,40 @@
         .photo-grid {
             display: grid;
             grid-template-columns: repeat(3, 1fr);
-            gap: 1.5rem;
-            padding: 1rem;
+            gap: 1rem;
+            padding: 0.5rem;
+        }
+        
+        @media (max-width: 768px) {
+            .photo-grid {
+                gap: 0.75rem;
+                padding: 0.5rem;
+            }
         }
         
         .photo-slot {
             aspect-ratio: 4/3;
             border: 2px solid #e0e0e0;
-            border-radius: 1rem;
+            border-radius: 0.75rem;
             display: flex;
             flex-direction: column;
             align-items: center;
             justify-content: center;
             cursor: pointer;
-            transition: all 0.3s;
             position: relative;
             overflow: hidden;
             background: linear-gradient(135deg, #f8f9fa 0%, #ffffff 100%);
             box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
         }
         
-        .photo-slot:hover {
-            border-color: #00bcd4;
-            transform: translateY(-4px);
-            box-shadow: 0 8px 20px rgba(0, 188, 212, 0.2);
+        .photo-slot:active {
+            opacity: 0.8;
+        }
+        
+        @media (max-width: 768px) {
+            .photo-slot {
+                border-radius: 0.5rem;
+            }
         }
         
         .photo-slot.has-photo {
@@ -48,7 +58,13 @@
             width: 100%;
             height: 100%;
             object-fit: contain !important;
-            padding: 0.5rem;
+            padding: 1.5rem;
+        }
+        
+        @media (max-width: 768px) {
+            .photo-slot img {
+                padding: 1rem;
+            }
         }
         
         .photo-slot .remove-btn {
@@ -157,6 +173,38 @@
         
         .camera-modal.active {
             display: flex;
+        }
+        
+        /* Mobile adjustments for camera */
+        @media (max-width: 768px) {
+            #carMiniature {
+                width: 70px !important;
+                height: 70px !important;
+                top: 15px !important;
+                right: 15px !important;
+            }
+            
+            .close-camera-button {
+                width: 40px !important;
+                height: 40px !important;
+                top: 15px !important;
+                left: 15px !important;
+            }
+            
+            .camera-header {
+                padding: 1rem !important;
+                padding-right: 100px !important;
+            }
+            
+            .iphone-camera-button .camera-button-outer {
+                width: 60px !important;
+                height: 60px !important;
+            }
+            
+            .iphone-camera-button .camera-button-inner {
+                width: 46px !important;
+                height: 46px !important;
+            }
         }
         
         /* Camera header with blue gradient */
@@ -458,7 +506,7 @@
                 
                 <!-- Car Miniature -->
                 <div id="carMiniature" style="position: fixed; top: 20px; right: 20px; width: 100px; height: 100px; z-index: 9999;">
-                    <img src="/static/carro.png" alt="Car Position" style="width: 100%; height: 100%; object-fit: contain;">
+                    <img src="/static/Carro.png" alt="Car Position" style="width: 100%; height: 100%; object-fit: contain;" onerror="this.style.display='none'">
                 </div>
             </div>
             
