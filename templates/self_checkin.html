@@ -152,7 +152,14 @@
             <!-- Vehicle Info Card -->
             <div class="bg-white rounded-lg shadow-xl p-6 mb-6">
                 <h2 class="text-2xl font-bold text-[#00bcd4] mb-4" id="pageTitle">Self Check-in</h2>
-                <div class="grid grid-cols-2 gap-4">
+                
+                <!-- Cliente -->
+                <div class="mb-4 pb-4 border-b border-gray-200">
+                    <p class="text-sm text-gray-600" id="labelClientName">Cliente</p>
+                    <p class="font-bold text-gray-800 text-lg" id="clientName">-</p>
+                </div>
+                
+                <div class="grid grid-cols-2 gap-4 mb-4">
                     <div>
                         <p class="text-sm text-gray-600" id="labelVehicle">Veículo</p>
                         <p class="font-bold text-gray-800" id="vehicleDetails">-</p>
@@ -161,13 +168,48 @@
                         <p class="text-sm text-gray-600" id="labelPlate">Matrícula</p>
                         <p class="font-bold text-gray-800" id="licensePlate">-</p>
                     </div>
+                </div>
+                
+                <!-- Datas e Horas -->
+                <div class="grid grid-cols-2 gap-4 mb-4">
+                    <div>
+                        <p class="text-sm text-gray-600" id="labelDeliveryDateTime">Data/Hora Entrega</p>
+                        <p class="font-bold text-gray-800" id="deliveryDateTime">-</p>
+                    </div>
+                    <div>
+                        <p class="text-sm text-gray-600" id="labelReturnDateTime">Data/Hora Devolução</p>
+                        <p class="font-bold text-gray-800" id="returnDateTime">-</p>
+                    </div>
+                </div>
+                
+                <!-- Kms e Combustível Entrega -->
+                <div class="grid grid-cols-2 gap-4">
                     <div>
                         <p class="text-sm text-gray-600" id="labelKmsEntrega">Kms Entrega</p>
                         <p class="font-bold text-gray-800" id="kmsEntrega">-</p>
                     </div>
                     <div>
-                        <p class="text-sm text-gray-600" id="labelFuelEntrega">Combustível Entrega</p>
-                        <p class="font-bold text-gray-800" id="fuelEntrega">-</p>
+                        <p class="text-sm text-gray-600 mb-2" id="labelFuelEntrega">Combustível Entrega</p>
+                        <!-- Mini Fuel Canvas -->
+                        <div class="relative">
+                            <div class="relative bg-white border-2 border-[#00bcd4] rounded-lg h-6 max-w-[200px]">
+                                <div class="absolute inset-0 flex items-center">
+                                    <div class="w-0.5 h-3 bg-[#00bcd4]" style="position: absolute; left: 0%;"></div>
+                                    <div class="w-0.5 h-3 bg-[#00bcd4]" style="position: absolute; left: 25%;"></div>
+                                    <div class="w-0.5 h-3 bg-[#00bcd4]" style="position: absolute; left: 50%;"></div>
+                                    <div class="w-0.5 h-3 bg-[#00bcd4]" style="position: absolute; left: 75%;"></div>
+                                    <div class="w-0.5 h-3 bg-[#00bcd4]" style="position: absolute; right: 0%;"></div>
+                                </div>
+                                <div id="fuelEntregaFill" class="h-full bg-[#00bcd4] rounded-lg transition-all duration-300" style="width: 0%;"></div>
+                            </div>
+                            <div class="flex justify-between text-xs text-gray-600 mt-1 max-w-[200px]">
+                                <span>R</span>
+                                <span>1/4</span>
+                                <span>1/2</span>
+                                <span>3/4</span>
+                                <span>F</span>
+                            </div>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -321,8 +363,11 @@
             pt: {
                 pageTitle: 'Self Check-in',
                 labelRA: 'RA:',
-                labelPlate: 'Matrícula:',
-                labelVehicle: 'Veículo:',
+                labelClientName: 'Cliente',
+                labelPlate: 'Matrícula',
+                labelVehicle: 'Veículo',
+                labelDeliveryDateTime: 'Data/Hora Entrega',
+                labelReturnDateTime: 'Data/Hora Devolução',
                 labelKmsEntrega: 'Kms Entrega',
                 labelFuelEntrega: 'Combustível Entrega',
                 instructionsMainTitle: 'Procedimento de Self Check-in',
@@ -367,8 +412,11 @@
             en: {
                 pageTitle: 'Self Check-in',
                 labelRA: 'RA:',
-                labelPlate: 'License Plate:',
-                labelVehicle: 'Vehicle:',
+                labelClientName: 'Client',
+                labelPlate: 'License Plate',
+                labelVehicle: 'Vehicle',
+                labelDeliveryDateTime: 'Delivery Date/Time',
+                labelReturnDateTime: 'Return Date/Time',
                 labelKmsEntrega: 'Delivery Kms',
                 labelFuelEntrega: 'Delivery Fuel',
                 instructionsMainTitle: 'Self Check-in Procedure',
@@ -413,8 +461,11 @@
             fr: {
                 pageTitle: 'Self Check-in',
                 labelRA: 'RA:',
-                labelPlate: 'Plaque:',
-                labelVehicle: 'Véhicule:',
+                labelClientName: 'Client',
+                labelPlate: 'Plaque',
+                labelVehicle: 'Véhicule',
+                labelDeliveryDateTime: 'Date/Heure Livraison',
+                labelReturnDateTime: 'Date/Heure Retour',
                 labelKmsEntrega: 'Kms Livraison',
                 labelFuelEntrega: 'Carburant Livraison',
                 instructionsMainTitle: 'Procédure de Self Check-in',
@@ -471,8 +522,11 @@
             const t = translations[currentLang];
             
             document.getElementById('pageTitle').textContent = t.pageTitle;
+            document.getElementById('labelClientName').textContent = t.labelClientName;
             document.getElementById('labelPlate').textContent = t.labelPlate;
             document.getElementById('labelVehicle').textContent = t.labelVehicle;
+            document.getElementById('labelDeliveryDateTime').textContent = t.labelDeliveryDateTime;
+            document.getElementById('labelReturnDateTime').textContent = t.labelReturnDateTime;
             document.getElementById('labelKmsEntrega').textContent = t.labelKmsEntrega;
             document.getElementById('labelFuelEntrega').textContent = t.labelFuelEntrega;
             document.getElementById('instructionsMainTitle').textContent = t.instructionsMainTitle;
@@ -533,6 +587,11 @@
                 document.getElementById('raNumber').textContent = raData.rental_agreement_number;
                 document.getElementById('licensePlate').textContent = raData.license_plate;
                 
+                // Nome do cliente
+                if (raData.extracted_data && raData.extracted_data.client_name) {
+                    document.getElementById('clientName').textContent = raData.extracted_data.client_name;
+                }
+                
                 if (raData.vehicle) {
                     document.getElementById('vehicleDetails').textContent = 
                         `${raData.vehicle.marca} ${raData.vehicle.modelo}`;
@@ -541,8 +600,28 @@
                 // Preencher informações de entrega (checkout)
                 if (raData.extracted_data) {
                     const checkoutData = raData.extracted_data;
+                    
+                    // Kms entrega
                     document.getElementById('kmsEntrega').textContent = checkoutData.odometer || checkoutData.kms || '-';
-                    document.getElementById('fuelEntrega').textContent = checkoutData.fuel_level || checkoutData.combustivel || '-';
+                    
+                    // Data/Hora Entrega (do checkout)
+                    if (checkoutData.delivery_date || checkoutData.pickup_date) {
+                        const deliveryDate = checkoutData.delivery_date || checkoutData.pickup_date;
+                        const deliveryTime = checkoutData.delivery_time || checkoutData.pickup_time || '';
+                        document.getElementById('deliveryDateTime').textContent = `${deliveryDate} ${deliveryTime}`.trim();
+                    }
+                    
+                    // Data/Hora Devolução (atualiza para agora)
+                    const now = new Date();
+                    const returnDate = now.toLocaleDateString('pt-PT');
+                    const returnTime = now.toLocaleTimeString('pt-PT', { hour: '2-digit', minute: '2-digit' });
+                    document.getElementById('returnDateTime').textContent = `${returnDate} ${returnTime}`;
+                    
+                    // Combustível Entrega - Canvas Visual
+                    const fuelLevel = checkoutData.fuel_level || checkoutData.combustivel;
+                    if (fuelLevel) {
+                        updateFuelEntregaCanvas(fuelLevel);
+                    }
                 }
             } catch (error) {
                 console.error('Error loading RA data:', error);
@@ -718,6 +797,35 @@
             damagePhotos[index] = null;
         }
 
+        function updateFuelEntregaCanvas(fuelLevelText) {
+            const fuelFill = document.getElementById('fuelEntregaFill');
+            if (!fuelFill) return;
+            
+            // Mapear texto para percentagem
+            let percentage = 0;
+            const fuelText = (fuelLevelText || '').toLowerCase();
+            
+            if (fuelText.includes('cheio') || fuelText.includes('full') || fuelText.includes('f') || fuelText === '100') {
+                percentage = 100;
+            } else if (fuelText.includes('3/4') || fuelText.includes('75')) {
+                percentage = 75;
+            } else if (fuelText.includes('1/2') || fuelText.includes('50')) {
+                percentage = 50;
+            } else if (fuelText.includes('1/4') || fuelText.includes('25')) {
+                percentage = 25;
+            } else if (fuelText.includes('reserva') || fuelText.includes('reserve') || fuelText.includes('r') || fuelText === '0') {
+                percentage = 0;
+            } else {
+                // Tentar parsear como número
+                const num = parseInt(fuelLevelText);
+                if (!isNaN(num)) {
+                    percentage = num;
+                }
+            }
+            
+            fuelFill.style.width = percentage + '%';
+        }
+        
         function updateFuelDisplay() {
             const slider = document.getElementById('fuelSlider');
             const value = parseInt(slider.value);
