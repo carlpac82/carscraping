@@ -25089,9 +25089,9 @@ def _generate_checkin_status_alert(lang, has_fuel_incident, has_damage_incident)
     
     return '\n'.join(alerts)
 
-def _get_checkin_email_subject(lang, ra_number):
+def _get_checkout_email_subject(lang, ra_number):
     """
-    Get email subject for check-in based on language
+    Get email subject for check-out (recolha) based on language
     """
     subjects = {
         'pt': f'Relatório de Recolha RA. {ra_number}',
@@ -25100,9 +25100,9 @@ def _get_checkin_email_subject(lang, ra_number):
     }
     return subjects.get(lang, subjects['en'])
 
-def _get_checkin_croqui_title(lang):
+def _get_checkout_croqui_title(lang):
     """
-    Get croqui title for check-in based on language
+    Get croqui title for check-out (recolha) based on language
     """
     titles = {
         'pt': 'Croqui de Danos (Entrega + Recolha)',
@@ -30359,8 +30359,8 @@ async def save_inspection(request: Request):
                     if inspection_type == 'checkout':
                         # CHECK-OUT (recolha) - use email_checkout template
                         template_name = f"email_checkout_{detected_lang}.html" if detected_lang in ['pt', 'fr', 'en'] else "email_checkout_en.html"
-                        subject = _get_checkin_email_subject(detected_lang, ra)
-                        croqui_title = _get_checkin_croqui_title(detected_lang)
+                        subject = _get_checkout_email_subject(detected_lang, ra)
+                        croqui_title = _get_checkout_croqui_title(detected_lang)
                         
                         logging.info(f"📧 CHECK-OUT (recolha) - Using template: {template_name}")
                         logging.info(f"📧 Subject: {subject}")
@@ -31680,7 +31680,7 @@ async def email_preview(request: Request, ra: str = "06716-09"):
             """
         
         # Render template with real data
-        html_content = templates.get_template("email_preview.html").render(
+        html_content = templates.get_template("email_checkin_en.html").render(
             request=request,
             LOGO_URL=logo_base64,
             CONTRACT_NUMBER=contract_number,
@@ -31708,7 +31708,7 @@ async def email_preview(request: Request, ra: str = "06716-09"):
         logging.error(f"Error loading preview data: {e}")
         import traceback
         traceback.print_exc()
-        return templates.TemplateResponse("email_preview.html", {"request": request})
+        return templates.TemplateResponse("email_checkin_en.html", {"request": request})
 
 @app.get("/email-preview-pt", response_class=HTMLResponse)
 async def email_preview_pt(request: Request, ra: str = "06716-09"):
@@ -31887,7 +31887,7 @@ async def email_preview_pt(request: Request, ra: str = "06716-09"):
             photos_html = '<div style="text-align: center; color: #999; padding: 40px 0;"><p>📸 Sem fotos disponíveis</p></div>'
         
         # Render PT template
-        html_content = templates.get_template("email_preview_pt.html").render(
+        html_content = templates.get_template("email_checkin_pt.html").render(
             request=request,
             LOGO_URL=logo_base64,
             RA_NUMBER=ra,
@@ -32082,7 +32082,7 @@ async def email_preview_fr(request: Request, ra: str = "06716-09"):
             photos_html = '<div style="text-align: center; color: #999; padding: 40px 0;"><p>📸 Aucune photo disponible</p></div>'
         
         # Render FR template
-        html_content = templates.get_template("email_preview_fr.html").render(
+        html_content = templates.get_template("email_checkin_fr.html").render(
             request=request,
             LOGO_URL=logo_base64,
             RA_NUMBER=ra,
@@ -32704,7 +32704,7 @@ async def send_inspection_email(request: Request, inspection_number: str):
             status_alert_html = ""
             
             # Use simple template without incident alerts
-            template_name = f"email_preview_{detected_lang}.html" if detected_lang in ['pt', 'fr'] else "email_preview.html"
+            template_name = f"email_checkin_{detected_lang}.html" if detected_lang in ['pt', 'fr', 'en'] else "email_checkin_en.html"
             croqui_title = "Croqui de Danos" if detected_lang == 'pt' else "Damage Sketch" if detected_lang == 'en' else "Croquis des Dommages"
             
             # Check-in (entrega) subject
@@ -32811,11 +32811,11 @@ async def send_inspection_email(request: Request, inspection_number: str):
                 logging.error(traceback.format_exc())
             
             # Use check-out template with incident alerts
-            template_name = f"email_checkin_{detected_lang}.html" if detected_lang in ['pt', 'fr', 'en'] else "email_checkin_en.html"
+            template_name = f"email_checkout_{detected_lang}.html" if detected_lang in ['pt', 'fr', 'en'] else "email_checkout_en.html"
             
             # Get check-out (recolha) specific subject and croqui title
-            email_title = _get_checkin_email_subject(detected_lang, ra)
-            croqui_title = _get_checkin_croqui_title(detected_lang)
+            email_title = _get_checkout_email_subject(detected_lang, ra)
+            croqui_title = _get_checkout_croqui_title(detected_lang)
             
             logging.info(f"📧 Using check-out (recolha) template: {template_name}")
             logging.info(f"📧 Subject: {email_title}")
@@ -32830,7 +32830,7 @@ async def send_inspection_email(request: Request, inspection_number: str):
             }
             
             # Default template
-            template_name = f"email_preview_{detected_lang}.html" if detected_lang in ['pt', 'fr'] else "email_preview.html"
+            template_name = f"email_checkin_{detected_lang}.html" if detected_lang in ['pt', 'fr', 'en'] else "email_checkin_en.html"
             croqui_title = "Croqui de Danos" if detected_lang == 'pt' else "Damage Sketch" if detected_lang == 'en' else "Croquis des Dommages"
             
             if detected_lang == 'pt':
@@ -33156,7 +33156,7 @@ async def send_inspection_email(request: Request, inspection_number: str):
         # Send email
         # For check-in, email_title already includes RA, for checkout we need to add it
         if inspection_type == 'checkin':
-            email_subject = email_title  # Already includes RA from _get_checkin_email_subject
+            email_subject = email_title  # Already includes RA from _get_checkout_email_subject
         else:
             email_subject = email_title  # Already includes RA from above
         
