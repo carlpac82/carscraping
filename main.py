@@ -30370,11 +30370,10 @@ async def save_inspection(request: Request):
                     # Build PHOTOS_SECTION based on incidents
                     # If fuel incident: show odometer photo as proof
                     # If damage incident: show all damage photos
-                    if inspection_type in ['checkout', 'checkin']:
-                        if incidents['has_fuel_incident'] or incidents['has_damage_incident']:
-                            # Get odometer photo for fuel incidents
-                            odometer_photo_html = ""
-                            if incidents['has_fuel_incident']:
+                    if incidents['has_fuel_incident'] or incidents['has_damage_incident']:
+                        # Get odometer photo for fuel incidents
+                        odometer_photo_html = ""
+                        if incidents['has_fuel_incident']:
                                 # Extract odometer photo from photos_rows
                                 if is_postgres:
                                     cursor.execute("""
@@ -30438,29 +30437,37 @@ async def save_inspection(request: Request):
                             
                             # Combine sections
                             photos_section_html = odometer_photo_html + damage_photos_html
-                        
-                        # Use check-in template
+                    
+                    # Choose template based on inspection type
+                    if inspection_type == 'checkin':
+                        # CHECK-OUT (recolha) - use email_checkin template
                         template_name = f"email_checkin_{detected_lang}.html" if detected_lang in ['pt', 'fr', 'en'] else "email_checkin_en.html"
-                        
-                        # Get check-in specific subject and croqui title
                         subject = _get_checkin_email_subject(detected_lang, ra)
                         croqui_title = _get_checkin_croqui_title(detected_lang)
                         
-                        logging.info(f"📧 Using check-in template: {template_name}")
+                        logging.info(f"📧 CHECK-OUT (recolha) - Using template: {template_name}")
                         logging.info(f"📧 Subject: {subject}")
-                        logging.info(f"📧 Croqui title: {croqui_title}")
                         
-                    else:
-                        # Checkout - use existing logic
+                    elif inspection_type == 'checkout':
+                        # CHECK-IN (entrega) - use email_preview template
                         template_name = f"email_preview_{detected_lang}.html" if detected_lang in ['pt', 'fr'] else "email_preview.html"
                         croqui_title = "Croqui de Danos" if detected_lang == 'pt' else "Damage Sketch" if detected_lang == 'en' else "Croquis des Dommages"
                         
                         # Checkout subject
                         subject = f"Delivery Report R.A. {ra}"
                         if detected_lang == 'pt':
-                            subject = f"Relatorio de Entrega R.A. {ra}"
+                            subject = f"Relatório de Entrega R.A. {ra}"
                         elif detected_lang == 'fr':
                             subject = f"Rapport de Livraison R.A. {ra}"
+                        
+                        logging.info(f"📧 CHECK-IN (entrega) - Using template: {template_name}")
+                        logging.info(f"📧 Subject: {subject}")
+                        
+                    else:
+                        # Default fallback
+                        template_name = f"email_preview_{detected_lang}.html" if detected_lang in ['pt', 'fr'] else "email_preview.html"
+                        croqui_title = "Croqui de Danos" if detected_lang == 'pt' else "Damage Sketch" if detected_lang == 'en' else "Croquis des Dommages"
+                        subject = f"Inspection Report R.A. {ra}"
                     
                     # Prepare email content with ALL variables
                     template = templates.get_template(template_name)
@@ -32765,9 +32772,9 @@ async def send_inspection_email(request: Request, inspection_number: str):
         damage_count = damage_row[0] if damage_row and damage_row[0] else 0
         
         # Validate incidents
-        # CHECK-IN (entrega): NO alerts - just document damages, fuel, photos
-        # CHECK-OUT (recolha): validate incidents by comparing with check-in (entrega)
-        if inspection_type == 'checkin':
+        # CHECK-IN (entrega/checkout DB): NO alerts - just document damages, fuel, photos
+        # CHECK-OUT (recolha/checkin DB): validate incidents by comparing with check-in (entrega)
+        if inspection_type == 'checkout':
             logging.info("🔍 CHECK-IN (entrega) DETECTED - No validation, just documenting...")
             
             # Damages are expected and documented, not incidents
@@ -32786,16 +32793,16 @@ async def send_inspection_email(request: Request, inspection_number: str):
             
             # Check-in (entrega) subject
             if detected_lang == 'pt':
-                email_title = f"Relatorio de Entrega R.A. {ra}"
+                email_title = f"Relatório de Entrega R.A. {ra}"
             elif detected_lang == 'fr':
                 email_title = f"Rapport de Livraison R.A. {ra}"
             else:
                 email_title = f"Delivery Report R.A. {ra}"
             
-            logging.info(f"📧 Using check-in template: {template_name}")
+            logging.info(f"📧 Using check-in (entrega) template: {template_name}")
             logging.info(f"📧 Subject: {email_title}")
             
-        elif inspection_type == 'checkout':
+        elif inspection_type == 'checkin':
             logging.info("🔍 CHECK-OUT (recolha) DETECTED - Validating incidents...")
             
             # Validate incidents by comparing with check-in (entrega)
