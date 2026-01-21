@@ -2546,7 +2546,6 @@ init3DCar(photoType);
     
 try {
 // Request camera access with flash support
-if (!cameraStream) {
 cameraStream = await navigator.mediaDevices.getUserMedia({
 video: {
 facingMode: 'environment', // Use back camera on mobile
@@ -2558,13 +2557,16 @@ advanced: [{ torch: false }]
 
 // Get video track for flash control
 currentTrack = cameraStream.getVideoTracks()[0];
-}
 
 // Check if flash is supported and show button every time camera opens
 if (currentTrack) {
 const capabilities = currentTrack.getCapabilities();
+console.log('Flash capabilities:', capabilities);
 if (capabilities.torch) {
+console.log('✅ Flash supported, showing button');
 document.getElementById('flashButton').style.display = 'block';
+} else {
+console.log('❌ Flash not supported on this device');
 }
 }
     
