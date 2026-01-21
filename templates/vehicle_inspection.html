@@ -3459,11 +3459,12 @@
                                 }
                                 
                                 console.log('🚫 Contract closed: both buttons disabled');
-                            }
-                            
-                            // Update pickup button state after setting inspection status
-                            if (typeof updatePickupButtonState === 'function') {
-                                updatePickupButtonState();
+                            } else {
+                                // Only update pickup button state if contract is NOT closed
+                                // Update pickup button state after setting inspection status
+                                if (typeof updatePickupButtonState === 'function') {
+                                    updatePickupButtonState();
+                                }
                             }
                         }
                     } catch (error) {
