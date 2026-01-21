@@ -163,12 +163,18 @@
         /* Camera Modal Styles */
         .camera-modal {
             position: fixed;
-            inset: 0;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
             background: rgba(0, 188, 212, 0.98);
             display: none;
             z-index: 99999;
             width: 100vw;
             height: 100vh;
+            margin: 0;
+            padding: 0;
+            overflow: hidden;
         }
         
         .camera-modal.active {
@@ -893,13 +899,20 @@
             countdownOverlay.id = 'countdownOverlay';
             countdownOverlay.style.cssText = `
                 position: fixed;
-                inset: 0;
+                top: 0;
+                left: 0;
+                right: 0;
+                bottom: 0;
+                width: 100vw;
+                height: 100vh;
                 background: rgba(0, 188, 212, 0.85); /* Blue background with more transparency */
                 display: flex;
                 flex-direction: column;
                 align-items: center;
                 justify-content: center;
                 z-index: 99998;
+                margin: 0;
+                padding: 0;
             `;
             
             countdownOverlay.innerHTML = `
