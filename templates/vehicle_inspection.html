@@ -1429,8 +1429,12 @@
             console.log(`📸 Total photos to send: ${Object.keys(photos).length}`);
             
             // Prepare inspection data
+            // IMPORTANTE: delivery (ENTREGA) = checkin (DB), pickup (RECOLHA) = checkout (DB)
+            const processType = localStorage.getItem('processType') || 'delivery';
+            const inspectionType = processType === 'delivery' ? 'checkin' : 'checkout';
+            
             const inspectionData = {
-                type: '{{ inspection_type|default("checkout") }}',
+                type: inspectionType,
                 photos: photos,
                 damages: window.diagramData?.damages || [],
                 observations: window.diagramData?.observations || '',
@@ -2989,8 +2993,12 @@
             console.log(`📸 Total photos to send: ${Object.keys(photos).length}`);
             
             // Prepare inspection data
+            // IMPORTANTE: delivery (ENTREGA) = checkin (DB), pickup (RECOLHA) = checkout (DB)
+            const processType = localStorage.getItem('processType') || 'delivery';
+            const inspectionType = processType === 'delivery' ? 'checkin' : 'checkout';
+            
             const inspectionData = {
-                type: '{{ inspection_type|default("checkout") }}', // Add inspection type
+                type: inspectionType,
                 photos: photos,
                 damages: window.diagramData?.damages || [],
                 observations: window.diagramData?.observations || '',
