@@ -2030,6 +2030,7 @@ async function savePickupInspection() {
             has_damage: (window.pickupNewDamages && window.pickupNewDamages.length > 0) || (window.damages && window.damages.filter(d => d.type === 'drawing').length > 0),
             damage_count: (window.pickupNewDamages ? window.pickupNewDamages.length : 0) + (window.damages ? window.damages.filter(d => d.type === 'drawing').length : 0),
             new_damage_photos_count: window.pickupDamagePhotos ? window.pickupDamagePhotos.length : 0,
+            damages: window.damages || [],  // CRITICAL: Send damages array to backend for proper counting
             photos: photos,
             damage_croqui: damageCroqui,
             client_email: clientEmail
