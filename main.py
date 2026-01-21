@@ -30535,12 +30535,9 @@ async def self_checkin_success_page(request: Request):
 
 @app.get("/test-selfcheckin", response_class=HTMLResponse)
 async def test_selfcheckin_page(request: Request):
-    """Test page for self check-in with debug console - No auth required"""
-    html_path = BASE_DIR / "test_selfcheckin_debug.html"
-    if html_path.exists():
-        return FileResponse(html_path)
-    else:
-        raise HTTPException(status_code=404, detail="Test page not found")
+    """Test page for self check-in - redirects to test token"""
+    # Use a fixed test token
+    return RedirectResponse(url="/self-checkin/TEST-12345", status_code=302)
 
 @app.get("/api/self-checkin/{token}")
 async def get_self_checkin_data(token: str):
@@ -30548,6 +30545,40 @@ async def get_self_checkin_data(token: str):
     Endpoint público (sem autenticação) para self check-in
     Cliente acede via link único enviado por email
     """
+    # Handle test token
+    if token == "TEST-12345":
+        return JSONResponse({
+            "success": True,
+            "data": {
+                "ra_id": 99999,
+                "rental_agreement_number": "TEST-12345",
+                "license_plate": "AB-12-CD",
+                "vehicle_id": 1,
+                "email": "test@example.com",
+                "scheduled_date": "2026-01-21",
+                "return_date": "2026-01-21",
+                "vehicle": {
+                    "marca": "Renault",
+                    "modelo": "Clio",
+                    "grupo": "B"
+                },
+                "client_name": "João Silva",
+                "completed": False,
+                "validated": False,
+                "extracted_data": {
+                    "client_name": "João Silva",
+                    "delivery_date": "20/01/2026",
+                    "delivery_time": "14:30",
+                    "pickup_date": "20/01/2026",
+                    "pickup_time": "14:30",
+                    "kms": "45000",
+                    "odometer": "45000",
+                    "fuel_level": "75",
+                    "combustivel": "3/4"
+                }
+            }
+        })
+    
     conn = None
     try:
         conn = _db_connect()
