@@ -317,6 +317,8 @@
             transition: all 0.2s;
             filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.5));
             padding: 0;
+            width: 28px;
+            height: 28px;
         }
         
         .flash-button-icon.active {
@@ -376,6 +378,7 @@
             }
             
             .flash-button-icon {
+                bottom: 40px !important;
                 right: 30px !important;
             }
             
@@ -663,7 +666,7 @@
             </div>
             
             <!-- Flash button (right side, aligned with capture button) -->
-            <button onclick="toggleFlash()" id="flashButton" class="flash-button-icon" style="position: fixed; bottom: 80px; right: 40px; z-index: 10000; display: none;">
+            <button onclick="toggleFlash()" id="flashButton" class="flash-button-icon" style="position: fixed; bottom: 93px; right: 40px; z-index: 10000; display: none;">
                 <svg width="28" height="28" viewBox="0 0 24 24" fill="currentColor">
                     <path d="M7 2v11h3v9l7-12h-4l4-8z"/>
                 </svg>
@@ -1109,8 +1112,10 @@
                     
                     // Get video track for flash control
                     currentTrack = cameraStream.getVideoTracks()[0];
-                    
-                    // Check if flash is supported
+                }
+                
+                // Check if flash is supported and show button every time camera opens
+                if (currentTrack) {
                     const capabilities = currentTrack.getCapabilities();
                     if (capabilities.torch) {
                         document.getElementById('flashButton').style.display = 'block';
