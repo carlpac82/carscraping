@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Self Check-in - Auto Prudente</title>
+    <title>Self Checkout - Auto Prudente</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
         .photo-grid {
@@ -417,7 +417,7 @@
 
             <!-- Vehicle Info Card -->
             <div class="bg-white rounded-lg shadow-xl p-6 mb-6">
-                <h2 class="text-2xl font-bold text-[#00bcd4] mb-4" id="pageTitle">Self Check-in</h2>
+                <h2 class="text-2xl font-bold text-[#00bcd4] mb-4" id="pageTitle">Self Checkout</h2>
                 
                 <!-- Cliente -->
                 <div class="mb-4 pb-4 border-b border-gray-200">
@@ -482,7 +482,7 @@
 
             <!-- Instructions -->
             <div class="bg-white rounded-lg shadow-xl p-6 mb-6">
-                <h2 class="text-2xl font-bold text-[#00bcd4] mb-4" id="instructionsMainTitle">Procedimento de Self Check-in</h2>
+                <h2 class="text-2xl font-bold text-[#00bcd4] mb-4" id="instructionsMainTitle">Procedimento de Self Checkout</h2>
                 
                 <!-- Step 1 -->
                 <div class="border-l-4 border-[#00bcd4] bg-blue-50 p-4 mb-4 rounded">
@@ -498,8 +498,8 @@
                 
                 <!-- Step 3 -->
                 <div class="border-l-4 border-red-500 bg-red-50 p-4 rounded">
-                    <h3 class="font-bold text-red-600 mb-2" id="step3Title">3. Submeter Check-in</h3>
-                    <p class="text-gray-700 text-sm" id="step3Text">Após preencher todos os campos, clique no botão "Submeter Check-in" no final da página.</p>
+                    <h3 class="font-bold text-red-600 mb-2" id="step3Title">3. Submeter Checkout</h3>
+                    <p class="text-gray-700 text-sm" id="step3Text">Após preencher todos os campos, clique no botão "Submeter Checkout" no final da página.</p>
                 </div>
             </div>
 
@@ -687,7 +687,7 @@
         // Translations
         const translations = {
             pt: {
-                pageTitle: 'Self Check-in',
+                pageTitle: 'Self Checkout',
                 labelRA: 'RA:',
                 labelClientName: 'Cliente',
                 labelPlate: 'Matrícula',
@@ -696,20 +696,20 @@
                 labelReturnDateTime: 'Data/Hora Devolução',
                 labelKmsEntrega: 'Kms Entrega',
                 labelFuelEntrega: 'Combustível Entrega',
-                instructionsMainTitle: 'Procedimento de Self Check-in',
+                instructionsMainTitle: 'Procedimento de Self Checkout',
                 step1Title: '1. Fotos do Veículo',
                 step1Text: 'Tire 9 fotos obrigatórias do veículo (frente, laterais, traseira e interior). Adicione fotos de eventuais danos se necessário.',
                 step2Title: '2. Combustível e Quilómetros',
                 step2Text: 'Indique o nível de combustível atual e os quilómetros no odómetro do veículo.',
-                step3Title: '3. Submeter Check-in',
-                step3Text: 'Após preencher todos os campos, clique no botão "Submeter Check-in" no final da página.',
+                step3Title: '3. Submeter Checkout',
+                step3Text: 'Após preencher todos os campos, clique no botão "Submeter Checkout" no final da página.',
                 photosTitle: 'Fotos do Veículo (9 fotos obrigatórias)',
                 damageTitle: 'Fotos de Danos (opcional)',
                 addDamageBtn: '+ Adicionar Foto de Dano',
                 fuelOdometerTitle: 'Combustível e Quilómetros',
                 fuelLabel: 'Nível de Combustível',
                 odometerLabel: 'Quilómetros',
-                submitBtn: 'Submeter Check-in',
+                submitBtn: 'Submeter Checkout',
                 loading: 'A carregar...',
                 photoLabels: {
                     front: 'Frente',
@@ -724,11 +724,11 @@
                 },
                 alertMissingPhotos: 'Por favor, tire todas as 9 fotos obrigatórias. Faltam:',
                 alertOdometer: 'Por favor, insira os quilómetros',
-                alertSuccess: 'Self check-in submetido com sucesso! Aguarde a validação da nossa equipa.',
+                alertSuccess: 'Self checkout submetido com sucesso! Aguarde a validação da nossa equipa.',
                 alertError: 'Erro:',
-                alertSubmitError: 'Erro ao submeter check-in. Tente novamente.',
-                completedTitle: 'Self Check-in Já Realizado',
-                completedMessage: 'O self check-in para este rental agreement já foi completado. Este link só pode ser utilizado uma vez por motivos de segurança.',
+                alertSubmitError: 'Erro ao submeter checkout. Tente novamente.',
+                completedTitle: 'Self Checkout Já Realizado',
+                completedMessage: 'O self checkout para este rental agreement já foi completado. Este link só pode ser utilizado uma vez por motivos de segurança.',
                 needHelpTitle: 'Precisa de Ajuda?',
                 needHelpText: 'Se cometeu algum erro ou precisa de fazer alterações, por favor contacte o nosso escritório:',
                 phone: 'Telefone',
@@ -736,7 +736,7 @@
                 helpFooter: 'A nossa equipa terá todo o gosto em ajudá-lo e, se necessário, enviar-lhe um novo link.'
             },
             en: {
-                pageTitle: 'Self Check-in',
+                pageTitle: 'Self Checkout',
                 labelRA: 'RA:',
                 labelClientName: 'Client',
                 labelPlate: 'License Plate',
@@ -745,20 +745,20 @@
                 labelReturnDateTime: 'Return Date/Time',
                 labelKmsEntrega: 'Delivery Kms',
                 labelFuelEntrega: 'Delivery Fuel',
-                instructionsMainTitle: 'Self Check-in Procedure',
+                instructionsMainTitle: 'Self Checkout Procedure',
                 step1Title: '1. Vehicle Photos',
                 step1Text: 'Take 9 mandatory photos of the vehicle (front, sides, rear and interior). Add photos of any damages if necessary.',
                 step2Title: '2. Fuel and Mileage',
                 step2Text: 'Indicate the current fuel level and the mileage on the vehicle odometer.',
-                step3Title: '3. Submit Check-in',
-                step3Text: 'After filling in all fields, click the "Submit Check-in" button at the bottom of the page.',
+                step3Title: '3. Submit Checkout',
+                step3Text: 'After filling in all fields, click the "Submit Checkout" button at the bottom of the page.',
                 photosTitle: 'Vehicle Photos (9 photos required)',
                 damageTitle: 'Damage Photos (optional)',
                 addDamageBtn: '+ Add Damage Photo',
                 fuelOdometerTitle: 'Fuel and Mileage',
                 fuelLabel: 'Fuel Level',
                 odometerLabel: 'Mileage (km)',
-                submitBtn: 'Submit Check-in',
+                submitBtn: 'Submit Checkout',
                 loading: 'Loading...',
                 photoLabels: {
                     front: 'Front',
@@ -773,11 +773,11 @@
                 },
                 alertMissingPhotos: 'Please take all 9 required photos. Missing:',
                 alertOdometer: 'Please enter the mileage',
-                alertSuccess: 'Self check-in submitted successfully! Please wait for our team validation.',
+                alertSuccess: 'Self checkout submitted successfully! Wait for validation from our team.',
                 alertError: 'Error:',
-                alertSubmitError: 'Error submitting check-in. Please try again.',
-                completedTitle: 'Self Check-in Already Completed',
-                completedMessage: 'The self check-in for this rental agreement has already been completed. This link can only be used once for security reasons.',
+                alertSubmitError: 'Error submitting checkout. Please try again.',
+                completedTitle: 'Self Checkout Already Completed',
+                completedMessage: 'The self checkout for this rental agreement has already been completed. This link can only be used once for security reasons.',
                 needHelpTitle: 'Need Help?',
                 needHelpText: 'If you made a mistake or need to make changes, please contact our office:',
                 phone: 'Phone',
@@ -785,7 +785,7 @@
                 helpFooter: 'Our team will be happy to help you and, if necessary, send you a new link.'
             },
             fr: {
-                pageTitle: 'Self Check-in',
+                pageTitle: 'Self Checkout',
                 labelRA: 'RA:',
                 labelClientName: 'Client',
                 labelPlate: 'Plaque',
@@ -794,20 +794,20 @@
                 labelReturnDateTime: 'Date/Heure Retour',
                 labelKmsEntrega: 'Kms Livraison',
                 labelFuelEntrega: 'Carburant Livraison',
-                instructionsMainTitle: 'Procédure de Self Check-in',
+                instructionsMainTitle: 'Procédure de Self Checkout',
                 step1Title: '1. Photos du Véhicule',
                 step1Text: 'Prenez 9 photos obligatoires du véhicule (avant, côtés, arrière et intérieur). Ajoutez des photos de tout dommage si nécessaire.',
                 step2Title: '2. Carburant et Kilométrage',
                 step2Text: 'Indiquez le niveau de carburant actuel et le kilométrage sur l\'odomètre du véhicule.',
-                step3Title: '3. Soumettre le Check-in',
-                step3Text: 'Après avoir rempli tous les champs, cliquez sur le bouton "Soumettre le Check-in" en bas de la page.',
+                step3Title: '3. Soumettre le Checkout',
+                step3Text: 'Après avoir rempli tous les champs, cliquez sur le bouton "Soumettre le Checkout" en bas de la page.',
                 photosTitle: 'Photos du Véhicule (9 photos obligatoires)',
                 damageTitle: 'Photos de Dommages (optionnel)',
                 addDamageBtn: '+ Ajouter Photo de Dommage',
                 fuelOdometerTitle: 'Carburant et Kilométrage',
                 fuelLabel: 'Niveau de Carburant',
                 odometerLabel: 'Kilométrage (km)',
-                submitBtn: 'Soumettre le Check-in',
+                submitBtn: 'Soumettre le Checkout',
                 loading: 'Chargement...',
                 photoLabels: {
                     front: 'Avant',
@@ -822,11 +822,11 @@
                 },
                 alertMissingPhotos: 'Veuillez prendre toutes les 9 photos obligatoires. Manquantes:',
                 alertOdometer: 'Veuillez saisir le kilométrage',
-                alertSuccess: 'Self check-in soumis avec succès! Veuillez attendre la validation de notre équipe.',
+                alertSuccess: 'Self checkout soumis avec succès! Veuillez attendre la validation de notre équipe.',
                 alertError: 'Erreur:',
-                alertSubmitError: 'Erreur lors de la soumission du check-in. Veuillez réessayer.',
-                completedTitle: 'Self Check-in Déjà Effectué',
-                completedMessage: 'Le self check-in pour ce contrat de location a déjà été effectué. Ce lien ne peut être utilisé qu\'une seule fois pour des raisons de sécurité.',
+                alertSubmitError: 'Erreur lors de la soumission du checkout. Veuillez réessayer.',
+                completedTitle: 'Self Checkout Déjà Effectué',
+                completedMessage: 'Le self checkout pour ce contrat de location a déjà été effectué. Ce lien ne peut être utilisé qu\'une seule fois pour des raisons de sécurité.',
                 needHelpTitle: 'Besoin d\'Aide?',
                 needHelpText: 'Si vous avez fait une erreur ou devez apporter des modifications, veuillez contacter notre bureau:',
                 phone: 'Téléphone',

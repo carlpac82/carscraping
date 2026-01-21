@@ -30544,30 +30544,30 @@ async def inspection_history_page(request: Request):
 # SELF CHECK-IN - Cliente acede sem login via token único
 # ============================================================
 
-@app.get("/self-checkin/{token}", response_class=HTMLResponse)
-async def self_checkin_page(token: str, request: Request):
-    """Self check-in page - No auth required, accessed via unique token"""
-    return templates.TemplateResponse("self_checkin.html", {
+@app.get("/self-checkout/{token}", response_class=HTMLResponse)
+async def self_checkout_page(token: str, request: Request):
+    """Self checkout page - No auth required, accessed via unique token"""
+    return templates.TemplateResponse("self_checkout.html", {
         "request": request
     })
 
-@app.get("/self-checkin-success", response_class=HTMLResponse)
-async def self_checkin_success_page(request: Request):
-    """Success page after self check-in submission"""
-    return templates.TemplateResponse("self_checkin_success.html", {
+@app.get("/self-checkout-success", response_class=HTMLResponse)
+async def self_checkout_success_page(request: Request):
+    """Success page after self checkout submission"""
+    return templates.TemplateResponse("self_checkout_success.html", {
         "request": request
     })
 
-@app.get("/test-selfcheckin", response_class=HTMLResponse)
-async def test_selfcheckin_page(request: Request):
-    """Test page for self check-in - redirects to test token"""
+@app.get("/test-selfcheckout", response_class=HTMLResponse)
+async def test_selfcheckout_page(request: Request):
+    """Test page for self checkout - redirects to test token"""
     # Use a fixed test token
-    return RedirectResponse(url="/self-checkin/TEST-12345", status_code=302)
+    return RedirectResponse(url="/self-checkout/TEST-12345", status_code=302)
 
-@app.get("/api/self-checkin/{token}")
-async def get_self_checkin_data(token: str):
+@app.get("/api/self-checkout/{token}")
+async def get_self_checkout_data(token: str):
     """
-    Endpoint público (sem autenticação) para self check-in
+    Get rental agreement data for self checkout using token
     Cliente acede via link único enviado por email
     """
     # Handle test token
