@@ -797,8 +797,8 @@
                         <!-- ENTREGA Button (Red/Checkout) -->
                         <button onclick="startDelivery()" id="deliveryButton" class="group block transition-all transform hover:scale-105 active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100" title="Iniciar Entrega">
                             <div class="relative">
-                                <!-- Car Icon SVG - RED -->
-                                <svg id="deliveryIcon" class="w-32 h-32 sm:w-36 sm:h-36 md:w-40 md:h-40 mx-auto drop-shadow-2xl transition-all" viewBox="0 0 24 24" fill="#dc3545">
+                                <!-- Car Icon SVG - RED when enabled, GRAY when disabled -->
+                                <svg id="deliveryIcon" class="w-32 h-32 sm:w-36 sm:h-36 md:w-40 md:h-40 mx-auto drop-shadow-2xl transition-all" viewBox="0 0 24 24" fill="#6c757d">
                                     <!-- Front view car icon -->
                                     <path d="M18.92,6.01C18.72,5.42,18.16,5,17.5,5h-11C5.84,5,5.29,5.42,5.08,6.01L3,12v8c0,0.55,0.45,1,1,1h1c0.55,0,1-0.45,1-1v-1h12v1c0,0.55,0.45,1,1,1h1c0.55,0,1-0.45,1-1v-8L18.92,6.01z M6.5,16C5.67,16,5,15.33,5,14.5S5.67,13,6.5,13S8,13.67,8,14.5S7.33,16,6.5,16z M17.5,16c-0.83,0-1.5-0.67-1.5-1.5s0.67-1.5,1.5-1.5s1.5,0.67,1.5,1.5S18.33,16,17.5,16z M5,11l1.5-4.5h11L19,11H5z"/>
                                 </svg>
@@ -3460,6 +3460,13 @@
                                 
                                 console.log('🚫 Contract closed: both buttons disabled');
                             } else {
+                                // Contract is NOT closed - enable delivery button with RED color
+                                const deliveryIcon = document.getElementById('deliveryIcon');
+                                if (deliveryIcon) {
+                                    deliveryIcon.setAttribute('fill', '#dc3545'); // RED
+                                    console.log('✅ Delivery icon set to RED (contract active)');
+                                }
+                                
                                 // Only update pickup button state if contract is NOT closed
                                 // Update pickup button state after setting inspection status
                                 if (typeof updatePickupButtonState === 'function') {
