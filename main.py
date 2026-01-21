@@ -4837,45 +4837,89 @@ def _send_self_checkin_invitation_email(to_email: str, client_name: str, ra_numb
 def _send_self_checkin_confirmation_email(to_email: str, client_name: str, ra_number: str, plate: str):
     """Enviar email de confirmação após validação de self check-in"""
     try:
-        subject = f"✅ Self Check-in Validado - RA {ra_number}"
+        subject = f"Self Check-in Validado - RA {ra_number}"
         
         html_content = f"""
         <!DOCTYPE html>
-        <html>
+        <html lang="pt">
         <head>
-            <meta charset="UTF-8">
+            <meta charset="utf-8">
+            <meta name="viewport" content="width=device-width, initial-scale=1.0">
+            <title>Self Check-in Validado - Auto Prudente</title>
         </head>
-        <body style="font-family: 'Segoe UI', sans-serif; background: #f8fafc; padding: 20px;">
-            <div style="max-width: 600px; margin: 0 auto; background: white; border-radius: 8px; overflow: hidden; box-shadow: 0 2px 8px rgba(0,0,0,0.1);">
-                <div style="background: linear-gradient(135deg, #10b981 0%, #059669 100%); padding: 30px; text-align: center;">
-                    <h1 style="margin: 0; color: white; font-size: 24px;">✅ Self Check-in Validado</h1>
-                </div>
-                <div style="padding: 30px;">
-                    <p style="margin: 0 0 20px 0; color: #1e293b; font-size: 16px;">Olá {client_name},</p>
-                    
-                    <p style="margin: 0 0 20px 0; color: #475569; font-size: 14px; line-height: 1.6;">
-                        O seu <strong>self check-in</strong> do veículo <strong>{plate}</strong> (RA {ra_number}) foi validado com sucesso!
-                    </p>
-                    
-                    <div style="background: #f0fdf4; border-left: 4px solid #10b981; padding: 15px; margin: 20px 0; border-radius: 4px;">
-                        <p style="margin: 0; color: #166534; font-size: 14px; font-weight: 600;">
-                            ✓ Contrato encerrado
-                        </p>
-                        <p style="margin: 5px 0 0 0; color: #15803d; font-size: 13px;">
-                            O processo de devolução está concluído.
-                        </p>
-                    </div>
-                    
-                    <p style="margin: 20px 0 0 0; color: #64748b; font-size: 13px; line-height: 1.6;">
-                        Agradecemos a sua preferência e esperamos vê-lo novamente em breve!
-                    </p>
-                </div>
-                <div style="background: #f8fafc; padding: 20px; text-align: center; border-top: 1px solid #e2e8f0;">
-                    <p style="margin: 0; font-size: 12px; color: #94a3b8;">
-                        Auto Prudente © 2025 - Sistema de Self Check-in
-                    </p>
-                </div>
-            </div>
+        <body style="margin: 0; padding: 0; font-family: Arial, sans-serif; background-color: #f4f4f4;">
+            <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="margin: 0; padding: 0;">
+                <tr>
+                    <td align="center" style="padding: 20px 0;">
+                        <table role="presentation" width="600" cellpadding="0" cellspacing="0" border="0" style="margin: 0 auto; background-color: #ffffff; width: 600px !important;">
+                            <tr>
+                                <td style="padding: 0;">
+                                    
+                                    <!-- Header -->
+                                    <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="background: linear-gradient(135deg, #00bcd4 0%, #0097a7 100%); background-color: #00bcd4;">
+                                        <tr>
+                                            <td style="padding: 20px;">
+                                                <table width="100%" cellpadding="0" cellspacing="0">
+                                                    <tr>
+                                                        <td style="width: 50%; text-align: left; vertical-align: middle;">
+                                                            <img src="https://carscraping.up.railway.app/static/ap-heather.png" alt="Auto Prudente" style="height: 50px; width: auto;">
+                                                        </td>
+                                                        <td style="width: 50%; text-align: right; vertical-align: middle;">
+                                                            <div style="background: rgba(255,255,255,0.2); padding: 10px 15px; border-radius: 6px; display: inline-block;">
+                                                                <span style="color: #ffffff; font-size: 16px; font-weight: bold;">R.A.: {ra_number}</span>
+                                                            </div>
+                                                        </td>
+                                                    </tr>
+                                                </table>
+                                            </td>
+                                        </tr>
+                                    </table>
+
+                                    <!-- Success Message -->
+                                    <div style="padding: 30px 20px; text-align: center; background-color: #f0fdf4;">
+                                        <div style="font-size: 48px; margin-bottom: 15px;">✅</div>
+                                        <h2 style="color: #059669; margin: 0 0 10px 0; font-size: 24px; font-weight: bold;">Self Check-in Validado</h2>
+                                        <p style="color: #047857; margin: 0; font-size: 16px;">Contrato encerrado com sucesso</p>
+                                    </div>
+
+                                    <!-- Content -->
+                                    <div style="padding: 30px 20px;">
+                                        <p style="color: #333333; margin: 0 0 15px 0; font-size: 16px;">Estimado(a) {client_name},</p>
+                                        
+                                        <p style="color: #666666; line-height: 1.6; margin: 0 0 20px 0; font-size: 14px;">
+                                            O seu <strong>self check-in</strong> do veículo <strong>{plate}</strong> foi validado com sucesso pela nossa equipa.
+                                        </p>
+                                        
+                                        <div style="background: white; border-left: 4px solid #10b981; padding: 15px; margin: 20px 0; border-radius: 4px; box-shadow: 0 1px 3px rgba(0,0,0,0.1);">
+                                            <p style="margin: 0 0 10px 0; color: #059669; font-size: 15px; font-weight: bold;">✓ Processo Concluído</p>
+                                            <p style="margin: 0; color: #666666; font-size: 14px; line-height: 1.6;">
+                                                O processo de devolução está completo. Não é necessária qualquer ação adicional da sua parte.
+                                            </p>
+                                        </div>
+                                        
+                                        <p style="color: #666666; line-height: 1.6; margin: 20px 0 0 0; font-size: 14px;">
+                                            Agradecemos a sua preferência e esperamos vê-lo novamente em breve!
+                                        </p>
+                                    </div>
+
+                                    <!-- Footer -->
+                                    <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="background-color: #f9f9f9; border-top: 1px solid #e0e0e0;">
+                                        <tr>
+                                            <td style="padding: 20px; text-align: center;">
+                                                <p style="margin: 0 0 10px 0; font-size: 14px; color: #666666; font-weight: bold;">Auto Prudente Rent a Car</p>
+                                                <p style="margin: 0 0 5px 0; font-size: 12px; color: #999999;">Aeroporto de Faro</p>
+                                                <p style="margin: 0 0 5px 0; font-size: 12px; color: #999999;">📞 +351 289 860 476 | 📧 info@autoprudente.com</p>
+                                                <p style="margin: 10px 0 0 0; font-size: 11px; color: #aaaaaa;">© 2025 Auto Prudente. Todos os direitos reservados.</p>
+                                            </td>
+                                        </tr>
+                                    </table>
+                                    
+                                </td>
+                            </tr>
+                        </table>
+                    </td>
+                </tr>
+            </table>
         </body>
         </html>
         """
@@ -4891,47 +4935,90 @@ def _send_self_checkin_confirmation_email(to_email: str, client_name: str, ra_nu
 def _send_self_checkin_incident_email(to_email: str, client_name: str, ra_number: str, plate: str):
     """Enviar email de incidências após invalidação de self check-in"""
     try:
-        subject = f"⚠️ Self Check-in - Inspeção Presencial Necessária - RA {ra_number}"
+        subject = f"Self Check-in - Inspeção Presencial Necessária - RA {ra_number}"
         
         html_content = f"""
         <!DOCTYPE html>
-        <html>
+        <html lang="pt">
         <head>
-            <meta charset="UTF-8">
+            <meta charset="utf-8">
+            <meta name="viewport" content="width=device-width, initial-scale=1.0">
+            <title>Inspeção Presencial Necessária - Auto Prudente</title>
         </head>
-        <body style="font-family: 'Segoe UI', sans-serif; background: #f8fafc; padding: 20px;">
-            <div style="max-width: 600px; margin: 0 auto; background: white; border-radius: 8px; overflow: hidden; box-shadow: 0 2px 8px rgba(0,0,0,0.1);">
-                <div style="background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%); padding: 30px; text-align: center;">
-                    <h1 style="margin: 0; color: white; font-size: 24px;">⚠️ Inspeção Presencial Necessária</h1>
-                </div>
-                <div style="padding: 30px;">
-                    <p style="margin: 0 0 20px 0; color: #1e293b; font-size: 16px;">Olá {client_name},</p>
-                    
-                    <p style="margin: 0 0 20px 0; color: #475569; font-size: 14px; line-height: 1.6;">
-                        Após análise do seu <strong>self check-in</strong> do veículo <strong>{plate}</strong> (RA {ra_number}), 
-                        identificámos algumas situações que requerem uma <strong>inspeção presencial</strong>.
-                    </p>
-                    
-                    <div style="background: #fffbeb; border-left: 4px solid #f59e0b; padding: 15px; margin: 20px 0; border-radius: 4px;">
-                        <p style="margin: 0; color: #92400e; font-size: 14px; font-weight: 600;">
-                            ⚠️ Ação Necessária
-                        </p>
-                        <p style="margin: 5px 0 0 0; color: #b45309; font-size: 13px;">
-                            Por favor, aguarde a visita de um dos nossos colaboradores para realizar a inspeção presencial do veículo.
-                        </p>
-                    </div>
-                    
-                    <p style="margin: 20px 0 0 0; color: #64748b; font-size: 13px; line-height: 1.6;">
-                        Entraremos em contacto brevemente para agendar a inspeção. Caso tenha alguma dúvida, 
-                        não hesite em contactar-nos.
-                    </p>
-                </div>
-                <div style="background: #f8fafc; padding: 20px; text-align: center; border-top: 1px solid #e2e8f0;">
-                    <p style="margin: 0; font-size: 12px; color: #94a3b8;">
-                        Auto Prudente © 2025 - Sistema de Self Check-in
-                    </p>
-                </div>
-            </div>
+        <body style="margin: 0; padding: 0; font-family: Arial, sans-serif; background-color: #f4f4f4;">
+            <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="margin: 0; padding: 0;">
+                <tr>
+                    <td align="center" style="padding: 20px 0;">
+                        <table role="presentation" width="600" cellpadding="0" cellspacing="0" border="0" style="margin: 0 auto; background-color: #ffffff; width: 600px !important;">
+                            <tr>
+                                <td style="padding: 0;">
+                                    
+                                    <!-- Header -->
+                                    <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="background: linear-gradient(135deg, #00bcd4 0%, #0097a7 100%); background-color: #00bcd4;">
+                                        <tr>
+                                            <td style="padding: 20px;">
+                                                <table width="100%" cellpadding="0" cellspacing="0">
+                                                    <tr>
+                                                        <td style="width: 50%; text-align: left; vertical-align: middle;">
+                                                            <img src="https://carscraping.up.railway.app/static/ap-heather.png" alt="Auto Prudente" style="height: 50px; width: auto;">
+                                                        </td>
+                                                        <td style="width: 50%; text-align: right; vertical-align: middle;">
+                                                            <div style="background: rgba(255,255,255,0.2); padding: 10px 15px; border-radius: 6px; display: inline-block;">
+                                                                <span style="color: #ffffff; font-size: 16px; font-weight: bold;">R.A.: {ra_number}</span>
+                                                            </div>
+                                                        </td>
+                                                    </tr>
+                                                </table>
+                                            </td>
+                                        </tr>
+                                    </table>
+
+                                    <!-- Warning Message -->
+                                    <div style="padding: 30px 20px; text-align: center; background-color: #fffbeb;">
+                                        <div style="font-size: 48px; margin-bottom: 15px;">⚠️</div>
+                                        <h2 style="color: #d97706; margin: 0 0 10px 0; font-size: 24px; font-weight: bold;">Inspeção Presencial Necessária</h2>
+                                        <p style="color: #b45309; margin: 0; font-size: 16px;">Aguarde contacto da nossa equipa</p>
+                                    </div>
+
+                                    <!-- Content -->
+                                    <div style="padding: 30px 20px;">
+                                        <p style="color: #333333; margin: 0 0 15px 0; font-size: 16px;">Estimado(a) {client_name},</p>
+                                        
+                                        <p style="color: #666666; line-height: 1.6; margin: 0 0 20px 0; font-size: 14px;">
+                                            Após análise do seu <strong>self check-in</strong> do veículo <strong>{plate}</strong>, 
+                                            identificámos algumas situações que requerem uma <strong>inspeção presencial</strong> por parte da nossa equipa.
+                                        </p>
+                                        
+                                        <div style="background: white; border-left: 4px solid #FFC107; padding: 15px; margin: 20px 0; border-radius: 4px; box-shadow: 0 1px 3px rgba(0,0,0,0.1);">
+                                            <p style="margin: 0 0 10px 0; color: #d97706; font-size: 15px; font-weight: bold;">⚠️ Próximos Passos</p>
+                                            <p style="margin: 0; color: #666666; font-size: 14px; line-height: 1.6;">
+                                                Por favor, <strong>aguarde no local</strong> ou mantenha-se disponível. Um dos nossos colaboradores entrará em contacto consigo brevemente para realizar a inspeção presencial do veículo.
+                                            </p>
+                                        </div>
+                                        
+                                        <p style="color: #666666; line-height: 1.6; margin: 20px 0 0 0; font-size: 14px;">
+                                            Caso tenha alguma dúvida ou necessite de esclarecimentos adicionais, não hesite em contactar-nos através dos meios indicados abaixo.
+                                        </p>
+                                    </div>
+
+                                    <!-- Footer -->
+                                    <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="background-color: #f9f9f9; border-top: 1px solid #e0e0e0;">
+                                        <tr>
+                                            <td style="padding: 20px; text-align: center;">
+                                                <p style="margin: 0 0 10px 0; font-size: 14px; color: #666666; font-weight: bold;">Auto Prudente Rent a Car</p>
+                                                <p style="margin: 0 0 5px 0; font-size: 12px; color: #999999;">Aeroporto de Faro</p>
+                                                <p style="margin: 0 0 5px 0; font-size: 12px; color: #999999;">📞 +351 289 860 476 | 📧 info@autoprudente.com</p>
+                                                <p style="margin: 10px 0 0 0; font-size: 11px; color: #aaaaaa;">© 2025 Auto Prudente. Todos os direitos reservados.</p>
+                                            </td>
+                                        </tr>
+                                    </table>
+                                    
+                                </td>
+                            </tr>
+                        </table>
+                    </td>
+                </tr>
+            </table>
         </body>
         </html>
         """
