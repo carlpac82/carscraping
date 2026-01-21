@@ -24951,6 +24951,8 @@ def _validate_checkin_incidents(cursor, is_postgres, ra, plate, checkin_fuel_lev
         
         # Validate damages - check if there are NEW damage photos in recolha (checkout)
         # Get entrega (checkin) damage photos count
+        logging.info(f"🔍 Starting damage validation - entrega_id={entrega_id}, recolha_id={checkin_inspection_id}")
+        
         if is_postgres:
             cursor.execute("""
                 SELECT COUNT(*) FROM inspection_photos
@@ -24984,6 +24986,12 @@ def _validate_checkin_incidents(cursor, is_postgres, ra, plate, checkin_fuel_lev
         photo_count_row = cursor.fetchone()
         recolha_damage_photos = photo_count_row[0] if photo_count_row else 0
         result['checkin_has_damage_photos'] = recolha_damage_photos > 0
+        
+        logging.info(f"🔍 DAMAGE COMPARISON DEBUG:")
+        logging.info(f"  - Entrega damage_count: {entrega_damage_count}")
+        logging.info(f"  - Recolha damage_count: {checkin_damage_count}")
+        logging.info(f"  - Entrega damage_photos: {entrega_damage_photos}")
+        logging.info(f"  - Recolha damage_photos: {recolha_damage_photos}")
         
         # If recolha (checkout) has MORE damages than entrega (checkin), it's an incident
         # Compare both damage_count AND photo count
