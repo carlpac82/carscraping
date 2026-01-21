@@ -922,16 +922,18 @@ async function loadDeliveryDataAndShowCroqui() {
     
     try {
         // Fetch delivery inspection data from backend
-        const response = await fetch(`/api/get_inspection?plate=${encodeURIComponent(plate)}&ra=${encodeURIComponent(ra)}&type=checkout`);
+        // When doing CHECK-OUT (recolha), we need to load the previous CHECK-IN (entrega) data
+        // which was saved as 'checkin' type
+        const response = await fetch(`/api/get_inspection?plate=${encodeURIComponent(plate)}&ra=${encodeURIComponent(ra)}&type=checkin`);
         
         if (!response.ok) {
-            throw new Error('Erro ao buscar dados do check-out');
+            throw new Error('Erro ao buscar dados da entrega');
         }
         
         const data = await response.json();
         
         if (!data.success || !data.inspection) {
-            showNotification('Não foi encontrado check-out para esta viatura', 'error');
+            showNotification('Não foi encontrada entrega (check-in) para esta viatura. Faça a entrega primeiro!', 'error');
             return;
         }
         
