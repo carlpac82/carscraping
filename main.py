@@ -29160,6 +29160,7 @@ async def save_inspection(request: Request):
         
         logging.info(f"📦 Check-in specific data - Colaborador: {colaborador}, Local: {local}, Delivery KMs: {delivery_kms}, Total KMs: {total_kms}, New damages: {new_damage_photos_count}")
         
+        logging.info(f"🔍 [FLOW-0] RECEIVED REQUEST - inspection_type='{inspection_type}'")
         logging.info(f"📋 Inspection Type: {inspection_type}")
         logging.info(f"🚗 Plate: {plate}")
         logging.info(f"📄 RA: {ra}")
@@ -29288,6 +29289,7 @@ async def save_inspection(request: Request):
         
         damage_severity = 'severe' if damage_count > 3 else 'moderate' if damage_count > 1 else 'minor' if damage_count > 0 else 'none'
         logging.info(f"⚠️ Damage info: count={damage_count}, severity={damage_severity}, has_damage={has_damage}")
+        logging.info(f"🔍 [FLOW-1] About to continue with inspection save, inspection_type='{inspection_type}', damage_count={damage_count}")
         
         # Get current user and full name
         username = request.session.get('username', 'Unknown')
@@ -29945,6 +29947,7 @@ async def save_inspection(request: Request):
             logging.info("💾 Committing transaction to database...")
             conn.commit()
             logging.info("✅ Transaction committed successfully")
+            logging.info(f"🔍 [FLOW-2] After commit, inspection_type='{inspection_type}'")
             
             # VALIDATE INCIDENTS FOR CHECK-OUT (RECOLHA) - ALWAYS, regardless of email
             logging.info(f"🔍 [PRE-VALIDATION] inspection_type='{inspection_type}', damage_count={damage_count}")
@@ -29957,6 +29960,7 @@ async def save_inspection(request: Request):
                 'checkin_has_damage_photos': False
             }
             
+            logging.info(f"🔍 [FLOW-3] About to check inspection_type condition: inspection_type == 'checkout' is {inspection_type == 'checkout'}")
             if inspection_type == 'checkout':
                 logging.info("🔍 CHECK-OUT (recolha) DETECTED - Validating incidents...")
                 try:
