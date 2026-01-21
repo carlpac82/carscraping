@@ -1292,8 +1292,28 @@
                     const scaleX = tempCanvas.width / canvas.width;
                     const scaleY = tempCanvas.height / canvas.height;
                     
+                    // Check if canvas has content
+                    const canvasCtx = canvas.getContext('2d');
+                    const imageData = canvasCtx.getImageData(0, 0, canvas.width, canvas.height);
+                    let hasContent = false;
+                    for (let i = 0; i < imageData.data.length; i += 4) {
+                        if (imageData.data[i + 3] > 0) { // Check alpha channel
+                            hasContent = true;
+                            break;
+                        }
+                    }
+                    
+                    console.log('🔍 Canvas state before capture:', {
+                        width: canvas.width,
+                        height: canvas.height,
+                        hasContent: hasContent,
+                        scaleX: scaleX,
+                        scaleY: scaleY
+                    });
+                    
                     // Draw canvas (drawings/lines)
                     debugInfo.step = 'drawing canvas overlay';
+                    debugInfo.canvasHasContent = hasContent;
                     tempCtx.save();
                     tempCtx.scale(scaleX, scaleY);
                     tempCtx.drawImage(canvas, 0, 0);
