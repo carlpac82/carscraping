@@ -1,6 +1,110 @@
 # DEPLOY FORCE: 2025-12-30 20:20 UTC - Fix transmission detection
 from __future__ import annotations
 
+# Todas as funções helper foram movidas para depois dos imports principais
+
+import os
+import sys
+import secrets
+import re
+from urllib.parse import urljoin
+from typing import List, Dict, Any, Optional, Tuple
+import asyncio
+from datetime import datetime, timezone, timedelta
+import traceback as _tb
+import logging
+import json
+import base64
+
+from fastapi import FastAPI, Request, Form, Depends, HTTPException, UploadFile, File
+from fastapi.responses import RedirectResponse, JSONResponse, HTMLResponse, Response, StreamingResponse, FileResponse, PlainTextResponse
+from fastapi.staticfiles import StaticFiles
+from fastapi.middleware.cors import CORSMiddleware
+from pathlib import Path
+
+# ============================================================
+# MONITORING & ERROR TRACKING (Sentry)
+# ============================================================
+try:
+    import sentry_sdk
+    from sentry_sdk.integrations.fastapi import FastApiIntegration
+    from sentry_sdk.integrations.starlette import StarletteIntegration
+    
+    SENTRY_DSN = os.getenv("SENTRY_DSN")
+    if SENTRY_DSN:
+        sentry_sdk.init(
+            dsn=SENTRY_DSN,
+            integrations=[
+                StarletteIntegration(transaction_style="url"),
+                FastApiIntegration(transaction_style="url"),
+            ],
+            traces_sample_rate=0.1,
+            profiles_sample_rate=0.1,
+            environment=os.getenv("ENVIRONMENT", "production"),
+            release=os.getenv("RENDER_GIT_COMMIT", "unknown"),
+        )
+        logging.info("✅ Sentry monitoring enabled")
+    else:
+        logging.info("ℹ️  Sentry DSN not configured - monitoring disabled")
+except ImportError:
+    logging.warning("⚠️  Sentry SDK not installed - monitoring disabled")
+except Exception as e:
+    logging.error(f"❌ Failed to initialize Sentry: {e}")
+from urllib.parse import urlencode, quote_plus
+from fastapi.templating import Jinja2Templates
+from starlette.middleware.sessions import SessionMiddleware
+from fastapi.middleware.gzip import GZipMiddleware
+from starlette.status import HTTP_303_SEE_OTHER
+from dotenv import load_dotenv
+
+# ⚠️ CRITICAL: Load environment variables FIRST before importing database module
+load_dotenv()
+
+import requests
+import asyncio
+from bs4 import BeautifulSoup
+import sqlite3
+from threading import Lock
+import random
+import urllib3
+import warnings
+
+# Suprimir warnings de retry do urllib3/Selenium (conexões ao ChromeDriver)
+urllib3.disable_warnings()
+warnings.filterwarnings('ignore', category=urllib3.exceptions.InsecureRequestWarning)
+warnings.filterwarnings('ignore', message='.*Retrying.*')
+warnings.filterwarnings('ignore', message='.*Connection refused.*')
+warnings.filterwarnings('ignore', message='.*Failed to establish a new connection.*')
+
+# Import database module for PostgreSQL/SQLite hybrid support
+try:
+    from database import _db_connect as _db_connect_new, USE_POSTGRES, PostgreSQLConnectionWrapper as DBPostgreSQLWrapper
+    _USE_NEW_DB = True
+    # Usar a classe do database.py em vez da local
+    PostgreSQLConnectionWrapper = DBPostgreSQLWrapper
+    if USE_POSTGRES:
+        logging.info("🐘 PostgreSQL mode enabled")
+    else:
+        logging.info("📁 SQLite mode (local development)")
+except ImportError:
+    _USE_NEW_DB = False
+    logging.info("📁 Using legacy SQLite connection")
+import time
+import io
+import hashlib
+import smtplib
+from email.message import EmailMessage
+from fastapi import Query
+try:
+    import httpx  # type: ignore
+    _HTTPX_CLIENT = httpx.Client(timeout=httpx.Timeout(10.0, connect=4.0), headers={"Connection": "keep-alive"})
+except ImportError:
+    _HTTPX_CLIENT = None
+
+# ============================================================
+# HELPER FUNCTIONS (movidas do início do arquivo)
+# ============================================================
+
 def _no_store_json(payload: Dict[str, Any], status_code: int = 200) -> JSONResponse:
     try:
         return JSONResponse(
@@ -14,9 +118,6 @@ def _no_store_json(payload: Dict[str, Any], status_code: int = 200) -> JSONRespo
         )
     except Exception:
         return JSONResponse(payload, status_code=status_code)
-def render_with_playwright(url: str) -> str:
-    if not _HAS_PLAYWRIGHT:
-        return ""
 
 def _is_carjet(u: str) -> bool:
     try:
@@ -706,156 +807,9 @@ def scrape_with_playwright(url: str) -> List[Dict[str, Any]]:
         return items
     return items
 
-import os
-import sys
-import secrets
-import re
-from urllib.parse import urljoin
-from typing import List, Dict, Any, Optional, Tuple
-import asyncio
-from datetime import datetime, timezone, timedelta
-import traceback as _tb
-import logging
-import json
-import base64
-
-from fastapi import FastAPI, Request, Form, Depends, HTTPException, UploadFile, File
-from fastapi.responses import RedirectResponse, JSONResponse, HTMLResponse, Response, StreamingResponse, FileResponse, PlainTextResponse
-from fastapi.staticfiles import StaticFiles
-from fastapi.middleware.cors import CORSMiddleware
-from pathlib import Path
-
 # ============================================================
-# MONITORING & ERROR TRACKING (Sentry)
+# Continuação após funções Playwright
 # ============================================================
-try:
-    import sentry_sdk
-    from sentry_sdk.integrations.fastapi import FastApiIntegration
-    from sentry_sdk.integrations.starlette import StarletteIntegration
-    
-    SENTRY_DSN = os.getenv("SENTRY_DSN")
-    if SENTRY_DSN:
-        sentry_sdk.init(
-            dsn=SENTRY_DSN,
-            integrations=[
-                StarletteIntegration(transaction_style="url"),
-                FastApiIntegration(transaction_style="url"),
-            ],
-            traces_sample_rate=0.1,  # 10% das transações
-            profiles_sample_rate=0.1,  # 10% dos profiles
-            environment=os.getenv("ENVIRONMENT", "production"),
-            release=os.getenv("RENDER_GIT_COMMIT", "unknown"),
-        )
-        logging.info("✅ Sentry monitoring enabled")
-    else:
-        logging.info("ℹ️  Sentry DSN not configured - monitoring disabled")
-except ImportError:
-    logging.warning("⚠️  Sentry SDK not installed - monitoring disabled")
-except Exception as e:
-    logging.error(f"❌ Failed to initialize Sentry: {e}")
-from urllib.parse import urlencode, quote_plus
-from fastapi.templating import Jinja2Templates
-from starlette.middleware.sessions import SessionMiddleware
-from fastapi.middleware.gzip import GZipMiddleware
-from starlette.status import HTTP_303_SEE_OTHER
-from dotenv import load_dotenv
-
-# ⚠️ CRITICAL: Load environment variables FIRST before importing database module
-load_dotenv()
-
-import requests
-import asyncio
-from bs4 import BeautifulSoup
-import sqlite3
-from threading import Lock
-import random
-import urllib3
-import warnings
-
-# Suprimir warnings de retry do urllib3/Selenium (conexões ao ChromeDriver)
-urllib3.disable_warnings()
-warnings.filterwarnings('ignore', category=urllib3.exceptions.InsecureRequestWarning)
-warnings.filterwarnings('ignore', message='.*Retrying.*')
-warnings.filterwarnings('ignore', message='.*Connection refused.*')
-warnings.filterwarnings('ignore', message='.*Failed to establish a new connection.*')
-
-# Import database module for PostgreSQL/SQLite hybrid support
-try:
-    from database import _db_connect as _db_connect_new, USE_POSTGRES, PostgreSQLConnectionWrapper as DBPostgreSQLWrapper
-    _USE_NEW_DB = True
-    # Usar a classe do database.py em vez da local
-    PostgreSQLConnectionWrapper = DBPostgreSQLWrapper
-    if USE_POSTGRES:
-        logging.info("🐘 PostgreSQL mode enabled")
-    else:
-        logging.info("📁 SQLite mode (local development)")
-except ImportError:
-    _USE_NEW_DB = False
-    logging.info("📁 Using legacy SQLite connection")
-import time
-import io
-import hashlib
-import smtplib
-from email.message import EmailMessage
-from fastapi import Query
-try:
-    import httpx  # type: ignore
-    _HTTPX_CLIENT = httpx.Client(timeout=httpx.Timeout(10.0, connect=4.0), headers={"Connection": "keep-alive"})
-    _HTTPX_ASYNC: Optional["httpx.AsyncClient"] = httpx.AsyncClient(timeout=httpx.Timeout(10.0, connect=4.0), headers={"Connection": "keep-alive"})
-except Exception:
-    _HTTPX_CLIENT = None
-    _HTTPX_ASYNC = None
-
-# Import VEHICLES dictionary from carjet_direct
-try:
-    from carjet_direct import VEHICLES
-except ImportError:
-    logging.warning("⚠️  Could not import VEHICLES from carjet_direct")
-    VEHICLES = {}
-
-# Import carjet_requests (novo método com sessão persistente)
-try:
-    from carjet_requests import scrape_carjet_requests
-    # DESATIVADO: requests/urllib sempre dão war=28, ir direto para Selenium
-    _DISABLE_REQUESTS = True  # Forçar desativação - métodos HTTP não funcionam
-    _HAS_CARJET_REQUESTS = False
-    logging.info("ℹ️  CarJet requests/urllib DESATIVADOS (war=28) - usando Selenium direto")
-except ImportError:
-    logging.warning("⚠️  Could not import carjet_requests")
-    _HAS_CARJET_REQUESTS = False
-    scrape_carjet_requests = None
-
-# Import match helper
-try:
-    from match_helper import match_vehicle_group_by_characteristics
-except ImportError:
-    logging.warning("⚠️  Could not import match_helper")
-    match_vehicle_group_by_characteristics = None
-
-# Cache global para veículos do Admin
-_admin_vehicles_cache = None
-_admin_vehicles_cache_time = 0
-ADMIN_VEHICLES_CACHE_TTL = 300  # 5 minutos
-
-# In-memory WhatsApp conversation cache (used by webhook handler)
-whatsapp_conversations: List[Dict[str, Any]] = []
-whatsapp_conversation_counter = 0
-
-# Configure logging
-logging.basicConfig(
-    level=logging.INFO,
-    format='%(levelname)s:     %(message)s'
-)
-
-# Silence HTTP request logs from uvicorn (reduce Render log noise)
-logging.getLogger("uvicorn.access").setLevel(logging.WARNING)
-logging.getLogger("uvicorn.error").setLevel(logging.WARNING)
-
-try:
-    from playwright.sync_api import sync_playwright  # type: ignore
-    _HAS_PLAYWRIGHT = True
-except Exception:
-    _HAS_PLAYWRIGHT = False
 
 # Environment variables
 # DESATIVADO: Playwright não funciona no CarJet - ir direto ao Selenium
@@ -24891,43 +24845,6 @@ def _ensure_damage_report_tables():
     """DEPRECATED - usar _ensure_damage_reports_tables() no startup"""
     # Esta função não faz nada - as tabelas são criadas no startup
     pass
-
-def _detect_language_from_country(country_code):
-    """
-    Detect language based on country code (ISO 3166-1 alpha-2)
-    Returns: language_code (pt, en, fr, de)
-    Fallback: English for all other countries
-    """
-    if not country_code:
-        return 'pt'  # Default para Portugal
-    
-    country_code = country_code.upper().strip()
-    
-    # Mapeamento país → idioma (apenas PT, EN, FR, DE)
-    language_map = {
-        # Português
-        'PT': 'pt', 'BR': 'pt', 'AO': 'pt', 'MZ': 'pt',
-        # Alemão
-        'DE': 'de', 'AT': 'de', 'CH': 'de', 'LU': 'de', 'LI': 'de',
-        # Francês
-        'FR': 'fr', 'BE': 'fr', 'MC': 'fr', 'SN': 'fr',
-        # Inglês (resto do mundo)
-        'GB': 'en', 'US': 'en', 'IE': 'en', 'AU': 'en', 'NZ': 'en',
-        'CA': 'en', 'ZA': 'en', 'IN': 'en', 'SG': 'en',
-        # Espanhol → Inglês (sem template ES)
-        'ES': 'en', 'AR': 'en', 'CL': 'en', 'CO': 'en', 'MX': 'en',
-        'PE': 'en', 'VE': 'en', 'EC': 'en', 'GT': 'en', 'CU': 'en',
-        'BO': 'en', 'DO': 'en', 'HN': 'en', 'PY': 'en', 'SV': 'en',
-        'NI': 'en', 'CR': 'en', 'PA': 'en', 'UY': 'en',
-        # Italiano → Inglês (sem template IT)
-        'IT': 'en', 'SM': 'en', 'VA': 'en',
-        # Holandês → Inglês (sem template NL)
-        'NL': 'en',
-    }
-    
-    detected = language_map.get(country_code, 'en')  # Default: Inglês para países não listados
-    logging.info(f"🌍 Country '{country_code}' → Language '{detected}'")
-    return detected
 
 def _validate_checkin_incidents(cursor, is_postgres, ra, plate, checkin_fuel_level, checkin_damage_count, checkin_inspection_id):
     """
