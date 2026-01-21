@@ -127,6 +127,81 @@
             0% { transform: rotate(0deg); }
             100% { transform: rotate(360deg); }
         }
+        
+        /* Camera Modal Styles */
+        .camera-modal {
+            position: fixed;
+            inset: 0;
+            background: rgba(0, 188, 212, 0.98);
+            display: none;
+            z-index: 99999;
+            width: 100vw;
+            height: 100vh;
+        }
+        
+        .camera-modal.active {
+            display: flex;
+        }
+        
+        /* Camera header with blue gradient */
+        .camera-header {
+            background: linear-gradient(180deg, rgba(0, 188, 212, 0.95) 0%, rgba(0, 151, 167, 0.85) 60%, rgba(0, 131, 143, 0.4) 90%, rgba(0, 0, 0, 0) 100%);
+            -webkit-backdrop-filter: blur(3px);
+            backdrop-filter: blur(3px);
+            padding-bottom: 40px;
+        }
+        
+        /* iPhone-style camera button */
+        .iphone-camera-button {
+            background: transparent;
+            border: none;
+            padding: 0;
+            cursor: pointer;
+            -webkit-tap-highlight-color: transparent;
+        }
+        
+        .camera-button-outer {
+            width: 70px;
+            height: 70px;
+            border-radius: 50%;
+            border: 4px solid white;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: rgba(255, 255, 255, 0.3);
+            transition: all 0.2s;
+        }
+        
+        .iphone-camera-button:active .camera-button-outer {
+            transform: scale(0.9);
+        }
+        
+        .camera-button-inner {
+            width: 54px;
+            height: 54px;
+            border-radius: 50%;
+            background: white;
+        }
+        
+        .close-camera-button {
+            width: 50px;
+            height: 50px;
+            background: rgba(0, 188, 212, 0.7);
+            border: 2px solid white;
+            border-radius: 50%;
+            color: white;
+            font-size: 24px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.2s;
+        }
+        
+        .close-camera-button:hover {
+            background: rgba(0, 151, 167, 0.9);
+            transform: scale(1.1);
+        }
     </style>
 </head>
 <body style="background: linear-gradient(135deg, #00bcd4 0%, #0097a7 50%, #00838f 100%); min-height: 100vh;">
@@ -343,6 +418,41 @@
             <div class="text-center">
                 <button onclick="submitCheckIn()" class="bg-[#00bcd4] hover:bg-[#0097a7] text-white font-bold py-3 px-8 rounded-lg text-lg shadow-lg transition" id="submitBtn">
                     Submeter Check-in
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Camera Modal -->
+    <div id="cameraModal" class="camera-modal">
+        <div class="flex flex-col items-center justify-center w-full h-full">
+            <!-- Camera Header with blue gradient -->
+            <div class="absolute top-0 left-0 right-0 z-50 camera-header text-white p-6 text-center" style="padding-right: 130px;">
+                <p id="cameraLocation" class="text-xl font-bold text-white mb-2">VISTA FRONTAL</p>
+                <p id="cameraInstruction" class="text-base opacity-95 max-w-2xl mx-auto">Centre a frente do veículo</p>
+            </div>
+            
+            <!-- Close button -->
+            <button onclick="closeCamera()" class="close-camera-button" style="position: fixed; top: 20px; left: 20px; z-index: 10000;">
+                ×
+            </button>
+            
+            <!-- Camera Preview -->
+            <div class="relative w-full h-full">
+                <video id="cameraPreview" autoplay playsinline style="width: 100%; height: 100vh; object-fit: cover;"></video>
+                
+                <!-- Car Miniature -->
+                <div id="carMiniature" style="position: fixed; top: 20px; right: 20px; width: 100px; height: 100px; z-index: 9999; display: none;">
+                    <img src="/static/carro.png" alt="Car Position" style="width: 100%; height: 100%; object-fit: contain;">
+                </div>
+            </div>
+            
+            <!-- iPhone-style camera button -->
+            <div class="flex justify-center px-4" id="cameraButtons" style="position: fixed; bottom: 80px; left: 0; right: 0; z-index: 10000; display: none;">
+                <button onclick="capturePhoto()" class="iphone-camera-button" title="Capturar Foto">
+                    <div class="camera-button-outer">
+                        <div class="camera-button-inner"></div>
+                    </div>
                 </button>
             </div>
         </div>
@@ -691,24 +801,128 @@
             document.getElementById('loadingOverlay').classList.toggle('hidden', !show);
         }
 
-        function triggerPhotoUpload(photoType) {
+        let cameraStream = null;
+        
+        const photoTypes = {
+            'front': { label: 'Vista Frontal', instruction: 'Centre a frente do veículo', image: 'Vista Frontal.png' },
+            'front_left': { label: 'Vista Frontal Esquerda', instruction: 'Centre a frente esquerda do veículo', image: 'Vista Frontal Esquerda.png' },
+            'left': { label: 'Vista Lateral Esquerda', instruction: 'Centre o lado esquerdo do veículo', image: 'Vista Lateral Esquerda.png' },
+            'back_left': { label: 'Vista Traseira Esquerda', instruction: 'Centre a traseira esquerda do veículo', image: 'Vista Traseira Esquerda.png' },
+            'back': { label: 'Vista Traseira', instruction: 'Centre a traseira do veículo', image: 'Vista Traseira.png' },
+            'back_right': { label: 'Vista Traseira Direita', instruction: 'Centre a traseira direita do veículo', image: 'Vista Traseira direita.png' },
+            'right': { label: 'Vista Lateral Direita', instruction: 'Centre o lado direito do veículo', image: 'Vista Lateral Direita.png' },
+            'front_right': { label: 'Vista Frontal Direita', instruction: 'Centre a frente direita do veículo', image: 'Vista Frontal Direita.png' },
+            'interior': { label: 'Interior/Odómetro', instruction: 'Fotografe o odómetro do veículo', image: 'Odometro.png' }
+        };
+
+        async function triggerPhotoUpload(photoType) {
             currentPhotoType = photoType;
-            document.getElementById('photoInput').click();
+            await showCountdownAndOpenCamera(photoType);
         }
 
-        function handlePhotoCapture(event) {
-            const file = event.target.files[0];
-            if (!file) return;
+        async function showCountdownAndOpenCamera(photoType) {
+            const photo = photoTypes[photoType];
+            if (!photo) return;
+            
+            // Create countdown overlay with blue background
+            const countdownOverlay = document.createElement('div');
+            countdownOverlay.id = 'countdownOverlay';
+            countdownOverlay.style.cssText = `
+                position: fixed;
+                inset: 0;
+                background: rgba(0, 188, 212, 0.95);
+                display: flex;
+                flex-direction: column;
+                align-items: center;
+                justify-content: center;
+                z-index: 99998;
+            `;
+            
+            countdownOverlay.innerHTML = `
+                <div style="text-align: center;">
+                    <img src="/static/inspection_photos/${photo.image}" alt="${photo.label}" style="max-width: 180px; width: 100%; height: auto; margin-bottom: 40px;">
+                    <div style="font-size: 80px; font-weight: bold; color: white; text-shadow: 0 4px 8px rgba(0,0,0,0.3);" id="countdownNumber">3</div>
+                    <p style="color: white; font-size: 18px; margin-top: 20px; text-shadow: 0 2px 4px rgba(0,0,0,0.3);">${photo.label}</p>
+                </div>
+            `;
+            
+            document.body.appendChild(countdownOverlay);
+            
+            // Countdown animation
+            let count = 3;
+            const numberEl = document.getElementById('countdownNumber');
+            
+            const interval = setInterval(() => {
+                count--;
+                if (count > 0) {
+                    numberEl.textContent = count;
+                } else {
+                    clearInterval(interval);
+                    countdownOverlay.remove();
+                    openCamera(photoType);
+                }
+            }, 1000);
+        }
 
-            const reader = new FileReader();
-            reader.onload = function(e) {
-                photos[currentPhotoType] = e.target.result;
-                displayPhoto(currentPhotoType, e.target.result);
-            };
-            reader.readAsDataURL(file);
+        async function openCamera(photoType) {
+            const photo = photoTypes[photoType];
+            if (!photo) return;
+            
+            try {
+                // Request camera access
+                if (!cameraStream) {
+                    cameraStream = await navigator.mediaDevices.getUserMedia({ 
+                        video: { facingMode: 'environment' } 
+                    });
+                }
+                
+                // Show camera modal
+                const modal = document.getElementById('cameraModal');
+                modal.classList.add('active');
+                
+                // Update header
+                document.getElementById('cameraLocation').textContent = photo.label.toUpperCase();
+                document.getElementById('cameraInstruction').textContent = photo.instruction;
+                
+                // Show miniature
+                document.getElementById('carMiniature').style.display = 'block';
+                
+                // Set video stream
+                const video = document.getElementById('cameraPreview');
+                video.srcObject = cameraStream;
+                
+                // Show camera button after video loads
+                video.addEventListener('loadedmetadata', () => {
+                    document.getElementById('cameraButtons').style.display = 'flex';
+                }, { once: true });
+                
+            } catch (error) {
+                console.error('Camera error:', error);
+                alert('Erro ao aceder à câmera. Por favor, verifique as permissões.');
+            }
+        }
 
-            // Reset input
-            event.target.value = '';
+        function closeCamera() {
+            const modal = document.getElementById('cameraModal');
+            modal.classList.remove('active');
+            document.getElementById('cameraButtons').style.display = 'none';
+            document.getElementById('carMiniature').style.display = 'none';
+        }
+
+        function capturePhoto() {
+            const video = document.getElementById('cameraPreview');
+            const canvas = document.createElement('canvas');
+            canvas.width = video.videoWidth;
+            canvas.height = video.videoHeight;
+            
+            const ctx = canvas.getContext('2d');
+            ctx.drawImage(video, 0, 0);
+            
+            const dataUrl = canvas.toDataURL('image/jpeg', 0.9);
+            photos[currentPhotoType] = dataUrl;
+            displayPhoto(currentPhotoType, dataUrl);
+            
+            closeCamera();
         }
 
         function displayPhoto(photoType, dataUrl) {
