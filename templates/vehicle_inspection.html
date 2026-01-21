@@ -1228,108 +1228,155 @@
             
             // Capture damage croqui as base64 image (including pins)
             let damageCroquiBase64 = '';
+            let debugInfo = { step: 'init', error: null };
+            
             try {
+                debugInfo.step = 'getting elements';
                 const canvas = document.getElementById('drawingCanvas');
-                const croquiImg = document.getElementById('croquiImg');
+                const container = document.getElementById('carDiagram');
+                const croquiImg = container ? container.querySelector('img') : null;
+                
+                debugInfo.hasCanvas = !!canvas;
+                debugInfo.hasContainer = !!container;
+                debugInfo.hasCroquiImg = !!croquiImg;
                 
                 console.log('🖼️ Checking croqui elements:', {
                     canvas: !!canvas,
+                    container: !!container,
                     croquiImg: !!croquiImg,
                     canvasWidth: canvas?.width,
                     canvasHeight: canvas?.height
                 });
                 
-                if (canvas && croquiImg) {
+                if (!container) {
+                    debugInfo.error = 'Container #carDiagram not found';
+                    throw new Error('Container not found');
+                }
+                
+                if (!croquiImg) {
+                    debugInfo.error = 'Croqui image not found in container';
+                    throw new Error('Croqui image not found');
+                }
+                
+                debugInfo.step = 'counting pins';
+                const allPins = container.querySelectorAll('.damage-pin');
+                const pins = container.querySelectorAll('.damage-pin:not(#pinPreview)');
+                
+                debugInfo.totalPins = allPins.length;
+                debugInfo.validPins = pins.length;
+                
+                console.log(`🔍 Total .damage-pin elements found: ${allPins.length}`);
+                console.log(`📍 Pins to render (excluding preview): ${pins.length}`);
+                
+                if (pins.length === 0) {
+                    debugInfo.error = 'No damage pins found to render';
+                    console.warn('⚠️ NO PINS FOUND! Croqui will be empty.');
+                }
+                
+                if (canvas && croquiImg && croquiImg.complete && croquiImg.naturalWidth > 0) {
+                    debugInfo.step = 'creating canvas';
                     const tempCanvas = document.createElement('canvas');
                     const tempCtx = tempCanvas.getContext('2d');
-                    const croquiImg = document.querySelector('#carDiagram img');
-                    const container = document.getElementById('carDiagram');
                     
-                    if (croquiImg && croquiImg.complete && croquiImg.naturalWidth > 0) {
-                        tempCanvas.width = croquiImg.naturalWidth;
-                        tempCanvas.height = croquiImg.naturalHeight;
+                    tempCanvas.width = croquiImg.naturalWidth;
+                    tempCanvas.height = croquiImg.naturalHeight;
+                    
+                    debugInfo.canvasWidth = tempCanvas.width;
+                    debugInfo.canvasHeight = tempCanvas.height;
+                    
+                    // Draw background image
+                    debugInfo.step = 'drawing background';
+                    tempCtx.drawImage(croquiImg, 0, 0);
+                    
+                    // Calculate scale
+                    const scaleX = tempCanvas.width / canvas.width;
+                    const scaleY = tempCanvas.height / canvas.height;
+                    
+                    // Draw canvas (drawings/lines)
+                    debugInfo.step = 'drawing canvas overlay';
+                    tempCtx.save();
+                    tempCtx.scale(scaleX, scaleY);
+                    tempCtx.drawImage(canvas, 0, 0);
+                    tempCtx.restore();
+                    
+                    // Draw pins on top
+                    debugInfo.step = 'drawing pins';
+                    debugInfo.pinsDrawn = 0;
+                    
+                    if (pins.length === 0) {
+                        console.warn('⚠️ NO PINS FOUND! Cannot render pins on croqui.');
+                    }
+                    
+                    pins.forEach((pin, index) => {
+                        console.log('📍 Processing Pin ' + index + ':');
                         
-                        // Draw background image
-                        tempCtx.drawImage(croquiImg, 0, 0);
+                        // Get pin position from style (already in container coordinates)
+                        const pinLeft = parseFloat(pin.style.left) || 0;
+                        const pinTop = parseFloat(pin.style.top) || 0;
                         
-                        // Calculate scale
-                        const scaleX = tempCanvas.width / canvas.width;
-                        const scaleY = tempCanvas.height / canvas.height;
-                        
-                        // Draw canvas (drawings/lines)
-                        tempCtx.save();
-                        tempCtx.scale(scaleX, scaleY);
-                        tempCtx.drawImage(canvas, 0, 0);
-                        tempCtx.restore();
-                        
-                        // Draw pins on top
-                        console.log('🔍 Container element:', container);
-                        console.log('🔍 Container HTML:', container ? container.innerHTML.substring(0, 200) : 'null');
-                        
-                        const allPins = container.querySelectorAll('.damage-pin');
-                        console.log(`🔍 Total .damage-pin elements found: ${allPins.length}`);
-                        allPins.forEach((p, i) => {
-                            console.log(`  Pin ${i}: id=${p.id}, classes=${p.className}, left=${p.style.left}, top=${p.style.top}`);
-                        });
-                        
-                        const pins = container.querySelectorAll('.damage-pin:not(#pinPreview)');
-                        console.log(`📍 Pins to render (excluding preview): ${pins.length}`);
-                        
-                        if (pins.length === 0) {
-                            console.warn('⚠️ NO PINS FOUND! Cannot render pins on croqui.');
+                        if (pinLeft === 0 && pinTop === 0) {
+                            console.warn(`  ⚠️ Pin ${index} has zero coordinates!`);
+                            return;
                         }
                         
-                        pins.forEach((pin, index) => {
-                            console.log('📍 Processing Pin ' + index + ':');
-                            console.log('  - ID: ' + pin.id);
-                            console.log('  - Classes: ' + pin.className);
-                            console.log('  - style.left: "' + pin.style.left + '"');
-                            console.log('  - style.top: "' + pin.style.top + '"');
-                            
-                            // Get pin position from style (already in container coordinates)
-                            const pinLeft = parseFloat(pin.style.left) || 0;
-                            const pinTop = parseFloat(pin.style.top) || 0;
-                            
-                            console.log(`  - Parsed: left=${pinLeft}, top=${pinTop}`);
-                            
-                            if (pinLeft === 0 && pinTop === 0) {
-                                console.warn(`  ⚠️ Pin ${index} has zero coordinates!`);
-                            }
-                            
-                            // Scale to canvas size
-                            const pinX = pinLeft * scaleX;
-                            const pinY = pinTop * scaleY;
-                            
-                            console.log(`  - Scaled: X=${pinX}, Y=${pinY} (scaleX=${scaleX}, scaleY=${scaleY})`);
-                            console.log(`  - Canvas size: ${tempCanvas.width}x${tempCanvas.height}`);
-                            
-                            // Get pin size
-                            let radius = 8; // default medium
-                            if (pin.classList.contains('size-tiny')) radius = 4;
-                            else if (pin.classList.contains('size-small')) radius = 6;
-                            else if (pin.classList.contains('size-large')) radius = 12;
-                            
-                            const scaledRadius = radius * Math.min(scaleX, scaleY);
-                            console.log(`  - Radius: ${radius} → scaled: ${scaledRadius}`);
-                            
-                            // Draw pin as circle
-                            tempCtx.beginPath();
-                            tempCtx.arc(pinX, pinY, scaledRadius, 0, Math.PI * 2);
-                            tempCtx.fillStyle = '#000000';
-                            tempCtx.fill();
-                            tempCtx.strokeStyle = '#ffffff';
-                            tempCtx.lineWidth = 2;
-                            tempCtx.stroke();
-                            
-                            console.log(`  ✅ Pin ${index} drawn successfully`);
-                        });
+                        // Scale to canvas size
+                        const pinX = pinLeft * scaleX;
+                        const pinY = pinTop * scaleY;
                         
-                        damageCroquiBase64 = tempCanvas.toDataURL('image/png');
-                        console.log('✅ Damage croqui captured with pins:', damageCroquiBase64.length, 'chars');
+                        // Get pin size
+                        let radius = 8; // default medium
+                        if (pin.classList.contains('size-tiny')) radius = 4;
+                        else if (pin.classList.contains('size-small')) radius = 6;
+                        else if (pin.classList.contains('size-large')) radius = 12;
+                        
+                        const scaledRadius = radius * Math.min(scaleX, scaleY);
+                        
+                        // Draw pin as circle
+                        tempCtx.beginPath();
+                        tempCtx.arc(pinX, pinY, scaledRadius, 0, Math.PI * 2);
+                        tempCtx.fillStyle = '#000000';
+                        tempCtx.fill();
+                        tempCtx.strokeStyle = '#ffffff';
+                        tempCtx.lineWidth = 2;
+                        tempCtx.stroke();
+                        
+                        debugInfo.pinsDrawn++;
+                        console.log(`  ✅ Pin ${index} drawn at (${pinX.toFixed(1)}, ${pinY.toFixed(1)})`);
+                    });
+                    
+                    debugInfo.step = 'converting to base64';
+                    damageCroquiBase64 = tempCanvas.toDataURL('image/png');
+                    debugInfo.base64Length = damageCroquiBase64.length;
+                    debugInfo.success = true;
+                    
+                    console.log('✅ Damage croqui captured:', {
+                        pinsDrawn: debugInfo.pinsDrawn,
+                        base64Length: damageCroquiBase64.length
+                    });
+                    
+                    // Show success notification on screen
+                    if (typeof showNotification === 'function') {
+                        showNotification(`Croqui capturado: ${debugInfo.pinsDrawn} danos`, 'success');
                     }
                 }
             } catch (error) {
                 console.error('❌ Error capturing damage croqui:', error);
+                debugInfo.error = error.message;
+                debugInfo.success = false;
+                
+                // Show error notification on screen
+                if (typeof showNotification === 'function') {
+                    showNotification(`ERRO ao capturar croqui: ${error.message}`, 'error');
+                }
+            }
+            
+            // Show debug info on screen for iPhone testing
+            console.log('🔍 CROQUI DEBUG INFO:', debugInfo);
+            if (typeof showNotification === 'function') {
+                const msg = debugInfo.success ? 
+                    `✅ Croqui OK: ${debugInfo.pinsDrawn}/${debugInfo.validPins} pins` :
+                    `❌ Erro: ${debugInfo.error || 'Unknown'}`;
+                setTimeout(() => showNotification(msg, debugInfo.success ? 'info' : 'error'), 500);
             }
             
             // Load photos from localStorage first
