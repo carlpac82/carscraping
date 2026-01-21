@@ -2557,17 +2557,31 @@ advanced: [{ torch: false }]
 
 // Get video track for flash control
 currentTrack = cameraStream.getVideoTracks()[0];
+console.log('🔍 currentTrack:', currentTrack);
 
 // Check if flash is supported and show button every time camera opens
 if (currentTrack) {
 const capabilities = currentTrack.getCapabilities();
-console.log('Flash capabilities:', capabilities);
+console.log('🔍 Flash capabilities:', capabilities);
+console.log('🔍 capabilities.torch:', capabilities.torch);
+
+const flashButton = document.getElementById('flashButton');
+console.log('🔍 flashButton element:', flashButton);
+
 if (capabilities.torch) {
 console.log('✅ Flash supported, showing button');
-document.getElementById('flashButton').style.display = 'block';
+if (flashButton) {
+flashButton.style.display = 'block';
+console.log('✅ Flash button display set to block');
+console.log('🔍 Flash button computed style:', window.getComputedStyle(flashButton).display);
+} else {
+console.error('❌ Flash button element not found in DOM!');
+}
 } else {
 console.log('❌ Flash not supported on this device');
 }
+} else {
+console.error('❌ currentTrack is null or undefined');
 }
     
 // Set video source
