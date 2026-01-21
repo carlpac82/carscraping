@@ -29174,6 +29174,7 @@ async def save_inspection(request: Request):
             else:
                 logging.info(f"📸 Photo '{photo_key}': EMPTY or None")
         logging.info(f"⚠️ Damages count: {len(damages)}")
+        logging.info(f"⚠️ Damages array content: {damages}")
         logging.info(f"🖼️ Damage croqui received: {len(damage_croqui) if damage_croqui else 0} chars")
         
         # Get current user (colaborador que fez a entrega)
