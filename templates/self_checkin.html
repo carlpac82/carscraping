@@ -173,10 +173,26 @@
             </div>
 
             <!-- Instructions -->
-            <div class="bg-white border-l-4 border-[#FFC107] p-4 mb-6 rounded shadow-md">
-                <p class="text-gray-800">
-                    <strong id="instructionsTitle" class="text-[#00bcd4]">Instruções:</strong> <span id="instructionsText">Por favor, tire 9 fotos do veículo, adicione fotos de eventuais danos, indique o nível de combustível e os quilómetros. Depois, clique em "Submeter Check-in".</span>
-                </p>
+            <div class="bg-white rounded-lg shadow-xl p-6 mb-6">
+                <h2 class="text-2xl font-bold text-[#00bcd4] mb-4" id="instructionsMainTitle">Procedimento de Self Check-in</h2>
+                
+                <!-- Step 1 -->
+                <div class="border-l-4 border-[#00bcd4] bg-blue-50 p-4 mb-4 rounded">
+                    <h3 class="font-bold text-[#00bcd4] mb-2" id="step1Title">1. Fotos do Veículo</h3>
+                    <p class="text-gray-700 text-sm" id="step1Text">Tire 9 fotos obrigatórias do veículo (frente, laterais, traseira e interior). Adicione fotos de eventuais danos se necessário.</p>
+                </div>
+                
+                <!-- Step 2 -->
+                <div class="border-l-4 border-[#FFC107] bg-yellow-50 p-4 mb-4 rounded">
+                    <h3 class="font-bold text-[#FFC107] mb-2" id="step2Title">2. Combustível e Quilómetros</h3>
+                    <p class="text-gray-700 text-sm" id="step2Text">Indique o nível de combustível atual e os quilómetros no odómetro do veículo.</p>
+                </div>
+                
+                <!-- Step 3 -->
+                <div class="border-l-4 border-red-500 bg-red-50 p-4 rounded">
+                    <h3 class="font-bold text-red-600 mb-2" id="step3Title">3. Submeter Check-in</h3>
+                    <p class="text-gray-700 text-sm" id="step3Text">Após preencher todos os campos, clique no botão "Submeter Check-in" no final da página.</p>
+                </div>
             </div>
 
             <!-- Photo Grid -->
@@ -307,8 +323,15 @@
                 labelRA: 'RA:',
                 labelPlate: 'Matrícula:',
                 labelVehicle: 'Veículo:',
-                instructionsTitle: 'Instruções:',
-                instructionsText: 'Por favor, tire 9 fotos do veículo, adicione fotos de eventuais danos, indique o nível de combustível e os quilómetros. Depois, clique em "Submeter Check-in".',
+                labelKmsEntrega: 'Kms Entrega',
+                labelFuelEntrega: 'Combustível Entrega',
+                instructionsMainTitle: 'Procedimento de Self Check-in',
+                step1Title: '1. Fotos do Veículo',
+                step1Text: 'Tire 9 fotos obrigatórias do veículo (frente, laterais, traseira e interior). Adicione fotos de eventuais danos se necessário.',
+                step2Title: '2. Combustível e Quilómetros',
+                step2Text: 'Indique o nível de combustível atual e os quilómetros no odómetro do veículo.',
+                step3Title: '3. Submeter Check-in',
+                step3Text: 'Após preencher todos os campos, clique no botão "Submeter Check-in" no final da página.',
                 photosTitle: 'Fotos do Veículo (9 fotos obrigatórias)',
                 damageTitle: 'Fotos de Danos (opcional)',
                 addDamageBtn: '+ Adicionar Foto de Dano',
@@ -346,8 +369,15 @@
                 labelRA: 'RA:',
                 labelPlate: 'License Plate:',
                 labelVehicle: 'Vehicle:',
-                instructionsTitle: 'Instructions:',
-                instructionsText: 'Please take 9 photos of the vehicle, add photos of any damages, indicate the fuel level and mileage. Then click "Submit Check-in".',
+                labelKmsEntrega: 'Delivery Kms',
+                labelFuelEntrega: 'Delivery Fuel',
+                instructionsMainTitle: 'Self Check-in Procedure',
+                step1Title: '1. Vehicle Photos',
+                step1Text: 'Take 9 mandatory photos of the vehicle (front, sides, rear and interior). Add photos of any damages if necessary.',
+                step2Title: '2. Fuel and Mileage',
+                step2Text: 'Indicate the current fuel level and the mileage on the vehicle odometer.',
+                step3Title: '3. Submit Check-in',
+                step3Text: 'After filling in all fields, click the "Submit Check-in" button at the bottom of the page.',
                 photosTitle: 'Vehicle Photos (9 photos required)',
                 damageTitle: 'Damage Photos (optional)',
                 addDamageBtn: '+ Add Damage Photo',
@@ -385,8 +415,15 @@
                 labelRA: 'RA:',
                 labelPlate: 'Plaque:',
                 labelVehicle: 'Véhicule:',
-                instructionsTitle: 'Instructions:',
-                instructionsText: 'Veuillez prendre 9 photos du véhicule, ajouter des photos de tout dommage, indiquer le niveau de carburant et le kilométrage. Ensuite, cliquez sur "Soumettre le Check-in".',
+                labelKmsEntrega: 'Kms Livraison',
+                labelFuelEntrega: 'Carburant Livraison',
+                instructionsMainTitle: 'Procédure de Self Check-in',
+                step1Title: '1. Photos du Véhicule',
+                step1Text: 'Prenez 9 photos obligatoires du véhicule (avant, côtés, arrière et intérieur). Ajoutez des photos de tout dommage si nécessaire.',
+                step2Title: '2. Carburant et Kilométrage',
+                step2Text: 'Indiquez le niveau de carburant actuel et le kilométrage sur l\'odomètre du véhicule.',
+                step3Title: '3. Soumettre le Check-in',
+                step3Text: 'Après avoir rempli tous les champs, cliquez sur le bouton "Soumettre le Check-in" en bas de la page.',
                 photosTitle: 'Photos du Véhicule (9 photos obligatoires)',
                 damageTitle: 'Photos de Dommages (optionnel)',
                 addDamageBtn: '+ Ajouter Photo de Dommage',
@@ -434,11 +471,17 @@
             const t = translations[currentLang];
             
             document.getElementById('pageTitle').textContent = t.pageTitle;
-            document.getElementById('labelRA').textContent = t.labelRA;
             document.getElementById('labelPlate').textContent = t.labelPlate;
             document.getElementById('labelVehicle').textContent = t.labelVehicle;
-            document.getElementById('instructionsTitle').textContent = t.instructionsTitle;
-            document.getElementById('instructionsText').textContent = t.instructionsText;
+            document.getElementById('labelKmsEntrega').textContent = t.labelKmsEntrega;
+            document.getElementById('labelFuelEntrega').textContent = t.labelFuelEntrega;
+            document.getElementById('instructionsMainTitle').textContent = t.instructionsMainTitle;
+            document.getElementById('step1Title').textContent = t.step1Title;
+            document.getElementById('step1Text').textContent = t.step1Text;
+            document.getElementById('step2Title').textContent = t.step2Title;
+            document.getElementById('step2Text').textContent = t.step2Text;
+            document.getElementById('step3Title').textContent = t.step3Title;
+            document.getElementById('step3Text').textContent = t.step3Text;
             document.getElementById('photosTitle').textContent = t.photosTitle;
             document.getElementById('damageTitle').textContent = t.damageTitle;
             document.getElementById('addDamageBtn').textContent = t.addDamageBtn;
