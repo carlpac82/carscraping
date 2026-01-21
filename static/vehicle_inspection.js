@@ -94,6 +94,8 @@ let cameraStream = null;
 let currentPhotoType = null;
 let autoSequenceMode = false;
 let currentPhotoIndex = 0;
+let currentTrack = null;
+let flashEnabled = false;
 
 // Notification helper
 function showNotification(message, type = 'info') {
@@ -2543,14 +2545,28 @@ showCarMiniature(photoType);
 init3DCar(photoType);
     
 try {
-// Request camera access
+// Request camera access with flash support
+if (!cameraStream) {
 cameraStream = await navigator.mediaDevices.getUserMedia({
 video: {
 facingMode: 'environment', // Use back camera on mobile
 width: { ideal: 1920 },
-height: { ideal: 1080 }
+height: { ideal: 1080 },
+advanced: [{ torch: false }]
 }
 });
+
+// Get video track for flash control
+currentTrack = cameraStream.getVideoTracks()[0];
+}
+
+// Check if flash is supported and show button every time camera opens
+if (currentTrack) {
+const capabilities = currentTrack.getCapabilities();
+if (capabilities.torch) {
+document.getElementById('flashButton').style.display = 'block';
+}
+}
     
 // Set video source
 const video = document.getElementById('cameraPreview');
@@ -3376,13 +3392,54 @@ async function detectLicensePlate(blob) {
     }
 }
 
+async function toggleFlash() {
+    if (!currentTrack) return;
+    
+    try {
+        const capabilities = currentTrack.getCapabilities();
+        if (!capabilities.torch) return;
+        
+        flashEnabled = !flashEnabled;
+        await currentTrack.applyConstraints({
+            advanced: [{ torch: flashEnabled }]
+        });
+        
+        const flashButton = document.getElementById('flashButton');
+        if (flashEnabled) {
+            flashButton.classList.add('active');
+        } else {
+            flashButton.classList.remove('active');
+        }
+    } catch (error) {
+        console.error('Flash error:', error);
+    }
+}
+
 function closeCamera(keepStream = false) {
+    // Hide flash button
+    const flashButton = document.getElementById('flashButton');
+    if (flashButton) {
+        flashButton.style.display = 'none';
+    }
+    
+    // Turn off flash when closing
+    if (flashEnabled && currentTrack) {
+        flashEnabled = false;
+        currentTrack.applyConstraints({
+            advanced: [{ torch: false }]
+        }).catch(err => console.error('Flash off error:', err));
+        if (flashButton) {
+            flashButton.classList.remove('active');
+        }
+    }
+    
     // Stop camera stream only if not keeping it for next photo
     if (cameraStream && !keepStream) {
         cameraStream.getTracks().forEach(track => track.stop());
         cameraStream = null;
         window.savedCameraStream = null;
         window.pendingCameraStream = null;
+        currentTrack = null;
     }
     
     // Clear camera preview only if not keeping stream

@@ -94,6 +94,89 @@
             text-shadow: 0 2px 4px rgba(0,0,0,0.8);
         }
         
+        /* Flash button - icon only, no circle */
+        .flash-button-icon {
+            background: none;
+            border: none;
+            color: white;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.2s;
+            filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.5));
+            padding: 0;
+            width: 28px;
+            height: 28px;
+        }
+        
+        .flash-button-icon.active {
+            color: #FFC107;
+        }
+        
+        .flash-button-icon:hover {
+            transform: scale(1.15);
+        }
+        
+        /* Landscape orientation support */
+        @media (orientation: landscape) and (max-height: 500px) {
+            .camera-modal .absolute.top-0 {
+                padding: 0.5rem !important;
+                padding-left: 60px !important;
+                padding-right: 120px !important;
+            }
+            
+            #cameraLocation {
+                font-size: 1rem !important;
+                margin-bottom: 0.25rem !important;
+            }
+            
+            #cameraInstruction {
+                font-size: 0.75rem !important;
+                margin-bottom: 0 !important;
+            }
+            
+            #carMiniature {
+                width: 50px !important;
+                height: 50px !important;
+                top: 10px !important;
+                right: 10px !important;
+            }
+            
+            #cameraButtons {
+                bottom: 30px !important;
+            }
+            
+            .iphone-camera-button .camera-button-outer {
+                width: 50px !important;
+                height: 50px !important;
+            }
+            
+            .iphone-camera-button .camera-button-inner {
+                width: 38px !important;
+                height: 38px !important;
+            }
+            
+            .flash-button-icon {
+                bottom: 40px !important;
+                right: 30px !important;
+            }
+            
+            .flash-button-icon svg {
+                width: 24px !important;
+                height: 24px !important;
+            }
+        }
+        
+        @media (max-width: 768px) {
+            #carMiniature {
+                width: 70px !important;
+                height: 70px !important;
+                top: 15px !important;
+                right: 15px !important;
+            }
+        }
+        
         /* Car diagram interactive */
         .photo-indicator {
             cursor: pointer;
@@ -1079,6 +1162,13 @@
                     </div>
                 </button>
             </div>
+            
+            <!-- Flash button (right side, aligned with capture button) -->
+            <button onclick="toggleFlash()" id="flashButton" class="flash-button-icon" style="position: fixed; bottom: 93px; right: 40px; z-index: 10000; display: none;">
+                <svg width="28" height="28" viewBox="0 0 24 24" fill="currentColor">
+                    <path d="M7 2v11h3v9l7-12h-4l4-8z"/>
+                </svg>
+            </button>
         </div>
     </div>
 
