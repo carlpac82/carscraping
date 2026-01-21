@@ -29248,9 +29248,9 @@ async def save_inspection(request: Request):
                             extracted = json.loads(location_row[0])
                             pickup_loc = extracted.get('local_levantamento', '')
                             dropoff_loc = extracted.get('local_entrega', '')
-                            # For delivery (checkin), use dropoff location (where vehicle is being returned)
-                            # For checkout, use pickup location (where vehicle is being picked up)
-                            delivery_location = dropoff_loc if inspection_type == 'checkin' else pickup_loc
+                            # For check-in (checkin DB/entrega), use pickup location (where vehicle is being picked up)
+                            # For check-out (checkout DB/recolha), use dropoff location (where vehicle is being returned)
+                            delivery_location = pickup_loc if inspection_type == 'checkin' else dropoff_loc
                             if not delivery_location:
                                 delivery_location = "Não especificado"
                             logging.info(f"📍 Delivery location found: {delivery_location} (type: {inspection_type}, pickup: {pickup_loc}, dropoff: {dropoff_loc})")
@@ -29303,12 +29303,12 @@ async def save_inspection(request: Request):
         logging.info(f"🔢 Generated inspection number: {inspection_number}")
         
         # Calculate damage info
-        # For checkin (recolha/check-out), count damages from:
+        # For checkout (recolha/check-out), count damages from:
         # 1. damages array (pins marcados no croqui)
         # 2. damage photos (fotos individuais de danos)
         # 3. damage_count explícito do frontend
-        # For checkout (entrega/check-in), count from damages array
-        if inspection_type == 'checkin':
+        # For checkin (entrega/check-in), count from damages array
+        if inspection_type == 'checkout':
             # Count from damages array (pins no croqui)
             damage_count_from_array = len(damages)
             # Count damage photos
@@ -29381,21 +29381,21 @@ async def save_inspection(request: Request):
                 cursor = conn.cursor()
                 
                 # Check for vehicle swap scenario (same RA, different plate)
-                # If doing check-out and there's a previous check-out with same RA but different plate
-                # that doesn't have a check-in yet, block the operation
-                if inspection_type == 'checkout':
-                    logging.info(f"🔍 Checking for pending check-in with RA={ra}...")
+                # If doing check-in and there's a previous check-in with same RA but different plate
+                # that doesn't have a check-out yet, block the operation
+                if inspection_type == 'checkin':
+                    logging.info(f"🔍 Checking for pending check-out with RA={ra}...")
                     cursor.execute("""
                         SELECT vehicle_plate, inspection_number
                         FROM vehicle_inspections
                         WHERE contract_number = %s
                         AND vehicle_plate != %s
-                        AND inspection_type = 'checkout'
+                        AND inspection_type = 'checkin'
                         AND NOT EXISTS (
                             SELECT 1 FROM vehicle_inspections ci
                             WHERE ci.contract_number = vehicle_inspections.contract_number
                             AND ci.vehicle_plate = vehicle_inspections.vehicle_plate
-                            AND ci.inspection_type = 'checkin'
+                            AND ci.inspection_type = 'checkout'
                         )
                         LIMIT 1
                     """, (ra, plate))
@@ -29500,21 +29500,21 @@ async def save_inspection(request: Request):
                 cursor = conn.cursor()
                 
                 # Check for vehicle swap scenario (same RA, different plate)
-                # If doing check-out and there's a previous check-out with same RA but different plate
-                # that doesn't have a check-in yet, block the operation
-                if inspection_type == 'checkout':
-                    logging.info(f"🔍 Checking for pending check-in with RA={ra}...")
+                # If doing check-in and there's a previous check-in with same RA but different plate
+                # that doesn't have a check-out yet, block the operation
+                if inspection_type == 'checkin':
+                    logging.info(f"🔍 Checking for pending check-out with RA={ra}...")
                     cursor.execute("""
                         SELECT vehicle_plate, inspection_number
                         FROM vehicle_inspections
                         WHERE contract_number = ?
                         AND vehicle_plate != ?
-                        AND inspection_type = 'checkout'
+                        AND inspection_type = 'checkin'
                         AND NOT EXISTS (
                             SELECT 1 FROM vehicle_inspections ci
                             WHERE ci.contract_number = vehicle_inspections.contract_number
                             AND ci.vehicle_plate = vehicle_inspections.vehicle_plate
-                            AND ci.inspection_type = 'checkin'
+                            AND ci.inspection_type = 'checkout'
                         )
                         LIMIT 1
                     """, (ra, plate))
@@ -29827,8 +29827,8 @@ async def save_inspection(request: Request):
                             WHERE id = %s
                         """, (int(odometer_reading), str(fuel_level), inspection_type, inspection_type, vehicle_id))
                     else:
-                        # checkout (DB) = check-in (entrega) = alugado, checkin (DB) = check-out (recolha) = disponível
-                        new_status = 'alugado' if inspection_type == 'checkout' else 'disponivel' if inspection_type == 'checkin' else None
+                        # checkin (DB) = check-in (entrega) = alugado, checkout (DB) = check-out (recolha) = disponível
+                        new_status = 'alugado' if inspection_type == 'checkin' else 'disponivel' if inspection_type == 'checkout' else None
                         if new_status:
                             cursor.execute("""
                                 UPDATE vehicles 
@@ -29856,8 +29856,8 @@ async def save_inspection(request: Request):
             # Update rental agreement as inspection completed
             if ra and plate:
                 try:
-                    # Se é checkout, gerar token de self check-in e agendar email
-                    if inspection_type == 'checkout':
+                    # Se é checkin (entrega), gerar token de self check-out e agendar email
+                    if inspection_type == 'checkin':
                         # Verificar se o local de recolha é "Aeroporto de Faro"
                         # Self check-in só é configurado automaticamente para este local
                         is_faro_airport = False
@@ -30319,13 +30319,13 @@ async def save_inspection(request: Request):
                     status_alert_html = ""
                     photos_section_html = ""
                     
-                    # IMPORTANTE: checkout (DB) = CHECK-IN (entrega), checkin (DB) = CHECK-OUT (recolha)
-                    # For CHECK-OUT (recolha/checkin DB): check if there are NEW damages (compare with checkout/entrega)
-                    # For CHECK-IN (entrega/checkout DB): NO alerts - damages are expected and documented
-                    if inspection_type == 'checkin':
+                    # IMPORTANTE: checkin (DB) = CHECK-IN (entrega), checkout (DB) = CHECK-OUT (recolha)
+                    # For CHECK-OUT (recolha/checkout DB): check if there are NEW damages (compare with checkin/entrega)
+                    # For CHECK-IN (entrega/checkin DB): NO alerts - damages are expected and documented
+                    if inspection_type == 'checkout':
                         logging.info("🔍 CHECK-OUT (recolha) DETECTED - Validating incidents...")
                         
-                        # Validate incidents by comparing with check-in (entrega)
+                        # Validate incidents by comparing with checkin (entrega)
                         incidents = _validate_checkin_incidents(
                             cursor, is_postgres, ra, plate,
                             float(fuel_level), damage_count, inspection_id
@@ -30342,7 +30342,7 @@ async def save_inspection(request: Request):
                             incidents['has_damage_incident']
                         )
                         
-                    elif inspection_type == 'checkout':
+                    elif inspection_type == 'checkin':
                         logging.info("🔍 CHECK-IN (entrega) DETECTED - No incident validation (damages are expected)")
                         
                         # For check-in (entrega), we don't validate incidents
@@ -30439,7 +30439,7 @@ async def save_inspection(request: Request):
                             photos_section_html = odometer_photo_html + damage_photos_html
                     
                     # Choose template based on inspection type
-                    if inspection_type == 'checkin':
+                    if inspection_type == 'checkout':
                         # CHECK-OUT (recolha) - use email_checkin template
                         template_name = f"email_checkin_{detected_lang}.html" if detected_lang in ['pt', 'fr', 'en'] else "email_checkin_en.html"
                         subject = _get_checkin_email_subject(detected_lang, ra)
@@ -30448,7 +30448,7 @@ async def save_inspection(request: Request):
                         logging.info(f"📧 CHECK-OUT (recolha) - Using template: {template_name}")
                         logging.info(f"📧 Subject: {subject}")
                         
-                    elif inspection_type == 'checkout':
+                    elif inspection_type == 'checkin':
                         # CHECK-IN (entrega) - use email_preview template
                         template_name = f"email_preview_{detected_lang}.html" if detected_lang in ['pt', 'fr'] else "email_preview.html"
                         croqui_title = "Croqui de Danos" if detected_lang == 'pt' else "Damage Sketch" if detected_lang == 'en' else "Croquis des Dommages"
@@ -32636,9 +32636,9 @@ async def send_inspection_email(request: Request, inspection_number: str):
         observations = inspection[10] or ''
         
         # Use correct location based on inspection type
-        # Checkout (delivery) = pickup location (where customer picks up car)
-        # Checkin (return) = return location (where customer returns car)
-        location = pickup_location if inspection_type == 'checkout' else return_location
+        # Checkin (delivery/entrega) = pickup location (where customer picks up car)
+        # Checkout (return/recolha) = return location (where customer returns car)
+        location = pickup_location if inspection_type == 'checkin' else return_location
         logging.info(f"📍 Location for {inspection_type}: {location} (pickup={pickup_location}, return={return_location})")
         
         # Get RA data to detect language
@@ -32699,12 +32699,11 @@ async def send_inspection_email(request: Request, inspection_number: str):
                 # Override location if inspection table has N/A but RA has data
                 ra_pickup = extracted_data.get('pickupLocation', '')
                 ra_return = extracted_data.get('returnLocation', '')
-                
                 if location == 'N/A' or not location:
-                    if inspection_type == 'checkout' and ra_pickup:
+                    if inspection_type == 'checkin' and ra_pickup:
                         location = ra_pickup
                         logging.info(f"   📍 Using pickup location from RA: '{location}'")
-                    elif inspection_type == 'checkin' and ra_return:
+                    elif inspection_type == 'checkout' and ra_return:
                         location = ra_return
                         logging.info(f"   📍 Using return location from RA: '{location}'")
                 
@@ -32772,9 +32771,9 @@ async def send_inspection_email(request: Request, inspection_number: str):
         damage_count = damage_row[0] if damage_row and damage_row[0] else 0
         
         # Validate incidents
-        # CHECK-IN (entrega/checkout DB): NO alerts - just document damages, fuel, photos
-        # CHECK-OUT (recolha/checkin DB): validate incidents by comparing with check-in (entrega)
-        if inspection_type == 'checkout':
+        # CHECK-IN (entrega/checkin DB): NO alerts - just document damages, fuel, photos
+        # CHECK-OUT (recolha/checkout DB): validate incidents by comparing with check-in (entrega)
+        if inspection_type == 'checkin':
             logging.info("🔍 CHECK-IN (entrega) DETECTED - No validation, just documenting...")
             
             # Damages are expected and documented, not incidents
@@ -32802,7 +32801,7 @@ async def send_inspection_email(request: Request, inspection_number: str):
             logging.info(f"📧 Using check-in (entrega) template: {template_name}")
             logging.info(f"📧 Subject: {email_title}")
             
-        elif inspection_type == 'checkin':
+        elif inspection_type == 'checkout':
             logging.info("🔍 CHECK-OUT (recolha) DETECTED - Validating incidents...")
             
             # Validate incidents by comparing with check-in (entrega)
@@ -32901,7 +32900,7 @@ async def send_inspection_email(request: Request, inspection_number: str):
             email_title = _get_checkin_email_subject(detected_lang, ra)
             croqui_title = _get_checkin_croqui_title(detected_lang)
             
-            logging.info(f"📧 Using check-out template: {template_name}")
+            logging.info(f"📧 Using check-out (recolha) template: {template_name}")
             logging.info(f"📧 Subject: {email_title}")
             logging.info(f"📧 Croqui title: {croqui_title}")
                 
@@ -33039,8 +33038,8 @@ async def send_inspection_email(request: Request, inspection_number: str):
                 photos_html += '</tr>'
             photos_html += '</table>'
         
-        # Replace damage photos placeholder if needed (for check-in with damage incidents)
-        if inspection_type == 'checkin' and '__DAMAGE_PHOTOS_PLACEHOLDER__' in photos_section_html and photos_html:
+        # Replace damage photos placeholder if needed (for check-out with damage incidents)
+        if inspection_type == 'checkout' and '__DAMAGE_PHOTOS_PLACEHOLDER__' in photos_section_html and photos_html:
             damage_label = photos_section_html.split('__DAMAGE_PHOTOS_PLACEHOLDER__:')[1] if '__DAMAGE_PHOTOS_PLACEHOLDER__:' in photos_section_html else 'Damage Photos'
             damage_photos_html = f"""
             <div style="padding: 20px; background-color: #ffffff;">
