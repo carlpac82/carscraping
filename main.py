@@ -29947,6 +29947,7 @@ async def save_inspection(request: Request):
             logging.info("✅ Transaction committed successfully")
             
             # VALIDATE INCIDENTS FOR CHECK-OUT (RECOLHA) - ALWAYS, regardless of email
+            logging.info(f"🔍 [PRE-VALIDATION] inspection_type='{inspection_type}', damage_count={damage_count}")
             incidents = {
                 'has_fuel_incident': False,
                 'has_damage_incident': False,
