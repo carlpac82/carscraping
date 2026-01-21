@@ -2720,6 +2720,11 @@
             
             isSaving = true;
             
+            // CRITICAL: Capture croqui NOW while diagram is still visible
+            console.log('🎨 [PRE-CAPTURE] Capturing croqui before hiding diagram...');
+            window.preCapturedCroqui = captureCroquiBeforeSave();
+            console.log('🎨 [PRE-CAPTURE] Captured length:', window.preCapturedCroqui?.length || 0);
+            
             // Show saving overlay
             showSavingOverlay('Guardando inspeção e enviando por email...');
             
@@ -2727,6 +2732,87 @@
             
             // Save inspection with email
             saveInspectionWithEmail(email);
+        }
+        
+        // Capture croqui while diagram is visible (before modal/overlay hides it)
+        function captureCroquiBeforeSave() {
+            try {
+                const canvas = document.getElementById('drawingCanvas');
+                const container = document.getElementById('carDiagram');
+                const croquiImg = container ? container.querySelector('img') : null;
+                
+                console.log('🎨 Capture check - Canvas:', !!canvas, canvas?.width, 'x', canvas?.height);
+                console.log('🎨 Capture check - Container:', !!container);
+                console.log('🎨 Capture check - Image:', !!croquiImg, croquiImg?.naturalWidth, 'x', croquiImg?.naturalHeight);
+                
+                if (!croquiImg || !croquiImg.complete || croquiImg.naturalWidth === 0) {
+                    console.error('❌ Croqui image not ready');
+                    return '';
+                }
+                
+                // Create temp canvas using NATURAL size (not offset which may be 0)
+                const tempCanvas = document.createElement('canvas');
+                const tempCtx = tempCanvas.getContext('2d');
+                tempCanvas.width = croquiImg.naturalWidth;
+                tempCanvas.height = croquiImg.naturalHeight;
+                
+                console.log('✅ Temp canvas:', tempCanvas.width, 'x', tempCanvas.height);
+                
+                // Draw background
+                tempCtx.drawImage(croquiImg, 0, 0);
+                
+                // Calculate scale
+                const canvasWidth = canvas && canvas.width > 0 ? canvas.width : croquiImg.offsetWidth || croquiImg.naturalWidth;
+                const canvasHeight = canvas && canvas.height > 0 ? canvas.height : croquiImg.offsetHeight || croquiImg.naturalHeight;
+                const scaleX = tempCanvas.width / canvasWidth;
+                const scaleY = tempCanvas.height / canvasHeight;
+                
+                console.log('✅ Scale:', scaleX.toFixed(3), 'x', scaleY.toFixed(3));
+                
+                // Draw canvas overlay
+                if (canvas && canvas.width > 0 && canvas.height > 0) {
+                    tempCtx.save();
+                    tempCtx.scale(scaleX, scaleY);
+                    tempCtx.drawImage(canvas, 0, 0);
+                    tempCtx.restore();
+                }
+                
+                // Draw pins
+                const pins = container.querySelectorAll('.damage-pin:not(#pinPreview)');
+                console.log('📍 Drawing', pins.length, 'pins');
+                
+                pins.forEach((pin, i) => {
+                    const left = parseFloat(pin.style.left) || 0;
+                    const top = parseFloat(pin.style.top) || 0;
+                    if (left === 0 && top === 0) return;
+                    
+                    const x = left * scaleX;
+                    const y = top * scaleY;
+                    
+                    let r = 8;
+                    if (pin.classList.contains('size-tiny')) r = 4;
+                    else if (pin.classList.contains('size-small')) r = 6;
+                    else if (pin.classList.contains('size-large')) r = 12;
+                    
+                    const sr = r * Math.min(scaleX, scaleY);
+                    
+                    tempCtx.beginPath();
+                    tempCtx.arc(x, y, sr, 0, Math.PI * 2);
+                    tempCtx.fillStyle = '#000000';
+                    tempCtx.fill();
+                    tempCtx.strokeStyle = '#ffffff';
+                    tempCtx.lineWidth = 2;
+                    tempCtx.stroke();
+                });
+                
+                const result = tempCanvas.toDataURL('image/png');
+                console.log('✅ Croqui captured:', pins.length, 'pins,', result.length, 'chars');
+                return result;
+                
+            } catch (error) {
+                console.error('❌ Capture error:', error);
+                return '';
+            }
         }
         
         let isSaving = false;
@@ -2787,14 +2873,18 @@
         }
         
         function saveInspectionWithEmail(email) {
-            // Capture damage croqui as base64 image
-            let damageCroquiBase64 = '';
-            console.log('🎨 [CROQUI CAPTURE] Starting croqui capture...');
-            try {
-                const canvas = document.getElementById('drawingCanvas');
-                console.log('🔍 [CROQUI CAPTURE] Canvas found:', !!canvas);
-                
-                if (canvas && canvas.width > 0 && canvas.height > 0) {
+            // Use pre-captured croqui (captured before overlay hid the diagram)
+            let damageCroquiBase64 = window.preCapturedCroqui || '';
+            console.log('🎨 [USING PRE-CAPTURED] Croqui length:', damageCroquiBase64.length);
+            
+            // Fallback: try to capture now if pre-capture failed
+            if (!damageCroquiBase64) {
+                console.log('⚠️ No pre-captured croqui, trying to capture now...');
+                try {
+                    const canvas = document.getElementById('drawingCanvas');
+                    console.log('🔍 [FALLBACK CAPTURE] Canvas found:', !!canvas);
+                    
+                    if (canvas && canvas.width > 0 && canvas.height > 0) {
                     console.log('🔍 Canvas size:', canvas.width, 'x', canvas.height);
                     
                     // Create a temporary canvas to combine the background image and drawings
@@ -2869,8 +2959,9 @@
                 } else {
                     console.warn('⚠️ Canvas not found or has invalid size:', canvas?.width, 'x', canvas?.height);
                 }
-            } catch (error) {
-                console.error('❌ Error capturing damage croqui:', error);
+                } catch (error) {
+                    console.error('❌ Error capturing damage croqui:', error);
+                }
             }
             
             // Prepare photos - extract dataURL from each photo object
