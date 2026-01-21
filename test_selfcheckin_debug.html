@@ -1,0 +1,500 @@
+<!DOCTYPE html>
+<html lang="pt">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>TEST Self Check-in - Auto Prudente (DEBUG)</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        .photo-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 1rem;
+        }
+        
+        .photo-slot {
+            aspect-ratio: 4/3;
+            border: 3px solid #ffffff;
+            border-radius: 0.5rem;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: all 0.3s;
+            position: relative;
+            overflow: hidden;
+            background: #ffffff;
+        }
+        
+        .photo-slot:hover {
+            border-color: #FFC107;
+            transform: scale(1.02);
+            box-shadow: 0 4px 12px rgba(255, 193, 7, 0.3);
+        }
+        
+        .photo-slot.has-photo {
+            border-style: solid;
+            border-color: #FFC107;
+            padding: 0;
+            box-shadow: 0 2px 8px rgba(255, 193, 7, 0.4);
+        }
+        
+        .photo-slot img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+        
+        .photo-slot .remove-btn {
+            position: absolute;
+            top: 0.5rem;
+            right: 0.5rem;
+            background: rgba(239, 68, 68, 0.9);
+            color: white;
+            border-radius: 50%;
+            width: 2rem;
+            height: 2rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            z-index: 10;
+        }
+        
+        .fuel-canvas-container {
+            position: relative;
+            width: 100%;
+            height: 40px;
+            margin-top: 0.5rem;
+        }
+        
+        #debugConsole {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            max-height: 200px;
+            overflow-y: auto;
+            background: #1a1a1a;
+            color: #00ff00;
+            font-family: monospace;
+            font-size: 12px;
+            padding: 10px;
+            border-top: 2px solid #00bcd4;
+            z-index: 9999;
+        }
+        
+        .log-entry {
+            margin: 2px 0;
+            padding: 2px 5px;
+        }
+        
+        .log-error {
+            color: #ff4444;
+        }
+        
+        .log-success {
+            color: #44ff44;
+        }
+        
+        .log-info {
+            color: #00bcd4;
+        }
+    </style>
+</head>
+<body class="bg-gradient-to-br from-[#00bcd4] to-[#0097a7] min-h-screen">
+    
+    <!-- Debug Console -->
+    <div id="debugConsole">
+        <div class="log-info">🔍 DEBUG CONSOLE - Self Check-in Test Page</div>
+        <div class="log-info">═══════════════════════════════════════════</div>
+    </div>
+
+    <div class="min-h-screen py-8 px-4" style="padding-bottom: 220px;">
+        <div class="max-w-4xl mx-auto">
+            <!-- Header (Email Style) -->
+            <div class="bg-gradient-to-r from-[#00bcd4] to-[#0097a7] rounded-lg shadow-xl p-6 mb-6">
+                <div class="flex items-center justify-between">
+                    <img src="static/ap-heather.png" alt="Auto Prudente" class="h-16" id="logoImg">
+                    <div class="bg-white bg-opacity-20 px-4 py-2 rounded-lg">
+                        <span class="text-white font-bold text-lg">R.A.: <span id="raNumber">TEST-12345</span></span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Vehicle Info Card -->
+            <div class="bg-white rounded-lg shadow-xl p-6 mb-6">
+                <h2 class="text-2xl font-bold text-[#00bcd4] mb-4">Self Check-in (TEST MODE)</h2>
+                
+                <!-- Cliente -->
+                <div class="mb-4 pb-4 border-b border-gray-200">
+                    <p class="text-sm text-gray-600 mb-1">Cliente</p>
+                    <p class="font-bold text-lg" id="clientName">João Silva</p>
+                </div>
+                
+                <div class="grid grid-cols-2 gap-4 mb-4">
+                    <div>
+                        <p class="text-sm text-gray-600 mb-1">Veículo</p>
+                        <p class="font-semibold" id="vehicleInfo">Renault Clio</p>
+                    </div>
+                    <div>
+                        <p class="text-sm text-gray-600 mb-1">Matrícula</p>
+                        <p class="font-semibold" id="licensePlate">AB-12-CD</p>
+                    </div>
+                </div>
+                
+                <div class="grid grid-cols-2 gap-4 mb-4">
+                    <div>
+                        <p class="text-sm text-gray-600 mb-1">Data/Hora Entrega</p>
+                        <p class="font-semibold" id="deliveryDateTime">20/01/2026 14:30</p>
+                    </div>
+                    <div>
+                        <p class="text-sm text-gray-600 mb-1">Data/Hora Devolução</p>
+                        <p class="font-semibold" id="returnDateTime">21/01/2026 00:44</p>
+                    </div>
+                </div>
+                
+                <div class="grid grid-cols-2 gap-4">
+                    <div>
+                        <p class="text-sm text-gray-600 mb-1">Kms Entrega</p>
+                        <p class="font-semibold" id="kmsEntrega">45000</p>
+                    </div>
+                    <div>
+                        <p class="text-sm text-gray-600 mb-1">Combustível Entrega</p>
+                        <div class="fuel-canvas-container">
+                            <canvas id="fuelEntregaCanvas" width="300" height="40"></canvas>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Instructions -->
+            <div class="bg-white rounded-lg shadow-xl p-6 mb-6">
+                <h2 class="text-xl font-bold text-[#00bcd4] mb-4">Procedimento de Self Check-in</h2>
+                
+                <div class="space-y-4">
+                    <div class="border-l-4 border-[#00bcd4] pl-4">
+                        <h3 class="font-bold text-[#00bcd4] mb-2">1. Fotos do Veículo</h3>
+                        <p class="text-gray-700 text-sm">Tire fotos de todos os ângulos do veículo (frente, laterais, traseira e interior). Adicione fotos de eventuais danos se necessário.</p>
+                    </div>
+                    
+                    <div class="border-l-4 border-[#FFC107] pl-4">
+                        <h3 class="font-bold text-[#FFC107] mb-2">2. Nível de Combustível e Quilómetros</h3>
+                        <p class="text-gray-700 text-sm">Indique o nível de combustível atual e os quilómetros no odómetro.</p>
+                    </div>
+                    
+                    <div class="border-l-4 border-red-600 pl-4">
+                        <h3 class="font-bold text-red-600 mb-2">3. Submeter Check-in</h3>
+                        <p class="text-gray-700 text-sm">Após preencher todos os campos, clique no botão "Submeter Check-in" no final da página.</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Photo Grid -->
+            <div class="bg-white rounded-lg shadow-xl p-6 mb-6">
+                <h2 class="text-xl font-bold text-[#00bcd4] mb-4">Fotos do Veículo (9 fotos obrigatórias)</h2>
+                <div class="photo-grid">
+                    <div class="photo-slot" data-photo="front" onclick="triggerPhotoUpload('front')">
+                        <img src="static/inspection_photos/Vista Frontal.png" alt="Vista Frontal" style="opacity: 0.7; width: 100%; height: 100%; object-fit: cover;">
+                        <span class="text-sm font-semibold text-[#00bcd4] absolute bottom-2 bg-white px-2 py-1 rounded">Frente</span>
+                    </div>
+                    <div class="photo-slot" data-photo="front_left" onclick="triggerPhotoUpload('front_left')">
+                        <img src="static/inspection_photos/Vista Frontal Esquerda.png" alt="Vista Frontal Esquerda" style="opacity: 0.7; width: 100%; height: 100%; object-fit: cover;">
+                        <span class="text-sm font-semibold text-[#00bcd4] absolute bottom-2 bg-white px-2 py-1 rounded">Frente Esquerda</span>
+                    </div>
+                    <div class="photo-slot" data-photo="left" onclick="triggerPhotoUpload('left')">
+                        <img src="static/inspection_photos/Vista Lateral Esquerda.png" alt="Vista Lateral Esquerda" style="opacity: 0.7; width: 100%; height: 100%; object-fit: cover;">
+                        <span class="text-sm font-semibold text-[#00bcd4] absolute bottom-2 bg-white px-2 py-1 rounded">Lateral Esquerda</span>
+                    </div>
+                    <div class="photo-slot" data-photo="back_left" onclick="triggerPhotoUpload('back_left')">
+                        <img src="static/inspection_photos/Vista Traseira Esquerda.png" alt="Vista Traseira Esquerda" style="opacity: 0.7; width: 100%; height: 100%; object-fit: cover;">
+                        <span class="text-sm font-semibold text-[#00bcd4] absolute bottom-2 bg-white px-2 py-1 rounded">Traseira Esquerda</span>
+                    </div>
+                    <div class="photo-slot" data-photo="back" onclick="triggerPhotoUpload('back')">
+                        <img src="static/inspection_photos/Vista Traseira.png" alt="Vista Traseira" style="opacity: 0.7; width: 100%; height: 100%; object-fit: cover;">
+                        <span class="text-sm font-semibold text-[#00bcd4] absolute bottom-2 bg-white px-2 py-1 rounded">Traseira</span>
+                    </div>
+                    <div class="photo-slot" data-photo="back_right" onclick="triggerPhotoUpload('back_right')">
+                        <img src="static/inspection_photos/Vista Traseira direita.png" alt="Vista Traseira Direita" style="opacity: 0.7; width: 100%; height: 100%; object-fit: cover;">
+                        <span class="text-sm font-semibold text-[#00bcd4] absolute bottom-2 bg-white px-2 py-1 rounded">Traseira Direita</span>
+                    </div>
+                    <div class="photo-slot" data-photo="right" onclick="triggerPhotoUpload('right')">
+                        <img src="static/inspection_photos/Vista Lateral Direita.png" alt="Vista Lateral Direita" style="opacity: 0.7; width: 100%; height: 100%; object-fit: cover;">
+                        <span class="text-sm font-semibold text-[#00bcd4] absolute bottom-2 bg-white px-2 py-1 rounded">Lateral Direita</span>
+                    </div>
+                    <div class="photo-slot" data-photo="front_right" onclick="triggerPhotoUpload('front_right')">
+                        <img src="static/inspection_photos/Vista Frontal Direita.png" alt="Vista Frontal Direita" style="opacity: 0.7; width: 100%; height: 100%; object-fit: cover;">
+                        <span class="text-sm font-semibold text-[#00bcd4] absolute bottom-2 bg-white px-2 py-1 rounded">Frente Direita</span>
+                    </div>
+                    <div class="photo-slot" data-photo="interior" onclick="triggerPhotoUpload('interior')">
+                        <img src="static/inspection_photos/Odometro.png" alt="Interior/Odómetro" style="opacity: 0.7; width: 100%; height: 100%; object-fit: cover;">
+                        <span class="text-sm font-semibold text-[#00bcd4] absolute bottom-2 bg-white px-2 py-1 rounded">Interior</span>
+                    </div>
+                </div>
+                <input type="file" id="photoInput" accept="image/*" capture="environment" class="hidden" onchange="handlePhotoCapture(event)">
+            </div>
+
+            <!-- Fuel and Odometer -->
+            <div class="bg-white rounded-lg shadow-xl p-6 mb-6">
+                <h2 class="text-xl font-bold text-[#00bcd4] mb-4">Combustível e Quilómetros</h2>
+                
+                <div class="mb-6">
+                    <label class="block text-gray-700 font-semibold mb-2">Nível de Combustível</label>
+                    <input type="range" id="fuelSlider" class="fuel-slider" min="0" max="100" value="50" step="25">
+                    <div class="flex justify-between text-sm text-gray-600 mt-2">
+                        <span>R</span>
+                        <span>1/4</span>
+                        <span>1/2</span>
+                        <span>3/4</span>
+                        <span>F</span>
+                    </div>
+                    <p class="text-center font-bold text-[#00bcd4] mt-2" id="fuelLevel">1/2</p>
+                </div>
+                
+                <div>
+                    <label class="block text-gray-700 font-semibold mb-2">Quilómetros</label>
+                    <input type="number" id="odometerInput" class="w-full px-4 py-2 border-2 border-gray-300 rounded-lg focus:border-[#00bcd4] focus:outline-none" placeholder="Ex: 45000">
+                </div>
+            </div>
+
+            <!-- Submit Button -->
+            <button onclick="testSubmit()" class="w-full bg-gradient-to-r from-[#00bcd4] to-[#0097a7] text-white font-bold py-4 px-6 rounded-lg shadow-lg hover:shadow-xl transition-all">
+                TESTE - Submeter Check-in
+            </button>
+        </div>
+    </div>
+
+    <script>
+        // Debug logging function
+        function debugLog(message, type = 'info') {
+            const console = document.getElementById('debugConsole');
+            const entry = document.createElement('div');
+            entry.className = `log-entry log-${type}`;
+            const timestamp = new Date().toLocaleTimeString();
+            entry.textContent = `[${timestamp}] ${message}`;
+            console.appendChild(entry);
+            console.scrollTop = console.scrollHeight;
+            
+            // Also log to browser console
+            if (type === 'error') {
+                window.console.error(message);
+            } else if (type === 'success') {
+                window.console.log('✅', message);
+            } else {
+                window.console.log('ℹ️', message);
+            }
+        }
+
+        // Initialize
+        debugLog('🚀 Página carregada - Iniciando testes...', 'success');
+        
+        // Test logo loading
+        const logoImg = document.getElementById('logoImg');
+        logoImg.onload = function() {
+            debugLog('✅ Logo carregado com sucesso!', 'success');
+        };
+        logoImg.onerror = function() {
+            debugLog('❌ ERRO: Logo não carregou! Path: ' + logoImg.src, 'error');
+        };
+        
+        // Test instruction photos
+        debugLog('🔍 Testando carregamento de fotos de instrução...', 'info');
+        const photoSlots = document.querySelectorAll('.photo-slot img');
+        let photosLoaded = 0;
+        let photosFailed = 0;
+        
+        photoSlots.forEach((img, index) => {
+            img.onload = function() {
+                photosLoaded++;
+                debugLog(`✅ Foto ${index + 1}/9 carregada: ${img.alt}`, 'success');
+                if (photosLoaded + photosFailed === photoSlots.length) {
+                    debugLog(`📊 RESULTADO: ${photosLoaded} fotos OK, ${photosFailed} fotos FALHOU`, photosLoaded === 9 ? 'success' : 'error');
+                }
+            };
+            img.onerror = function() {
+                photosFailed++;
+                debugLog(`❌ ERRO Foto ${index + 1}/9: ${img.alt} - Path: ${img.src}`, 'error');
+                if (photosLoaded + photosFailed === photoSlots.length) {
+                    debugLog(`📊 RESULTADO: ${photosLoaded} fotos OK, ${photosFailed} fotos FALHOU`, photosLoaded === 9 ? 'success' : 'error');
+                }
+            };
+        });
+
+        // Draw fuel canvas
+        function drawFuelCanvas() {
+            debugLog('🎨 Desenhando canvas de combustível de entrega...', 'info');
+            const canvas = document.getElementById('fuelEntregaCanvas');
+            if (!canvas) {
+                debugLog('❌ ERRO: Canvas não encontrado!', 'error');
+                return;
+            }
+            
+            const ctx = canvas.getContext('2d');
+            const width = canvas.width;
+            const height = canvas.height;
+            
+            // Background
+            ctx.fillStyle = '#e5e7eb';
+            ctx.fillRect(0, 0, width, height);
+            
+            // Fuel level (75% = 3/4)
+            const fuelPercent = 75;
+            const fillWidth = (width * fuelPercent) / 100;
+            
+            ctx.fillStyle = '#00bcd4';
+            ctx.fillRect(0, 0, fillWidth, height);
+            
+            // Border
+            ctx.strokeStyle = '#00bcd4';
+            ctx.lineWidth = 2;
+            ctx.strokeRect(0, 0, width, height);
+            
+            // Markers
+            ctx.strokeStyle = '#00bcd4';
+            ctx.lineWidth = 1;
+            const markers = [0, 0.25, 0.5, 0.75, 1];
+            markers.forEach(m => {
+                const x = width * m;
+                ctx.beginPath();
+                ctx.moveTo(x, 0);
+                ctx.lineTo(x, height);
+                ctx.stroke();
+            });
+            
+            // Labels
+            ctx.fillStyle = '#374151';
+            ctx.font = '10px Arial';
+            ctx.textAlign = 'center';
+            ctx.fillText('R', 0, height - 5);
+            ctx.fillText('1/4', width * 0.25, height - 5);
+            ctx.fillText('1/2', width * 0.5, height - 5);
+            ctx.fillText('3/4', width * 0.75, height - 5);
+            ctx.fillText('F', width, height - 5);
+            
+            debugLog('✅ Canvas de combustível desenhado (75% = 3/4)', 'success');
+        }
+        
+        drawFuelCanvas();
+
+        // Fuel slider
+        const fuelSlider = document.getElementById('fuelSlider');
+        const fuelLevelText = document.getElementById('fuelLevel');
+        
+        fuelSlider.addEventListener('input', function() {
+            const value = parseInt(this.value);
+            let label = '';
+            if (value === 0) label = 'Reserva';
+            else if (value === 25) label = '1/4';
+            else if (value === 50) label = '1/2';
+            else if (value === 75) label = '3/4';
+            else if (value === 100) label = 'Cheio';
+            fuelLevelText.textContent = label;
+            debugLog(`🔧 Combustível alterado: ${label} (${value}%)`, 'info');
+        });
+
+        // Photo upload simulation
+        let photos = {};
+        let currentPhotoType = null;
+
+        function triggerPhotoUpload(photoType) {
+            debugLog(`📸 Clique em foto: ${photoType}`, 'info');
+            currentPhotoType = photoType;
+            document.getElementById('photoInput').click();
+        }
+
+        function handlePhotoCapture(event) {
+            const file = event.target.files[0];
+            if (!file) {
+                debugLog('⚠️ Nenhum ficheiro selecionado', 'error');
+                return;
+            }
+            
+            debugLog(`📸 Foto capturada: ${file.name} (${(file.size/1024).toFixed(2)} KB)`, 'success');
+            
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                photos[currentPhotoType] = e.target.result;
+                displayPhoto(currentPhotoType, e.target.result);
+                debugLog(`✅ Foto ${currentPhotoType} processada e exibida`, 'success');
+            };
+            reader.onerror = function() {
+                debugLog(`❌ ERRO ao ler ficheiro: ${currentPhotoType}`, 'error');
+            };
+            reader.readAsDataURL(file);
+        }
+
+        function displayPhoto(photoType, dataUrl) {
+            const slot = document.querySelector(`[data-photo="${photoType}"]`);
+            slot.classList.add('has-photo');
+            slot.innerHTML = `
+                <img src="${dataUrl}" alt="${photoType}">
+                <span class="text-sm font-semibold text-[#00bcd4] absolute bottom-2 bg-white px-2 py-1 rounded">${photoType}</span>
+                <div class="remove-btn" onclick="removePhoto('${photoType}', event)">✕</div>
+            `;
+        }
+
+        function removePhoto(photoType, event) {
+            event.stopPropagation();
+            delete photos[photoType];
+            debugLog(`🗑️ Foto removida: ${photoType}`, 'info');
+            
+            const slot = document.querySelector(`[data-photo="${photoType}"]`);
+            slot.classList.remove('has-photo');
+            
+            // Restore instruction photo
+            const instructionPhotos = {
+                'front': 'static/inspection_photos/Vista Frontal.png',
+                'front_left': 'static/inspection_photos/Vista Frontal Esquerda.png',
+                'left': 'static/inspection_photos/Vista Lateral Esquerda.png',
+                'back_left': 'static/inspection_photos/Vista Traseira Esquerda.png',
+                'back': 'static/inspection_photos/Vista Traseira.png',
+                'back_right': 'static/inspection_photos/Vista Traseira direita.png',
+                'right': 'static/inspection_photos/Vista Lateral Direita.png',
+                'front_right': 'static/inspection_photos/Vista Frontal Direita.png',
+                'interior': 'static/inspection_photos/Odometro.png'
+            };
+            
+            slot.innerHTML = `
+                <img src="${instructionPhotos[photoType]}" alt="${photoType}" style="opacity: 0.7; width: 100%; height: 100%; object-fit: cover;">
+                <span class="text-sm font-semibold text-[#00bcd4] absolute bottom-2 bg-white px-2 py-1 rounded">${photoType}</span>
+            `;
+        }
+
+        function testSubmit() {
+            debugLog('═══════════════════════════════════════════', 'info');
+            debugLog('🚀 TESTE DE SUBMISSÃO INICIADO', 'info');
+            debugLog('═══════════════════════════════════════════', 'info');
+            
+            const photoCount = Object.keys(photos).length;
+            debugLog(`📸 Fotos capturadas: ${photoCount}/9`, photoCount === 9 ? 'success' : 'error');
+            
+            const fuelValue = document.getElementById('fuelSlider').value;
+            debugLog(`⛽ Combustível: ${fuelValue}% (${document.getElementById('fuelLevel').textContent})`, 'info');
+            
+            const odometerValue = document.getElementById('odometerInput').value;
+            debugLog(`🚗 Quilómetros: ${odometerValue || 'NÃO PREENCHIDO'}`, odometerValue ? 'success' : 'error');
+            
+            if (photoCount < 9) {
+                debugLog(`❌ VALIDAÇÃO FALHOU: Faltam ${9 - photoCount} fotos obrigatórias`, 'error');
+                alert(`Por favor, tire todas as 9 fotos obrigatórias. Faltam ${9 - photoCount} fotos.`);
+                return;
+            }
+            
+            if (!odometerValue) {
+                debugLog('❌ VALIDAÇÃO FALHOU: Quilómetros não preenchidos', 'error');
+                alert('Por favor, preencha os quilómetros.');
+                return;
+            }
+            
+            debugLog('✅ VALIDAÇÃO OK - Todos os campos preenchidos', 'success');
+            debugLog('📤 Simulação: Dados seriam enviados para /api/self-checkin/submit', 'info');
+            debugLog('═══════════════════════════════════════════', 'info');
+            
+            alert('✅ TESTE OK!\n\nTodos os campos validados:\n- 9 fotos capturadas\n- Combustível: ' + document.getElementById('fuelLevel').textContent + '\n- Quilómetros: ' + odometerValue + '\n\nVerifica o console de debug abaixo para detalhes.');
+        }
+
+        debugLog('✅ JavaScript inicializado - Página pronta para testes!', 'success');
+    </script>
+</body>
+</html>
