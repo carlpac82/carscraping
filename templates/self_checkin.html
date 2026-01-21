@@ -1127,6 +1127,20 @@
                 document.body.classList.add('modal-open');
                 modal.classList.add('active');
                 
+                // Request fullscreen
+                try {
+                    if (document.documentElement.requestFullscreen) {
+                        await document.documentElement.requestFullscreen();
+                    } else if (document.documentElement.webkitRequestFullscreen) {
+                        await document.documentElement.webkitRequestFullscreen();
+                    } else if (document.documentElement.msRequestFullscreen) {
+                        await document.documentElement.msRequestFullscreen();
+                    }
+                    console.log('✅ Fullscreen activated for camera');
+                } catch (error) {
+                    console.log('⚠️ Could not activate fullscreen:', error.message);
+                }
+                
                 // Force reflow to ensure styles are applied
                 modal.offsetHeight;
                 
@@ -1191,6 +1205,22 @@
                     advanced: [{ torch: false }]
                 }).catch(err => console.error('Flash off error:', err));
                 document.getElementById('flashButton').classList.remove('active');
+            }
+            
+            // Exit fullscreen
+            try {
+                if (document.fullscreenElement) {
+                    if (document.exitFullscreen) {
+                        document.exitFullscreen();
+                    } else if (document.webkitExitFullscreen) {
+                        document.webkitExitFullscreen();
+                    } else if (document.msExitFullscreen) {
+                        document.msExitFullscreen();
+                    }
+                    console.log('✅ Fullscreen exited');
+                }
+            } catch (error) {
+                console.log('⚠️ Could not exit fullscreen:', error.message);
             }
         }
 
