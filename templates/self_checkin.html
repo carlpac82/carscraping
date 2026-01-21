@@ -139,16 +139,36 @@
 
     <div class="min-h-screen py-8 px-4">
         <div class="max-w-4xl mx-auto">
-            <!-- Header -->
-            <div class="bg-white rounded-lg shadow-xl p-6 mb-6">
-                <div class="flex items-center justify-center mb-4">
-                    <img src="/static/ap-heather.png" alt="Auto Prudente" class="h-16" onerror="this.style.display='none'">
+            <!-- Header (Email Style) -->
+            <div class="bg-gradient-to-r from-[#00bcd4] to-[#0097a7] rounded-lg shadow-xl p-6 mb-6">
+                <div class="flex items-center justify-between">
+                    <img src="/static/ap-heather.png" alt="Auto Prudente" class="h-12" onerror="this.style.display='none'">
+                    <div class="bg-white bg-opacity-20 px-4 py-2 rounded-lg">
+                        <span class="text-white font-bold text-lg">R.A.: <span id="raNumber">-</span></span>
+                    </div>
                 </div>
-                <h1 class="text-3xl font-bold text-[#00bcd4] text-center mb-4" id="pageTitle">Self Check-in</h1>
-                <div id="vehicleInfo" class="text-gray-800 bg-gray-50 rounded-lg p-4">
-                    <p><strong id="labelRA">RA:</strong> <span id="raNumber">-</span></p>
-                    <p><strong id="labelPlate">Matrícula:</strong> <span id="licensePlate">-</span></p>
-                    <p><strong id="labelVehicle">Veículo:</strong> <span id="vehicleDetails">-</span></p>
+            </div>
+
+            <!-- Vehicle Info Card -->
+            <div class="bg-white rounded-lg shadow-xl p-6 mb-6">
+                <h2 class="text-2xl font-bold text-[#00bcd4] mb-4" id="pageTitle">Self Check-in</h2>
+                <div class="grid grid-cols-2 gap-4">
+                    <div>
+                        <p class="text-sm text-gray-600" id="labelVehicle">Veículo</p>
+                        <p class="font-bold text-gray-800" id="vehicleDetails">-</p>
+                    </div>
+                    <div>
+                        <p class="text-sm text-gray-600" id="labelPlate">Matrícula</p>
+                        <p class="font-bold text-gray-800" id="licensePlate">-</p>
+                    </div>
+                    <div>
+                        <p class="text-sm text-gray-600" id="labelKmsEntrega">Kms Entrega</p>
+                        <p class="font-bold text-gray-800" id="kmsEntrega">-</p>
+                    </div>
+                    <div>
+                        <p class="text-sm text-gray-600" id="labelFuelEntrega">Combustível Entrega</p>
+                        <p class="font-bold text-gray-800" id="fuelEntrega">-</p>
+                    </div>
                 </div>
             </div>
 
@@ -164,39 +184,39 @@
                 <h2 class="text-xl font-bold text-[#00bcd4] mb-4" id="photosTitle">Fotos do Veículo (9 fotos obrigatórias)</h2>
                 <div class="photo-grid">
                     <div class="photo-slot" data-photo="front" onclick="triggerPhotoUpload('front')">
-                        <img src="/static/Inspecçao/Vista Frontal.png" alt="Vista Frontal" style="opacity: 0.7;">
+                        <img src="/static/Inspe%C3%A7ao/Vista%20Frontal.png" alt="Vista Frontal" style="opacity: 0.7; width: 100%; height: 100%; object-fit: cover;">
                         <span class="text-sm font-semibold text-[#00bcd4] absolute bottom-2 bg-white px-2 py-1 rounded">Frente</span>
                     </div>
                     <div class="photo-slot" data-photo="front_left" onclick="triggerPhotoUpload('front_left')">
-                        <img src="/static/Inspecçao/Vista Frontal Esquerda.png" alt="Vista Frontal Esquerda" style="opacity: 0.7;">
+                        <img src="/static/Inspe%C3%A7ao/Vista%20Frontal%20Esquerda.png" alt="Vista Frontal Esquerda" style="opacity: 0.7; width: 100%; height: 100%; object-fit: cover;">
                         <span class="text-sm font-semibold text-[#00bcd4] absolute bottom-2 bg-white px-2 py-1 rounded">Frente Esquerda</span>
                     </div>
                     <div class="photo-slot" data-photo="left" onclick="triggerPhotoUpload('left')">
-                        <img src="/static/Inspecçao/Vista Lateral Esquerda.png" alt="Vista Lateral Esquerda" style="opacity: 0.7;">
+                        <img src="/static/Inspe%C3%A7ao/Vista%20Lateral%20Esquerda.png" alt="Vista Lateral Esquerda" style="opacity: 0.7; width: 100%; height: 100%; object-fit: cover;">
                         <span class="text-sm font-semibold text-[#00bcd4] absolute bottom-2 bg-white px-2 py-1 rounded">Lateral Esquerda</span>
                     </div>
                     <div class="photo-slot" data-photo="back_left" onclick="triggerPhotoUpload('back_left')">
-                        <img src="/static/Inspecçao/Vista Traseira Esquerda.png" alt="Vista Traseira Esquerda" style="opacity: 0.7;">
+                        <img src="/static/Inspe%C3%A7ao/Vista%20Traseira%20Esquerda.png" alt="Vista Traseira Esquerda" style="opacity: 0.7; width: 100%; height: 100%; object-fit: cover;">
                         <span class="text-sm font-semibold text-[#00bcd4] absolute bottom-2 bg-white px-2 py-1 rounded">Traseira Esquerda</span>
                     </div>
                     <div class="photo-slot" data-photo="back" onclick="triggerPhotoUpload('back')">
-                        <img src="/static/Inspecçao/Vista Traseira.png" alt="Vista Traseira" style="opacity: 0.7;">
+                        <img src="/static/Inspe%C3%A7ao/Vista%20Traseira.png" alt="Vista Traseira" style="opacity: 0.7; width: 100%; height: 100%; object-fit: cover;">
                         <span class="text-sm font-semibold text-[#00bcd4] absolute bottom-2 bg-white px-2 py-1 rounded">Traseira</span>
                     </div>
                     <div class="photo-slot" data-photo="back_right" onclick="triggerPhotoUpload('back_right')">
-                        <img src="/static/Inspecçao/Vista Traseira direita.png" alt="Vista Traseira Direita" style="opacity: 0.7;">
+                        <img src="/static/Inspe%C3%A7ao/Vista%20Traseira%20direita.png" alt="Vista Traseira Direita" style="opacity: 0.7; width: 100%; height: 100%; object-fit: cover;">
                         <span class="text-sm font-semibold text-[#00bcd4] absolute bottom-2 bg-white px-2 py-1 rounded">Traseira Direita</span>
                     </div>
                     <div class="photo-slot" data-photo="right" onclick="triggerPhotoUpload('right')">
-                        <img src="/static/Inspecçao/Vista Lateral Direita.png" alt="Vista Lateral Direita" style="opacity: 0.7;">
+                        <img src="/static/Inspe%C3%A7ao/Vista%20Lateral%20Direita.png" alt="Vista Lateral Direita" style="opacity: 0.7; width: 100%; height: 100%; object-fit: cover;">
                         <span class="text-sm font-semibold text-[#00bcd4] absolute bottom-2 bg-white px-2 py-1 rounded">Lateral Direita</span>
                     </div>
                     <div class="photo-slot" data-photo="front_right" onclick="triggerPhotoUpload('front_right')">
-                        <img src="/static/Inspecçao/Vista Frontal Direita.png" alt="Vista Frontal Direita" style="opacity: 0.7;">
+                        <img src="/static/Inspe%C3%A7ao/Vista%20Frontal%20Direita.png" alt="Vista Frontal Direita" style="opacity: 0.7; width: 100%; height: 100%; object-fit: cover;">
                         <span class="text-sm font-semibold text-[#00bcd4] absolute bottom-2 bg-white px-2 py-1 rounded">Frente Direita</span>
                     </div>
                     <div class="photo-slot" data-photo="interior" onclick="triggerPhotoUpload('interior')">
-                        <img src="/static/Inspecçao/Odometro.png" alt="Interior/Odómetro" style="opacity: 0.7;">
+                        <img src="/static/Inspe%C3%A7ao/Odometro.png" alt="Interior/Odómetro" style="opacity: 0.7; width: 100%; height: 100%; object-fit: cover;">
                         <span class="text-sm font-semibold text-[#00bcd4] absolute bottom-2 bg-white px-2 py-1 rounded">Interior</span>
                     </div>
                 </div>
@@ -217,10 +237,41 @@
                 <h2 class="text-xl font-bold text-[#00bcd4] mb-4" id="fuelOdometerTitle">Combustível e Quilómetros</h2>
                 
                 <div class="mb-6">
-                    <label class="block text-gray-700 font-semibold mb-2" id="fuelLabel">Nível de Combustível</label>
-                    <input type="range" id="fuelSlider" class="fuel-slider" min="0" max="8" step="1" value="8" oninput="updateFuelDisplay()">
-                    <div class="text-center mt-2">
-                        <span id="fuelDisplay" class="text-2xl font-bold text-gray-800">Full</span>
+                    <label class="block text-lg font-bold text-[#00bcd4] mb-4" id="fuelLabel">Nível de Combustível</label>
+                    <div class="bg-gray-50 rounded-lg p-4 border-2 border-gray-300">
+                        <!-- Labels alinhados com as linhas -->
+                        <div class="relative max-w-xs mx-auto mb-1" style="height: 20px;">
+                            <div class="relative">
+                                <span class="text-xs font-semibold text-[#00bcd4] absolute" style="left: 0%; transform: translateX(-50%);">R</span>
+                                <span class="text-xs font-semibold text-[#00bcd4] absolute" style="left: 25%; transform: translateX(-50%);">1/4</span>
+                                <span class="text-xs font-semibold text-[#00bcd4] absolute" style="left: 50%; transform: translateX(-50%);">1/2</span>
+                                <span class="text-xs font-semibold text-[#00bcd4] absolute" style="left: 75%; transform: translateX(-50%);">3/4</span>
+                                <span class="text-xs font-semibold text-[#00bcd4] absolute" style="right: 0%; transform: translateX(50%);">F</span>
+                            </div>
+                        </div>
+                        
+                        <!-- Fuel Level Bar -->
+                        <div class="relative bg-white border-2 border-[#00bcd4] rounded-lg h-8 mb-2 max-w-xs mx-auto">
+                            <div class="absolute inset-0 flex items-center">
+                                <div class="w-0.5 h-4 bg-[#00bcd4]" style="position: absolute; left: 0%;"></div>
+                                <div class="w-0.5 h-4 bg-[#00bcd4]" style="position: absolute; left: 25%;"></div>
+                                <div class="w-0.5 h-4 bg-[#00bcd4]" style="position: absolute; left: 50%;"></div>
+                                <div class="w-0.5 h-4 bg-[#00bcd4]" style="position: absolute; left: 75%;"></div>
+                                <div class="w-0.5 h-4 bg-[#00bcd4]" style="position: absolute; right: 0%;"></div>
+                            </div>
+                            <div id="fuelFill" class="h-full bg-[#00bcd4] rounded-lg transition-all duration-300" style="width: 100%;"></div>
+                        </div>
+                        
+                        <!-- Fuel level slider -->
+                        <div class="max-w-xs mx-auto">
+                            <input type="range" id="fuelSlider" class="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer" min="0" max="100" value="100" step="5">
+                        </div>
+                        
+                        <!-- Selected fuel level display -->
+                        <div class="text-center mt-2">
+                            <span class="text-sm font-semibold text-gray-700">Nível: </span>
+                            <span id="fuelDisplay" class="text-sm font-bold text-[#00bcd4]">Cheio (F)</span>
+                        </div>
                     </div>
                 </div>
 
@@ -441,7 +492,14 @@
                 
                 if (raData.vehicle) {
                     document.getElementById('vehicleDetails').textContent = 
-                        `${raData.vehicle.marca} ${raData.vehicle.modelo} (${raData.vehicle.grupo})`;
+                        `${raData.vehicle.marca} ${raData.vehicle.modelo}`;
+                }
+                
+                // Preencher informações de entrega (checkout)
+                if (raData.extracted_data) {
+                    const checkoutData = raData.extracted_data;
+                    document.getElementById('kmsEntrega').textContent = checkoutData.odometer || checkoutData.kms || '-';
+                    document.getElementById('fuelEntrega').textContent = checkoutData.fuel_level || checkoutData.combustivel || '-';
                 }
             } catch (error) {
                 console.error('Error loading RA data:', error);
@@ -551,19 +609,19 @@
             
             // Mapa de fotos de instrução
             const instructionPhotos = {
-                'front': '/static/Inspecçao/Vista Frontal.png',
-                'front_left': '/static/Inspecçao/Vista Frontal Esquerda.png',
-                'left': '/static/Inspecçao/Vista Lateral Esquerda.png',
-                'back_left': '/static/Inspecçao/Vista Traseira Esquerda.png',
-                'back': '/static/Inspecçao/Vista Traseira.png',
-                'back_right': '/static/Inspecçao/Vista Traseira direita.png',
-                'right': '/static/Inspecçao/Vista Lateral Direita.png',
-                'front_right': '/static/Inspecçao/Vista Frontal Direita.png',
-                'interior': '/static/Inspecçao/Odometro.png'
+                'front': '/static/Inspe%C3%A7ao/Vista%20Frontal.png',
+                'front_left': '/static/Inspe%C3%A7ao/Vista%20Frontal%20Esquerda.png',
+                'left': '/static/Inspe%C3%A7ao/Vista%20Lateral%20Esquerda.png',
+                'back_left': '/static/Inspe%C3%A7ao/Vista%20Traseira%20Esquerda.png',
+                'back': '/static/Inspe%C3%A7ao/Vista%20Traseira.png',
+                'back_right': '/static/Inspe%C3%A7ao/Vista%20Traseira%20direita.png',
+                'right': '/static/Inspe%C3%A7ao/Vista%20Lateral%20Direita.png',
+                'front_right': '/static/Inspe%C3%A7ao/Vista%20Frontal%20Direita.png',
+                'interior': '/static/Inspe%C3%A7ao/Odometro.png'
             };
             
             slot.innerHTML = `
-                <img src="${instructionPhotos[photoType]}" alt="${t.photoLabels[photoType]}" style="opacity: 0.7;">
+                <img src="${instructionPhotos[photoType]}" alt="${t.photoLabels[photoType]}" style="opacity: 0.7; width: 100%; height: 100%; object-fit: cover;">
                 <span class="text-sm font-semibold text-[#00bcd4] absolute bottom-2 bg-white px-2 py-1 rounded">${t.photoLabels[photoType]}</span>
             `;
         }
@@ -618,8 +676,24 @@
         }
 
         function updateFuelDisplay() {
-            const value = parseInt(document.getElementById('fuelSlider').value);
-            document.getElementById('fuelDisplay').textContent = fuelLevels[value];
+            const slider = document.getElementById('fuelSlider');
+            const value = parseInt(slider.value);
+            const fuelFill = document.getElementById('fuelFill');
+            const fuelDisplay = document.getElementById('fuelDisplay');
+            
+            // Update fill width
+            fuelFill.style.width = value + '%';
+            
+            // Update text display
+            let levelText = '';
+            if (value === 0) levelText = 'Reserva (R)';
+            else if (value <= 12) levelText = 'Reserva (R)';
+            else if (value <= 37) levelText = '1/4';
+            else if (value <= 62) levelText = '1/2';
+            else if (value <= 87) levelText = '3/4';
+            else levelText = 'Cheio (F)';
+            
+            fuelDisplay.textContent = levelText;
         }
 
         async function submitCheckIn() {
