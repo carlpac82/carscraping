@@ -9,13 +9,14 @@
         .photo-grid {
             display: grid;
             grid-template-columns: repeat(3, 1fr);
-            gap: 1rem;
+            gap: 1.5rem;
+            padding: 1rem;
         }
         
         .photo-slot {
             aspect-ratio: 4/3;
-            border: 3px solid #ffffff;
-            border-radius: 0.5rem;
+            border: 2px solid #e0e0e0;
+            border-radius: 1rem;
             display: flex;
             flex-direction: column;
             align-items: center;
@@ -24,26 +25,30 @@
             transition: all 0.3s;
             position: relative;
             overflow: hidden;
-            background: #ffffff;
+            background: linear-gradient(135deg, #f8f9fa 0%, #ffffff 100%);
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
         }
         
         .photo-slot:hover {
-            border-color: #FFC107;
-            transform: scale(1.02);
-            box-shadow: 0 4px 12px rgba(255, 193, 7, 0.3);
+            border-color: #00bcd4;
+            transform: translateY(-4px);
+            box-shadow: 0 8px 20px rgba(0, 188, 212, 0.2);
         }
         
         .photo-slot.has-photo {
             border-style: solid;
-            border-color: #FFC107;
+            border-color: #00bcd4;
+            border-width: 3px;
             padding: 0;
-            box-shadow: 0 2px 8px rgba(255, 193, 7, 0.4);
+            box-shadow: 0 4px 16px rgba(0, 188, 212, 0.3);
+            background: #ffffff;
         }
         
         .photo-slot img {
             width: 100%;
             height: 100%;
             object-fit: contain !important;
+            padding: 0.5rem;
         }
         
         .photo-slot .remove-btn {
@@ -452,7 +457,7 @@
                 <video id="cameraPreview" autoplay playsinline style="width: 100%; height: 100vh; object-fit: cover;"></video>
                 
                 <!-- Car Miniature -->
-                <div id="carMiniature" style="position: fixed; top: 20px; right: 20px; width: 100px; height: 100px; z-index: 9999; display: none;">
+                <div id="carMiniature" style="position: fixed; top: 20px; right: 20px; width: 100px; height: 100px; z-index: 9999;">
                     <img src="/static/carro.png" alt="Car Position" style="width: 100%; height: 100%; object-fit: contain;">
                 </div>
             </div>
@@ -812,6 +817,7 @@
         }
 
         let cameraStream = null;
+        let currentDamageIndex = null;
         
         const photoTypes = {
             'front': { label: 'Vista Frontal', instruction: 'Centre a frente do veículo', image: 'Vista Frontal.png' },
@@ -840,7 +846,7 @@
             countdownOverlay.style.cssText = `
                 position: fixed;
                 inset: 0;
-                background: rgba(0, 188, 212, 0.95);
+                background: rgba(0, 188, 212, 0.85); /* Blue background with more transparency */
                 display: flex;
                 flex-direction: column;
                 align-items: center;
@@ -894,7 +900,7 @@
                 document.getElementById('cameraLocation').textContent = photo.label.toUpperCase();
                 document.getElementById('cameraInstruction').textContent = photo.instruction;
                 
-                // Show miniature
+                // Show miniature for vehicle photos
                 document.getElementById('carMiniature').style.display = 'block';
                 
                 // Set video stream
@@ -920,19 +926,25 @@
         }
 
         function capturePhoto() {
-            const video = document.getElementById('cameraPreview');
-            const canvas = document.createElement('canvas');
-            canvas.width = video.videoWidth;
-            canvas.height = video.videoHeight;
-            
-            const ctx = canvas.getContext('2d');
-            ctx.drawImage(video, 0, 0);
-            
-            const dataUrl = canvas.toDataURL('image/jpeg', 0.9);
-            photos[currentPhotoType] = dataUrl;
-            displayPhoto(currentPhotoType, dataUrl);
-            
-            closeCamera();
+            // Check if capturing damage photo or vehicle photo
+            if (currentDamageIndex !== null && currentDamageIndex !== undefined) {
+                captureDamagePhotoFromCamera();
+                currentDamageIndex = null;
+            } else {
+                const video = document.getElementById('cameraPreview');
+                const canvas = document.createElement('canvas');
+                canvas.width = video.videoWidth;
+                canvas.height = video.videoHeight;
+                
+                const ctx = canvas.getContext('2d');
+                ctx.drawImage(video, 0, 0);
+                
+                const dataUrl = canvas.toDataURL('image/jpeg', 0.9);
+                photos[currentPhotoType] = dataUrl;
+                displayPhoto(currentPhotoType, dataUrl);
+                
+                closeCamera();
+            }
         }
 
         function displayPhoto(photoType, dataUrl) {
@@ -993,8 +1005,14 @@
                         </svg>
                     </button>
                 </div>
-                <input type="file" id="damagePhotoInput-${index}" accept="image/*" capture="environment" class="mb-2" onchange="handleDamagePhoto(${index}, event)">
-                <img id="damagePhotoPreview-${index}" class="hidden w-full h-48 object-cover rounded mb-2">
+                <button onclick="captureDamagePhoto(${index})" class="w-full bg-[#00bcd4] hover:bg-[#0097a7] text-white font-semibold py-3 px-4 rounded-lg mb-2 flex items-center justify-center gap-2">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z"></path>
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 13a3 3 0 11-6 0 3 3 0 016 0z"></path>
+                    </svg>
+                    Tirar Foto do Dano
+                </button>
+                <img id="damagePhotoPreview-${index}" class="hidden w-full h-48 object-contain rounded mb-2 border-2 border-gray-200">
                 <textarea id="damageDescription-${index}" placeholder="Descrição do dano..." class="w-full px-3 py-2 border border-gray-300 rounded" rows="2"></textarea>
             `;
             
@@ -1002,18 +1020,63 @@
             damagePhotos.push({ photo: null, description: '' });
         }
 
-        function handleDamagePhoto(index, event) {
-            const file = event.target.files[0];
-            if (!file) return;
+        async function captureDamagePhoto(index) {
+            currentDamageIndex = index;
+            await openDamageCamera(index);
+        }
 
-            const reader = new FileReader();
-            reader.onload = function(e) {
-                damagePhotos[index].photo = e.target.result;
-                const preview = document.getElementById(`damagePhotoPreview-${index}`);
-                preview.src = e.target.result;
-                preview.classList.remove('hidden');
-            };
-            reader.readAsDataURL(file);
+        async function openDamageCamera(index) {
+            try {
+                // Request camera access
+                if (!cameraStream) {
+                    cameraStream = await navigator.mediaDevices.getUserMedia({ 
+                        video: { facingMode: 'environment' } 
+                    });
+                }
+                
+                // Show camera modal
+                const modal = document.getElementById('cameraModal');
+                modal.classList.add('active');
+                
+                // Update header for damage photo
+                document.getElementById('cameraLocation').textContent = `DANO #${index + 1}`;
+                document.getElementById('cameraInstruction').textContent = 'Fotografe o dano no veículo';
+                
+                // Hide miniature for damage photos
+                document.getElementById('carMiniature').style.display = 'none';
+                
+                // Set video stream
+                const video = document.getElementById('cameraPreview');
+                video.srcObject = cameraStream;
+                
+                // Show camera button after video loads
+                video.addEventListener('loadedmetadata', () => {
+                    document.getElementById('cameraButtons').style.display = 'flex';
+                }, { once: true });
+                
+            } catch (error) {
+                console.error('Camera error:', error);
+                alert('Erro ao aceder à câmera. Por favor, verifique as permissões.');
+            }
+        }
+
+        function captureDamagePhotoFromCamera() {
+            const video = document.getElementById('cameraPreview');
+            const canvas = document.createElement('canvas');
+            canvas.width = video.videoWidth;
+            canvas.height = video.videoHeight;
+            
+            const ctx = canvas.getContext('2d');
+            ctx.drawImage(video, 0, 0);
+            
+            const dataUrl = canvas.toDataURL('image/jpeg', 0.9);
+            damagePhotos[currentDamageIndex].photo = dataUrl;
+            
+            const preview = document.getElementById(`damagePhotoPreview-${currentDamageIndex}`);
+            preview.src = dataUrl;
+            preview.classList.remove('hidden');
+            
+            closeCamera();
         }
 
         function removeDamagePhoto(index) {
