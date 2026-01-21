@@ -2013,8 +2013,9 @@ async function savePickupInspection() {
         }
         
         // Prepare request data
+        // IMPORTANTE: pickup (RECOLHA) = checkout (DB)
         const requestData = {
-            inspection_type: 'checkin',
+            inspection_type: 'checkout',
             plate: plate,
             ra: ra,
             odometer_reading: pickupKms,
