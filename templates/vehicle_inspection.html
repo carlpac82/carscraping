@@ -795,7 +795,7 @@
                     <div class="flex flex-row gap-6 sm:gap-8 justify-center items-center">
                         
                         <!-- ENTREGA Button (Red/Checkout) -->
-                        <button onclick="startDelivery()" class="group block transition-all transform hover:scale-105 active:scale-95" title="Iniciar Entrega">
+                        <button onclick="startDelivery()" id="deliveryButton" class="group block transition-all transform hover:scale-105 active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100" title="Iniciar Entrega">
                             <div class="relative">
                                 <!-- Car Icon SVG - RED -->
                                 <svg class="w-32 h-32 sm:w-36 sm:h-36 md:w-40 md:h-40 mx-auto drop-shadow-2xl transition-all" viewBox="0 0 24 24" fill="#dc3545">
@@ -3413,17 +3413,21 @@
                                 showNotification('⚠️ Contrato Encerrado! Este contrato já tem check-out e check-in completos. Não é possível fazer mais inspeções.', 'error');
                                 
                                 // Disable both buttons
-                                const deliveryButton = document.querySelector('[onclick*="startDelivery"]');
-                                const pickupButton = document.querySelector('[onclick*="startPickup"]');
+                                const deliveryButton = document.getElementById('deliveryButton');
+                                const pickupButton = document.getElementById('pickupButton');
                                 
                                 if (deliveryButton) {
                                     deliveryButton.disabled = true;
+                                    deliveryButton.style.pointerEvents = 'none';
                                     deliveryButton.classList.add('opacity-50', 'cursor-not-allowed');
+                                    console.log('🚫 Delivery button disabled');
                                 }
                                 
                                 if (pickupButton) {
                                     pickupButton.disabled = true;
+                                    pickupButton.style.pointerEvents = 'none';
                                     pickupButton.classList.add('opacity-50', 'cursor-not-allowed');
+                                    console.log('🚫 Pickup button disabled');
                                 }
                                 
                                 console.log('🚫 Contract closed: both buttons disabled');
