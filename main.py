@@ -30335,25 +30335,25 @@ async def save_inspection(request: Request):
                                         </div>
                                     </div>
                                     """
+                        
+                        # Get damage photos for damage incidents
+                        damage_photos_html = ""
+                        if incidents['has_damage_incident'] and photos_html:
+                            damage_label = {
+                                'pt': 'Fotos dos Danos',
+                                'en': 'Damage Photos',
+                                'fr': 'Photos des Dommages'
+                            }.get(detected_lang, 'Damage Photos')
                             
-                            # Get damage photos for damage incidents
-                            damage_photos_html = ""
-                            if incidents['has_damage_incident'] and photos_html:
-                                damage_label = {
-                                    'pt': 'Fotos dos Danos',
-                                    'en': 'Damage Photos',
-                                    'fr': 'Photos des Dommages'
-                                }.get(detected_lang, 'Damage Photos')
-                                
-                                damage_photos_html = f"""
-                                <div style="padding: 20px; background-color: #ffffff;">
-                                    <h3 style="color: #00bcd4; margin: 0 0 15px 0; font-size: 18px;">{damage_label}</h3>
-                                    {photos_html}
-                                </div>
-                                """
-                            
-                            # Combine sections
-                            photos_section_html = odometer_photo_html + damage_photos_html
+                            damage_photos_html = f"""
+                            <div style="padding: 20px; background-color: #ffffff;">
+                                <h3 style="color: #00bcd4; margin: 0 0 15px 0; font-size: 18px;">{damage_label}</h3>
+                                {photos_html}
+                            </div>
+                            """
+                        
+                        # Combine sections
+                        photos_section_html = odometer_photo_html + damage_photos_html
                     
                     # Choose template based on inspection type
                     if inspection_type == 'checkout':
