@@ -11,6 +11,7 @@
             grid-template-columns: repeat(3, 1fr);
             gap: 1rem;
             padding: 0.5rem;
+            padding-bottom: 1.5rem;
         }
         
         @media (max-width: 768px) {
@@ -30,13 +31,20 @@
             justify-content: center;
             cursor: pointer;
             position: relative;
-            overflow: hidden;
+            overflow: visible;
             background: linear-gradient(135deg, #f8f9fa 0%, #ffffff 100%);
             box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+            transition: all 0.2s ease;
+        }
+        
+        .photo-slot:hover {
+            border-color: #00bcd4;
+            box-shadow: 0 4px 12px rgba(0, 188, 212, 0.3);
         }
         
         .photo-slot:active {
-            opacity: 0.8;
+            transform: scale(0.98);
+            box-shadow: 0 2px 6px rgba(0, 188, 212, 0.4);
         }
         
         @media (max-width: 768px) {
@@ -387,40 +395,58 @@
                 <h2 class="text-xl font-bold text-[#00bcd4] mb-4" id="photosTitle">Fotos do Veículo (9 fotos obrigatórias)</h2>
                 <div class="photo-grid">
                     <div class="photo-slot" data-photo="front" onclick="triggerPhotoUpload('front')">
-                        <img src="/static/inspection_photos/Vista Frontal.png" alt="Vista Frontal" style="opacity: 0.7; width: 100%; height: 100%; object-fit: contain;">
-                        <span class="text-sm font-semibold text-[#00bcd4] absolute bottom-2 bg-white px-2 py-1 rounded">Frente</span>
+                        <div style="width: 100%; height: 100%; overflow: hidden; border-radius: 0.75rem;">
+                            <img src="/static/inspection_photos/Vista Frontal.png" alt="Vista Frontal" style="opacity: 0.7; width: 100%; height: 100%; object-fit: contain;">
+                        </div>
+                        <span class="text-xs font-semibold text-[#00bcd4] bg-white px-2 py-1 rounded" style="position: absolute; bottom: -8px; left: 50%; transform: translateX(-50%); white-space: nowrap; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">Frente</span>
                     </div>
                     <div class="photo-slot" data-photo="front_left" onclick="triggerPhotoUpload('front_left')">
-                        <img src="/static/inspection_photos/Vista Frontal Esquerda.png" alt="Vista Frontal Esquerda" style="opacity: 0.7; width: 100%; height: 100%; object-fit: contain;">
-                        <span class="text-sm font-semibold text-[#00bcd4] absolute bottom-2 bg-white px-2 py-1 rounded">Frente Esquerda</span>
+                        <div style="width: 100%; height: 100%; overflow: hidden; border-radius: 0.75rem;">
+                            <img src="/static/inspection_photos/Vista Frontal Esquerda.png" alt="Vista Frontal Esquerda" style="opacity: 0.7; width: 100%; height: 100%; object-fit: contain;">
+                        </div>
+                        <span class="text-xs font-semibold text-[#00bcd4] bg-white px-2 py-1 rounded" style="position: absolute; bottom: -8px; left: 50%; transform: translateX(-50%); white-space: nowrap; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">Frente Esquerda</span>
                     </div>
                     <div class="photo-slot" data-photo="left" onclick="triggerPhotoUpload('left')">
-                        <img src="/static/inspection_photos/Vista Lateral Esquerda.png" alt="Vista Lateral Esquerda" style="opacity: 0.7; width: 100%; height: 100%; object-fit: contain;">
-                        <span class="text-sm font-semibold text-[#00bcd4] absolute bottom-2 bg-white px-2 py-1 rounded">Lateral Esquerda</span>
+                        <div style="width: 100%; height: 100%; overflow: hidden; border-radius: 0.75rem;">
+                            <img src="/static/inspection_photos/Vista Lateral Esquerda.png" alt="Vista Lateral Esquerda" style="opacity: 0.7; width: 100%; height: 100%; object-fit: contain;">
+                        </div>
+                        <span class="text-xs font-semibold text-[#00bcd4] bg-white px-2 py-1 rounded" style="position: absolute; bottom: -8px; left: 50%; transform: translateX(-50%); white-space: nowrap; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">Lateral Esquerda</span>
                     </div>
                     <div class="photo-slot" data-photo="back_left" onclick="triggerPhotoUpload('back_left')">
-                        <img src="/static/inspection_photos/Vista Traseira Esquerda.png" alt="Vista Traseira Esquerda" style="opacity: 0.7; width: 100%; height: 100%; object-fit: contain;">
-                        <span class="text-sm font-semibold text-[#00bcd4] absolute bottom-2 bg-white px-2 py-1 rounded">Traseira Esquerda</span>
+                        <div style="width: 100%; height: 100%; overflow: hidden; border-radius: 0.75rem;">
+                            <img src="/static/inspection_photos/Vista Traseira Esquerda.png" alt="Vista Traseira Esquerda" style="opacity: 0.7; width: 100%; height: 100%; object-fit: contain;">
+                        </div>
+                        <span class="text-xs font-semibold text-[#00bcd4] bg-white px-2 py-1 rounded" style="position: absolute; bottom: -8px; left: 50%; transform: translateX(-50%); white-space: nowrap; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">Traseira Esquerda</span>
                     </div>
                     <div class="photo-slot" data-photo="back" onclick="triggerPhotoUpload('back')">
-                        <img src="/static/inspection_photos/Vista Traseira.png" alt="Vista Traseira" style="opacity: 0.7; width: 100%; height: 100%; object-fit: contain;">
-                        <span class="text-sm font-semibold text-[#00bcd4] absolute bottom-2 bg-white px-2 py-1 rounded">Traseira</span>
+                        <div style="width: 100%; height: 100%; overflow: hidden; border-radius: 0.75rem;">
+                            <img src="/static/inspection_photos/Vista Traseira.png" alt="Vista Traseira" style="opacity: 0.7; width: 100%; height: 100%; object-fit: contain;">
+                        </div>
+                        <span class="text-xs font-semibold text-[#00bcd4] bg-white px-2 py-1 rounded" style="position: absolute; bottom: -8px; left: 50%; transform: translateX(-50%); white-space: nowrap; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">Traseira</span>
                     </div>
                     <div class="photo-slot" data-photo="back_right" onclick="triggerPhotoUpload('back_right')">
-                        <img src="/static/inspection_photos/Vista Traseira direita.png" alt="Vista Traseira Direita" style="opacity: 0.7; width: 100%; height: 100%; object-fit: contain;">
-                        <span class="text-sm font-semibold text-[#00bcd4] absolute bottom-2 bg-white px-2 py-1 rounded">Traseira Direita</span>
+                        <div style="width: 100%; height: 100%; overflow: hidden; border-radius: 0.75rem;">
+                            <img src="/static/inspection_photos/Vista Traseira direita.png" alt="Vista Traseira Direita" style="opacity: 0.7; width: 100%; height: 100%; object-fit: contain;">
+                        </div>
+                        <span class="text-xs font-semibold text-[#00bcd4] bg-white px-2 py-1 rounded" style="position: absolute; bottom: -8px; left: 50%; transform: translateX(-50%); white-space: nowrap; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">Traseira Direita</span>
                     </div>
                     <div class="photo-slot" data-photo="right" onclick="triggerPhotoUpload('right')">
-                        <img src="/static/inspection_photos/Vista Lateral Direita.png" alt="Vista Lateral Direita" style="opacity: 0.7; width: 100%; height: 100%; object-fit: contain;">
-                        <span class="text-sm font-semibold text-[#00bcd4] absolute bottom-2 bg-white px-2 py-1 rounded">Lateral Direita</span>
+                        <div style="width: 100%; height: 100%; overflow: hidden; border-radius: 0.75rem;">
+                            <img src="/static/inspection_photos/Vista Lateral Direita.png" alt="Vista Lateral Direita" style="opacity: 0.7; width: 100%; height: 100%; object-fit: contain;">
+                        </div>
+                        <span class="text-xs font-semibold text-[#00bcd4] bg-white px-2 py-1 rounded" style="position: absolute; bottom: -8px; left: 50%; transform: translateX(-50%); white-space: nowrap; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">Lateral Direita</span>
                     </div>
                     <div class="photo-slot" data-photo="front_right" onclick="triggerPhotoUpload('front_right')">
-                        <img src="/static/inspection_photos/Vista Frontal Direita.png" alt="Vista Frontal Direita" style="opacity: 0.7; width: 100%; height: 100%; object-fit: contain;">
-                        <span class="text-sm font-semibold text-[#00bcd4] absolute bottom-2 bg-white px-2 py-1 rounded">Frente Direita</span>
+                        <div style="width: 100%; height: 100%; overflow: hidden; border-radius: 0.75rem;">
+                            <img src="/static/inspection_photos/Vista Frontal Direita.png" alt="Vista Frontal Direita" style="opacity: 0.7; width: 100%; height: 100%; object-fit: contain;">
+                        </div>
+                        <span class="text-xs font-semibold text-[#00bcd4] bg-white px-2 py-1 rounded" style="position: absolute; bottom: -8px; left: 50%; transform: translateX(-50%); white-space: nowrap; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">Frente Direita</span>
                     </div>
                     <div class="photo-slot" data-photo="interior" onclick="triggerPhotoUpload('interior')">
-                        <img src="/static/inspection_photos/Odometro.png" alt="Interior/Odómetro" style="opacity: 0.7; width: 100%; height: 100%; object-fit: contain;">
-                        <span class="text-sm font-semibold text-[#00bcd4] absolute bottom-2 bg-white px-2 py-1 rounded">Interior</span>
+                        <div style="width: 100%; height: 100%; overflow: hidden; border-radius: 0.75rem;">
+                            <img src="/static/inspection_photos/Odometro.png" alt="Interior/Odómetro" style="opacity: 0.7; width: 100%; height: 100%; object-fit: contain;">
+                        </div>
+                        <span class="text-xs font-semibold text-[#00bcd4] bg-white px-2 py-1 rounded" style="position: absolute; bottom: -8px; left: 50%; transform: translateX(-50%); white-space: nowrap; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">Interior</span>
                     </div>
                 </div>
             </div>
@@ -507,8 +533,8 @@
             </button>
             
             <!-- Camera Preview -->
-            <div class="relative w-full h-full">
-                <video id="cameraPreview" autoplay playsinline style="width: 100%; height: 100vh; object-fit: cover;"></video>
+            <div class="relative w-full h-full" style="position: fixed; top: 0; left: 0; right: 0; bottom: 0;">
+                <video id="cameraPreview" autoplay playsinline style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; object-fit: cover;"></video>
                 
                 <!-- Car Miniature -->
                 <div id="carMiniature" style="position: fixed; top: 20px; right: 20px; width: 100px; height: 100px; z-index: 9999;">
