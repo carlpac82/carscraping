@@ -44193,17 +44193,41 @@ async def get_inspections_history(request: Request):
             logging.info(f"🔍 Database type: {'PostgreSQL' if is_postgres else 'SQLite'}")
             
             cursor = conn.cursor()
-            cursor.execute("""
-                SELECT vi.inspection_number, vi.vehicle_plate, vi.contract_number, 
-                       vi.inspection_type, vi.inspector_name, vi.created_at, 
-                       vi.fuel_level, vi.odometer_reading, vi.damage_count, vi.status, vi.id,
-                       vi.is_self_checkin,
-                       ra.extracted_data, ra.self_checkin_email
-                FROM vehicle_inspections vi
-                LEFT JOIN rental_agreements ra ON vi.contract_number = ra.rental_agreement_number
-                ORDER BY vi.created_at DESC
-                LIMIT 200
-            """)
+            
+            # Use different JOIN strategy based on database type
+            if is_postgres:
+                # PostgreSQL: Use LIKE to match both exact and base RA numbers
+                cursor.execute("""
+                    SELECT vi.inspection_number, vi.vehicle_plate, vi.contract_number, 
+                           vi.inspection_type, vi.inspector_name, vi.created_at, 
+                           vi.fuel_level, vi.odometer_reading, vi.damage_count, vi.status, vi.id,
+                           vi.is_self_checkin,
+                           ra.extracted_data, ra.self_checkin_email
+                    FROM vehicle_inspections vi
+                    LEFT JOIN rental_agreements ra ON (
+                        ra.rental_agreement_number = vi.contract_number 
+                        OR ra.rental_agreement_number LIKE vi.contract_number || '-%'
+                    )
+                    ORDER BY vi.created_at DESC
+                    LIMIT 200
+                """)
+            else:
+                # SQLite: Use LIKE to match both exact and base RA numbers
+                cursor.execute("""
+                    SELECT vi.inspection_number, vi.vehicle_plate, vi.contract_number, 
+                           vi.inspection_type, vi.inspector_name, vi.created_at, 
+                           vi.fuel_level, vi.odometer_reading, vi.damage_count, vi.status, vi.id,
+                           vi.is_self_checkin,
+                           ra.extracted_data, ra.self_checkin_email
+                    FROM vehicle_inspections vi
+                    LEFT JOIN rental_agreements ra ON (
+                        ra.rental_agreement_number = vi.contract_number 
+                        OR ra.rental_agreement_number LIKE vi.contract_number || '-%'
+                    )
+                    ORDER BY vi.created_at DESC
+                    LIMIT 200
+                """)
+            
             rows = cursor.fetchall()
             
             logging.info(f"📊 Found {len(rows)} inspections in database")
