@@ -31369,10 +31369,17 @@ async def send_parking_qr_email(request: Request):
     Enviar email com QR code de acesso ao parque do aeroporto
     Aceita QR code em base64 com número de parque detectado automaticamente via OCR
     """
+    logging.info("🎫 Parking QR email request received")
+    logging.info(f"🔐 Session data: {dict(request.session)}")
+    logging.info(f"🔑 Auth status: {request.session.get('auth', False)}")
+    
     require_auth(request)
+    
+    logging.info("✅ Auth check passed")
     conn = None
     try:
         data = await request.json()
+        logging.info(f"📦 Request data: ra={data.get('rental_agreement_number')}, parking={data.get('parking_number')}, email={data.get('client_email')}")
         ra_number = data.get('rental_agreement_number')
         parking_number = data.get('parking_number')
         qr_code_image = data.get('qr_code_image')  # Base64 do QR code

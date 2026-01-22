@@ -1913,6 +1913,24 @@
                     body: JSON.stringify(payload)
                 });
                 
+                console.log('📡 Response status:', response.status, response.statusText);
+                
+                // Check if redirected to login
+                if (response.redirected || response.status === 303 || response.url.includes('/login')) {
+                    showNotification('Sessão expirada. Por favor, faça login novamente.', 'error');
+                    setTimeout(() => window.location.href = '/login', 2000);
+                    return;
+                }
+                
+                // Check if response is JSON
+                const contentType = response.headers.get('content-type');
+                if (!contentType || !contentType.includes('application/json')) {
+                    const text = await response.text();
+                    console.error('❌ Non-JSON response:', text.substring(0, 200));
+                    showNotification('Erro: Resposta inválida do servidor', 'error');
+                    return;
+                }
+                
                 const result = await response.json();
                 
                 if (result.success) {
