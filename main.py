@@ -4813,9 +4813,9 @@ def _send_self_checkin_invitation_email(to_email: str, client_name: str, ra_numb
         
         # Subject sem emojis
         subjects = {
-            'pt': f"Self Check-in Disponível - RA {ra_number}",
-            'en': f"Self Check-in Available - RA {ra_number}",
-            'fr': f"Self Check-in Disponible - RA {ra_number}"
+            'pt': f"Self Checkout Disponível - RA {ra_number}",
+            'en': f"Self Checkout Available - RA {ra_number}",
+            'fr': f"Self Checkout Disponible - RA {ra_number}"
         }
         subject = subjects.get(language, subjects['pt'])
         
