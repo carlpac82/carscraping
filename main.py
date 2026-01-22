@@ -31363,6 +31363,150 @@ async def debug_ra(ra_number: str):
             "message": "Error checking RA data"
         }, status_code=500)
 
+@app.post("/api/send-parking-qr")
+async def send_parking_qr_email(request: Request):
+    """
+    Enviar email com QR code de acesso ao parque do aeroporto
+    """
+    require_auth(request)
+    conn = None
+    try:
+        data = await request.json()
+        ra_number = data.get('rental_agreement_number')
+        parking_number = data.get('parking_number')
+        
+        if not ra_number or not parking_number:
+            return JSONResponse({
+                "success": False,
+                "error": "RA e número do parque são obrigatórios"
+            }, status_code=400)
+        
+        if parking_number not in [1, 2, 3, 4]:
+            return JSONResponse({
+                "success": False,
+                "error": "Número do parque deve ser 1, 2, 3 ou 4"
+            }, status_code=400)
+        
+        conn = _db_connect()
+        is_postgres = _is_postgresql_connection(conn)
+        
+        # Buscar dados do RA
+        if is_postgres:
+            cursor = conn.cursor()
+            cursor.execute("""
+                SELECT 
+                    ra.rental_agreement_number, ra.license_plate, 
+                    ra.self_checkin_email, ra.extracted_data
+                FROM rental_agreements ra
+                WHERE ra.rental_agreement_number = %s
+            """, (ra_number,))
+        else:
+            cursor = conn.execute("""
+                SELECT 
+                    ra.rental_agreement_number, ra.license_plate, 
+                    ra.self_checkin_email, ra.extracted_data
+                FROM rental_agreements ra
+                WHERE ra.rental_agreement_number = ?
+            """, (ra_number,))
+        
+        row = cursor.fetchone()
+        
+        if not row:
+            return JSONResponse({
+                "success": False,
+                "error": "Rental Agreement não encontrado"
+            }, status_code=404)
+        
+        ra_num, plate, email, extracted_data_json = row
+        
+        if not email:
+            return JSONResponse({
+                "success": False,
+                "error": "Email do cliente não encontrado no RA"
+            }, status_code=400)
+        
+        # Extrair nome do cliente e país
+        import json
+        client_name = "Cliente"
+        country = None
+        if extracted_data_json:
+            try:
+                extracted_data = json.loads(extracted_data_json)
+                client_name = extracted_data.get('client_name') or extracted_data.get('nome_cliente') or "Cliente"
+                country = extracted_data.get('country') or extracted_data.get('pais')
+            except:
+                pass
+        
+        # Detectar idioma
+        detected_lang = _detect_language_from_country(country) if country else 'pt'
+        
+        # Selecionar template baseado no idioma
+        template_map = {
+            'pt': 'email_parking_qr_pt.html',
+            'en': 'email_parking_qr_en.html',
+            'fr': 'email_parking_qr_fr.html'
+        }
+        template_name = template_map.get(detected_lang, 'email_parking_qr_pt.html')
+        
+        # Renderizar template
+        with open(f'templates/{template_name}', 'r', encoding='utf-8') as f:
+            html_content = f.read()
+        
+        # Substituir variáveis
+        html_content = html_content.replace('{{CLIENT_NAME}}', client_name)
+        html_content = html_content.replace('{{RA_NUMBER}}', ra_num)
+        html_content = html_content.replace('{{PARKING_NUMBER}}', str(parking_number))
+        
+        # Preparar assunto do email
+        subject_map = {
+            'pt': f'Código QR de Acesso ao Parque {parking_number} - Auto Prudente',
+            'en': f'Airport Parking {parking_number} QR Code - Auto Prudente',
+            'fr': f'Code QR Parking Aéroport {parking_number} - Auto Prudente'
+        }
+        subject = subject_map.get(detected_lang, subject_map['pt'])
+        
+        # Gerar QR code (placeholder - você pode implementar geração real de QR code)
+        # Por agora, vamos apenas enviar o email sem anexo
+        # TODO: Implementar geração de QR code real com biblioteca qrcode
+        
+        # Enviar email
+        import smtplib
+        from email.mime.multipart import MIMEMultipart
+        from email.mime.text import MIMEText
+        
+        msg = MIMEMultipart('alternative')
+        msg['Subject'] = subject
+        msg['From'] = SMTP_FROM_EMAIL
+        msg['To'] = email
+        
+        html_part = MIMEText(html_content, 'html', 'utf-8')
+        msg.attach(html_part)
+        
+        # Enviar via SMTP
+        with smtplib.SMTP(SMTP_SERVER, SMTP_PORT) as server:
+            server.starttls()
+            server.login(SMTP_USERNAME, SMTP_PASSWORD)
+            server.send_message(msg)
+        
+        logging.info(f"✅ Parking QR email sent to {email} for RA {ra_num}, Parking #{parking_number}")
+        
+        return JSONResponse({
+            "success": True,
+            "message": f"Email com QR code do Parque {parking_number} enviado para {email}"
+        })
+        
+    except Exception as e:
+        logging.error(f"❌ Error sending parking QR email: {str(e)}")
+        import traceback
+        traceback.print_exc()
+        return JSONResponse({
+            "success": False,
+            "error": str(e)
+        }, status_code=500)
+    finally:
+        if conn:
+            conn.close()
+
 @app.get("/email-preview", response_class=HTMLResponse)
 async def email_preview(request: Request, ra: str = "06716-09"):
     """Preview do novo template de email com dados reais"""
