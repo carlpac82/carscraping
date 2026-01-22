@@ -517,6 +517,14 @@
                                         <span class="hidden sm:inline text-sm font-medium text-orange-600">Invalidar</span>
                                     </button>
                                     ` : ''}
+                                    ${isOpen ? `
+                                    <button onclick="sendSelfCheckoutLink('${contract.contract_number}')" class="flex items-center gap-2 px-3 py-2 bg-indigo-50 hover:bg-indigo-100 rounded-lg transition-colors" title="Enviar Link Self-Checkout">
+                                        <svg class="w-6 h-6 text-indigo-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 18h.01M8 21h8a2 2 0 002-2V5a2 2 0 00-2-2H8a2 2 0 00-2 2v14a2 2 0 002 2z"/>
+                                        </svg>
+                                        <span class="hidden sm:inline text-sm font-medium text-indigo-600">Self-Checkout</span>
+                                    </button>
+                                    ` : ''}
                                     ${hasCheckin && contract.checkin.is_self_checkin ? `
                                     <button onclick="resendSelfCheckinLink('${contract.contract_number}')" class="flex items-center gap-2 px-3 py-2 bg-purple-50 hover:bg-purple-100 rounded-lg transition-colors" title="Reenviar Link de Self Check-in">
                                         <svg class="w-6 h-6 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -1856,6 +1864,37 @@
             } catch (error) {
                 console.error('Error invalidating self check-in:', error);
                 showNotification('Erro ao invalidar self check-in: ' + error.message, 'error');
+            }
+        }
+
+        // Send self-checkout link (for any open contract)
+        async function sendSelfCheckoutLink(raNumber) {
+            if (!confirm('Enviar link de self-checkout para este contrato? O cliente receberá um email com instruções para realizar a inspeção de recolha.')) {
+                return;
+            }
+            
+            try {
+                const response = await fetch('/api/self-checkin/resend-link', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        rental_agreement_number: raNumber
+                    })
+                });
+                
+                const result = await response.json();
+                
+                if (result.success) {
+                    showNotification('Link de self-checkout enviado com sucesso! O cliente receberá o email em breve.', 'success');
+                    await loadHistory(true);
+                } else {
+                    showNotification('Erro ao enviar link: ' + (result.error || 'Erro desconhecido'), 'error');
+                }
+            } catch (error) {
+                console.error('Error sending self-checkout link:', error);
+                showNotification('Erro ao enviar link: ' + error.message, 'error');
             }
         }
 
