@@ -44198,8 +44198,10 @@ async def get_inspections_history(request: Request):
                 SELECT vi.inspection_number, vi.vehicle_plate, vi.contract_number, 
                        vi.inspection_type, vi.inspector_name, vi.created_at, 
                        vi.fuel_level, vi.odometer_reading, vi.damage_count, vi.status, vi.id,
-                       vi.is_self_checkin
+                       vi.is_self_checkin,
+                       ra.extracted_data, ra.self_checkin_email
                 FROM vehicle_inspections vi
+                LEFT JOIN rental_agreements ra ON vi.contract_number = ra.rental_agreement_number
                 ORDER BY vi.created_at DESC
                 LIMIT 200
             """)
@@ -44218,7 +44220,30 @@ async def get_inspections_history(request: Request):
                 inspection_id = row[10]
                 key = f"{plate}_{ra_base}"
                 
-                logging.info(f"  - {inspection_type}: {plate} / RA: {ra} (base: {ra_base}) / Date: {row[5]}")
+                # Extract client info from rental agreement
+                extracted_data = row[12] if len(row) > 12 else None
+                self_checkin_email = row[13] if len(row) > 13 else None
+                
+                client_name = None
+                client_email = None
+                
+                if extracted_data:
+                    try:
+                        import json
+                        if isinstance(extracted_data, str):
+                            data = json.loads(extracted_data)
+                        else:
+                            data = extracted_data
+                        client_name = data.get('client_name')
+                        client_email = data.get('client_email')
+                    except:
+                        pass
+                
+                # Fallback to self_checkin_email if no client_email found
+                if not client_email and self_checkin_email:
+                    client_email = self_checkin_email
+                
+                logging.info(f"  - {inspection_type}: {plate} / RA: {ra} (base: {ra_base}) / Date: {row[5]} / Client: {client_name} / Email: {client_email}")
                 
                 # Get damage croqui for this inspection
                 damage_croqui = None
@@ -44282,10 +44307,18 @@ async def get_inspections_history(request: Request):
                     grouped[key] = {
                         "vehicle_plate": plate,
                         "contract_number": ra_base,  # Use RA base for grouping
+                        "client_name": client_name,
+                        "client_email": client_email,
                         "checkout": None,
                         "checkin": None,
                         "latest_date": str(row[5]) if row[5] else None
                     }
+                else:
+                    # Update client info if not already set
+                    if not grouped[key].get("client_name") and client_name:
+                        grouped[key]["client_name"] = client_name
+                    if not grouped[key].get("client_email") and client_email:
+                        grouped[key]["client_email"] = client_email
                 
                 if row[3] == 'checkout':
                     if not grouped[key]["checkout"]:
