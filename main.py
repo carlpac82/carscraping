@@ -4514,8 +4514,8 @@ def _extract_base64_images_from_html(html_content):
     images = []
     counter = 0
     
-    # Pattern to match data:image/xxx;base64,xxxxx
-    pattern = r'data:image/([^;]+);base64,([^"\'>\s]+)'
+    # Pattern to match data:image/xxx;base64,xxxxx (allowing whitespace in base64)
+    pattern = r'data:image/([^;]+);base64,([^"\'>\)]+)'
     
     # Count matches before processing
     matches = re.findall(pattern, html_content)
@@ -4533,6 +4533,9 @@ def _extract_base64_images_from_html(html_content):
         counter += 1
         
         try:
+            # Remove any whitespace from base64 string
+            image_data = ''.join(image_data.split())
+            
             # Fix padding if needed
             missing_padding = len(image_data) % 4
             if missing_padding:
@@ -31407,14 +31410,59 @@ async def send_parking_qr_email(request: Request):
                 "error": "Número do parque deve ser 1, 2, 3 ou 4"
             }, status_code=400)
         
-        if not qr_code_image:
-            return JSONResponse({
-                "success": False,
-                "error": "QR code não fornecido"
-            }, status_code=400)
-        
         conn = _db_connect()
         is_postgres = _is_postgresql_connection(conn)
+        cursor = conn.cursor()
+        
+        # Buscar QR code guardado da base de dados
+        if is_postgres:
+            cursor.execute("""
+                SELECT qr_image_path, qr_code_data, extracted_date, extracted_time, extracted_reference
+                FROM parking_qr_codes
+                WHERE ra_number = %s AND parking_number = %s
+            """, (ra_number, parking_number))
+        else:
+            cursor.execute("""
+                SELECT qr_image_path, qr_code_data, extracted_date, extracted_time, extracted_reference
+                FROM parking_qr_codes
+                WHERE ra_number = ? AND parking_number = ?
+            """, (ra_number, parking_number))
+        
+        qr_row = cursor.fetchone()
+        
+        # Se não encontrou QR code guardado e não foi fornecido, retornar erro
+        if not qr_row and not qr_code_image:
+            return JSONResponse({
+                "success": False,
+                "error": f"QR code do Parque {parking_number} não encontrado. Faça upload do PDF primeiro."
+            }, status_code=404)
+        
+        # Se encontrou QR code guardado, ler a imagem e converter para base64
+        if qr_row:
+            qr_image_path, qr_code_data, db_date, db_time, db_reference = qr_row
+            
+            # Ler imagem do disco e converter para base64
+            if qr_image_path and os.path.exists(qr_image_path):
+                import base64
+                with open(qr_image_path, 'rb') as img_file:
+                    qr_image_bytes = img_file.read()
+                    qr_code_image = f"data:image/png;base64,{base64.b64encode(qr_image_bytes).decode('utf-8')}"
+                    logging.info(f"✅ QR code loaded from {qr_image_path}")
+            else:
+                logging.warning(f"⚠️ QR code image path not found: {qr_image_path}")
+                if not qr_code_image:
+                    return JSONResponse({
+                        "success": False,
+                        "error": "Imagem do QR code não encontrada no servidor"
+                    }, status_code=404)
+            
+            # Usar dados extraídos do PDF se não foram fornecidos
+            if not qr_pickup_date and db_date:
+                qr_pickup_date = db_date
+            if not qr_pickup_time and db_time:
+                qr_pickup_time = db_time
+            if not qr_reservation_number and db_reference:
+                qr_reservation_number = db_reference
         
         # Buscar dados do RA incluindo veículo
         if is_postgres:
@@ -31590,6 +31638,41 @@ async def send_parking_qr_email(request: Request):
         
         # Guardar QR code na base de dados para histórico
         try:
+            # Criar tabela se não existir
+            if is_postgres:
+                cursor.execute("""
+                    CREATE TABLE IF NOT EXISTS parking_qr_codes (
+                        id SERIAL PRIMARY KEY,
+                        ra_number TEXT NOT NULL,
+                        parking_number INTEGER NOT NULL,
+                        qr_code_image TEXT,
+                        qr_image_path TEXT,
+                        qr_code_data TEXT,
+                        extracted_date TEXT,
+                        extracted_time TEXT,
+                        extracted_reference TEXT,
+                        uploaded_at TIMESTAMP DEFAULT NOW(),
+                        UNIQUE(ra_number, parking_number)
+                    )
+                """)
+            else:
+                cursor.execute("""
+                    CREATE TABLE IF NOT EXISTS parking_qr_codes (
+                        id INTEGER PRIMARY KEY AUTOINCREMENT,
+                        ra_number TEXT NOT NULL,
+                        parking_number INTEGER NOT NULL,
+                        qr_code_image TEXT,
+                        qr_image_path TEXT,
+                        qr_code_data TEXT,
+                        extracted_date TEXT,
+                        extracted_time TEXT,
+                        extracted_reference TEXT,
+                        uploaded_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                        UNIQUE(ra_number, parking_number)
+                    )
+                """)
+            conn.commit()
+            
             if is_postgres:
                 cursor.execute("""
                     INSERT INTO parking_qr_codes 
@@ -31695,22 +31778,44 @@ async def upload_parking_qr(
         qr_image_path = None
         
         if images:
-            # Salvar primeira página como PNG
-            qr_image_filename = f"ra_{ra_number.replace('/', '_')}_parking_{parking_number}.png"
-            qr_image_path = f"static/parking_qr_codes/uploaded/{qr_image_filename}"
+            page_image = images[0]
+            logging.info(f"📐 Page size: {page_image.size}")
             
             # Criar diretório se não existir
             os.makedirs("static/parking_qr_codes/uploaded", exist_ok=True)
             
-            # Salvar imagem
-            images[0].save(qr_image_path, 'PNG')
-            logging.info(f"✅ QR code image saved to {qr_image_path}")
+            # Tentar decodificar QR code e obter posição
+            decoded_objects = decode(page_image)
             
-            # Tentar decodificar QR code
-            decoded_objects = decode(images[0])
             if decoded_objects:
-                qr_code_data = decoded_objects[0].data.decode('utf-8')
+                qr = decoded_objects[0]
+                qr_code_data = qr.data.decode('utf-8')
                 logging.info(f"✅ QR code decoded: {qr_code_data}")
+                logging.info(f"📍 QR code position: {qr.rect}")
+                
+                # Recortar apenas o QR code com margem
+                margin = 30  # pixels de margem ao redor do QR code
+                left = max(0, qr.rect.left - margin)
+                top = max(0, qr.rect.top - margin)
+                right = min(page_image.width, qr.rect.left + qr.rect.width + margin)
+                bottom = min(page_image.height, qr.rect.top + qr.rect.height + margin)
+                
+                # Recortar QR code
+                qr_image = page_image.crop((left, top, right, bottom))
+                logging.info(f"✂️  QR code cropped: {qr_image.size} (original: {page_image.size})")
+                
+                # Salvar apenas o QR code recortado
+                qr_image_filename = f"ra_{ra_number.replace('/', '_')}_parking_{parking_number}.png"
+                qr_image_path = f"static/parking_qr_codes/uploaded/{qr_image_filename}"
+                qr_image.save(qr_image_path, 'PNG')
+                logging.info(f"✅ QR code image (cropped) saved to {qr_image_path}")
+            else:
+                # Se não conseguiu detectar QR code, salvar página inteira como fallback
+                logging.warning("⚠️  No QR code detected, saving full page as fallback")
+                qr_image_filename = f"ra_{ra_number.replace('/', '_')}_parking_{parking_number}.png"
+                qr_image_path = f"static/parking_qr_codes/uploaded/{qr_image_filename}"
+                page_image.save(qr_image_path, 'PNG')
+                logging.info(f"✅ Full page image saved to {qr_image_path}")
         
         # Armazenar informações do QR code na base de dados
         conn = _db_connect()
@@ -45474,21 +45579,21 @@ async def extract_rental_agreement(request: Request, pdf: UploadFile = File(...)
             "odometer": dr_fields.get("odometer", "") or dr_fields.get("km_out", ""),
             "fuel_level": dr_fields.get("fuel_level", "") or dr_fields.get("fuelLevel", ""),
             "email": dr_fields.get("clientEmail", "") or dr_fields.get("email", ""),
-            # Add all other extracted fields
-            "clientName": dr_fields.get("clientName", ""),
-            "clientEmail": dr_fields.get("clientEmail", ""),
-            "clientPhone": dr_fields.get("clientPhone", ""),
+            # Add all other extracted fields (using snake_case for consistency)
+            "client_name": dr_fields.get("clientName", ""),
+            "client_email": dr_fields.get("clientEmail", ""),
+            "client_phone": dr_fields.get("clientPhone", ""),
             "address": dr_fields.get("address", ""),
-            "postalCodeCity": dr_fields.get("postalCodeCity", ""),
+            "postal_code_city": dr_fields.get("postalCodeCity", ""),
             "country": dr_fields.get("country", ""),
-            "vehiclePlate": dr_fields.get("vehiclePlate", ""),
-            "vehicleBrandModel": dr_fields.get("vehicleBrandModel", ""),
-            "pickupLocation": dr_fields.get("pickupLocation", ""),
-            "pickupDate": dr_fields.get("pickupDate", ""),
-            "pickupTime": dr_fields.get("pickupTime", ""),
-            "returnLocation": dr_fields.get("returnLocation", ""),
-            "returnDate": dr_fields.get("returnDate", ""),
-            "returnTime": dr_fields.get("returnTime", "")
+            "vehicle_plate": dr_fields.get("vehiclePlate", ""),
+            "vehicle_brand_model": dr_fields.get("vehicleBrandModel", ""),
+            "pickup_location": dr_fields.get("pickupLocation", ""),
+            "pickup_date": dr_fields.get("pickupDate", ""),
+            "pickup_time": dr_fields.get("pickupTime", ""),
+            "return_location": dr_fields.get("returnLocation", ""),
+            "return_date": dr_fields.get("returnDate", ""),
+            "return_time": dr_fields.get("returnTime", "")
         }
         
         # Clean rental agreement number (remove -09 suffix)
