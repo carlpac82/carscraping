@@ -44288,6 +44288,19 @@ async def get_inspections_history(request: Request):
             
             cursor = conn.cursor()
             
+            # DEBUG: Check if RA 06727 exists in rental_agreements
+            cursor.execute("SELECT rental_agreement_number, extracted_data, self_checkin_email FROM rental_agreements WHERE rental_agreement_number = '06727' OR rental_agreement_number LIKE '06727%'")
+            debug_ra = cursor.fetchall()
+            if debug_ra:
+                for ra_row in debug_ra:
+                    logging.info(f"🔍 DEBUG - Found RA in rental_agreements table:")
+                    logging.info(f"  - rental_agreement_number: '{ra_row[0]}'")
+                    logging.info(f"  - extracted_data type: {type(ra_row[1])}")
+                    logging.info(f"  - extracted_data preview: {str(ra_row[1])[:200] if ra_row[1] else 'NULL'}")
+                    logging.info(f"  - self_checkin_email: {ra_row[2]}")
+            else:
+                logging.warning(f"⚠️ DEBUG - No RA 06727 found in rental_agreements table!")
+            
             # Use different JOIN strategy based on database type
             if is_postgres:
                 # PostgreSQL: Match RA by removing suffix from contract_number
@@ -44343,6 +44356,13 @@ async def get_inspections_history(request: Request):
                 # Extract client info from rental agreement
                 extracted_data = row[12] if len(row) > 12 else None
                 self_checkin_email = row[13] if len(row) > 13 else None
+                
+                # DEBUG: Log row data for RA 06727
+                if ra_base == "06727":
+                    logging.info(f"🔍 DEBUG RA 06727 - Row data:")
+                    logging.info(f"  - contract_number from inspection: '{ra}'")
+                    logging.info(f"  - extracted_data (raw): {type(extracted_data)} = {extracted_data[:100] if extracted_data else 'NULL'}")
+                    logging.info(f"  - self_checkin_email: {self_checkin_email}")
                 
                 client_name = None
                 client_email = None
