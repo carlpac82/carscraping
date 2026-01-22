@@ -1305,8 +1305,8 @@
             drawingCtx.clearRect(0, 0, drawingCanvas.width, drawingCanvas.height);
             
             // Determine color based on inspection type
-            // Checkin (recolha) = red, Checkout (entrega) = black
-            const damageColor = currentInspectionType === 'checkin' ? '#dc3545' : 'rgba(0, 0, 0, 0.8)';
+            // Checkout (recolha) = red, Checkin (entrega) = black
+            const damageColor = currentInspectionType === 'checkout' ? '#dc3545' : 'rgba(0, 0, 0, 0.8)';
             
             // Draw all damages
             damages.forEach(damage => {
@@ -1338,7 +1338,7 @@
             if (currentStroke.length > 1) {
                 const sizeMap = { tiny: 2, small: 4, medium: 6, large: 8 };
                 const lineWidth = sizeMap[currentSize] || 4;
-                const damageColor = currentInspectionType === 'checkin' ? '#dc3545' : 'rgba(0, 0, 0, 0.8)';
+                const damageColor = currentInspectionType === 'checkout' ? '#dc3545' : 'rgba(0, 0, 0, 0.8)';
                 
                 drawingCtx.beginPath();
                 drawingCtx.moveTo(currentStroke[0].x, currentStroke[0].y);
