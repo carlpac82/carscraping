@@ -44221,11 +44221,6 @@ async def get_inspections_history(request: Request):
                     except Exception as e:
                         logging.error(f"❌ RA {ra}: Error parsing extracted_data: {e}")
                 
-                # Fallback to self_checkin_email if no client_email found
-                if not client_email and self_checkin_email:
-                    client_email = self_checkin_email
-                    logging.info(f"📧 RA {ra}: Using self_checkin_email as fallback: {client_email}")
-                
                 logging.info(f"  - {inspection_type}: {plate} / RA: {ra} (base: {ra_base}) / Date: {row[5]} / Client: {client_name} / Email: {client_email}")
                 
                 # Get damage croqui for this inspection
