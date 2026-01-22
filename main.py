@@ -31739,8 +31739,11 @@ async def send_parking_qr_email(request: Request):
         html_content = html_content.replace('{{LICENSE_PLATE}}', plate or 'N/A')
         html_content = html_content.replace('{{VEHICLE_BRAND}}', vehicle_brand or 'N/A')
         html_content = html_content.replace('{{VEHICLE_MODEL}}', vehicle_model or 'N/A')
-        html_content = html_content.replace('{{PICKUP_DATE}}', pickup_date)
-        html_content = html_content.replace('{{PICKUP_TIME}}', pickup_time)
+        # Normalizar data e hora removendo espaços extras
+        normalized_pickup_date = ' '.join(pickup_date.split()) if pickup_date else 'N/A'
+        normalized_pickup_time = ' '.join(pickup_time.split()) if pickup_time else 'N/A'
+        html_content = html_content.replace('{{PICKUP_DATE}}', normalized_pickup_date)
+        html_content = html_content.replace('{{PICKUP_TIME}}', normalized_pickup_time)
         html_content = html_content.replace('{{RESERVATION_NUMBER}}', qr_reservation_number or 'N/A')
         html_content = html_content.replace('{{PARKING_LOCATION_NAME}}', parking_info['name'])
         html_content = html_content.replace('{{PARKING_GOOGLE_MAPS_LINK}}', parking_info['maps_link'])
