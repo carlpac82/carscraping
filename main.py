@@ -29997,10 +29997,11 @@ async def save_inspection(request: Request):
                     except Exception as ra_update_error:
                         logging.error(f"Failed to update rental agreement: {ra_update_error}")
                 
-                logging.info("💾 Committing transaction to database...")
-                conn.commit()
-                logging.info("✅ Transaction committed successfully")
-                logging.info(f"🔍 [FLOW-2] After commit, inspection_type='{inspection_type}'")
+                try:
+                    logging.info("💾 Committing transaction to database...")
+                    conn.commit()
+                    logging.info("✅ Transaction committed successfully")
+                    logging.info(f"🔍 [FLOW-2] After commit, inspection_type='{inspection_type}'")
                 
                 # VALIDATE INCIDENTS FOR CHECK-OUT (RECOLHA) - ALWAYS, regardless of email
                 logging.info(f"🔍 [PRE-VALIDATION] inspection_type='{inspection_type}', damage_count={damage_count}")
@@ -30528,23 +30529,23 @@ async def save_inspection(request: Request):
                         logging.error(f"❌ Failed to send email: {email_error}")
                         logging.error(f"❌ Email error traceback: {traceback.format_exc()}")
                         # Don't fail the inspection save if email fails
-        
-        except Exception as db_error:
-            logging.error(f"❌ Database error: {db_error}")
-            logging.error(f"❌ Traceback: {traceback.format_exc()}")
-            if conn:
-                conn.rollback()
-            raise
-        finally:
-            if conn:
-                conn.close()
-        
-        # Return success response
-        return JSONResponse({
-            'success': True,
-            'inspection_number': inspection_number,
-            'message': 'Inspection saved successfully' + (' and email sent' if (email and send_email) else '')
-        })
+                    
+                    # Return success response
+                    return JSONResponse({
+                        'success': True,
+                        'inspection_number': inspection_number,
+                        'message': 'Inspection saved successfully' + (' and email sent' if (email and send_email) else '')
+                    })
+                    
+                except Exception as db_error:
+                    logging.error(f"❌ Database error: {db_error}")
+                    logging.error(f"❌ Traceback: {traceback.format_exc()}")
+                    if conn:
+                        conn.rollback()
+                    raise
+                finally:
+                    if conn:
+                        conn.close()
         
     except Exception as e:
         logging.error(f"❌ Error saving inspection: {str(e)}")
@@ -30555,9 +30556,6 @@ async def save_inspection(request: Request):
             'success': False,
             'error': str(e)
         }, status_code=500)
-    finally:
-        if conn:
-            conn.close()
 
 # Email endpoint is defined later in the file (line ~30709)
 
