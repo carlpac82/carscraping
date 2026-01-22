@@ -31493,17 +31493,34 @@ async def send_parking_qr_email(request: Request):
         if extracted_data_json:
             try:
                 extracted_data = json.loads(extracted_data_json)
-                client_name = extracted_data.get('client_name') or extracted_data.get('nome_cliente') or "Cliente"
-                country = extracted_data.get('country') or extracted_data.get('pais')
-                extracted_email = extracted_data.get('client_email') or extracted_data.get('email_cliente')
+                # Try both camelCase and snake_case for all fields
+                client_name = (extracted_data.get('client_name') or 
+                              extracted_data.get('clientName') or 
+                              extracted_data.get('nome_cliente') or 
+                              "Cliente")
+                country = (extracted_data.get('country') or 
+                          extracted_data.get('pais'))
+                extracted_email = (extracted_data.get('client_email') or 
+                                  extracted_data.get('clientEmail') or 
+                                  extracted_data.get('email') or 
+                                  extracted_data.get('email_cliente'))
                 
                 # Usar data e hora do QR code (enviados do frontend) como prioridade
                 # Fallback para extracted_data se não foram detectados no QR code
                 if not qr_pickup_date:
-                    pickup_date = extracted_data.get('pickup_date') or extracted_data.get('data_recolha') or "N/A"
+                    pickup_date = (extracted_data.get('pickup_date') or 
+                                  extracted_data.get('pickupDate') or 
+                                  extracted_data.get('data_recolha') or 
+                                  "N/A")
                 if not qr_pickup_time:
-                    pickup_time = extracted_data.get('pickup_time') or extracted_data.get('hora_recolha') or "N/A"
-            except:
+                    pickup_time = (extracted_data.get('pickup_time') or 
+                                  extracted_data.get('pickupTime') or 
+                                  extracted_data.get('hora_recolha') or 
+                                  "N/A")
+                
+                logging.info(f"📋 Extracted from RA: client_name={client_name}, email={extracted_email}, pickup_date={pickup_date}, pickup_time={pickup_time}")
+            except Exception as e:
+                logging.error(f"Error parsing extracted_data: {e}")
                 pass
         
         # Usar valores do QR code se foram detectados
