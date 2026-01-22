@@ -920,16 +920,16 @@
                 document.getElementById('licensePlate').textContent = raData.license_plate;
                 
                 // Nome do cliente - normalizado (primeira letra maiúscula)
-                if (raData.extracted_data && raData.extracted_data.client_name) {
-                    const clientName = raData.extracted_data.client_name;
-                    console.log('DEBUG: client_name original:', clientName);
-                    const normalizedName = clientName.split(' ')
+                const clientNameRaw = raData.client_name || (raData.extracted_data && raData.extracted_data.clientName);
+                if (clientNameRaw) {
+                    console.log('DEBUG: client_name original:', clientNameRaw);
+                    const normalizedName = clientNameRaw.split(' ')
                         .map(word => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase())
                         .join(' ');
                     console.log('DEBUG: client_name normalizado:', normalizedName);
                     document.getElementById('clientName').textContent = normalizedName;
                 } else {
-                    console.log('DEBUG: client_name NÃO encontrado em extracted_data');
+                    console.log('DEBUG: client_name NÃO encontrado');
                 }
                 
                 if (raData.vehicle) {
@@ -981,12 +981,35 @@
                     const returnTime = now.toLocaleTimeString('pt-PT', { hour: '2-digit', minute: '2-digit' });
                     document.getElementById('returnDateTime').textContent = `${returnDate} ${returnTime}`;
                     
-                    // Combustível Entrega - Canvas Visual
+                    // Combustível Entrega - Canvas Visual e Slider
                     const fuelLevel = checkoutData.fuel_level || checkoutData.combustivel;
                     console.log('DEBUG: fuelLevel final:', fuelLevel);
                     if (fuelLevel) {
                         updateFuelEntregaCanvas(fuelLevel);
                         console.log('DEBUG: updateFuelEntregaCanvas chamado com:', fuelLevel);
+                        
+                        // Definir o slider de combustível com o nível do check-in
+                        const fuelSlider = document.getElementById('fuelSlider');
+                        if (fuelSlider) {
+                            // Converter o nível de combustível para valor do slider (0-100)
+                            let sliderValue = 100; // Default cheio
+                            
+                            // Se fuelLevel é string tipo "1/2", "3/4", etc
+                            if (typeof fuelLevel === 'string') {
+                                if (fuelLevel.includes('/')) {
+                                    const [num, den] = fuelLevel.split('/').map(n => parseInt(n.trim()));
+                                    sliderValue = Math.round((num / den) * 100);
+                                } else {
+                                    sliderValue = parseInt(fuelLevel);
+                                }
+                            } else {
+                                sliderValue = parseInt(fuelLevel);
+                            }
+                            
+                            fuelSlider.value = sliderValue;
+                            updateFuelDisplay(); // Atualizar o display do nível
+                            console.log('DEBUG: Slider combustível definido para:', sliderValue);
+                        }
                     } else {
                         console.log('DEBUG: fuelLevel NÃO encontrado');
                     }
