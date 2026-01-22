@@ -1849,9 +1849,71 @@
                     }
                 }
                 
+                // Extract pickup date and time from QR code
+                let pickupDate = null;
+                let pickupTime = null;
+                let reservationNumber = null;
+                
+                // Reservation number pattern: ANA-XXXXXXXX
+                const reservationPattern = /ANA-\d{8}/i;
+                const reservationMatch = text.match(reservationPattern);
+                if (reservationMatch) {
+                    reservationNumber = reservationMatch[0].toUpperCase();
+                }
+                
+                // Date patterns: DD/MM/YYYY, DD-MM-YYYY, YYYY-MM-DD
+                const datePatterns = [
+                    /(\d{2})[\/\-](\d{2})[\/\-](\d{4})/,  // DD/MM/YYYY or DD-MM-YYYY
+                    /(\d{4})[\/\-](\d{2})[\/\-](\d{2})/   // YYYY-MM-DD
+                ];
+                
+                for (const pattern of datePatterns) {
+                    const match = text.match(pattern);
+                    if (match) {
+                        if (match[0].startsWith('20')) {
+                            // YYYY-MM-DD format
+                            pickupDate = `${match[3]}/${match[2]}/${match[1]}`;
+                        } else {
+                            // DD/MM/YYYY format
+                            pickupDate = match[0].replace('-', '/');
+                        }
+                        break;
+                    }
+                }
+                
+                // Time patterns: HH:MM, HH.MM, HHhMM
+                const timePatterns = [
+                    /(\d{2})[:\.](\d{2})/,  // HH:MM or HH.MM
+                    /(\d{2})h(\d{2})/i      // HHhMM
+                ];
+                
+                for (const pattern of timePatterns) {
+                    const match = text.match(pattern);
+                    if (match) {
+                        pickupTime = `${match[1]}:${match[2]}`;
+                        break;
+                    }
+                }
+                
+                // Store extracted data
+                window.detectedPickupDate = pickupDate;
+                window.detectedPickupTime = pickupTime;
+                window.detectedReservationNumber = reservationNumber;
+                
+                console.log('📅 Extracted data:', {
+                    parking: detectedParking,
+                    date: pickupDate,
+                    time: pickupTime,
+                    reservation: reservationNumber
+                });
+                
                 if (detectedParking && detectedParking >= 1 && detectedParking <= 4) {
                     window.detectedParkingNumber = detectedParking;
-                    messageEl.textContent = `✅ Parque ${detectedParking} detectado automaticamente!`;
+                    let message = `✅ Parque ${detectedParking} detectado`;
+                    if (reservationNumber) message += ` | Reserva: ${reservationNumber}`;
+                    if (pickupDate) message += ` | Data: ${pickupDate}`;
+                    if (pickupTime) message += ` | Hora: ${pickupTime}`;
+                    messageEl.textContent = message;
                     statusDiv.querySelector('div').className = 'bg-green-50 border border-green-200 rounded-lg p-3';
                     messageEl.className = 'text-sm text-green-700 font-medium';
                     uploadBtn.disabled = false;
@@ -1875,6 +1937,9 @@
             const parkingNumber = window.detectedParkingNumber;
             const qrImageBase64 = window.qrCodeImageBase64;
             const clientEmail = document.getElementById('parkingClientEmail')?.value?.trim();
+            const pickupDate = window.detectedPickupDate;
+            const pickupTime = window.detectedPickupTime;
+            const reservationNumber = window.detectedReservationNumber;
             
             if (!raNumber || !parkingNumber || !qrImageBase64) {
                 showNotification('Erro: Dados incompletos', 'error');
@@ -1894,7 +1959,10 @@
                     rental_agreement_number: String(raNumber || ''),
                     parking_number: parseInt(parkingNumber),
                     qr_code_image: String(qrImageBase64 || ''),
-                    client_email: String(clientEmail || '')
+                    client_email: String(clientEmail || ''),
+                    pickup_date: pickupDate || null,
+                    pickup_time: pickupTime || null,
+                    reservation_number: reservationNumber || null
                 };
                 
                 console.log('📤 Sending parking QR email:', {

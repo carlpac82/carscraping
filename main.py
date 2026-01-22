@@ -31391,6 +31391,9 @@ async def send_parking_qr_email(request: Request):
         parking_number = data.get('parking_number')
         qr_code_image = data.get('qr_code_image')  # Base64 do QR code
         custom_email = data.get('client_email')  # Email customizado opcional
+        qr_pickup_date = data.get('pickup_date')  # Data extraída do QR code
+        qr_pickup_time = data.get('pickup_time')  # Hora extraída do QR code
+        qr_reservation_number = data.get('reservation_number')  # Número de reserva do aeroporto (ANA-XXXXXXXX)
         
         if not ra_number or not parking_number:
             return JSONResponse({
@@ -31487,11 +31490,22 @@ async def send_parking_qr_email(request: Request):
                 country = extracted_data.get('country') or extracted_data.get('pais')
                 extracted_email = extracted_data.get('client_email') or extracted_data.get('email_cliente')
                 
-                # Extrair data e hora de recolha
-                pickup_date = extracted_data.get('pickup_date') or extracted_data.get('data_recolha') or "N/A"
-                pickup_time = extracted_data.get('pickup_time') or extracted_data.get('hora_recolha') or "N/A"
+                # Usar data e hora do QR code (enviados do frontend) como prioridade
+                # Fallback para extracted_data se não foram detectados no QR code
+                if not qr_pickup_date:
+                    pickup_date = extracted_data.get('pickup_date') or extracted_data.get('data_recolha') or "N/A"
+                if not qr_pickup_time:
+                    pickup_time = extracted_data.get('pickup_time') or extracted_data.get('hora_recolha') or "N/A"
             except:
                 pass
+        
+        # Usar valores do QR code se foram detectados
+        if qr_pickup_date:
+            pickup_date = qr_pickup_date
+            logging.info(f"📅 Using pickup_date from QR code: {pickup_date}")
+        if qr_pickup_time:
+            pickup_time = qr_pickup_time
+            logging.info(f"⏰ Using pickup_time from QR code: {pickup_time}")
         
         # Se não tiver email do self_checkin, usar o email extraído do RA
         if not email and extracted_email:
@@ -31548,6 +31562,7 @@ async def send_parking_qr_email(request: Request):
         html_content = html_content.replace('{{VEHICLE_MODEL}}', vehicle_model or 'N/A')
         html_content = html_content.replace('{{PICKUP_DATE}}', pickup_date)
         html_content = html_content.replace('{{PICKUP_TIME}}', pickup_time)
+        html_content = html_content.replace('{{RESERVATION_NUMBER}}', qr_reservation_number or 'N/A')
         html_content = html_content.replace('{{PARKING_LOCATION_NAME}}', parking_info['name'])
         html_content = html_content.replace('{{PARKING_GOOGLE_MAPS_LINK}}', parking_info['maps_link'])
         
