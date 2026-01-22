@@ -44496,6 +44496,98 @@ async def get_inspections_history(request: Request):
             "error": str(e)
         }, status_code=500)
 
+@app.get("/api/debug/ra-data")
+async def debug_ra_data(request: Request, ra: str = "06727"):
+    """DEBUG ENDPOINT - Ver dados do RA na base de dados"""
+    try:
+        conn = _db_connect()
+        cursor = conn.cursor()
+        
+        # 1. Ver se o RA existe na tabela rental_agreements
+        cursor.execute("""
+            SELECT id, rental_agreement_number, license_plate, vehicle_id, 
+                   extracted_data, self_checkin_email, created_at
+            FROM rental_agreements 
+            WHERE rental_agreement_number = %s OR rental_agreement_number LIKE %s
+        """ if _USE_NEW_DB else """
+            SELECT id, rental_agreement_number, license_plate, vehicle_id, 
+                   extracted_data, self_checkin_email, created_at
+            FROM rental_agreements 
+            WHERE rental_agreement_number = ? OR rental_agreement_number LIKE ?
+        """, (ra, f"{ra}%"))
+        
+        ra_rows = cursor.fetchall()
+        
+        # 2. Ver inspeções deste RA
+        cursor.execute("""
+            SELECT id, inspection_number, vehicle_plate, contract_number, 
+                   inspection_type, created_at
+            FROM vehicle_inspections 
+            WHERE contract_number = %s OR contract_number LIKE %s
+            ORDER BY created_at DESC
+        """ if _USE_NEW_DB else """
+            SELECT id, inspection_number, vehicle_plate, contract_number, 
+                   inspection_type, created_at
+            FROM vehicle_inspections 
+            WHERE contract_number = ? OR contract_number LIKE ?
+            ORDER BY created_at DESC
+        """, (ra, f"{ra}%"))
+        
+        inspection_rows = cursor.fetchall()
+        
+        conn.close()
+        
+        # Format response
+        rental_agreements = []
+        for row in ra_rows:
+            extracted_data = row[4]
+            if extracted_data:
+                if isinstance(extracted_data, str):
+                    try:
+                        extracted_data = json.loads(extracted_data)
+                    except:
+                        pass
+            
+            rental_agreements.append({
+                "id": row[0],
+                "rental_agreement_number": row[1],
+                "license_plate": row[2],
+                "vehicle_id": row[3],
+                "extracted_data": extracted_data,
+                "self_checkin_email": row[5],
+                "created_at": str(row[6]) if row[6] else None
+            })
+        
+        inspections = []
+        for row in inspection_rows:
+            inspections.append({
+                "id": row[0],
+                "inspection_number": row[1],
+                "vehicle_plate": row[2],
+                "contract_number": row[3],
+                "inspection_type": row[4],
+                "created_at": str(row[5]) if row[5] else None
+            })
+        
+        return JSONResponse({
+            "ok": True,
+            "ra_number": ra,
+            "rental_agreements_found": len(rental_agreements),
+            "rental_agreements": rental_agreements,
+            "inspections_found": len(inspections),
+            "inspections": inspections
+        })
+        
+    except Exception as e:
+        logging.error(f"Debug endpoint error: {e}")
+        import traceback
+        logging.error(traceback.format_exc())
+        return JSONResponse({
+            "ok": False,
+            "error": str(e),
+            "traceback": traceback.format_exc()
+        }, status_code=500)
+
 @app.post("/api/inspections/resend-last")
 async def resend_last_inspection(request: Request):
     """Resend the last inspection report to a specified email"""
