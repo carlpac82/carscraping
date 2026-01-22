@@ -31506,6 +31506,18 @@ async def send_parking_qr_email(request: Request):
                                   extracted_data.get('email') or 
                                   extracted_data.get('email_cliente'))
                 
+                # Extrair marca e modelo do veículo se não vieram da tabela vehicles
+                if not vehicle_brand:
+                    vehicle_brand = (extracted_data.get('vehicle_brand') or 
+                                   extracted_data.get('vehicleBrand') or 
+                                   extracted_data.get('marca') or 
+                                   extracted_data.get('brand'))
+                if not vehicle_model:
+                    vehicle_model = (extracted_data.get('vehicle_model') or 
+                                   extracted_data.get('vehicleModel') or 
+                                   extracted_data.get('modelo') or 
+                                   extracted_data.get('model'))
+                
                 # Usar data e hora do QR code (enviados do frontend) como prioridade
                 # Fallback para extracted_data se não foram detectados no QR code
                 if not qr_pickup_date:
@@ -31519,7 +31531,7 @@ async def send_parking_qr_email(request: Request):
                                   extracted_data.get('hora_recolha') or 
                                   "N/A")
                 
-                logging.info(f"📋 Extracted from RA: full_name={client_full_name}, display_name={client_name}, email={extracted_email}, pickup_date={pickup_date}, pickup_time={pickup_time}")
+                logging.info(f"📋 Extracted from RA: client_name={client_name}, email={extracted_email}, brand={vehicle_brand}, model={vehicle_model}, pickup_date={pickup_date}, pickup_time={pickup_time}")
             except Exception as e:
                 logging.error(f"Error parsing extracted_data: {e}")
                 pass
