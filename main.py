@@ -44385,6 +44385,14 @@ async def get_inspections_history(request: Request):
                         else:
                             data = extracted_data
                         
+                        # DEBUG: Log the actual keys in the data for RA 06727
+                        if ra_base == "06727":
+                            logging.info(f"🔍 DEBUG RA 06727 - Keys in extracted_data: {list(data.keys()) if isinstance(data, dict) else 'NOT_A_DICT'}")
+                            if isinstance(data, dict):
+                                for key in ['client_name', 'clientName', 'client_email', 'clientEmail', 'email']:
+                                    if key in data:
+                                        logging.info(f"🔍 DEBUG RA 06727 - {key}: '{data[key]}'")
+                        
                         # Try both snake_case and camelCase
                         client_name = data.get('client_name') or data.get('clientName')
                         client_email = data.get('client_email') or data.get('clientEmail')
