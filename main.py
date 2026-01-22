@@ -31148,6 +31148,78 @@ async def get_self_checkout_data(token: str):
             except:
                 pass
         
+        # Buscar última inspeção de check-in para preencher dados automaticamente
+        ra_number = row[1]
+        plate = row[2]
+        
+        try:
+            if is_postgres:
+                cursor.execute("""
+                    SELECT odometer_reading, fuel_level, created_at
+                    FROM vehicle_inspections
+                    WHERE rental_agreement = %s AND inspection_type = 'checkin'
+                    ORDER BY created_at DESC
+                    LIMIT 1
+                """, (ra_number,))
+            else:
+                cursor.execute("""
+                    SELECT odometer_reading, fuel_level, created_at
+                    FROM vehicle_inspections
+                    WHERE rental_agreement = ? AND inspection_type = 'checkin'
+                    ORDER BY created_at DESC
+                    LIMIT 1
+                """, (ra_number,))
+            
+            inspection_row = cursor.fetchone()
+            
+            # Se não encontrou por RA, tentar por matrícula
+            if not inspection_row:
+                if is_postgres:
+                    cursor.execute("""
+                        SELECT odometer_reading, fuel_level, created_at
+                        FROM vehicle_inspections
+                        WHERE license_plate = %s AND inspection_type = 'checkin'
+                        ORDER BY created_at DESC
+                        LIMIT 1
+                    """, (plate,))
+                else:
+                    cursor.execute("""
+                        SELECT odometer_reading, fuel_level, created_at
+                        FROM vehicle_inspections
+                        WHERE license_plate = ? AND inspection_type = 'checkin'
+                        ORDER BY created_at DESC
+                        LIMIT 1
+                    """, (plate,))
+                
+                inspection_row = cursor.fetchone()
+            
+            # Se encontrou inspeção, preencher extracted_data
+            if inspection_row:
+                odometer, fuel, created_at = inspection_row
+                
+                # Preencher campos se estiverem vazios
+                if not extracted_data.get('odometer') and odometer:
+                    extracted_data['odometer'] = int(odometer)
+                    extracted_data['kms'] = int(odometer)
+                
+                if not extracted_data.get('fuel_level') and fuel:
+                    extracted_data['fuel_level'] = str(fuel)
+                    extracted_data['combustivel'] = str(fuel)
+                
+                if not extracted_data.get('delivery_date') and created_at:
+                    if isinstance(created_at, str):
+                        from datetime import datetime
+                        created_at = datetime.fromisoformat(created_at.replace('Z', '+00:00'))
+                    extracted_data['delivery_date'] = created_at.strftime('%d/%m/%Y')
+                    extracted_data['delivery_time'] = created_at.strftime('%H:%M')
+                    extracted_data['pickup_date'] = created_at.strftime('%d/%m/%Y')
+                    extracted_data['pickup_time'] = created_at.strftime('%H:%M')
+                
+                logging.info(f"✅ Preenchido extracted_data com dados da inspeção: odometer={odometer}, fuel={fuel}")
+        
+        except Exception as inspection_err:
+            logging.error(f"Erro ao buscar inspeção para preencher dados: {inspection_err}")
+        
         return JSONResponse({
             "success": True,
             "data": {
