@@ -31579,7 +31579,9 @@ async def send_parking_qr_email(request: Request):
             html_content = f.read()
         
         # Substituir variáveis do template
-        html_content = html_content.replace('{{CLIENT_NAME}}', client_name)
+        # Extrair apenas o primeiro nome do cliente
+        first_name = client_name.split()[0] if client_name and client_name != "Cliente" else client_name
+        html_content = html_content.replace('{{CLIENT_NAME}}', first_name)
         html_content = html_content.replace('{{RA_NUMBER}}', ra_num)
         html_content = html_content.replace('{{PARKING_NUMBER}}', str(parking_number))
         html_content = html_content.replace('{{LICENSE_PLATE}}', plate or 'N/A')
