@@ -293,6 +293,11 @@
                 `;
 
                 dayItems.forEach(contract => {
+                    console.log('📦 Contract data:', {
+                        ra: contract.contract_number,
+                        client_name: contract.client_name,
+                        client_email: contract.client_email
+                    });
                     const hasCheckout = contract.checkout !== null;  // checkout = recolha
                     const hasCheckin = contract.checkin !== null;    // checkin = entrega
                     // Contract is OPEN when has checkin (entrega) but no checkout (recolha)
@@ -383,7 +388,7 @@
                                         </svg>
                                         <span class="hidden sm:inline text-sm font-medium text-[#f59e0b]">Email</span>
                                     </button>
-                                    <button onclick="showParkingQRModal('${contract.contract_number}', '${contract.client_name || ''}', '${contract.client_email || ''}')" class="flex items-center gap-2 px-3 py-2 bg-blue-50 hover:bg-blue-100 rounded-lg transition-colors" title="Enviar QR Code de Parque">
+                                    <button onclick="showParkingQRModal('${contract.contract_number}', ${contract.client_name ? `'${contract.client_name}'` : `''`}, ${contract.client_email ? `'${contract.client_email}'` : `''`})" class="flex items-center gap-2 px-3 py-2 bg-blue-50 hover:bg-blue-100 rounded-lg transition-colors" title="Enviar QR Code de Parque">
                                         <span class="text-xl">✈️</span>
                                         <span class="hidden sm:inline text-sm font-medium text-blue-600">Parque</span>
                                     </button>
