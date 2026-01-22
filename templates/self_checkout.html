@@ -910,16 +910,26 @@
                 }
 
                 raData = data.data;
+                
+                // DEBUG: Log completo dos dados recebidos
+                console.log('=== DEBUG: Dados recebidos do backend ===');
+                console.log('raData completo:', JSON.stringify(raData, null, 2));
+                console.log('extracted_data:', raData.extracted_data);
+                
                 document.getElementById('raNumber').textContent = raData.rental_agreement_number;
                 document.getElementById('licensePlate').textContent = raData.license_plate;
                 
                 // Nome do cliente - normalizado (primeira letra maiúscula)
                 if (raData.extracted_data && raData.extracted_data.client_name) {
                     const clientName = raData.extracted_data.client_name;
+                    console.log('DEBUG: client_name original:', clientName);
                     const normalizedName = clientName.split(' ')
                         .map(word => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase())
                         .join(' ');
+                    console.log('DEBUG: client_name normalizado:', normalizedName);
                     document.getElementById('clientName').textContent = normalizedName;
+                } else {
+                    console.log('DEBUG: client_name NÃO encontrado em extracted_data');
                 }
                 
                 if (raData.vehicle) {
@@ -931,20 +941,38 @@
                 if (raData.extracted_data) {
                     const checkoutData = raData.extracted_data;
                     
+                    // DEBUG: Log dos campos procurados
+                    console.log('DEBUG: odometer:', checkoutData.odometer);
+                    console.log('DEBUG: kms:', checkoutData.kms);
+                    console.log('DEBUG: fuel_level:', checkoutData.fuel_level);
+                    console.log('DEBUG: combustivel:', checkoutData.combustivel);
+                    console.log('DEBUG: delivery_date:', checkoutData.delivery_date);
+                    console.log('DEBUG: delivery_time:', checkoutData.delivery_time);
+                    console.log('DEBUG: pickup_date:', checkoutData.pickup_date);
+                    console.log('DEBUG: pickup_time:', checkoutData.pickup_time);
+                    
                     // Kms entrega - mostrar no display e usar como placeholder
                     const kmsEntrega = checkoutData.odometer || checkoutData.kms || '-';
+                    console.log('DEBUG: kmsEntrega final:', kmsEntrega);
                     document.getElementById('kmsEntrega').textContent = kmsEntrega;
                     
                     // Usar kms do check-in como placeholder no campo de input
                     if (kmsEntrega !== '-') {
                         document.getElementById('odometerInput').placeholder = `Kms do check-in: ${kmsEntrega}`;
+                        console.log('DEBUG: Placeholder definido para:', `Kms do check-in: ${kmsEntrega}`);
+                    } else {
+                        console.log('DEBUG: Placeholder NÃO definido (kmsEntrega = "-")');
                     }
                     
                     // Data/Hora Entrega (do check-in)
                     if (checkoutData.delivery_date || checkoutData.pickup_date) {
                         const deliveryDate = checkoutData.delivery_date || checkoutData.pickup_date;
                         const deliveryTime = checkoutData.delivery_time || checkoutData.pickup_time || '';
-                        document.getElementById('deliveryDateTime').textContent = `${deliveryDate} ${deliveryTime}`.trim();
+                        const deliveryDateTime = `${deliveryDate} ${deliveryTime}`.trim();
+                        console.log('DEBUG: deliveryDateTime:', deliveryDateTime);
+                        document.getElementById('deliveryDateTime').textContent = deliveryDateTime;
+                    } else {
+                        console.log('DEBUG: delivery_date e pickup_date NÃO encontrados');
                     }
                     
                     // Data/Hora Devolução (data/hora atual quando o cliente abre o link)
@@ -955,9 +983,15 @@
                     
                     // Combustível Entrega - Canvas Visual
                     const fuelLevel = checkoutData.fuel_level || checkoutData.combustivel;
+                    console.log('DEBUG: fuelLevel final:', fuelLevel);
                     if (fuelLevel) {
                         updateFuelEntregaCanvas(fuelLevel);
+                        console.log('DEBUG: updateFuelEntregaCanvas chamado com:', fuelLevel);
+                    } else {
+                        console.log('DEBUG: fuelLevel NÃO encontrado');
                     }
+                } else {
+                    console.log('DEBUG: extracted_data NÃO existe');
                 }
             } catch (error) {
                 console.error('Error loading RA data:', error);
