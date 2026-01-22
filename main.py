@@ -31551,24 +31551,24 @@ async def send_parking_qr_email(request: Request):
         # Localizações dos parques do Aeroporto de Faro
         parking_locations = {
             1: {
-                'name': 'Parque 1 - Aeroporto de Faro',
-                'maps_link': 'https://maps.google.com/?q=37.0194,-7.9658',
-                'coords': '37.0194,-7.9658'
+                'name': 'P1 Curta Duração Partidas - Aeroporto de Faro',
+                'maps_link': 'https://www.google.com/maps/place/P1+Curta+Duração+Partidas,+Faro/@37.0205708,-7.9695238,539m/data=!3m1!1e3!4m6!3m5!1s0xd054d4e2bc4ee23:0xe03efa80595c2fed!8m2!3d37.0215363!4d-7.9698825!16s%2Fg%2F11cn9khj45?entry=ttu&g_ep=EgoyMDI2MDExOS4wIKXMDSoASAFQAw%3D%3D',
+                'coords': '37.0215363,-7.9698825'
             },
             2: {
-                'name': 'Parque 2 - Aeroporto de Faro',
-                'maps_link': 'https://maps.google.com/?q=37.0189,-7.9665',
-                'coords': '37.0189,-7.9665'
+                'name': 'P2 Curta Duração Chegadas - Aeroporto de Faro',
+                'maps_link': 'https://www.google.com/maps/place/P2+Curta+Duração+Chegadas,+Faro/@37.0207162,-7.9670218,269m/data=!3m1!1e3!4m6!3m5!1s0xd054d50eed42b75:0xa90e003bc845b9c!8m2!3d37.020973!4d-7.9666765!16s%2Fg%2F11cn9rtq4d?entry=ttu&g_ep=EgoyMDI2MDExOS4wIKXMDSoASAFQAw%3D%3D',
+                'coords': '37.020973,-7.9666765'
             },
             3: {
-                'name': 'Parque 3 - Aeroporto de Faro',
-                'maps_link': 'https://maps.google.com/?q=37.0185,-7.9672',
-                'coords': '37.0185,-7.9672'
+                'name': 'P3 Longa Duração - Aeroporto de Faro',
+                'maps_link': 'https://www.google.com/maps/place/P3+Longa+duração,+Faro/@37.0217024,-7.9662682,270m/data=!3m1!1e3!4m6!3m5!1s0xd054d56d5be952f:0xecfea91da0e4acf7!8m2!3d37.0219862!4d-7.9643809!16s%2Fg%2F11cn9p3bml?entry=ttu&g_ep=EgoyMDI2MDExOS4wIKXMDSoASAFQAw%3D%3D',
+                'coords': '37.0219862,-7.9643809'
             },
             4: {
-                'name': 'Parque 4 - Aeroporto de Faro',
-                'maps_link': 'https://maps.google.com/?q=37.0181,-7.9679',
-                'coords': '37.0181,-7.9679'
+                'name': 'P4 Faro Airport Car Rental - Aeroporto de Faro',
+                'maps_link': 'https://www.google.com/maps/place/Faro+Airport+Car+Rental+Park+4/@37.0221654,-7.9699325,268m/data=!3m1!1e3!4m6!3m5!1s0xd054d45382f22c9:0x215881fe740d2937!8m2!3d37.0217121!4d-7.9708878!16s%2Fg%2F12hnsyt5z?entry=ttu&g_ep=EgoyMDI2MDExOS4wIKXMDSoASAFQAw%3D%3D',
+                'coords': '37.0217121,-7.9708878'
             }
         }
         
