@@ -1444,27 +1444,6 @@
         async function submitCheckIn() {
             const t = translations[currentLang];
             
-            // Validate client name
-            const clientName = document.getElementById('clientNameInput').value.trim();
-            if (!clientName) {
-                alert(t.alertClientName || 'Por favor, preencha o nome completo do cliente');
-                return;
-            }
-
-            // Validate checkout date
-            const checkoutDate = document.getElementById('checkoutDateInput').value;
-            if (!checkoutDate) {
-                alert(t.alertCheckoutDate || 'Por favor, selecione a data do checkout');
-                return;
-            }
-
-            // Validate checkout time
-            const checkoutTime = document.getElementById('checkoutTimeInput').value;
-            if (!checkoutTime) {
-                alert(t.alertCheckoutTime || 'Por favor, selecione a hora do checkout');
-                return;
-            }
-            
             // Validate 9 photos
             const requiredPhotos = ['front', 'front_left', 'left', 'back_left', 'back', 'back_right', 'right', 'front_right', 'interior'];
             const missingPhotos = requiredPhotos.filter(p => !photos[p]);
@@ -1483,7 +1462,7 @@
 
             // Get fuel level
             const fuelValue = parseInt(document.getElementById('fuelSlider').value);
-            const fuelLevel = fuelLevels[fuelValue];
+            const fuelLevel = fuelLevels[Math.floor(fuelValue / 12.5)];
 
             // Collect damage photos with descriptions
             const validDamagePhotos = [];
@@ -1506,9 +1485,6 @@
                         'Content-Type': 'application/json'
                     },
                     body: JSON.stringify({
-                        client_name: clientName,
-                        checkout_date: checkoutDate,
-                        checkout_time: checkoutTime,
                         photos: photos,
                         damage_photos: validDamagePhotos,
                         odometer: parseInt(odometer),
@@ -1520,7 +1496,7 @@
 
                 if (data.success) {
                     alert(t.alertSuccess);
-                    window.location.href = '/self-checkin-success';
+                    window.location.href = '/self-checkout-success';
                 } else {
                     alert(t.alertError + ' ' + (data.error || 'Erro desconhecido'));
                 }
