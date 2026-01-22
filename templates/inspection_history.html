@@ -253,7 +253,7 @@
                 const response = await fetch(url, fetchOptions);
                 const data = await response.json();
                 
-                if (data.success && data.contracts) {
+                if ((data.ok || data.success) && data.contracts) {
                     contracts = data.contracts;
                     console.log('📊 Loaded', contracts.length, 'contracts');
                     updateStats();
