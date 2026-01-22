@@ -30220,44 +30220,173 @@ async def save_inspection(request: Request):
                                 if return_date:
                                     scheduled_date = calculate_scheduled_date(return_date, days_before=2)
                                 
+                                # Atualizar extracted_data com dados do check-in
+                                try:
+                                    if is_postgres:
+                                        cursor.execute("""
+                                            SELECT extracted_data FROM rental_agreements 
+                                            WHERE rental_agreement_number = %s
+                                        """, (ra,))
+                                    else:
+                                        cursor.execute("""
+                                            SELECT extracted_data FROM rental_agreements 
+                                            WHERE rental_agreement_number = ?
+                                        """, (ra,))
+                                    
+                                    existing_row = cursor.fetchone()
+                                    existing_data = {}
+                                    if existing_row and existing_row[0]:
+                                        import json
+                                        existing_data = json.loads(existing_row[0])
+                                    
+                                    # Adicionar dados do check-in ao extracted_data
+                                    import datetime
+                                    now = datetime.datetime.now()
+                                    existing_data['odometer'] = int(odometer_reading)
+                                    existing_data['kms'] = int(odometer_reading)
+                                    existing_data['fuel_level'] = str(fuel_level)
+                                    existing_data['combustivel'] = str(fuel_level)
+                                    existing_data['delivery_date'] = now.strftime('%d/%m/%Y')
+                                    existing_data['delivery_time'] = now.strftime('%H:%M')
+                                    existing_data['pickup_date'] = now.strftime('%d/%m/%Y')
+                                    existing_data['pickup_time'] = now.strftime('%H:%M')
+                                    
+                                    updated_extracted_json = json.dumps(existing_data)
+                                    logging.info(f"📦 Updated extracted_data with check-in data: kms={odometer_reading}, fuel={fuel_level}, date={existing_data['delivery_date']}, time={existing_data['delivery_time']}")
+                                except Exception as extract_error:
+                                    logging.error(f"❌ Error updating extracted_data: {extract_error}")
+                                    updated_extracted_json = None
+                                
                                 # Atualizar RA com dados de self check-in
                                 if is_postgres:
+                                    if updated_extracted_json:
+                                        cursor.execute("""
+                                            UPDATE rental_agreements
+                                            SET inspection_completed = TRUE,
+                                                inspection_id = %s,
+                                                updated_at = NOW(),
+                                                self_checkin_token = %s,
+                                                self_checkin_email = %s,
+                                                self_checkin_scheduled_date = %s,
+                                                self_checkin_sent = FALSE,
+                                                self_checkin_completed = FALSE,
+                                                return_date = %s,
+                                                client_email = %s,
+                                                extracted_data = %s
+                                            WHERE rental_agreement_number = %s
+                                              AND UPPER(license_plate) = UPPER(%s)
+                                        """, (inspection_id, self_checkin_token, email, scheduled_date, return_date, email, updated_extracted_json, ra, plate))
+                                    else:
+                                        cursor.execute("""
+                                            UPDATE rental_agreements
+                                            SET inspection_completed = TRUE,
+                                                inspection_id = %s,
+                                                updated_at = NOW(),
+                                                self_checkin_token = %s,
+                                                self_checkin_email = %s,
+                                                self_checkin_scheduled_date = %s,
+                                                self_checkin_sent = FALSE,
+                                                self_checkin_completed = FALSE,
+                                                return_date = %s,
+                                                client_email = %s
+                                            WHERE rental_agreement_number = %s
+                                              AND UPPER(license_plate) = UPPER(%s)
+                                        """, (inspection_id, self_checkin_token, email, scheduled_date, return_date, email, ra, plate))
+                                else:
+                                    if updated_extracted_json:
+                                        cursor.execute("""
+                                            UPDATE rental_agreements
+                                            SET inspection_completed = 1,
+                                                inspection_id = ?,
+                                                updated_at = datetime('now'),
+                                                self_checkin_token = ?,
+                                                self_checkin_email = ?,
+                                                self_checkin_scheduled_date = ?,
+                                                self_checkin_sent = 0,
+                                                self_checkin_completed = 0,
+                                                return_date = ?,
+                                                client_email = ?,
+                                                extracted_data = ?
+                                            WHERE rental_agreement_number = ?
+                                              AND UPPER(license_plate) = UPPER(?)
+                                        """, (inspection_id, self_checkin_token, email, scheduled_date, return_date, email, updated_extracted_json, ra, plate))
+                                    else:
+                                        cursor.execute("""
+                                            UPDATE rental_agreements
+                                            SET inspection_completed = 1,
+                                                inspection_id = ?,
+                                                updated_at = datetime('now'),
+                                                self_checkin_token = ?,
+                                                self_checkin_email = ?,
+                                                self_checkin_scheduled_date = ?,
+                                                self_checkin_sent = 0,
+                                                self_checkin_completed = 0,
+                                                return_date = ?,
+                                                client_email = ?
+                                            WHERE rental_agreement_number = ?
+                                              AND UPPER(license_plate) = UPPER(?)
+                                        """, (inspection_id, self_checkin_token, email, scheduled_date, return_date, email, ra, plate))
+                                
+                                logging.info(f"✅ Self check-in configured for RA {ra} (Aeroporto de Faro): token={self_checkin_token[:16]}..., email={email}, scheduled={scheduled_date}")
+                            else:
+                                # Outros locais: apenas marcar inspeção como completa, sem self check-in automático
+                                # Mas ainda atualizar extracted_data com dados do check-in
+                                if is_postgres:
+                                    if updated_extracted_json:
+                                        cursor.execute("""
+                                            UPDATE rental_agreements
+                                            SET inspection_completed = TRUE,
+                                                inspection_id = %s,
+                                                updated_at = NOW(),
+                                                extracted_data = %s
+                                            WHERE rental_agreement_number = %s
+                                              AND UPPER(license_plate) = UPPER(%s)
+                                        """, (inspection_id, updated_extracted_json, ra, plate))
+                                    else:
+                                        cursor.execute("""
+                                            UPDATE rental_agreements
+                                            SET inspection_completed = TRUE,
+                                                inspection_id = %s,
+                                                updated_at = NOW()
+                                            WHERE rental_agreement_number = %s
+                                              AND UPPER(license_plate) = UPPER(%s)
+                                        """, (inspection_id, ra, plate))
+                                else:
+                                    if updated_extracted_json:
+                                        cursor.execute("""
+                                            UPDATE rental_agreements
+                                            SET inspection_completed = 1,
+                                                inspection_id = ?,
+                                                updated_at = datetime('now'),
+                                                extracted_data = ?
+                                            WHERE rental_agreement_number = ?
+                                              AND UPPER(license_plate) = UPPER(?)
+                                        """, (inspection_id, updated_extracted_json, ra, plate))
+                                    else:
+                                        cursor.execute("""
+                                            UPDATE rental_agreements
+                                            SET inspection_completed = 1,
+                                                inspection_id = ?,
+                                                updated_at = datetime('now')
+                                            WHERE rental_agreement_number = ?
+                                              AND UPPER(license_plate) = UPPER(?)
+                                        """, (inspection_id, ra, plate))
+                            
+                            logging.info(f"ℹ️ Self check-in NOT configured for RA {ra} (location: {ra_pickup_location}) - only Aeroporto de Faro gets automatic self check-in")
+                        else:
+                            # Check-in normal - apenas marcar como completo, mas atualizar extracted_data
+                            if is_postgres:
+                                if updated_extracted_json:
                                     cursor.execute("""
                                         UPDATE rental_agreements
                                         SET inspection_completed = TRUE,
                                             inspection_id = %s,
                                             updated_at = NOW(),
-                                            self_checkin_token = %s,
-                                            self_checkin_email = %s,
-                                            self_checkin_scheduled_date = %s,
-                                            self_checkin_sent = FALSE,
-                                            self_checkin_completed = FALSE,
-                                            return_date = %s,
-                                            client_email = %s
+                                            extracted_data = %s
                                         WHERE rental_agreement_number = %s
                                           AND UPPER(license_plate) = UPPER(%s)
-                                    """, (inspection_id, self_checkin_token, email, scheduled_date, return_date, email, ra, plate))
+                                    """, (inspection_id, updated_extracted_json, ra, plate))
                                 else:
-                                    cursor.execute("""
-                                        UPDATE rental_agreements
-                                        SET inspection_completed = 1,
-                                            inspection_id = ?,
-                                            updated_at = datetime('now'),
-                                            self_checkin_token = ?,
-                                            self_checkin_email = ?,
-                                            self_checkin_scheduled_date = ?,
-                                            self_checkin_sent = 0,
-                                            self_checkin_completed = 0,
-                                            return_date = ?,
-                                            client_email = ?
-                                        WHERE rental_agreement_number = ?
-                                          AND UPPER(license_plate) = UPPER(?)
-                                    """, (inspection_id, self_checkin_token, email, scheduled_date, return_date, email, ra, plate))
-                                
-                                logging.info(f"✅ Self check-in configured for RA {ra} (Aeroporto de Faro): token={self_checkin_token[:16]}..., email={email}, scheduled={scheduled_date}")
-                            else:
-                                # Outros locais: apenas marcar inspeção como completa, sem self check-in automático
-                                if is_postgres:
                                     cursor.execute("""
                                         UPDATE rental_agreements
                                         SET inspection_completed = TRUE,
@@ -30266,37 +30395,26 @@ async def save_inspection(request: Request):
                                         WHERE rental_agreement_number = %s
                                           AND UPPER(license_plate) = UPPER(%s)
                                     """, (inspection_id, ra, plate))
+                            else:
+                                if updated_extracted_json:
+                                    cursor.execute("""
+                                        UPDATE rental_agreements
+                                        SET inspection_completed = 1,
+                                            inspection_id = ?,
+                                            updated_at = datetime('now'),
+                                            extracted_data = ?
+                                        WHERE rental_agreement_number = ?
+                                          AND UPPER(license_plate) = UPPER(?)
+                                    """, (inspection_id, updated_extracted_json, ra, plate))
                                 else:
                                     cursor.execute("""
                                         UPDATE rental_agreements
                                         SET inspection_completed = 1,
                                             inspection_id = ?,
-                                        updated_at = datetime('now')
-                                    WHERE rental_agreement_number = ?
-                                      AND UPPER(license_plate) = UPPER(?)
-                                """, (inspection_id, ra, plate))
-                            
-                            logging.info(f"ℹ️ Self check-in NOT configured for RA {ra} (location: {ra_pickup_location}) - only Aeroporto de Faro gets automatic self check-in")
-                        else:
-                            # Check-in normal - apenas marcar como completo
-                            if is_postgres:
-                                cursor.execute("""
-                                    UPDATE rental_agreements
-                                    SET inspection_completed = TRUE,
-                                        inspection_id = %s,
-                                        updated_at = NOW()
-                                    WHERE rental_agreement_number = %s
-                                      AND UPPER(license_plate) = UPPER(%s)
-                                """, (inspection_id, ra, plate))
-                            else:
-                                cursor.execute("""
-                                    UPDATE rental_agreements
-                                    SET inspection_completed = 1,
-                                        inspection_id = ?,
-                                        updated_at = datetime('now')
-                                    WHERE rental_agreement_number = ?
-                                      AND UPPER(license_plate) = UPPER(?)
-                                """, (inspection_id, ra, plate))
+                                            updated_at = datetime('now')
+                                        WHERE rental_agreement_number = ?
+                                          AND UPPER(license_plate) = UPPER(?)
+                                    """, (inspection_id, ra, plate))
                         
                         logging.info(f"✅ Rental Agreement {ra} marked as inspection completed (inspection_id: {inspection_id})")
                     except Exception as ra_update_error:
