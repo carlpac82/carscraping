@@ -1911,37 +1911,49 @@
                     }
                 }
                 
-                // Date patterns: DD/MM/YYYY, DD-MM-YYYY, YYYY-MM-DD
-                const datePatterns = [
-                    /(\d{2})[\/\-](\d{2})[\/\-](\d{4})/,  // DD/MM/YYYY or DD-MM-YYYY
-                    /(\d{4})[\/\-](\d{2})[\/\-](\d{2})/   // YYYY-MM-DD
-                ];
+                // First try to extract from "Entrada: DD/MM/YYYY HH:MM" pattern (from QR code PDF)
+                const entradaPattern = /Entrada[:\s]+(\d{2})[\/\-](\d{2})[\/\-](\d{4})\s+(\d{2})[:\.](\d{2})/i;
+                const entradaMatch = text.match(entradaPattern);
                 
-                for (const pattern of datePatterns) {
-                    const match = text.match(pattern);
-                    if (match) {
-                        if (match[0].startsWith('20')) {
-                            // YYYY-MM-DD format
-                            pickupDate = `${match[3]}/${match[2]}/${match[1]}`;
-                        } else {
-                            // DD/MM/YYYY format
-                            pickupDate = match[0].replace('-', '/');
+                if (entradaMatch) {
+                    // Extract both date and time from "Entrada" pattern
+                    pickupDate = `${entradaMatch[1]}/${entradaMatch[2]}/${entradaMatch[3]}`;
+                    pickupTime = `${entradaMatch[4]}:${entradaMatch[5]}`;
+                    console.log('✅ Extracted from Entrada pattern:', pickupDate, pickupTime);
+                } else {
+                    // Fallback: try separate date and time patterns
+                    // Date patterns: DD/MM/YYYY, DD-MM-YYYY, YYYY-MM-DD
+                    const datePatterns = [
+                        /(\d{2})[\/\-](\d{2})[\/\-](\d{4})/,  // DD/MM/YYYY or DD-MM-YYYY
+                        /(\d{4})[\/\-](\d{2})[\/\-](\d{2})/   // YYYY-MM-DD
+                    ];
+                    
+                    for (const pattern of datePatterns) {
+                        const match = text.match(pattern);
+                        if (match) {
+                            if (match[0].startsWith('20')) {
+                                // YYYY-MM-DD format
+                                pickupDate = `${match[3]}/${match[2]}/${match[1]}`;
+                            } else {
+                                // DD/MM/YYYY format
+                                pickupDate = match[0].replace('-', '/');
+                            }
+                            break;
                         }
-                        break;
                     }
-                }
-                
-                // Time patterns: HH:MM, HH.MM, HHhMM
-                const timePatterns = [
-                    /(\d{2})[:\.](\d{2})/,  // HH:MM or HH.MM
-                    /(\d{2})h(\d{2})/i      // HHhMM
-                ];
-                
-                for (const pattern of timePatterns) {
-                    const match = text.match(pattern);
-                    if (match) {
-                        pickupTime = `${match[1]}:${match[2]}`;
-                        break;
+                    
+                    // Time patterns: HH:MM, HH.MM, HHhMM
+                    const timePatterns = [
+                        /(\d{2})[:\.](\d{2})/,  // HH:MM or HH.MM
+                        /(\d{2})h(\d{2})/i      // HHhMM
+                    ];
+                    
+                    for (const pattern of timePatterns) {
+                        const match = text.match(pattern);
+                        if (match) {
+                            pickupTime = `${match[1]}:${match[2]}`;
+                            break;
+                        }
                     }
                 }
                 
