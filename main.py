@@ -1833,9 +1833,33 @@ async def static_ap_favicon_redirect():
 DATA_DIR = Path(os.environ.get("DATA_DIR", str(BASE_DIR)))
 DATA_DIR.mkdir(parents=True, exist_ok=True)
 DB_PATH = DATA_DIR / "data.db"
-_db_lock = Lock()
+
+# Locks separados por subsistema para melhor concorrência
+_db_lock = Lock()  # Lock geral (legacy - manter para compatibilidade)
+_scraping_lock = Lock()  # Lock para operações de scraping/preços
+_inspection_lock = Lock()  # Lock para operações de inspeção de veículos
+_users_lock = Lock()  # Lock para operações de utilizadores
+_files_lock = Lock()  # Lock para operações de ficheiros
+
 DEBUG_DIR = Path(os.environ.get("DEBUG_DIR", BASE_DIR / "static" / "debug"))
 DEBUG_DIR.mkdir(parents=True, exist_ok=True)
+
+# Helper para locks com timeout
+from contextlib import contextmanager
+import time
+
+@contextmanager
+def acquire_lock_with_timeout(lock, timeout=5.0, operation_name="DB operation"):
+    """Context manager para adquirir lock com timeout"""
+    acquired = lock.acquire(timeout=timeout)
+    if not acquired:
+        import sys
+        print(f"[LOCK TIMEOUT] Failed to acquire lock for {operation_name} after {timeout}s", file=sys.stderr, flush=True)
+        raise TimeoutError(f"Could not acquire lock for {operation_name}")
+    try:
+        yield
+    finally:
+        lock.release()
 
 # --- Admin/Users: DB helpers ---
 class PostgreSQLConnectionWrapper:
@@ -2399,20 +2423,22 @@ def map_category_to_group(category: str, car_name: str = "", transmission: str =
     car_lower = car_name.lower() if car_name else ""
     trans_lower = transmission.lower() if transmission else ""
 
-    # PRIORIDADE 0: Matching inteligente baseado em Admin Vehicles
-    if match_vehicle_group_by_characteristics and car_name:
-        vehicle_groups = load_admin_vehicles()
-        if vehicle_groups:
-            # Criar função fallback que é a lógica atual
-            def fallback(cat, name):
-                return _map_category_fallback(cat, name, transmission)
-            
-            matched_group = match_vehicle_group_by_characteristics(
-                category, car_name, transmission, vehicle_groups, fallback
-            )
-            
-            # Se encontrou match válido (não "Others"), usar
-            if matched_group and matched_group != "Others":
+    # PRIORIDADE 0: Matching inteligente baseado em Admin Vehicles (DESABILITADO)
+    # Função match_vehicle_group_by_characteristics não está implementada
+    # Comentado para evitar NameError
+    # if match_vehicle_group_by_characteristics and car_name:
+    #     vehicle_groups = load_admin_vehicles()
+    #     if vehicle_groups:
+    #         # Criar função fallback que é a lógica atual
+    #         def fallback(cat, name):
+    #             return _map_category_fallback(cat, name, transmission)
+    #         
+    #         matched_group = match_vehicle_group_by_characteristics(
+    #             category, car_name, transmission, vehicle_groups, fallback
+    #         )
+    #         
+    #         # Se encontrou match válido (não "Others"), usar
+    if False:
                 logging.info(f"[SMART-MATCH] {car_name} ({category}) → {matched_group} (via Admin characteristics)")
                 return matched_group
     
@@ -15855,6 +15881,13 @@ def try_direct_carjet(location_name: str, start_dt, end_dt, lang: str = "pt", cu
     """
     import sys
     
+    # Verificar se requests está disponível
+    _HAS_CARJET_REQUESTS = True
+    try:
+        import requests
+    except ImportError:
+        _HAS_CARJET_REQUESTS = False
+    
     # =============================================================================
     # MÉTODO 1 (PRINCIPAL): carjet_requests com sessão persistente
     # =============================================================================
@@ -28894,8 +28927,8 @@ async def create_vehicle_inspection(request: Request):
         else:
             damage_severity = 'minor'
         
-        # Save to database
-        with _db_lock:
+        # Save to database (usar lock específico de inspeção)
+        with acquire_lock_with_timeout(_inspection_lock, timeout=10.0, operation_name="vehicle inspection create"):
             conn = _db_connect()
             try:
                 is_postgres = conn.__class__.__module__ == 'psycopg2.extensions'
@@ -29338,37 +29371,38 @@ async def save_inspection(request: Request):
         
         logging.info(f"👤 Current user: {username} ({user_full_name})")
         
-        # Save to database
+        # Save to database (usar lock específico de inspeção)
         logging.info("💾 Connecting to database...")
-        conn = _db_connect()
-        logging.info("✅ Database connected")
-        try:
-            # Detect database type - ROBUST METHOD
-            is_postgres = False
-            conn_type = type(conn).__name__
-            
-            if 'psycopg' in conn_type.lower() or conn_type == 'connection':
-                is_postgres = True
-            elif os.getenv('DATABASE_URL'):
-                is_postgres = True
-            else:
-                try:
-                    import psycopg2
-                    is_postgres = isinstance(conn, psycopg2.extensions.connection)
-                except:
-                    pass
-            
-            if is_postgres:
-                # PostgreSQL
-                logging.info("📊 Using PostgreSQL database")
-                cursor = conn.cursor()
+        with acquire_lock_with_timeout(_inspection_lock, timeout=10.0, operation_name="save inspection"):
+            conn = _db_connect()
+            logging.info("✅ Database connected")
+            try:
+                # Detect database type - ROBUST METHOD
+                is_postgres = False
+                conn_type = type(conn).__name__
                 
-                # Check for vehicle swap scenario (same RA, different plate)
-                # If doing check-in and there's a previous check-in with same RA but different plate
-                # that doesn't have a check-out yet, block the operation
-                if inspection_type == 'checkin':
-                    logging.info(f"🔍 Checking for pending check-out with RA={ra}...")
-                    cursor.execute("""
+                if 'psycopg' in conn_type.lower() or conn_type == 'connection':
+                    is_postgres = True
+                elif os.getenv('DATABASE_URL'):
+                    is_postgres = True
+                else:
+                    try:
+                        import psycopg2
+                        is_postgres = isinstance(conn, psycopg2.extensions.connection)
+                    except:
+                        pass
+                
+                if is_postgres:
+                    # PostgreSQL
+                    logging.info("📊 Using PostgreSQL database")
+                    cursor = conn.cursor()
+                    
+                    # Check for vehicle swap scenario (same RA, different plate)
+                    # If doing check-in and there's a previous check-in with same RA but different plate
+                    # that doesn't have a check-out yet, block the operation
+                    if inspection_type == 'checkin':
+                        logging.info(f"🔍 Checking for pending check-out with RA={ra}...")
+                        cursor.execute("""
                         SELECT vehicle_plate, inspection_number
                         FROM vehicle_inspections
                         WHERE contract_number = %s
@@ -29392,358 +29426,221 @@ async def save_inspection(request: Request):
                             "error": f"Tem que fazer a Recolha da viatura {pending_plate} (RA {ra}) antes de fazer Entrega da nova viatura. Troca de viatura requer Recolha da viatura anterior primeiro."
                         }, status_code=400)
                 
-                # Delete previous inspection with same RA+plate (if exists)
-                # This prevents duplicate check-outs for the same vehicle+contract
-                # Exception: If RA is same but plate is different, keep both (vehicle swap)
-                logging.info(f"🗑️ Checking for previous inspection with RA={ra} and Plate={plate}...")
-                cursor.execute("""
-                    DELETE FROM vehicle_inspections
-                    WHERE contract_number = %s 
-                    AND vehicle_plate = %s
-                    AND inspection_type = %s
-                """, (ra, plate, inspection_type))
-                
-                deleted_count = cursor.rowcount
-                if deleted_count > 0:
-                    logging.info(f"🗑️ Deleted {deleted_count} previous inspection(s) with same RA+Plate")
-                else:
-                    logging.info(f"✅ No previous inspection found with same RA+Plate")
-                
-                # Get RA data for this inspection
-                ra_client_name = None
-                ra_pickup_date = None
-                ra_pickup_location = None
-                ra_return_date = None
-                ra_return_location = None
-                ra_country = None
-                
-                if ra:
-                    try:
-                        # Remove suffix like -09 from RA number (e.g., 06716-09 -> 06716)
-                        ra_base = ra.split('-')[0] if '-' in ra else ra
-                        cursor.execute("""
-                            SELECT extracted_data FROM rental_agreements WHERE rental_agreement_number LIKE %s LIMIT 1
-                        """, (f"{ra_base}%",))
-                        ra_row = cursor.fetchone()
-                        if ra_row and ra_row[0]:
-                            import json
-                            ra_data = json.loads(ra_row[0])
-                            ra_client_name = ra_data.get('clientName', '')
-                            ra_pickup_date = ra_data.get('pickupDate', '')
-                            ra_pickup_location = ra_data.get('pickupLocation', '')
-                            ra_return_date = ra_data.get('returnDate', '')
-                            ra_return_location = ra_data.get('returnLocation', '')
-                            ra_country = ra_data.get('country', '')
-                            logging.info(f"📋 RA Data found for {ra} (base: {ra_base}): client={ra_client_name}, pickup={ra_pickup_date}/{ra_pickup_location}, return={ra_return_date}/{ra_return_location}, country={ra_country}")
-                        else:
-                            logging.warning(f"⚠️ No RA data found for: {ra} (base: {ra_base})")
-                    except Exception as e:
-                        logging.warning(f"⚠️ Could not fetch RA data: {e}")
-                
-                logging.info("💾 Inserting inspection into vehicle_inspections table...")
-                cursor.execute("""
-                    INSERT INTO vehicle_inspections
-                    (inspection_number, inspection_type, vehicle_plate, vehicle_id, contract_number,
-                     inspector_name, inspector_notes, has_damage, damage_count, damage_severity,
-                     ai_analysis_complete, ai_confidence_avg, odometer_reading, fuel_level,
-                     status, photo_count, client_name, pickup_date, pickup_location, return_date, return_location, country, created_at)
-                    VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, NOW())
-                    RETURNING id
-                """, (
-                    inspection_number,
-                    inspection_type,
-                    plate,
-                    vehicle_id,
-                    ra,
-                    receptionist or username,
-                    observations,
-                    has_damage,
-                    damage_count,
-                    damage_severity,
-                    True,  # ai_analysis_complete
-                    100.0,  # ai_confidence_avg
-                    int(odometer_reading),
-                    str(fuel_level),
-                    'completed',
-                    len(photos),
-                    ra_client_name,
-                    ra_pickup_date,
-                    ra_pickup_location,
-                    ra_return_date,
-                    ra_return_location,
-                    ra_country
-                ))
-                
-                inspection_id = cursor.fetchone()[0]
-                logging.info(f"✅ Inspection inserted with ID: {inspection_id}")
-                
-            else:
-                # SQLite
-                logging.info("📊 Using SQLite database")
-                cursor = conn.cursor()
-                
-                # Check for vehicle swap scenario (same RA, different plate)
-                # If doing check-in and there's a previous check-in with same RA but different plate
-                # that doesn't have a check-out yet, block the operation
-                if inspection_type == 'checkin':
-                    logging.info(f"🔍 Checking for pending check-out with RA={ra}...")
+                    # Delete previous inspection with same RA+plate (if exists)
+                    # This prevents duplicate check-outs for the same vehicle+contract
+                    # Exception: If RA is same but plate is different, keep both (vehicle swap)
+                    logging.info(f"🗑️ Checking for previous inspection with RA={ra} and Plate={plate}...")
                     cursor.execute("""
-                        SELECT vehicle_plate, inspection_number
-                        FROM vehicle_inspections
-                        WHERE contract_number = ?
-                        AND vehicle_plate != ?
-                        AND inspection_type = 'checkin'
-                        AND NOT EXISTS (
-                            SELECT 1 FROM vehicle_inspections ci
-                            WHERE ci.contract_number = vehicle_inspections.contract_number
-                            AND ci.vehicle_plate = vehicle_inspections.vehicle_plate
-                            AND ci.inspection_type = 'checkout'
-                        )
-                        LIMIT 1
-                    """, (ra, plate))
+                        DELETE FROM vehicle_inspections
+                        WHERE contract_number = %s 
+                        AND vehicle_plate = %s
+                        AND inspection_type = %s
+                    """, (ra, plate, inspection_type))
                     
-                    pending_checkout = cursor.fetchone()
-                    if pending_checkout:
-                        pending_plate = pending_checkout[0]
-                        logging.error(f"❌ Cannot do delivery: pending pickup for {pending_plate} with RA {ra}")
-                        return JSONResponse({
-                            "ok": False,
-                            "error": f"Tem que fazer a Recolha da viatura {pending_plate} (RA {ra}) antes de fazer Entrega da nova viatura. Troca de viatura requer Recolha da viatura anterior primeiro."
-                        }, status_code=400)
-                
-                # Delete previous inspection with same RA+plate (if exists)
-                # This prevents duplicate check-outs for the same vehicle+contract
-                # Exception: If RA is same but plate is different, keep both (vehicle swap)
-                logging.info(f"🗑️ Checking for previous inspection with RA={ra} and Plate={plate}...")
-                cursor.execute("""
-                    DELETE FROM vehicle_inspections
-                    WHERE contract_number = ? 
-                    AND vehicle_plate = ?
-                    AND inspection_type = ?
-                """, (ra, plate, inspection_type))
-                
-                deleted_count = cursor.rowcount
-                if deleted_count > 0:
-                    logging.info(f"🗑️ Deleted {deleted_count} previous inspection(s) with same RA+Plate")
-                else:
-                    logging.info(f"✅ No previous inspection found with same RA+Plate")
-                
-                # Get RA data for this inspection
-                ra_client_name = None
-                ra_pickup_date = None
-                ra_pickup_location = None
-                ra_return_date = None
-                ra_return_location = None
-                ra_country = None
-                
-                if ra:
-                    try:
-                        # Remove suffix like -09 from RA number (e.g., 06716-09 -> 06716)
-                        ra_base = ra.split('-')[0] if '-' in ra else ra
-                        cursor.execute("""
-                            SELECT extracted_data FROM rental_agreements WHERE rental_agreement_number LIKE ? LIMIT 1
-                        """, (f"{ra_base}%",))
-                        ra_row = cursor.fetchone()
-                        if ra_row and ra_row[0]:
-                            import json
-                            ra_data = json.loads(ra_row[0])
-                            ra_client_name = ra_data.get('clientName', '')
-                            ra_pickup_date = ra_data.get('pickupDate', '')
-                            ra_pickup_location = ra_data.get('pickupLocation', '')
-                            ra_return_date = ra_data.get('returnDate', '')
-                            ra_return_location = ra_data.get('returnLocation', '')
-                            ra_country = ra_data.get('country', '')
-                            logging.info(f"📋 RA Data found for {ra} (base: {ra_base}): client={ra_client_name}, pickup={ra_pickup_date}/{ra_pickup_location}, return={ra_return_date}/{ra_return_location}, country={ra_country}")
-                        else:
-                            logging.warning(f"⚠️ No RA data found for: {ra} (base: {ra_base})")
-                    except Exception as e:
-                        logging.warning(f"⚠️ Could not fetch RA data: {e}")
-                
-                logging.info("💾 Inserting inspection into vehicle_inspections table...")
-                cursor.execute("""
-                    INSERT INTO vehicle_inspections
-                    (inspection_number, inspection_type, vehicle_plate, vehicle_id, contract_number,
-                     inspector_name, inspector_notes, has_damage, damage_count, damage_severity,
-                     ai_analysis_complete, ai_confidence_avg, odometer_reading, fuel_level,
-                     status, photo_count, client_name, pickup_date, pickup_location, return_date, return_location, country, created_at)
-                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, datetime('now'))
-                """, (
-                    inspection_number,
-                    inspection_type,
-                    plate,
-                    vehicle_id,
-                    ra,
-                    receptionist or username,
-                    observations,
-                    1 if has_damage else 0,
-                    damage_count,
-                    damage_severity,
-                    1,  # ai_analysis_complete
-                    100.0,  # ai_confidence_avg
-                    int(odometer_reading),
-                    str(fuel_level),
-                    'completed',
-                    len(photos),
-                    ra_client_name,
-                    ra_pickup_date,
-                    ra_pickup_location,
-                    ra_return_date,
-                    ra_return_location,
-                    ra_country
-                ))
-                
-                inspection_id = cursor.lastrowid
-                logging.info(f"✅ Inspection inserted with ID: {inspection_id}")
-            
-            # Save photos with base64 data
-            photo_types = ['front', 'front_left', 'left', 'back_left', 'back', 'back_right', 'right', 'front_right', 'odometer']
-            logging.info(f"💾 Saving photos to database...")
-            photos_saved = 0
-            for idx, photo_type in enumerate(photo_types):
-                if photo_type in photos and photos[photo_type]:
-                    photo_data = photos[photo_type]
-                    logging.info(f"📸 Processing photo '{photo_type}': data length={len(photo_data) if photo_data else 0}")
-                    
-                    # Ensure it has data:image prefix for TEXT storage
-                    if not photo_data.startswith('data:image'):
-                        photo_data = f"data:image/jpeg;base64,{photo_data}"
-                    
-                    if is_postgres:
-                        # PostgreSQL: store as TEXT (data URL)
-                        cursor.execute("""
-                            INSERT INTO inspection_photos
-                            (inspection_id, photo_type, photo_order, image_data, image_filename,
-                             ai_analyzed, ai_has_damage, created_at)
-                            VALUES (%s, %s, %s, %s, %s, %s, %s, NOW())
-                        """, (
-                            inspection_id,
-                            photo_type,
-                            idx + 1,
-                            photo_data,
-                            f"{photo_type}.jpg",
-                            True,
-                            False
-                        ))
-                        photos_saved += 1
-                        logging.info(f"✅ Photo '{photo_type}' saved to database as TEXT")
+                    deleted_count = cursor.rowcount
+                    if deleted_count > 0:
+                        logging.info(f"🗑️ Deleted {deleted_count} previous inspection(s) with same RA+Plate")
                     else:
-                        # SQLite: store as BYTEA (bytes)
-                        if 'base64,' in photo_data:
-                            photo_base64 = photo_data.split('base64,')[1]
-                        else:
-                            photo_base64 = photo_data
-                        
+                        logging.info(f"✅ No previous inspection found with same RA+Plate")
+                    
+                    # Get RA data for this inspection
+                    ra_client_name = None
+                    ra_pickup_date = None
+                    ra_pickup_location = None
+                    ra_return_date = None
+                    ra_return_location = None
+                    ra_country = None
+                    
+                    if ra:
                         try:
-                            photo_bytes = base64.b64decode(photo_base64)
+                            # Remove suffix like -09 from RA number (e.g., 06716-09 -> 06716)
+                            ra_base = ra.split('-')[0] if '-' in ra else ra
                             cursor.execute("""
-                                INSERT INTO inspection_photos
-                                (inspection_id, photo_type, photo_order, image_data, image_filename,
-                                 ai_analyzed, ai_has_damage, created_at)
-                                VALUES (?, ?, ?, ?, ?, ?, ?, datetime('now'))
-                            """, (
-                                inspection_id,
-                                photo_type,
-                                idx + 1,
-                                photo_bytes,
-                                f"{photo_type}.jpg",
-                                1,
-                                0
-                            ))
-                            photos_saved += 1
-                            logging.info(f"✅ Photo '{photo_type}' saved to database as BYTEA")
-                        except Exception as decode_error:
-                            logging.error(f"❌ Failed to decode photo '{photo_type}': {decode_error}")
+                                SELECT extracted_data FROM rental_agreements WHERE rental_agreement_number LIKE %s LIMIT 1
+                            """, (f"{ra_base}%",))
+                            ra_row = cursor.fetchone()
+                            if ra_row and ra_row[0]:
+                                import json
+                                ra_data = json.loads(ra_row[0])
+                                ra_client_name = ra_data.get('clientName', '')
+                                ra_pickup_date = ra_data.get('pickupDate', '')
+                                ra_pickup_location = ra_data.get('pickupLocation', '')
+                                ra_return_date = ra_data.get('returnDate', '')
+                                ra_return_location = ra_data.get('returnLocation', '')
+                                ra_country = ra_data.get('country', '')
+                                logging.info(f"📋 RA Data found for {ra} (base: {ra_base}): client={ra_client_name}, pickup={ra_pickup_date}/{ra_pickup_location}, return={ra_return_date}/{ra_return_location}, country={ra_country}")
+                            else:
+                                logging.warning(f"⚠️ No RA data found for: {ra} (base: {ra_base})")
+                        except Exception as e:
+                            logging.warning(f"⚠️ Could not fetch RA data: {e}")
+                    
+                    logging.info("💾 Inserting inspection into vehicle_inspections table...")
+                    cursor.execute("""
+                        INSERT INTO vehicle_inspections
+                        (inspection_number, inspection_type, vehicle_plate, vehicle_id, contract_number,
+                         inspector_name, inspector_notes, has_damage, damage_count, damage_severity,
+                         ai_analysis_complete, ai_confidence_avg, odometer_reading, fuel_level,
+                         status, photo_count, client_name, pickup_date, pickup_location, return_date, return_location, country, created_at)
+                        VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, NOW())
+                        RETURNING id
+                    """, (
+                        inspection_number,
+                        inspection_type,
+                        plate,
+                        vehicle_id,
+                        ra,
+                        receptionist or username,
+                        observations,
+                        has_damage,
+                        damage_count,
+                        damage_severity,
+                        True,  # ai_analysis_complete
+                        100.0,  # ai_confidence_avg
+                        int(odometer_reading),
+                        str(fuel_level),
+                        'completed',
+                        len(photos),
+                        ra_client_name,
+                        ra_pickup_date,
+                        ra_pickup_location,
+                        ra_return_date,
+                        ra_return_location,
+                        ra_country
+                    ))
+                    
+                    inspection_id = cursor.fetchone()[0]
+                    logging.info(f"✅ Inspection inserted with ID: {inspection_id}")
+                    
                 else:
-                    logging.warning(f"⚠️ Photo '{photo_type}' not found in photos dict")
-            
-            logging.info(f"✅ Total photos saved to database: {photos_saved}/{len(photo_types)}")
-            
-            # Save damage croqui if present
-            logging.info(f"🔍 DEBUG SAVE CROQUI - Received: {bool(damage_croqui)}, Length: {len(damage_croqui) if damage_croqui else 0}")
-            if damage_croqui and len(damage_croqui) > 100:
-                try:
-                    logging.info(f"💾 Saving damage croqui to database...")
+                    # SQLite
+                    logging.info("📊 Using SQLite database")
+                    cursor = conn.cursor()
                     
-                    # Log first 100 chars to verify format
-                    logging.info(f"🔍 DEBUG SAVE CROQUI - First 100 chars: {damage_croqui[:100]}")
-                    
-                    # Ensure it has data:image prefix for TEXT storage
-                    if not damage_croqui.startswith('data:image'):
-                        damage_croqui = f"data:image/png;base64,{damage_croqui}"
-                        logging.info(f"🔍 DEBUG SAVE CROQUI - Added data URL prefix")
-                    
-                    logging.info(f"✅ Damage croqui prepared as data URL: {len(damage_croqui)} chars")
-                    
-                    if is_postgres:
+                    # Check for vehicle swap scenario (same RA, different plate)
+                    # If doing check-in and there's a previous check-in with same RA but different plate
+                    # that doesn't have a check-out yet, block the operation
+                    if inspection_type == 'checkin':
+                        logging.info(f"🔍 Checking for pending check-out with RA={ra}...")
                         cursor.execute("""
-                            INSERT INTO inspection_photos
-                            (inspection_id, photo_type, photo_order, image_data, image_filename,
-                             ai_analyzed, ai_has_damage, created_at)
-                            VALUES (%s, %s, %s, %s, %s, %s, %s, NOW())
-                        """, (
-                            inspection_id,
-                            'damage_croqui',
-                            99,  # High order number to keep it separate
-                            damage_croqui,
-                            'damage_croqui.png',
-                            True,
-                            True
-                        ))
-                    else:
-                        # SQLite still uses BYTEA, decode to bytes
-                        if 'base64,' in damage_croqui:
-                            croqui_base64 = damage_croqui.split('base64,')[1]
-                        else:
-                            croqui_base64 = damage_croqui
-                        croqui_bytes = base64.b64decode(croqui_base64)
+                            SELECT vehicle_plate, inspection_number
+                            FROM vehicle_inspections
+                            WHERE contract_number = ?
+                            AND vehicle_plate != ?
+                            AND inspection_type = 'checkin'
+                            AND NOT EXISTS (
+                                SELECT 1 FROM vehicle_inspections ci
+                                WHERE ci.contract_number = vehicle_inspections.contract_number
+                                AND ci.vehicle_plate = vehicle_inspections.vehicle_plate
+                                AND ci.inspection_type = 'checkout'
+                            )
+                            LIMIT 1
+                        """, (ra, plate))
                         
-                        cursor.execute("""
-                            INSERT INTO inspection_photos
-                            (inspection_id, photo_type, photo_order, image_data, image_filename,
-                             ai_analyzed, ai_has_damage, created_at)
-                            VALUES (?, ?, ?, ?, ?, ?, ?, datetime('now'))
-                        """, (
-                            inspection_id,
-                            'damage_croqui',
-                            99,
-                            croqui_bytes,
-                            'damage_croqui.png',
-                            1,
-                            1
-                        ))
-                    logging.info(f"✅ Damage croqui saved to database")
-                except Exception as croqui_error:
-                    logging.error(f"❌ Failed to save damage croqui: {croqui_error}")
-            else:
-                logging.warning(f"⚠️ No damage croqui to save")
-            
-            # Save damage photos (damagePhoto_front, damagePhoto_back, etc.)
-            damage_photos_saved = 0
-            logging.info(f"🔍 DEBUG - Checking photos dict for damage photos...")
-            logging.info(f"🔍 DEBUG - Photos keys: {list(photos.keys())}")
-            logging.info(f"🔍 DEBUG - Total photos in dict: {len(photos)}")
-            
-            for photo_key in photos.keys():
-                logging.info(f"🔍 DEBUG - Checking photo_key: {photo_key}")
-                if photo_key.startswith('damagePhoto'):
-                    try:
-                        logging.info(f"💾 Saving damage photo '{photo_key}' to database...")
-                        photo_data = photos[photo_key]
+                        pending_checkout = cursor.fetchone()
+                        if pending_checkout:
+                            pending_plate = pending_checkout[0]
+                            logging.error(f"❌ Cannot do delivery: pending pickup for {pending_plate} with RA {ra}")
+                            return JSONResponse({
+                                "ok": False,
+                                "error": f"Tem que fazer a Recolha da viatura {pending_plate} (RA {ra}) antes de fazer Entrega da nova viatura. Troca de viatura requer Recolha da viatura anterior primeiro."
+                            }, status_code=400)
+                    
+                    # Delete previous inspection with same RA+plate (if exists)
+                    # This prevents duplicate check-outs for the same vehicle+contract
+                    # Exception: If RA is same but plate is different, keep both (vehicle swap)
+                    logging.info(f"🗑️ Checking for previous inspection with RA={ra} and Plate={plate}...")
+                    cursor.execute("""
+                        DELETE FROM vehicle_inspections
+                        WHERE contract_number = ? 
+                        AND vehicle_plate = ?
+                        AND inspection_type = ?
+                    """, (ra, plate, inspection_type))
+                    
+                    deleted_count = cursor.rowcount
+                    if deleted_count > 0:
+                        logging.info(f"🗑️ Deleted {deleted_count} previous inspection(s) with same RA+Plate")
+                    else:
+                        logging.info(f"✅ No previous inspection found with same RA+Plate")
+                    
+                    # Get RA data for this inspection
+                    ra_client_name = None
+                    ra_pickup_date = None
+                    ra_pickup_location = None
+                    ra_return_date = None
+                    ra_return_location = None
+                    ra_country = None
+                    
+                    if ra:
+                        try:
+                            # Remove suffix like -09 from RA number (e.g., 06716-09 -> 06716)
+                            ra_base = ra.split('-')[0] if '-' in ra else ra
+                            cursor.execute("""
+                                SELECT extracted_data FROM rental_agreements WHERE rental_agreement_number LIKE ? LIMIT 1
+                            """, (f"{ra_base}%",))
+                            ra_row = cursor.fetchone()
+                            if ra_row and ra_row[0]:
+                                import json
+                                ra_data = json.loads(ra_row[0])
+                                ra_client_name = ra_data.get('clientName', '')
+                                ra_pickup_date = ra_data.get('pickupDate', '')
+                                ra_pickup_location = ra_data.get('pickupLocation', '')
+                                ra_return_date = ra_data.get('returnDate', '')
+                                ra_return_location = ra_data.get('returnLocation', '')
+                                ra_country = ra_data.get('country', '')
+                                logging.info(f"📋 RA Data found for {ra} (base: {ra_base}): client={ra_client_name}, pickup={ra_pickup_date}/{ra_pickup_location}, return={ra_return_date}/{ra_return_location}, country={ra_country}")
+                            else:
+                                logging.warning(f"⚠️ No RA data found for: {ra} (base: {ra_base})")
+                        except Exception as e:
+                            logging.warning(f"⚠️ Could not fetch RA data: {e}")
+                    
+                    logging.info("💾 Inserting inspection into vehicle_inspections table...")
+                    cursor.execute("""
+                        INSERT INTO vehicle_inspections
+                        (inspection_number, inspection_type, vehicle_plate, vehicle_id, contract_number,
+                         inspector_name, inspector_notes, has_damage, damage_count, damage_severity,
+                         ai_analysis_complete, ai_confidence_avg, odometer_reading, fuel_level,
+                         status, photo_count, client_name, pickup_date, pickup_location, return_date, return_location, country, created_at)
+                        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, datetime('now'))
+                    """, (
+                        inspection_number,
+                        inspection_type,
+                        plate,
+                        vehicle_id,
+                        ra,
+                        receptionist or username,
+                        observations,
+                        1 if has_damage else 0,
+                        damage_count,
+                        damage_severity,
+                        1,  # ai_analysis_complete
+                        100.0,  # ai_confidence_avg
+                        int(odometer_reading),
+                        str(fuel_level),
+                        'completed',
+                        len(photos),
+                        ra_client_name,
+                        ra_pickup_date,
+                        ra_pickup_location,
+                        ra_return_date,
+                        ra_return_location,
+                        ra_country
+                    ))
+                    
+                    inspection_id = cursor.lastrowid
+                    logging.info(f"✅ Inspection inserted with ID: {inspection_id}")
+                
+                # Save photos with base64 data
+                photo_types = ['front', 'front_left', 'left', 'back_left', 'back', 'back_right', 'right', 'front_right', 'odometer']
+                logging.info(f"💾 Saving photos to database...")
+                photos_saved = 0
+                for idx, photo_type in enumerate(photo_types):
+                    if photo_type in photos and photos[photo_type]:
+                        photo_data = photos[photo_type]
+                        logging.info(f"📸 Processing photo '{photo_type}': data length={len(photo_data) if photo_data else 0}")
                         
                         # Ensure it has data:image prefix for TEXT storage
                         if not photo_data.startswith('data:image'):
                             photo_data = f"data:image/jpeg;base64,{photo_data}"
-                        
-                        # Extract side from damagePhoto_front, damagePhoto_back, etc.
-                        # If old format (damagePhoto1), use damage_photo_1
-                        if '_' in photo_key:
-                            side = photo_key.replace('damagePhoto_', '')
-                            photo_type = f'damage_{side}'
-                            photo_order = 100 + damage_photos_saved  # Use counter for order
-                        else:
-                            photo_number = photo_key.replace('damagePhoto', '')
-                            photo_type = f'damage_photo_{photo_number}'
-                            photo_order = 100 + int(photo_number)
                         
                         if is_postgres:
                             # PostgreSQL: store as TEXT (data URL)
@@ -29755,20 +29652,84 @@ async def save_inspection(request: Request):
                             """, (
                                 inspection_id,
                                 photo_type,
-                                photo_order,
+                                idx + 1,
                                 photo_data,
                                 f"{photo_type}.jpg",
                                 True,
-                                True
+                                False
                             ))
-                            logging.info(f"✅ Damage photo '{photo_key}' saved as TEXT: '{photo_type}'")
+                            photos_saved += 1
+                            logging.info(f"✅ Photo '{photo_type}' saved to database as TEXT")
                         else:
                             # SQLite: store as BYTEA (bytes)
                             if 'base64,' in photo_data:
                                 photo_base64 = photo_data.split('base64,')[1]
                             else:
                                 photo_base64 = photo_data
-                            photo_bytes = base64.b64decode(photo_base64)
+                            
+                            try:
+                                photo_bytes = base64.b64decode(photo_base64)
+                                cursor.execute("""
+                                    INSERT INTO inspection_photos
+                                    (inspection_id, photo_type, photo_order, image_data, image_filename,
+                                     ai_analyzed, ai_has_damage, created_at)
+                                    VALUES (?, ?, ?, ?, ?, ?, ?, datetime('now'))
+                                """, (
+                                    inspection_id,
+                                    photo_type,
+                                    idx + 1,
+                                    photo_bytes,
+                                    f"{photo_type}.jpg",
+                                    1,
+                                    0
+                                ))
+                                photos_saved += 1
+                                logging.info(f"✅ Photo '{photo_type}' saved to database as BYTEA")
+                            except Exception as decode_error:
+                                logging.error(f"❌ Failed to decode photo '{photo_type}': {decode_error}")
+                    else:
+                        logging.warning(f"⚠️ Photo '{photo_type}' not found in photos dict")
+                
+                logging.info(f"✅ Total photos saved to database: {photos_saved}/{len(photo_types)}")
+                
+                # Save damage croqui if present
+                logging.info(f"🔍 DEBUG SAVE CROQUI - Received: {bool(damage_croqui)}, Length: {len(damage_croqui) if damage_croqui else 0}")
+                if damage_croqui and len(damage_croqui) > 100:
+                    try:
+                        logging.info(f"💾 Saving damage croqui to database...")
+                        
+                        # Log first 100 chars to verify format
+                        logging.info(f"🔍 DEBUG SAVE CROQUI - First 100 chars: {damage_croqui[:100]}")
+                        
+                        # Ensure it has data:image prefix for TEXT storage
+                        if not damage_croqui.startswith('data:image'):
+                            damage_croqui = f"data:image/png;base64,{damage_croqui}"
+                            logging.info(f"🔍 DEBUG SAVE CROQUI - Added data URL prefix")
+                        
+                        logging.info(f"✅ Damage croqui prepared as data URL: {len(damage_croqui)} chars")
+                        
+                        if is_postgres:
+                            cursor.execute("""
+                                INSERT INTO inspection_photos
+                                (inspection_id, photo_type, photo_order, image_data, image_filename,
+                                 ai_analyzed, ai_has_damage, created_at)
+                                VALUES (%s, %s, %s, %s, %s, %s, %s, NOW())
+                            """, (
+                                inspection_id,
+                                'damage_croqui',
+                                99,  # High order number to keep it separate
+                                damage_croqui,
+                                'damage_croqui.png',
+                                True,
+                                True
+                            ))
+                        else:
+                            # SQLite still uses BYTEA, decode to bytes
+                            if 'base64,' in damage_croqui:
+                                croqui_base64 = damage_croqui.split('base64,')[1]
+                            else:
+                                croqui_base64 = damage_croqui
+                            croqui_bytes = base64.b64decode(croqui_base64)
                             
                             cursor.execute("""
                                 INSERT INTO inspection_photos
@@ -29777,147 +29738,242 @@ async def save_inspection(request: Request):
                                 VALUES (?, ?, ?, ?, ?, ?, ?, datetime('now'))
                             """, (
                                 inspection_id,
-                                photo_type,
-                                photo_order,
-                                photo_bytes,
-                                f"{photo_type}.jpg",
+                                'damage_croqui',
+                                99,
+                                croqui_bytes,
+                                'damage_croqui.png',
                                 1,
                                 1
                             ))
-                            logging.info(f"✅ Damage photo '{photo_key}' saved as BYTEA: '{photo_type}'")
-                        damage_photos_saved += 1
-                    except Exception as damage_photo_error:
-                        logging.error(f"❌ Failed to save damage photo '{photo_key}': {damage_photo_error}")
-            
-            if damage_photos_saved > 0:
-                logging.info(f"✅ Total damage photos saved: {damage_photos_saved}")
-            else:
-                logging.warning(f"⚠️ No damage photos to save")
-            
-            # Update vehicle in fleet management if vehicle_id exists
-            if vehicle_id:
-                try:
-                    if is_postgres:
-                        cursor.execute("""
-                            UPDATE vehicles 
-                            SET km_atual = %s, 
-                                nivel_combustivel = %s,
-                                status = CASE 
-                                    WHEN %s = 'checkout' THEN 'alugado'
-                                    WHEN %s = 'checkin' THEN 'disponivel'
-                                    ELSE status
-                                END
-                            WHERE id = %s
-                        """, (int(odometer_reading), str(fuel_level), inspection_type, inspection_type, vehicle_id))
-                    else:
-                        # checkin (DB) = check-in (entrega) = alugado, checkout (DB) = check-out (recolha) = disponível
-                        new_status = 'alugado' if inspection_type == 'checkin' else 'disponivel' if inspection_type == 'checkout' else None
-                        if new_status:
-                            cursor.execute("""
-                                UPDATE vehicles 
-                                SET km_atual = ?, 
-                                    nivel_combustivel = ?,
-                                    status = ?
-                                WHERE id = ?
-                            """, (int(odometer_reading), str(fuel_level), new_status, vehicle_id))
-                        else:
-                            cursor.execute("""
-                                UPDATE vehicles 
-                                SET km_atual = ?, 
-                                    nivel_combustivel = ?
-                                WHERE id = ?
-                            """, (int(odometer_reading), str(fuel_level), vehicle_id))
-                    
-                    logging.info(f"✅ Vehicle {vehicle_id} updated in fleet: KM={odometer_reading}, Fuel={fuel_level}, Status updated based on {inspection_type}")
-                except Exception as update_error:
-                    logging.error(f"Failed to update vehicle in fleet: {update_error}")
-            
-            # Set default delivery location if still None
-            if not delivery_location:
-                delivery_location = "Não especificado"
+                        logging.info(f"✅ Damage croqui saved to database")
+                    except Exception as croqui_error:
+                        logging.error(f"❌ Failed to save damage croqui: {croqui_error}")
+                else:
+                    logging.warning(f"⚠️ No damage croqui to save")
                 
-            # Update rental agreement as inspection completed
-            if ra and plate:
-                try:
-                    # Se é checkin (entrega), gerar token de self check-out e agendar email
-                    if inspection_type == 'checkin':
-                        # Verificar se o local de recolha é "Aeroporto de Faro"
-                        # Self check-in só é configurado automaticamente para este local
-                        is_faro_airport = False
-                        if ra_pickup_location:
-                            pickup_lower = ra_pickup_location.lower()
-                            is_faro_airport = 'aeroporto' in pickup_lower and 'faro' in pickup_lower
-                            logging.info(f"📍 Pickup location: {ra_pickup_location} | Is Faro Airport: {is_faro_airport}")
-                        
-                        if is_faro_airport:
-                            # Gerar token único
-                            self_checkin_token = generate_self_checkin_token(ra, plate)
+                # Save damage photos (damagePhoto_front, damagePhoto_back, etc.)
+                damage_photos_saved = 0
+                logging.info(f"🔍 DEBUG - Checking photos dict for damage photos...")
+                logging.info(f"🔍 DEBUG - Photos keys: {list(photos.keys())}")
+                logging.info(f"🔍 DEBUG - Total photos in dict: {len(photos)}")
+                
+                for photo_key in photos.keys():
+                    logging.info(f"🔍 DEBUG - Checking photo_key: {photo_key}")
+                    if photo_key.startswith('damagePhoto'):
+                        try:
+                            logging.info(f"💾 Saving damage photo '{photo_key}' to database...")
+                            photo_data = photos[photo_key]
                             
-                            # Obter data de recolha do RA
-                            return_date = None
-                            try:
-                                if is_postgres:
-                                    cursor.execute("""
-                                        SELECT extracted_data FROM rental_agreements 
-                                        WHERE rental_agreement_number = %s
-                                    """, (ra,))
-                                else:
-                                    cursor.execute("""
-                                        SELECT extracted_data FROM rental_agreements 
-                                        WHERE rental_agreement_number = ?
-                                    """, (ra,))
-                                
-                                ra_row = cursor.fetchone()
-                                if ra_row and ra_row[0]:
-                                    import json
-                                    extracted = json.loads(ra_row[0])
-                                    return_date = extracted.get('data_entrega') or extracted.get('return_date')
-                                    logging.info(f"📅 Return date from RA: {return_date}")
-                            except Exception as date_error:
-                                logging.error(f"❌ Error getting return date: {date_error}")
+                            # Ensure it has data:image prefix for TEXT storage
+                            if not photo_data.startswith('data:image'):
+                                photo_data = f"data:image/jpeg;base64,{photo_data}"
                             
-                            # Calcular data agendada (2 dias antes da recolha)
-                            scheduled_date = None
-                            if return_date:
-                                scheduled_date = calculate_scheduled_date(return_date, days_before=2)
+                            # Extract side from damagePhoto_front, damagePhoto_back, etc.
+                            # If old format (damagePhoto1), use damage_photo_1
+                            if '_' in photo_key:
+                                side = photo_key.replace('damagePhoto_', '')
+                                photo_type = f'damage_{side}'
+                                photo_order = 100 + damage_photos_saved  # Use counter for order
+                            else:
+                                photo_number = photo_key.replace('damagePhoto', '')
+                                photo_type = f'damage_photo_{photo_number}'
+                                photo_order = 100 + int(photo_number)
                             
-                            # Atualizar RA com dados de self check-in
                             if is_postgres:
+                                # PostgreSQL: store as TEXT (data URL)
                                 cursor.execute("""
-                                    UPDATE rental_agreements
-                                    SET inspection_completed = TRUE,
-                                        inspection_id = %s,
-                                        updated_at = NOW(),
-                                        self_checkin_token = %s,
-                                        self_checkin_email = %s,
-                                        self_checkin_scheduled_date = %s,
-                                        self_checkin_sent = FALSE,
-                                        self_checkin_completed = FALSE,
-                                        return_date = %s,
-                                        client_email = %s
-                                    WHERE rental_agreement_number = %s
-                                      AND UPPER(license_plate) = UPPER(%s)
-                                """, (inspection_id, self_checkin_token, email, scheduled_date, return_date, email, ra, plate))
+                                    INSERT INTO inspection_photos
+                                    (inspection_id, photo_type, photo_order, image_data, image_filename,
+                                     ai_analyzed, ai_has_damage, created_at)
+                                    VALUES (%s, %s, %s, %s, %s, %s, %s, NOW())
+                                """, (
+                                    inspection_id,
+                                    photo_type,
+                                    photo_order,
+                                    photo_data,
+                                    f"{photo_type}.jpg",
+                                    True,
+                                    True
+                                ))
+                                logging.info(f"✅ Damage photo '{photo_key}' saved as TEXT: '{photo_type}'")
+                            else:
+                                # SQLite: store as BYTEA (bytes)
+                                if 'base64,' in photo_data:
+                                    photo_base64 = photo_data.split('base64,')[1]
+                                else:
+                                    photo_base64 = photo_data
+                                photo_bytes = base64.b64decode(photo_base64)
+                                
+                                cursor.execute("""
+                                    INSERT INTO inspection_photos
+                                    (inspection_id, photo_type, photo_order, image_data, image_filename,
+                                     ai_analyzed, ai_has_damage, created_at)
+                                    VALUES (?, ?, ?, ?, ?, ?, ?, datetime('now'))
+                                """, (
+                                    inspection_id,
+                                    photo_type,
+                                    photo_order,
+                                    photo_bytes,
+                                    f"{photo_type}.jpg",
+                                    1,
+                                    1
+                                ))
+                                logging.info(f"✅ Damage photo '{photo_key}' saved as BYTEA: '{photo_type}'")
+                            damage_photos_saved += 1
+                        except Exception as damage_photo_error:
+                            logging.error(f"❌ Failed to save damage photo '{photo_key}': {damage_photo_error}")
+                
+                if damage_photos_saved > 0:
+                    logging.info(f"✅ Total damage photos saved: {damage_photos_saved}")
+                else:
+                    logging.warning(f"⚠️ No damage photos to save")
+                
+                # Update vehicle in fleet management if vehicle_id exists
+                if vehicle_id:
+                    try:
+                        if is_postgres:
+                            cursor.execute("""
+                                UPDATE vehicles 
+                                SET km_atual = %s, 
+                                    nivel_combustivel = %s,
+                                    status = CASE 
+                                        WHEN %s = 'checkout' THEN 'alugado'
+                                        WHEN %s = 'checkin' THEN 'disponivel'
+                                        ELSE status
+                                    END
+                                WHERE id = %s
+                            """, (int(odometer_reading), str(fuel_level), inspection_type, inspection_type, vehicle_id))
+                        else:
+                            # checkin (DB) = check-in (entrega) = alugado, checkout (DB) = check-out (recolha) = disponível
+                            new_status = 'alugado' if inspection_type == 'checkin' else 'disponivel' if inspection_type == 'checkout' else None
+                            if new_status:
+                                cursor.execute("""
+                                    UPDATE vehicles 
+                                    SET km_atual = ?, 
+                                        nivel_combustivel = ?,
+                                        status = ?
+                                    WHERE id = ?
+                                """, (int(odometer_reading), str(fuel_level), new_status, vehicle_id))
                             else:
                                 cursor.execute("""
-                                    UPDATE rental_agreements
-                                    SET inspection_completed = 1,
-                                        inspection_id = ?,
-                                        updated_at = datetime('now'),
-                                        self_checkin_token = ?,
-                                        self_checkin_email = ?,
-                                        self_checkin_scheduled_date = ?,
-                                        self_checkin_sent = 0,
-                                        self_checkin_completed = 0,
-                                        return_date = ?,
-                                        client_email = ?
+                                    UPDATE vehicles 
+                                    SET km_atual = ?, 
+                                        nivel_combustivel = ?
+                                    WHERE id = ?
+                                """, (int(odometer_reading), str(fuel_level), vehicle_id))
+                        
+                        logging.info(f"✅ Vehicle {vehicle_id} updated in fleet: KM={odometer_reading}, Fuel={fuel_level}, Status updated based on {inspection_type}")
+                    except Exception as update_error:
+                        logging.error(f"Failed to update vehicle in fleet: {update_error}")
+            
+                # Set default delivery location if still None
+                if not delivery_location:
+                    delivery_location = "Não especificado"
+                    
+                # Update rental agreement as inspection completed
+                if ra and plate:
+                    try:
+                        # Se é checkin (entrega), gerar token de self check-out e agendar email
+                        if inspection_type == 'checkin':
+                            # Verificar se o local de recolha é "Aeroporto de Faro"
+                            # Self check-in só é configurado automaticamente para este local
+                            is_faro_airport = False
+                            if ra_pickup_location:
+                                pickup_lower = ra_pickup_location.lower()
+                                is_faro_airport = 'aeroporto' in pickup_lower and 'faro' in pickup_lower
+                                logging.info(f"📍 Pickup location: {ra_pickup_location} | Is Faro Airport: {is_faro_airport}")
+                            
+                            if is_faro_airport:
+                                # Gerar token único
+                                self_checkin_token = generate_self_checkin_token(ra, plate)
+                                
+                                # Obter data de recolha do RA
+                                return_date = None
+                                try:
+                                    if is_postgres:
+                                        cursor.execute("""
+                                            SELECT extracted_data FROM rental_agreements 
+                                            WHERE rental_agreement_number = %s
+                                        """, (ra,))
+                                    else:
+                                        cursor.execute("""
+                                            SELECT extracted_data FROM rental_agreements 
+                                            WHERE rental_agreement_number = ?
+                                        """, (ra,))
+                                    
+                                    ra_row = cursor.fetchone()
+                                    if ra_row and ra_row[0]:
+                                        import json
+                                        extracted = json.loads(ra_row[0])
+                                        return_date = extracted.get('data_entrega') or extracted.get('return_date')
+                                        logging.info(f"📅 Return date from RA: {return_date}")
+                                except Exception as date_error:
+                                    logging.error(f"❌ Error getting return date: {date_error}")
+                                
+                                # Calcular data agendada (2 dias antes da recolha)
+                                scheduled_date = None
+                                if return_date:
+                                    scheduled_date = calculate_scheduled_date(return_date, days_before=2)
+                                
+                                # Atualizar RA com dados de self check-in
+                                if is_postgres:
+                                    cursor.execute("""
+                                        UPDATE rental_agreements
+                                        SET inspection_completed = TRUE,
+                                            inspection_id = %s,
+                                            updated_at = NOW(),
+                                            self_checkin_token = %s,
+                                            self_checkin_email = %s,
+                                            self_checkin_scheduled_date = %s,
+                                            self_checkin_sent = FALSE,
+                                            self_checkin_completed = FALSE,
+                                            return_date = %s,
+                                            client_email = %s
+                                        WHERE rental_agreement_number = %s
+                                          AND UPPER(license_plate) = UPPER(%s)
+                                    """, (inspection_id, self_checkin_token, email, scheduled_date, return_date, email, ra, plate))
+                                else:
+                                    cursor.execute("""
+                                        UPDATE rental_agreements
+                                        SET inspection_completed = 1,
+                                            inspection_id = ?,
+                                            updated_at = datetime('now'),
+                                            self_checkin_token = ?,
+                                            self_checkin_email = ?,
+                                            self_checkin_scheduled_date = ?,
+                                            self_checkin_sent = 0,
+                                            self_checkin_completed = 0,
+                                            return_date = ?,
+                                            client_email = ?
+                                        WHERE rental_agreement_number = ?
+                                          AND UPPER(license_plate) = UPPER(?)
+                                    """, (inspection_id, self_checkin_token, email, scheduled_date, return_date, email, ra, plate))
+                                
+                                logging.info(f"✅ Self check-in configured for RA {ra} (Aeroporto de Faro): token={self_checkin_token[:16]}..., email={email}, scheduled={scheduled_date}")
+                            else:
+                                # Outros locais: apenas marcar inspeção como completa, sem self check-in automático
+                                if is_postgres:
+                                    cursor.execute("""
+                                        UPDATE rental_agreements
+                                        SET inspection_completed = TRUE,
+                                            inspection_id = %s,
+                                            updated_at = NOW()
+                                        WHERE rental_agreement_number = %s
+                                          AND UPPER(license_plate) = UPPER(%s)
+                                    """, (inspection_id, ra, plate))
+                                else:
+                                    cursor.execute("""
+                                        UPDATE rental_agreements
+                                        SET inspection_completed = 1,
+                                            inspection_id = ?,
+                                        updated_at = datetime('now')
                                     WHERE rental_agreement_number = ?
                                       AND UPPER(license_plate) = UPPER(?)
-                                """, (inspection_id, self_checkin_token, email, scheduled_date, return_date, email, ra, plate))
+                                """, (inspection_id, ra, plate))
                             
-                            logging.info(f"✅ Self check-in configured for RA {ra} (Aeroporto de Faro): token={self_checkin_token[:16]}..., email={email}, scheduled={scheduled_date}")
+                            logging.info(f"ℹ️ Self check-in NOT configured for RA {ra} (location: {ra_pickup_location}) - only Aeroporto de Faro gets automatic self check-in")
                         else:
-                            # Outros locais: apenas marcar inspeção como completa, sem self check-in automático
+                            # Check-in normal - apenas marcar como completo
                             if is_postgres:
                                 cursor.execute("""
                                     UPDATE rental_agreements
@@ -29936,559 +29992,542 @@ async def save_inspection(request: Request):
                                     WHERE rental_agreement_number = ?
                                       AND UPPER(license_plate) = UPPER(?)
                                 """, (inspection_id, ra, plate))
-                            
-                            logging.info(f"ℹ️ Self check-in NOT configured for RA {ra} (location: {ra_pickup_location}) - only Aeroporto de Faro gets automatic self check-in")
-                    else:
-                        # Check-in normal - apenas marcar como completo
+                        
+                        logging.info(f"✅ Rental Agreement {ra} marked as inspection completed (inspection_id: {inspection_id})")
+                    except Exception as ra_update_error:
+                        logging.error(f"Failed to update rental agreement: {ra_update_error}")
+                
+                logging.info("💾 Committing transaction to database...")
+                conn.commit()
+                logging.info("✅ Transaction committed successfully")
+                logging.info(f"🔍 [FLOW-2] After commit, inspection_type='{inspection_type}'")
+                
+                # VALIDATE INCIDENTS FOR CHECK-OUT (RECOLHA) - ALWAYS, regardless of email
+                logging.info(f"🔍 [PRE-VALIDATION] inspection_type='{inspection_type}', damage_count={damage_count}")
+                incidents = {
+                    'has_fuel_incident': False,
+                    'has_damage_incident': False,
+                    'fuel_diff': 0,
+                    'checkout_fuel': 100,
+                    'checkout_damage_count': 0,
+                    'checkin_has_damage_photos': False
+                }
+                
+                logging.info(f"🔍 [FLOW-3] About to check inspection_type condition: inspection_type == 'checkout' is {inspection_type == 'checkout'}")
+                if inspection_type == 'checkout':
+                    logging.info("🔍 CHECK-OUT (recolha) DETECTED - Validating incidents...")
+                    try:
+                        incidents = _validate_checkin_incidents(
+                            cursor, is_postgres, ra, plate,
+                            float(fuel_level), damage_count, inspection_id
+                        )
+                        logging.info(f"📊 Incidents validation result: {incidents}")
+                        logging.info(f"🔍 [DEBUG] has_fuel_incident: {incidents.get('has_fuel_incident', False)}")
+                        logging.info(f"🔍 [DEBUG] has_damage_incident: {incidents.get('has_damage_incident', False)}")
+                    except Exception as incident_error:
+                        logging.error(f"❌ Error validating incidents: {incident_error}")
+                        import traceback
+                        logging.error(f"❌ Traceback: {traceback.format_exc()}")
+                else:
+                    logging.info("🔍 CHECK-IN (entrega) DETECTED - No incident validation (damages are expected)")
+                
+                # Send email ONLY if explicitly requested via send_email flag
+                logging.info(f"🔍 Email send check: email='{email}' (type: {type(email).__name__}), send_email={send_email} (type: {type(send_email).__name__})")
+                logging.info(f"🔍 Condition check: email={bool(email)}, send_email={bool(send_email)}, both={bool(email and send_email)}")
+                
+                if email and send_email:
+                    try:
+                        logging.info(f"📧 Sending email for inspection {inspection_number} to {email}")
+                        
+                        # Get RA data for language detection and client info
+                        ra_base = ra.split('-')[0] if '-' in ra else ra
+                        
                         if is_postgres:
                             cursor.execute("""
-                                UPDATE rental_agreements
-                                SET inspection_completed = TRUE,
-                                    inspection_id = %s,
-                                    updated_at = NOW()
-                                WHERE rental_agreement_number = %s
-                                  AND UPPER(license_plate) = UPPER(%s)
-                            """, (inspection_id, ra, plate))
+                                SELECT extracted_data FROM rental_agreements 
+                                WHERE rental_agreement_number LIKE %s
+                                LIMIT 1
+                            """, (f"{ra_base}%",))
                         else:
                             cursor.execute("""
-                                UPDATE rental_agreements
-                                SET inspection_completed = 1,
-                                    inspection_id = ?,
-                                    updated_at = datetime('now')
-                                WHERE rental_agreement_number = ?
-                                  AND UPPER(license_plate) = UPPER(?)
-                            """, (inspection_id, ra, plate))
+                                SELECT extracted_data FROM rental_agreements 
+                                WHERE rental_agreement_number LIKE ?
+                                LIMIT 1
+                            """, (f"{ra_base}%",))
+                        
+                        ra_row = cursor.fetchone()
+                        
+                        # Detect language and extract client name
+                        detected_lang = 'en'
+                        client_name = 'Customer'
+                        first_name = 'Customer'
+                        delivery_location = ra_pickup_location or 'N/A'
+                        vehicle_brand = 'N/A'
+                        vehicle_model = 'N/A'
+                        vehicle_type = 'N/A'
                     
-                    logging.info(f"✅ Rental Agreement {ra} marked as inspection completed (inspection_id: {inspection_id})")
-                except Exception as ra_update_error:
-                    logging.error(f"Failed to update rental agreement: {ra_update_error}")
-                    # Don't fail the inspection save if RA update fails
-            
-            logging.info("💾 Committing transaction to database...")
-            conn.commit()
-            logging.info("✅ Transaction committed successfully")
-            logging.info(f"🔍 [FLOW-2] After commit, inspection_type='{inspection_type}'")
-            
-            # VALIDATE INCIDENTS FOR CHECK-OUT (RECOLHA) - ALWAYS, regardless of email
-            logging.info(f"🔍 [PRE-VALIDATION] inspection_type='{inspection_type}', damage_count={damage_count}")
-            incidents = {
-                'has_fuel_incident': False,
-                'has_damage_incident': False,
-                'fuel_diff': 0,
-                'checkout_fuel': 100,
-                'checkout_damage_count': 0,
-                'checkin_has_damage_photos': False
-            }
-            
-            logging.info(f"🔍 [FLOW-3] About to check inspection_type condition: inspection_type == 'checkout' is {inspection_type == 'checkout'}")
-            if inspection_type == 'checkout':
-                logging.info("🔍 CHECK-OUT (recolha) DETECTED - Validating incidents...")
-                try:
-                    incidents = _validate_checkin_incidents(
-                        cursor, is_postgres, ra, plate,
-                        float(fuel_level), damage_count, inspection_id
-                    )
-                    logging.info(f"📊 Incidents validation result: {incidents}")
-                    logging.info(f"🔍 [DEBUG] has_fuel_incident: {incidents.get('has_fuel_incident', False)}")
-                    logging.info(f"🔍 [DEBUG] has_damage_incident: {incidents.get('has_damage_incident', False)}")
-                except Exception as incident_error:
-                    logging.error(f"❌ Error validating incidents: {incident_error}")
-                    import traceback
-                    logging.error(f"❌ Traceback: {traceback.format_exc()}")
-            else:
-                logging.info("🔍 CHECK-IN (entrega) DETECTED - No incident validation (damages are expected)")
-            
-            # Send email ONLY if explicitly requested via send_email flag
-            logging.info(f"🔍 Email send check: email='{email}' (type: {type(email).__name__}), send_email={send_email} (type: {type(send_email).__name__})")
-            logging.info(f"🔍 Condition check: email={bool(email)}, send_email={bool(send_email)}, both={bool(email and send_email)}")
-            
-            if email and send_email:
-                try:
-                    logging.info(f"📧 Sending email for inspection {inspection_number} to {email}")
-                    
-                    # Get RA data for language detection and client info
-                    ra_base = ra.split('-')[0] if '-' in ra else ra
-                    
-                    if is_postgres:
-                        cursor.execute("""
-                            SELECT extracted_data FROM rental_agreements 
-                            WHERE rental_agreement_number LIKE %s
-                            LIMIT 1
-                        """, (f"{ra_base}%",))
-                    else:
-                        cursor.execute("""
-                            SELECT extracted_data FROM rental_agreements 
-                            WHERE rental_agreement_number LIKE ?
-                            LIMIT 1
-                        """, (f"{ra_base}%",))
-                    
-                    ra_row = cursor.fetchone()
-                    
-                    # Detect language and extract client name
-                    detected_lang = 'en'
-                    client_name = 'Customer'
-                    first_name = 'Customer'
-                    delivery_location = ra_pickup_location or 'N/A'
-                    vehicle_brand = 'N/A'
-                    vehicle_model = 'N/A'
-                    vehicle_type = 'N/A'
-                    
-                    if ra_row and ra_row[0]:
-                        import json
-                        try:
-                            extracted_data = json.loads(ra_row[0])
-                            country = extracted_data.get('country', '').upper()
-                            client_name = extracted_data.get('clientName', 'Customer')
-                            
-                            # Extract first name
-                            if client_name and client_name != 'Customer' and isinstance(client_name, str):
-                                name_parts = client_name.strip().split()
-                                first_name = name_parts[0].title() if name_parts else 'Customer'
-                            
-                            # Get location from RA if not in inspection
-                            if delivery_location == 'N/A' or not delivery_location:
-                                delivery_location = extracted_data.get('pickupLocation', 'N/A')
-                            
-                            # Detect language
-                            if country in ('PORTUGAL', 'PT'):
-                                detected_lang = 'pt'
-                            elif country in ('FRANCE', 'FR', 'FRANÇA'):
-                                detected_lang = 'fr'
-                            
-                            logging.info(f"🌍 Language: {detected_lang}, Client: {client_name}, First: {first_name}, Location: {delivery_location}")
-                        except Exception as e:
-                            logging.error(f"❌ Error parsing RA data: {e}")
-                    
-                    # Get vehicle data from fleet
-                    if is_postgres:
-                        cursor.execute("""
-                            SELECT marca, modelo, grupo FROM vehicles 
-                            WHERE matricula = %s
-                        """, (plate,))
-                    else:
-                        cursor.execute("""
-                            SELECT marca, modelo, grupo FROM vehicles 
-                            WHERE matricula = ?
-                        """, (plate,))
-                    
-                    vehicle_row = cursor.fetchone()
-                    if vehicle_row:
-                        vehicle_brand = vehicle_row[0] or 'N/A'
-                        vehicle_model = vehicle_row[1] or 'N/A'
-                        vehicle_type = vehicle_row[2] or 'N/A'
-                        logging.info(f"🚗 Vehicle: {vehicle_brand} {vehicle_model} ({vehicle_type})")
-                    
-                    # Get croqui
-                    if is_postgres:
-                        cursor.execute("""
-                            SELECT image_data FROM inspection_photos 
-                            WHERE inspection_id = %s AND photo_type = 'damage_croqui'
-                            LIMIT 1
-                        """, (inspection_id,))
-                    else:
-                        cursor.execute("""
-                            SELECT image_data FROM inspection_photos 
-                            WHERE inspection_id = ? AND photo_type = 'damage_croqui'
-                            LIMIT 1
-                        """, (inspection_id,))
-                    
-                    croqui_row = cursor.fetchone()
-                    
-                    # Convert croqui to base64 inline
-                    final_croqui = ""
-                    global EMPTY_CROQUI_CACHE
-                    logging.info(f"🔍 DEBUG CROQUI - Row found: {croqui_row is not None}")
-                    if croqui_row and croqui_row[0]:
-                        import base64
-                        image_data = croqui_row[0]
-                        logging.info(f"🔍 DEBUG CROQUI - Data type: {type(image_data).__name__}, length: {len(image_data) if image_data else 0}")
-                        if isinstance(image_data, str):
-                            # Already TEXT, ensure it has data URL prefix
-                            if image_data.startswith('data:image'):
-                                final_croqui = image_data
-                                logging.info(f"🖼️ Croqui already has data URL prefix")
-                            else:
-                                final_croqui = f"data:image/png;base64,{image_data}"
-                                logging.info(f"🖼️ Added data URL prefix to croqui")
+                        if ra_row and ra_row[0]:
+                            import json
+                            try:
+                                extracted_data = json.loads(ra_row[0])
+                                country = extracted_data.get('country', '').upper()
+                                client_name = extracted_data.get('clientName', 'Customer')
+                                
+                                # Extract first name
+                                if client_name and client_name != 'Customer' and isinstance(client_name, str):
+                                    name_parts = client_name.strip().split()
+                                    first_name = name_parts[0].title() if name_parts else 'Customer'
+                                
+                                # Get location from RA if not in inspection
+                                if delivery_location == 'N/A' or not delivery_location:
+                                    delivery_location = extracted_data.get('pickupLocation', 'N/A')
+                                
+                                # Detect language
+                                if country in ('PORTUGAL', 'PT'):
+                                    detected_lang = 'pt'
+                                elif country in ('FRANCE', 'FR', 'FRANÇA'):
+                                    detected_lang = 'fr'
+                                
+                                logging.info(f"🌍 Language: {detected_lang}, Client: {client_name}, First: {first_name}, Location: {delivery_location}")
+                            except Exception as e:
+                                logging.error(f"❌ Error parsing RA data: {e}")
+                        
+                        # Get vehicle data from fleet
+                        if is_postgres:
+                            cursor.execute("""
+                                SELECT marca, modelo, grupo FROM vehicles 
+                                WHERE matricula = %s
+                            """, (plate,))
                         else:
-                            # Bytes, encode to base64
-                            final_croqui = f"data:image/png;base64,{base64.b64encode(image_data).decode('utf-8')}"
-                            logging.info(f"🖼️ Encoded bytes to base64")
-                        logging.info(f"✅ Croqui converted to base64 inline, final length: {len(final_croqui)}")
-                    else:
-                        final_croqui = EMPTY_CROQUI_CACHE or ""
-                        logging.info(f"⚠️ No croqui found in DB, using empty cache")
-                        if not final_croqui:
-                            logging.warning(f"❌ EMPTY_CROQUI_CACHE is also empty!")
-                    
-                    # Get photos
-                    if is_postgres:
-                        cursor.execute("""
-                            SELECT photo_type, image_data FROM inspection_photos 
-                            WHERE inspection_id = %s AND photo_type != 'damage_croqui'
-                            ORDER BY photo_order
+                            cursor.execute("""
+                                SELECT marca, modelo, grupo FROM vehicles 
+                                WHERE matricula = ?
+                            """, (plate,))
+                        
+                        vehicle_row = cursor.fetchone()
+                        if vehicle_row:
+                            vehicle_brand = vehicle_row[0] or 'N/A'
+                            vehicle_model = vehicle_row[1] or 'N/A'
+                            vehicle_type = vehicle_row[2] or 'N/A'
+                            logging.info(f"🚗 Vehicle: {vehicle_brand} {vehicle_model} ({vehicle_type})")
+                        
+                        # Get croqui
+                        if is_postgres:
+                            cursor.execute("""
+                                SELECT image_data FROM inspection_photos 
+                                WHERE inspection_id = %s AND photo_type = 'damage_croqui'
+                                LIMIT 1
+                            """, (inspection_id,))
+                        else:
+                            cursor.execute("""
+                                SELECT image_data FROM inspection_photos 
+                                WHERE inspection_id = ? AND photo_type = 'damage_croqui'
+                                LIMIT 1
+                            """, (inspection_id,))
+                        
+                        croqui_row = cursor.fetchone()
+                        
+                        # Convert croqui to base64 inline
+                        final_croqui = ""
+                        global EMPTY_CROQUI_CACHE
+                        logging.info(f"🔍 DEBUG CROQUI - Row found: {croqui_row is not None}")
+                        if croqui_row and croqui_row[0]:
+                            import base64
+                            image_data = croqui_row[0]
+                            logging.info(f"🔍 DEBUG CROQUI - Data type: {type(image_data).__name__}, length: {len(image_data) if image_data else 0}")
+                            if isinstance(image_data, str):
+                                # Already TEXT, ensure it has data URL prefix
+                                if image_data.startswith('data:image'):
+                                    final_croqui = image_data
+                                    logging.info(f"🖼️ Croqui already has data URL prefix")
+                                else:
+                                    final_croqui = f"data:image/png;base64,{image_data}"
+                                    logging.info(f"🖼️ Added data URL prefix to croqui")
+                            else:
+                                # Bytes, encode to base64
+                                final_croqui = f"data:image/png;base64,{base64.b64encode(image_data).decode('utf-8')}"
+                                logging.info(f"🖼️ Encoded bytes to base64")
+                            logging.info(f"✅ Croqui converted to base64 inline, final length: {len(final_croqui)}")
+                        else:
+                            final_croqui = EMPTY_CROQUI_CACHE or ""
+                            logging.info(f"⚠️ No croqui found in DB, using empty cache")
+                            if not final_croqui:
+                                logging.warning(f"❌ EMPTY_CROQUI_CACHE is also empty!")
+                        
+                        # Get photos
+                        if is_postgres:
+                            cursor.execute("""
+                                SELECT photo_type, image_data FROM inspection_photos 
+                                WHERE inspection_id = %s AND photo_type != 'damage_croqui'
+                                ORDER BY photo_order
+                            """, (inspection_id,))
+                        else:
+                            cursor.execute("""
+                                SELECT photo_type, image_data FROM inspection_photos 
+                                WHERE inspection_id = ? AND photo_type != 'damage_croqui'
+                                ORDER BY photo_order
                         """, (inspection_id,))
-                    else:
-                        cursor.execute("""
-                            SELECT photo_type, image_data FROM inspection_photos 
-                            WHERE inspection_id = ? AND photo_type != 'damage_croqui'
-                            ORDER BY photo_order
-                        """, (inspection_id,))
                     
-                    photos_rows = cursor.fetchall()
-                    
-                    # Build photos HTML
-                    photos_html = ""
-                    if photos_rows:
-                        photo_labels = {
-                            'pt': {'front': 'Frente', 'front_left': 'Frente Esquerda', 'left': 'Lado Esquerdo',
-                                   'back_left': 'Traseira Esquerda', 'back': 'Traseira', 'back_right': 'Traseira Direita',
-                                   'right': 'Lado Direito', 'front_right': 'Frente Direita', 'odometer': 'Quilómetros',
-                                   # Damage photo translations
-                                   'photo_1': 'Dano 1', 'photo_2': 'Dano 2', 'photo_3': 'Dano 3',
-                                   'photo_4': 'Dano 4', 'photo_5': 'Dano 5', 'photo_6': 'Dano 6',
-                                   'photo_7': 'Dano 7', 'photo_8': 'Dano 8', 'photo_9': 'Dano 9'},
-                            'fr': {'front': 'Avant', 'front_left': 'Avant Gauche', 'left': 'Côté Gauche',
-                                   'back_left': 'Arrière Gauche', 'back': 'Arrière', 'back_right': 'Arrière Droit',
-                                   'right': 'Côté Droit', 'front_right': 'Avant Droit', 'odometer': 'Kilométrage',
-                                   # Damage photo translations
-                                   'photo_1': 'Dommage 1', 'photo_2': 'Dommage 2', 'photo_3': 'Dommage 3',
-                                   'photo_4': 'Dommage 4', 'photo_5': 'Dommage 5', 'photo_6': 'Dommage 6',
-                                   'photo_7': 'Dommage 7', 'photo_8': 'Dommage 8', 'photo_9': 'Dommage 9'},
-                            'en': {'front': 'Front', 'front_left': 'Front Left', 'left': 'Left Side',
-                                   'back_left': 'Back Left', 'back': 'Back', 'back_right': 'Back Right',
-                                   'right': 'Right Side', 'front_right': 'Front Right', 'odometer': 'Odometer',
-                                   # Damage photo translations
-                                   'photo_1': 'Damage 1', 'photo_2': 'Damage 2', 'photo_3': 'Damage 3',
-                                   'photo_4': 'Damage 4', 'photo_5': 'Damage 5', 'photo_6': 'Damage 6',
-                                   'photo_7': 'Damage 7', 'photo_8': 'Damage 8', 'photo_9': 'Damage 9'}
+                        photos_rows = cursor.fetchall()
+                        
+                        # Build photos HTML
+                        photos_html = ""
+                        if photos_rows:
+                            photo_labels = {
+                                'pt': {'front': 'Frente', 'front_left': 'Frente Esquerda', 'left': 'Lado Esquerdo',
+                                       'back_left': 'Traseira Esquerda', 'back': 'Traseira', 'back_right': 'Traseira Direita',
+                                       'right': 'Lado Direito', 'front_right': 'Frente Direita', 'odometer': 'Quilómetros',
+                                       # Damage photo translations
+                                       'photo_1': 'Dano 1', 'photo_2': 'Dano 2', 'photo_3': 'Dano 3',
+                                       'photo_4': 'Dano 4', 'photo_5': 'Dano 5', 'photo_6': 'Dano 6',
+                                       'photo_7': 'Dano 7', 'photo_8': 'Dano 8', 'photo_9': 'Dano 9'},
+                                'fr': {'front': 'Avant', 'front_left': 'Avant Gauche', 'left': 'Côté Gauche',
+                                       'back_left': 'Arrière Gauche', 'back': 'Arrière', 'back_right': 'Arrière Droit',
+                                       'right': 'Côté Droit', 'front_right': 'Avant Droit', 'odometer': 'Kilométrage',
+                                       # Damage photo translations
+                                       'photo_1': 'Dommage 1', 'photo_2': 'Dommage 2', 'photo_3': 'Dommage 3',
+                                       'photo_4': 'Dommage 4', 'photo_5': 'Dommage 5', 'photo_6': 'Dommage 6',
+                                       'photo_7': 'Dommage 7', 'photo_8': 'Dommage 8', 'photo_9': 'Dommage 9'},
+                                'en': {'front': 'Front', 'front_left': 'Front Left', 'left': 'Left Side',
+                                       'back_left': 'Back Left', 'back': 'Back', 'back_right': 'Back Right',
+                                       'right': 'Right Side', 'front_right': 'Front Right', 'odometer': 'Odometer',
+                                       # Damage photo translations
+                                       'photo_1': 'Damage 1', 'photo_2': 'Damage 2', 'photo_3': 'Damage 3',
+                                       'photo_4': 'Damage 4', 'photo_5': 'Damage 5', 'photo_6': 'Damage 6',
+                                       'photo_7': 'Damage 7', 'photo_8': 'Damage 8', 'photo_9': 'Damage 9'}
+                            }
+                            
+                            labels_map = photo_labels.get(detected_lang, photo_labels['en'])
+                            
+                            # Convert photos to base64 inline
+                            photos_list = []
+                            for photo_row in photos_rows:
+                                photo_type = photo_row[0]
+                                image_data = photo_row[1]
+                                if image_data:
+                                    # Convert to base64 data URL if needed
+                                    if isinstance(image_data, str):
+                                        # Already TEXT, ensure it has data URL prefix
+                                        if image_data.startswith('data:image'):
+                                            photo_url = image_data
+                                        else:
+                                            photo_url = f"data:image/jpeg;base64,{image_data}"
+                                    else:
+                                        # Bytes, encode to base64
+                                        import base64
+                                        photo_url = f"data:image/jpeg;base64,{base64.b64encode(image_data).decode('utf-8')}"
+                                    
+                                    # Translate damage photo labels
+                                    if photo_type.startswith('damage_'):
+                                        # Extract damage photo number or type
+                                        damage_part = photo_type.replace('damage_', '')
+                                        if damage_part.startswith('photo_'):
+                                            # damage_photo_1, damage_photo_2, etc.
+                                            # Use labels_map directly for clean translation
+                                            label = labels_map.get(damage_part, damage_part)
+                                        else:
+                                            # damage_front, damage_left, etc.
+                                            base_label = labels_map.get(damage_part, damage_part.title())
+                                            if detected_lang == 'pt':
+                                                label = f'Dano - {base_label}'
+                                            elif detected_lang == 'fr':
+                                                label = f'Dommage - {base_label}'
+                                            else:
+                                                label = f'Damage - {base_label}'
+                                    else:
+                                        label = labels_map.get(photo_type, photo_type)
+                                    
+                                    photos_list.append({'url': photo_url, 'label': label})
+                            
+                            # Create 3x3 table grid with clickable images
+                            photos_html = '<table width="100%" cellpadding="5" cellspacing="0" style="margin: 0;">'
+                            for i in range(0, len(photos_list), 3):
+                                photos_html += '<tr>'
+                                for j in range(3):
+                                    if i + j < len(photos_list):
+                                        photo = photos_list[i + j]
+                                        photos_html += f'''
+                                        <td style="width: 33.33%; text-align: center; padding: 5px; vertical-align: top;">
+                                            <a href="{photo['url']}" target="_blank" style="text-decoration: none; display: block; cursor: pointer;">
+                                                <img src="{photo['url']}" alt="{photo['label']}" style="width: 100%; height: auto; max-height: 150px; object-fit: cover; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); display: block; border: 2px solid transparent; cursor: pointer;" />
+                                            </a>
+                                            <p style="color: #00bcd4; margin: 5px 0 0 0; font-size: 12px; font-weight: 600;">{photo['label']}</p>
+                                        </td>
+                                        '''
+                                    else:
+                                        photos_html += '<td style="width: 33.33%;"></td>'
+                                photos_html += '</tr>'
+                            photos_html += '</table>'
+                        
+                        # Create fuel gauge HTML
+                        fuel_percentage = int(fuel_level)
+                        fuel_text = "Cheio" if fuel_percentage == 100 else f"{fuel_percentage}%"
+                        if fuel_percentage == 87.5:
+                            fuel_text = "7/8"
+                        elif fuel_percentage == 75:
+                            fuel_text = "3/4"
+                        elif fuel_percentage == 62.5:
+                            fuel_text = "5/8"
+                        elif fuel_percentage == 50:
+                            fuel_text = "1/2"
+                        elif fuel_percentage == 37.5:
+                            fuel_text = "3/8"
+                        elif fuel_percentage == 25:
+                            fuel_text = "1/4"
+                        elif fuel_percentage == 12.5:
+                            fuel_text = "1/8"
+                        elif fuel_percentage < 12.5:
+                            fuel_text = "Reserva"
+                        
+                        fuel_gauge_html = f"""
+                        <table width="100%" cellpadding="0" cellspacing="0" style="margin: 20px 0;">
+                            <tr>
+                                <td align="center">
+                                    <table cellpadding="0" cellspacing="0" style="margin: 0 auto;">
+                                        <tr>
+                                            <td style="padding-right: 15px; vertical-align: middle;">
+                                                <span style="color: #009cb6; font-size: 14px; font-weight: 600;">R</span>
+                                            </td>
+                                            <td style="vertical-align: middle;">
+                                                <div style="position: relative; width: 200px; height: 20px; background: #e5e7eb; border-radius: 10px; border: 1px solid #ccc; overflow: hidden;">
+                                                    <div style="position: absolute; top: 0; left: 0; height: 100%; width: {fuel_percentage}%; background: #00bcd4; border-radius: 10px;"></div>
+                                                </div>
+                                            </td>
+                                            <td style="padding-left: 15px; vertical-align: middle;">
+                                                <span style="color: #009cb6; font-size: 14px; font-weight: 600;">F</span>
+                                            </td>
+                                        </tr>
+                                        <tr>
+                                            <td colspan="3" align="center" style="padding-top: 10px;">
+                                                <p style="color: #333; margin: 0; font-size: 16px; font-weight: 700;">{fuel_text}</p>
+                                            </td>
+                                        </tr>
+                                    </table>
+                                </td>
+                            </tr>
+                        </table>
+                        """
+                        
+                        # Use cached promotional images and logo
+                        global PROMO_IMAGES_CACHE, LOGO_CACHE
+                        logo_base64 = LOGO_CACHE or "/static/ap-heather.png"
+                        promo_base64 = {
+                            'promo1': PROMO_IMAGES_CACHE.get('promo1', ''),
+                            'promo2': PROMO_IMAGES_CACHE.get('promo2', ''),
+                            'promo3': PROMO_IMAGES_CACHE.get('promo3', ''),
+                            'benagil': PROMO_IMAGES_CACHE.get('benagil', ''),
+                            'lagos': PROMO_IMAGES_CACHE.get('lagos', ''),
+                            'sagres': PROMO_IMAGES_CACHE.get('sagres', '')
                         }
                         
-                        labels_map = photo_labels.get(detected_lang, photo_labels['en'])
+                        # Get inspection date from database (created_at timestamp)
+                        from datetime import datetime
+                        if is_postgres:
+                            cursor.execute("""
+                                SELECT created_at FROM vehicle_inspections 
+                                WHERE id = %s
+                            """, (inspection_id,))
+                        else:
+                            cursor.execute("""
+                                SELECT created_at FROM vehicle_inspections 
+                                WHERE id = ?
+                            """, (inspection_id,))
                         
-                        # Convert photos to base64 inline
-                        photos_list = []
-                        for photo_row in photos_rows:
-                            photo_type = photo_row[0]
-                            image_data = photo_row[1]
-                            if image_data:
-                                # Convert to base64 data URL if needed
-                                if isinstance(image_data, str):
-                                    # Already TEXT, ensure it has data URL prefix
-                                    if image_data.startswith('data:image'):
-                                        photo_url = image_data
-                                    else:
-                                        photo_url = f"data:image/jpeg;base64,{image_data}"
-                                else:
-                                    # Bytes, encode to base64
-                                    import base64
-                                    photo_url = f"data:image/jpeg;base64,{base64.b64encode(image_data).decode('utf-8')}"
-                                
-                                # Translate damage photo labels
-                                if photo_type.startswith('damage_'):
-                                    # Extract damage photo number or type
-                                    damage_part = photo_type.replace('damage_', '')
-                                    if damage_part.startswith('photo_'):
-                                        # damage_photo_1, damage_photo_2, etc.
-                                        # Use labels_map directly for clean translation
-                                        label = labels_map.get(damage_part, damage_part)
-                                    else:
-                                        # damage_front, damage_left, etc.
-                                        base_label = labels_map.get(damage_part, damage_part.title())
-                                        if detected_lang == 'pt':
-                                            label = f'Dano - {base_label}'
-                                        elif detected_lang == 'fr':
-                                            label = f'Dommage - {base_label}'
-                                        else:
-                                            label = f'Damage - {base_label}'
-                                else:
-                                    label = labels_map.get(photo_type, photo_type)
-                                
-                                photos_list.append({'url': photo_url, 'label': label})
+                        inspection_date_row = cursor.fetchone()
+                        if inspection_date_row and inspection_date_row[0]:
+                            # Format the timestamp from DB
+                            inspection_date = inspection_date_row[0].strftime('%d/%m/%Y %H:%M') if hasattr(inspection_date_row[0], 'strftime') else str(inspection_date_row[0])
+                            logging.info(f"📅 Inspection date from DB: {inspection_date}")
+                        else:
+                            # Fallback to current time if not found
+                            inspection_date = datetime.now().strftime('%d/%m/%Y %H:%M')
+                            logging.warning(f"⚠️ Could not get inspection date from DB, using current time: {inspection_date}")
                         
-                        # Create 3x3 table grid with clickable images
-                        photos_html = '<table width="100%" cellpadding="5" cellspacing="0" style="margin: 0;">'
-                        for i in range(0, len(photos_list), 3):
-                            photos_html += '<tr>'
-                            for j in range(3):
-                                if i + j < len(photos_list):
-                                    photo = photos_list[i + j]
-                                    photos_html += f'''
-                                    <td style="width: 33.33%; text-align: center; padding: 5px; vertical-align: top;">
-                                        <a href="{photo['url']}" target="_blank" style="text-decoration: none; display: block; cursor: pointer;">
-                                            <img src="{photo['url']}" alt="{photo['label']}" style="width: 100%; height: auto; max-height: 150px; object-fit: cover; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); display: block; border: 2px solid transparent; cursor: pointer;" />
-                                        </a>
-                                        <p style="color: #00bcd4; margin: 5px 0 0 0; font-size: 12px; font-weight: 600;">{photo['label']}</p>
-                                    </td>
-                                    '''
-                                else:
-                                    photos_html += '<td style="width: 33.33%;"></td>'
-                            photos_html += '</tr>'
-                        photos_html += '</table>'
-                    
-                    # Create fuel gauge HTML
-                    fuel_percentage = int(fuel_level)
-                    fuel_text = "Cheio" if fuel_percentage == 100 else f"{fuel_percentage}%"
-                    if fuel_percentage == 87.5:
-                        fuel_text = "7/8"
-                    elif fuel_percentage == 75:
-                        fuel_text = "3/4"
-                    elif fuel_percentage == 62.5:
-                        fuel_text = "5/8"
-                    elif fuel_percentage == 50:
-                        fuel_text = "1/2"
-                    elif fuel_percentage == 37.5:
-                        fuel_text = "3/8"
-                    elif fuel_percentage == 25:
-                        fuel_text = "1/4"
-                    elif fuel_percentage == 12.5:
-                        fuel_text = "1/8"
-                    elif fuel_percentage < 12.5:
-                        fuel_text = "Reserva"
-                    
-                    fuel_gauge_html = f"""
-                    <table width="100%" cellpadding="0" cellspacing="0" style="margin: 20px 0;">
-                        <tr>
-                            <td align="center">
-                                <table cellpadding="0" cellspacing="0" style="margin: 0 auto;">
-                                    <tr>
-                                        <td style="padding-right: 15px; vertical-align: middle;">
-                                            <span style="color: #009cb6; font-size: 14px; font-weight: 600;">R</span>
-                                        </td>
-                                        <td style="vertical-align: middle;">
-                                            <div style="position: relative; width: 200px; height: 20px; background: #e5e7eb; border-radius: 10px; border: 1px solid #ccc; overflow: hidden;">
-                                                <div style="position: absolute; top: 0; left: 0; height: 100%; width: {fuel_percentage}%; background: #00bcd4; border-radius: 10px;"></div>
-                                            </div>
-                                        </td>
-                                        <td style="padding-left: 15px; vertical-align: middle;">
-                                            <span style="color: #009cb6; font-size: 14px; font-weight: 600;">F</span>
-                                        </td>
-                                    </tr>
-                                    <tr>
-                                        <td colspan="3" align="center" style="padding-top: 10px;">
-                                            <p style="color: #333; margin: 0; font-size: 16px; font-weight: 700;">{fuel_text}</p>
-                                        </td>
-                                    </tr>
-                                </table>
-                            </td>
-                        </tr>
-                    </table>
-                    """
-                    
-                    # Use cached promotional images and logo
-                    global PROMO_IMAGES_CACHE, LOGO_CACHE
-                    logo_base64 = LOGO_CACHE or "/static/ap-heather.png"
-                    promo_base64 = {
-                        'promo1': PROMO_IMAGES_CACHE.get('promo1', ''),
-                        'promo2': PROMO_IMAGES_CACHE.get('promo2', ''),
-                        'promo3': PROMO_IMAGES_CACHE.get('promo3', ''),
-                        'benagil': PROMO_IMAGES_CACHE.get('benagil', ''),
-                        'lagos': PROMO_IMAGES_CACHE.get('lagos', ''),
-                        'sagres': PROMO_IMAGES_CACHE.get('sagres', '')
-                    }
-                    
-                    # Get inspection date from database (created_at timestamp)
-                    from datetime import datetime
-                    if is_postgres:
-                        cursor.execute("""
-                            SELECT created_at FROM vehicle_inspections 
-                            WHERE id = %s
-                        """, (inspection_id,))
-                    else:
-                        cursor.execute("""
-                            SELECT created_at FROM vehicle_inspections 
-                            WHERE id = ?
-                        """, (inspection_id,))
-                    
-                    inspection_date_row = cursor.fetchone()
-                    if inspection_date_row and inspection_date_row[0]:
-                        # Format the timestamp from DB
-                        inspection_date = inspection_date_row[0].strftime('%d/%m/%Y %H:%M') if hasattr(inspection_date_row[0], 'strftime') else str(inspection_date_row[0])
-                        logging.info(f"📅 Inspection date from DB: {inspection_date}")
-                    else:
-                        # Fallback to current time if not found
-                        inspection_date = datetime.now().strftime('%d/%m/%Y %H:%M')
-                        logging.warning(f"⚠️ Could not get inspection date from DB, using current time: {inspection_date}")
-                    
-                    # Base URL for links
-                    base_url = "https://carscraping.up.railway.app"
-                    
-                    # T&C download URL
-                    tc_url_map = {
-                        'pt': f'{base_url}/download/tc-pt',
-                        'en': f'{base_url}/download/tc-en',
-                        'fr': f'{base_url}/download/tc-en'
-                    }
-                    tc_download_url = tc_url_map.get(detected_lang, tc_url_map['en'])
-                    
-                    # Inspection type label
-                    # checkout = RECOLHA (devolução), checkin = ENTREGA
-                    t_labels = {
-                        'checkout': {'pt': 'Recolha', 'fr': 'Retour', 'en': 'Return'},
-                        'checkin': {'pt': 'Entrega', 'fr': 'Livraison', 'en': 'Delivery'}
-                    }
-                    inspection_type_label = t_labels.get(inspection_type, {}).get(detected_lang, inspection_type)
-                    
-                    # Use incidents already validated before email block
-                    status_alert_html = ""
-                    photos_section_html = ""
-                    
-                    # Generate STATUS_ALERT based on incidents (already validated above)
-                    if inspection_type == 'checkout':
-                        logging.info("📧 Generating STATUS_ALERT for CHECK-OUT email...")
-                        status_alert_html = _generate_checkin_status_alert(
-                            detected_lang,
-                            incidents['has_fuel_incident'],
-                            incidents['has_damage_incident']
-                        )
-                    else:
-                        logging.info("📧 CHECK-IN email - No STATUS_ALERT needed")
+                        # Base URL for links
+                        base_url = "https://carscraping.up.railway.app"
+                        
+                        # T&C download URL
+                        tc_url_map = {
+                            'pt': f'{base_url}/download/tc-pt',
+                            'en': f'{base_url}/download/tc-en',
+                            'fr': f'{base_url}/download/tc-en'
+                        }
+                        tc_download_url = tc_url_map.get(detected_lang, tc_url_map['en'])
+                        
+                        # Inspection type label
+                        # checkout = RECOLHA (devolução), checkin = ENTREGA
+                        t_labels = {
+                            'checkout': {'pt': 'Recolha', 'fr': 'Retour', 'en': 'Return'},
+                            'checkin': {'pt': 'Entrega', 'fr': 'Livraison', 'en': 'Delivery'}
+                        }
+                        inspection_type_label = t_labels.get(inspection_type, {}).get(detected_lang, inspection_type)
+                        
+                        # Use incidents already validated before email block
                         status_alert_html = ""
+                        photos_section_html = ""
                     
-                    logging.info(f"📧 [DEBUG] Status alert HTML length: {len(status_alert_html)}")
-                    logging.info(f"📧 [DEBUG] Status alert preview: {status_alert_html[:200] if status_alert_html else 'EMPTY'}")
-                    
-                    # Build PHOTOS_SECTION based on incidents
-                    # If fuel incident: show odometer photo as proof
-                    # If damage incident: show all damage photos
-                    if incidents['has_fuel_incident'] or incidents['has_damage_incident']:
-                        # Get odometer photo for fuel incidents
-                        odometer_photo_html = ""
-                        if incidents['has_fuel_incident']:
-                                # Extract odometer photo from photos_rows
-                                if is_postgres:
-                                    cursor.execute("""
-                                        SELECT image_data FROM inspection_photos 
-                                        WHERE inspection_id = %s AND photo_type = 'odometer'
-                                        LIMIT 1
-                                    """, (inspection_id,))
-                                else:
-                                    cursor.execute("""
-                                        SELECT image_data FROM inspection_photos 
-                                        WHERE inspection_id = ? AND photo_type = 'odometer'
-                                        LIMIT 1
-                                    """, (inspection_id,))
-                                
-                                odometer_row = cursor.fetchone()
-                                if odometer_row and odometer_row[0]:
-                                    import base64
-                                    image_data = odometer_row[0]
-                                    if isinstance(image_data, str):
-                                        if image_data.startswith('data:image'):
-                                            odometer_url = image_data
-                                        else:
-                                            odometer_url = f"data:image/jpeg;base64,{image_data}"
+                        # Generate STATUS_ALERT based on incidents (already validated above)
+                        if inspection_type == 'checkout':
+                            logging.info("📧 Generating STATUS_ALERT for CHECK-OUT email...")
+                            status_alert_html = _generate_checkin_status_alert(
+                                detected_lang,
+                                incidents['has_fuel_incident'],
+                                incidents['has_damage_incident']
+                            )
+                        else:
+                            logging.info("📧 CHECK-IN email - No STATUS_ALERT needed")
+                            status_alert_html = ""
+                        
+                        logging.info(f"📧 [DEBUG] Status alert HTML length: {len(status_alert_html)}")
+                        logging.info(f"📧 [DEBUG] Status alert preview: {status_alert_html[:200] if status_alert_html else 'EMPTY'}")
+                        
+                        # Build PHOTOS_SECTION based on incidents
+                        # If fuel incident: show odometer photo as proof
+                        # If damage incident: show all damage photos
+                        if incidents['has_fuel_incident'] or incidents['has_damage_incident']:
+                            # Get odometer photo for fuel incidents
+                            odometer_photo_html = ""
+                            if incidents['has_fuel_incident']:
+                                    # Extract odometer photo from photos_rows
+                                    if is_postgres:
+                                        cursor.execute("""
+                                            SELECT image_data FROM inspection_photos 
+                                            WHERE inspection_id = %s AND photo_type = 'odometer'
+                                            LIMIT 1
+                                        """, (inspection_id,))
                                     else:
-                                        odometer_url = f"data:image/jpeg;base64,{base64.b64encode(image_data).decode('utf-8')}"
+                                        cursor.execute("""
+                                            SELECT image_data FROM inspection_photos 
+                                            WHERE inspection_id = ? AND photo_type = 'odometer'
+                                            LIMIT 1
+                                        """, (inspection_id,))
                                     
-                                    # Translate "Odometer" label
-                                    odometer_label = {
-                                        'pt': 'Quilómetros',
-                                        'en': 'Odometer',
-                                        'fr': 'Kilométrage'
-                                    }.get(detected_lang, 'Odometer')
-                                    
-                                    odometer_photo_html = f"""
-                                    <div style="padding: 20px; background-color: #ffffff; border-bottom: 1px solid #e5e7eb;">
-                                        <h3 style="color: #00bcd4; margin: 0 0 15px 0; font-size: 18px;">{odometer_label}</h3>
-                                        <div style="text-align: center;">
-                                            <a href="{odometer_url}" target="_blank" style="text-decoration: none; display: inline-block; cursor: pointer;">
-                                                <img src="{odometer_url}" alt="{odometer_label}" 
-                                                     style="max-width: 300px; width: 100%; height: auto; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
-                                            </a>
+                                    odometer_row = cursor.fetchone()
+                                    if odometer_row and odometer_row[0]:
+                                        import base64
+                                        image_data = odometer_row[0]
+                                        if isinstance(image_data, str):
+                                            if image_data.startswith('data:image'):
+                                                odometer_url = image_data
+                                            else:
+                                                odometer_url = f"data:image/jpeg;base64,{image_data}"
+                                        else:
+                                            odometer_url = f"data:image/jpeg;base64,{base64.b64encode(image_data).decode('utf-8')}"
+                                        
+                                        # Translate "Odometer" label
+                                        odometer_label = {
+                                            'pt': 'Quilómetros',
+                                            'en': 'Odometer',
+                                            'fr': 'Kilométrage'
+                                        }.get(detected_lang, 'Odometer')
+                                        
+                                        odometer_photo_html = f"""
+                                        <div style="padding: 20px; background-color: #ffffff; border-bottom: 1px solid #e5e7eb;">
+                                            <h3 style="color: #00bcd4; margin: 0 0 15px 0; font-size: 18px;">{odometer_label}</h3>
+                                            <div style="text-align: center;">
+                                                <a href="{odometer_url}" target="_blank" style="text-decoration: none; display: inline-block; cursor: pointer;">
+                                                    <img src="{odometer_url}" alt="{odometer_label}" 
+                                                         style="max-width: 300px; width: 100%; height: auto; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
+                                                </a>
+                                            </div>
                                         </div>
-                                    </div>
-                                    """
-                        
-                        # Get damage photos for damage incidents
-                        damage_photos_html = ""
-                        if incidents['has_damage_incident'] and photos_html:
-                            damage_label = {
-                                'pt': 'Fotos dos Danos',
-                                'en': 'Damage Photos',
-                                'fr': 'Photos des Dommages'
-                            }.get(detected_lang, 'Damage Photos')
+                                        """
                             
-                            damage_photos_html = f"""
-                            <div style="padding: 20px; background-color: #ffffff;">
-                                <h3 style="color: #00bcd4; margin: 0 0 15px 0; font-size: 18px;">{damage_label}</h3>
-                                {photos_html}
-                            </div>
-                            """
+                            # Get damage photos for damage incidents
+                            damage_photos_html = ""
+                            if incidents['has_damage_incident'] and photos_html:
+                                damage_label = {
+                                    'pt': 'Fotos dos Danos',
+                                    'en': 'Damage Photos',
+                                    'fr': 'Photos des Dommages'
+                                }.get(detected_lang, 'Damage Photos')
+                                
+                                damage_photos_html = f"""
+                                <div style="padding: 20px; background-color: #ffffff;">
+                                    <h3 style="color: #00bcd4; margin: 0 0 15px 0; font-size: 18px;">{damage_label}</h3>
+                                    {photos_html}
+                                </div>
+                                """
+                            
+                            # Combine sections
+                            photos_section_html = odometer_photo_html + damage_photos_html
                         
-                        # Combine sections
-                        photos_section_html = odometer_photo_html + damage_photos_html
-                    
-                    # Choose template based on inspection type
-                    if inspection_type == 'checkout':
-                        # CHECK-OUT (recolha) - use email_checkout template
-                        template_name = f"email_checkout_{detected_lang}.html" if detected_lang in ['pt', 'fr', 'en'] else "email_checkout_en.html"
-                        subject = _get_checkout_email_subject(detected_lang, ra)
-                        croqui_title = _get_checkout_croqui_title(detected_lang)
+                        # Choose template based on inspection type
+                        if inspection_type == 'checkout':
+                            # CHECK-OUT (recolha) - use email_checkout template
+                            template_name = f"email_checkout_{detected_lang}.html" if detected_lang in ['pt', 'fr', 'en'] else "email_checkout_en.html"
+                            subject = _get_checkout_email_subject(detected_lang, ra)
+                            croqui_title = _get_checkout_croqui_title(detected_lang)
+                            
+                            logging.info(f"📧 CHECK-OUT (recolha) - Using template: {template_name}")
+                            logging.info(f"📧 Subject: {subject}")
+                            
+                        elif inspection_type == 'checkin':
+                            # CHECK-IN (entrega) - use email_checkin template
+                            template_name = f"email_checkin_{detected_lang}.html" if detected_lang in ['pt', 'fr', 'en'] else "email_checkin_en.html"
+                            croqui_title = "Croqui de Danos" if detected_lang == 'pt' else "Damage Sketch" if detected_lang == 'en' else "Croquis des Dommages"
+                            
+                            # Checkin subject
+                            subject = f"Delivery Report R.A. {ra}"
+                            if detected_lang == 'pt':
+                                subject = f"Relatório de Entrega R.A. {ra}"
+                            elif detected_lang == 'fr':
+                                subject = f"Rapport de Livraison R.A. {ra}"
+                            
+                            logging.info(f"📧 CHECK-IN (entrega) - Using template: {template_name}")
+                            logging.info(f"📧 Subject: {subject}")
+                            
+                        else:
+                            # Default fallback
+                            template_name = f"email_checkin_{detected_lang}.html" if detected_lang in ['pt', 'fr', 'en'] else "email_checkin_en.html"
+                            croqui_title = "Croqui de Danos" if detected_lang == 'pt' else "Damage Sketch" if detected_lang == 'en' else "Croquis des Dommages"
+                            subject = f"Inspection Report R.A. {ra}"
                         
-                        logging.info(f"📧 CHECK-OUT (recolha) - Using template: {template_name}")
-                        logging.info(f"📧 Subject: {subject}")
+                        # Prepare email content with ALL variables
+                        template = templates.get_template(template_name)
+                        html_content = template.render(
+                            LOGO_URL=logo_base64,
+                            RA_NUMBER=ra,
+                            CUSTOMER_NAME=client_name,
+                            FIRST_NAME=first_name,
+                            VEHICLE_PLATE=plate,
+                            VEHICLE_BRAND=vehicle_brand,
+                            VEHICLE_MODEL=vehicle_model,
+                            VEHICLE_TYPE=vehicle_type,
+                            INSPECTION_TYPE=inspection_type_label,
+                            LOCATION=delivery_location,
+                            INSPECTION_DATE=inspection_date,
+                            ODOMETER=str(odometer_reading),
+                            INSPECTOR_NAME=receptionist,
+                            FUEL_GAUGE_SVG=fuel_gauge_html,
+                            CROQUI_IMAGE=final_croqui,
+                            CROQUI_TITLE=croqui_title,
+                            STATUS_ALERT=status_alert_html,
+                            PHOTOS_SECTION=photos_section_html,
+                            PHOTOS_HTML=photos_html,
+                            PROMO_IMAGE_1=promo_base64.get('promo1', ''),
+                            PROMO_IMAGE_2=promo_base64.get('promo2', ''),
+                            PROMO_IMAGE_3=promo_base64.get('promo3', ''),
+                            PROMO_IMAGE_4=promo_base64.get('promo4', ''),
+                            PROMO_IMAGE_5=promo_base64.get('promo5', ''),
+                            PROMO_IMAGE_6=promo_base64.get('promo6', ''),
+                            PROMO_IMAGE_7=promo_base64.get('promo7', ''),
+                            PROMO_IMAGE_8=promo_base64.get('promo8', ''),
+                            PROMO_IMAGE_9=promo_base64.get('promo9', ''),
+                            PROMO_IMAGE_10=promo_base64.get('promo10', ''),
+                            PROMO_IMAGE_11=promo_base64.get('promo11', ''),
+                            PROMO_IMAGE_12=promo_base64.get('promo12', ''),
+                            TC_DOWNLOAD_URL=tc_download_url
+                        )
                         
-                    elif inspection_type == 'checkin':
-                        # CHECK-IN (entrega) - use email_checkin template
-                        template_name = f"email_checkin_{detected_lang}.html" if detected_lang in ['pt', 'fr', 'en'] else "email_checkin_en.html"
-                        croqui_title = "Croqui de Danos" if detected_lang == 'pt' else "Damage Sketch" if detected_lang == 'en' else "Croquis des Dommages"
+                        # Send email
+                        _send_notification_email(email, subject, html_content)
+                        logging.info(f"✅ Email sent successfully to {email} (Type: {inspection_type}, Subject: {subject})")
                         
-                        # Checkin subject
-                        subject = f"Delivery Report R.A. {ra}"
-                        if detected_lang == 'pt':
-                            subject = f"Relatório de Entrega R.A. {ra}"
-                        elif detected_lang == 'fr':
-                            subject = f"Rapport de Livraison R.A. {ra}"
-                        
-                        logging.info(f"📧 CHECK-IN (entrega) - Using template: {template_name}")
-                        logging.info(f"📧 Subject: {subject}")
-                        
-                    else:
-                        # Default fallback
-                        template_name = f"email_checkin_{detected_lang}.html" if detected_lang in ['pt', 'fr', 'en'] else "email_checkin_en.html"
-                        croqui_title = "Croqui de Danos" if detected_lang == 'pt' else "Damage Sketch" if detected_lang == 'en' else "Croquis des Dommages"
-                        subject = f"Inspection Report R.A. {ra}"
-                    
-                    # Prepare email content with ALL variables
-                    template = templates.get_template(template_name)
-                    html_content = template.render(
-                        LOGO_URL=logo_base64,
-                        RA_NUMBER=ra,
-                        CUSTOMER_NAME=client_name,
-                        FIRST_NAME=first_name,
-                        VEHICLE_PLATE=plate,
-                        VEHICLE_BRAND=vehicle_brand,
-                        VEHICLE_MODEL=vehicle_model,
-                        VEHICLE_TYPE=vehicle_type,
-                        INSPECTION_TYPE=inspection_type_label,
-                        LOCATION=delivery_location,
-                        INSPECTION_DATE=inspection_date,
-                        ODOMETER=str(odometer_reading),
-                        INSPECTOR_NAME=receptionist,
-                        FUEL_GAUGE_SVG=fuel_gauge_html,
-                        CROQUI_IMAGE=final_croqui,
-                        CROQUI_TITLE=croqui_title,
-                        STATUS_ALERT=status_alert_html,
-                        PHOTOS_SECTION=photos_section_html,
-                        PHOTOS_HTML=photos_html,
-                        PROMO_IMAGE_1=promo_base64.get('promo1', ''),
-                        PROMO_IMAGE_2=promo_base64.get('promo2', ''),
-                        PROMO_IMAGE_3=promo_base64.get('promo3', ''),
-                        BENAGIL_IMAGE=promo_base64.get('benagil', ''),
-                        LAGOS_IMAGE=promo_base64.get('lagos', ''),
-                        SAGRES_IMAGE=promo_base64.get('sagres', ''),
-                        TC_DOWNLOAD_URL=tc_download_url
-                    )
-                    
-                    # Send email
-                    _send_notification_email(email, subject, html_content)
-                    logging.info(f"✅ Email sent successfully to {email} (Type: {inspection_type}, Subject: {subject})")
-                    
-                except Exception as email_error:
-                    logging.error(f"❌ Failed to send email: {email_error}")
-                    logging.error(f"❌ Email error traceback: {traceback.format_exc()}")
-                    # Don't fail the inspection save if email fails
+                    except Exception as email_error:
+                        logging.error(f"❌ Failed to send email: {email_error}")
+                        logging.error(f"❌ Email error traceback: {traceback.format_exc()}")
+                        # Don't fail the inspection save if email fails
         
         except Exception as db_error:
             logging.error(f"❌ Database error: {db_error}")
