@@ -48553,52 +48553,53 @@ async def fix_ra_06716(request: Request):
             result["found_by"] = "inspection_id"
             
         if inspection_row:
-                odometer, fuel, created_at = inspection_row
-                
-                # Atualizar extracted_data
-                extracted_data['odometer'] = int(odometer)
-                extracted_data['kms'] = int(odometer)
-                extracted_data['fuel_level'] = str(fuel)
-                extracted_data['combustivel'] = str(fuel)
-                extracted_data['delivery_date'] = created_at.strftime('%d/%m/%Y')
-                extracted_data['delivery_time'] = created_at.strftime('%H:%M')
-                extracted_data['pickup_date'] = created_at.strftime('%d/%m/%Y')
-                extracted_data['pickup_time'] = created_at.strftime('%H:%M')
-                
-                # Adicionar client_name se não existir
-                if 'client_name' not in extracted_data and 'clientName' in extracted_data:
-                    extracted_data['client_name'] = extracted_data['clientName']
-                
-                updated_json = json.dumps(extracted_data)
-                
-                # Atualizar no banco
-                if is_postgres:
-                    cursor.execute("""
-                        UPDATE rental_agreements
-                        SET extracted_data = %s
-                        WHERE rental_agreement_number = %s
-                    """, (updated_json, '06716'))
-                else:
-                    cursor.execute("""
-                        UPDATE rental_agreements
-                        SET extracted_data = ?
-                        WHERE rental_agreement_number = ?
-                    """, (updated_json, '06716'))
-                
-                conn.commit()
-                
-                result["inspection_data"] = {
-                    "odometer": odometer,
-                    "fuel": fuel,
-                    "created_at": str(created_at)
-                }
-                result["extracted_data_after"] = extracted_data
-                result["success"] = True
-                result["message"] = "RA 06716 atualizado com sucesso!"
+            odometer, fuel, created_at, found_inspection_id = inspection_row
+            
+            # Atualizar extracted_data
+            extracted_data['odometer'] = int(odometer)
+            extracted_data['kms'] = int(odometer)
+            extracted_data['fuel_level'] = str(fuel)
+            extracted_data['combustivel'] = str(fuel)
+            extracted_data['delivery_date'] = created_at.strftime('%d/%m/%Y')
+            extracted_data['delivery_time'] = created_at.strftime('%H:%M')
+            extracted_data['pickup_date'] = created_at.strftime('%d/%m/%Y')
+            extracted_data['pickup_time'] = created_at.strftime('%H:%M')
+            
+            # Adicionar client_name se não existir
+            if 'client_name' not in extracted_data and 'clientName' in extracted_data:
+                extracted_data['client_name'] = extracted_data['clientName']
+            
+            updated_json = json.dumps(extracted_data)
+            
+            # Atualizar no banco
+            if is_postgres:
+                cursor.execute("""
+                    UPDATE rental_agreements
+                    SET extracted_data = %s,
+                        inspection_id = %s
+                    WHERE rental_agreement_number = %s
+                """, (updated_json, found_inspection_id, '06716'))
             else:
-                result["error"] = "Inspeção não encontrada"
+                cursor.execute("""
+                    UPDATE rental_agreements
+                    SET extracted_data = ?,
+                        inspection_id = ?
+                    WHERE rental_agreement_number = ?
+                """, (updated_json, found_inspection_id, '06716'))
+            
+            conn.commit()
+            
+            result["inspection_data"] = {
+                "odometer": odometer,
+                "fuel": fuel,
+                "created_at": str(created_at),
+                "inspection_id": found_inspection_id
+            }
+            result["extracted_data_after"] = extracted_data
+            result["success"] = True
+            result["message"] = "RA 06716 atualizado com sucesso!"
         else:
-            result["error"] = "RA não tem inspection_id associado"
+            result["error"] = "Inspeção não encontrada para a matrícula AS-46-EO"
         
         cursor.close()
         conn.close()
