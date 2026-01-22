@@ -44202,6 +44202,8 @@ async def get_inspections_history(request: Request):
                 client_name = None
                 client_email = None
                 
+                logging.info(f"🔍 RA {ra}: extracted_data type={type(extracted_data)}, has_data={extracted_data is not None}")
+                
                 if extracted_data:
                     try:
                         import json
@@ -44209,14 +44211,20 @@ async def get_inspections_history(request: Request):
                             data = json.loads(extracted_data)
                         else:
                             data = extracted_data
+                        
+                        logging.info(f"📋 RA {ra}: parsed data keys={list(data.keys()) if isinstance(data, dict) else 'NOT_DICT'}")
+                        
                         client_name = data.get('client_name')
                         client_email = data.get('client_email')
-                    except:
-                        pass
+                        
+                        logging.info(f"✅ RA {ra}: client_name='{client_name}', client_email='{client_email}'")
+                    except Exception as e:
+                        logging.error(f"❌ RA {ra}: Error parsing extracted_data: {e}")
                 
                 # Fallback to self_checkin_email if no client_email found
                 if not client_email and self_checkin_email:
                     client_email = self_checkin_email
+                    logging.info(f"📧 RA {ra}: Using self_checkin_email as fallback: {client_email}")
                 
                 logging.info(f"  - {inspection_type}: {plate} / RA: {ra} (base: {ra_base}) / Date: {row[5]} / Client: {client_name} / Email: {client_email}")
                 
