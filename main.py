@@ -31575,7 +31575,15 @@ async def send_parking_qr_email(request: Request):
         
         # Substituir cid:qr_code_image por base64 inline (a função _send_notification_email vai extrair e converter para CID)
         logging.info(f"🖼️ QR code base64 length: {len(qr_code_image)} chars")
-        qr_base64_src = f'data:image/png;base64,{qr_code_image}'
+        
+        # O QR code já vem com o prefixo data:image/png;base64, do frontend
+        if qr_code_image.startswith('data:image'):
+            qr_base64_src = qr_code_image
+            logging.info(f"✅ QR code already has data URL prefix")
+        else:
+            qr_base64_src = f'data:image/png;base64,{qr_code_image}'
+            logging.info(f"➕ Added data URL prefix to QR code")
+        
         logging.info(f"🔄 Replacing cid:qr_code_image with base64 data URL")
         html_content = html_content.replace('cid:qr_code_image', qr_base64_src)
         
@@ -44282,7 +44290,7 @@ async def get_inspections_history(request: Request):
             
             # Use different JOIN strategy based on database type
             if is_postgres:
-                # PostgreSQL: Use LIKE to match both exact and base RA numbers
+                # PostgreSQL: Match RA by removing suffix from contract_number
                 cursor.execute("""
                     SELECT vi.inspection_number, vi.vehicle_plate, vi.contract_number, 
                            vi.inspection_type, vi.inspector_name, vi.created_at, 
@@ -44292,13 +44300,13 @@ async def get_inspections_history(request: Request):
                     FROM vehicle_inspections vi
                     LEFT JOIN rental_agreements ra ON (
                         ra.rental_agreement_number = vi.contract_number 
-                        OR ra.rental_agreement_number LIKE vi.contract_number || '-%'
+                        OR ra.rental_agreement_number = SPLIT_PART(vi.contract_number, '-', 1)
                     )
                     ORDER BY vi.created_at DESC
                     LIMIT 200
                 """)
             else:
-                # SQLite: Use LIKE to match both exact and base RA numbers
+                # SQLite: Match RA by removing suffix from contract_number
                 cursor.execute("""
                     SELECT vi.inspection_number, vi.vehicle_plate, vi.contract_number, 
                            vi.inspection_type, vi.inspector_name, vi.created_at, 
@@ -44308,7 +44316,10 @@ async def get_inspections_history(request: Request):
                     FROM vehicle_inspections vi
                     LEFT JOIN rental_agreements ra ON (
                         ra.rental_agreement_number = vi.contract_number 
-                        OR ra.rental_agreement_number LIKE vi.contract_number || '-%'
+                        OR ra.rental_agreement_number = SUBSTR(vi.contract_number, 1, 
+                            CASE WHEN INSTR(vi.contract_number, '-') > 0 
+                            THEN INSTR(vi.contract_number, '-') - 1 
+                            ELSE LENGTH(vi.contract_number) END)
                     )
                     ORDER BY vi.created_at DESC
                     LIMIT 200

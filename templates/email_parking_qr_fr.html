@@ -69,7 +69,11 @@
         </h3>
         <div style="background: white; border-radius: 12px; padding: 30px; margin: 0 auto; max-width: 400px; box-shadow: 0 2px 8px rgba(0,0,0,0.1);">
             <p style="color: #666666; margin: 0 0 15px 0; font-size: 14px; font-weight: bold;">Parking de l'Aéroport #{{PARKING_NUMBER}}</p>
-            <p style="color: #999999; margin: 0; font-size: 12px;">Le code QR est joint à cet e-mail</p>
+            <!-- QR Code will be embedded here -->
+            <div style="margin: 20px 0;">
+                <img src="cid:qr_code_image" alt="Code QR" style="max-width: 250px; height: auto; border: 2px solid #00bcd4; border-radius: 8px; padding: 10px; background: white;">
+            </div>
+            <p style="color: #999999; margin: 10px 0 0 0; font-size: 12px;">Présentez ce code QR au lecteur de la barrière d'entrée</p>
         </div>
     </div>
 
