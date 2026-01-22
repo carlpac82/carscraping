@@ -48473,6 +48473,117 @@ async def checkin_preview_damages(request: Request):
         traceback.print_exc()
         return HTMLResponse(content=f"<h1>Erro</h1><pre>{str(e)}</pre>")
 
+@app.get("/fix-ra-06716")
+async def fix_ra_06716(request: Request):
+    """Endpoint temporário para corrigir o extracted_data do RA 06716"""
+    try:
+        conn = _db_connect()
+        cursor = conn.cursor()
+        is_postgres = 'psycopg' in type(conn).__name__.lower() or os.getenv('DATABASE_URL')
+        
+        # Buscar o RA 06716
+        if is_postgres:
+            cursor.execute("""
+                SELECT rental_agreement_number, license_plate, extracted_data, inspection_id
+                FROM rental_agreements
+                WHERE rental_agreement_number = %s
+            """, ('06716',))
+        else:
+            cursor.execute("""
+                SELECT rental_agreement_number, license_plate, extracted_data, inspection_id
+                FROM rental_agreements
+                WHERE rental_agreement_number = ?
+            """, ('06716',))
+        
+        row = cursor.fetchone()
+        if not row:
+            return JSONResponse({"error": "RA 06716 não encontrado"}, status_code=404)
+        
+        ra_number, plate, extracted_data_json, inspection_id = row
+        extracted_data = json.loads(extracted_data_json) if extracted_data_json else {}
+        
+        result = {
+            "ra": ra_number,
+            "plate": plate,
+            "inspection_id": inspection_id,
+            "extracted_data_before": extracted_data.copy()
+        }
+        
+        # Buscar dados da inspeção
+        if inspection_id:
+            if is_postgres:
+                cursor.execute("""
+                    SELECT odometer_reading, fuel_level, created_at
+                    FROM vehicle_inspections
+                    WHERE id = %s
+                """, (inspection_id,))
+            else:
+                cursor.execute("""
+                    SELECT odometer_reading, fuel_level, created_at
+                    FROM vehicle_inspections
+                    WHERE id = ?
+                """, (inspection_id,))
+            
+            inspection_row = cursor.fetchone()
+            if inspection_row:
+                odometer, fuel, created_at = inspection_row
+                
+                # Atualizar extracted_data
+                extracted_data['odometer'] = int(odometer)
+                extracted_data['kms'] = int(odometer)
+                extracted_data['fuel_level'] = str(fuel)
+                extracted_data['combustivel'] = str(fuel)
+                extracted_data['delivery_date'] = created_at.strftime('%d/%m/%Y')
+                extracted_data['delivery_time'] = created_at.strftime('%H:%M')
+                extracted_data['pickup_date'] = created_at.strftime('%d/%m/%Y')
+                extracted_data['pickup_time'] = created_at.strftime('%H:%M')
+                
+                # Adicionar client_name se não existir
+                if 'client_name' not in extracted_data and 'clientName' in extracted_data:
+                    extracted_data['client_name'] = extracted_data['clientName']
+                
+                updated_json = json.dumps(extracted_data)
+                
+                # Atualizar no banco
+                if is_postgres:
+                    cursor.execute("""
+                        UPDATE rental_agreements
+                        SET extracted_data = %s
+                        WHERE rental_agreement_number = %s
+                    """, (updated_json, '06716'))
+                else:
+                    cursor.execute("""
+                        UPDATE rental_agreements
+                        SET extracted_data = ?
+                        WHERE rental_agreement_number = ?
+                    """, (updated_json, '06716'))
+                
+                conn.commit()
+                
+                result["inspection_data"] = {
+                    "odometer": odometer,
+                    "fuel": fuel,
+                    "created_at": str(created_at)
+                }
+                result["extracted_data_after"] = extracted_data
+                result["success"] = True
+                result["message"] = "RA 06716 atualizado com sucesso!"
+            else:
+                result["error"] = "Inspeção não encontrada"
+        else:
+            result["error"] = "RA não tem inspection_id associado"
+        
+        cursor.close()
+        conn.close()
+        
+        return JSONResponse(result)
+        
+    except Exception as e:
+        logging.error(f"Erro ao corrigir RA 06716: {e}")
+        import traceback
+        traceback.print_exc()
+        return JSONResponse({"error": str(e), "traceback": traceback.format_exc()}, status_code=500)
+
 if __name__ == "__main__":
     import uvicorn
     uvicorn.run(app, host="0.0.0.0", port=8000)
