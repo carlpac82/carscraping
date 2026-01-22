@@ -30002,6 +30002,10 @@ async def save_inspection(request: Request):
                     conn.commit()
                     logging.info("✅ Transaction committed successfully")
                     logging.info(f"🔍 [FLOW-2] After commit, inspection_type='{inspection_type}'")
+                except Exception as commit_error:
+                    logging.error(f"❌ Error committing transaction: {commit_error}")
+                    conn.rollback()
+                    raise
                 
                 # VALIDATE INCIDENTS FOR CHECK-OUT (RECOLHA) - ALWAYS, regardless of email
                 logging.info(f"🔍 [PRE-VALIDATION] inspection_type='{inspection_type}', damage_count={damage_count}")
