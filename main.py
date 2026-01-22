@@ -31530,6 +31530,10 @@ async def send_parking_qr_email(request: Request):
         html_content = html_content.replace('{{PARKING_LOCATION_NAME}}', parking_info['name'])
         html_content = html_content.replace('{{PARKING_GOOGLE_MAPS_LINK}}', parking_info['maps_link'])
         
+        # Substituir cid:qr_code_image por base64 inline (a função _send_notification_email vai extrair e converter para CID)
+        qr_base64_src = f'data:image/png;base64,{qr_code_image}'
+        html_content = html_content.replace('cid:qr_code_image', qr_base64_src)
+        
         # Preparar assunto do email
         subject_map = {
             'pt': f'Código QR de Acesso ao Parque {parking_number} - Auto Prudente',
@@ -31537,13 +31541,6 @@ async def send_parking_qr_email(request: Request):
             'fr': f'Code QR Parking Aéroport {parking_number} - Auto Prudente'
         }
         subject = subject_map.get(detected_lang, subject_map['pt'])
-        
-        # Usar QR code recebido do frontend (já em base64)
-        import smtplib
-        from email.mime.multipart import MIMEMultipart
-        from email.mime.text import MIMEText
-        from email.mime.image import MIMEImage
-        import base64
         
         # Guardar QR code na base de dados para histórico
         try:
@@ -31572,37 +31569,15 @@ async def send_parking_qr_email(request: Request):
         except Exception as e:
             logging.warning(f"⚠️ Could not store QR code in database: {str(e)}")
         
-        msg = MIMEMultipart('related')
-        msg['Subject'] = subject
-        msg['From'] = SMTP_FROM_EMAIL
-        msg['To'] = email
-        
-        # Attach HTML content
-        msg_alternative = MIMEMultipart('alternative')
-        msg.attach(msg_alternative)
-        html_part = MIMEText(html_content, 'html', 'utf-8')
-        msg_alternative.attach(html_part)
-        
-        # Attach QR code image from frontend
-        try:
-            qr_image_data = base64.b64decode(qr_code_image)
-            qr_image = MIMEImage(qr_image_data)
-            qr_image.add_header('Content-ID', '<qr_code_image>')
-            qr_image.add_header('Content-Disposition', 'inline', filename=f'parking_qr_{ra_num}.png')
-            msg.attach(qr_image)
-            logging.info(f"✅ QR code image attached for RA {ra_num}, Parking #{parking_number}")
-        except Exception as e:
-            logging.error(f"❌ Error attaching QR code: {str(e)}")
-            return JSONResponse({
-                "success": False,
-                "error": f"Erro ao processar QR code: {str(e)}"
-            }, status_code=500)
-        
-        # Enviar via SMTP
-        with smtplib.SMTP(SMTP_SERVER, SMTP_PORT) as server:
-            server.starttls()
-            server.login(SMTP_USERNAME, SMTP_PASSWORD)
-            server.send_message(msg)
+        # Enviar email usando Google OAuth do admin settings
+        # O QR code já está inline no HTML como base64, a função _send_notification_email
+        # vai extrair automaticamente e converter para CID
+        _send_notification_email(
+            to_email=email,
+            subject=subject,
+            message=html_content,
+            attachments=None
+        )
         
         logging.info(f"✅ Parking QR email sent to {email} for RA {ra_num}, Parking #{parking_number}")
         
