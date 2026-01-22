@@ -1743,6 +1743,13 @@
                     </div>
                     
                     <div class="mb-4">
+                        <label class="flex items-center cursor-pointer">
+                            <input type="checkbox" id="noReservationCheckbox" onchange="toggleNoReservationMode()" class="w-4 h-4 text-[#009cb6] border-gray-300 rounded focus:ring-[#009cb6]"/>
+                            <span class="ml-2 text-sm font-medium text-gray-700">Sem Reserva (cliente vai tirar ticket na máquina)</span>
+                        </label>
+                    </div>
+                    
+                    <div id="withReservationSection" class="mb-4">
                         <label class="block text-sm font-medium text-gray-700 mb-2">Selecione o PDF com QR Code</label>
                         <p class="text-xs text-gray-500 mb-3">O sistema irá detectar automaticamente o número do parque (1-4)</p>
                         <input type="file" id="parkingQRFile" accept=".pdf" class="block w-full text-sm text-gray-500
@@ -1751,6 +1758,18 @@
                             file:text-sm file:font-semibold
                             file:bg-blue-50 file:text-blue-700
                             hover:file:bg-blue-100 cursor-pointer"/>
+                    </div>
+                    
+                    <div id="noReservationSection" class="mb-4 hidden">
+                        <label class="block text-sm font-medium text-gray-700 mb-2">Selecione o Parque</label>
+                        <select id="manualParkingSelect" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#009cb6] focus:border-transparent">
+                            <option value="">Escolha o parque...</option>
+                            <option value="1">Parque 1 - P1 Curta Duração Partidas</option>
+                            <option value="2">Parque 2 - P2 Curta Duração Chegadas</option>
+                            <option value="3">Parque 3 - P3 Longa Duração</option>
+                            <option value="4">Parque 4 - P4 Faro Airport Car Rental</option>
+                        </select>
+                        <p class="text-xs text-gray-500 mt-1">Email será enviado sem QR code e sem número de reserva</p>
                     </div>
                     
                     <div id="parkingDetectionStatus" class="mb-4 hidden">
@@ -1788,6 +1807,33 @@
             }
             window.currentParkingRA = null;
             window.currentParkingClient = null;
+        }
+        
+        function toggleNoReservationMode() {
+            const checkbox = document.getElementById('noReservationCheckbox');
+            const withReservationSection = document.getElementById('withReservationSection');
+            const noReservationSection = document.getElementById('noReservationSection');
+            const uploadBtn = document.getElementById('uploadParkingBtn');
+            const manualSelect = document.getElementById('manualParkingSelect');
+            
+            if (checkbox.checked) {
+                // Modo sem reserva
+                withReservationSection.classList.add('hidden');
+                noReservationSection.classList.remove('hidden');
+                window.noReservationMode = true;
+                
+                // Enable button when parking is selected
+                manualSelect.addEventListener('change', function() {
+                    uploadBtn.disabled = !this.value;
+                });
+                uploadBtn.disabled = !manualSelect.value;
+            } else {
+                // Modo com reserva
+                withReservationSection.classList.remove('hidden');
+                noReservationSection.classList.add('hidden');
+                window.noReservationMode = false;
+                uploadBtn.disabled = true;
+            }
         }
         
         // Handle PDF file selection and OCR processing
@@ -1996,15 +2042,39 @@
         // Process upload and send email with detected parking
         async function processParkingQRUpload() {
             const raNumber = window.currentParkingRA;
-            const parkingNumber = window.detectedParkingNumber;
-            const qrImageBase64 = window.qrCodeImageBase64;
             const clientEmail = document.getElementById('parkingClientEmail')?.value?.trim();
-            const pickupDate = window.detectedPickupDate;
-            const pickupTime = window.detectedPickupTime;
-            const reservationNumber = window.detectedReservationNumber;
+            const noReservationMode = window.noReservationMode || false;
             
-            if (!raNumber || !parkingNumber || !qrImageBase64) {
-                showNotification('Erro: Dados incompletos', 'error');
+            let parkingNumber, qrImageBase64, pickupDate, pickupTime, reservationNumber;
+            
+            if (noReservationMode) {
+                // Modo sem reserva - usar dropdown manual
+                parkingNumber = document.getElementById('manualParkingSelect')?.value;
+                qrImageBase64 = null;
+                pickupDate = null;
+                pickupTime = null;
+                reservationNumber = null;
+                
+                if (!parkingNumber) {
+                    showNotification('Erro: Selecione um parque', 'error');
+                    return;
+                }
+            } else {
+                // Modo com reserva - usar dados detectados do PDF
+                parkingNumber = window.detectedParkingNumber;
+                qrImageBase64 = window.qrCodeImageBase64;
+                pickupDate = window.detectedPickupDate;
+                pickupTime = window.detectedPickupTime;
+                reservationNumber = window.detectedReservationNumber;
+                
+                if (!parkingNumber || !qrImageBase64) {
+                    showNotification('Erro: Dados incompletos', 'error');
+                    return;
+                }
+            }
+            
+            if (!raNumber) {
+                showNotification('Erro: Número RA não encontrado', 'error');
                 return;
             }
             
@@ -2014,24 +2084,29 @@
             }
             
             try {
-                showNotification('A enviar email com QR code...', 'info');
+                const notificationMsg = noReservationMode ? 
+                    'A enviar email de parque sem reserva...' : 
+                    'A enviar email com QR code...';
+                showNotification(notificationMsg, 'info');
                 
                 // Validate and sanitize data before sending
                 const payload = {
                     rental_agreement_number: String(raNumber || ''),
                     parking_number: parseInt(parkingNumber),
-                    qr_code_image: String(qrImageBase64 || ''),
+                    qr_code_image: qrImageBase64 ? String(qrImageBase64) : null,
                     client_email: String(clientEmail || ''),
                     pickup_date: pickupDate || null,
                     pickup_time: pickupTime || null,
-                    reservation_number: reservationNumber || null
+                    reservation_number: reservationNumber || null,
+                    no_reservation: noReservationMode
                 };
                 
-                console.log('📤 Sending parking QR email:', {
+                console.log('📤 Sending parking email:', {
                     ra: payload.rental_agreement_number,
                     parking: payload.parking_number,
                     email: payload.client_email,
-                    qrLength: payload.qr_code_image.length
+                    noReservation: payload.no_reservation,
+                    hasQR: !!payload.qr_code_image
                 });
                 
                 const response = await fetch('/api/send-parking-qr', {
