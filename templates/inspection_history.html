@@ -12,6 +12,7 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.min.js"></script>
     <script src="/static/notifications.js?v=20260117223900"></script>
     <style>
         * { 
@@ -1819,8 +1820,44 @@
                 
                 await page.render({canvasContext: context, viewport: viewport}).promise;
                 
-                // Convert to base64
-                window.qrCodeImageBase64 = canvas.toDataURL('image/png').split(',')[1];
+                // Detect QR code position using jsQR
+                messageEl.textContent = 'A detectar QR code...';
+                const imageData = context.getImageData(0, 0, canvas.width, canvas.height);
+                const qrCode = jsQR(imageData.data, imageData.width, imageData.height);
+                
+                if (qrCode) {
+                    console.log('✅ QR code detected at:', qrCode.location);
+                    
+                    // Add margin around QR code (20% on each side)
+                    const margin = 0.2;
+                    const qrWidth = qrCode.location.bottomRightCorner.x - qrCode.location.topLeftCorner.x;
+                    const qrHeight = qrCode.location.bottomRightCorner.y - qrCode.location.topLeftCorner.y;
+                    const marginX = qrWidth * margin;
+                    const marginY = qrHeight * margin;
+                    
+                    // Calculate crop area with margin
+                    const cropX = Math.max(0, qrCode.location.topLeftCorner.x - marginX);
+                    const cropY = Math.max(0, qrCode.location.topLeftCorner.y - marginY);
+                    const cropWidth = Math.min(canvas.width - cropX, qrWidth + (marginX * 2));
+                    const cropHeight = Math.min(canvas.height - cropY, qrHeight + (marginY * 2));
+                    
+                    // Create new canvas with just the QR code
+                    const qrCanvas = document.createElement('canvas');
+                    qrCanvas.width = cropWidth;
+                    qrCanvas.height = cropHeight;
+                    const qrContext = qrCanvas.getContext('2d');
+                    
+                    // Draw cropped QR code
+                    qrContext.drawImage(canvas, cropX, cropY, cropWidth, cropHeight, 0, 0, cropWidth, cropHeight);
+                    
+                    // Convert cropped QR code to base64
+                    window.qrCodeImageBase64 = qrCanvas.toDataURL('image/png').split(',')[1];
+                    console.log('✅ QR code extracted and cropped');
+                } else {
+                    console.warn('⚠️ QR code not detected, using full page');
+                    // Fallback: use full page if QR code not detected
+                    window.qrCodeImageBase64 = canvas.toDataURL('image/png').split(',')[1];
+                }
                 
                 messageEl.textContent = 'A analisar texto com OCR...';
                 
