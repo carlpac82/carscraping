@@ -31712,6 +31712,8 @@ async def send_parking_qr_email(request: Request):
             }
         }
         
+        logging.info(f"🅿️ Parking number received from frontend: {parking_number} (type: {type(parking_number)})")
+        
         parking_info = parking_locations.get(parking_number)
         
         # Valores default se parking_info não existir
@@ -31721,6 +31723,7 @@ async def send_parking_qr_email(request: Request):
                 'maps_link': 'https://www.google.com/maps/place/Aeroporto+de+Faro/@37.0194444,-7.9658333,17z'
             }
             logging.warning(f"⚠️ Parking location {parking_number} not found in database, using default values")
+            logging.warning(f"⚠️ Available parking numbers in database: {list(parking_locations.keys())}")
         else:
             logging.info(f"✅ Parking info found: {parking_info['name']}")
             logging.info(f"🗺️ Google Maps link: {parking_info['maps_link']}")
