@@ -4,20 +4,6 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Código QR de Acesso ao Parque - Auto Prudente</title>
-    <style>
-        body {
-            margin: 0;
-            padding: 0;
-            font-family: Arial, sans-serif;
-            background-color: #f4f4f4;
-        }
-        .email-container {
-            max-width: 600px;
-            min-width: 320px;
-            margin: 0 auto;
-            background-color: #ffffff;
-        }
-    </style>
 </head>
 <body style="margin: 0; padding: 0; font-family: Arial, sans-serif; background-color: #f4f4f4;">
     <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="margin: 0; padding: 0;">
@@ -51,40 +37,98 @@
     <div style="padding: 20px;">
         <h2 style="color: #333333; margin: 0 0 15px 0; font-size: 18px;">Estimado(a) {{CLIENT_NAME}},</h2>
         <p style="color: #666666; line-height: 1.6; margin: 0 0 12px 0; font-size: 14px;">Obrigado pelo seu contacto e preferência.</p>
-        <p style="color: #666666; line-height: 1.6; margin: 0 0 12px 0; font-size: 14px;">Anexamos o <strong>Código QR de acesso ao Parque do Aeroporto número {{PARKING_NUMBER}}</strong>.</p>
+        <p style="color: #666666; line-height: 1.6; margin: 0 0 12px 0; font-size: 14px;">Segue o <strong>Código QR de acesso ao Parque do Aeroporto de Faro #{{PARKING_NUMBER}}</strong>.</p>
+    </div>
+
+    <!-- Rental Summary -->
+    <div style="padding: 20px; background-color: #f0f9fb;">
+        <h3 style="color: #00bcd4; margin: 0 0 15px 0; font-size: 18px; font-weight: bold;">📋 Resumo da Reserva</h3>
+        <table width="100%" cellpadding="8" cellspacing="0" style="background: white; border-radius: 8px;">
+            <tr>
+                <td style="padding: 10px; border-bottom: 1px solid #e0e0e0;">
+                    <strong style="color: #666666; font-size: 13px;">Cliente:</strong>
+                    <p style="margin: 5px 0 0 0; color: #333333; font-size: 14px;">{{CLIENT_NAME}}</p>
+                </td>
+                <td style="padding: 10px; border-bottom: 1px solid #e0e0e0;">
+                    <strong style="color: #666666; font-size: 13px;">Matrícula:</strong>
+                    <p style="margin: 5px 0 0 0; color: #333333; font-size: 14px;">{{LICENSE_PLATE}}</p>
+                </td>
+            </tr>
+            <tr>
+                <td style="padding: 10px; border-bottom: 1px solid #e0e0e0;">
+                    <strong style="color: #666666; font-size: 13px;">Veículo:</strong>
+                    <p style="margin: 5px 0 0 0; color: #333333; font-size: 14px;">{{VEHICLE_BRAND}} {{VEHICLE_MODEL}}</p>
+                </td>
+                <td style="padding: 10px; border-bottom: 1px solid #e0e0e0;">
+                    <strong style="color: #666666; font-size: 13px;">Data de Recolha:</strong>
+                    <p style="margin: 5px 0 0 0; color: #333333; font-size: 14px;">{{PICKUP_DATE}}</p>
+                </td>
+            </tr>
+            <tr>
+                <td colspan="2" style="padding: 10px;">
+                    <strong style="color: #666666; font-size: 13px;">Hora de Recolha:</strong>
+                    <p style="margin: 5px 0 0 0; color: #333333; font-size: 14px;">{{PICKUP_TIME}}</p>
+                </td>
+            </tr>
+        </table>
     </div>
 
     <!-- QR Code Section -->
-    <div style="padding: 20px; background-color: #f0f9fb; text-align: center;">
-        <h3 style="color: #00bcd4; margin: 0 0 20px 0; font-size: 20px; font-weight: bold;">✈️ Código QR de Acesso</h3>
-        <div style="background: white; border-radius: 12px; padding: 30px; margin: 0 auto; max-width: 400px; box-shadow: 0 2px 8px rgba(0,0,0,0.1);">
-            <p style="color: #666666; margin: 0 0 15px 0; font-size: 14px; font-weight: bold;">Parque do Aeroporto #{{PARKING_NUMBER}}</p>
-            <p style="color: #999999; margin: 0; font-size: 12px;">O código QR está anexado a este email</p>
+    <div style="padding: 20px; background-color: #ffffff; text-align: center;">
+        <h3 style="color: #00bcd4; margin: 0 0 20px 0; font-size: 20px; font-weight: bold;">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display: inline-block; vertical-align: middle; margin-right: 8px;">
+                <path d="M17.8 19.2 16 11l3.5-3.5C21 6 21.5 4 21 3c-1-.5-3 0-4.5 1.5L13 8 4.8 6.2c-.5-.1-.9.1-1.1.5l-.3.5c-.2.5-.1 1 .3 1.3L9 12l-2 3H4l-1 1 3 2 2 3 1-1v-3l3-2 3.5 5.3c.3.4.8.5 1.3.3l.5-.2c.4-.3.6-.7.5-1.2z"></path>
+            </svg>
+            Código QR de Acesso
+        </h3>
+        <div style="background: #f0f9fb; border-radius: 12px; padding: 30px; margin: 0 auto; max-width: 400px; box-shadow: 0 2px 8px rgba(0,0,0,0.1);">
+            <p style="color: #666666; margin: 0 0 15px 0; font-size: 14px; font-weight: bold;">Parque do Aeroporto de Faro #{{PARKING_NUMBER}}</p>
+            <!-- QR Code will be embedded here -->
+            <div style="margin: 20px 0;">
+                <img src="cid:qr_code_image" alt="QR Code" style="max-width: 250px; height: auto; border: 2px solid #00bcd4; border-radius: 8px; padding: 10px; background: white;">
+            </div>
+            <p style="color: #999999; margin: 10px 0 0 0; font-size: 12px;">Apresente este código QR no leitor da barreira de entrada</p>
+        </div>
+    </div>
+
+    <!-- Parking Location -->
+    <div style="padding: 20px; background-color: #f9f9f9;">
+        <h3 style="color: #00bcd4; margin: 0 0 15px 0; font-size: 18px; font-weight: bold;">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display: inline-block; vertical-align: middle; margin-right: 4px;">
+                <path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z"></path>
+                <circle cx="12" cy="10" r="3"></circle>
+            </svg>
+            Localização do Parque
+        </h3>
+        <div style="background: white; border-radius: 8px; padding: 15px; margin-bottom: 15px;">
+            <p style="color: #666666; margin: 0 0 15px 0; font-size: 14px;">
+                <a href="{{PARKING_GOOGLE_MAPS_LINK}}" style="color: #00bcd4; text-decoration: none;">Ver localização no Google Maps</a>
+            </p>
         </div>
     </div>
 
     <!-- Instructions Section -->
-    <div style="padding: 20px; background-color: #f9f9f9;">
+    <div style="padding: 20px; background-color: #ffffff;">
         <h3 style="color: #00bcd4; margin: 0 0 20px 0; font-size: 18px;">Instruções de Utilização</h3>
         
         <!-- Step 1 -->
-        <div style="background: white; border-left: 4px solid #00bcd4; padding: 15px; margin-bottom: 15px; border-radius: 4px;">
+        <div style="background: #f9f9f9; border-left: 4px solid #00bcd4; padding: 15px; margin-bottom: 15px; border-radius: 4px;">
             <h4 style="color: #00bcd4; margin: 0 0 10px 0; font-size: 16px; font-weight: bold;">1. Entrada no Parque</h4>
             <p style="color: #666666; line-height: 1.6; margin: 0; font-size: 14px;">
-                Apresente o código QR à entrada do parque. A máquina irá emitir um ticket de estacionamento.
+                Quando chegar à barreira de entrada do parque, <strong>apresente o código QR no leitor da barreira</strong>. A máquina irá emitir automaticamente um ticket de estacionamento.
             </p>
         </div>
 
         <!-- Step 2 -->
-        <div style="background: white; border-left: 4px solid #00bcd4; padding: 15px; margin-bottom: 15px; border-radius: 4px;">
+        <div style="background: #f9f9f9; border-left: 4px solid #00bcd4; padding: 15px; margin-bottom: 15px; border-radius: 4px;">
             <h4 style="color: #00bcd4; margin: 0 0 10px 0; font-size: 16px; font-weight: bold;">2. Ticket de Estacionamento</h4>
             <p style="color: #666666; line-height: 1.6; margin: 0; font-size: 14px;">
-                <strong>Importante:</strong> Deixe o ticket de estacionamento no porta-luvas do veículo.
+                <strong>Importante:</strong> Guarde o ticket de estacionamento e deixe-o no <strong>porta-luvas do veículo</strong>.
             </p>
         </div>
 
         <!-- Step 3 -->
-        <div style="background: white; border-left: 4px solid #00bcd4; padding: 15px; border-radius: 4px;">
+        <div style="background: #f9f9f9; border-left: 4px solid #00bcd4; padding: 15px; border-radius: 4px;">
             <h4 style="color: #00bcd4; margin: 0 0 10px 0; font-size: 16px; font-weight: bold;">3. Entrega da Chave</h4>
             <ul style="color: #666666; line-height: 1.8; margin: 0; font-size: 14px; padding-left: 20px;">
                 <li>Baixe ligeiramente o vidro do lado do condutor</li>
@@ -94,12 +138,23 @@
         </div>
     </div>
 
+    <!-- Self-Checkout Notice -->
+    <div style="padding: 20px; background-color: #e3f2fd; border-left: 4px solid #2196F3;">
+        <h3 style="color: #1565C0; margin: 0 0 10px 0; font-size: 16px; font-weight: bold;">📱 Self-Checkout Obrigatório</h3>
+        <p style="color: #1565C0; line-height: 1.6; margin: 0 0 10px 0; font-size: 14px;">
+            <strong>Importante:</strong> Irá receber um email <strong>2 dias antes da data de partida</strong> com o link e instruções para realizar o <strong>Self-Checkout</strong> (vistoria digital do veículo).
+        </p>
+        <p style="color: #1565C0; line-height: 1.6; margin: 0; font-size: 13px;">
+            A conclusão do Self-Checkout é <strong>obrigatória</strong> para formalizar a devolução do veículo.
+        </p>
+    </div>
+
     <!-- Important Notes -->
     <div style="padding: 20px; background-color: #fff3cd; border-left: 4px solid #FFC107;">
         <h3 style="color: #856404; margin: 0 0 10px 0; font-size: 16px; font-weight: bold;">⚠️ Notas Importantes</h3>
         <ul style="color: #856404; line-height: 1.8; margin: 0; font-size: 13px; padding-left: 20px;">
             <li>Este código QR permite <strong>apenas uma entrada única</strong></li>
-            <li>Por favor, confirme a data e hora indicadas no código QR anexo</li>
+            <li>Guarde este email para consulta futura</li>
             <li>Por favor, confirme a receção deste email</li>
         </ul>
     </div>

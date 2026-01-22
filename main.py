@@ -31367,6 +31367,7 @@ async def debug_ra(ra_number: str):
 async def send_parking_qr_email(request: Request):
     """
     Enviar email com QR code de acesso ao parque do aeroporto
+    Aceita QR code em base64 com número de parque detectado automaticamente via OCR
     """
     require_auth(request)
     conn = None
@@ -31374,6 +31375,8 @@ async def send_parking_qr_email(request: Request):
         data = await request.json()
         ra_number = data.get('rental_agreement_number')
         parking_number = data.get('parking_number')
+        qr_code_image = data.get('qr_code_image')  # Base64 do QR code
+        custom_email = data.get('client_email')  # Email customizado opcional
         
         if not ra_number or not parking_number:
             return JSONResponse({
@@ -31387,25 +31390,35 @@ async def send_parking_qr_email(request: Request):
                 "error": "Número do parque deve ser 1, 2, 3 ou 4"
             }, status_code=400)
         
+        if not qr_code_image:
+            return JSONResponse({
+                "success": False,
+                "error": "QR code não fornecido"
+            }, status_code=400)
+        
         conn = _db_connect()
         is_postgres = _is_postgresql_connection(conn)
         
-        # Buscar dados do RA
+        # Buscar dados do RA incluindo veículo
         if is_postgres:
             cursor = conn.cursor()
             cursor.execute("""
                 SELECT 
                     ra.rental_agreement_number, ra.license_plate, 
-                    ra.self_checkin_email, ra.extracted_data
+                    ra.self_checkin_email, ra.extracted_data,
+                    v.marca, v.modelo
                 FROM rental_agreements ra
+                LEFT JOIN vehicles v ON ra.vehicle_id = v.id
                 WHERE ra.rental_agreement_number = %s
             """, (ra_number,))
         else:
             cursor = conn.execute("""
                 SELECT 
                     ra.rental_agreement_number, ra.license_plate, 
-                    ra.self_checkin_email, ra.extracted_data
+                    ra.self_checkin_email, ra.extracted_data,
+                    v.marca, v.modelo
                 FROM rental_agreements ra
+                LEFT JOIN vehicles v ON ra.vehicle_id = v.id
                 WHERE ra.rental_agreement_number = ?
             """, (ra_number,))
         
@@ -31417,23 +31430,43 @@ async def send_parking_qr_email(request: Request):
                 "error": "Rental Agreement não encontrado"
             }, status_code=404)
         
-        ra_num, plate, email, extracted_data_json = row
+        ra_num, plate, email, extracted_data_json, vehicle_brand, vehicle_model = row
         
-        if not email:
-            return JSONResponse({
-                "success": False,
-                "error": "Email do cliente não encontrado no RA"
-            }, status_code=400)
+        # Usar email customizado se fornecido, senão usar do RA
+        if custom_email:
+            email = custom_email
+        elif not email:
+            # Tentar buscar email do checkin/checkout
+            cursor.execute("""
+                SELECT email FROM inspections 
+                WHERE ra_number = ? AND email IS NOT NULL 
+                ORDER BY created_at DESC LIMIT 1
+            """, (ra_num,))
+            email_row = cursor.fetchone()
+            if email_row:
+                email = email_row[0]
+            else:
+                return JSONResponse({
+                    "success": False,
+                    "error": "Email do cliente não encontrado"
+                }, status_code=400)
         
-        # Extrair nome do cliente e país
+        # Extrair dados do RA
         import json
         client_name = "Cliente"
         country = None
+        pickup_date = "N/A"
+        pickup_time = "N/A"
+        
         if extracted_data_json:
             try:
                 extracted_data = json.loads(extracted_data_json)
                 client_name = extracted_data.get('client_name') or extracted_data.get('nome_cliente') or "Cliente"
                 country = extracted_data.get('country') or extracted_data.get('pais')
+                
+                # Extrair data e hora de recolha
+                pickup_date = extracted_data.get('pickup_date') or extracted_data.get('data_recolha') or "N/A"
+                pickup_time = extracted_data.get('pickup_time') or extracted_data.get('hora_recolha') or "N/A"
             except:
                 pass
         
@@ -31448,14 +31481,47 @@ async def send_parking_qr_email(request: Request):
         }
         template_name = template_map.get(detected_lang, 'email_parking_qr_pt.html')
         
+        # Localizações dos parques do Aeroporto de Faro
+        parking_locations = {
+            1: {
+                'name': 'Parque 1 - Aeroporto de Faro',
+                'maps_link': 'https://maps.google.com/?q=37.0194,-7.9658',
+                'coords': '37.0194,-7.9658'
+            },
+            2: {
+                'name': 'Parque 2 - Aeroporto de Faro',
+                'maps_link': 'https://maps.google.com/?q=37.0189,-7.9665',
+                'coords': '37.0189,-7.9665'
+            },
+            3: {
+                'name': 'Parque 3 - Aeroporto de Faro',
+                'maps_link': 'https://maps.google.com/?q=37.0185,-7.9672',
+                'coords': '37.0185,-7.9672'
+            },
+            4: {
+                'name': 'Parque 4 - Aeroporto de Faro',
+                'maps_link': 'https://maps.google.com/?q=37.0181,-7.9679',
+                'coords': '37.0181,-7.9679'
+            }
+        }
+        
+        parking_info = parking_locations.get(parking_number)
+        
         # Renderizar template
         with open(f'templates/{template_name}', 'r', encoding='utf-8') as f:
             html_content = f.read()
         
-        # Substituir variáveis
+        # Substituir variáveis do template
         html_content = html_content.replace('{{CLIENT_NAME}}', client_name)
         html_content = html_content.replace('{{RA_NUMBER}}', ra_num)
         html_content = html_content.replace('{{PARKING_NUMBER}}', str(parking_number))
+        html_content = html_content.replace('{{LICENSE_PLATE}}', plate or 'N/A')
+        html_content = html_content.replace('{{VEHICLE_BRAND}}', vehicle_brand or 'N/A')
+        html_content = html_content.replace('{{VEHICLE_MODEL}}', vehicle_model or 'N/A')
+        html_content = html_content.replace('{{PICKUP_DATE}}', pickup_date)
+        html_content = html_content.replace('{{PICKUP_TIME}}', pickup_time)
+        html_content = html_content.replace('{{PARKING_LOCATION_NAME}}', parking_info['name'])
+        html_content = html_content.replace('{{PARKING_GOOGLE_MAPS_LINK}}', parking_info['maps_link'])
         
         # Preparar assunto do email
         subject_map = {
@@ -31465,22 +31531,65 @@ async def send_parking_qr_email(request: Request):
         }
         subject = subject_map.get(detected_lang, subject_map['pt'])
         
-        # Gerar QR code (placeholder - você pode implementar geração real de QR code)
-        # Por agora, vamos apenas enviar o email sem anexo
-        # TODO: Implementar geração de QR code real com biblioteca qrcode
-        
-        # Enviar email
+        # Usar QR code recebido do frontend (já em base64)
         import smtplib
         from email.mime.multipart import MIMEMultipart
         from email.mime.text import MIMEText
+        from email.mime.image import MIMEImage
+        import base64
         
-        msg = MIMEMultipart('alternative')
+        # Guardar QR code na base de dados para histórico
+        try:
+            if is_postgres:
+                cursor.execute("""
+                    INSERT INTO parking_qr_codes 
+                    (ra_number, parking_number, qr_code_image, uploaded_at)
+                    VALUES (%s, %s, %s, NOW())
+                    ON CONFLICT (ra_number, parking_number) 
+                    DO UPDATE SET 
+                        qr_code_image = EXCLUDED.qr_code_image,
+                        uploaded_at = NOW()
+                """, (ra_num, parking_number, qr_code_image))
+            else:
+                cursor.execute("""
+                    INSERT INTO parking_qr_codes 
+                    (ra_number, parking_number, qr_code_image)
+                    VALUES (?, ?, ?)
+                    ON CONFLICT(ra_number, parking_number) 
+                    DO UPDATE SET 
+                        qr_code_image = excluded.qr_code_image,
+                        uploaded_at = CURRENT_TIMESTAMP
+                """, (ra_num, parking_number, qr_code_image))
+            conn.commit()
+            logging.info(f"✅ QR code stored in database for RA {ra_num}, Parking #{parking_number}")
+        except Exception as e:
+            logging.warning(f"⚠️ Could not store QR code in database: {str(e)}")
+        
+        msg = MIMEMultipart('related')
         msg['Subject'] = subject
         msg['From'] = SMTP_FROM_EMAIL
         msg['To'] = email
         
+        # Attach HTML content
+        msg_alternative = MIMEMultipart('alternative')
+        msg.attach(msg_alternative)
         html_part = MIMEText(html_content, 'html', 'utf-8')
-        msg.attach(html_part)
+        msg_alternative.attach(html_part)
+        
+        # Attach QR code image from frontend
+        try:
+            qr_image_data = base64.b64decode(qr_code_image)
+            qr_image = MIMEImage(qr_image_data)
+            qr_image.add_header('Content-ID', '<qr_code_image>')
+            qr_image.add_header('Content-Disposition', 'inline', filename=f'parking_qr_{ra_num}.png')
+            msg.attach(qr_image)
+            logging.info(f"✅ QR code image attached for RA {ra_num}, Parking #{parking_number}")
+        except Exception as e:
+            logging.error(f"❌ Error attaching QR code: {str(e)}")
+            return JSONResponse({
+                "success": False,
+                "error": f"Erro ao processar QR code: {str(e)}"
+            }, status_code=500)
         
         # Enviar via SMTP
         with smtplib.SMTP(SMTP_SERVER, SMTP_PORT) as server:
@@ -31497,6 +31606,251 @@ async def send_parking_qr_email(request: Request):
         
     except Exception as e:
         logging.error(f"❌ Error sending parking QR email: {str(e)}")
+        import traceback
+        traceback.print_exc()
+        return JSONResponse({
+            "success": False,
+            "error": str(e)
+        }, status_code=500)
+    finally:
+        if conn:
+            conn.close()
+
+@app.post("/api/upload-parking-qr")
+async def upload_parking_qr(
+    ra_number: str = Form(...),
+    parking_number: int = Form(...),
+    qr_pdf: UploadFile = File(...)
+):
+    """Upload de QR code PDF, extração de dados e armazenamento por RA"""
+    import io
+    from PyPDF2 import PdfReader
+    from pdf2image import convert_from_bytes
+    from pyzbar.pyzbar import decode
+    import re
+    
+    conn = None
+    try:
+        # Validar parking number
+        if parking_number not in [1, 2, 3, 4]:
+            return JSONResponse({
+                "success": False,
+                "error": "Número de parque inválido. Deve ser entre 1 e 4."
+            }, status_code=400)
+        
+        # Ler PDF
+        pdf_bytes = await qr_pdf.read()
+        
+        # Extrair texto do PDF para obter data, hora e referência
+        pdf_reader = PdfReader(io.BytesIO(pdf_bytes))
+        pdf_text = ""
+        for page in pdf_reader.pages:
+            pdf_text += page.extract_text()
+        
+        logging.info(f"📄 PDF text extracted: {pdf_text[:500]}")
+        
+        # Extrair data (formato DD/MM/YYYY ou similar)
+        date_match = re.search(r'(\d{2}[/-]\d{2}[/-]\d{4})', pdf_text)
+        extracted_date = date_match.group(1) if date_match else None
+        
+        # Extrair hora (formato HH:MM)
+        time_match = re.search(r'(\d{2}:\d{2})', pdf_text)
+        extracted_time = time_match.group(1) if time_match else None
+        
+        # Extrair referência (procurar por padrões comuns)
+        ref_match = re.search(r'(?:REF|Ref|Referência|Reference)[:\s]+([A-Z0-9-]+)', pdf_text, re.IGNORECASE)
+        extracted_reference = ref_match.group(1) if ref_match else None
+        
+        # Converter PDF para imagem e extrair QR code
+        images = convert_from_bytes(pdf_bytes, dpi=300)
+        qr_code_data = None
+        qr_image_path = None
+        
+        if images:
+            # Salvar primeira página como PNG
+            qr_image_filename = f"ra_{ra_number.replace('/', '_')}_parking_{parking_number}.png"
+            qr_image_path = f"static/parking_qr_codes/uploaded/{qr_image_filename}"
+            
+            # Criar diretório se não existir
+            os.makedirs("static/parking_qr_codes/uploaded", exist_ok=True)
+            
+            # Salvar imagem
+            images[0].save(qr_image_path, 'PNG')
+            logging.info(f"✅ QR code image saved to {qr_image_path}")
+            
+            # Tentar decodificar QR code
+            decoded_objects = decode(images[0])
+            if decoded_objects:
+                qr_code_data = decoded_objects[0].data.decode('utf-8')
+                logging.info(f"✅ QR code decoded: {qr_code_data}")
+        
+        # Armazenar informações do QR code na base de dados
+        conn = _db_connect()
+        cursor = conn.cursor()
+        
+        # Criar tabela se não existir
+        cursor.execute("""
+            CREATE TABLE IF NOT EXISTS parking_qr_codes (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                ra_number TEXT NOT NULL,
+                parking_number INTEGER NOT NULL,
+                qr_code_image TEXT,
+                qr_image_path TEXT,
+                qr_code_data TEXT,
+                extracted_date TEXT,
+                extracted_time TEXT,
+                extracted_reference TEXT,
+                uploaded_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                UNIQUE(ra_number, parking_number)
+            )
+        """)
+        
+        # Inserir ou atualizar QR code
+        cursor.execute("""
+            INSERT INTO parking_qr_codes 
+            (ra_number, parking_number, qr_image_path, qr_code_data, extracted_date, extracted_time, extracted_reference)
+            VALUES (?, ?, ?, ?, ?, ?, ?)
+            ON CONFLICT(ra_number, parking_number) 
+            DO UPDATE SET 
+                qr_image_path = excluded.qr_image_path,
+                qr_code_data = excluded.qr_code_data,
+                extracted_date = excluded.extracted_date,
+                extracted_time = excluded.extracted_time,
+                extracted_reference = excluded.extracted_reference,
+                uploaded_at = CURRENT_TIMESTAMP
+        """, (ra_number, parking_number, qr_image_path, qr_code_data, extracted_date, extracted_time, extracted_reference))
+        
+        conn.commit()
+        
+        logging.info(f"✅ QR code uploaded and stored for RA {ra_number}, Parking #{parking_number}")
+        
+        return JSONResponse({
+            "success": True,
+            "message": "QR code carregado com sucesso",
+            "data": {
+                "ra_number": ra_number,
+                "parking_number": parking_number,
+                "qr_image_path": qr_image_path,
+                "extracted_date": extracted_date,
+                "extracted_time": extracted_time,
+                "extracted_reference": extracted_reference,
+                "qr_code_data": qr_code_data
+            }
+        })
+        
+    except Exception as e:
+        logging.error(f"❌ Error uploading QR code: {str(e)}")
+        import traceback
+        traceback.print_exc()
+        return JSONResponse({
+            "success": False,
+            "error": str(e)
+        }, status_code=500)
+    finally:
+        if conn:
+            conn.close()
+
+@app.get("/api/parking-qr-preview/{ra_number}")
+async def get_parking_qr_preview(ra_number: str):
+    """Obter preview do email de parque com dados do QR code e permitir edição do email do cliente"""
+    conn = None
+    try:
+        conn = _db_connect()
+        cursor = conn.cursor()
+        
+        # Buscar dados do RA
+        ra_num = ra_number.replace('-09', '')
+        
+        if _USE_NEW_DB:
+            cursor.execute("""
+                SELECT client_name, client_email, client_country, 
+                       vehicle_plate, vehicle_brand, vehicle_model,
+                       pickup_date, pickup_time
+                FROM rental_agreements 
+                WHERE ra_number = ?
+            """, (ra_num,))
+        else:
+            cursor.execute("""
+                SELECT extracted_data 
+                FROM rental_agreements 
+                WHERE ra_number = ?
+            """, (ra_num,))
+        
+        ra_row = cursor.fetchone()
+        if not ra_row:
+            return JSONResponse({
+                "success": False,
+                "error": f"RA {ra_number} não encontrado"
+            }, status_code=404)
+        
+        # Extrair dados do RA
+        if _USE_NEW_DB:
+            client_name = ra_row[0] or "Cliente"
+            client_email = ra_row[1]
+            country = ra_row[2]
+            plate = ra_row[3]
+            vehicle_brand = ra_row[4]
+            vehicle_model = ra_row[5]
+            pickup_date = ra_row[6]
+            pickup_time = ra_row[7]
+        else:
+            extracted_data = json.loads(ra_row[0]) if ra_row[0] else {}
+            client_name = extracted_data.get('client_name', 'Cliente')
+            client_email = extracted_data.get('client_email')
+            country = extracted_data.get('client_country')
+            plate = extracted_data.get('vehicle_plate')
+            vehicle_brand = extracted_data.get('vehicle_brand')
+            vehicle_model = extracted_data.get('vehicle_model')
+            pickup_date = extracted_data.get('pickup_date')
+            pickup_time = extracted_data.get('pickup_time')
+        
+        # Se não tiver email no RA, buscar do checkin ou checkout
+        if not client_email:
+            cursor.execute("""
+                SELECT email FROM inspections 
+                WHERE ra_number = ? AND email IS NOT NULL 
+                ORDER BY created_at DESC LIMIT 1
+            """, (ra_num,))
+            email_row = cursor.fetchone()
+            if email_row:
+                client_email = email_row[0]
+        
+        # Buscar QR codes disponíveis para este RA
+        cursor.execute("""
+            SELECT parking_number, qr_image_path, extracted_date, extracted_time, extracted_reference
+            FROM parking_qr_codes
+            WHERE ra_number = ?
+            ORDER BY parking_number
+        """, (ra_num,))
+        
+        qr_codes = []
+        for row in cursor.fetchall():
+            qr_codes.append({
+                "parking_number": row[0],
+                "qr_image_path": row[1],
+                "extracted_date": row[2],
+                "extracted_time": row[3],
+                "extracted_reference": row[4]
+            })
+        
+        return JSONResponse({
+            "success": True,
+            "data": {
+                "ra_number": ra_number,
+                "client_name": client_name,
+                "client_email": client_email,
+                "country": country,
+                "vehicle_plate": plate,
+                "vehicle_brand": vehicle_brand,
+                "vehicle_model": vehicle_model,
+                "pickup_date": pickup_date,
+                "pickup_time": pickup_time,
+                "qr_codes": qr_codes
+            }
+        })
+        
+    except Exception as e:
+        logging.error(f"❌ Error getting parking QR preview: {str(e)}")
         import traceback
         traceback.print_exc()
         return JSONResponse({

@@ -10,6 +10,8 @@
     <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js"></script>
     <script src="/static/notifications.js?v=20260117223900"></script>
     <style>
         * { 
@@ -1716,7 +1718,7 @@
             }
         }
 
-        // Show parking QR modal
+        // Show parking QR upload modal with auto-detection
         async function showParkingQRModal(raNumber, clientName) {
             const modal = document.createElement('div');
             modal.id = 'parkingQRModal';
@@ -1724,7 +1726,7 @@
             modal.style.touchAction = 'none';
             modal.innerHTML = `
                 <div class="bg-white rounded-lg p-6 max-w-md w-full mx-4">
-                    <h3 class="text-xl font-bold text-[#009cb6] mb-4">✈️ Enviar QR Code de Parque</h3>
+                    <h3 class="text-xl font-bold text-[#009cb6] mb-4">✈️ Upload QR Code de Parque</h3>
                     
                     <div class="mb-4">
                         <p class="text-sm text-gray-600 mb-2">Cliente: <strong>${clientName}</strong></p>
@@ -1732,30 +1734,28 @@
                     </div>
                     
                     <div class="mb-4">
-                        <label class="block text-sm font-medium text-gray-700 mb-2">Selecione o Parque do Aeroporto</label>
-                        <div class="grid grid-cols-2 gap-3">
-                            <button onclick="selectParking(1)" class="parking-option px-4 py-3 border-2 border-gray-300 rounded-lg hover:border-[#009cb6] hover:bg-blue-50 transition-colors">
-                                <div class="text-2xl mb-1">🅿️</div>
-                                <div class="font-bold text-[#009cb6]">Parque 1</div>
-                            </button>
-                            <button onclick="selectParking(2)" class="parking-option px-4 py-3 border-2 border-gray-300 rounded-lg hover:border-[#009cb6] hover:bg-blue-50 transition-colors">
-                                <div class="text-2xl mb-1">🅿️</div>
-                                <div class="font-bold text-[#009cb6]">Parque 2</div>
-                            </button>
-                            <button onclick="selectParking(3)" class="parking-option px-4 py-3 border-2 border-gray-300 rounded-lg hover:border-[#009cb6] hover:bg-blue-50 transition-colors">
-                                <div class="text-2xl mb-1">🅿️</div>
-                                <div class="font-bold text-[#009cb6]">Parque 3</div>
-                            </button>
-                            <button onclick="selectParking(4)" class="parking-option px-4 py-3 border-2 border-gray-300 rounded-lg hover:border-[#009cb6] hover:bg-blue-50 transition-colors">
-                                <div class="text-2xl mb-1">🅿️</div>
-                                <div class="font-bold text-[#009cb6]">Parque 4</div>
-                            </button>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">Selecione o PDF com QR Code</label>
+                        <p class="text-xs text-gray-500 mb-3">O sistema irá detectar automaticamente o número do parque (1-4)</p>
+                        <input type="file" id="parkingQRFile" accept=".pdf" class="block w-full text-sm text-gray-500
+                            file:mr-4 file:py-2 file:px-4
+                            file:rounded-lg file:border-0
+                            file:text-sm file:font-semibold
+                            file:bg-blue-50 file:text-blue-700
+                            hover:file:bg-blue-100 cursor-pointer"/>
+                    </div>
+                    
+                    <div id="parkingDetectionStatus" class="mb-4 hidden">
+                        <div class="bg-blue-50 border border-blue-200 rounded-lg p-3">
+                            <p class="text-sm text-blue-700 font-medium" id="detectionMessage">A processar...</p>
                         </div>
                     </div>
                     
                     <div class="flex gap-3">
                         <button onclick="closeParkingQRModal()" class="flex-1 px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors">
                             Cancelar
+                        </button>
+                        <button onclick="processParkingQRUpload()" id="uploadParkingBtn" class="flex-1 px-4 py-2 bg-[#009cb6] text-white rounded-lg hover:bg-[#008ca0] transition-colors disabled:opacity-50 disabled:cursor-not-allowed" disabled>
+                            Enviar Email
                         </button>
                     </div>
                 </div>
@@ -1764,6 +1764,11 @@
             document.body.appendChild(modal);
             window.currentParkingRA = raNumber;
             window.currentParkingClient = clientName;
+            window.detectedParkingNumber = null;
+            window.qrCodeImageBase64 = null;
+            
+            // Add file change listener
+            document.getElementById('parkingQRFile').addEventListener('change', handleParkingQRFileSelect);
         }
         
         function closeParkingQRModal() {
@@ -1775,12 +1780,94 @@
             window.currentParkingClient = null;
         }
         
-        async function selectParking(parkingNumber) {
-            const raNumber = window.currentParkingRA;
-            const clientName = window.currentParkingClient;
+        // Handle PDF file selection and OCR processing
+        async function handleParkingQRFileSelect(event) {
+            const file = event.target.files[0];
+            if (!file) return;
             
-            if (!raNumber) {
-                showNotification('Erro: RA não encontrado', 'error');
+            const statusDiv = document.getElementById('parkingDetectionStatus');
+            const messageEl = document.getElementById('detectionMessage');
+            const uploadBtn = document.getElementById('uploadParkingBtn');
+            
+            statusDiv.classList.remove('hidden');
+            messageEl.textContent = 'A processar PDF e extrair QR code...';
+            uploadBtn.disabled = true;
+            
+            try {
+                // Load PDF and extract first page as image
+                const pdfjsLib = window.pdfjsLib;
+                pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+                
+                const arrayBuffer = await file.arrayBuffer();
+                const pdf = await pdfjsLib.getDocument({data: arrayBuffer}).promise;
+                const page = await pdf.getPage(1);
+                
+                const viewport = page.getViewport({scale: 2.0});
+                const canvas = document.createElement('canvas');
+                const context = canvas.getContext('2d');
+                canvas.width = viewport.width;
+                canvas.height = viewport.height;
+                
+                await page.render({canvasContext: context, viewport: viewport}).promise;
+                
+                // Convert to base64
+                window.qrCodeImageBase64 = canvas.toDataURL('image/png').split(',')[1];
+                
+                messageEl.textContent = 'A analisar texto com OCR...';
+                
+                // Run OCR on the image
+                const result = await Tesseract.recognize(canvas, 'por', {
+                    logger: m => console.log(m)
+                });
+                
+                const text = result.data.text;
+                console.log('OCR Text:', text);
+                
+                // Detect parking number (1-4)
+                let detectedParking = null;
+                const parkingPatterns = [
+                    /parque\s*[#nº]?\s*([1-4])/i,
+                    /parking\s*[#nº]?\s*([1-4])/i,
+                    /P\s*([1-4])/,
+                    /\bP([1-4])\b/
+                ];
+                
+                for (const pattern of parkingPatterns) {
+                    const match = text.match(pattern);
+                    if (match) {
+                        detectedParking = parseInt(match[1]);
+                        break;
+                    }
+                }
+                
+                if (detectedParking && detectedParking >= 1 && detectedParking <= 4) {
+                    window.detectedParkingNumber = detectedParking;
+                    messageEl.textContent = `✅ Parque ${detectedParking} detectado automaticamente!`;
+                    statusDiv.querySelector('div').className = 'bg-green-50 border border-green-200 rounded-lg p-3';
+                    messageEl.className = 'text-sm text-green-700 font-medium';
+                    uploadBtn.disabled = false;
+                } else {
+                    messageEl.textContent = '⚠️ Não foi possível detectar o número do parque. Verifique o PDF.';
+                    statusDiv.querySelector('div').className = 'bg-yellow-50 border border-yellow-200 rounded-lg p-3';
+                    messageEl.className = 'text-sm text-yellow-700 font-medium';
+                }
+                
+            } catch (error) {
+                console.error('Error processing PDF:', error);
+                messageEl.textContent = '❌ Erro ao processar PDF: ' + error.message;
+                statusDiv.querySelector('div').className = 'bg-red-50 border border-red-200 rounded-lg p-3';
+                messageEl.className = 'text-sm text-red-700 font-medium';
+            }
+        }
+        
+        // Process upload and send email with detected parking
+        async function processParkingQRUpload() {
+            const raNumber = window.currentParkingRA;
+            const parkingNumber = window.detectedParkingNumber;
+            const qrImageBase64 = window.qrCodeImageBase64;
+            
+            if (!raNumber || !parkingNumber || !qrImageBase64) {
+                showNotification('Erro: Dados incompletos', 'error');
                 return;
             }
             
@@ -1794,7 +1881,8 @@
                     },
                     body: JSON.stringify({
                         rental_agreement_number: raNumber,
-                        parking_number: parkingNumber
+                        parking_number: parkingNumber,
+                        qr_code_image: qrImageBase64
                     })
                 });
                 
