@@ -573,6 +573,27 @@
                 </button>
             </div>
 
+            <!-- Client Information -->
+            <div class="bg-white rounded-lg shadow-xl p-6 mb-6">
+                <h2 class="text-xl font-bold text-[#00bcd4] mb-4" id="clientInfoTitle">Informação do Cliente</h2>
+                
+                <div class="mb-4">
+                    <label class="block text-gray-700 font-semibold mb-2" id="clientNameLabel">Nome Completo do Cliente *</label>
+                    <input type="text" id="clientNameInput" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent" placeholder="Ex: João Silva" required>
+                </div>
+
+                <div class="grid grid-cols-2 gap-4">
+                    <div>
+                        <label class="block text-gray-700 font-semibold mb-2" id="checkoutDateLabel">Data do Checkout *</label>
+                        <input type="date" id="checkoutDateInput" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent" required>
+                    </div>
+                    <div>
+                        <label class="block text-gray-700 font-semibold mb-2" id="checkoutTimeLabel">Hora do Checkout *</label>
+                        <input type="time" id="checkoutTimeInput" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent" required>
+                    </div>
+                </div>
+            </div>
+
             <!-- Fuel & Odometer -->
             <div class="bg-white rounded-lg shadow-xl p-6 mb-6">
                 <h2 class="text-xl font-bold text-[#00bcd4] mb-4" id="fuelOdometerTitle">Combustível e Quilómetros</h2>
@@ -1434,6 +1455,27 @@
         async function submitCheckIn() {
             const t = translations[currentLang];
             
+            // Validate client name
+            const clientName = document.getElementById('clientNameInput').value.trim();
+            if (!clientName) {
+                alert(t.alertClientName || 'Por favor, preencha o nome completo do cliente');
+                return;
+            }
+
+            // Validate checkout date
+            const checkoutDate = document.getElementById('checkoutDateInput').value;
+            if (!checkoutDate) {
+                alert(t.alertCheckoutDate || 'Por favor, selecione a data do checkout');
+                return;
+            }
+
+            // Validate checkout time
+            const checkoutTime = document.getElementById('checkoutTimeInput').value;
+            if (!checkoutTime) {
+                alert(t.alertCheckoutTime || 'Por favor, selecione a hora do checkout');
+                return;
+            }
+            
             // Validate 9 photos
             const requiredPhotos = ['front', 'front_left', 'left', 'back_left', 'back', 'back_right', 'right', 'front_right', 'interior'];
             const missingPhotos = requiredPhotos.filter(p => !photos[p]);
@@ -1475,6 +1517,9 @@
                         'Content-Type': 'application/json'
                     },
                     body: JSON.stringify({
+                        client_name: clientName,
+                        checkout_date: checkoutDate,
+                        checkout_time: checkoutTime,
                         photos: photos,
                         damage_photos: validDamagePhotos,
                         odometer: parseInt(odometer),

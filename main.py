@@ -31107,10 +31107,21 @@ async def submit_self_checkin(token: str, request: Request):
         inspection_number = f"SC-{ra_number}-{datetime.datetime.now().strftime('%Y%m%d%H%M%S')}"
         
         # Extrair dados do formulário
+        client_name = data.get('client_name')
+        checkout_date = data.get('checkout_date')
+        checkout_time = data.get('checkout_time')
         odometer = data.get('odometer')
         fuel_level = data.get('fuel_level')
         photos = data.get('photos', {})  # 9 fotos da grid
         damage_photos = data.get('damage_photos', [])  # fotos de danos
+        
+        # Preparar dados adicionais do cliente
+        import json
+        extracted_data = json.dumps({
+            'client_name': client_name,
+            'checkout_date': checkout_date,
+            'checkout_time': checkout_time
+        })
         
         # Guardar inspeção
         if is_postgres:
@@ -31118,19 +31129,19 @@ async def submit_self_checkin(token: str, request: Request):
                 INSERT INTO vehicle_inspections (
                     inspection_number, inspection_type, license_plate, 
                     rental_agreement, odometer_reading, fuel_level,
-                    is_self_checkin, created_at
-                ) VALUES (%s, %s, %s, %s, %s, %s, %s, NOW())
+                    is_self_checkin, extracted_data, created_at
+                ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, NOW())
                 RETURNING id
-            """, (inspection_number, 'checkin', plate, ra_number, odometer, fuel_level, True))
+            """, (inspection_number, 'checkin', plate, ra_number, odometer, fuel_level, True, extracted_data))
             inspection_id = cursor.fetchone()[0]
         else:
             cursor.execute("""
                 INSERT INTO vehicle_inspections (
                     inspection_number, inspection_type, license_plate, 
                     rental_agreement, odometer_reading, fuel_level,
-                    is_self_checkin, created_at
-                ) VALUES (?, ?, ?, ?, ?, ?, ?, datetime('now'))
-            """, (inspection_number, 'checkin', plate, ra_number, odometer, fuel_level, 1))
+                    is_self_checkin, extracted_data, created_at
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, datetime('now'))
+            """, (inspection_number, 'checkin', plate, ra_number, odometer, fuel_level, 1, extracted_data))
             inspection_id = cursor.lastrowid
         
         # Guardar fotos da grid (9 fotos)
