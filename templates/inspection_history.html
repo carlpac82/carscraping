@@ -1820,10 +1820,25 @@
                 
                 await page.render({canvasContext: context, viewport: viewport}).promise;
                 
-                // Detect QR code position using jsQR
+                // Detect QR code position using jsQR with multiple attempts
                 messageEl.textContent = 'A detectar QR code...';
-                const imageData = context.getImageData(0, 0, canvas.width, canvas.height);
-                const qrCode = jsQR(imageData.data, imageData.width, imageData.height);
+                console.log('🔍 Attempting QR code detection...');
+                
+                let qrCode = null;
+                let imageData = context.getImageData(0, 0, canvas.width, canvas.height);
+                
+                // Try normal detection first
+                qrCode = jsQR(imageData.data, imageData.width, imageData.height, {
+                    inversionAttempts: "dontInvert"
+                });
+                
+                // If not found, try with inversion
+                if (!qrCode) {
+                    console.log('🔄 Trying with color inversion...');
+                    qrCode = jsQR(imageData.data, imageData.width, imageData.height, {
+                        inversionAttempts: "attemptBoth"
+                    });
+                }
                 
                 if (qrCode) {
                     console.log('✅ QR code detected at:', qrCode.location);
@@ -1835,11 +1850,15 @@
                     const marginX = qrWidth * margin;
                     const marginY = qrHeight * margin;
                     
+                    console.log(`📐 QR dimensions: ${qrWidth}x${qrHeight}, margin: ${marginX}x${marginY}`);
+                    
                     // Calculate crop area with margin
                     const cropX = Math.max(0, qrCode.location.topLeftCorner.x - marginX);
                     const cropY = Math.max(0, qrCode.location.topLeftCorner.y - marginY);
                     const cropWidth = Math.min(canvas.width - cropX, qrWidth + (marginX * 2));
                     const cropHeight = Math.min(canvas.height - cropY, qrHeight + (marginY * 2));
+                    
+                    console.log(`✂️ Crop area: x=${cropX}, y=${cropY}, w=${cropWidth}, h=${cropHeight}`);
                     
                     // Scale up the QR code (1.5x larger)
                     const scale = 1.5;
@@ -1857,11 +1876,12 @@
                     
                     // Convert cropped QR code to base64
                     window.qrCodeImageBase64 = qrCanvas.toDataURL('image/png').split(',')[1];
-                    console.log('✅ QR code extracted, cropped and scaled to 1.5x');
+                    console.log(`✅ QR code extracted and scaled: ${scaledWidth}x${scaledHeight} (${window.qrCodeImageBase64.length} chars)`);
                 } else {
-                    console.warn('⚠️ QR code not detected, using full page');
+                    console.error('❌ QR code NOT detected - using full page as fallback');
                     // Fallback: use full page if QR code not detected
                     window.qrCodeImageBase64 = canvas.toDataURL('image/png').split(',')[1];
+                    console.log(`⚠️ Using full page: ${window.qrCodeImageBase64.length} chars`);
                 }
                 
                 messageEl.textContent = 'A analisar texto com OCR...';
