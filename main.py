@@ -30180,7 +30180,49 @@ async def save_inspection(request: Request):
                     try:
                         # Se é checkin (entrega), gerar token de self check-out e agendar email
                         if inspection_type == 'checkin':
-                            # Verificar se o local de recolha é "Aeroporto de Faro"
+                            # PRIMEIRO: Atualizar extracted_data com dados do check-in (para TODOS os check-ins)
+                            updated_extracted_json = None
+                            try:
+                                if is_postgres:
+                                    cursor.execute("""
+                                        SELECT extracted_data FROM rental_agreements 
+                                        WHERE rental_agreement_number = %s
+                                    """, (ra,))
+                                else:
+                                    cursor.execute("""
+                                        SELECT extracted_data FROM rental_agreements 
+                                        WHERE rental_agreement_number = ?
+                                    """, (ra,))
+                                
+                                existing_row = cursor.fetchone()
+                                existing_data = {}
+                                if existing_row and existing_row[0]:
+                                    import json
+                                    existing_data = json.loads(existing_row[0])
+                                
+                                # Adicionar dados do check-in ao extracted_data
+                                import datetime
+                                now = datetime.datetime.now()
+                                existing_data['odometer'] = int(odometer_reading)
+                                existing_data['kms'] = int(odometer_reading)
+                                existing_data['fuel_level'] = str(fuel_level)
+                                existing_data['combustivel'] = str(fuel_level)
+                                existing_data['delivery_date'] = now.strftime('%d/%m/%Y')
+                                existing_data['delivery_time'] = now.strftime('%H:%M')
+                                existing_data['pickup_date'] = now.strftime('%d/%m/%Y')
+                                existing_data['pickup_time'] = now.strftime('%H:%M')
+                                
+                                # Também adicionar client_name se não existir
+                                if 'client_name' not in existing_data and 'clientName' in existing_data:
+                                    existing_data['client_name'] = existing_data['clientName']
+                                
+                                updated_extracted_json = json.dumps(existing_data)
+                                logging.info(f"📦 Updated extracted_data with check-in data: kms={odometer_reading}, fuel={fuel_level}, date={existing_data['delivery_date']}, time={existing_data['delivery_time']}")
+                            except Exception as extract_error:
+                                logging.error(f"❌ Error updating extracted_data: {extract_error}")
+                                updated_extracted_json = None
+                            
+                            # SEGUNDO: Verificar se o local de recolha é "Aeroporto de Faro"
                             # Self check-in só é configurado automaticamente para este local
                             is_faro_airport = False
                             if ra_pickup_location:
@@ -30219,43 +30261,6 @@ async def save_inspection(request: Request):
                                 scheduled_date = None
                                 if return_date:
                                     scheduled_date = calculate_scheduled_date(return_date, days_before=2)
-                                
-                                # Atualizar extracted_data com dados do check-in
-                                try:
-                                    if is_postgres:
-                                        cursor.execute("""
-                                            SELECT extracted_data FROM rental_agreements 
-                                            WHERE rental_agreement_number = %s
-                                        """, (ra,))
-                                    else:
-                                        cursor.execute("""
-                                            SELECT extracted_data FROM rental_agreements 
-                                            WHERE rental_agreement_number = ?
-                                        """, (ra,))
-                                    
-                                    existing_row = cursor.fetchone()
-                                    existing_data = {}
-                                    if existing_row and existing_row[0]:
-                                        import json
-                                        existing_data = json.loads(existing_row[0])
-                                    
-                                    # Adicionar dados do check-in ao extracted_data
-                                    import datetime
-                                    now = datetime.datetime.now()
-                                    existing_data['odometer'] = int(odometer_reading)
-                                    existing_data['kms'] = int(odometer_reading)
-                                    existing_data['fuel_level'] = str(fuel_level)
-                                    existing_data['combustivel'] = str(fuel_level)
-                                    existing_data['delivery_date'] = now.strftime('%d/%m/%Y')
-                                    existing_data['delivery_time'] = now.strftime('%H:%M')
-                                    existing_data['pickup_date'] = now.strftime('%d/%m/%Y')
-                                    existing_data['pickup_time'] = now.strftime('%H:%M')
-                                    
-                                    updated_extracted_json = json.dumps(existing_data)
-                                    logging.info(f"📦 Updated extracted_data with check-in data: kms={odometer_reading}, fuel={fuel_level}, date={existing_data['delivery_date']}, time={existing_data['delivery_time']}")
-                                except Exception as extract_error:
-                                    logging.error(f"❌ Error updating extracted_data: {extract_error}")
-                                    updated_extracted_json = None
                                 
                                 # Atualizar RA com dados de self check-in
                                 if is_postgres:
