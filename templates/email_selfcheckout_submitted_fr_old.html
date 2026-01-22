@@ -1,0 +1,252 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Self Checkout Reçu - Auto Prudente</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            font-family: Arial, sans-serif;
+            background-color: #f4f4f4;
+        }
+        .email-container {
+            max-width: 600px;
+            min-width: 320px;
+            margin: 0 auto;
+            background-color: #ffffff;
+        }
+    </style>
+</head>
+<body style="margin: 0; padding: 0; font-family: Arial, sans-serif; background-color: #f4f4f4;">
+    <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="margin: 0; padding: 0;">
+        <tr>
+            <td align="center" style="padding: 0;">
+                <table role="presentation" width="600" cellpadding="0" cellspacing="0" border="0" style="margin: 0 auto; background-color: #ffffff; width: 600px !important;">
+                    <tr>
+                        <td style="padding: 0;">
+    
+    <!-- Header -->
+    <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="background: linear-gradient(135deg, #00bcd4 0%, #0097a7 100%); background-color: #00bcd4;">
+        <tr>
+            <td style="padding: 20px;">
+                <table width="100%" cellpadding="0" cellspacing="0">
+                    <tr>
+                        <td style="width: 50%; text-align: left; vertical-align: middle;">
+                            <img src="https://carscraping.up.railway.app/static/ap-heather.png" alt="Auto Prudente" style="height: 50px; width: auto;">
+                        </td>
+                        <td style="width: 50%; text-align: right; vertical-align: middle;">
+                            <div style="background: rgba(255,255,255,0.2); padding: 10px 15px; border-radius: 6px; display: inline-block;">
+                                <span style="color: #ffffff; font-size: 16px; font-weight: bold;">R.A.: {{RA_NUMBER}}</span>
+                            </div>
+                        </td>
+                    </tr>
+                </table>
+            </td>
+        </tr>
+    </table>
+
+    <!-- Success Badge -->
+    <div style="background: #10b981; padding: 20px; text-align: center;">
+        <h1 style="color: #ffffff; margin: 0; font-size: 24px;">✅ Self Checkout Reçu</h1>
+    </div>
+
+    <!-- Greeting -->
+    <div style="padding: 20px;">
+        <h2 style="color: #333333; margin: 0 0 15px 0; font-size: 18px;">{{GREETING}} {{CLIENT_NAME}},</h2>
+        <p style="color: #666666; line-height: 1.6; margin: 0 0 12px 0; font-size: 14px;">Merci d'avoir complété le self checkout du véhicule <strong>{{LICENSE_PLATE}}</strong>.</p>
+        <p style="color: #666666; line-height: 1.6; margin: 0 0 12px 0; font-size: 14px;">Votre inspection a été reçue avec succès et est maintenant en cours de validation par notre équipe.</p>
+    </div>
+
+    <!-- Summary Section -->
+    <div style="padding: 20px; background-color: #f9f9f9;">
+        <h3 style="color: #00bcd4; margin: 0 0 20px 0; font-size: 18px;">Résumé de l'Inspection</h3>
+        
+        <!-- Vehicle Info -->
+        <div style="background: white; border-radius: 8px; padding: 20px; margin-bottom: 20px; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
+            <table width="100%" cellpadding="8" cellspacing="0">
+                <tr>
+                    <td style="color: #666666; font-size: 14px; padding: 8px 0; border-bottom: 1px solid #e0e0e0;">
+                        <strong style="color: #333333;">Véhicule:</strong>
+                    </td>
+                    <td style="color: #666666; font-size: 14px; padding: 8px 0; border-bottom: 1px solid #e0e0e0; text-align: right;">
+                        {{VEHICLE_BRAND}} {{VEHICLE_MODEL}}
+                    </td>
+                </tr>
+                <tr>
+                    <td style="color: #666666; font-size: 14px; padding: 8px 0; border-bottom: 1px solid #e0e0e0;">
+                        <strong style="color: #333333;">Plaque:</strong>
+                    </td>
+                    <td style="color: #666666; font-size: 14px; padding: 8px 0; border-bottom: 1px solid #e0e0e0; text-align: right;">
+                        {{LICENSE_PLATE}}
+                    </td>
+                </tr>
+                <tr>
+                    <td style="color: #666666; font-size: 14px; padding: 8px 0; border-bottom: 1px solid #e0e0e0;">
+                        <strong style="color: #333333;">Date de Restitution:</strong>
+                    </td>
+                    <td style="color: #666666; font-size: 14px; padding: 8px 0; border-bottom: 1px solid #e0e0e0; text-align: right;">
+                        {{PICKUP_DATE}} à {{PICKUP_TIME}}
+                    </td>
+                </tr>
+                <tr>
+                    <td style="color: #666666; font-size: 14px; padding: 8px 0; border-bottom: 1px solid #e0e0e0;">
+                        <strong style="color: #333333;">Kilométrage à la Restitution:</strong>
+                    </td>
+                    <td style="color: #00bcd4; font-size: 16px; font-weight: bold; padding: 8px 0; border-bottom: 1px solid #e0e0e0; text-align: right;">
+                        {{ODOMETER_READING}} km
+                    </td>
+                </tr>
+                <tr>
+                    <td style="color: #666666; font-size: 14px; padding: 8px 0; border-bottom: 1px solid #e0e0e0;">
+                        <strong style="color: #333333;">Kilomètres Parcourus:</strong>
+                    </td>
+                    <td style="color: #666666; font-size: 14px; padding: 8px 0; border-bottom: 1px solid #e0e0e0; text-align: right;">
+                        {{KMS_DRIVEN}} km
+                    </td>
+                </tr>
+                <tr>
+                    <td style="color: #666666; font-size: 14px; padding: 8px 0;">
+                        <strong style="color: #333333;">Niveau de Carburant:</strong>
+                    </td>
+                    <td style="color: #00bcd4; font-size: 16px; font-weight: bold; padding: 8px 0; text-align: right;">
+                        {{FUEL_LEVEL}}%
+                    </td>
+                </tr>
+            </table>
+        </div>
+
+        <!-- Photos Grid -->
+        <div style="background: white; border-radius: 8px; padding: 20px; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
+            <h4 style="color: #00bcd4; margin: 0 0 15px 0; font-size: 16px;">📸 Photos Soumises</h4>
+            <p style="color: #666666; font-size: 13px; margin: 0 0 15px 0;">Total de photos reçues: <strong>9 photos</strong></p>
+            
+            <table width="100%" cellpadding="5" cellspacing="0">
+                <tr>
+                    <td style="width: 33%; text-align: center; padding: 5px;">
+                        <div style="background: #f0f9fb; border: 2px solid #00bcd4; border-radius: 8px; padding: 15px;">
+                            <p style="margin: 0; color: #00bcd4; font-size: 12px; font-weight: bold;">✓ Avant</p>
+                        </div>
+                    </td>
+                    <td style="width: 33%; text-align: center; padding: 5px;">
+                        <div style="background: #f0f9fb; border: 2px solid #00bcd4; border-radius: 8px; padding: 15px;">
+                            <p style="margin: 0; color: #00bcd4; font-size: 12px; font-weight: bold;">✓ Côté Droit</p>
+                        </div>
+                    </td>
+                    <td style="width: 33%; text-align: center; padding: 5px;">
+                        <div style="background: #f0f9fb; border: 2px solid #00bcd4; border-radius: 8px; padding: 15px;">
+                            <p style="margin: 0; color: #00bcd4; font-size: 12px; font-weight: bold;">✓ Arrière</p>
+                        </div>
+                    </td>
+                </tr>
+                <tr>
+                    <td style="width: 33%; text-align: center; padding: 5px;">
+                        <div style="background: #f0f9fb; border: 2px solid #00bcd4; border-radius: 8px; padding: 15px;">
+                            <p style="margin: 0; color: #00bcd4; font-size: 12px; font-weight: bold;">✓ Côté Gauche</p>
+                        </div>
+                    </td>
+                    <td style="width: 33%; text-align: center; padding: 5px;">
+                        <div style="background: #f0f9fb; border: 2px solid #00bcd4; border-radius: 8px; padding: 15px;">
+                            <p style="margin: 0; color: #00bcd4; font-size: 12px; font-weight: bold;">✓ Intérieur</p>
+                        </div>
+                    </td>
+                    <td style="width: 33%; text-align: center; padding: 5px;">
+                        <div style="background: #f0f9fb; border: 2px solid #00bcd4; border-radius: 8px; padding: 15px;">
+                            <p style="margin: 0; color: #00bcd4; font-size: 12px; font-weight: bold;">✓ Tableau de Bord</p>
+                        </div>
+                    </td>
+                </tr>
+                <tr>
+                    <td style="width: 33%; text-align: center; padding: 5px;">
+                        <div style="background: #f0f9fb; border: 2px solid #00bcd4; border-radius: 8px; padding: 15px;">
+                            <p style="margin: 0; color: #00bcd4; font-size: 12px; font-weight: bold;">✓ Pneu AG</p>
+                        </div>
+                    </td>
+                    <td style="width: 33%; text-align: center; padding: 5px;">
+                        <div style="background: #f0f9fb; border: 2px solid #00bcd4; border-radius: 8px; padding: 15px;">
+                            <p style="margin: 0; color: #00bcd4; font-size: 12px; font-weight: bold;">✓ Pneu AD</p>
+                        </div>
+                    </td>
+                    <td style="width: 33%; text-align: center; padding: 5px;">
+                        <div style="background: #f0f9fb; border: 2px solid #00bcd4; border-radius: 8px; padding: 15px;">
+                            <p style="margin: 0; color: #00bcd4; font-size: 12px; font-weight: bold;">✓ Pneu PG</p>
+                        </div>
+                    </td>
+                </tr>
+            </table>
+        </div>
+    </div>
+
+    <!-- Next Steps -->
+    <div style="padding: 20px; background-color: #fff3cd; border-left: 4px solid #FFC107;">
+        <h3 style="color: #856404; margin: 0 0 10px 0; font-size: 16px; font-weight: bold;">📋 Prochaines Étapes</h3>
+        <p style="color: #856404; line-height: 1.6; margin: 0 0 10px 0; font-size: 14px;">
+            Notre équipe récupérera le véhicule au parking et validera toutes les données soumises.
+        </p>
+        <p style="color: #856404; line-height: 1.6; margin: 0; font-size: 14px;">
+            Vous recevrez un email de confirmation une fois la validation terminée et le contrat clôturé.
+        </p>
+    </div>
+
+    <!-- Closing -->
+    <div style="padding: 20px;">
+        <p style="color: #666666; line-height: 1.6; margin: 0 0 10px 0; font-size: 14px;">Nous vous remercions de votre préférence et espérons vous revoir bientôt!</p>
+        <p style="color: #666666; line-height: 1.6; margin: 0; font-size: 14px;"><strong>Cordialement,</strong><br>Auto Prudente Rent a Car</p>
+    </div>
+
+    <!-- Separator Line -->
+    <div style="height: 2px; background: linear-gradient(to right, transparent, #00bcd4, transparent); margin: 30px 20px;"></div>
+
+    <!-- Useful Contacts Section -->
+    <div style="padding: 20px; background-color: #f0f9fb;">
+        <h3 style="color: #00bcd4; margin: 0 0 20px 0; font-size: 20px; text-align: center; font-weight: bold;">Contacts Utiles</h3>
+        
+        <div style="max-width: 500px; margin: 0 auto;">
+            <table width="100%" cellpadding="10" cellspacing="0" style="background: white; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
+                <tr>
+                    <td style="text-align: center; padding: 15px; border-bottom: 1px solid #e0e0e0;">
+                        <p style="color: #666666; margin: 0 0 5px 0; font-size: 13px; font-weight: bold;">BUREAU</p>
+                        <p style="color: #00bcd4; margin: 0; font-size: 16px; font-weight: bold;">+351 289 542 160</p>
+                    </td>
+                </tr>
+                <tr>
+                    <td style="text-align: center; padding: 15px; border-bottom: 1px solid #e0e0e0;">
+                        <p style="color: #666666; margin: 0 0 5px 0; font-size: 13px; font-weight: bold;">ASSISTANCE ROUTIÈRE</p>
+                        <p style="color: #00bcd4; margin: 0; font-size: 16px; font-weight: bold;">+351 273 880 250</p>
+                    </td>
+                </tr>
+                <tr>
+                    <td style="text-align: center; padding: 15px;">
+                        <p style="color: #666666; margin: 0 0 5px 0; font-size: 13px; font-weight: bold;">EMAIL</p>
+                        <p style="color: #00bcd4; margin: 0; font-size: 16px; font-weight: bold;">info@auto-prudente.com</p>
+                    </td>
+                </tr>
+            </table>
+        </div>
+    </div>
+
+    <!-- Footer -->
+    <div style="background-color: #00bcd4; padding: 20px; text-align: center;">
+        <p style="color: #ffffff; margin: 0; font-size: 11px; opacity: 0.8;">© 2026 Auto Prudente Rent a Car. Tous droits réservés.</p>
+    </div>
+    
+    <!-- Legal Footer -->
+    <div style="background-color: #f4f4f4; padding: 20px; text-align: center; border-top: 1px solid #e0e0e0;">
+        <div style="max-width: 560px; margin: 0 auto;">
+            <p style="color: #666666; margin: 0; font-size: 10px; line-height: 1.5;">
+                <strong>Auto Prudente Rent a Car Unipessoal, Lda.</strong> - Numéro Fiscal: PT 503 539 791<br>
+                Siège: Estrada de Santa Eulália, Edifício Onda do Mar Loja E, 8200-269 Albufeira<br>
+                Téléphone +351 289 542 160 | E-mail: info@auto-prudente.com
+            </p>
+        </div>
+    </div>
+    
+                        </td>
+                    </tr>
+                </table>
+            </td>
+        </tr>
+    </table>
+</body>
+</html>
