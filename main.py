@@ -31042,7 +31042,8 @@ async def get_self_checkout_data(token: str):
                 } if row[11] else None,
                 "client_name": extracted_data.get('client_name') or extracted_data.get('clientName') or extracted_data.get('nome_cliente'),
                 "completed": row[7],
-                "validated": row[8]
+                "validated": row[8],
+                "extracted_data": extracted_data
             }
         })
         
