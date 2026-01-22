@@ -1828,8 +1828,8 @@
                 if (qrCode) {
                     console.log('✅ QR code detected at:', qrCode.location);
                     
-                    // Add margin around QR code (20% on each side)
-                    const margin = 0.2;
+                    // Add margin around QR code (10% on each side)
+                    const margin = 0.1;
                     const qrWidth = qrCode.location.bottomRightCorner.x - qrCode.location.topLeftCorner.x;
                     const qrHeight = qrCode.location.bottomRightCorner.y - qrCode.location.topLeftCorner.y;
                     const marginX = qrWidth * margin;
@@ -1841,18 +1841,23 @@
                     const cropWidth = Math.min(canvas.width - cropX, qrWidth + (marginX * 2));
                     const cropHeight = Math.min(canvas.height - cropY, qrHeight + (marginY * 2));
                     
-                    // Create new canvas with just the QR code
+                    // Scale up the QR code (1.5x larger)
+                    const scale = 1.5;
+                    const scaledWidth = cropWidth * scale;
+                    const scaledHeight = cropHeight * scale;
+                    
+                    // Create new canvas with scaled QR code
                     const qrCanvas = document.createElement('canvas');
-                    qrCanvas.width = cropWidth;
-                    qrCanvas.height = cropHeight;
+                    qrCanvas.width = scaledWidth;
+                    qrCanvas.height = scaledHeight;
                     const qrContext = qrCanvas.getContext('2d');
                     
-                    // Draw cropped QR code
-                    qrContext.drawImage(canvas, cropX, cropY, cropWidth, cropHeight, 0, 0, cropWidth, cropHeight);
+                    // Draw cropped and scaled QR code
+                    qrContext.drawImage(canvas, cropX, cropY, cropWidth, cropHeight, 0, 0, scaledWidth, scaledHeight);
                     
                     // Convert cropped QR code to base64
                     window.qrCodeImageBase64 = qrCanvas.toDataURL('image/png').split(',')[1];
-                    console.log('✅ QR code extracted and cropped');
+                    console.log('✅ QR code extracted, cropped and scaled to 1.5x');
                 } else {
                     console.warn('⚠️ QR code not detected, using full page');
                     // Fallback: use full page if QR code not detected
