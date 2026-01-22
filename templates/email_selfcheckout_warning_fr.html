@@ -1,0 +1,192 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Self Checkout - Divergences Détectées - Auto Prudente</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            font-family: Arial, sans-serif;
+            background-color: #f4f4f4;
+        }
+        .email-container {
+            max-width: 600px;
+            min-width: 320px;
+            margin: 0 auto;
+            background-color: #ffffff;
+        }
+    </style>
+</head>
+<body style="margin: 0; padding: 0; font-family: Arial, sans-serif; background-color: #f4f4f4;">
+    <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="margin: 0; padding: 0;">
+        <tr>
+            <td align="center" style="padding: 0;">
+                <table role="presentation" width="600" cellpadding="0" cellspacing="0" border="0" style="margin: 0 auto; background-color: #ffffff; width: 600px !important;">
+                    <tr>
+                        <td style="padding: 0;">
+    
+    <!-- Header -->
+    <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="background: linear-gradient(135deg, #00bcd4 0%, #0097a7 100%); background-color: #00bcd4;">
+        <tr>
+            <td style="padding: 20px;">
+                <table width="100%" cellpadding="0" cellspacing="0">
+                    <tr>
+                        <td style="width: 50%; text-align: left; vertical-align: middle;">
+                            <img src="https://carscraping.up.railway.app/static/ap-heather.png" alt="Auto Prudente" style="height: 50px; width: auto;">
+                        </td>
+                        <td style="width: 50%; text-align: right; vertical-align: middle;">
+                            <div style="background: rgba(255,255,255,0.2); padding: 10px 15px; border-radius: 6px; display: inline-block;">
+                                <span style="color: #ffffff; font-size: 16px; font-weight: bold;">R.A.: {{RA_NUMBER}}</span>
+                            </div>
+                        </td>
+                    </tr>
+                </table>
+            </td>
+        </tr>
+    </table>
+
+    <!-- Warning Alert -->
+    <div style="background: #f59e0b15; border-left: 4px solid #f59e0b; padding: 20px; margin: 20px; border-radius: 8px;">
+        <h3 style="color: #f59e0b; margin: 0 0 10px 0; font-size: 16px; font-weight: 600;">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="vertical-align: middle; margin-right: 8px;">
+                <circle cx="12" cy="12" r="10"></circle>
+                <line x1="12" y1="8" x2="12" y2="12"></line>
+                <line x1="12" y1="16" x2="12.01" y2="16"></line>
+            </svg>
+            Divergences Détectées dans le Self Checkout
+        </h3>
+        <p style="color: #b45309; margin: 0; font-size: 13px; line-height: 1.5;">
+            Nous avons détecté quelques divergences lors de la validation de votre self checkout. Notre équipe vous contactera prochainement.
+        </p>
+    </div>
+
+    <!-- Greeting -->
+    <div style="padding: 20px;">
+        <h2 style="color: #333333; margin: 0 0 15px 0; font-size: 18px;">{{GREETING}} {{CLIENT_NAME}},</h2>
+        <p style="color: #666666; line-height: 1.6; margin: 0 0 12px 0; font-size: 14px;">Nous vous remercions d'avoir effectué le self checkout du véhicule <strong>{{LICENSE_PLATE}}</strong>. Cependant, lors de la validation, notre équipe a détecté quelques divergences qui nécessitent des éclaircissements.</p>
+        <p style="color: #666666; line-height: 1.6; margin: 0; font-size: 14px;">Nous analyserons attentivement la situation et vous contacterons dans les prochaines heures pour résoudre cette question.</p>
+    </div>
+
+    <!-- Summary Section -->
+    <div style="padding: 20px; background-color: #f9f9f9;">
+        <h3 style="color: #00bcd4; margin: 0 0 15px 0; font-size: 18px;">Résumé de la Restitution</h3>
+        
+        <!-- Vehicle Info -->
+        <table width="100%" cellpadding="10" cellspacing="0" style="background: white; border: 1px solid #e0e0e0; border-radius: 8px; font-size: 14px;">
+            <tr>
+                <td style="background-color: #f9f9f9; border-bottom: 1px solid #e0e0e0; font-weight: bold; color: #333333; width: 40%;">Véhicule:</td>
+                <td style="border-bottom: 1px solid #e0e0e0; color: #666666;">{{VEHICLE_BRAND}} {{VEHICLE_MODEL}}</td>
+            </tr>
+            <tr>
+                <td style="background-color: #f9f9f9; border-bottom: 1px solid #e0e0e0; font-weight: bold; color: #333333;">Immatriculation:</td>
+                <td style="border-bottom: 1px solid #e0e0e0; color: #666666;">{{LICENSE_PLATE}}</td>
+            </tr>
+            <tr>
+                <td style="background-color: #f9f9f9; border-bottom: 1px solid #e0e0e0; font-weight: bold; color: #333333;">Date de Restitution:</td>
+                <td style="border-bottom: 1px solid #e0e0e0; color: #666666;">{{PICKUP_DATE}} à {{PICKUP_TIME}}</td>
+            </tr>
+            <tr>
+                <td style="background-color: #f9f9f9; border-bottom: 1px solid #e0e0e0; font-weight: bold; color: #333333;">Lieu de Restitution:</td>
+                <td style="border-bottom: 1px solid #e0e0e0; color: #666666;">{{LOCATION}}</td>
+            </tr>
+            <tr>
+                <td style="background-color: #f9f9f9; border-bottom: 1px solid #e0e0e0; font-weight: bold; color: #333333;">Kilométrage à la Restitution:</td>
+                <td style="border-bottom: 1px solid #e0e0e0; color: #666666;">{{ODOMETER_READING}} km</td>
+            </tr>
+            <tr>
+                <td style="background-color: #f9f9f9; border-bottom: 1px solid #e0e0e0; font-weight: bold; color: #333333;">Distance Parcourue:</td>
+                <td style="border-bottom: 1px solid #e0e0e0; color: #666666;">{{KMS_DRIVEN}} km</td>
+            </tr>
+            <tr>
+                <td style="background-color: #f9f9f9; font-weight: bold; color: #333333;">Statut:</td>
+                <td style="color: #f59e0b; font-weight: bold;">⚠ En Cours d'Analyse</td>
+            </tr>
+        </table>
+    </div>
+
+    </div>
+
+    <!-- Discrepancies Detected -->
+    <div style="background: #f59e0b15; border-left: 4px solid #f59e0b; padding: 20px; margin: 20px; border-radius: 8px;">
+        <h3 style="color: #f59e0b; margin: 0 0 10px 0; font-size: 16px; font-weight: 600;">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="vertical-align: middle; margin-right: 8px;">
+                <circle cx="12" cy="12" r="10"></circle>
+                <line x1="12" y1="8" x2="12" y2="12"></line>
+                <line x1="12" y1="16" x2="12.01" y2="16"></line>
+            </svg>
+            Prochaines Étapes
+        </h3>
+        <p style="color: #b45309; margin: 0 0 10px 0; font-size: 13px; line-height: 1.5;">
+            Notre équipe analysera les divergences détectées et vous contactera prochainement pour des éclaircissements.
+        </p>
+        <p style="color: #b45309; margin: 0; font-size: 13px; line-height: 1.5;">
+            Si vous avez des questions ou souhaitez clarifier la situation, n'hésitez pas à nous contacter via les coordonnées ci-dessous.
+        </p>
+    </div>
+
+    <!-- Separator Line -->
+    <div style="height: 2px; background: linear-gradient(to right, transparent, #00bcd4, transparent); margin: 30px 20px;"></div>
+
+    <!-- Closing -->
+    <div style="padding: 20px;">
+        <p style="color: #666666; line-height: 1.6; margin: 0 0 10px 0; font-size: 14px;">Nous vous remercions de votre compréhension et de votre collaboration.</p>
+        <p style="color: #666666; line-height: 1.6; margin: 0; font-size: 14px;"><strong>Cordialement,</strong><br>Auto Prudente Rent a Car</p>
+    </div>
+
+    <!-- Separator Line -->
+    <div style="height: 2px; background: linear-gradient(to right, transparent, #00bcd4, transparent); margin: 30px 20px;"></div>
+
+    <!-- Contacts Utiles Section -->
+    <div style="padding: 20px; background-color: #f0f9fb;">
+        <h3 style="color: #00bcd4; margin: 0 0 20px 0; font-size: 20px; text-align: center; font-weight: bold;">Contacts Utiles</h3>
+        
+        <div style="max-width: 500px; margin: 0 auto;">
+            <table width="100%" cellpadding="10" cellspacing="0" style="background: white; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
+                <tr>
+                    <td style="text-align: center; padding: 15px; border-bottom: 1px solid #e0e0e0;">
+                        <p style="color: #666666; margin: 0 0 5px 0; font-size: 13px; font-weight: bold;">BUREAU</p>
+                        <p style="color: #00bcd4; margin: 0; font-size: 16px; font-weight: bold;">+351 289 542 160</p>
+                    </td>
+                </tr>
+                <tr>
+                    <td style="text-align: center; padding: 15px; border-bottom: 1px solid #e0e0e0;">
+                        <p style="color: #666666; margin: 0 0 5px 0; font-size: 13px; font-weight: bold;">ASSISTANCE ROUTIÈRE</p>
+                        <p style="color: #00bcd4; margin: 0; font-size: 16px; font-weight: bold;">+351 273 880 250</p>
+                    </td>
+                </tr>
+                <tr>
+                    <td style="text-align: center; padding: 15px;">
+                        <p style="color: #666666; margin: 0 0 5px 0; font-size: 13px; font-weight: bold;">EMAIL</p>
+                        <p style="color: #00bcd4; margin: 0; font-size: 16px; font-weight: bold;">info@auto-prudente.com</p>
+                    </td>
+                </tr>
+            </table>
+        </div>
+    </div>
+
+    <!-- Footer -->
+    <div style="background-color: #00bcd4; padding: 20px; text-align: center;">
+        <p style="color: #ffffff; margin: 0; font-size: 11px; opacity: 0.8;">© 2026 Auto Prudente Rent a Car. Tous droits réservés.</p>
+    </div>
+    
+    <!-- Legal Footer -->
+    <div style="background-color: #f4f4f4; padding: 20px; text-align: center; border-top: 1px solid #e0e0e0;">
+        <div style="max-width: 560px; margin: 0 auto;">
+            <p style="color: #666666; margin: 0; font-size: 10px; line-height: 1.5;">
+                <strong>Auto Prudente Rent a Car Unipessoal, Lda.</strong> - Numéro Fiscal: PT 503 539 791<br>
+                Siège: Estrada de Santa Eulália, Edifício Onda do Mar Loja E, 8200-269 Albufeira<br>
+                Téléphone +351 289 542 160 | Email: info@auto-prudente.com
+            </p>
+        </div>
+    </div>
+    
+                        </td>
+                    </tr>
+                </table>
+            </td>
+        </tr>
+    </table>
+</body>
+</html>
