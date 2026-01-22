@@ -44377,33 +44377,19 @@ async def get_inspections_history(request: Request):
                 client_name = None
                 client_email = None
                 
-                logging.info(f"🔍 RA {ra}: extracted_data type={type(extracted_data)}, has_data={extracted_data is not None}")
-                
                 if extracted_data:
                     try:
                         import json
                         if isinstance(extracted_data, str):
                             data = json.loads(extracted_data)
-                            logging.info(f"📋 RA {ra}: parsed from JSON string, length={len(extracted_data)}")
                         else:
                             data = extracted_data
-                            logging.info(f"📋 RA {ra}: already dict/object")
-                        
-                        logging.info(f"📋 RA {ra}: parsed data keys={list(data.keys()) if isinstance(data, dict) else 'NOT_DICT'}")
                         
                         # Try both snake_case and camelCase
                         client_name = data.get('client_name') or data.get('clientName')
                         client_email = data.get('client_email') or data.get('clientEmail')
-                        
-                        logging.info(f"🔍 RA {ra}: data.get('client_name')='{data.get('client_name')}'")
-                        logging.info(f"🔍 RA {ra}: data.get('clientName')='{data.get('clientName')}'")
-                        logging.info(f"🔍 RA {ra}: data.get('client_email')='{data.get('client_email')}'")
-                        logging.info(f"🔍 RA {ra}: data.get('clientEmail')='{data.get('clientEmail')}'")
-                        logging.info(f"✅ RA {ra}: FINAL client_name='{client_name}', client_email='{client_email}'")
                     except Exception as e:
-                        logging.error(f"❌ RA {ra}: Error parsing extracted_data: {e}")
-                        import traceback
-                        logging.error(traceback.format_exc())
+                        logging.error(f"Error parsing extracted_data for RA {ra}: {e}")
                 
                 logging.info(f"  - {inspection_type}: {plate} / RA: {ra} (base: {ra_base}) / Date: {row[5]} / Client: {client_name} / Email: {client_email}")
                 
@@ -45581,10 +45567,6 @@ async def extract_rental_agreement(request: Request, pdf: UploadFile = File(...)
         # Map Damage Report fields to Vehicle Inspection fields
         dr_fields = result.get("fields", {})
         
-        logging.info(f"🔍 DR Fields keys: {list(dr_fields.keys())}")
-        logging.info(f"🔍 clientName in dr_fields: {dr_fields.get('clientName', 'NOT_FOUND')}")
-        logging.info(f"🔍 clientEmail in dr_fields: {dr_fields.get('clientEmail', 'NOT_FOUND')}")
-        
         # Extract ALL fields from the RA for storage in extracted_data
         inspection_data = {
             "rental_agreement": dr_fields.get("contractNumber", ""),
@@ -45608,9 +45590,6 @@ async def extract_rental_agreement(request: Request, pdf: UploadFile = File(...)
             "return_date": dr_fields.get("returnDate", ""),
             "return_time": dr_fields.get("returnTime", "")
         }
-        
-        logging.info(f"📦 inspection_data client_name: '{inspection_data.get('client_name')}'")
-        logging.info(f"📦 inspection_data client_email: '{inspection_data.get('client_email')}'")
         
         # Clean rental agreement number (remove -09 suffix)
         if inspection_data["rental_agreement"] and '-09' in inspection_data["rental_agreement"]:
