@@ -381,6 +381,13 @@
                                         </svg>
                                         <span class="hidden sm:inline text-sm font-medium text-[#f59e0b]">Email</span>
                                     </button>
+                                    <button onclick="showParkingQRModal('${contract.contract_number}', '${contract.client_name}')" class="flex items-center gap-2 px-3 py-2 bg-blue-50 hover:bg-blue-100 rounded-lg transition-colors" title="Enviar QR Code de Parque">
+                                        <svg class="w-6 h-6 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/>
+                                        </svg>
+                                        <span class="hidden sm:inline text-sm font-medium text-blue-600">✈️ Parque</span>
+                                    </button>
                                     ${isAdmin && (hasCheckout || hasCheckin) ? `
                                     <button onclick="deleteInspection('${hasCheckout ? contract.checkout.inspection_number : contract.checkin.inspection_number}')" class="flex items-center gap-2 px-3 py-2 bg-red-50 hover:bg-red-100 rounded-lg transition-colors" title="Eliminar">
                                         <svg class="w-6 h-6 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -1706,6 +1713,102 @@
             } catch (error) {
                 console.error('Error resending self check-in link:', error);
                 showNotification('Erro ao reenviar link: ' + error.message, 'error');
+            }
+        }
+
+        // Show parking QR modal
+        async function showParkingQRModal(raNumber, clientName) {
+            const modal = document.createElement('div');
+            modal.id = 'parkingQRModal';
+            modal.className = 'fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50';
+            modal.style.touchAction = 'none';
+            modal.innerHTML = `
+                <div class="bg-white rounded-lg p-6 max-w-md w-full mx-4">
+                    <h3 class="text-xl font-bold text-[#009cb6] mb-4">✈️ Enviar QR Code de Parque</h3>
+                    
+                    <div class="mb-4">
+                        <p class="text-sm text-gray-600 mb-2">Cliente: <strong>${clientName}</strong></p>
+                        <p class="text-sm text-gray-600 mb-4">RA: <strong>${raNumber}</strong></p>
+                    </div>
+                    
+                    <div class="mb-4">
+                        <label class="block text-sm font-medium text-gray-700 mb-2">Selecione o Parque do Aeroporto</label>
+                        <div class="grid grid-cols-2 gap-3">
+                            <button onclick="selectParking(1)" class="parking-option px-4 py-3 border-2 border-gray-300 rounded-lg hover:border-[#009cb6] hover:bg-blue-50 transition-colors">
+                                <div class="text-2xl mb-1">🅿️</div>
+                                <div class="font-bold text-[#009cb6]">Parque 1</div>
+                            </button>
+                            <button onclick="selectParking(2)" class="parking-option px-4 py-3 border-2 border-gray-300 rounded-lg hover:border-[#009cb6] hover:bg-blue-50 transition-colors">
+                                <div class="text-2xl mb-1">🅿️</div>
+                                <div class="font-bold text-[#009cb6]">Parque 2</div>
+                            </button>
+                            <button onclick="selectParking(3)" class="parking-option px-4 py-3 border-2 border-gray-300 rounded-lg hover:border-[#009cb6] hover:bg-blue-50 transition-colors">
+                                <div class="text-2xl mb-1">🅿️</div>
+                                <div class="font-bold text-[#009cb6]">Parque 3</div>
+                            </button>
+                            <button onclick="selectParking(4)" class="parking-option px-4 py-3 border-2 border-gray-300 rounded-lg hover:border-[#009cb6] hover:bg-blue-50 transition-colors">
+                                <div class="text-2xl mb-1">🅿️</div>
+                                <div class="font-bold text-[#009cb6]">Parque 4</div>
+                            </button>
+                        </div>
+                    </div>
+                    
+                    <div class="flex gap-3">
+                        <button onclick="closeParkingQRModal()" class="flex-1 px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors">
+                            Cancelar
+                        </button>
+                    </div>
+                </div>
+            `;
+            
+            document.body.appendChild(modal);
+            window.currentParkingRA = raNumber;
+            window.currentParkingClient = clientName;
+        }
+        
+        function closeParkingQRModal() {
+            const modal = document.getElementById('parkingQRModal');
+            if (modal) {
+                modal.remove();
+            }
+            window.currentParkingRA = null;
+            window.currentParkingClient = null;
+        }
+        
+        async function selectParking(parkingNumber) {
+            const raNumber = window.currentParkingRA;
+            const clientName = window.currentParkingClient;
+            
+            if (!raNumber) {
+                showNotification('Erro: RA não encontrado', 'error');
+                return;
+            }
+            
+            try {
+                showNotification('A enviar email com QR code...', 'info');
+                
+                const response = await fetch('/api/send-parking-qr', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        rental_agreement_number: raNumber,
+                        parking_number: parkingNumber
+                    })
+                });
+                
+                const result = await response.json();
+                
+                if (result.success) {
+                    showNotification(`Email com QR code do Parque ${parkingNumber} enviado com sucesso!`, 'success');
+                    closeParkingQRModal();
+                } else {
+                    showNotification('Erro ao enviar email: ' + (result.error || 'Erro desconhecido'), 'error');
+                }
+            } catch (error) {
+                console.error('Error sending parking QR email:', error);
+                showNotification('Erro ao enviar email: ' + error.message, 'error');
             }
         }
 
