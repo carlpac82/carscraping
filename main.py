@@ -31439,14 +31439,15 @@ async def send_parking_qr_email(request: Request):
     conn = None
     try:
         data = await request.json()
-        logging.info(f"📦 Request data: ra={data.get('rental_agreement_number')}, parking={data.get('parking_number')}, email={data.get('client_email')}")
+        logging.info(f"📦 Request data: ra={data.get('rental_agreement_number')}, parking={data.get('parking_number')}, email={data.get('client_email')}, no_reservation={data.get('no_reservation')}")
         ra_number = data.get('rental_agreement_number')
         parking_number = data.get('parking_number')
-        qr_code_image = data.get('qr_code_image')  # Base64 do QR code
+        qr_code_image = data.get('qr_code_image')  # Base64 do QR code (None se no_reservation=True)
         custom_email = data.get('client_email')  # Email customizado opcional
         qr_pickup_date = data.get('pickup_date')  # Data extraída do QR code
         qr_pickup_time = data.get('pickup_time')  # Hora extraída do QR code
         qr_reservation_number = data.get('reservation_number')  # Número de reserva do aeroporto (ANA-XXXXXXXX)
+        no_reservation = data.get('no_reservation', False)  # Modo sem reserva
         
         if not ra_number or not parking_number:
             return JSONResponse({
@@ -31460,14 +31461,17 @@ async def send_parking_qr_email(request: Request):
                 "error": "Número do parque deve ser 1, 2, 3 ou 4"
             }, status_code=400)
         
-        # Validar que o QR code foi fornecido
-        if not qr_code_image:
+        # Validar que o QR code foi fornecido (apenas se não for modo sem reserva)
+        if not no_reservation and not qr_code_image:
             return JSONResponse({
                 "success": False,
                 "error": "QR code é obrigatório. Faça upload do PDF com o QR code."
             }, status_code=400)
         
-        logging.info(f"✅ QR code received from frontend (length: {len(qr_code_image)})")
+        if qr_code_image:
+            logging.info(f"✅ QR code received from frontend (length: {len(qr_code_image)})")
+        else:
+            logging.info(f"📧 No reservation mode - sending email without QR code")
         
         conn = _db_connect()
         is_postgres = _is_postgresql_connection(conn)
@@ -31666,13 +31670,23 @@ async def send_parking_qr_email(request: Request):
         greeting = greeting_map.get(detected_lang, greeting_map['pt']).get(gender, 'Estimado(a)')
         logging.info(f"👤 Detected gender: {gender}, greeting: {greeting}")
         
-        # Selecionar template baseado no idioma
-        template_map = {
-            'pt': 'email_parking_qr_pt.html',
-            'en': 'email_parking_qr_en.html',
-            'fr': 'email_parking_qr_fr.html'
-        }
-        template_name = template_map.get(detected_lang, 'email_parking_qr_pt.html')
+        # Selecionar template baseado no idioma e modo (com ou sem reserva)
+        if no_reservation:
+            template_map = {
+                'pt': 'email_parking_no_reservation_pt.html',
+                'en': 'email_parking_no_reservation_en.html',
+                'fr': 'email_parking_no_reservation_fr.html'
+            }
+            template_name = template_map.get(detected_lang, 'email_parking_no_reservation_pt.html')
+            logging.info(f"📧 Using NO RESERVATION template: {template_name}")
+        else:
+            template_map = {
+                'pt': 'email_parking_qr_pt.html',
+                'en': 'email_parking_qr_en.html',
+                'fr': 'email_parking_qr_fr.html'
+            }
+            template_name = template_map.get(detected_lang, 'email_parking_qr_pt.html')
+            logging.info(f"🎫 Using QR CODE template: {template_name}")
         
         # Localizações dos parques do Aeroporto de Faro
         parking_locations = {
@@ -31742,37 +31756,47 @@ async def send_parking_qr_email(request: Request):
             else:
                 logging.error(f"❌ Google Maps link NOT found in HTML content after replacement!")
         
-        # Substituir cid:qr_code_image por base64 inline (a função _send_notification_email vai extrair e converter para CID)
-        logging.info(f"🖼️ QR code base64 length: {len(qr_code_image)} chars")
-        
-        # O QR code já vem com o prefixo data:image/png;base64, do frontend
-        if qr_code_image.startswith('data:image'):
-            qr_base64_src = qr_code_image
-            logging.info(f"✅ QR code already has data URL prefix")
+        # Substituir cid:qr_code_image por base64 inline (apenas se não for modo sem reserva)
+        if not no_reservation and qr_code_image:
+            logging.info(f"🖼️ QR code base64 length: {len(qr_code_image)} chars")
+            
+            # O QR code já vem com o prefixo data:image/png;base64, do frontend
+            if qr_code_image.startswith('data:image'):
+                qr_base64_src = qr_code_image
+                logging.info(f"✅ QR code already has data URL prefix")
+            else:
+                qr_base64_src = f'data:image/png;base64,{qr_code_image}'
+                logging.info(f"➕ Added data URL prefix to QR code")
+            
+            logging.info(f"🔄 Replacing cid:qr_code_image with base64 data URL")
+            html_content = html_content.replace('cid:qr_code_image', qr_base64_src)
+            
+            # Verificar se a substituição funcionou
+            if 'cid:qr_code_image' in html_content:
+                logging.error("❌ Failed to replace cid:qr_code_image in template!")
+            elif 'data:image/png;base64,' in html_content:
+                logging.info("✅ QR code base64 successfully embedded in HTML")
+            else:
+                logging.warning("⚠️ No QR code reference found in HTML after replacement")
         else:
-            qr_base64_src = f'data:image/png;base64,{qr_code_image}'
-            logging.info(f"➕ Added data URL prefix to QR code")
-        
-        logging.info(f"🔄 Replacing cid:qr_code_image with base64 data URL")
-        html_content = html_content.replace('cid:qr_code_image', qr_base64_src)
-        
-        # Verificar se a substituição funcionou
-        if 'cid:qr_code_image' in html_content:
-            logging.error("❌ Failed to replace cid:qr_code_image in template!")
-        elif 'data:image/png;base64,' in html_content:
-            logging.info("✅ QR code base64 successfully embedded in HTML")
-        else:
-            logging.warning("⚠️ No QR code reference found in HTML after replacement")
+            logging.info("📧 No reservation mode - skipping QR code processing")
         
         # Preparar assunto do email
-        subject_map = {
-            'pt': f'Código QR de Acesso ao Parque {parking_number} - Auto Prudente',
-            'en': f'Airport Parking {parking_number} QR Code - Auto Prudente',
-            'fr': f'Code QR Parking Aéroport {parking_number} - Auto Prudente'
-        }
+        if no_reservation:
+            subject_map = {
+                'pt': f'Informações de Acesso ao Parque {parking_number} - Auto Prudente',
+                'en': f'Airport Parking {parking_number} Access Information - Auto Prudente',
+                'fr': f'Informations d\'Accès au Parking {parking_number} - Auto Prudente'
+            }
+        else:
+            subject_map = {
+                'pt': f'Código QR de Acesso ao Parque {parking_number} - Auto Prudente',
+                'en': f'Airport Parking {parking_number} QR Code - Auto Prudente',
+                'fr': f'Code QR Parking Aéroport {parking_number} - Auto Prudente'
+            }
         subject = subject_map.get(detected_lang, subject_map['pt'])
         
-        # Guardar QR code na base de dados para histórico
+        # Guardar informações na base de dados para histórico
         try:
             # Criar tabela se não existir
             if is_postgres:
@@ -31787,6 +31811,7 @@ async def send_parking_qr_email(request: Request):
                         extracted_date TEXT,
                         extracted_time TEXT,
                         extracted_reference TEXT,
+                        no_reservation BOOLEAN DEFAULT FALSE,
                         uploaded_at TIMESTAMP DEFAULT NOW(),
                         UNIQUE(ra_number, parking_number)
                     )
@@ -31803,6 +31828,7 @@ async def send_parking_qr_email(request: Request):
                         extracted_date TEXT,
                         extracted_time TEXT,
                         extracted_reference TEXT,
+                        no_reservation INTEGER DEFAULT 0,
                         uploaded_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
                         UNIQUE(ra_number, parking_number)
                     )
@@ -31812,27 +31838,31 @@ async def send_parking_qr_email(request: Request):
             if is_postgres:
                 cursor.execute("""
                     INSERT INTO parking_qr_codes 
-                    (ra_number, parking_number, qr_code_image, uploaded_at)
-                    VALUES (%s, %s, %s, NOW())
+                    (ra_number, parking_number, qr_code_image, no_reservation, uploaded_at)
+                    VALUES (%s, %s, %s, %s, NOW())
                     ON CONFLICT (ra_number, parking_number) 
                     DO UPDATE SET 
                         qr_code_image = EXCLUDED.qr_code_image,
+                        no_reservation = EXCLUDED.no_reservation,
                         uploaded_at = NOW()
-                """, (ra_num, parking_number, qr_code_image))
+                """, (ra_num, parking_number, qr_code_image, no_reservation))
             else:
                 cursor.execute("""
                     INSERT INTO parking_qr_codes 
-                    (ra_number, parking_number, qr_code_image)
-                    VALUES (?, ?, ?)
+                    (ra_number, parking_number, qr_code_image, no_reservation)
+                    VALUES (?, ?, ?, ?)
                     ON CONFLICT(ra_number, parking_number) 
                     DO UPDATE SET 
                         qr_code_image = excluded.qr_code_image,
+                        no_reservation = excluded.no_reservation,
                         uploaded_at = CURRENT_TIMESTAMP
-                """, (ra_num, parking_number, qr_code_image))
+                """, (ra_num, parking_number, qr_code_image, 1 if no_reservation else 0))
             conn.commit()
-            logging.info(f"✅ QR code stored in database for RA {ra_num}, Parking #{parking_number}")
+            
+            mode_text = "sem reserva" if no_reservation else "com QR code"
+            logging.info(f"✅ Parking info ({mode_text}) stored in database for RA {ra_num}, Parking #{parking_number}")
         except Exception as e:
-            logging.warning(f"⚠️ Could not store QR code in database: {str(e)}")
+            logging.warning(f"⚠️ Could not store parking info in database: {str(e)}")
         
         # Enviar email usando Google OAuth do admin settings
         # O QR code já está inline no HTML como base64, a função _send_notification_email
@@ -31844,11 +31874,17 @@ async def send_parking_qr_email(request: Request):
             attachments=None
         )
         
-        logging.info(f"✅ Parking QR email sent to {email} for RA {ra_num}, Parking #{parking_number}")
+        mode_text = "sem reserva" if no_reservation else "com QR code"
+        logging.info(f"✅ Parking email ({mode_text}) sent to {email} for RA {ra_num}, Parking #{parking_number}")
+        
+        if no_reservation:
+            message = f"Email de informações do Parque {parking_number} (sem reserva) enviado para {email}"
+        else:
+            message = f"Email com QR code do Parque {parking_number} enviado para {email}"
         
         return JSONResponse({
             "success": True,
-            "message": f"Email com QR code do Parque {parking_number} enviado para {email}"
+            "message": message
         })
         
     except Exception as e:
