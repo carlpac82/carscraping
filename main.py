@@ -4793,7 +4793,7 @@ def _send_self_checkin_invitation_email(to_email: str, client_name: str, ra_numb
         first_name = client_name.split()[0] if client_name and ' ' in client_name else client_name
         
         # Construir link de self check-in com idioma - usar domínio de produção
-        base_url = os.getenv("BASE_URL", "https://carscraping.up.railway.app")
+        base_url = os.getenv("BASE_URL", "https://rentalprices.pt")
         checkin_link = f"{base_url}/self-checkin/{token}?lang={language}"
         
         # Carregar template HTML baseado no idioma
