@@ -31159,7 +31159,7 @@ async def get_self_checkout_data(token: str):
                 cursor.execute("""
                     SELECT odometer_reading, fuel_level, created_at
                     FROM vehicle_inspections
-                    WHERE rental_agreement LIKE %s AND inspection_type = 'checkin'
+                    WHERE contract_number LIKE %s AND inspection_type = 'checkin'
                     ORDER BY created_at DESC
                     LIMIT 1
                 """, (f'%{ra_number}%',))
@@ -31167,13 +31167,13 @@ async def get_self_checkout_data(token: str):
                 cursor.execute("""
                     SELECT odometer_reading, fuel_level, created_at
                     FROM vehicle_inspections
-                    WHERE rental_agreement LIKE ? AND inspection_type = 'checkin'
+                    WHERE contract_number LIKE ? AND inspection_type = 'checkin'
                     ORDER BY created_at DESC
                     LIMIT 1
                 """, (f'%{ra_number}%',))
             
             inspection_row = cursor.fetchone()
-            logging.info(f"📊 Query por RA LIKE '%{ra_number}%': {inspection_row}")
+            logging.info(f"📊 Query por contract_number LIKE '%{ra_number}%': {inspection_row}")
             
             # Se não encontrou por RA, tentar por matrícula
             if not inspection_row:
@@ -31182,7 +31182,7 @@ async def get_self_checkout_data(token: str):
                     cursor.execute("""
                         SELECT odometer_reading, fuel_level, created_at
                         FROM vehicle_inspections
-                        WHERE license_plate = %s AND inspection_type = 'checkin'
+                        WHERE vehicle_plate = %s AND inspection_type = 'checkin'
                         ORDER BY created_at DESC
                         LIMIT 1
                     """, (plate,))
@@ -31190,7 +31190,7 @@ async def get_self_checkout_data(token: str):
                     cursor.execute("""
                         SELECT odometer_reading, fuel_level, created_at
                         FROM vehicle_inspections
-                        WHERE license_plate = ? AND inspection_type = 'checkin'
+                        WHERE vehicle_plate = ? AND inspection_type = 'checkin'
                         ORDER BY created_at DESC
                         LIMIT 1
                     """, (plate,))
