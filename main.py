@@ -31325,21 +31325,21 @@ async def submit_self_checkin(token: str, request: Request):
         if is_postgres:
             cursor.execute("""
                 INSERT INTO vehicle_inspections (
-                    inspection_number, inspection_type, license_plate, 
-                    rental_agreement, odometer_reading, fuel_level,
-                    is_self_checkin, created_at
-                ) VALUES (%s, %s, %s, %s, %s, %s, %s, NOW())
+                    inspection_number, inspection_type, vehicle_plate, 
+                    contract_number, odometer_reading, fuel_level,
+                    created_at
+                ) VALUES (%s, %s, %s, %s, %s, %s, NOW())
                 RETURNING id
-            """, (inspection_number, 'checkin', plate, ra_number, odometer, fuel_level, True))
+            """, (inspection_number, 'checkout', plate, ra_number, odometer, fuel_level))
             inspection_id = cursor.fetchone()[0]
         else:
             cursor.execute("""
                 INSERT INTO vehicle_inspections (
-                    inspection_number, inspection_type, license_plate, 
-                    rental_agreement, odometer_reading, fuel_level,
-                    is_self_checkin, created_at
-                ) VALUES (?, ?, ?, ?, ?, ?, ?, datetime('now'))
-            """, (inspection_number, 'checkin', plate, ra_number, odometer, fuel_level, 1))
+                    inspection_number, inspection_type, vehicle_plate, 
+                    contract_number, odometer_reading, fuel_level,
+                    created_at
+                ) VALUES (?, ?, ?, ?, ?, ?, datetime('now'))
+            """, (inspection_number, 'checkout', plate, ra_number, odometer, fuel_level))
             inspection_id = cursor.lastrowid
         
         # Guardar fotos da grid (9 fotos)
