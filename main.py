@@ -48510,22 +48510,49 @@ async def fix_ra_06716(request: Request):
         }
         
         # Buscar dados da inspeção
+        inspection_row = None
+        
         if inspection_id:
             if is_postgres:
                 cursor.execute("""
-                    SELECT odometer_reading, fuel_level, created_at
+                    SELECT odometer_reading, fuel_level, created_at, id
                     FROM vehicle_inspections
                     WHERE id = %s
                 """, (inspection_id,))
             else:
                 cursor.execute("""
-                    SELECT odometer_reading, fuel_level, created_at
+                    SELECT odometer_reading, fuel_level, created_at, id
                     FROM vehicle_inspections
                     WHERE id = ?
                 """, (inspection_id,))
             
             inspection_row = cursor.fetchone()
-            if inspection_row:
+        
+        # Se não encontrou por inspection_id, buscar pela matrícula (última inspeção de check-in)
+        if not inspection_row:
+            if is_postgres:
+                cursor.execute("""
+                    SELECT odometer_reading, fuel_level, created_at, id
+                    FROM vehicle_inspections
+                    WHERE license_plate = %s AND inspection_type = 'checkin'
+                    ORDER BY created_at DESC
+                    LIMIT 1
+                """, (plate,))
+            else:
+                cursor.execute("""
+                    SELECT odometer_reading, fuel_level, created_at, id
+                    FROM vehicle_inspections
+                    WHERE license_plate = ? AND inspection_type = 'checkin'
+                    ORDER BY created_at DESC
+                    LIMIT 1
+                """, (plate,))
+            
+            inspection_row = cursor.fetchone()
+            result["found_by"] = "license_plate"
+        else:
+            result["found_by"] = "inspection_id"
+            
+        if inspection_row:
                 odometer, fuel, created_at = inspection_row
                 
                 # Atualizar extracted_data
