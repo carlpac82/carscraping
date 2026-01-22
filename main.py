@@ -31410,59 +31410,18 @@ async def send_parking_qr_email(request: Request):
                 "error": "Número do parque deve ser 1, 2, 3 ou 4"
             }, status_code=400)
         
+        # Validar que o QR code foi fornecido
+        if not qr_code_image:
+            return JSONResponse({
+                "success": False,
+                "error": "QR code é obrigatório. Faça upload do PDF com o QR code."
+            }, status_code=400)
+        
+        logging.info(f"✅ QR code received from frontend (length: {len(qr_code_image)})")
+        
         conn = _db_connect()
         is_postgres = _is_postgresql_connection(conn)
         cursor = conn.cursor()
-        
-        # Buscar QR code guardado da base de dados
-        if is_postgres:
-            cursor.execute("""
-                SELECT qr_image_path, qr_code_data, extracted_date, extracted_time, extracted_reference
-                FROM parking_qr_codes
-                WHERE ra_number = %s AND parking_number = %s
-            """, (ra_number, parking_number))
-        else:
-            cursor.execute("""
-                SELECT qr_image_path, qr_code_data, extracted_date, extracted_time, extracted_reference
-                FROM parking_qr_codes
-                WHERE ra_number = ? AND parking_number = ?
-            """, (ra_number, parking_number))
-        
-        qr_row = cursor.fetchone()
-        
-        # Se não encontrou QR code guardado e não foi fornecido, retornar erro
-        if not qr_row and not qr_code_image:
-            return JSONResponse({
-                "success": False,
-                "error": f"QR code do Parque {parking_number} não encontrado. Faça upload do PDF primeiro."
-            }, status_code=404)
-        
-        # Se encontrou QR code guardado, ler a imagem e converter para base64
-        if qr_row:
-            qr_image_path, qr_code_data, db_date, db_time, db_reference = qr_row
-            
-            # Ler imagem do disco e converter para base64
-            if qr_image_path and os.path.exists(qr_image_path):
-                import base64
-                with open(qr_image_path, 'rb') as img_file:
-                    qr_image_bytes = img_file.read()
-                    qr_code_image = f"data:image/png;base64,{base64.b64encode(qr_image_bytes).decode('utf-8')}"
-                    logging.info(f"✅ QR code loaded from {qr_image_path}")
-            else:
-                logging.warning(f"⚠️ QR code image path not found: {qr_image_path}")
-                if not qr_code_image:
-                    return JSONResponse({
-                        "success": False,
-                        "error": "Imagem do QR code não encontrada no servidor"
-                    }, status_code=404)
-            
-            # Usar dados extraídos do PDF se não foram fornecidos
-            if not qr_pickup_date and db_date:
-                qr_pickup_date = db_date
-            if not qr_pickup_time and db_time:
-                qr_pickup_time = db_time
-            if not qr_reservation_number and db_reference:
-                qr_reservation_number = db_reference
         
         # Buscar dados do RA incluindo veículo
         if is_postgres:
