@@ -31552,6 +31552,70 @@ async def send_parking_qr_email(request: Request):
         # Detectar idioma
         detected_lang = _detect_language_from_country(country) if country else 'pt'
         
+        # Detectar género baseado no primeiro nome
+        def detect_gender(name):
+            """Detecta o género baseado no primeiro nome"""
+            if not name or name == "Cliente":
+                return 'neutral'
+            
+            first_name = name.split()[0].lower()
+            
+            # Nomes femininos comuns
+            female_names = {
+                'maria', 'ana', 'joana', 'sofia', 'beatriz', 'carolina', 'mariana', 'rita', 
+                'patricia', 'sandra', 'carla', 'paula', 'cristina', 'isabel', 'teresa',
+                'maryline', 'marie', 'sophie', 'claire', 'isabelle', 'catherine', 'nathalie',
+                'sarah', 'emma', 'olivia', 'emily', 'jessica', 'jennifer', 'linda', 'susan'
+            }
+            
+            # Nomes masculinos comuns
+            male_names = {
+                'joao', 'jose', 'antonio', 'manuel', 'francisco', 'carlos', 'pedro', 'paulo',
+                'luis', 'miguel', 'fernando', 'ricardo', 'sergio', 'jorge', 'rui',
+                'rubinder', 'singh', 'pierre', 'jean', 'marc', 'paul', 'michel', 'andre',
+                'john', 'david', 'michael', 'robert', 'james', 'william', 'richard', 'thomas'
+            }
+            
+            # Terminações femininas
+            if first_name.endswith(('a', 'ina', 'ela', 'isa', 'line', 'ette', 'elle')):
+                return 'female'
+            
+            # Terminações masculinas
+            if first_name.endswith(('o', 'os', 'er', 'der', 'inder')):
+                return 'male'
+            
+            # Verificar listas de nomes
+            if first_name in female_names:
+                return 'female'
+            if first_name in male_names:
+                return 'male'
+            
+            return 'neutral'
+        
+        gender = detect_gender(client_name)
+        
+        # Definir saudação baseada no género e idioma
+        greeting_map = {
+            'pt': {
+                'male': 'Estimado',
+                'female': 'Estimada',
+                'neutral': 'Estimado(a)'
+            },
+            'en': {
+                'male': 'Dear',
+                'female': 'Dear',
+                'neutral': 'Dear'
+            },
+            'fr': {
+                'male': 'Cher',
+                'female': 'Chère',
+                'neutral': 'Cher/Chère'
+            }
+        }
+        
+        greeting = greeting_map.get(detected_lang, greeting_map['pt']).get(gender, 'Estimado(a)')
+        logging.info(f"👤 Detected gender: {gender}, greeting: {greeting}")
+        
         # Selecionar template baseado no idioma
         template_map = {
             'pt': 'email_parking_qr_pt.html',
@@ -31593,6 +31657,7 @@ async def send_parking_qr_email(request: Request):
         # Substituir variáveis do template
         # Extrair apenas o primeiro nome do cliente
         first_name = client_name.split()[0] if client_name and client_name != "Cliente" else client_name
+        html_content = html_content.replace('{{GREETING}}', greeting)
         html_content = html_content.replace('{{CLIENT_NAME}}', first_name)
         html_content = html_content.replace('{{RA_NUMBER}}', ra_num)
         html_content = html_content.replace('{{PARKING_NUMBER}}', str(parking_number))

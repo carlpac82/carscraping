@@ -52,14 +52,29 @@
         <h2 style="color: #333333; margin: 0 0 15px 0; font-size: 18px;">Dear {{CLIENT_NAME}},</h2>
         <p style="color: #666666; line-height: 1.6; margin: 0 0 12px 0; font-size: 14px;">Thank you for your contact and preference.</p>
         <p style="color: #666666; line-height: 1.6; margin: 0 0 12px 0; font-size: 14px;">Here is the <strong>QR code for Airport Parking number {{PARKING_NUMBER}}</strong>.</p>
-        <p style="color: #666666; line-height: 1.6; margin: 0 0 12px 0; font-size: 14px;"><strong>Reservation Number:</strong> {{RESERVATION_NUMBER}}</p>
-        <p style="color: #666666; margin: 0 0 15px 0; font-size: 14px;">
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display: inline-block; vertical-align: middle; margin-right: 4px;">
-                <path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z"></path>
-                <circle cx="12" cy="10" r="3"></circle>
-            </svg>
-            <a href="{{PARKING_GOOGLE_MAPS_LINK}}" style="color: #00bcd4; text-decoration: none;">View location on Google Maps</a>
-        </p>
+    </div>
+
+    <!-- Vehicle Info Section -->
+    <div style="padding: 20px; background-color: #ffffff;">
+        <h3 style="color: #00bcd4; margin: 0 0 15px 0; font-size: 18px;">Vehicle Details</h3>
+        <table width="100%" cellpadding="8" cellspacing="0" style="background: #f9f9f9; border-radius: 8px;">
+            <tr>
+                <td style="color: #666666; font-size: 14px; padding: 10px;"><strong>License Plate:</strong></td>
+                <td style="color: #333333; font-size: 14px; padding: 10px;">{{LICENSE_PLATE}}</td>
+            </tr>
+            <tr>
+                <td style="color: #666666; font-size: 14px; padding: 10px;"><strong>Brand/Model:</strong></td>
+                <td style="color: #333333; font-size: 14px; padding: 10px;">{{VEHICLE_BRAND}} {{VEHICLE_MODEL}}</td>
+            </tr>
+            <tr>
+                <td style="color: #666666; font-size: 14px; padding: 10px;"><strong>Pickup Date:</strong></td>
+                <td style="color: #333333; font-size: 14px; padding: 10px;">{{PICKUP_DATE}} at {{PICKUP_TIME}}</td>
+            </tr>
+            <tr>
+                <td style="color: #666666; font-size: 14px; padding: 10px;"><strong>Reservation No:</strong></td>
+                <td style="color: #333333; font-size: 14px; padding: 10px;">{{RESERVATION_NUMBER}}</td>
+            </tr>
+        </table>
     </div>
 
     <!-- QR Code Section -->
