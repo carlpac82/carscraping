@@ -30533,23 +30533,15 @@ async def save_inspection(request: Request):
                         logging.error(f"❌ Failed to send email: {email_error}")
                         logging.error(f"❌ Email error traceback: {traceback.format_exc()}")
                         # Don't fail the inspection save if email fails
-                    
-                    # Return success response
-                    return JSONResponse({
-                        'success': True,
-                        'inspection_number': inspection_number,
-                        'message': 'Inspection saved successfully' + (' and email sent' if (email and send_email) else '')
-                    })
-                    
-                except Exception as db_error:
-                    logging.error(f"❌ Database error: {db_error}")
-                    logging.error(f"❌ Traceback: {traceback.format_exc()}")
-                    if conn:
-                        conn.rollback()
-                    raise
-                finally:
-                    if conn:
-                        conn.close()
+                else:
+                    logging.info("📧 Email not sent - either no email provided or send_email=False")
+                
+                # Return success response (outside the if block)
+                return JSONResponse({
+                    'success': True,
+                    'inspection_number': inspection_number,
+                    'message': 'Inspection saved successfully' + (' and email sent' if (email and send_email) else '')
+                })
         
     except Exception as e:
         logging.error(f"❌ Error saving inspection: {str(e)}")
