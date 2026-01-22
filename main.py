@@ -31304,23 +31304,59 @@ async def submit_self_checkin(token: str, request: Request):
                 except Exception as damage_err:
                     logging.error(f"Error saving damage photo: {damage_err}")
         
+        # Buscar extracted_data existente e atualizar com dados do check-in
+        if is_postgres:
+            cursor.execute("""
+                SELECT extracted_data FROM rental_agreements WHERE id = %s
+            """, (ra_id,))
+        else:
+            cursor.execute("""
+                SELECT extracted_data FROM rental_agreements WHERE id = ?
+            """, (ra_id,))
+        
+        extracted_row = cursor.fetchone()
+        existing_data = {}
+        if extracted_row and extracted_row[0]:
+            import json
+            existing_data = json.loads(extracted_row[0])
+        
+        # Adicionar dados do check-in ao extracted_data
+        import datetime
+        now = datetime.datetime.now()
+        existing_data['odometer'] = int(odometer) if odometer else 0
+        existing_data['kms'] = int(odometer) if odometer else 0
+        existing_data['fuel_level'] = str(fuel_level) if fuel_level else ''
+        existing_data['combustivel'] = str(fuel_level) if fuel_level else ''
+        existing_data['delivery_date'] = now.strftime('%d/%m/%Y')
+        existing_data['delivery_time'] = now.strftime('%H:%M')
+        existing_data['pickup_date'] = now.strftime('%d/%m/%Y')
+        existing_data['pickup_time'] = now.strftime('%H:%M')
+        
+        # Adicionar client_name se não existir
+        if 'client_name' not in existing_data and 'clientName' in existing_data:
+            existing_data['client_name'] = existing_data['clientName']
+        
+        updated_extracted_json = json.dumps(existing_data)
+        
         # Atualizar RA como self check-in completado
         if is_postgres:
             cursor.execute("""
                 UPDATE rental_agreements
                 SET self_checkin_completed = TRUE,
                     self_checkin_inspection_id = %s,
+                    extracted_data = %s,
                     updated_at = NOW()
                 WHERE id = %s
-            """, (inspection_id, ra_id))
+            """, (inspection_id, updated_extracted_json, ra_id))
         else:
             cursor.execute("""
                 UPDATE rental_agreements
                 SET self_checkin_completed = 1,
                     self_checkin_inspection_id = ?,
+                    extracted_data = ?,
                     updated_at = datetime('now')
                 WHERE id = ?
-            """, (inspection_id, ra_id))
+            """, (inspection_id, updated_extracted_json, ra_id))
         
         conn.commit()
         
