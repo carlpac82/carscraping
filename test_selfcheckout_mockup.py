@@ -171,16 +171,42 @@ def validate_selfcheckout(inspection_number):
     
     return False
 
-def test_warning_email():
+def test_warning_email(inspection_number):
     """Passo 5: Testar email de advertência (divergências)"""
     print_section("PASSO 5: Testar Email de Advertência")
     
-    print("⚠️  Para testar o email de divergências, você precisa:")
-    print("1. Criar uma nova submissão de self-checkout")
-    print("2. Em vez de validar, usar um endpoint de 'invalidar' ou 'advertir'")
-    print("\n📝 NOTA: Atualmente não existe endpoint específico para enviar email de advertência.")
-    print("   Você precisará criar um endpoint /api/self-checkin/warn ou similar")
-    print("   que envie o email usando os templates email_selfcheckout_warning_*.html")
+    if not inspection_number:
+        print("❌ Número de inspeção não disponível.")
+        return False
+    
+    url = f"{BASE_URL}/api/self-checkin/warn"
+    
+    payload = {
+        "inspection_number": inspection_number,
+        "notes": "Divergências detectadas no odómetro e nível de combustível"
+    }
+    
+    print(f"📤 POST {url}")
+    print(f"📦 Payload: {json.dumps(payload, indent=2)}")
+    
+    try:
+        response = requests.post(url, json=payload)
+        print(f"\n📥 Status: {response.status_code}")
+        
+        if response.status_code == 200:
+            data = response.json()
+            if data.get('success'):
+                print(f"✅ Email de advertência enviado com sucesso!")
+                print(f"📧 Email 'Self-Checkout com Divergências' enviado para: {TEST_EMAIL}")
+                return True
+            else:
+                print(f"❌ Erro: {data.get('error')}")
+        else:
+            print(f"❌ Erro HTTP: {response.text}")
+    except Exception as e:
+        print(f"❌ Exceção: {e}")
+    
+    return False
 
 def check_history_ui():
     """Passo 6: Verificar UI do histórico"""
@@ -213,10 +239,10 @@ def create_missing_features_list():
 📋 LISTA DE FUNCIONALIDADES EM FALTA:
 
 1. BACKEND - Endpoint de Advertência
-   ❌ POST /api/self-checkin/warn
-   - Recebe inspection_number
+   ✅ POST /api/self-checkin/warn - IMPLEMENTADO
+   - Recebe inspection_number e notes (opcional)
    - Envia email usando templates email_selfcheckout_warning_*.html
-   - Marca inspeção com status 'warned' ou 'discrepancies'
+   - Marca inspeção com status 'warned'
    - Não fecha o contrato
 
 2. FRONTEND - Botão de Advertir no Histórico
@@ -296,15 +322,48 @@ def main():
         inspection_number = simulate_selfcheckout_submission(token)
         
         if inspection_number:
-            # Passo 4: Validar (envia email de validação)
-            print("\n⏸️  Aguarde alguns segundos para verificar o email de submissão...")
-            input("Pressione ENTER para continuar com a validação...")
-            validate_selfcheckout(inspection_number)
+            # Escolher ação
+            print("\n" + "="*80)
+            print("  ESCOLHA A AÇÃO PARA TESTAR")
+            print("="*80)
+            print("\n1. Validar self-checkout (envia email de validação)")
+            print("2. Advertir sobre divergências (envia email de advertência)")
+            print("3. Ambos (criar nova submissão para advertência)")
+            
+            choice = input("\nEscolha (1/2/3): ").strip()
+            
+            if choice == '1':
+                # Passo 4a: Validar
+                print("\n⏸️  Aguarde alguns segundos para verificar o email de submissão...")
+                input("Pressione ENTER para continuar com a validação...")
+                validate_selfcheckout(inspection_number)
+            
+            elif choice == '2':
+                # Passo 4b: Advertir
+                print("\n⏸️  Aguarde alguns segundos para verificar o email de submissão...")
+                input("Pressione ENTER para continuar com a advertência...")
+                test_warning_email(inspection_number)
+            
+            elif choice == '3':
+                # Passo 4c: Validar primeiro
+                print("\n⏸️  Aguarde alguns segundos para verificar o email de submissão...")
+                input("Pressione ENTER para continuar com a validação...")
+                validate_selfcheckout(inspection_number)
+                
+                # Criar nova submissão para advertência
+                print("\n" + "="*80)
+                print("  CRIANDO NOVA SUBMISSÃO PARA TESTAR ADVERTÊNCIA")
+                print("="*80)
+                input("\nPressione ENTER para gerar novo link e submissão...")
+                
+                token2 = generate_selfcheckout_link()
+                if token2:
+                    inspection_number2 = simulate_selfcheckout_submission(token2)
+                    if inspection_number2:
+                        input("\nPressione ENTER para enviar advertência...")
+                        test_warning_email(inspection_number2)
     
-    # Passo 5: Info sobre email de advertência
-    test_warning_email()
-    
-    # Passo 6: Verificar UI
+    # Passo 5: Verificar UI
     check_history_ui()
     
     # Criar lista de funcionalidades em falta

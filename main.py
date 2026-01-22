@@ -4982,6 +4982,90 @@ def _send_self_checkin_confirmation_email(
         raise
 
 
+def _send_self_checkout_warning_email(
+    to_email: str,
+    ra_data: dict,
+    inspection_data: dict,
+    language: str = 'pt'
+):
+    """
+    Enviar email de advertência quando há divergências no self-checkout
+    
+    Args:
+        to_email: Email do destinatário
+        ra_data: Dados do rental agreement (dict com client_name, ra_number, plate, vehicle_brand, vehicle_model, return_location, etc.)
+        inspection_data: Dados da inspeção (dict com odometer_reading, fuel_level, created_at, kms_driven)
+        language: Idioma do email ('pt', 'en', 'fr')
+    """
+    try:
+        # Subjects por idioma
+        subjects = {
+            'pt': f"Self Checkout - Divergências Detectadas - R.A. {ra_data['ra_number']}",
+            'en': f"Self Checkout - Discrepancies Detected - R.A. {ra_data['ra_number']}",
+            'fr': f"Self Checkout - Divergences Détectées - R.A. {ra_data['ra_number']}"
+        }
+        subject = subjects.get(language, subjects['pt'])
+        
+        # Template files por idioma
+        template_files = {
+            'pt': 'email_selfcheckout_warning_pt.html',
+            'en': 'email_selfcheckout_warning_en.html',
+            'fr': 'email_selfcheckout_warning_fr.html'
+        }
+        template_file = template_files.get(language, template_files['pt'])
+        
+        # Greetings por idioma
+        greetings = {
+            'pt': 'Caro',
+            'en': 'Dear',
+            'fr': 'Cher'
+        }
+        greeting = greetings.get(language, greetings['pt'])
+        
+        # Formatar data e hora
+        import datetime
+        created_at = inspection_data.get('created_at')
+        if isinstance(created_at, str):
+            try:
+                created_at = datetime.datetime.fromisoformat(created_at.replace('Z', '+00:00'))
+            except:
+                created_at = datetime.datetime.now()
+        elif not isinstance(created_at, datetime.datetime):
+            created_at = datetime.datetime.now()
+        
+        pickup_date = created_at.strftime('%d/%m/%Y')
+        pickup_time = created_at.strftime('%H:%M')
+        
+        # Ler template
+        template_path = os.path.join(os.path.dirname(__file__), 'templates', template_file)
+        with open(template_path, 'r', encoding='utf-8') as f:
+            html_content = f.read()
+        
+        # Substituir placeholders
+        html_content = html_content.replace('{{RA_NUMBER}}', str(ra_data.get('ra_number', '')))
+        html_content = html_content.replace('{{GREETING}}', greeting)
+        html_content = html_content.replace('{{CLIENT_NAME}}', ra_data.get('client_name', ''))
+        html_content = html_content.replace('{{CLIENT_FIRST_NAME}}', ra_data.get('client_first_name', ''))
+        html_content = html_content.replace('{{CLIENT_LAST_NAME}}', ra_data.get('client_last_name', ''))
+        html_content = html_content.replace('{{LICENSE_PLATE}}', ra_data.get('plate', ''))
+        html_content = html_content.replace('{{VEHICLE_BRAND}}', ra_data.get('vehicle_brand', ''))
+        html_content = html_content.replace('{{VEHICLE_MODEL}}', ra_data.get('vehicle_model', ''))
+        html_content = html_content.replace('{{PICKUP_DATE}}', pickup_date)
+        html_content = html_content.replace('{{PICKUP_TIME}}', pickup_time)
+        html_content = html_content.replace('{{LOCATION}}', ra_data.get('return_location', 'Auto Prudente'))
+        html_content = html_content.replace('{{ODOMETER_READING}}', str(inspection_data.get('odometer_reading', 0)))
+        html_content = html_content.replace('{{KMS_DRIVEN}}', str(inspection_data.get('kms_driven', 0)))
+        
+        _send_notification_email(to_email, subject, html_content)
+        logging.info(f"⚠️ Self-checkout warning email sent to {to_email} for RA {ra_data['ra_number']} (language: {language})")
+        
+    except Exception as e:
+        logging.error(f"❌ Failed to send self-checkout warning email: {str(e)}")
+        import traceback
+        traceback.print_exc()
+        raise
+
+
 def _send_self_checkin_incident_email(to_email: str, client_name: str, ra_number: str, plate: str):
     """Enviar email de incidências após invalidação de self check-in"""
     try:
@@ -31547,6 +31631,195 @@ async def validate_self_checkin(request: Request):
         if conn:
             conn.rollback()
         logging.error(f"Error validating self check-in: {e}")
+        traceback.print_exc()
+        return JSONResponse({
+            "success": False,
+            "error": str(e)
+        }, status_code=500)
+    finally:
+        if conn:
+            conn.close()
+
+
+@app.post("/api/self-checkin/warn")
+async def warn_self_checkin(request: Request):
+    """
+    Advertir cliente sobre divergências no self check-in
+    Envia email de advertência mas NÃO fecha o contrato
+    Marca inspeção como 'warned' para análise posterior
+    """
+    require_auth(request)
+    conn = None
+    try:
+        data = await request.json()
+        inspection_number = data.get('inspection_number')
+        discrepancy_notes = data.get('notes', '')
+        
+        if not inspection_number:
+            return JSONResponse({
+                "success": False,
+                "error": "Número de inspeção não fornecido"
+            }, status_code=400)
+        
+        conn = _db_connect()
+        is_postgres = _is_postgresql_connection(conn)
+        
+        # Buscar inspeção e dados do RA
+        if is_postgres:
+            cursor = conn.cursor()
+            cursor.execute("""
+                SELECT 
+                    vi.id, vi.license_plate, vi.rental_agreement, vi.is_self_checkin, vi.status,
+                    ra.self_checkin_email, ra.extracted_data
+                FROM vehicle_inspections vi
+                LEFT JOIN rental_agreements ra ON vi.rental_agreement = ra.rental_agreement_number
+                WHERE vi.inspection_number = %s
+            """, (inspection_number,))
+        else:
+            cursor = conn.execute("""
+                SELECT 
+                    vi.id, vi.license_plate, vi.rental_agreement, vi.is_self_checkin, vi.status,
+                    ra.self_checkin_email, ra.extracted_data
+                FROM vehicle_inspections vi
+                LEFT JOIN rental_agreements ra ON vi.rental_agreement = ra.rental_agreement_number
+                WHERE vi.inspection_number = ?
+            """, (inspection_number,))
+        
+        row = cursor.fetchone()
+        
+        if not row:
+            return JSONResponse({
+                "success": False,
+                "error": "Inspeção não encontrada"
+            }, status_code=404)
+        
+        inspection_id, plate, ra_number, is_self_checkin, status, client_email, extracted_data = row
+        
+        if not is_self_checkin:
+            return JSONResponse({
+                "success": False,
+                "error": "Esta não é uma inspeção de self check-in"
+            }, status_code=400)
+        
+        if status == 'validated':
+            return JSONResponse({
+                "success": False,
+                "error": "Self check-in já foi validado"
+            }, status_code=400)
+        
+        # Atualizar status da inspeção para warned
+        if is_postgres:
+            cursor.execute("""
+                UPDATE vehicle_inspections
+                SET status = 'warned',
+                    updated_at = NOW()
+                WHERE id = %s
+            """, (inspection_id,))
+        else:
+            cursor.execute("""
+                UPDATE vehicle_inspections
+                SET status = 'warned',
+                    updated_at = datetime('now')
+                WHERE id = ?
+            """, (inspection_id,))
+        
+        conn.commit()
+        
+        # Enviar email de advertência ao cliente
+        if client_email:
+            try:
+                # Buscar dados completos do RA e inspeção
+                if is_postgres:
+                    cursor.execute("""
+                        SELECT 
+                            ra.client_name, ra.client_country, ra.vehicle_brand, ra.vehicle_model, 
+                            ra.return_location, ra.pickup_km,
+                            vi.odometer_reading, vi.fuel_level, vi.created_at
+                        FROM rental_agreements ra
+                        LEFT JOIN vehicle_inspections vi ON vi.id = %s
+                        WHERE ra.rental_agreement_number = %s
+                    """, (inspection_id, ra_number))
+                else:
+                    cursor.execute("""
+                        SELECT 
+                            ra.client_name, ra.client_country, ra.vehicle_brand, ra.vehicle_model, 
+                            ra.return_location, ra.pickup_km,
+                            vi.odometer_reading, vi.fuel_level, vi.created_at
+                        FROM rental_agreements ra
+                        LEFT JOIN vehicle_inspections vi ON vi.id = ?
+                        WHERE ra.rental_agreement_number = ?
+                    """, (inspection_id, ra_number))
+                
+                ra_row = cursor.fetchone()
+                if ra_row:
+                    client_name = ra_row[0] or 'Cliente'
+                    client_country = ra_row[1] or 'PT'
+                    vehicle_brand = ra_row[2] or ''
+                    vehicle_model = ra_row[3] or ''
+                    return_location = ra_row[4] or 'Auto Prudente'
+                    pickup_km = ra_row[5] or 0
+                    odometer_reading = ra_row[6] or 0
+                    fuel_level = ra_row[7] or 100
+                    created_at = ra_row[8]
+                    
+                    # Determinar idioma baseado no país
+                    language = 'pt'
+                    if client_country:
+                        country_upper = client_country.upper()
+                        if country_upper in ['GB', 'UK', 'US', 'IE', 'CA', 'AU', 'NZ']:
+                            language = 'en'
+                        elif country_upper in ['FR', 'BE', 'CH', 'LU', 'MC']:
+                            language = 'fr'
+                    
+                    # Separar nome e apelido
+                    name_parts = client_name.split(' ', 1)
+                    client_first_name = name_parts[0] if name_parts else ''
+                    client_last_name = name_parts[1] if len(name_parts) > 1 else ''
+                    
+                    # Calcular kms percorridos
+                    kms_driven = max(0, odometer_reading - pickup_km)
+                    
+                    # Preparar dados para o email
+                    ra_data = {
+                        'ra_number': ra_number,
+                        'client_name': client_name,
+                        'client_first_name': client_first_name,
+                        'client_last_name': client_last_name,
+                        'plate': plate,
+                        'vehicle_brand': vehicle_brand,
+                        'vehicle_model': vehicle_model,
+                        'return_location': return_location
+                    }
+                    
+                    inspection_data = {
+                        'odometer_reading': odometer_reading,
+                        'fuel_level': fuel_level,
+                        'kms_driven': kms_driven,
+                        'created_at': created_at
+                    }
+                    
+                    _send_self_checkout_warning_email(
+                        to_email=client_email,
+                        ra_data=ra_data,
+                        inspection_data=inspection_data,
+                        language=language
+                    )
+            except Exception as email_err:
+                logging.error(f"Failed to send warning email: {email_err}")
+                import traceback
+                traceback.print_exc()
+        
+        logging.info(f"⚠️ Self check-in warned: {inspection_number}")
+        
+        return JSONResponse({
+            "success": True,
+            "message": "Email de advertência enviado com sucesso"
+        })
+        
+    except Exception as e:
+        if conn:
+            conn.rollback()
+        logging.error(f"Error warning self check-in: {e}")
         traceback.print_exc()
         return JSONResponse({
             "success": False,
