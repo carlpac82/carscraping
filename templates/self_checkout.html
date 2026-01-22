@@ -958,8 +958,8 @@
                     
                     // Usar kms do check-in como placeholder no campo de input
                     if (kmsEntrega !== '-') {
-                        document.getElementById('odometerInput').placeholder = `Kms do check-in: ${kmsEntrega}`;
-                        console.log('DEBUG: Placeholder definido para:', `Kms do check-in: ${kmsEntrega}`);
+                        document.getElementById('odometerInput').placeholder = kmsEntrega;
+                        console.log('DEBUG: Placeholder definido para:', kmsEntrega);
                     } else {
                         console.log('DEBUG: Placeholder NÃO definido (kmsEntrega = "-")');
                     }
