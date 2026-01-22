@@ -31157,18 +31157,18 @@ async def get_self_checkout_data(token: str):
                 cursor.execute("""
                     SELECT odometer_reading, fuel_level, created_at
                     FROM vehicle_inspections
-                    WHERE rental_agreement = %s AND inspection_type = 'checkin'
+                    WHERE rental_agreement LIKE %s AND inspection_type = 'checkin'
                     ORDER BY created_at DESC
                     LIMIT 1
-                """, (ra_number,))
+                """, (f'%{ra_number}%',))
             else:
                 cursor.execute("""
                     SELECT odometer_reading, fuel_level, created_at
                     FROM vehicle_inspections
-                    WHERE rental_agreement = ? AND inspection_type = 'checkin'
+                    WHERE rental_agreement LIKE ? AND inspection_type = 'checkin'
                     ORDER BY created_at DESC
                     LIMIT 1
-                """, (ra_number,))
+                """, (f'%{ra_number}%',))
             
             inspection_row = cursor.fetchone()
             
