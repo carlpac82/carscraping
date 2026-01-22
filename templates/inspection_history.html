@@ -383,7 +383,7 @@
                                         </svg>
                                         <span class="hidden sm:inline text-sm font-medium text-[#f59e0b]">Email</span>
                                     </button>
-                                    <button onclick="showParkingQRModal('${contract.contract_number}', '${contract.client_name}', '${contract.client_email || ''}')" class="flex items-center gap-2 px-3 py-2 bg-blue-50 hover:bg-blue-100 rounded-lg transition-colors" title="Enviar QR Code de Parque">
+                                    <button onclick="showParkingQRModal('${contract.contract_number}', '${contract.client_name || ''}', '${contract.client_email || ''}')" class="flex items-center gap-2 px-3 py-2 bg-blue-50 hover:bg-blue-100 rounded-lg transition-colors" title="Enviar QR Code de Parque">
                                         <span class="text-xl">✈️</span>
                                         <span class="hidden sm:inline text-sm font-medium text-blue-600">Parque</span>
                                     </button>
@@ -441,7 +441,7 @@
                 modal.className = 'fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-[9999]';
                 modal.style.touchAction = 'none';
                 modal.innerHTML = `
-                    <div class="bg-white rounded-lg p-6 max-w-md w-full mx-4">
+                    <div class="bg-white rounded-lg max-w-md w-full mx-4">
                         <h3 class="text-xl font-bold text-[#009cb6] mb-4">Enviar Relatório por Email</h3>
                         
                         <div class="mb-4">
@@ -468,7 +468,6 @@
                                     <span>Ambos</span>
                                 </label>
                             </div>
-                        </div>
                         ` : ''}
                         
                         <div class="flex gap-3">
@@ -673,7 +672,7 @@
             }
             
             try {
-                // Fetch inspection details
+                // First, get inspection data
                 const response = await fetch(`/api/inspections/${inspectionNumber}`);
                 const data = await response.json();
                 
@@ -682,15 +681,8 @@
                 }
                 
                 const inspection = data.inspection;
-                
-                // Debug logging for damage_croqui
-                console.log('🔍 Inspection data received:', {
-                    inspection_number: inspection.inspection_number,
-                    inspection_type: inspection.inspection_type,
-                    has_damage_croqui: !!inspection.damage_croqui,
-                    damage_croqui_length: inspection.damage_croqui ? inspection.damage_croqui.length : 0,
-                    damage_croqui_preview: inspection.damage_croqui ? inspection.damage_croqui.substring(0, 50) : 'NONE'
-                });
+                console.log('📋 Inspection data:', inspection);
+                console.log('🖼️ Damage croqui:', inspection.damage_croqui ? `${inspection.damage_croqui.substring(0, 100)}... (${inspection.damage_croqui.length} chars)` : 'EMPTY');
                 
                 // Calculate KMs driven for checkin
                 if (type === 'checkin' && checkoutData) {
@@ -1716,7 +1708,13 @@
         }
 
         // Show parking QR upload modal with auto-detection
-        async function showParkingQRModal(raNumber, clientName, clientEmail = '') {
+        async function showParkingQRModal(raNumber, clientName = '', clientEmail = '') {
+            // Sanitize inputs to avoid 'undefined' strings
+            clientName = clientName && clientName !== 'undefined' && clientName !== 'null' ? clientName : '';
+            clientEmail = clientEmail && clientEmail !== 'undefined' && clientEmail !== 'null' ? clientEmail : '';
+            
+            console.log('🎫 Opening parking modal:', { raNumber, clientName, clientEmail });
+            
             const modal = document.createElement('div');
             modal.id = 'parkingQRModal';
             modal.className = 'fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50';
@@ -1726,7 +1724,7 @@
                     <h3 class="text-xl font-bold text-[#009cb6] mb-4">✈️ Upload QR Code de Parque</h3>
                     
                     <div class="mb-4">
-                        <p class="text-sm text-gray-600 mb-2">Cliente: <strong>${clientName || 'undefined'}</strong></p>
+                        <p class="text-sm text-gray-600 mb-2">Cliente: <strong>${clientName || 'N/A'}</strong></p>
                         <p class="text-sm text-gray-600 mb-4">RA: <strong>${raNumber}</strong></p>
                     </div>
                     
@@ -1886,17 +1884,27 @@
             try {
                 showNotification('A enviar email com QR code...', 'info');
                 
+                // Validate and sanitize data before sending
+                const payload = {
+                    rental_agreement_number: String(raNumber || ''),
+                    parking_number: parseInt(parkingNumber),
+                    qr_code_image: String(qrImageBase64 || ''),
+                    client_email: String(clientEmail || '')
+                };
+                
+                console.log('📤 Sending parking QR email:', {
+                    ra: payload.rental_agreement_number,
+                    parking: payload.parking_number,
+                    email: payload.client_email,
+                    qrLength: payload.qr_code_image.length
+                });
+                
                 const response = await fetch('/api/send-parking-qr', {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json'
                     },
-                    body: JSON.stringify({
-                        rental_agreement_number: raNumber,
-                        parking_number: parkingNumber,
-                        qr_code_image: qrImageBase64,
-                        client_email: clientEmail
-                    })
+                    body: JSON.stringify(payload)
                 });
                 
                 const result = await response.json();
