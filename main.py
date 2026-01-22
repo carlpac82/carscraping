@@ -31977,6 +31977,7 @@ async def resend_self_checkin_link(request: Request):
     try:
         data = await request.json()
         ra_number = data.get('rental_agreement_number')
+        client_email_override = data.get('client_email')  # Optional email override
         
         if not ra_number:
             return JSONResponse({
@@ -32020,35 +32021,58 @@ async def resend_self_checkin_link(request: Request):
         
         ra_id, ra_num, plate, email, extracted_data_json, vehicle_id, marca, modelo, grupo = row
         
-        if not email:
+        # Use override email if provided, otherwise use existing email
+        final_email = client_email_override if client_email_override else email
+        
+        if not final_email:
             return JSONResponse({
                 "success": False,
-                "error": "Email do cliente não encontrado no RA"
+                "error": "Email do cliente não fornecido"
             }, status_code=400)
         
         # Gerar novo token
         import hashlib
         import time
-        token_string = f"{ra_num}_{plate}_{email}_{time.time()}"
+        token_string = f"{ra_num}_{plate}_{final_email}_{time.time()}"
         new_token = hashlib.sha256(token_string.encode()).hexdigest()
         
-        # Atualizar token e resetar flag de completado
+        # Atualizar token, email (se fornecido) e resetar flag de completado
         if is_postgres:
-            cursor.execute("""
-                UPDATE rental_agreements
-                SET self_checkin_token = %s,
-                    self_checkin_completed = FALSE,
-                    updated_at = NOW()
-                WHERE id = %s
-            """, (new_token, ra_id))
+            if client_email_override:
+                cursor.execute("""
+                    UPDATE rental_agreements
+                    SET self_checkin_token = %s,
+                        self_checkin_email = %s,
+                        self_checkin_completed = FALSE,
+                        updated_at = NOW()
+                    WHERE id = %s
+                """, (new_token, final_email, ra_id))
+            else:
+                cursor.execute("""
+                    UPDATE rental_agreements
+                    SET self_checkin_token = %s,
+                        self_checkin_completed = FALSE,
+                        updated_at = NOW()
+                    WHERE id = %s
+                """, (new_token, ra_id))
         else:
-            cursor.execute("""
-                UPDATE rental_agreements
-                SET self_checkin_token = ?,
-                    self_checkin_completed = 0,
-                    updated_at = datetime('now')
-                WHERE id = ?
-            """, (new_token, ra_id))
+            if client_email_override:
+                cursor.execute("""
+                    UPDATE rental_agreements
+                    SET self_checkin_token = ?,
+                        self_checkin_email = ?,
+                        self_checkin_completed = 0,
+                        updated_at = datetime('now')
+                    WHERE id = ?
+                """, (new_token, final_email, ra_id))
+            else:
+                cursor.execute("""
+                    UPDATE rental_agreements
+                    SET self_checkin_token = ?,
+                        self_checkin_completed = 0,
+                        updated_at = datetime('now')
+                    WHERE id = ?
+                """, (new_token, ra_id))
         
         conn.commit()
         
@@ -32066,13 +32090,13 @@ async def resend_self_checkin_link(request: Request):
         
         # Enviar email de convite
         vehicle_info = f"{marca} {modelo}" if marca and modelo else "Veículo"
-        _send_self_checkin_invitation_email(email, client_name, ra_num, plate, vehicle_info, new_token, country)
+        _send_self_checkin_invitation_email(final_email, client_name, ra_num, plate, vehicle_info, new_token, country)
         
-        logging.info(f"✉️ Self check-in link resent for RA {ra_num} to {email}")
+        logging.info(f"✉️ Self check-in link resent for RA {ra_num} to {final_email}")
         
         return JSONResponse({
             "success": True,
-            "message": f"Link de self check-in reenviado para {email}"
+            "message": f"Link de self check-in reenviado para {final_email}"
         })
         
     except Exception as e:
