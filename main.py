@@ -4789,8 +4789,11 @@ def _send_self_checkin_invitation_email(to_email: str, client_name: str, ra_numb
             elif any(x in country_lower for x in ['united kingdom', 'uk', 'england', 'ireland', 'usa', 'canada', 'australia', 'reino unido', 'irlanda']):
                 language = 'en'
         
-        # Construir link de self check-in com idioma
-        base_url = os.getenv("BASE_URL", "http://localhost:8000")
+        # Extrair primeiro nome
+        first_name = client_name.split()[0] if client_name and ' ' in client_name else client_name
+        
+        # Construir link de self check-in com idioma - usar domínio de produção
+        base_url = os.getenv("BASE_URL", "https://carscraping.up.railway.app")
         checkin_link = f"{base_url}/self-checkin/{token}?lang={language}"
         
         # Carregar template HTML baseado no idioma
@@ -4805,7 +4808,7 @@ def _send_self_checkin_invitation_email(to_email: str, client_name: str, ra_numb
         
         # Substituir placeholders
         html_content = html_content.replace('{{RA_NUMBER}}', ra_number)
-        html_content = html_content.replace('{{CLIENT_NAME}}', client_name)
+        html_content = html_content.replace('{{FIRST_NAME}}', first_name)
         html_content = html_content.replace('{{CHECKIN_LINK}}', checkin_link)
         
         # Subject sem emojis
