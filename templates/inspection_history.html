@@ -944,13 +944,13 @@
             // Set current inspection type for color coding
             currentInspectionType = type;
             
-            // Check if this is a checkout and if checkin already exists
-            if (type === 'checkout') {
+            // Check if this is a checkin and if checkout already exists
+            if (type === 'checkin') {
                 const contract = contracts.find(c => 
-                    c.checkout && c.checkout.inspection_number === inspectionNumber
+                    c.checkin && c.checkin.inspection_number === inspectionNumber
                 );
-                if (contract && contract.checkin) {
-                    showNotification('Não é possível editar o relatório de recolha após a entrega ter sido feita.', 'error');
+                if (contract && contract.checkout) {
+                    showNotification('Não é possível editar o relatório de entrega após a recolha ter sido feita.', 'error');
                     return;
                 }
             }
