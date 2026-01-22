@@ -896,7 +896,7 @@
 
             showLoading(true);
             try {
-                const response = await fetch(`/api/self-checkin/${token}`);
+                const response = await fetch(`/api/self-checkout/${token}`);
                 const data = await response.json();
 
                 if (!data.success) {
@@ -1469,7 +1469,7 @@
             // Submit
             showLoading(true);
             try {
-                const response = await fetch(`/api/self-checkin/${token}/submit`, {
+                const response = await fetch(`/api/self-checkout/${token}/submit`, {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json'

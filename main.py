@@ -31058,7 +31058,7 @@ async def get_self_checkout_data(token: str):
             conn.close()
 
 
-@app.post("/api/self-checkin/{token}/submit")
+@app.post("/api/self-checkout/{token}/submit")
 async def submit_self_checkin(token: str, request: Request):
     """
     Submeter self check-in do cliente
