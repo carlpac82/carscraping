@@ -31478,18 +31478,25 @@ async def send_parking_qr_email(request: Request):
         country = None
         pickup_date = "N/A"
         pickup_time = "N/A"
+        extracted_email = None
         
         if extracted_data_json:
             try:
                 extracted_data = json.loads(extracted_data_json)
                 client_name = extracted_data.get('client_name') or extracted_data.get('nome_cliente') or "Cliente"
                 country = extracted_data.get('country') or extracted_data.get('pais')
+                extracted_email = extracted_data.get('client_email') or extracted_data.get('email_cliente')
                 
                 # Extrair data e hora de recolha
                 pickup_date = extracted_data.get('pickup_date') or extracted_data.get('data_recolha') or "N/A"
                 pickup_time = extracted_data.get('pickup_time') or extracted_data.get('hora_recolha') or "N/A"
             except:
                 pass
+        
+        # Se não tiver email do self_checkin, usar o email extraído do RA
+        if not email and extracted_email:
+            email = extracted_email
+            logging.info(f"📧 Using email from extracted_data: {email}")
         
         # Detectar idioma
         detected_lang = _detect_language_from_country(country) if country else 'pt'
