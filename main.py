@@ -4824,101 +4824,161 @@ def _send_self_checkin_invitation_email(to_email: str, client_name: str, ra_numb
         raise
 
 
-def _send_self_checkin_confirmation_email(to_email: str, client_name: str, ra_number: str, plate: str):
-    """Enviar email de confirmação após validação de self check-in"""
+def _send_self_checkin_confirmation_email(
+    to_email: str,
+    ra_data: dict,
+    inspection_data: dict,
+    photos_list: list,
+    language: str = 'pt'
+):
+    """
+    Enviar email de confirmação após validação de self-checkout
+    
+    Args:
+        to_email: Email do destinatário
+        ra_data: Dados do rental agreement (dict com client_name, ra_number, plate, vehicle_brand, vehicle_model, return_location, etc.)
+        inspection_data: Dados da inspeção (dict com odometer_reading, fuel_level, created_at, kms_driven)
+        photos_list: Lista de fotos (list de dicts com 'url' e 'label')
+        language: Idioma do email ('pt', 'en', 'fr')
+    """
     try:
-        subject = f"Self Check-in Validado - RA {ra_number}"
+        # Subjects por idioma
+        subjects = {
+            'pt': f"Self Checkout Validado - R.A. {ra_data['ra_number']}",
+            'en': f"Self Checkout Validated - R.A. {ra_data['ra_number']}",
+            'fr': f"Self Checkout Validé - R.A. {ra_data['ra_number']}"
+        }
+        subject = subjects.get(language, subjects['pt'])
         
-        html_content = f"""
-        <!DOCTYPE html>
-        <html lang="pt">
-        <head>
-            <meta charset="utf-8">
-            <meta name="viewport" content="width=device-width, initial-scale=1.0">
-            <title>Self Check-in Validado - Auto Prudente</title>
-        </head>
-        <body style="margin: 0; padding: 0; font-family: Arial, sans-serif; background-color: #f4f4f4;">
-            <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="margin: 0; padding: 0;">
-                <tr>
-                    <td align="center" style="padding: 20px 0;">
-                        <table role="presentation" width="600" cellpadding="0" cellspacing="0" border="0" style="margin: 0 auto; background-color: #ffffff; width: 600px !important;">
-                            <tr>
-                                <td style="padding: 0;">
-                                    
-                                    <!-- Header -->
-                                    <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="background: linear-gradient(135deg, #00bcd4 0%, #0097a7 100%); background-color: #00bcd4;">
-                                        <tr>
-                                            <td style="padding: 20px;">
-                                                <table width="100%" cellpadding="0" cellspacing="0">
-                                                    <tr>
-                                                        <td style="width: 50%; text-align: left; vertical-align: middle;">
-                                                            <img src="https://carscraping.up.railway.app/static/ap-heather.png" alt="Auto Prudente" style="height: 50px; width: auto;">
-                                                        </td>
-                                                        <td style="width: 50%; text-align: right; vertical-align: middle;">
-                                                            <div style="background: rgba(255,255,255,0.2); padding: 10px 15px; border-radius: 6px; display: inline-block;">
-                                                                <span style="color: #ffffff; font-size: 16px; font-weight: bold;">R.A.: {ra_number}</span>
-                                                            </div>
-                                                        </td>
-                                                    </tr>
-                                                </table>
-                                            </td>
-                                        </tr>
-                                    </table>
-
-                                    <!-- Success Message -->
-                                    <div style="padding: 30px 20px; text-align: center; background-color: #f0fdf4;">
-                                        <div style="font-size: 48px; margin-bottom: 15px;">✅</div>
-                                        <h2 style="color: #059669; margin: 0 0 10px 0; font-size: 24px; font-weight: bold;">Self Check-in Validado</h2>
-                                        <p style="color: #047857; margin: 0; font-size: 16px;">Contrato encerrado com sucesso</p>
-                                    </div>
-
-                                    <!-- Content -->
-                                    <div style="padding: 30px 20px;">
-                                        <p style="color: #333333; margin: 0 0 15px 0; font-size: 16px;">Estimado(a) {client_name},</p>
-                                        
-                                        <p style="color: #666666; line-height: 1.6; margin: 0 0 20px 0; font-size: 14px;">
-                                            O seu <strong>self check-in</strong> do veículo <strong>{plate}</strong> foi validado com sucesso pela nossa equipa.
-                                        </p>
-                                        
-                                        <div style="background: white; border-left: 4px solid #10b981; padding: 15px; margin: 20px 0; border-radius: 4px; box-shadow: 0 1px 3px rgba(0,0,0,0.1);">
-                                            <p style="margin: 0 0 10px 0; color: #059669; font-size: 15px; font-weight: bold;">✓ Processo Concluído</p>
-                                            <p style="margin: 0; color: #666666; font-size: 14px; line-height: 1.6;">
-                                                O processo de devolução está completo. Não é necessária qualquer ação adicional da sua parte.
-                                            </p>
-                                        </div>
-                                        
-                                        <p style="color: #666666; line-height: 1.6; margin: 20px 0 0 0; font-size: 14px;">
-                                            Agradecemos a sua preferência e esperamos vê-lo novamente em breve!
-                                        </p>
-                                    </div>
-
-                                    <!-- Footer -->
-                                    <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="background-color: #f9f9f9; border-top: 1px solid #e0e0e0;">
-                                        <tr>
-                                            <td style="padding: 20px; text-align: center;">
-                                                <p style="margin: 0 0 10px 0; font-size: 14px; color: #666666; font-weight: bold;">Auto Prudente Rent a Car</p>
-                                                <p style="margin: 0 0 5px 0; font-size: 12px; color: #999999;">Aeroporto de Faro</p>
-                                                <p style="margin: 0 0 5px 0; font-size: 12px; color: #999999;">📞 +351 289 860 476 | 📧 info@autoprudente.com</p>
-                                                <p style="margin: 10px 0 0 0; font-size: 11px; color: #aaaaaa;">© 2025 Auto Prudente. Todos os direitos reservados.</p>
-                                            </td>
-                                        </tr>
-                                    </table>
-                                    
-                                </td>
-                            </tr>
-                        </table>
-                    </td>
-                </tr>
-            </table>
-        </body>
-        </html>
+        # Template files por idioma
+        template_files = {
+            'pt': 'email_selfcheckout_validated_pt.html',
+            'en': 'email_selfcheckout_validated_en.html',
+            'fr': 'email_selfcheckout_validated_fr.html'
+        }
+        template_file = template_files.get(language, template_files['pt'])
+        
+        # Greetings por idioma
+        greetings = {
+            'pt': 'Estimado(a)',
+            'en': 'Dear',
+            'fr': 'Cher(e)'
+        }
+        greeting = greetings.get(language, greetings['pt'])
+        
+        # Gerar gauge de combustível (barra horizontal R---F)
+        fuel_percentage = inspection_data.get('fuel_level', 100)
+        
+        # Determinar texto do nível
+        fuel_texts = {
+            'pt': {100: 'Cheio', 75: '3/4', 50: '1/2', 25: '1/4', 12.5: 'Reserva'},
+            'en': {100: 'Full', 75: '3/4', 50: '1/2', 25: '1/4', 12.5: 'Reserve'},
+            'fr': {100: 'Plein', 75: '3/4', 50: '1/2', 25: '1/4', 12.5: 'Réserve'}
+        }
+        fuel_text_map = fuel_texts.get(language, fuel_texts['pt'])
+        fuel_text = 'Cheio'
+        for threshold, text in sorted(fuel_text_map.items(), reverse=True):
+            if fuel_percentage >= threshold:
+                fuel_text = text
+                break
+        
+        fuel_gauge_html = f"""
+        <div style="max-width: 400px; margin: 0 auto;">
+            <!-- Labels R, 1/4, 1/2, 3/4, F -->
+            <div style="position: relative; height: 20px; margin-bottom: 5px;">
+                <span style="position: absolute; left: 0%; transform: translateX(-50%); font-size: 12px; font-weight: 600; color: #00bcd4;">R</span>
+                <span style="position: absolute; left: 25%; transform: translateX(-50%); font-size: 12px; font-weight: 600; color: #00bcd4;">1/4</span>
+                <span style="position: absolute; left: 50%; transform: translateX(-50%); font-size: 12px; font-weight: 600; color: #00bcd4;">1/2</span>
+                <span style="position: absolute; left: 75%; transform: translateX(-50%); font-size: 12px; font-weight: 600; color: #00bcd4;">3/4</span>
+                <span style="position: absolute; right: 0%; transform: translateX(50%); font-size: 12px; font-weight: 600; color: #00bcd4;">F</span>
+            </div>
+            
+            <!-- Barra de combustível -->
+            <div style="position: relative; background: white; border: 2px solid #00bcd4; border-radius: 8px; height: 32px; margin-bottom: 10px;">
+                <!-- Marcadores verticais -->
+                <div style="position: absolute; inset: 0; display: flex; align-items: center;">
+                    <div style="position: absolute; left: 0%; width: 2px; height: 16px; background: #00bcd4;"></div>
+                    <div style="position: absolute; left: 25%; width: 2px; height: 16px; background: #00bcd4;"></div>
+                    <div style="position: absolute; left: 50%; width: 2px; height: 16px; background: #00bcd4;"></div>
+                    <div style="position: absolute; left: 75%; width: 2px; height: 16px; background: #00bcd4;"></div>
+                    <div style="position: absolute; right: 0%; width: 2px; height: 16px; background: #00bcd4;"></div>
+                </div>
+                
+                <!-- Preenchimento -->
+                <div style="height: 100%; background: #00bcd4; border-radius: 6px; width: {fuel_percentage}%;"></div>
+            </div>
+            
+            <!-- Texto do nível -->
+            <div style="text-align: center;">
+                <span style="font-size: 14px; font-weight: 600; color: #1f2937;">{fuel_text}</span>
+            </div>
+        </div>
         """
         
+        # Gerar grelha de fotos (3x3)
+        photos_html = '<table width="100%" cellpadding="5" cellspacing="0" style="margin: 0;">'
+        for i in range(0, len(photos_list), 3):
+            photos_html += '<tr>'
+            for j in range(3):
+                if i + j < len(photos_list):
+                    photo = photos_list[i + j]
+                    photos_html += f'''
+                    <td style="width: 33.33%; text-align: center; padding: 5px; vertical-align: top;">
+                        <a href="{photo['url']}" target="_blank" style="text-decoration: none; display: block; cursor: pointer;">
+                            <img src="{photo['url']}" alt="{photo['label']}" style="width: 100%; height: auto; max-height: 150px; object-fit: cover; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); display: block; border: 2px solid transparent; cursor: pointer;" />
+                            <p style="color: #00bcd4; margin: 5px 0 0 0; font-size: 12px; font-weight: 600;">{photo['label']}</p>
+                        </a>
+                    </td>
+                    '''
+                else:
+                    photos_html += '<td style="width: 33.33%;"></td>'
+            photos_html += '</tr>'
+        photos_html += '</table>'
+        
+        # Formatar data e hora
+        import datetime
+        created_at = inspection_data.get('created_at')
+        if isinstance(created_at, str):
+            try:
+                created_at = datetime.datetime.fromisoformat(created_at.replace('Z', '+00:00'))
+            except:
+                created_at = datetime.datetime.now()
+        elif not isinstance(created_at, datetime.datetime):
+            created_at = datetime.datetime.now()
+        
+        pickup_date = created_at.strftime('%d/%m/%Y')
+        pickup_time = created_at.strftime('%H:%M')
+        
+        # Ler template
+        template_path = os.path.join(os.path.dirname(__file__), 'templates', template_file)
+        with open(template_path, 'r', encoding='utf-8') as f:
+            html_content = f.read()
+        
+        # Substituir placeholders
+        html_content = html_content.replace('{{RA_NUMBER}}', str(ra_data.get('ra_number', '')))
+        html_content = html_content.replace('{{GREETING}}', greeting)
+        html_content = html_content.replace('{{CLIENT_NAME}}', ra_data.get('client_name', ''))
+        html_content = html_content.replace('{{CLIENT_FIRST_NAME}}', ra_data.get('client_first_name', ''))
+        html_content = html_content.replace('{{CLIENT_LAST_NAME}}', ra_data.get('client_last_name', ''))
+        html_content = html_content.replace('{{LICENSE_PLATE}}', ra_data.get('plate', ''))
+        html_content = html_content.replace('{{VEHICLE_BRAND}}', ra_data.get('vehicle_brand', ''))
+        html_content = html_content.replace('{{VEHICLE_MODEL}}', ra_data.get('vehicle_model', ''))
+        html_content = html_content.replace('{{PICKUP_DATE}}', pickup_date)
+        html_content = html_content.replace('{{PICKUP_TIME}}', pickup_time)
+        html_content = html_content.replace('{{LOCATION}}', ra_data.get('return_location', 'Auto Prudente'))
+        html_content = html_content.replace('{{ODOMETER_READING}}', str(inspection_data.get('odometer_reading', 0)))
+        html_content = html_content.replace('{{KMS_DRIVEN}}', str(inspection_data.get('kms_driven', 0)))
+        html_content = html_content.replace('{{FUEL_LEVEL}}', str(fuel_percentage))
+        html_content = html_content.replace('{{FUEL_GAUGE_SVG | safe}}', fuel_gauge_html)
+        html_content = html_content.replace('{{PHOTOS_HTML | safe}}', photos_html)
+        
         _send_notification_email(to_email, subject, html_content)
-        logging.info(f"✅ Self check-in confirmation email sent to {to_email} for RA {ra_number}")
+        logging.info(f"✅ Self-checkout validation email sent to {to_email} for RA {ra_data['ra_number']} (language: {language})")
         
     except Exception as e:
-        logging.error(f"❌ Failed to send self check-in confirmation email: {str(e)}")
+        logging.error(f"❌ Failed to send self-checkout validation email: {str(e)}")
+        import traceback
+        traceback.print_exc()
         raise
 
 
@@ -31332,21 +31392,149 @@ async def validate_self_checkin(request: Request):
         
         conn.commit()
         
-        # Enviar email de confirmação ao cliente
+        # Enviar email de confirmação ao cliente com dados completos
         if client_email:
             try:
-                import json
-                client_name = "Cliente"
-                if extracted_data:
-                    try:
-                        data_dict = json.loads(extracted_data)
-                        client_name = data_dict.get('client_name') or data_dict.get('nome_cliente') or "Cliente"
-                    except:
-                        pass
+                # Buscar dados completos do RA e inspeção
+                if is_postgres:
+                    cursor.execute("""
+                        SELECT 
+                            ra.client_name, ra.client_country, ra.vehicle_brand, ra.vehicle_model, 
+                            ra.return_location, ra.pickup_km,
+                            vi.odometer_reading, vi.fuel_level, vi.created_at
+                        FROM rental_agreements ra
+                        LEFT JOIN vehicle_inspections vi ON vi.id = %s
+                        WHERE ra.rental_agreement_number = %s
+                    """, (inspection_id, ra_number))
+                else:
+                    cursor.execute("""
+                        SELECT 
+                            ra.client_name, ra.client_country, ra.vehicle_brand, ra.vehicle_model, 
+                            ra.return_location, ra.pickup_km,
+                            vi.odometer_reading, vi.fuel_level, vi.created_at
+                        FROM rental_agreements ra
+                        LEFT JOIN vehicle_inspections vi ON vi.id = ?
+                        WHERE ra.rental_agreement_number = ?
+                    """, (inspection_id, ra_number))
                 
-                _send_self_checkin_confirmation_email(client_email, client_name, ra_number, plate)
+                ra_row = cursor.fetchone()
+                if ra_row:
+                    client_name = ra_row[0] or 'Cliente'
+                    client_country = ra_row[1] or 'PT'
+                    vehicle_brand = ra_row[2] or ''
+                    vehicle_model = ra_row[3] or ''
+                    return_location = ra_row[4] or 'Auto Prudente'
+                    pickup_km = ra_row[5] or 0
+                    odometer_reading = ra_row[6] or 0
+                    fuel_level = ra_row[7] or 100
+                    created_at = ra_row[8]
+                    
+                    # Determinar idioma baseado no país
+                    language = 'pt'
+                    if client_country:
+                        country_upper = client_country.upper()
+                        if country_upper in ['GB', 'UK', 'US', 'IE', 'CA', 'AU', 'NZ']:
+                            language = 'en'
+                        elif country_upper in ['FR', 'BE', 'CH', 'LU', 'MC']:
+                            language = 'fr'
+                    
+                    # Separar nome e apelido
+                    name_parts = client_name.split(' ', 1)
+                    client_first_name = name_parts[0] if name_parts else ''
+                    client_last_name = name_parts[1] if len(name_parts) > 1 else ''
+                    
+                    # Calcular kms percorridos
+                    kms_driven = max(0, odometer_reading - pickup_km) if odometer_reading and pickup_km else 0
+                    
+                    # Buscar fotos da inspeção
+                    if is_postgres:
+                        cursor.execute("""
+                            SELECT photo_type, photo_data
+                            FROM inspection_photos
+                            WHERE inspection_id = %s
+                            ORDER BY created_at
+                        """, (inspection_id,))
+                    else:
+                        cursor.execute("""
+                            SELECT photo_type, photo_data
+                            FROM inspection_photos
+                            WHERE inspection_id = ?
+                            ORDER BY created_at
+                        """, (inspection_id,))
+                    
+                    photo_rows = cursor.fetchall()
+                    
+                    # Labels das fotos por idioma
+                    photo_labels = {
+                        'pt': {
+                            'front': 'Frente', 'rear': 'Traseira', 'left': 'Esquerda',
+                            'right': 'Direita', 'dashboard': 'Painel', 'interior': 'Interior',
+                            'trunk': 'Bagageira', 'roof': 'Tejadilho', 'other': 'Outra'
+                        },
+                        'en': {
+                            'front': 'Front', 'rear': 'Rear', 'left': 'Left',
+                            'right': 'Right', 'dashboard': 'Dashboard', 'interior': 'Interior',
+                            'trunk': 'Trunk', 'roof': 'Roof', 'other': 'Other'
+                        },
+                        'fr': {
+                            'front': 'Avant', 'rear': 'Arrière', 'left': 'Gauche',
+                            'right': 'Droite', 'dashboard': 'Tableau de bord', 'interior': 'Intérieur',
+                            'trunk': 'Coffre', 'roof': 'Toit', 'other': 'Autre'
+                        }
+                    }
+                    labels = photo_labels.get(language, photo_labels['pt'])
+                    
+                    # Gerar URLs das fotos (base64 inline)
+                    photos_list = []
+                    for photo_row in photo_rows:
+                        photo_type = photo_row[0]
+                        photo_data = photo_row[1]
+                        
+                        if photo_data:
+                            import base64
+                            if isinstance(photo_data, bytes):
+                                photo_base64 = base64.b64encode(photo_data).decode('utf-8')
+                            else:
+                                photo_base64 = photo_data
+                            
+                            photo_url = f"data:image/jpeg;base64,{photo_base64}"
+                            photo_label = labels.get(photo_type, labels.get('other', 'Photo'))
+                            
+                            photos_list.append({
+                                'url': photo_url,
+                                'label': photo_label
+                            })
+                    
+                    # Preparar dados para o email
+                    ra_data = {
+                        'ra_number': ra_number,
+                        'client_name': client_name,
+                        'client_first_name': client_first_name,
+                        'client_last_name': client_last_name,
+                        'plate': plate,
+                        'vehicle_brand': vehicle_brand,
+                        'vehicle_model': vehicle_model,
+                        'return_location': return_location
+                    }
+                    
+                    inspection_data = {
+                        'odometer_reading': odometer_reading,
+                        'fuel_level': fuel_level,
+                        'kms_driven': kms_driven,
+                        'created_at': created_at
+                    }
+                    
+                    _send_self_checkin_confirmation_email(
+                        to_email=client_email,
+                        ra_data=ra_data,
+                        inspection_data=inspection_data,
+                        photos_list=photos_list,
+                        language=language
+                    )
             except Exception as email_err:
                 logging.error(f"Failed to send confirmation email: {email_err}")
+                import traceback
+                traceback.print_exc()
         
         logging.info(f"✅ Self check-in validated: {inspection_number}")
         
