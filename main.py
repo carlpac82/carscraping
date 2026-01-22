@@ -31657,6 +31657,9 @@ async def send_parking_qr_email(request: Request):
                 'maps_link': 'https://www.google.com/maps/place/Aeroporto+de+Faro/@37.0194444,-7.9658333,17z'
             }
             logging.warning(f"⚠️ Parking location {parking_number} not found in database, using default values")
+        else:
+            logging.info(f"✅ Parking info found: {parking_info['name']}")
+            logging.info(f"🗺️ Google Maps link: {parking_info['maps_link']}")
         
         # Renderizar template
         with open(f'templates/{template_name}', 'r', encoding='utf-8') as f:
@@ -31677,6 +31680,17 @@ async def send_parking_qr_email(request: Request):
         html_content = html_content.replace('{{RESERVATION_NUMBER}}', qr_reservation_number or 'N/A')
         html_content = html_content.replace('{{PARKING_LOCATION_NAME}}', parking_info['name'])
         html_content = html_content.replace('{{PARKING_GOOGLE_MAPS_LINK}}', parking_info['maps_link'])
+        
+        # Verificar se a substituição foi feita
+        if '{{PARKING_GOOGLE_MAPS_LINK}}' in html_content:
+            logging.error("❌ PARKING_GOOGLE_MAPS_LINK placeholder still exists in HTML!")
+        else:
+            logging.info(f"✅ Google Maps link replaced successfully in HTML")
+            # Verificar se o link está presente no HTML
+            if parking_info['maps_link'] in html_content:
+                logging.info(f"✅ Google Maps link confirmed in HTML content")
+            else:
+                logging.error(f"❌ Google Maps link NOT found in HTML content after replacement!")
         
         # Substituir cid:qr_code_image por base64 inline (a função _send_notification_email vai extrair e converter para CID)
         logging.info(f"🖼️ QR code base64 length: {len(qr_code_image)} chars")
