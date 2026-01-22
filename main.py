@@ -31482,39 +31482,8 @@ async def send_parking_qr_email(request: Request):
                     "error": "Email do cliente não encontrado"
                 }, status_code=400)
         
-        # Função para extrair primeiro nome e detectar género
-        def get_first_name_with_title(full_name):
-            """Extrai primeiro nome e adiciona tratamento Sr./Sra. baseado em nomes comuns"""
-            if not full_name or full_name == "Cliente":
-                return "Cliente"
-            
-            # Extrair primeiro nome
-            first_name = full_name.split()[0].strip().title()
-            
-            # Nomes femininos comuns em português/francês/inglês
-            female_names = {
-                'maria', 'ana', 'joana', 'sofia', 'beatriz', 'carolina', 'mariana',
-                'patricia', 'paula', 'sandra', 'carla', 'rita', 'ines', 'catarina',
-                'isabel', 'teresa', 'cristina', 'helena', 'marta', 'sara', 'diana',
-                'claudia', 'silvia', 'vera', 'lucia', 'raquel', 'susana', 'andrea',
-                'monica', 'fernanda', 'gabriela', 'juliana', 'liliana', 'vanessa',
-                'marie', 'sophie', 'isabelle', 'catherine', 'christine', 'michelle',
-                'stephanie', 'nathalie', 'valerie', 'florence', 'aurelie', 'celine',
-                'mary', 'sarah', 'jennifer', 'jessica', 'amanda', 'melissa', 'nicole',
-                'maryline', 'marilyn', 'marlene', 'margarida', 'rosa', 'alice'
-            }
-            
-            # Detectar género pelo primeiro nome
-            first_name_lower = first_name.lower()
-            is_female = first_name_lower in female_names or first_name_lower.endswith(('a', 'e'))
-            
-            # Retornar com tratamento apropriado
-            title = "Sra." if is_female else "Sr."
-            return f"{title} {first_name}"
-        
         # Extrair dados do RA
         import json
-        client_full_name = "Cliente"
         client_name = "Cliente"
         country = None
         pickup_date = "N/A"
@@ -31525,13 +31494,10 @@ async def send_parking_qr_email(request: Request):
             try:
                 extracted_data = json.loads(extracted_data_json)
                 # Try both camelCase and snake_case for all fields
-                client_full_name = (extracted_data.get('client_name') or 
-                                   extracted_data.get('clientName') or 
-                                   extracted_data.get('nome_cliente') or 
-                                   "Cliente")
-                
-                # Processar nome para obter primeiro nome com tratamento
-                client_name = get_first_name_with_title(client_full_name)
+                client_name = (extracted_data.get('client_name') or 
+                              extracted_data.get('clientName') or 
+                              extracted_data.get('nome_cliente') or 
+                              "Cliente")
                 
                 country = (extracted_data.get('country') or 
                           extracted_data.get('pais'))
