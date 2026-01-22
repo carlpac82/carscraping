@@ -31437,11 +31437,18 @@ async def send_parking_qr_email(request: Request):
             email = custom_email
         elif not email:
             # Tentar buscar email do checkin/checkout
-            cursor.execute("""
-                SELECT email FROM inspections 
-                WHERE ra_number = ? AND email IS NOT NULL 
-                ORDER BY created_at DESC LIMIT 1
-            """, (ra_num,))
+            if is_postgres:
+                cursor.execute("""
+                    SELECT email FROM inspections 
+                    WHERE ra_number = %s AND email IS NOT NULL 
+                    ORDER BY created_at DESC LIMIT 1
+                """, (ra_num,))
+            else:
+                cursor.execute("""
+                    SELECT email FROM inspections 
+                    WHERE ra_number = ? AND email IS NOT NULL 
+                    ORDER BY created_at DESC LIMIT 1
+                """, (ra_num,))
             email_row = cursor.fetchone()
             if email_row:
                 email = email_row[0]
