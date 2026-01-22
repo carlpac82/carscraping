@@ -31153,6 +31153,8 @@ async def get_self_checkout_data(token: str):
         plate = row[2]
         
         try:
+            logging.info(f"🔍 Buscando inspeção de check-in para RA={ra_number}, Plate={plate}")
+            
             if is_postgres:
                 cursor.execute("""
                     SELECT odometer_reading, fuel_level, created_at
@@ -31171,9 +31173,11 @@ async def get_self_checkout_data(token: str):
                 """, (f'%{ra_number}%',))
             
             inspection_row = cursor.fetchone()
+            logging.info(f"📊 Query por RA LIKE '%{ra_number}%': {inspection_row}")
             
             # Se não encontrou por RA, tentar por matrícula
             if not inspection_row:
+                logging.info(f"⚠️ Não encontrou por RA, tentando por matrícula={plate}")
                 if is_postgres:
                     cursor.execute("""
                         SELECT odometer_reading, fuel_level, created_at
@@ -31192,21 +31196,25 @@ async def get_self_checkout_data(token: str):
                     """, (plate,))
                 
                 inspection_row = cursor.fetchone()
+                logging.info(f"📊 Query por matrícula={plate}: {inspection_row}")
             
             # Se encontrou inspeção, preencher extracted_data
             if inspection_row:
                 odometer, fuel, created_at = inspection_row
+                logging.info(f"✅ Inspeção encontrada: odometer={odometer}, fuel={fuel}, created_at={created_at}")
                 
-                # Preencher campos se estiverem vazios
-                if not extracted_data.get('odometer') and odometer:
+                # FORÇAR preenchimento dos campos (remover verificação de vazio para debug)
+                if odometer:
                     extracted_data['odometer'] = int(odometer)
                     extracted_data['kms'] = int(odometer)
+                    logging.info(f"✅ Definido odometer={int(odometer)}, kms={int(odometer)}")
                 
-                if not extracted_data.get('fuel_level') and fuel:
+                if fuel:
                     extracted_data['fuel_level'] = str(fuel)
                     extracted_data['combustivel'] = str(fuel)
+                    logging.info(f"✅ Definido fuel_level={str(fuel)}, combustivel={str(fuel)}")
                 
-                if not extracted_data.get('delivery_date') and created_at:
+                if created_at:
                     if isinstance(created_at, str):
                         from datetime import datetime
                         created_at = datetime.fromisoformat(created_at.replace('Z', '+00:00'))
@@ -31214,11 +31222,16 @@ async def get_self_checkout_data(token: str):
                     extracted_data['delivery_time'] = created_at.strftime('%H:%M')
                     extracted_data['pickup_date'] = created_at.strftime('%d/%m/%Y')
                     extracted_data['pickup_time'] = created_at.strftime('%H:%M')
+                    logging.info(f"✅ Definido delivery_date={created_at.strftime('%d/%m/%Y')}, delivery_time={created_at.strftime('%H:%M')}")
                 
-                logging.info(f"✅ Preenchido extracted_data com dados da inspeção: odometer={odometer}, fuel={fuel}")
+                logging.info(f"✅ extracted_data final: {extracted_data}")
+            else:
+                logging.warning(f"❌ Nenhuma inspeção de check-in encontrada para RA={ra_number} ou Plate={plate}")
         
         except Exception as inspection_err:
-            logging.error(f"Erro ao buscar inspeção para preencher dados: {inspection_err}")
+            logging.error(f"❌ ERRO ao buscar inspeção: {inspection_err}")
+            import traceback
+            traceback.print_exc()
         
         return JSONResponse({
             "success": True,
