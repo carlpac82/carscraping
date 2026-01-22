@@ -11637,6 +11637,16 @@ async def track_by_params(request: Request):
         end_dt = start_dt + timedelta(days=days)
     print(f"[API] COMPUTED: start_dt={start_dt.date()}, end_dt={end_dt.date()}, days={days}")
     print(f"[API] COMPUTED: start_dt={start_dt.date()}, end_dt={end_dt.date()}, days={days}", file=sys.stderr, flush=True)
+    
+    # Verificar se requests/urllib estão disponíveis e se devem ser usados
+    _DISABLE_REQUESTS = os.getenv("DISABLE_CARJET_REQUESTS", "0").strip() in ("1", "true", "yes", "on")
+    _HAS_CARJET_REQUESTS = True
+    try:
+        import requests
+    except ImportError:
+        _HAS_CARJET_REQUESTS = False
+        print("[API] ⚠️ requests library not available, will skip direct method", file=sys.stderr, flush=True)
+    
     try:
         items: List[Dict[str, Any]] = []
         base = f"https://www.carjet.com/do/list/{lang}"
