@@ -4517,6 +4517,12 @@ def _extract_base64_images_from_html(html_content):
     # Pattern to match data:image/xxx;base64,xxxxx
     pattern = r'data:image/([^;]+);base64,([^"\'>\s]+)'
     
+    # Count matches before processing
+    matches = re.findall(pattern, html_content)
+    logging.info(f"🔍 Found {len(matches)} base64 images in HTML")
+    for i, (mimetype, data_preview) in enumerate(matches):
+        logging.info(f"  Image {i+1}: type={mimetype}, size={len(data_preview)} chars")
+    
     def replace_with_cid(match):
         nonlocal counter
         mimetype = match.group(1)
@@ -4609,7 +4615,7 @@ def _send_notification_email(to_email: str, subject: str, message: str, attachme
             msg_related.attach(msg_alternative)
             
             # Anexar imagens inline com Content-ID
-            for img in inline_images:
+            for i, img in enumerate(inline_images):
                 # Determine image subtype from mimetype
                 img_subtype = img['mimetype'].split('/')[-1]
                 if img_subtype == 'svg+xml':
@@ -4619,8 +4625,9 @@ def _send_notification_email(to_email: str, subject: str, message: str, attachme
                 img_part.add_header('Content-ID', f'<{img["cid"]}>')
                 img_part.add_header('Content-Disposition', 'inline')
                 msg_related.attach(img_part)
+                logging.info(f"  ✅ Attached image {i+1}: CID={img['cid']}, type={img_subtype}, size={len(img['data'])} bytes")
             
-            logging.info(f"📎 Attached {len(inline_images)} inline images with CID")
+            logging.info(f"📎 Total: {len(inline_images)} inline images attached with CID")
         else:
             # Converter texto simples para HTML
             text_part = MIMEText(message, 'plain', 'utf-8')
@@ -31538,8 +31545,18 @@ async def send_parking_qr_email(request: Request):
         html_content = html_content.replace('{{PARKING_GOOGLE_MAPS_LINK}}', parking_info['maps_link'])
         
         # Substituir cid:qr_code_image por base64 inline (a função _send_notification_email vai extrair e converter para CID)
+        logging.info(f"🖼️ QR code base64 length: {len(qr_code_image)} chars")
         qr_base64_src = f'data:image/png;base64,{qr_code_image}'
+        logging.info(f"🔄 Replacing cid:qr_code_image with base64 data URL")
         html_content = html_content.replace('cid:qr_code_image', qr_base64_src)
+        
+        # Verificar se a substituição funcionou
+        if 'cid:qr_code_image' in html_content:
+            logging.error("❌ Failed to replace cid:qr_code_image in template!")
+        elif 'data:image/png;base64,' in html_content:
+            logging.info("✅ QR code base64 successfully embedded in HTML")
+        else:
+            logging.warning("⚠️ No QR code reference found in HTML after replacement")
         
         # Preparar assunto do email
         subject_map = {
