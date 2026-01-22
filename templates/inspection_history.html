@@ -1891,11 +1891,24 @@
                 let pickupTime = null;
                 let reservationNumber = null;
                 
-                // Reservation number pattern: ANA-XXXXXXXX
-                const reservationPattern = /ANA-\d{8}/i;
-                const reservationMatch = text.match(reservationPattern);
-                if (reservationMatch) {
-                    reservationNumber = reservationMatch[0].toUpperCase();
+                // Reservation number patterns: ANA-XXXXXXXX (with various separators and OCR errors)
+                const reservationPatterns = [
+                    /ANA[-\s]?\d{8}/i,           // ANA-00552830 or ANA00552830 or ANA 00552830
+                    /ANA[-\s]?[0O]{2}\d{6}/i,    // Handle OCR confusing 0 with O
+                    /[A-Z]{3}[-\s]?\d{8}/i       // Generic 3 letters + 8 digits
+                ];
+                
+                for (const pattern of reservationPatterns) {
+                    const match = text.match(pattern);
+                    if (match) {
+                        // Normalize: remove spaces, ensure dash, replace O with 0
+                        reservationNumber = match[0].toUpperCase()
+                            .replace(/\s+/g, '')
+                            .replace(/([A-Z]{3})(\d)/, '$1-$2')
+                            .replace(/O/g, '0');
+                        console.log('✅ Reservation number detected:', reservationNumber);
+                        break;
+                    }
                 }
                 
                 // Date patterns: DD/MM/YYYY, DD-MM-YYYY, YYYY-MM-DD

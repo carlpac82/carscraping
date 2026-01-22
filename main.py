@@ -31650,6 +31650,14 @@ async def send_parking_qr_email(request: Request):
         
         parking_info = parking_locations.get(parking_number)
         
+        # Valores default se parking_info não existir
+        if not parking_info:
+            parking_info = {
+                'name': f'Parque {parking_number} - Aeroporto de Faro',
+                'maps_link': 'https://www.google.com/maps/place/Aeroporto+de+Faro/@37.0194444,-7.9658333,17z'
+            }
+            logging.warning(f"⚠️ Parking location {parking_number} not found in database, using default values")
+        
         # Renderizar template
         with open(f'templates/{template_name}', 'r', encoding='utf-8') as f:
             html_content = f.read()
