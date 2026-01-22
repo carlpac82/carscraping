@@ -30542,15 +30542,22 @@ async def save_inspection(request: Request):
                     'inspection_number': inspection_number,
                     'message': 'Inspection saved successfully' + (' and email sent' if (email and send_email) else '')
                 })
-        
-    except Exception as e:
-        logging.error(f"❌ Error saving inspection: {str(e)}")
-        logging.error(f"❌ Traceback: {traceback.format_exc()}")
-        if conn:
-            conn.rollback()
+            
+            except Exception as e:
+                logging.error(f"❌ Error saving inspection: {str(e)}")
+                logging.error(f"❌ Traceback: {traceback.format_exc()}")
+                if conn:
+                    conn.rollback()
+                return JSONResponse({
+                    'success': False,
+                    'error': str(e)
+                }, status_code=500)
+    
+    except Exception as outer_e:
+        logging.error(f"❌ Outer error: {str(outer_e)}")
         return JSONResponse({
             'success': False,
-            'error': str(e)
+            'error': str(outer_e)
         }, status_code=500)
 
 # Email endpoint is defined later in the file (line ~30709)
