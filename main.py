@@ -31040,7 +31040,7 @@ async def get_self_checkout_data(token: str):
                     "modelo": row[12],
                     "grupo": row[13]
                 } if row[11] else None,
-                "client_name": extracted_data.get('client_name') or extracted_data.get('nome_cliente'),
+                "client_name": extracted_data.get('client_name') or extracted_data.get('clientName') or extracted_data.get('nome_cliente'),
                 "completed": row[7],
                 "validated": row[8]
             }
@@ -32086,7 +32086,7 @@ async def resend_self_checkin_link(request: Request):
         if extracted_data_json:
             try:
                 extracted_data = json.loads(extracted_data_json)
-                client_name = extracted_data.get('client_name') or extracted_data.get('nome_cliente') or "Cliente"
+                client_name = extracted_data.get('client_name') or extracted_data.get('clientName') or extracted_data.get('nome_cliente') or "Cliente"
                 country = extracted_data.get('country') or extracted_data.get('pais')
             except:
                 pass
