@@ -4790,11 +4790,11 @@ def _send_self_checkin_invitation_email(to_email: str, client_name: str, ra_numb
                 language = 'en'
         
         # Extrair primeiro nome
-        first_name = client_name.split()[0] if client_name and ' ' in client_name else client_name
+        first_name = client_name.split()[0] if client_name and ' ' in client_name else (client_name if client_name else 'Cliente')
         
         # Construir link de self check-in com idioma - usar domínio de produção
         base_url = os.getenv("BASE_URL", "https://rentalprices.pt")
-        checkin_link = f"{base_url}/self-checkin/{token}?lang={language}"
+        checkin_link = f"{base_url}/self-checkout/{token}?lang={language}"
         
         # Carregar template HTML baseado no idioma
         template_path = f"templates/email_selfcheckin_invite_{language}.html"
@@ -4813,9 +4813,9 @@ def _send_self_checkin_invitation_email(to_email: str, client_name: str, ra_numb
         
         # Subject sem emojis
         subjects = {
-            'pt': f"Self Checkout Disponível - RA {ra_number}",
-            'en': f"Self Checkout Available - RA {ra_number}",
-            'fr': f"Self Checkout Disponible - RA {ra_number}"
+            'pt': f"Self Check-Out Disponível - RA {ra_number}",
+            'en': f"Self Check-Out Available - RA {ra_number}",
+            'fr': f"Self Check-Out Disponible - RA {ra_number}"
         }
         subject = subjects.get(language, subjects['pt'])
         
