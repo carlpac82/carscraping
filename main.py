@@ -31345,6 +31345,16 @@ async def submit_self_checkout(token: str, request: Request):
         signature = data.get('signature')  # Assinatura do cliente (base64)
         terms_accepted = data.get('terms_accepted', False)  # Termos aceitos
         
+        # Buscar nome do cliente do RA para usar como "inspetor"
+        client_name_for_inspection = 'Cliente'
+        if is_postgres:
+            cursor.execute("SELECT client_name FROM rental_agreements WHERE id = %s", (ra_id,))
+        else:
+            cursor.execute("SELECT client_name FROM rental_agreements WHERE id = ?", (ra_id,))
+        client_row = cursor.fetchone()
+        if client_row and client_row[0]:
+            client_name_for_inspection = client_row[0]
+        
         # Guardar inspeção como 'self_checkout' (pendente de validação)
         # Só será convertida para 'checkout' após validação pelo colaborador
         if is_postgres:
@@ -31352,19 +31362,19 @@ async def submit_self_checkout(token: str, request: Request):
                 INSERT INTO vehicle_inspections (
                     inspection_number, inspection_type, vehicle_plate, 
                     contract_number, odometer_reading, fuel_level,
-                    created_at, is_self_checkin
-                ) VALUES (%s, %s, %s, %s, %s, %s, NOW(), TRUE)
+                    created_at, is_self_checkin, inspector_name, status
+                ) VALUES (%s, %s, %s, %s, %s, %s, NOW(), TRUE, %s, 'pending')
                 RETURNING id
-            """, (inspection_number, 'self_checkout', plate, ra_number, odometer, fuel_level))
+            """, (inspection_number, 'self_checkout', plate, ra_number, odometer, fuel_level, client_name_for_inspection))
             inspection_id = cursor.fetchone()[0]
         else:
             cursor.execute("""
                 INSERT INTO vehicle_inspections (
                     inspection_number, inspection_type, vehicle_plate, 
                     contract_number, odometer_reading, fuel_level,
-                    created_at, is_self_checkin
-                ) VALUES (?, ?, ?, ?, ?, ?, datetime('now'), 1)
-            """, (inspection_number, 'self_checkout', plate, ra_number, odometer, fuel_level))
+                    created_at, is_self_checkin, inspector_name, status
+                ) VALUES (?, ?, ?, ?, ?, ?, datetime('now'), 1, ?, 'pending')
+            """, (inspection_number, 'self_checkout', plate, ra_number, odometer, fuel_level, client_name_for_inspection))
             inspection_id = cursor.lastrowid
         
         # Guardar fotos da grid (9 fotos)
@@ -31413,6 +31423,28 @@ async def submit_self_checkout(token: str, request: Request):
                         """, (inspection_id, photo_bytes, description))
                 except Exception as damage_err:
                     logging.error(f"Error saving damage photo: {damage_err}")
+        
+        # Guardar assinatura do cliente
+        if signature and signature.startswith('data:image'):
+            try:
+                import base64
+                sig_bytes = base64.b64decode(signature.split(',')[1])
+                
+                if is_postgres:
+                    cursor.execute("""
+                        INSERT INTO inspection_photos (
+                            inspection_id, photo_type, image_data, created_at
+                        ) VALUES (%s, %s, %s, NOW())
+                    """, (inspection_id, 'signature', sig_bytes))
+                else:
+                    cursor.execute("""
+                        INSERT INTO inspection_photos (
+                            inspection_id, photo_type, image_data, created_at
+                        ) VALUES (?, ?, ?, datetime('now'))
+                    """, (inspection_id, 'signature', sig_bytes))
+                logging.info(f"✅ Signature saved for inspection {inspection_number}")
+            except Exception as sig_err:
+                logging.error(f"Error saving signature: {sig_err}")
         
         # Buscar extracted_data existente e atualizar com dados do check-in
         if is_postgres:
@@ -46571,6 +46603,7 @@ async def get_inspection_details(inspection_number: str, request: Request):
             photos = {}
             damage_croqui = None
             damage_photos = {}
+            signature = None
             import base64
             
             # If this is a checkin, also get photos from the related checkout
@@ -46667,6 +46700,12 @@ async def get_inspection_details(inspection_number: str, request: Request):
                             damage_croqui = f"data:image/png;base64,{photo_base64}"
                         else:
                             damage_croqui = photo_base64
+                    elif photo_type == 'signature':
+                        # Handle signature
+                        if not photo_base64.startswith('data:'):
+                            signature = f"data:image/png;base64,{photo_base64}"
+                        else:
+                            signature = photo_base64
                     elif photo_type.startswith('damage_photo_') or photo_type.startswith('damage_'):
                         # Handle both old format (damage_photo_1) and new format (damage_front, damage_back, etc.)
                         # But exclude damage_croqui which is already handled above
@@ -46689,7 +46728,8 @@ async def get_inspection_details(inspection_number: str, request: Request):
                 "status": inspection_row[11],
                 "photos": photos,
                 "damage_croqui": damage_croqui,
-                "damage_photos": damage_photos
+                "damage_photos": damage_photos,
+                "signature": signature
             }
             
             # Debug logging
