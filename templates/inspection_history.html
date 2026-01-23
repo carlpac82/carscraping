@@ -1355,7 +1355,7 @@
                                 <button onclick="closePreviewModal(); editSelfCheckout('${inspectionNumber}', '${inspection.contract_number}', '${inspection.fuel_level || 0}', '${inspection.odometer_reading || 0}')" 
                                         class="px-3 py-1.5 bg-blue-600 text-white rounded text-xs hover:bg-blue-700">Editar</button>
                                 <button onclick="closePreviewModal(); invalidateSelfCheckout('${inspectionNumber}')" 
-                                        class="px-3 py-1.5 bg-red-600 text-white rounded text-xs hover:bg-red-700">Invalidar</button>
+                                        class="px-3 py-1.5 bg-red-600 text-white rounded text-xs hover:bg-red-700">Incidentes</button>
                                 ` : ''}
                                 ${!isSelfCheckout && !(isContractClosed && !isCheckout) ? `
                                 <button onclick="editInspection('${inspectionNumber}', '${type}')" 
