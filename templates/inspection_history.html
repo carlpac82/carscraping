@@ -3199,8 +3199,14 @@
                 
                 document.body.appendChild(invalidateModal);
                 
-                // Initialize croqui canvas com o croqui do check-in
+                // Initialize fuel bar with correct value
                 setTimeout(() => {
+                    const fuelFill = document.getElementById('invalidateFuelFill');
+                    const fuelDisplay = document.getElementById('invalidateFuelDisplay');
+                    if (fuelFill) fuelFill.style.width = selfCheckoutFuel + '%';
+                    if (fuelDisplay) fuelDisplay.textContent = selfCheckoutFuel + '%';
+                    
+                    // Initialize croqui canvas com o croqui do check-in
                     initializeInvalidateCroqui(checkin.damage_croqui);
                 }, 100);
                 
