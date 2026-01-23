@@ -3619,6 +3619,7 @@
                 
                 const response = await fetch('/api/self-checkout/invalidate', {
                     method: 'POST',
+                    credentials: 'include',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({
                         inspection_number: inspectionNumber,
