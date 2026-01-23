@@ -4926,37 +4926,32 @@ def _send_self_checkin_confirmation_email(
                 fuel_text = text
                 break
         
+        # Gauge de combustível compatível com email (usando tabelas)
         fuel_gauge_html = f"""
-        <div style="max-width: 400px; margin: 0 auto;">
-            <!-- Labels R, 1/4, 1/2, 3/4, F -->
-            <div style="position: relative; height: 20px; margin-bottom: 5px;">
-                <span style="position: absolute; left: 0%; transform: translateX(-50%); font-size: 12px; font-weight: 600; color: #00bcd4;">R</span>
-                <span style="position: absolute; left: 25%; transform: translateX(-50%); font-size: 12px; font-weight: 600; color: #00bcd4;">1/4</span>
-                <span style="position: absolute; left: 50%; transform: translateX(-50%); font-size: 12px; font-weight: 600; color: #00bcd4;">1/2</span>
-                <span style="position: absolute; left: 75%; transform: translateX(-50%); font-size: 12px; font-weight: 600; color: #00bcd4;">3/4</span>
-                <span style="position: absolute; right: 0%; transform: translateX(50%); font-size: 12px; font-weight: 600; color: #00bcd4;">F</span>
-            </div>
-            
-            <!-- Barra de combustível -->
-            <div style="position: relative; background: white; border: 2px solid #00bcd4; border-radius: 8px; height: 32px; margin-bottom: 10px;">
-                <!-- Marcadores verticais -->
-                <div style="position: absolute; inset: 0; display: flex; align-items: center;">
-                    <div style="position: absolute; left: 0%; width: 2px; height: 16px; background: #00bcd4;"></div>
-                    <div style="position: absolute; left: 25%; width: 2px; height: 16px; background: #00bcd4;"></div>
-                    <div style="position: absolute; left: 50%; width: 2px; height: 16px; background: #00bcd4;"></div>
-                    <div style="position: absolute; left: 75%; width: 2px; height: 16px; background: #00bcd4;"></div>
-                    <div style="position: absolute; right: 0%; width: 2px; height: 16px; background: #00bcd4;"></div>
-                </div>
-                
-                <!-- Preenchimento -->
-                <div style="height: 100%; background: #00bcd4; border-radius: 6px; width: {fuel_percentage}%;"></div>
-            </div>
-            
-            <!-- Texto do nível -->
-            <div style="text-align: center;">
-                <span style="font-size: 14px; font-weight: 600; color: #1f2937;">{fuel_text}</span>
-            </div>
-        </div>
+        <table width="100%" cellpadding="0" cellspacing="0" style="max-width: 350px; margin: 0 auto;">
+            <tr>
+                <td width="20%" style="text-align: left; font-size: 12px; font-weight: 600; color: #00bcd4; padding-bottom: 5px;">R</td>
+                <td width="20%" style="text-align: center; font-size: 12px; font-weight: 600; color: #00bcd4; padding-bottom: 5px;">1/4</td>
+                <td width="20%" style="text-align: center; font-size: 12px; font-weight: 600; color: #00bcd4; padding-bottom: 5px;">1/2</td>
+                <td width="20%" style="text-align: center; font-size: 12px; font-weight: 600; color: #00bcd4; padding-bottom: 5px;">3/4</td>
+                <td width="20%" style="text-align: right; font-size: 12px; font-weight: 600; color: #00bcd4; padding-bottom: 5px;">F</td>
+            </tr>
+            <tr>
+                <td colspan="5" style="padding: 0;">
+                    <table width="100%" cellpadding="0" cellspacing="0" style="border: 2px solid #00bcd4; border-radius: 8px;">
+                        <tr>
+                            <td style="background: #00bcd4; height: 28px; width: {fuel_percentage}%;"></td>
+                            <td style="background: #ffffff; height: 28px;"></td>
+                        </tr>
+                    </table>
+                </td>
+            </tr>
+            <tr>
+                <td colspan="5" style="text-align: center; padding-top: 10px;">
+                    <span style="font-size: 14px; font-weight: 600; color: #1f2937;">{fuel_text}</span>
+                </td>
+            </tr>
+        </table>
         """
         
         # Gerar grelha de fotos (3x3)
@@ -5288,37 +5283,32 @@ def _send_self_checkout_submitted_email(
                 fuel_text = text
                 break
         
+        # Gauge de combustível compatível com email (usando tabelas)
         fuel_gauge_html = f"""
-        <div style="max-width: 400px; margin: 0 auto;">
-            <!-- Labels R, 1/4, 1/2, 3/4, F -->
-            <div style="position: relative; height: 20px; margin-bottom: 5px;">
-                <span style="position: absolute; left: 0%; transform: translateX(-50%); font-size: 12px; font-weight: 600; color: #00bcd4;">R</span>
-                <span style="position: absolute; left: 25%; transform: translateX(-50%); font-size: 12px; font-weight: 600; color: #00bcd4;">1/4</span>
-                <span style="position: absolute; left: 50%; transform: translateX(-50%); font-size: 12px; font-weight: 600; color: #00bcd4;">1/2</span>
-                <span style="position: absolute; left: 75%; transform: translateX(-50%); font-size: 12px; font-weight: 600; color: #00bcd4;">3/4</span>
-                <span style="position: absolute; right: 0%; transform: translateX(50%); font-size: 12px; font-weight: 600; color: #00bcd4;">F</span>
-            </div>
-            
-            <!-- Barra de combustível -->
-            <div style="position: relative; background: white; border: 2px solid #00bcd4; border-radius: 8px; height: 32px; margin-bottom: 10px;">
-                <!-- Marcadores verticais -->
-                <div style="position: absolute; inset: 0; display: flex; align-items: center;">
-                    <div style="position: absolute; left: 0%; width: 2px; height: 16px; background: #00bcd4;"></div>
-                    <div style="position: absolute; left: 25%; width: 2px; height: 16px; background: #00bcd4;"></div>
-                    <div style="position: absolute; left: 50%; width: 2px; height: 16px; background: #00bcd4;"></div>
-                    <div style="position: absolute; left: 75%; width: 2px; height: 16px; background: #00bcd4;"></div>
-                    <div style="position: absolute; right: 0%; width: 2px; height: 16px; background: #00bcd4;"></div>
-                </div>
-                
-                <!-- Preenchimento -->
-                <div style="height: 100%; background: #00bcd4; border-radius: 6px; width: {fuel_percentage}%;"></div>
-            </div>
-            
-            <!-- Texto do nível -->
-            <div style="text-align: center;">
-                <span style="font-size: 14px; font-weight: 600; color: #1f2937;">{fuel_text}</span>
-            </div>
-        </div>
+        <table width="100%" cellpadding="0" cellspacing="0" style="max-width: 350px; margin: 0 auto;">
+            <tr>
+                <td width="20%" style="text-align: left; font-size: 12px; font-weight: 600; color: #00bcd4; padding-bottom: 5px;">R</td>
+                <td width="20%" style="text-align: center; font-size: 12px; font-weight: 600; color: #00bcd4; padding-bottom: 5px;">1/4</td>
+                <td width="20%" style="text-align: center; font-size: 12px; font-weight: 600; color: #00bcd4; padding-bottom: 5px;">1/2</td>
+                <td width="20%" style="text-align: center; font-size: 12px; font-weight: 600; color: #00bcd4; padding-bottom: 5px;">3/4</td>
+                <td width="20%" style="text-align: right; font-size: 12px; font-weight: 600; color: #00bcd4; padding-bottom: 5px;">F</td>
+            </tr>
+            <tr>
+                <td colspan="5" style="padding: 0;">
+                    <table width="100%" cellpadding="0" cellspacing="0" style="border: 2px solid #00bcd4; border-radius: 8px;">
+                        <tr>
+                            <td style="background: #00bcd4; height: 28px; width: {fuel_percentage}%;"></td>
+                            <td style="background: #ffffff; height: 28px;"></td>
+                        </tr>
+                    </table>
+                </td>
+            </tr>
+            <tr>
+                <td colspan="5" style="text-align: center; padding-top: 10px;">
+                    <span style="font-size: 14px; font-weight: 600; color: #1f2937;">{fuel_text}</span>
+                </td>
+            </tr>
+        </table>
         """
         
         # Gerar grelha de fotos (3x3)
@@ -30784,9 +30774,12 @@ async def save_inspection(request: Request):
                                                 <span style="color: #009cb6; font-size: 14px; font-weight: 600;">R</span>
                                             </td>
                                             <td style="vertical-align: middle;">
-                                                <div style="position: relative; width: 200px; height: 20px; background: #e5e7eb; border-radius: 10px; border: 1px solid #ccc; overflow: hidden;">
-                                                    <div style="position: absolute; top: 0; left: 0; height: 100%; width: {fuel_percentage}%; background: #00bcd4; border-radius: 10px;"></div>
-                                                </div>
+                                                <table cellpadding="0" cellspacing="0" style="width: 200px; border: 1px solid #ccc; border-radius: 10px; background: #e5e7eb;">
+                                                    <tr>
+                                                        <td style="background: #00bcd4; height: 20px; width: {fuel_percentage}%; border-radius: 10px;"></td>
+                                                        <td style="height: 20px;"></td>
+                                                    </tr>
+                                                </table>
                                             </td>
                                             <td style="padding-left: 15px; vertical-align: middle;">
                                                 <span style="color: #009cb6; font-size: 14px; font-weight: 600;">F</span>
@@ -31606,9 +31599,34 @@ async def submit_self_checkout(token: str, request: Request):
                         ext_data = json.loads(ra_extracted) if isinstance(ra_extracted, str) else ra_extracted
                         client_country = ext_data.get('country') or ext_data.get('pais') or 'PT'
                         return_location = ext_data.get('returnLocation') or ext_data.get('return_location') or 'Auto Prudente'
-                        pickup_km = ext_data.get('kms') or ext_data.get('odometer') or 0
+                        pickup_km_raw = ext_data.get('kms') or ext_data.get('odometer') or 0
+                        try:
+                            pickup_km = int(str(pickup_km_raw).replace(',', '').replace('.', '').strip()) if pickup_km_raw else 0
+                        except:
+                            pickup_km = 0
                     except:
                         pass
+                
+                # Se pickup_km ainda for 0, buscar da inspeção de check-in (entrega ao cliente)
+                if pickup_km == 0:
+                    try:
+                        if is_postgres:
+                            cursor.execute("""
+                                SELECT odometer_reading FROM inspections
+                                WHERE ra_number = %s AND inspection_type = 'checkin'
+                                ORDER BY created_at DESC LIMIT 1
+                            """, (ra_number,))
+                        else:
+                            cursor.execute("""
+                                SELECT odometer_reading FROM inspections
+                                WHERE ra_number = ? AND inspection_type = 'checkin'
+                                ORDER BY created_at DESC LIMIT 1
+                            """, (ra_number,))
+                        checkin_row = cursor.fetchone()
+                        if checkin_row and checkin_row[0]:
+                            pickup_km = int(checkin_row[0])
+                    except Exception as e:
+                        logging.warning(f"Could not fetch checkin odometer: {e}")
                 
                 # Determinar idioma baseado no país
                 language = 'pt'
@@ -31665,20 +31683,16 @@ async def submit_self_checkout(token: str, request: Request):
                 }
                 labels = photo_labels.get(language, photo_labels['pt'])
                 
-                # Gerar URLs das fotos (base64 inline)
+                # Gerar URLs públicas das fotos (não usar base64 - emails bloqueiam)
+                base_url = "https://carscraping.up.railway.app"
                 photos_list = []
                 for photo_row in photo_rows:
                     photo_type = photo_row[0]
                     photo_data = photo_row[1]
                     
                     if photo_data:
-                        import base64
-                        if isinstance(photo_data, bytes):
-                            photo_base64 = base64.b64encode(photo_data).decode('utf-8')
-                        else:
-                            photo_base64 = photo_data
-                        
-                        photo_url = f"data:image/jpeg;base64,{photo_base64}"
+                        # Usar URL pública em vez de base64
+                        photo_url = f"{base_url}/email-photo/{inspection_id}/{photo_type}"
                         photo_label = labels.get(photo_type, labels.get('other', 'Photo'))
                         
                         photos_list.append({
@@ -35456,9 +35470,12 @@ async def send_inspection_email(request: Request, inspection_number: str):
                                 <span style="color: #009cb6; font-size: 14px; font-weight: 600;">R</span>
                             </td>
                             <td style="vertical-align: middle;">
-                                <div style="position: relative; width: 200px; height: 20px; background: #e5e7eb; border-radius: 10px; border: 1px solid #ccc; overflow: hidden;">
-                                    <div style="position: absolute; top: 0; left: 0; height: 100%; width: {fill_percentage}%; background: {fuel_color}; border-radius: 10px;"></div>
-                                </div>
+                                <table cellpadding="0" cellspacing="0" style="width: 200px; border: 1px solid #ccc; border-radius: 10px; background: #e5e7eb;">
+                                    <tr>
+                                        <td style="background: {fuel_color}; height: 20px; width: {fill_percentage}%; border-radius: 10px;"></td>
+                                        <td style="height: 20px;"></td>
+                                    </tr>
+                                </table>
                             </td>
                             <td style="padding-left: 15px; vertical-align: middle;">
                                 <span style="color: #009cb6; font-size: 14px; font-weight: 600;">F</span>
@@ -46149,7 +46166,6 @@ async def get_inspections_history(request: Request):
                         ra.rental_agreement_number = vi.contract_number 
                         OR ra.rental_agreement_number = SPLIT_PART(vi.contract_number, '-', 1)
                     )
-                    WHERE vi.status IS NULL OR vi.status NOT IN ('replaced', 'invalidated')
                     ORDER BY vi.created_at DESC
                     LIMIT 200
                 """)
@@ -46169,7 +46185,6 @@ async def get_inspections_history(request: Request):
                             THEN INSTR(vi.contract_number, '-') - 1 
                             ELSE LENGTH(vi.contract_number) END)
                     )
-                    WHERE vi.status IS NULL OR vi.status NOT IN ('replaced', 'invalidated')
                     ORDER BY vi.created_at DESC
                     LIMIT 200
                 """)
@@ -48837,37 +48852,32 @@ async def checkin_preview_ok(request: Request):
         # Fuel gauge (barra horizontal - design do checkout)
         fuel_percentage = fuel_level_checkin
         
+        # Gauge de combustível compatível com email (usando tabelas)
         fuel_gauge_html = f"""
-        <div style="max-width: 400px; margin: 0 auto;">
-            <!-- Labels R, 1/4, 1/2, 3/4, F -->
-            <div style="position: relative; height: 20px; margin-bottom: 5px;">
-                <span style="position: absolute; left: 0%; transform: translateX(-50%); font-size: 12px; font-weight: 600; color: #00bcd4;">R</span>
-                <span style="position: absolute; left: 25%; transform: translateX(-50%); font-size: 12px; font-weight: 600; color: #00bcd4;">1/4</span>
-                <span style="position: absolute; left: 50%; transform: translateX(-50%); font-size: 12px; font-weight: 600; color: #00bcd4;">1/2</span>
-                <span style="position: absolute; left: 75%; transform: translateX(-50%); font-size: 12px; font-weight: 600; color: #00bcd4;">3/4</span>
-                <span style="position: absolute; right: 0%; transform: translateX(50%); font-size: 12px; font-weight: 600; color: #00bcd4;">F</span>
-            </div>
-            
-            <!-- Barra de combustível -->
-            <div style="position: relative; background: white; border: 2px solid #00bcd4; border-radius: 8px; height: 32px; margin-bottom: 10px;">
-                <!-- Marcadores verticais -->
-                <div style="position: absolute; inset: 0; display: flex; align-items: center;">
-                    <div style="position: absolute; left: 0%; width: 2px; height: 16px; background: #00bcd4;"></div>
-                    <div style="position: absolute; left: 25%; width: 2px; height: 16px; background: #00bcd4;"></div>
-                    <div style="position: absolute; left: 50%; width: 2px; height: 16px; background: #00bcd4;"></div>
-                    <div style="position: absolute; left: 75%; width: 2px; height: 16px; background: #00bcd4;"></div>
-                    <div style="position: absolute; right: 0%; width: 2px; height: 16px; background: #00bcd4;"></div>
-                </div>
-                
-                <!-- Preenchimento -->
-                <div style="height: 100%; background: #00bcd4; border-radius: 6px; width: {fuel_percentage}%;"></div>
-            </div>
-            
-            <!-- Texto do nível -->
-            <div style="text-align: center;">
-                <span style="font-size: 14px; font-weight: 600; color: #1f2937;">Cheio</span>
-            </div>
-        </div>
+        <table width="100%" cellpadding="0" cellspacing="0" style="max-width: 350px; margin: 0 auto;">
+            <tr>
+                <td width="20%" style="text-align: left; font-size: 12px; font-weight: 600; color: #00bcd4; padding-bottom: 5px;">R</td>
+                <td width="20%" style="text-align: center; font-size: 12px; font-weight: 600; color: #00bcd4; padding-bottom: 5px;">1/4</td>
+                <td width="20%" style="text-align: center; font-size: 12px; font-weight: 600; color: #00bcd4; padding-bottom: 5px;">1/2</td>
+                <td width="20%" style="text-align: center; font-size: 12px; font-weight: 600; color: #00bcd4; padding-bottom: 5px;">3/4</td>
+                <td width="20%" style="text-align: right; font-size: 12px; font-weight: 600; color: #00bcd4; padding-bottom: 5px;">F</td>
+            </tr>
+            <tr>
+                <td colspan="5" style="padding: 0;">
+                    <table width="100%" cellpadding="0" cellspacing="0" style="border: 2px solid #00bcd4; border-radius: 8px;">
+                        <tr>
+                            <td style="background: #00bcd4; height: 28px; width: {fuel_percentage}%;"></td>
+                            <td style="background: #ffffff; height: 28px;"></td>
+                        </tr>
+                    </table>
+                </td>
+            </tr>
+            <tr>
+                <td colspan="5" style="text-align: center; padding-top: 10px;">
+                    <span style="font-size: 14px; font-weight: 600; color: #1f2937;">Cheio</span>
+                </td>
+            </tr>
+        </table>
         """
         
         # Croqui title e image (só croqui de entrega, sem danos extra)
@@ -48963,37 +48973,32 @@ async def checkin_preview_fuel(request: Request):
         # Fuel gauge (barra horizontal - design do checkout)
         fuel_percentage = 50
         
+        # Gauge de combustível compatível com email (usando tabelas)
         fuel_gauge_html = f"""
-        <div style="max-width: 400px; margin: 0 auto;">
-            <!-- Labels R, 1/4, 1/2, 3/4, F -->
-            <div style="position: relative; height: 20px; margin-bottom: 5px;">
-                <span style="position: absolute; left: 0%; transform: translateX(-50%); font-size: 12px; font-weight: 600; color: #00bcd4;">R</span>
-                <span style="position: absolute; left: 25%; transform: translateX(-50%); font-size: 12px; font-weight: 600; color: #00bcd4;">1/4</span>
-                <span style="position: absolute; left: 50%; transform: translateX(-50%); font-size: 12px; font-weight: 600; color: #00bcd4;">1/2</span>
-                <span style="position: absolute; left: 75%; transform: translateX(-50%); font-size: 12px; font-weight: 600; color: #00bcd4;">3/4</span>
-                <span style="position: absolute; right: 0%; transform: translateX(50%); font-size: 12px; font-weight: 600; color: #00bcd4;">F</span>
-            </div>
-            
-            <!-- Barra de combustível -->
-            <div style="position: relative; background: white; border: 2px solid #00bcd4; border-radius: 8px; height: 32px; margin-bottom: 10px;">
-                <!-- Marcadores verticais -->
-                <div style="position: absolute; inset: 0; display: flex; align-items: center;">
-                    <div style="position: absolute; left: 0%; width: 2px; height: 16px; background: #00bcd4;"></div>
-                    <div style="position: absolute; left: 25%; width: 2px; height: 16px; background: #00bcd4;"></div>
-                    <div style="position: absolute; left: 50%; width: 2px; height: 16px; background: #00bcd4;"></div>
-                    <div style="position: absolute; left: 75%; width: 2px; height: 16px; background: #00bcd4;"></div>
-                    <div style="position: absolute; right: 0%; width: 2px; height: 16px; background: #00bcd4;"></div>
-                </div>
-                
-                <!-- Preenchimento -->
-                <div style="height: 100%; background: #00bcd4; border-radius: 6px; width: {fuel_percentage}%;"></div>
-            </div>
-            
-            <!-- Texto do nível -->
-            <div style="text-align: center;">
-                <span style="font-size: 14px; font-weight: 600; color: #1f2937;">1/2</span>
-            </div>
-        </div>
+        <table width="100%" cellpadding="0" cellspacing="0" style="max-width: 350px; margin: 0 auto;">
+            <tr>
+                <td width="20%" style="text-align: left; font-size: 12px; font-weight: 600; color: #00bcd4; padding-bottom: 5px;">R</td>
+                <td width="20%" style="text-align: center; font-size: 12px; font-weight: 600; color: #00bcd4; padding-bottom: 5px;">1/4</td>
+                <td width="20%" style="text-align: center; font-size: 12px; font-weight: 600; color: #00bcd4; padding-bottom: 5px;">1/2</td>
+                <td width="20%" style="text-align: center; font-size: 12px; font-weight: 600; color: #00bcd4; padding-bottom: 5px;">3/4</td>
+                <td width="20%" style="text-align: right; font-size: 12px; font-weight: 600; color: #00bcd4; padding-bottom: 5px;">F</td>
+            </tr>
+            <tr>
+                <td colspan="5" style="padding: 0;">
+                    <table width="100%" cellpadding="0" cellspacing="0" style="border: 2px solid #00bcd4; border-radius: 8px;">
+                        <tr>
+                            <td style="background: #00bcd4; height: 28px; width: {fuel_percentage}%;"></td>
+                            <td style="background: #ffffff; height: 28px;"></td>
+                        </tr>
+                    </table>
+                </td>
+            </tr>
+            <tr>
+                <td colspan="5" style="text-align: center; padding-top: 10px;">
+                    <span style="font-size: 14px; font-weight: 600; color: #1f2937;">1/2</span>
+                </td>
+            </tr>
+        </table>
         """
         
         # Croqui title e image (só croqui de entrega, sem danos extra)
@@ -49088,37 +49093,32 @@ async def checkin_preview_damages(request: Request):
         # Fuel gauge (barra horizontal - design do checkout)
         fuel_percentage = 100
         
+        # Gauge de combustível compatível com email (usando tabelas)
         fuel_gauge_html = f"""
-        <div style="max-width: 400px; margin: 0 auto;">
-            <!-- Labels R, 1/4, 1/2, 3/4, F -->
-            <div style="position: relative; height: 20px; margin-bottom: 5px;">
-                <span style="position: absolute; left: 0%; transform: translateX(-50%); font-size: 12px; font-weight: 600; color: #00bcd4;">R</span>
-                <span style="position: absolute; left: 25%; transform: translateX(-50%); font-size: 12px; font-weight: 600; color: #00bcd4;">1/4</span>
-                <span style="position: absolute; left: 50%; transform: translateX(-50%); font-size: 12px; font-weight: 600; color: #00bcd4;">1/2</span>
-                <span style="position: absolute; left: 75%; transform: translateX(-50%); font-size: 12px; font-weight: 600; color: #00bcd4;">3/4</span>
-                <span style="position: absolute; right: 0%; transform: translateX(50%); font-size: 12px; font-weight: 600; color: #00bcd4;">F</span>
-            </div>
-            
-            <!-- Barra de combustível -->
-            <div style="position: relative; background: white; border: 2px solid #00bcd4; border-radius: 8px; height: 32px; margin-bottom: 10px;">
-                <!-- Marcadores verticais -->
-                <div style="position: absolute; inset: 0; display: flex; align-items: center;">
-                    <div style="position: absolute; left: 0%; width: 2px; height: 16px; background: #00bcd4;"></div>
-                    <div style="position: absolute; left: 25%; width: 2px; height: 16px; background: #00bcd4;"></div>
-                    <div style="position: absolute; left: 50%; width: 2px; height: 16px; background: #00bcd4;"></div>
-                    <div style="position: absolute; left: 75%; width: 2px; height: 16px; background: #00bcd4;"></div>
-                    <div style="position: absolute; right: 0%; width: 2px; height: 16px; background: #00bcd4;"></div>
-                </div>
-                
-                <!-- Preenchimento -->
-                <div style="height: 100%; background: #00bcd4; border-radius: 6px; width: {fuel_percentage}%;"></div>
-            </div>
-            
-            <!-- Texto do nível -->
-            <div style="text-align: center;">
-                <span style="font-size: 14px; font-weight: 600; color: #1f2937;">Cheio</span>
-            </div>
-        </div>
+        <table width="100%" cellpadding="0" cellspacing="0" style="max-width: 350px; margin: 0 auto;">
+            <tr>
+                <td width="20%" style="text-align: left; font-size: 12px; font-weight: 600; color: #00bcd4; padding-bottom: 5px;">R</td>
+                <td width="20%" style="text-align: center; font-size: 12px; font-weight: 600; color: #00bcd4; padding-bottom: 5px;">1/4</td>
+                <td width="20%" style="text-align: center; font-size: 12px; font-weight: 600; color: #00bcd4; padding-bottom: 5px;">1/2</td>
+                <td width="20%" style="text-align: center; font-size: 12px; font-weight: 600; color: #00bcd4; padding-bottom: 5px;">3/4</td>
+                <td width="20%" style="text-align: right; font-size: 12px; font-weight: 600; color: #00bcd4; padding-bottom: 5px;">F</td>
+            </tr>
+            <tr>
+                <td colspan="5" style="padding: 0;">
+                    <table width="100%" cellpadding="0" cellspacing="0" style="border: 2px solid #00bcd4; border-radius: 8px;">
+                        <tr>
+                            <td style="background: #00bcd4; height: 28px; width: {fuel_percentage}%;"></td>
+                            <td style="background: #ffffff; height: 28px;"></td>
+                        </tr>
+                    </table>
+                </td>
+            </tr>
+            <tr>
+                <td colspan="5" style="text-align: center; padding-top: 10px;">
+                    <span style="font-size: 14px; font-weight: 600; color: #1f2937;">Cheio</span>
+                </td>
+            </tr>
+        </table>
         """
         
         # Croqui title e image (combinado: entrega + recolha)
