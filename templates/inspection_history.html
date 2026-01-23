@@ -3097,14 +3097,6 @@
                                         </div>
                                     </div>
                                     
-                                    <!-- Descrição dos Danos -->
-                                    <div class="bg-white border border-gray-200 rounded-lg p-4">
-                                        <label class="block text-sm font-semibold text-gray-700 mb-2">Descrição dos Danos</label>
-                                        <textarea id="invalidateDamageDescription" rows="3" 
-                                                  class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-cyan-500 resize-none"
-                                                  placeholder="Descreva os danos detectados..."></textarea>
-                                    </div>
-                                    
                                     <!-- Observações -->
                                     <div class="bg-white border border-gray-200 rounded-lg p-4">
                                         <label class="block text-sm font-semibold text-gray-700 mb-2">Observações Adicionais</label>
@@ -3439,6 +3431,60 @@
                 return;
             }
             
+            // Mostrar countdown overlay
+            const photoNum = invalidatePhotos.length + 1;
+            const countdownOverlay = document.createElement('div');
+            countdownOverlay.id = 'invalidateCountdownOverlay';
+            countdownOverlay.style.cssText = `
+                position: fixed;
+                top: 0;
+                left: 0;
+                right: 0;
+                bottom: 0;
+                width: 100vw;
+                height: 100vh;
+                background: rgba(0, 188, 212, 0.92);
+                display: flex;
+                flex-direction: column;
+                align-items: center;
+                justify-content: center;
+                z-index: 99999;
+            `;
+            
+            countdownOverlay.innerHTML = `
+                <div style="text-align: center; padding: 20px;">
+                    <svg style="width: 100px; height: 100px; margin-bottom: 30px;" fill="white" viewBox="0 0 24 24">
+                        <path d="M9 2L7.17 4H4c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2h-3.17L15 2H9zm3 15c-2.76 0-5-2.24-5-5s2.24-5 5-5 5 2.24 5 5-2.24 5-5 5z"/>
+                    </svg>
+                    <div style="font-size: 100px; font-weight: bold; color: white; text-shadow: 0 4px 12px rgba(0,0,0,0.3);" id="invCountdownNumber">3</div>
+                    <p style="color: white; font-size: 22px; margin-top: 25px; font-weight: 600; text-shadow: 0 2px 4px rgba(0,0,0,0.3);">Foto de Dano ${photoNum}</p>
+                    <p style="color: rgba(255,255,255,0.85); font-size: 16px; margin-top: 12px;">Prepare a câmera para fotografar o dano</p>
+                </div>
+            `;
+            
+            document.body.appendChild(countdownOverlay);
+            document.body.style.overflow = 'hidden';
+            
+            // Countdown animation
+            let count = 3;
+            const numberEl = document.getElementById('invCountdownNumber');
+            
+            const interval = setInterval(() => {
+                count--;
+                if (count > 0) {
+                    numberEl.textContent = count;
+                    numberEl.style.transform = 'scale(1.2)';
+                    setTimeout(() => numberEl.style.transform = 'scale(1)', 150);
+                } else {
+                    clearInterval(interval);
+                    countdownOverlay.remove();
+                    document.body.style.overflow = '';
+                    openInvalidateCamera();
+                }
+            }, 1000);
+        }
+        
+        function openInvalidateCamera() {
             const input = document.createElement('input');
             input.type = 'file';
             input.accept = 'image/*';
@@ -3518,11 +3564,10 @@
             try {
                 const fuel = parseInt(document.getElementById('invalidateFuel').value) || 0;
                 const kms = document.getElementById('invalidateKms').value;
-                const damageDescription = document.getElementById('invalidateDamageDescription').value.trim();
                 const observations = document.getElementById('invalidateObservations').value.trim();
                 
                 // Validate - must have either damages or fuel warning
-                const hasDamages = invalidateDamages.length > 0 || invalidatePhotos.length > 0 || damageDescription;
+                const hasDamages = invalidateDamages.length > 0 || invalidatePhotos.length > 0;
                 const hasFuelWarning = fuel < checkinFuel;
                 
                 if (!hasDamages && !hasFuelWarning) {
@@ -3543,7 +3588,7 @@
                         odometer_reading: kms ? parseInt(kms) : null,
                         damage_croqui: finalCroqui,
                         damage_photos: invalidatePhotos,
-                        damage_description: damageDescription,
+                        damage_description: '',
                         observations: observations,
                         checkin_fuel: checkinFuel,
                         has_damages: hasDamages,
