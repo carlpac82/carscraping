@@ -31606,22 +31606,33 @@ async def submit_self_checkout(token: str, request: Request):
                 # SEMPRE buscar pickup_km da inspeção de checkin (entrega ao cliente = início do aluguer)
                 # Não usar extracted_data porque já foi atualizado com o odometer do self-checkout
                 try:
+                    # Primeiro, listar todas as inspeções deste contrato para debug
                     if is_postgres:
                         cursor.execute("""
-                            SELECT odometer_reading FROM vehicle_inspections
-                            WHERE contract_number = %s AND inspection_type = 'checkin'
-                            ORDER BY created_at ASC LIMIT 1
+                            SELECT inspection_type, odometer_reading FROM vehicle_inspections
+                            WHERE contract_number = %s
+                            ORDER BY created_at ASC
                         """, (ra_number,))
                     else:
                         cursor.execute("""
-                            SELECT odometer_reading FROM vehicle_inspections
-                            WHERE contract_number = ? AND inspection_type = 'checkin'
-                            ORDER BY created_at ASC LIMIT 1
+                            SELECT inspection_type, odometer_reading FROM vehicle_inspections
+                            WHERE contract_number = ?
+                            ORDER BY created_at ASC
                         """, (ra_number,))
-                    checkin_row = cursor.fetchone()
-                    if checkin_row and checkin_row[0]:
-                        pickup_km = int(checkin_row[0])
-                        logging.info(f"📊 Found checkin odometer: {pickup_km} km for RA {ra_number}")
+                    all_inspections = cursor.fetchall()
+                    logging.info(f"📊 All inspections for RA {ra_number}: {all_inspections}")
+                    
+                    # Buscar checkin - tentar 'checkin' e 'check-in'
+                    for insp in all_inspections:
+                        insp_type = insp[0].lower() if insp[0] else ''
+                        if insp_type in ['checkin', 'check-in', 'delivery', 'entrega']:
+                            if insp[1]:
+                                pickup_km = int(insp[1])
+                                logging.info(f"📊 Found checkin odometer: {pickup_km} km for RA {ra_number} (type: {insp[0]})")
+                                break
+                    
+                    if pickup_km == 0:
+                        logging.warning(f"⚠️ No checkin found for RA {ra_number}, pickup_km remains 0")
                 except Exception as e:
                     logging.warning(f"Could not fetch checkin odometer: {e}")
                 
