@@ -4022,6 +4022,10 @@ def init_db():
                         cur.execute("ALTER TABLE rental_agreements ADD COLUMN self_checkout_inspection_id INTEGER")
                         logging.info("✅ Coluna self_checkout_inspection_id adicionada (PostgreSQL)")
                     
+                    if 'status' not in existing_columns:
+                        cur.execute("ALTER TABLE rental_agreements ADD COLUMN status TEXT DEFAULT 'active'")
+                        logging.info("✅ Coluna status adicionada (PostgreSQL)")
+                    
                     conn.commit()
             else:
                 # SQLite: Usar try/except
@@ -33444,6 +33448,13 @@ async def invalidate_self_checkout(request: Request):
                     INSERT INTO inspection_photos (inspection_id, photo_type, image_data, created_at)
                     VALUES (?, ?, ?, CURRENT_TIMESTAMP)
                 """, (inspection_id, f'invalidate_damage_{idx+1}', photo_base64))
+        
+        # Fechar contrato (marcar status como closed)
+        if ra_id:
+            if is_postgres:
+                cursor.execute("UPDATE rental_agreements SET status = 'closed' WHERE id = %s", (ra_id,))
+            else:
+                cursor.execute("UPDATE rental_agreements SET status = 'closed' WHERE id = ?", (ra_id,))
         
         conn.commit()
         
