@@ -4890,7 +4890,28 @@ def _send_self_checkin_confirmation_email(
         greeting = greetings.get(language, greetings['pt'])
         
         # Gerar gauge de combustível (barra horizontal R---F)
-        fuel_percentage = inspection_data.get('fuel_level', 100)
+        fuel_level_raw = inspection_data.get('fuel_level', 100)
+        
+        # Converter fuel_level para percentagem numérica
+        if isinstance(fuel_level_raw, str):
+            fuel_level_lower = fuel_level_raw.lower().strip()
+            if fuel_level_lower in ('full', 'cheio', 'f'):
+                fuel_percentage = 100
+            elif fuel_level_lower in ('empty', 'vazio', 'e', 'reserva', 'reserve'):
+                fuel_percentage = 0
+            elif '/' in fuel_level_raw:
+                try:
+                    parts = fuel_level_raw.split('/')
+                    fuel_percentage = int((int(parts[0].strip()) / int(parts[1].strip())) * 100)
+                except:
+                    fuel_percentage = 50
+            else:
+                try:
+                    fuel_percentage = int(fuel_level_raw)
+                except:
+                    fuel_percentage = 50
+        else:
+            fuel_percentage = int(fuel_level_raw) if fuel_level_raw else 50
         
         # Determinar texto do nível
         fuel_texts = {
@@ -5231,7 +5252,28 @@ def _send_self_checkout_submitted_email(
         greeting = greetings.get(language, greetings['pt'])
         
         # Gerar gauge de combustível (barra horizontal R---F)
-        fuel_percentage = inspection_data.get('fuel_level', 100)
+        fuel_level_raw = inspection_data.get('fuel_level', 100)
+        
+        # Converter fuel_level para percentagem numérica
+        if isinstance(fuel_level_raw, str):
+            fuel_level_lower = fuel_level_raw.lower().strip()
+            if fuel_level_lower in ('full', 'cheio', 'f'):
+                fuel_percentage = 100
+            elif fuel_level_lower in ('empty', 'vazio', 'e', 'reserva', 'reserve'):
+                fuel_percentage = 0
+            elif '/' in fuel_level_raw:
+                try:
+                    parts = fuel_level_raw.split('/')
+                    fuel_percentage = int((int(parts[0].strip()) / int(parts[1].strip())) * 100)
+                except:
+                    fuel_percentage = 50
+            else:
+                try:
+                    fuel_percentage = int(fuel_level_raw)
+                except:
+                    fuel_percentage = 50
+        else:
+            fuel_percentage = int(fuel_level_raw) if fuel_level_raw else 50
         
         # Determinar texto do nível
         fuel_texts = {
