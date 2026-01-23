@@ -47487,9 +47487,11 @@ async def get_inspection_details(inspection_number: str, request: Request):
                     # Add checkout photos to photos_rows
                     photos_rows.extend(checkout_photos)
             
+            logging.info(f"📷 Found {len(photos_rows)} photos for inspection {inspection_number}")
             for photo_row in photos_rows:
                 photo_type = photo_row[0]
                 image_data = photo_row[1]
+                logging.info(f"📷 Processing photo: {photo_type}, has_data={image_data is not None}")
                 if image_data:
                     try:
                         # Debug logging for photo data type
