@@ -2871,6 +2871,7 @@
             const hasIncidence = newFuel < checkinFuel;
             
             try {
+                console.log('📸 Saving with odometer photo:', odometerPhotoData ? `${odometerPhotoData.substring(0, 50)}... (${odometerPhotoData.length} chars)` : 'NO PHOTO');
                 const response = await fetch('/api/self-checkout/edit-and-validate', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },

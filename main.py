@@ -33006,18 +33006,23 @@ async def edit_and_validate_self_checkout(request: Request):
         
         # Guardar foto do odómetro como prova (se fornecida)
         if odometer_photo:
+            logging.info(f"📸 Received odometer_photo for inspection {inspection_number}, length: {len(odometer_photo) if odometer_photo else 0}")
             try:
                 if is_postgres:
                     # Guardar na inspeção de self-checkout
-                    cursor.execute("INSERT INTO inspection_photos (inspection_id, photo_type, image_data, created_at) VALUES (%s, 'odometer_proof', %s, NOW())", (inspection_id, odometer_photo))
+                    cursor.execute("INSERT INTO inspection_photos (inspection_id, photo_type, image_data, photo_order, created_at) VALUES (%s, 'odometer_proof', %s, 99, NOW())", (inspection_id, odometer_photo))
                     # Também guardar na inspeção de checkout
-                    cursor.execute("INSERT INTO inspection_photos (inspection_id, photo_type, image_data, created_at) VALUES (%s, 'odometer_proof', %s, NOW())", (checkout_id, odometer_photo))
+                    cursor.execute("INSERT INTO inspection_photos (inspection_id, photo_type, image_data, photo_order, created_at) VALUES (%s, 'odometer_proof', %s, 99, NOW())", (checkout_id, odometer_photo))
                 else:
-                    cursor.execute("INSERT INTO inspection_photos (inspection_id, photo_type, image_data, created_at) VALUES (?, 'odometer_proof', ?, datetime('now'))", (inspection_id, odometer_photo))
-                    cursor.execute("INSERT INTO inspection_photos (inspection_id, photo_type, image_data, created_at) VALUES (?, 'odometer_proof', ?, datetime('now'))", (checkout_id, odometer_photo))
-                logging.info(f"📸 Odometer proof photo saved for inspection {inspection_number}")
+                    cursor.execute("INSERT INTO inspection_photos (inspection_id, photo_type, image_data, photo_order, created_at) VALUES (?, 'odometer_proof', ?, 99, datetime('now'))", (inspection_id, odometer_photo))
+                    cursor.execute("INSERT INTO inspection_photos (inspection_id, photo_type, image_data, photo_order, created_at) VALUES (?, 'odometer_proof', ?, 99, datetime('now'))", (checkout_id, odometer_photo))
+                logging.info(f"📸 Odometer proof photo saved for inspection {inspection_number} (self_checkout_id={inspection_id}, checkout_id={checkout_id})")
             except Exception as photo_err:
-                logging.warning(f"Failed to save odometer photo: {photo_err}")
+                logging.error(f"❌ Failed to save odometer photo: {photo_err}")
+                import traceback
+                traceback.print_exc()
+        else:
+            logging.info(f"📷 No odometer_photo provided for inspection {inspection_number}")
         
         # Atualizar KMs no gestor de frota
         if is_postgres:
