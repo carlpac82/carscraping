@@ -35226,6 +35226,17 @@ async def delete_inspection(request: Request, inspection_number: str):
                 inspections_deleted = cur.rowcount
                 logging.info(f"🗑️ Deleted {inspections_deleted} inspection(s)")
                 
+                # Reset flags in rental_agreements
+                cur.execute("""
+                    UPDATE rental_agreements 
+                    SET inspection_completed = FALSE, 
+                        inspection_id = NULL,
+                        self_checkout_pending = FALSE,
+                        self_checkout_inspection_id = NULL
+                    WHERE rental_agreement_number = %s
+                """, (contract_number,))
+                logging.info(f"🔄 Reset rental_agreement flags for RA: {contract_number}")
+                
             conn.commit()
         else:
             # First, get the contract_number (RA) from the inspection
@@ -35253,6 +35264,17 @@ async def delete_inspection(request: Request, inspection_number: str):
             conn.execute("""
                 DELETE FROM vehicle_inspections WHERE contract_number = ?
             """, (contract_number,))
+            
+            # Reset flags in rental_agreements
+            conn.execute("""
+                UPDATE rental_agreements 
+                SET inspection_completed = 0, 
+                    inspection_id = NULL,
+                    self_checkout_pending = 0,
+                    self_checkout_inspection_id = NULL
+                WHERE rental_agreement_number = ?
+            """, (contract_number,))
+            logging.info(f"🔄 Reset rental_agreement flags for RA: {contract_number}")
             
             conn.commit()
         
