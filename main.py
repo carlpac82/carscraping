@@ -31667,18 +31667,24 @@ async def submit_self_checkout(token: str, request: Request):
                 # Labels das fotos por idioma
                 photo_labels = {
                     'pt': {
-                        'front': 'Frente', 'rear': 'Traseira', 'left': 'Esquerda',
-                        'right': 'Direita', 'dashboard': 'Painel', 'interior': 'Interior',
+                        'front': 'Frente', 'front_left': 'Frente Esquerda', 'left': 'Esquerda',
+                        'back_left': 'Traseira Esquerda', 'back': 'Traseira', 'back_right': 'Traseira Direita',
+                        'right': 'Direita', 'front_right': 'Frente Direita', 'odometer': 'Conta-Km',
+                        'rear': 'Traseira', 'dashboard': 'Painel', 'interior': 'Interior',
                         'trunk': 'Bagageira', 'roof': 'Tejadilho', 'other': 'Outra'
                     },
                     'en': {
-                        'front': 'Front', 'rear': 'Rear', 'left': 'Left',
-                        'right': 'Right', 'dashboard': 'Dashboard', 'interior': 'Interior',
+                        'front': 'Front', 'front_left': 'Front Left', 'left': 'Left',
+                        'back_left': 'Back Left', 'back': 'Back', 'back_right': 'Back Right',
+                        'right': 'Right', 'front_right': 'Front Right', 'odometer': 'Odometer',
+                        'rear': 'Rear', 'dashboard': 'Dashboard', 'interior': 'Interior',
                         'trunk': 'Trunk', 'roof': 'Roof', 'other': 'Other'
                     },
                     'fr': {
-                        'front': 'Avant', 'rear': 'Arrière', 'left': 'Gauche',
-                        'right': 'Droite', 'dashboard': 'Tableau de bord', 'interior': 'Intérieur',
+                        'front': 'Avant', 'front_left': 'Avant Gauche', 'left': 'Gauche',
+                        'back_left': 'Arrière Gauche', 'back': 'Arrière', 'back_right': 'Arrière Droite',
+                        'right': 'Droite', 'front_right': 'Avant Droite', 'odometer': 'Compteur',
+                        'rear': 'Arrière', 'dashboard': 'Tableau de bord', 'interior': 'Intérieur',
                         'trunk': 'Coffre', 'roof': 'Toit', 'other': 'Autre'
                     }
                 }
