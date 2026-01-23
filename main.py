@@ -33383,8 +33383,8 @@ async def invalidate_self_checkout(request: Request):
                 SET status = 'invalidated',
                     fuel_level = %s,
                     odometer_reading = COALESCE(%s, odometer_reading),
-                    damage_notes = %s,
-                    has_damages = %s
+                    observations = %s,
+                    has_damage = %s
                 WHERE id = %s
             """, (fuel_level, odometer_reading, damage_description, has_damages, inspection_id))
         else:
@@ -33393,8 +33393,8 @@ async def invalidate_self_checkout(request: Request):
                 SET status = 'invalidated',
                     fuel_level = ?,
                     odometer_reading = COALESCE(?, odometer_reading),
-                    damage_notes = ?,
-                    has_damages = ?
+                    observations = ?,
+                    has_damage = ?
                 WHERE id = ?
             """, (fuel_level, odometer_reading, damage_description, has_damages, inspection_id))
         
