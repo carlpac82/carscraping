@@ -46233,12 +46233,17 @@ async def get_inspections_history(request: Request):
                         if not damage_croqui.startswith('data:'):
                             damage_croqui = f'data:image/png;base64,{damage_croqui}'
                 
+                # For self_checkout, use client_name instead of inspector_name
+                inspector_name_for_display = row[4]
+                if inspection_type == 'self_checkout' and client_name:
+                    inspector_name_for_display = client_name
+                
                 inspection_data = {
                     "inspection_number": row[0],
                     "vehicle_plate": row[1],
                     "contract_number": row[2],
                     "inspection_type": row[3],
-                    "inspector_name": row[4],
+                    "inspector_name": inspector_name_for_display,
                     "created_at": str(row[5]) if row[5] else None,
                     "fuel_level": row[6],
                     "odometer_reading": row[7],
