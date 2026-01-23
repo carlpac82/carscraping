@@ -31517,7 +31517,7 @@ async def submit_self_checkout(token: str, request: Request):
             if is_postgres:
                 cursor.execute("""
                     SELECT 
-                        ra.extracted_data, ra.client_email,
+                        ra.extracted_data, ra.client_email, ra.self_checkin_email,
                         v.marca, v.modelo
                     FROM rental_agreements ra
                     LEFT JOIN vehicles v ON ra.vehicle_id = v.id
@@ -31526,7 +31526,7 @@ async def submit_self_checkout(token: str, request: Request):
             else:
                 cursor.execute("""
                     SELECT 
-                        ra.extracted_data, ra.client_email,
+                        ra.extracted_data, ra.client_email, ra.self_checkin_email,
                         v.marca, v.modelo
                     FROM rental_agreements ra
                     LEFT JOIN vehicles v ON ra.vehicle_id = v.id
@@ -31536,10 +31536,14 @@ async def submit_self_checkout(token: str, request: Request):
             ra_row = cursor.fetchone()
             if ra_row:
                 ra_extracted = ra_row[0]
-                client_email = ra_row[1] or ''
-                vehicle_brand = ra_row[2] or ''
-                vehicle_model = ra_row[3] or ''
+                ra_client_email = ra_row[1] or ''
+                self_checkin_email = ra_row[2] or ''
+                vehicle_brand = ra_row[3] or ''
+                vehicle_model = ra_row[4] or ''
                 client_name = ''
+                
+                # Prioridade: self_checkin_email (email do reenvio) > client_email do RA > extracted_data
+                client_email = self_checkin_email or ra_client_email
                 
                 # Extrair client_name e client_email do extracted_data se disponível
                 if ra_extracted:
