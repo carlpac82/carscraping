@@ -33509,7 +33509,7 @@ async def invalidate_self_checkout(request: Request):
         
         return JSONResponse({
             "success": True,
-            "message": "Self-checkout invalidado. Email enviado ao cliente.",
+            "message": "Self-checkout com incidentes registado. Email enviado ao cliente.",
             "email_sent": email_sent
         })
         
@@ -33568,7 +33568,7 @@ async def _send_invalidation_email(
         if has_fuel_warning:
             subject_parts.append("Advertência de Combustível")
         
-        subject = f"⚠️ Self-Checkout Invalidado - {' e '.join(subject_parts)} - {plate}"
+        subject = f"⚠️ Self-Checkout com Incidentes - {' e '.join(subject_parts)} - {plate}"
         
         # Build HTML content using the same template as warning emails
         html_content = f'''
