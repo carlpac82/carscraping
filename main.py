@@ -46107,6 +46107,7 @@ async def get_inspections_history(request: Request):
                         ra.rental_agreement_number = vi.contract_number 
                         OR ra.rental_agreement_number = SPLIT_PART(vi.contract_number, '-', 1)
                     )
+                    WHERE vi.status IS NULL OR vi.status NOT IN ('replaced', 'invalidated')
                     ORDER BY vi.created_at DESC
                     LIMIT 200
                 """)
@@ -46126,6 +46127,7 @@ async def get_inspections_history(request: Request):
                             THEN INSTR(vi.contract_number, '-') - 1 
                             ELSE LENGTH(vi.contract_number) END)
                     )
+                    WHERE vi.status IS NULL OR vi.status NOT IN ('replaced', 'invalidated')
                     ORDER BY vi.created_at DESC
                     LIMIT 200
                 """)
