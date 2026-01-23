@@ -1136,7 +1136,7 @@
                                      data-photo-key="odometer_proof"
                                      onerror="this.style.display='none'">
                                 <p class="text-xs text-gray-500 mt-2">${inspection.created_at ? new Date(inspection.created_at).toLocaleString('pt-PT', {day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit'}) : ''}</p>
-                                <p class="text-xs text-gray-600">Por: ${inspection.inspector_name ? getFirstLastName(inspection.inspector_name) : 'N/A'}</p>
+                                <p class="text-xs text-gray-600">Por: ${currentUser ? getFirstLastName((currentUser.first_name || '') + ' ' + (currentUser.last_name || '')) : 'N/A'}</p>
                             </div>
                         `;
                     }
