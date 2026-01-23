@@ -31376,7 +31376,8 @@ async def submit_self_checkout(token: str, request: Request):
         inspection_number = f"SC-{ra_number}-{datetime.datetime.now().strftime('%Y%m%d%H%M%S')}"
         
         # Extrair dados do formulário
-        odometer = data.get('odometer')
+        odometer_raw = data.get('odometer')
+        odometer = int(odometer_raw) if odometer_raw else 0
         fuel_level = data.get('fuel_level')
         photos = data.get('photos', {})  # 9 fotos da grid
         damage_photos = data.get('damage_photos', [])  # fotos de danos
@@ -31639,7 +31640,13 @@ async def submit_self_checkout(token: str, request: Request):
                 client_last_name = name_parts[1] if len(name_parts) > 1 else ''
                 
                 # Calcular kms percorridos
-                kms_driven = max(0, odometer - pickup_km) if odometer and pickup_km else 0
+                logging.info(f"📊 KMs calculation: odometer={odometer} (type={type(odometer).__name__}), pickup_km={pickup_km} (type={type(pickup_km).__name__})")
+                # Usar 'is not None' em vez de truthy check para permitir valores 0
+                if odometer is not None and pickup_km is not None:
+                    kms_driven = max(0, odometer - pickup_km)
+                else:
+                    kms_driven = 0
+                logging.info(f"📊 KMs driven calculated: {kms_driven} km")
                 
                 # Buscar fotos da inspeção
                 if is_postgres:
