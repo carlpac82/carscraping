@@ -312,15 +312,15 @@
         }
 
         function updateStats() {
-            // Count self-checkouts by status
+            // Count self-checkouts by status (usar contract.self_checkout)
             let pendingCount = 0;
             let warnedCount = 0;
             let totalSelfCheckouts = 0;
             
             contracts.forEach(contract => {
-                if (contract.checkin && contract.checkin.is_self_checkin) {
+                if (contract.self_checkout) {
                     totalSelfCheckouts++;
-                    const status = contract.checkin.status || 'pending';
+                    const status = contract.self_checkout.status || 'pending';
                     if (status === 'pending') pendingCount++;
                     if (status === 'warned') warnedCount++;
                 }
@@ -366,11 +366,11 @@
             // Filter by self-checkout type
             if (filterSelfCheckout !== 'all') {
                 filtered = filtered.filter(c => {
-                    const isSelfCheckout = c.checkin && c.checkin.is_self_checkin;
+                    const hasSelfCheckout = c.self_checkout !== null;
                     if (filterSelfCheckout === 'self') {
-                        return isSelfCheckout;
+                        return hasSelfCheckout;
                     } else if (filterSelfCheckout === 'manual') {
-                        return !isSelfCheckout;
+                        return !hasSelfCheckout;
                     }
                     return true;
                 });
@@ -379,8 +379,8 @@
             // Filter by status
             if (filterStatus !== 'all') {
                 filtered = filtered.filter(c => {
-                    if (c.checkin && c.checkin.is_self_checkin) {
-                        const status = c.checkin.status || 'pending';
+                    if (c.self_checkout) {
+                        const status = c.self_checkout.status || 'pending';
                         return status === filterStatus;
                     }
                     return false;
@@ -466,24 +466,40 @@
                     const isClosed = hasCheckout && hasCheckin;
                     const isPendingValidation = hasSelfCheckout && !hasCheckout;
                     
-                    // Self-checkout status badge
+                    // Self-checkout status badge com ícones SVG monocromáticos
                     let selfCheckoutBadge = '';
-                    if (hasCheckin && contract.checkin.is_self_checkin) {
-                        const status = contract.checkin.status || 'pending';
+                    if (hasSelfCheckout) {
+                        const status = contract.self_checkout.status || 'pending';
                         if (status === 'pending') {
-                            selfCheckoutBadge = '<span class="px-2 py-1 rounded-full text-xs font-semibold bg-yellow-100 text-yellow-700 ml-2">⏳ PENDENTE</span>';
+                            // Laranja com relógio
+                            selfCheckoutBadge = `<span class="px-2 py-1 rounded-full text-xs font-semibold bg-orange-100 text-orange-700 flex items-center gap-1">
+                                <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                                Self-checkout pendente
+                            </span>`;
                         } else if (status === 'validated') {
-                            selfCheckoutBadge = '<span class="px-2 py-1 rounded-full text-xs font-semibold bg-green-100 text-green-700 ml-2">✓ VALIDADO</span>';
+                            // Verde com check
+                            selfCheckoutBadge = `<span class="px-2 py-1 rounded-full text-xs font-semibold bg-green-100 text-green-700 flex items-center gap-1">
+                                <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg>
+                                Self-checkout validado
+                            </span>`;
                         } else if (status === 'warned') {
-                            selfCheckoutBadge = '<span class="px-2 py-1 rounded-full text-xs font-semibold bg-orange-100 text-orange-700 ml-2">⚠ DIVERGÊNCIAS</span>';
+                            // Laranja com triângulo
+                            selfCheckoutBadge = `<span class="px-2 py-1 rounded-full text-xs font-semibold bg-orange-100 text-orange-700 flex items-center gap-1">
+                                <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/></svg>
+                                Self-checkout divergências
+                            </span>`;
                         } else if (status === 'invalidated') {
-                            selfCheckoutBadge = '<span class="px-2 py-1 rounded-full text-xs font-semibold bg-red-100 text-red-700 ml-2">✗ INVALIDADO</span>';
+                            // Vermelho com triângulo
+                            selfCheckoutBadge = `<span class="px-2 py-1 rounded-full text-xs font-semibold bg-red-100 text-red-700 flex items-center gap-1">
+                                <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/></svg>
+                                Self-checkout incidência
+                            </span>`;
                         }
                     }
                     
                     let statusBadge;
                     if (isPendingValidation) {
-                        statusBadge = '<span class="px-3 py-1 rounded-full text-xs font-semibold bg-yellow-100 text-yellow-700">⏳ PENDENTE VALIDAÇÃO</span>';
+                        statusBadge = '<span class="px-3 py-1 rounded-full text-xs font-semibold bg-yellow-100 text-yellow-700">PENDENTE VALIDAÇÃO</span>';
                     } else if (isOpen) {
                         statusBadge = '<span class="px-3 py-1 rounded-full text-xs font-semibold bg-green-100 text-green-700">CONTRATO ABERTO</span>';
                     } else {
@@ -505,9 +521,8 @@
                                         <span class="font-bold text-gray-900 text-xl">${contract.vehicle_plate || 'N/A'}</span>
                                         <span class="text-gray-600 text-sm">RA: ${contract.contract_number || 'N/A'}</span>
                                     </div>
-                                    <div class="flex items-center gap-2">
+                                    <div class="flex items-center gap-2 flex-wrap">
                                         ${statusBadge}
-                                        ${hasSelfCheckout ? '<span class="px-2 py-1 rounded-full text-xs font-semibold bg-purple-100 text-purple-700">🚗 SELF-CHECKOUT</span>' : ''}
                                         ${selfCheckoutBadge}
                                     </div>
                                 </div>
@@ -546,20 +561,29 @@
                                         <span class="hidden sm:inline text-sm font-medium text-green-600">Entrega</span>
                                     </button>
                                     ` : ''}
-                                    ${hasCheckin && contract.checkin.is_self_checkin && contract.checkin.status === 'pending' ? `
-                                    <button onclick="validateSelfCheckin('${contract.checkin.inspection_number}')" class="flex items-center gap-2 px-3 py-2 bg-blue-50 hover:bg-blue-100 rounded-lg transition-colors" title="Validar Self Check-in">
+                                    ${hasSelfCheckout ? `
+                                    <button onclick="previewSelfCheckout('${contract.self_checkout.inspection_number}')" class="flex items-center gap-2 px-3 py-2 bg-purple-50 hover:bg-purple-100 rounded-lg transition-colors" title="Ver Self-Checkout do Cliente">
+                                        <svg class="w-6 h-6 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/>
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/>
+                                        </svg>
+                                        <span class="hidden sm:inline text-sm font-medium text-purple-600">Ver Self-Checkout</span>
+                                    </button>
+                                    ` : ''}
+                                    ${hasSelfCheckout && (contract.self_checkout.status === 'pending' || !contract.self_checkout.status) ? `
+                                    <button onclick="validateSelfCheckout('${contract.self_checkout.inspection_number}')" class="flex items-center gap-2 px-3 py-2 bg-blue-50 hover:bg-blue-100 rounded-lg transition-colors" title="Validar Self-Checkout">
                                         <svg class="w-6 h-6 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
                                         </svg>
                                         <span class="hidden sm:inline text-sm font-medium text-blue-600">Validar</span>
                                     </button>
-                                    <button onclick="warnSelfCheckin('${contract.checkin.inspection_number}')" class="flex items-center gap-2 px-3 py-2 bg-amber-50 hover:bg-amber-100 rounded-lg transition-colors" title="Advertir sobre Divergências">
+                                    <button onclick="warnSelfCheckout('${contract.self_checkout.inspection_number}')" class="flex items-center gap-2 px-3 py-2 bg-amber-50 hover:bg-amber-100 rounded-lg transition-colors" title="Advertir sobre Divergências">
                                         <svg class="w-6 h-6 text-amber-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/>
                                         </svg>
                                         <span class="hidden sm:inline text-sm font-medium text-amber-600">Advertir</span>
                                     </button>
-                                    <button onclick="invalidateSelfCheckin('${contract.checkin.inspection_number}')" class="flex items-center gap-2 px-3 py-2 bg-orange-50 hover:bg-orange-100 rounded-lg transition-colors" title="Invalidar Self Check-in">
+                                    <button onclick="invalidateSelfCheckout('${contract.self_checkout.inspection_number}')" class="flex items-center gap-2 px-3 py-2 bg-orange-50 hover:bg-orange-100 rounded-lg transition-colors" title="Invalidar Self-Checkout">
                                         <svg class="w-6 h-6 text-orange-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/>
                                         </svg>
@@ -572,14 +596,6 @@
                                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 18h.01M8 21h8a2 2 0 002-2V5a2 2 0 00-2-2H8a2 2 0 00-2 2v14a2 2 0 002 2z"/>
                                         </svg>
                                         <span class="hidden sm:inline text-sm font-medium text-indigo-600">Self-Checkout</span>
-                                    </button>
-                                    ` : ''}
-                                    ${hasCheckin && contract.checkin.is_self_checkin ? `
-                                    <button onclick="resendSelfCheckinLink('${contract.contract_number}')" class="flex items-center gap-2 px-3 py-2 bg-purple-50 hover:bg-purple-100 rounded-lg transition-colors" title="Reenviar Link de Self Check-in">
-                                        <svg class="w-6 h-6 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/>
-                                        </svg>
-                                        <span class="hidden sm:inline text-sm font-medium text-purple-600">Reenviar Link</span>
                                     </button>
                                     ` : ''}
                                     <button onclick="showEmailModal(${contract.checkout ? `'${contract.checkout.inspection_number}'` : 'null'}, ${contract.checkin ? `'${contract.checkin.inspection_number}'` : 'null'}, '${contract.vehicle_plate}', '${contract.contract_number}')" class="flex items-center gap-2 px-3 py-2 bg-yellow-50 hover:bg-yellow-100 rounded-lg transition-colors" title="Enviar por Email">
@@ -1913,6 +1929,105 @@
             } catch (error) {
                 console.error('Error invalidating self check-in:', error);
                 showNotification('Erro ao invalidar self check-in: ' + error.message, 'error');
+            }
+        }
+
+        // Preview self-checkout (ver detalhes do self-checkout do cliente)
+        function previewSelfCheckout(inspectionNumber) {
+            previewInspection(inspectionNumber, 'self_checkout');
+        }
+
+        // Validate self-checkout
+        async function validateSelfCheckout(inspectionNumber) {
+            if (!confirm('Tem a certeza que deseja validar este self-checkout? O contrato será fechado e será enviado um email de confirmação ao cliente.')) {
+                return;
+            }
+            
+            try {
+                const response = await fetch('/api/self-checkout/validate', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        inspection_number: inspectionNumber
+                    })
+                });
+                
+                const result = await response.json();
+                
+                if (result.success) {
+                    showNotification('Self-checkout validado com sucesso! Contrato fechado e email enviado.', 'success');
+                    await loadHistory(true);
+                } else {
+                    showNotification('Erro ao validar self-checkout: ' + (result.error || 'Erro desconhecido'), 'error');
+                }
+            } catch (error) {
+                console.error('Error validating self-checkout:', error);
+                showNotification('Erro ao validar self-checkout: ' + error.message, 'error');
+            }
+        }
+
+        // Warn self-checkout (send warning email about discrepancies)
+        async function warnSelfCheckout(inspectionNumber) {
+            if (!confirm('Tem a certeza que deseja advertir o cliente sobre divergências? Será enviado um email de advertência mas o contrato NÃO será fechado.')) {
+                return;
+            }
+            
+            try {
+                const response = await fetch('/api/self-checkout/warn', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        inspection_number: inspectionNumber,
+                        notes: 'Divergências detectadas durante validação do self-checkout'
+                    })
+                });
+                
+                const result = await response.json();
+                
+                if (result.success) {
+                    showNotification('Email de advertência enviado! O contrato permanece aberto para análise.', 'warning');
+                    await loadHistory(true);
+                } else {
+                    showNotification('Erro ao enviar advertência: ' + (result.error || 'Erro desconhecido'), 'error');
+                }
+            } catch (error) {
+                console.error('Error warning self-checkout:', error);
+                showNotification('Erro ao enviar advertência: ' + error.message, 'error');
+            }
+        }
+
+        // Invalidate self-checkout
+        async function invalidateSelfCheckout(inspectionNumber) {
+            if (!confirm('Tem a certeza que deseja invalidar este self-checkout? Será enviado um email ao cliente informando sobre incidências.')) {
+                return;
+            }
+            
+            try {
+                const response = await fetch('/api/self-checkout/invalidate', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        inspection_number: inspectionNumber
+                    })
+                });
+                
+                const result = await response.json();
+                
+                if (result.success) {
+                    showNotification('Self-checkout invalidado. Email de incidências enviado ao cliente.', 'warning');
+                    await loadHistory(true);
+                } else {
+                    showNotification('Erro ao invalidar self-checkout: ' + (result.error || 'Erro desconhecido'), 'error');
+                }
+            } catch (error) {
+                console.error('Error invalidating self-checkout:', error);
+                showNotification('Erro ao invalidar self-checkout: ' + error.message, 'error');
             }
         }
 

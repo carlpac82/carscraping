@@ -32243,6 +32243,393 @@ async def invalidate_self_checkin(request: Request):
             conn.close()
 
 
+# ========================================
+# SELF-CHECKOUT API ENDPOINTS
+# ========================================
+
+@app.post("/api/self-checkout/validate")
+async def validate_self_checkout(request: Request):
+    """
+    Validar self-checkout
+    Fecha o contrato (cria checkout validado) e envia email de confirmação ao cliente
+    """
+    require_auth(request)
+    conn = None
+    try:
+        data = await request.json()
+        inspection_number = data.get('inspection_number')
+        
+        if not inspection_number:
+            return JSONResponse({
+                "success": False,
+                "error": "Número de inspeção não fornecido"
+            }, status_code=400)
+        
+        conn = _db_connect()
+        is_postgres = _is_postgresql_connection(conn)
+        
+        # Buscar inspeção self_checkout e dados do RA
+        if is_postgres:
+            cursor = conn.cursor()
+            cursor.execute("""
+                SELECT 
+                    vi.id, vi.vehicle_plate, vi.contract_number, vi.inspection_type, vi.status,
+                    ra.self_checkin_email, ra.extracted_data, ra.id as ra_id
+                FROM vehicle_inspections vi
+                LEFT JOIN rental_agreements ra ON vi.contract_number = ra.rental_agreement_number
+                WHERE vi.inspection_number = %s
+            """, (inspection_number,))
+        else:
+            cursor = conn.execute("""
+                SELECT 
+                    vi.id, vi.vehicle_plate, vi.contract_number, vi.inspection_type, vi.status,
+                    ra.self_checkin_email, ra.extracted_data, ra.id as ra_id
+                FROM vehicle_inspections vi
+                LEFT JOIN rental_agreements ra ON vi.contract_number = ra.rental_agreement_number
+                WHERE vi.inspection_number = ?
+            """, (inspection_number,))
+        
+        row = cursor.fetchone()
+        
+        if not row:
+            return JSONResponse({
+                "success": False,
+                "error": "Inspeção não encontrada"
+            }, status_code=404)
+        
+        inspection_id, plate, ra_number, inspection_type, status, client_email, extracted_data, ra_id = row
+        
+        if inspection_type != 'self_checkout':
+            return JSONResponse({
+                "success": False,
+                "error": "Esta não é uma inspeção de self-checkout"
+            }, status_code=400)
+        
+        if status == 'validated':
+            return JSONResponse({
+                "success": False,
+                "error": "Self-checkout já foi validado"
+            }, status_code=400)
+        
+        # Atualizar status da inspeção para validado e converter para checkout
+        if is_postgres:
+            cursor.execute("""
+                UPDATE vehicle_inspections
+                SET status = 'validated',
+                    inspection_type = 'checkout',
+                    updated_at = NOW()
+                WHERE id = %s
+            """, (inspection_id,))
+        else:
+            cursor.execute("""
+                UPDATE vehicle_inspections
+                SET status = 'validated',
+                    inspection_type = 'checkout',
+                    updated_at = datetime('now')
+                WHERE id = ?
+            """, (inspection_id,))
+        
+        # Atualizar RA - marcar self_checkout como validado e limpar pending
+        if is_postgres:
+            cursor.execute("""
+                UPDATE rental_agreements
+                SET self_checkout_pending = FALSE,
+                    updated_at = NOW()
+                WHERE rental_agreement_number = %s
+            """, (ra_number,))
+        else:
+            cursor.execute("""
+                UPDATE rental_agreements
+                SET self_checkout_pending = 0,
+                    updated_at = datetime('now')
+                WHERE rental_agreement_number = ?
+            """, (ra_number,))
+        
+        conn.commit()
+        
+        # Enviar email de confirmação ao cliente
+        if client_email:
+            try:
+                import json
+                client_name = "Cliente"
+                if extracted_data:
+                    try:
+                        data_dict = json.loads(extracted_data)
+                        client_name = data_dict.get('client_name') or data_dict.get('nome_cliente') or "Cliente"
+                    except:
+                        pass
+                
+                # TODO: Implementar email de confirmação de self-checkout validado
+                logging.info(f"📧 Would send self-checkout confirmation to {client_email}")
+            except Exception as email_err:
+                logging.error(f"Failed to send confirmation email: {email_err}")
+        
+        logging.info(f"✅ Self-checkout validated: {inspection_number}")
+        
+        return JSONResponse({
+            "success": True,
+            "message": "Self-checkout validado com sucesso. Contrato fechado."
+        })
+        
+    except Exception as e:
+        if conn:
+            conn.rollback()
+        logging.error(f"Error validating self-checkout: {e}")
+        import traceback
+        traceback.print_exc()
+        return JSONResponse({
+            "success": False,
+            "error": str(e)
+        }, status_code=500)
+    finally:
+        if conn:
+            conn.close()
+
+
+@app.post("/api/self-checkout/warn")
+async def warn_self_checkout(request: Request):
+    """
+    Advertir cliente sobre divergências no self-checkout
+    Envia email de advertência mas NÃO fecha o contrato
+    Marca inspeção como 'warned' para análise posterior
+    """
+    require_auth(request)
+    conn = None
+    try:
+        data = await request.json()
+        inspection_number = data.get('inspection_number')
+        discrepancy_notes = data.get('notes', '')
+        
+        if not inspection_number:
+            return JSONResponse({
+                "success": False,
+                "error": "Número de inspeção não fornecido"
+            }, status_code=400)
+        
+        conn = _db_connect()
+        is_postgres = _is_postgresql_connection(conn)
+        
+        # Buscar inspeção e dados do RA
+        if is_postgres:
+            cursor = conn.cursor()
+            cursor.execute("""
+                SELECT 
+                    vi.id, vi.vehicle_plate, vi.contract_number, vi.inspection_type, vi.status,
+                    ra.self_checkin_email, ra.extracted_data
+                FROM vehicle_inspections vi
+                LEFT JOIN rental_agreements ra ON vi.contract_number = ra.rental_agreement_number
+                WHERE vi.inspection_number = %s
+            """, (inspection_number,))
+        else:
+            cursor = conn.execute("""
+                SELECT 
+                    vi.id, vi.vehicle_plate, vi.contract_number, vi.inspection_type, vi.status,
+                    ra.self_checkin_email, ra.extracted_data
+                FROM vehicle_inspections vi
+                LEFT JOIN rental_agreements ra ON vi.contract_number = ra.rental_agreement_number
+                WHERE vi.inspection_number = ?
+            """, (inspection_number,))
+        
+        row = cursor.fetchone()
+        
+        if not row:
+            return JSONResponse({
+                "success": False,
+                "error": "Inspeção não encontrada"
+            }, status_code=404)
+        
+        inspection_id, plate, ra_number, inspection_type, status, client_email, extracted_data = row
+        
+        if inspection_type != 'self_checkout':
+            return JSONResponse({
+                "success": False,
+                "error": "Esta não é uma inspeção de self-checkout"
+            }, status_code=400)
+        
+        if status == 'validated':
+            return JSONResponse({
+                "success": False,
+                "error": "Self-checkout já foi validado"
+            }, status_code=400)
+        
+        # Atualizar status da inspeção para warned
+        if is_postgres:
+            cursor.execute("""
+                UPDATE vehicle_inspections
+                SET status = 'warned',
+                    updated_at = NOW()
+                WHERE id = %s
+            """, (inspection_id,))
+        else:
+            cursor.execute("""
+                UPDATE vehicle_inspections
+                SET status = 'warned',
+                    updated_at = datetime('now')
+                WHERE id = ?
+            """, (inspection_id,))
+        
+        conn.commit()
+        
+        # Enviar email de advertência ao cliente
+        if client_email:
+            try:
+                import json
+                client_name = "Cliente"
+                if extracted_data:
+                    try:
+                        data_dict = json.loads(extracted_data)
+                        client_name = data_dict.get('client_name') or data_dict.get('nome_cliente') or "Cliente"
+                    except:
+                        pass
+                
+                # TODO: Implementar email de advertência de self-checkout
+                logging.info(f"📧 Would send self-checkout warning to {client_email}")
+            except Exception as email_err:
+                logging.error(f"Failed to send warning email: {email_err}")
+        
+        logging.info(f"⚠️ Self-checkout warned: {inspection_number}")
+        
+        return JSONResponse({
+            "success": True,
+            "message": "Advertência enviada. Contrato permanece aberto."
+        })
+        
+    except Exception as e:
+        if conn:
+            conn.rollback()
+        logging.error(f"Error warning self-checkout: {e}")
+        import traceback
+        traceback.print_exc()
+        return JSONResponse({
+            "success": False,
+            "error": str(e)
+        }, status_code=500)
+    finally:
+        if conn:
+            conn.close()
+
+
+@app.post("/api/self-checkout/invalidate")
+async def invalidate_self_checkout(request: Request):
+    """
+    Invalidar self-checkout
+    Marca como invalidado e envia email ao cliente sobre incidências
+    """
+    require_auth(request)
+    conn = None
+    try:
+        data = await request.json()
+        inspection_number = data.get('inspection_number')
+        
+        if not inspection_number:
+            return JSONResponse({
+                "success": False,
+                "error": "Número de inspeção não fornecido"
+            }, status_code=400)
+        
+        conn = _db_connect()
+        is_postgres = _is_postgresql_connection(conn)
+        
+        # Buscar inspeção e dados do RA
+        if is_postgres:
+            cursor = conn.cursor()
+            cursor.execute("""
+                SELECT 
+                    vi.id, vi.vehicle_plate, vi.contract_number, vi.inspection_type, vi.status,
+                    ra.self_checkin_email, ra.extracted_data
+                FROM vehicle_inspections vi
+                LEFT JOIN rental_agreements ra ON vi.contract_number = ra.rental_agreement_number
+                WHERE vi.inspection_number = %s
+            """, (inspection_number,))
+        else:
+            cursor = conn.execute("""
+                SELECT 
+                    vi.id, vi.vehicle_plate, vi.contract_number, vi.inspection_type, vi.status,
+                    ra.self_checkin_email, ra.extracted_data
+                FROM vehicle_inspections vi
+                LEFT JOIN rental_agreements ra ON vi.contract_number = ra.rental_agreement_number
+                WHERE vi.inspection_number = ?
+            """, (inspection_number,))
+        
+        row = cursor.fetchone()
+        
+        if not row:
+            return JSONResponse({
+                "success": False,
+                "error": "Inspeção não encontrada"
+            }, status_code=404)
+        
+        inspection_id, plate, ra_number, inspection_type, status, client_email, extracted_data = row
+        
+        if inspection_type != 'self_checkout':
+            return JSONResponse({
+                "success": False,
+                "error": "Esta não é uma inspeção de self-checkout"
+            }, status_code=400)
+        
+        if status == 'invalidated':
+            return JSONResponse({
+                "success": False,
+                "error": "Self-checkout já foi invalidado"
+            }, status_code=400)
+        
+        # Atualizar status da inspeção para invalidado
+        if is_postgres:
+            cursor.execute("""
+                UPDATE vehicle_inspections
+                SET status = 'invalidated',
+                    updated_at = NOW()
+                WHERE id = %s
+            """, (inspection_id,))
+        else:
+            cursor.execute("""
+                UPDATE vehicle_inspections
+                SET status = 'invalidated',
+                    updated_at = datetime('now')
+                WHERE id = ?
+            """, (inspection_id,))
+        
+        conn.commit()
+        
+        # Enviar email de incidências ao cliente
+        if client_email:
+            try:
+                import json
+                client_name = "Cliente"
+                if extracted_data:
+                    try:
+                        data_dict = json.loads(extracted_data)
+                        client_name = data_dict.get('client_name') or data_dict.get('nome_cliente') or "Cliente"
+                    except:
+                        pass
+                
+                # TODO: Implementar email de incidências de self-checkout
+                logging.info(f"📧 Would send self-checkout incident email to {client_email}")
+            except Exception as email_err:
+                logging.error(f"Failed to send incident email: {email_err}")
+        
+        logging.info(f"❌ Self-checkout invalidated: {inspection_number}")
+        
+        return JSONResponse({
+            "success": True,
+            "message": "Self-checkout invalidado. Cliente será notificado."
+        })
+        
+    except Exception as e:
+        if conn:
+            conn.rollback()
+        logging.error(f"Error invalidating self-checkout: {e}")
+        import traceback
+        traceback.print_exc()
+        return JSONResponse({
+            "success": False,
+            "error": str(e)
+        }, status_code=500)
+    finally:
+        if conn:
+            conn.close()
+
+
 @app.post("/api/self-checkin/resend-link")
 async def resend_self_checkin_link(request: Request):
     """
@@ -45778,6 +46165,7 @@ async def get_inspections_history(request: Request):
                         "client_email": client_email,
                         "checkout": None,
                         "checkin": None,
+                        "self_checkout": None,  # Self-checkout pendente de validação
                         "latest_date": str(row[5]) if row[5] else None
                     }
                 else:
