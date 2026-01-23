@@ -46659,8 +46659,8 @@ async def get_inspection_details(inspection_number: str, request: Request):
                             image_data = bytes(image_data)
                         
                         if isinstance(image_data, bytes):
-                            # Binary data - encode to base64
-                            photo_base64 = base64.b64encode(image_data).decode('utf-8')
+                            # Binary data - encode to base64 and remove any whitespace
+                            photo_base64 = base64.b64encode(image_data).decode('utf-8').replace('\n', '').replace('\r', '').replace(' ', '')
                         elif isinstance(image_data, str):
                             # Already a string - check if it has data URL prefix
                             if image_data.startswith('data:image'):

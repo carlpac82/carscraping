@@ -1136,43 +1136,27 @@
                             ` : ''}
                             
                             <!-- Action Buttons -->
-                            <div class="grid grid-cols-2 md:flex flex-wrap gap-2 md:gap-3 pt-4 border-t border-gray-200">
-                                <button onclick="closePreviewModal()" 
-                                        class="col-span-2 md:col-span-1 px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors text-sm md:text-base">
-                                    Fechar
-                                </button>
+                            <div class="flex flex-wrap gap-2 pt-3 border-t border-gray-100">
                                 ${isSelfCheckout ? `
                                 <button onclick="closePreviewModal(); validateSelfCheckout('${inspectionNumber}')" 
-                                        class="flex-1 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors font-semibold text-sm md:text-base">
-                                    ✓ Validar
-                                </button>
+                                        class="px-3 py-1.5 bg-green-600 text-white rounded text-xs hover:bg-green-700">Validar</button>
                                 <button onclick="closePreviewModal(); warnSelfCheckout('${inspectionNumber}')" 
-                                        class="flex-1 px-4 py-2 bg-yellow-500 text-white rounded-lg hover:bg-yellow-600 transition-colors font-semibold text-sm md:text-base">
-                                    ⚠ Divergências
-                                </button>
+                                        class="px-3 py-1.5 bg-yellow-500 text-white rounded text-xs hover:bg-yellow-600">Divergências</button>
                                 <button onclick="closePreviewModal(); invalidateSelfCheckout('${inspectionNumber}')" 
-                                        class="flex-1 px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors font-semibold text-sm md:text-base">
-                                    ✗ Invalidar
-                                </button>
+                                        class="px-3 py-1.5 bg-red-600 text-white rounded text-xs hover:bg-red-700">Invalidar</button>
                                 <button onclick="closePreviewModal(); newInspectionFromSelfCheckout('${inspection.vehicle_plate}', '${inspection.contract_number}')" 
-                                        class="flex-1 px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors font-semibold text-sm md:text-base">
-                                    Nova Inspeção
-                                </button>
+                                        class="px-3 py-1.5 bg-purple-600 text-white rounded text-xs hover:bg-purple-700">Nova Inspeção</button>
                                 ` : ''}
                                 ${!isSelfCheckout && !(isContractClosed && !isCheckout) ? `
                                 <button onclick="editInspection('${inspectionNumber}', '${type}')" 
-                                        class="flex-1 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-semibold text-sm md:text-base">
-                                    Editar
-                                </button>
+                                        class="px-3 py-1.5 bg-blue-600 text-white rounded text-xs hover:bg-blue-700">Editar</button>
                                 ` : ''}
                                 <button onclick="sendInspectionEmail('${inspectionNumber}', '${inspection.vehicle_plate}', '${inspection.contract_number}')" 
-                                        class="flex-1 px-4 py-2 bg-[#f59e0b] text-white rounded-lg hover:bg-[#d97706] transition-colors font-semibold text-sm md:text-base">
-                                    Enviar Email
-                                </button>
+                                        class="px-3 py-1.5 bg-amber-500 text-white rounded text-xs hover:bg-amber-600">Email</button>
                                 <button onclick="downloadPDF('${inspectionNumber}')" 
-                                        class="flex-1 px-4 py-2 bg-[#009cb6] text-white rounded-lg hover:bg-[#007a8f] transition-colors font-semibold text-sm md:text-base">
-                                    PDF
-                                </button>
+                                        class="px-3 py-1.5 bg-cyan-600 text-white rounded text-xs hover:bg-cyan-700">PDF</button>
+                                <button onclick="closePreviewModal()" 
+                                        class="px-3 py-1.5 border border-gray-300 rounded text-xs hover:bg-gray-50 ml-auto">Fechar</button>
                             </div>
                         </div>
                     </div>
