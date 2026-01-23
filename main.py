@@ -31345,15 +31345,19 @@ async def submit_self_checkout(token: str, request: Request):
         signature = data.get('signature')  # Assinatura do cliente (base64)
         terms_accepted = data.get('terms_accepted', False)  # Termos aceitos
         
-        # Buscar nome do cliente do RA para usar como "inspetor"
+        # Buscar nome do cliente do extracted_data para usar como "inspetor"
         client_name_for_inspection = 'Cliente'
         if is_postgres:
-            cursor.execute("SELECT client_name FROM rental_agreements WHERE id = %s", (ra_id,))
+            cursor.execute("SELECT extracted_data FROM rental_agreements WHERE id = %s", (ra_id,))
         else:
-            cursor.execute("SELECT client_name FROM rental_agreements WHERE id = ?", (ra_id,))
+            cursor.execute("SELECT extracted_data FROM rental_agreements WHERE id = ?", (ra_id,))
         client_row = cursor.fetchone()
         if client_row and client_row[0]:
-            client_name_for_inspection = client_row[0]
+            try:
+                ext_data = json.loads(client_row[0]) if isinstance(client_row[0], str) else client_row[0]
+                client_name_for_inspection = ext_data.get('clientName') or ext_data.get('client_name') or 'Cliente'
+            except:
+                pass
         
         # Guardar inspeção como 'self_checkout' (pendente de validação)
         # Só será convertida para 'checkout' após validação pelo colaborador
