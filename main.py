@@ -47300,7 +47300,7 @@ async def get_inspections_history(request: Request):
                            vi.fuel_level, vi.odometer_reading, vi.damage_count, vi.status, vi.id,
                            vi.is_self_checkin,
                            ra.extracted_data, ra.self_checkin_email,
-                           vi.has_damages
+                           vi.has_damage
                     FROM vehicle_inspections vi
                     LEFT JOIN rental_agreements ra ON (
                         ra.rental_agreement_number = vi.contract_number 
@@ -47317,7 +47317,7 @@ async def get_inspections_history(request: Request):
                            vi.fuel_level, vi.odometer_reading, vi.damage_count, vi.status, vi.id,
                            vi.is_self_checkin,
                            ra.extracted_data, ra.self_checkin_email,
-                           vi.has_damages
+                           vi.has_damage
                     FROM vehicle_inspections vi
                     LEFT JOIN rental_agreements ra ON (
                         ra.rental_agreement_number = vi.contract_number 
