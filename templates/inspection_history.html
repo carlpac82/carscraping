@@ -142,42 +142,45 @@
         <h1 class="text-2xl sm:text-3xl font-bold text-gray-800 mb-6">Histórico de Inspeções</h1>
         
         <!-- Stats Cards -->
-        <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
-            <div class="bg-white rounded-lg shadow-md p-4">
+        <div class="grid grid-cols-3 gap-2 sm:gap-4 mb-6">
+            <!-- Check-ins do dia -->
+            <div class="bg-white rounded-lg shadow-md p-3 sm:p-4 cursor-pointer hover:shadow-lg transition-shadow" onclick="filterByType('checkin')">
                 <div class="flex items-center justify-between">
                     <div>
-                        <p class="text-sm text-gray-600">Self-Checkouts Pendentes</p>
-                        <p class="text-2xl font-bold text-yellow-600" id="pendingCount">0</p>
+                        <p class="text-xs sm:text-sm text-gray-600">Check-ins</p>
+                        <p class="text-xl sm:text-2xl font-bold text-green-600" id="checkinCount">0</p>
                     </div>
-                    <div class="w-12 h-12 bg-yellow-100 rounded-full flex items-center justify-center">
-                        <svg class="w-6 h-6 text-yellow-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <div class="w-10 h-10 sm:w-12 sm:h-12 bg-green-100 rounded-full flex items-center justify-center">
+                        <svg class="w-5 h-5 sm:w-6 sm:h-6 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 16l-4-4m0 0l4-4m-4 4h14m-5 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h7a3 3 0 013 3v1"/>
+                        </svg>
+                    </div>
+                </div>
+            </div>
+            <!-- Check-outs do dia -->
+            <div class="bg-white rounded-lg shadow-md p-3 sm:p-4 cursor-pointer hover:shadow-lg transition-shadow" onclick="filterByType('checkout')">
+                <div class="flex items-center justify-between">
+                    <div>
+                        <p class="text-xs sm:text-sm text-gray-600">Check-Outs</p>
+                        <p class="text-xl sm:text-2xl font-bold text-blue-600" id="checkoutCount">0</p>
+                    </div>
+                    <div class="w-10 h-10 sm:w-12 sm:h-12 bg-blue-100 rounded-full flex items-center justify-center">
+                        <svg class="w-5 h-5 sm:w-6 sm:h-6 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"/>
+                        </svg>
+                    </div>
+                </div>
+            </div>
+            <!-- Self-Checkouts Pendentes -->
+            <div class="bg-white rounded-lg shadow-md p-3 sm:p-4 cursor-pointer hover:shadow-lg transition-shadow" onclick="filterByType('self_checkout')">
+                <div class="flex items-center justify-between">
+                    <div>
+                        <p class="text-xs sm:text-sm text-gray-600">Self-Checkouts</p>
+                        <p class="text-xl sm:text-2xl font-bold text-yellow-600" id="pendingCount">0</p>
+                    </div>
+                    <div class="w-10 h-10 sm:w-12 sm:h-12 bg-yellow-100 rounded-full flex items-center justify-center">
+                        <svg class="w-5 h-5 sm:w-6 sm:h-6 text-yellow-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/>
-                        </svg>
-                    </div>
-                </div>
-            </div>
-            <div class="bg-white rounded-lg shadow-md p-4">
-                <div class="flex items-center justify-between">
-                    <div>
-                        <p class="text-sm text-gray-600">Com Divergências</p>
-                        <p class="text-2xl font-bold text-orange-600" id="warnedCount">0</p>
-                    </div>
-                    <div class="w-12 h-12 bg-orange-100 rounded-full flex items-center justify-center">
-                        <svg class="w-6 h-6 text-orange-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/>
-                        </svg>
-                    </div>
-                </div>
-            </div>
-            <div class="bg-white rounded-lg shadow-md p-4">
-                <div class="flex items-center justify-between">
-                    <div>
-                        <p class="text-sm text-gray-600">Total Self-Checkouts</p>
-                        <p class="text-2xl font-bold text-purple-600" id="totalSelfCheckouts">0</p>
-                    </div>
-                    <div class="w-12 h-12 bg-purple-100 rounded-full flex items-center justify-center">
-                        <svg class="w-6 h-6 text-purple-600" fill="currentColor" viewBox="0 0 24 24">
-                            <path d="M18.92 6.01C18.72 5.42 18.16 5 17.5 5h-11c-.66 0-1.21.42-1.42 1.01L3 12v8c0 .55.45 1 1 1h1c.55 0 1-.45 1-1v-1h12v1c0 .55.45 1 1 1h1c.55 0 1-.45 1-1v-8l-2.08-5.99zM6.5 16c-.83 0-1.5-.67-1.5-1.5S5.67 13 6.5 13s1.5.67 1.5 1.5S7.33 16 6.5 16zm11 0c-.83 0-1.5-.67-1.5-1.5s.67-1.5 1.5-1.5 1.5.67 1.5 1.5-.67 1.5-1.5 1.5zM5 11l1.5-4.5h11L19 11H5z"/>
                         </svg>
                     </div>
                 </div>
@@ -336,23 +339,69 @@
         }
 
         function updateStats() {
-            // Count self-checkouts by status (usar contract.self_checkout)
+            const today = new Date().toISOString().split('T')[0];
+            let checkinCount = 0;
+            let checkoutCount = 0;
             let pendingCount = 0;
-            let warnedCount = 0;
-            let totalSelfCheckouts = 0;
             
             contracts.forEach(contract => {
+                // Count check-ins do dia
+                if (contract.checkin) {
+                    const checkinDate = new Date(contract.checkin.created_at).toISOString().split('T')[0];
+                    if (checkinDate === today) checkinCount++;
+                }
+                // Count check-outs do dia
+                if (contract.checkout) {
+                    const checkoutDate = new Date(contract.checkout.created_at).toISOString().split('T')[0];
+                    if (checkoutDate === today) checkoutCount++;
+                }
+                // Count self-checkouts pendentes
                 if (contract.self_checkout) {
-                    totalSelfCheckouts++;
                     const status = contract.self_checkout.status || 'pending';
                     if (status === 'pending') pendingCount++;
-                    if (status === 'warned') warnedCount++;
                 }
             });
             
+            document.getElementById('checkinCount').textContent = checkinCount;
+            document.getElementById('checkoutCount').textContent = checkoutCount;
             document.getElementById('pendingCount').textContent = pendingCount;
-            document.getElementById('warnedCount').textContent = warnedCount;
-            document.getElementById('totalSelfCheckouts').textContent = totalSelfCheckouts;
+        }
+        
+        function filterByType(type) {
+            const today = new Date().toISOString().split('T')[0];
+            
+            // Reset filters
+            document.getElementById('searchPlate').value = '';
+            document.getElementById('searchRA').value = '';
+            document.getElementById('filterSelfCheckout').value = 'all';
+            document.getElementById('filterStatus').value = 'all';
+            
+            let filtered = contracts;
+            
+            if (type === 'checkin') {
+                document.getElementById('searchDate').value = today;
+                filtered = filtered.filter(c => {
+                    if (!c.checkin) return false;
+                    const checkinDate = new Date(c.checkin.created_at).toISOString().split('T')[0];
+                    return checkinDate === today;
+                });
+            } else if (type === 'checkout') {
+                document.getElementById('searchDate').value = today;
+                filtered = filtered.filter(c => {
+                    if (!c.checkout) return false;
+                    const checkoutDate = new Date(c.checkout.created_at).toISOString().split('T')[0];
+                    return checkoutDate === today;
+                });
+            } else if (type === 'self_checkout') {
+                document.getElementById('searchDate').value = '';
+                filtered = filtered.filter(c => {
+                    if (!c.self_checkout) return false;
+                    const status = c.self_checkout.status || 'pending';
+                    return status === 'pending';
+                });
+            }
+            
+            renderHistory(filtered);
         }
 
         function filterInspections() {
