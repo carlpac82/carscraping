@@ -31294,6 +31294,10 @@ async def submit_self_checkout(token: str, request: Request):
     Guarda fotos, kms, combustível (sem croqui)
     """
     conn = None
+    import json
+    import traceback
+    import base64
+    import datetime
     try:
         data = await request.json()
         logging.info(f"🚗 Self-checkout submit received for token: {token[:20]}...")
@@ -31334,7 +31338,6 @@ async def submit_self_checkout(token: str, request: Request):
         ra_id, ra_number, plate, vehicle_id, _ = row
         
         # Criar inspeção de self check-in (permite múltiplos self-checkouts se novos links forem enviados)
-        import datetime
         inspection_number = f"SC-{ra_number}-{datetime.datetime.now().strftime('%Y%m%d%H%M%S')}"
         
         # Extrair dados do formulário
@@ -31386,7 +31389,6 @@ async def submit_self_checkout(token: str, request: Request):
         for photo_key, photo_data in photos.items():
             if photo_data and photo_data.startswith('data:image'):
                 try:
-                    import base64
                     photo_bytes = base64.b64decode(photo_data.split(',')[1])
                     
                     if is_postgres:
@@ -31404,35 +31406,34 @@ async def submit_self_checkout(token: str, request: Request):
                 except Exception as photo_err:
                     logging.error(f"Error saving photo {photo_key}: {photo_err}")
         
-        # Guardar fotos de danos
-        for damage_photo in damage_photos:
+        # Guardar fotos de danos (usar inspection_photos com tipo 'damage_X')
+        for idx, damage_photo in enumerate(damage_photos):
             photo_data = damage_photo.get('photo')
             description = damage_photo.get('description', '')
             
             if photo_data and photo_data.startswith('data:image'):
                 try:
-                    import base64
                     photo_bytes = base64.b64decode(photo_data.split(',')[1])
+                    photo_type = f"damage_{idx}_{description[:20]}" if description else f"damage_{idx}"
                     
                     if is_postgres:
                         cursor.execute("""
-                            INSERT INTO damage_photos (
-                                inspection_id, photo_data, description, created_at
+                            INSERT INTO inspection_photos (
+                                inspection_id, photo_type, image_data, created_at
                             ) VALUES (%s, %s, %s, NOW())
-                        """, (inspection_id, photo_bytes, description))
+                        """, (inspection_id, photo_type, photo_bytes))
                     else:
                         cursor.execute("""
-                            INSERT INTO damage_photos (
-                                inspection_id, photo_data, description, created_at
+                            INSERT INTO inspection_photos (
+                                inspection_id, photo_type, image_data, created_at
                             ) VALUES (?, ?, ?, datetime('now'))
-                        """, (inspection_id, photo_bytes, description))
+                        """, (inspection_id, photo_type, photo_bytes))
                 except Exception as damage_err:
                     logging.error(f"Error saving damage photo: {damage_err}")
         
         # Guardar assinatura do cliente
         if signature and signature.startswith('data:image'):
             try:
-                import base64
                 sig_bytes = base64.b64decode(signature.split(',')[1])
                 
                 if is_postgres:
@@ -31464,11 +31465,9 @@ async def submit_self_checkout(token: str, request: Request):
         extracted_row = cursor.fetchone()
         existing_data = {}
         if extracted_row and extracted_row[0]:
-            import json
-            existing_data = json.loads(extracted_row[0])
+            existing_data = json.loads(extracted_row[0]) if isinstance(extracted_row[0], str) else extracted_row[0]
         
         # Adicionar dados do check-in ao extracted_data
-        import datetime
         now = datetime.datetime.now()
         existing_data['odometer'] = int(odometer) if odometer else 0
         existing_data['kms'] = int(odometer) if odometer else 0
