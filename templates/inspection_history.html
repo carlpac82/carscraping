@@ -3587,46 +3587,16 @@
         }
         
         async function captureInvalidateFinalCroqui() {
-            // Merge background + new damages into single image
-            const container = document.getElementById('invalidateCroquiContainer');
-            const img = document.getElementById('invalidateCroquiImg');
-            const bgLayer = document.getElementById('invalidateCroquiBg');
-            
-            const mergeCanvas = document.createElement('canvas');
-            mergeCanvas.width = invalidateCroquiCanvas.width;
-            mergeCanvas.height = invalidateCroquiCanvas.height;
-            const ctx = mergeCanvas.getContext('2d');
-            
-            // Draw base croqui image
-            ctx.drawImage(img, 0, 0, mergeCanvas.width, mergeCanvas.height);
-            
-            // Draw check-in croqui background if exists
-            if (bgLayer && bgLayer.style.backgroundImage && bgLayer.style.backgroundImage.startsWith('url(')) {
-                try {
-                    const bgImg = new Image();
-                    bgImg.crossOrigin = 'anonymous';
-                    const bgUrl = bgLayer.style.backgroundImage.slice(5, -2);
-                    if (bgUrl && bgUrl.length > 10) {
-                        await new Promise((resolve) => {
-                            bgImg.onload = resolve;
-                            bgImg.onerror = resolve;
-                            bgImg.src = bgUrl;
-                        });
-                        if (bgImg.complete && bgImg.naturalWidth > 0) {
-                            ctx.globalAlpha = 0.8;
-                            ctx.drawImage(bgImg, 0, 0, mergeCanvas.width, mergeCanvas.height);
-                            ctx.globalAlpha = 1.0;
-                        }
-                    }
-                } catch (e) {
-                    console.log('Skipping background merge:', e);
+            try {
+                // Just return the drawn damages canvas
+                if (invalidateCroquiCanvas) {
+                    return invalidateCroquiCanvas.toDataURL('image/png');
                 }
+                return '';
+            } catch (e) {
+                console.log('Error capturing croqui:', e);
+                return '';
             }
-            
-            // Draw new damages
-            ctx.drawImage(invalidateCroquiCanvas, 0, 0);
-            
-            return mergeCanvas.toDataURL('image/png');
         }
         
         async function submitInvalidation(inspectionNumber, contractNumber, checkinFuel) {
