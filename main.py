@@ -32571,7 +32571,7 @@ async def validate_self_checkout(request: Request):
             cursor.execute("""
                 UPDATE rental_agreements
                 SET self_checkout_pending = FALSE,
-                    ra_status = 'closed',
+                    inspection_completed = TRUE,
                     updated_at = NOW()
                 WHERE rental_agreement_number = %s
             """, (ra_number,))
@@ -32579,7 +32579,7 @@ async def validate_self_checkout(request: Request):
             cursor.execute("""
                 UPDATE rental_agreements
                 SET self_checkout_pending = 0,
-                    ra_status = 'closed',
+                    inspection_completed = 1,
                     updated_at = datetime('now')
                 WHERE rental_agreement_number = ?
             """, (ra_number,))
