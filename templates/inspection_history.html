@@ -495,12 +495,18 @@
                     }
                     
                     let statusBadge;
-                    if (isPendingValidation) {
-                        statusBadge = '<span class="px-3 py-1 rounded-full text-xs font-semibold bg-yellow-100 text-yellow-700">PENDENTE VALIDAÇÃO</span>';
-                    } else if (isOpen) {
+                    if (isOpen) {
+                        // Contrato aberto (tem entrega, não tem checkout validado)
                         statusBadge = '<span class="px-3 py-1 rounded-full text-xs font-semibold bg-green-100 text-green-700">CONTRATO ABERTO</span>';
-                    } else {
+                        // Se também tem self-checkout pendente, adiciona badge de validação
+                        if (isPendingValidation) {
+                            statusBadge += ' <span class="px-3 py-1 rounded-full text-xs font-semibold bg-yellow-100 text-yellow-700">PENDENTE VALIDAÇÃO</span>';
+                        }
+                    } else if (isClosed) {
                         statusBadge = '<span class="px-3 py-1 rounded-full text-xs font-semibold bg-red-100 text-red-700">CONTRATO FECHADO</span>';
+                    } else {
+                        // Só tem checkout ou só tem checkin
+                        statusBadge = '<span class="px-3 py-1 rounded-full text-xs font-semibold bg-gray-100 text-gray-700">EM PROGRESSO</span>';
                     }
                     
                     const checkoutTime = hasCheckout ? new Date(contract.checkout.created_at).toLocaleTimeString('pt-PT', { hour: '2-digit', minute: '2-digit' }) : '';
