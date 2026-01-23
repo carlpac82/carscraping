@@ -601,10 +601,23 @@
                     let selfCheckoutBadge = '';
                     let fuelWarningBadge = '';
                     
+                    // Função para converter fuel level para número
+                    function parseFuelLevel(fuel) {
+                        if (fuel === null || fuel === undefined) return 0;
+                        const fuelStr = String(fuel).toLowerCase().trim();
+                        if (fuelStr === 'full' || fuelStr === 'cheio' || fuelStr === 'f') return 100;
+                        if (fuelStr === '3/4') return 75;
+                        if (fuelStr === '1/2') return 50;
+                        if (fuelStr === '1/4') return 25;
+                        if (fuelStr === 'reserva' || fuelStr === 'reserve' || fuelStr === 'r' || fuelStr === 'empty') return 0;
+                        const num = parseInt(fuel);
+                        return isNaN(num) ? 0 : num;
+                    }
+                    
                     // Verificar se combustível do self-checkout está abaixo do check-in
                     if (hasSelfCheckout && hasCheckin) {
-                        const selfCheckoutFuel = parseInt(contract.self_checkout.fuel_level) || 0;
-                        const checkinFuel = parseInt(contract.checkin.fuel_level) || 100;
+                        const selfCheckoutFuel = parseFuelLevel(contract.self_checkout.fuel_level);
+                        const checkinFuel = parseFuelLevel(contract.checkin.fuel_level);
                         if (selfCheckoutFuel < checkinFuel) {
                             fuelWarningBadge = `<span class="px-2 py-1 rounded-full text-xs font-semibold bg-orange-100 text-orange-700 flex items-center gap-1">
                                 <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/></svg>
