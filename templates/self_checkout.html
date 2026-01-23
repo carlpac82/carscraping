@@ -1431,6 +1431,14 @@
             } catch (error) {
                 console.log('⚠️ Could not exit fullscreen:', error.message);
             }
+            
+            // Scroll to photos section after closing camera
+            setTimeout(() => {
+                const photosSection = document.getElementById('photosTitle');
+                if (photosSection) {
+                    photosSection.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                }
+            }, 100);
         }
 
         function capturePhoto() {
