@@ -538,6 +538,20 @@
                     const checkoutDate = hasCheckout ? new Date(contract.checkout.created_at).toLocaleDateString('pt-PT', { day: '2-digit', month: '2-digit', year: 'numeric' }) : '';
                     const checkinDate = hasCheckin ? new Date(contract.checkin.created_at).toLocaleDateString('pt-PT', { day: '2-digit', month: '2-digit', year: 'numeric' }) : '';
                     
+                    // Self-checkout date/time and name
+                    const selfCheckoutTime = hasSelfCheckout ? new Date(contract.self_checkout.created_at).toLocaleTimeString('pt-PT', { hour: '2-digit', minute: '2-digit' }) : '';
+                    const selfCheckoutDate = hasSelfCheckout ? new Date(contract.self_checkout.created_at).toLocaleDateString('pt-PT', { day: '2-digit', month: '2-digit', year: 'numeric' }) : '';
+                    // Get first and last name from inspector_name (full name)
+                    let selfCheckoutName = '';
+                    if (hasSelfCheckout && contract.self_checkout.inspector_name) {
+                        const nameParts = contract.self_checkout.inspector_name.trim().split(/\s+/);
+                        if (nameParts.length >= 2) {
+                            selfCheckoutName = nameParts[0] + ' ' + nameParts[nameParts.length - 1];
+                        } else {
+                            selfCheckoutName = contract.self_checkout.inspector_name;
+                        }
+                    }
+                    
                     html += `
                         <div class="p-4 hover:bg-gray-50 transition-colors">
                             <!-- Mobile-first layout -->
@@ -566,6 +580,12 @@
                                     <div class="flex items-center gap-2">
                                         <span class="font-medium">Recolhido por:</span>
                                         <span>${contract.checkout.inspector_name || 'N/A'} às ${checkoutTime} de ${checkoutDate}</span>
+                                    </div>
+                                    ` : ''}
+                                    ${hasSelfCheckout ? `
+                                    <div class="flex items-center gap-2">
+                                        <span class="font-medium text-orange-600">Self Check-Out:</span>
+                                        <span>${selfCheckoutName || 'Cliente'} às ${selfCheckoutTime} de ${selfCheckoutDate}</span>
                                     </div>
                                     ` : ''}
                                 </div>
