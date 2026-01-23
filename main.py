@@ -32720,7 +32720,34 @@ async def resend_self_checkin_link(request: Request):
         token_string = f"{ra_num}_{plate}_{final_email}_{time.time()}"
         new_token = hashlib.sha256(token_string.encode()).hexdigest()
         
-        # Atualizar token, email (se fornecido) e resetar flag de completado
+        # Invalidar self-checkout anterior se existir
+        if is_postgres:
+            cursor.execute("""
+                SELECT self_checkout_inspection_id FROM rental_agreements WHERE id = %s
+            """, (ra_id,))
+            prev_checkout = cursor.fetchone()
+            if prev_checkout and prev_checkout[0]:
+                # Marcar inspeção anterior como substituída
+                cursor.execute("""
+                    UPDATE vehicle_inspections
+                    SET status = 'replaced'
+                    WHERE id = %s
+                """, (prev_checkout[0],))
+                logging.info(f"🔄 Previous self-checkout inspection {prev_checkout[0]} marked as replaced")
+        else:
+            cursor.execute("""
+                SELECT self_checkout_inspection_id FROM rental_agreements WHERE id = ?
+            """, (ra_id,))
+            prev_checkout = cursor.fetchone()
+            if prev_checkout and prev_checkout[0]:
+                cursor.execute("""
+                    UPDATE vehicle_inspections
+                    SET status = 'replaced'
+                    WHERE id = ?
+                """, (prev_checkout[0],))
+                logging.info(f"🔄 Previous self-checkout inspection {prev_checkout[0]} marked as replaced")
+        
+        # Atualizar token, email (se fornecido) e resetar flags de self-checkout
         if is_postgres:
             if client_email_override:
                 cursor.execute("""
@@ -32728,6 +32755,8 @@ async def resend_self_checkin_link(request: Request):
                     SET self_checkin_token = %s,
                         self_checkin_email = %s,
                         self_checkin_completed = FALSE,
+                        self_checkout_pending = FALSE,
+                        self_checkout_inspection_id = NULL,
                         updated_at = NOW()
                     WHERE id = %s
                 """, (new_token, final_email, ra_id))
@@ -32736,6 +32765,8 @@ async def resend_self_checkin_link(request: Request):
                     UPDATE rental_agreements
                     SET self_checkin_token = %s,
                         self_checkin_completed = FALSE,
+                        self_checkout_pending = FALSE,
+                        self_checkout_inspection_id = NULL,
                         updated_at = NOW()
                     WHERE id = %s
                 """, (new_token, ra_id))
@@ -32746,6 +32777,8 @@ async def resend_self_checkin_link(request: Request):
                     SET self_checkin_token = ?,
                         self_checkin_email = ?,
                         self_checkin_completed = 0,
+                        self_checkout_pending = 0,
+                        self_checkout_inspection_id = NULL,
                         updated_at = datetime('now')
                     WHERE id = ?
                 """, (new_token, final_email, ra_id))
@@ -32754,6 +32787,8 @@ async def resend_self_checkin_link(request: Request):
                     UPDATE rental_agreements
                     SET self_checkin_token = ?,
                         self_checkin_completed = 0,
+                        self_checkout_pending = 0,
+                        self_checkout_inspection_id = NULL,
                         updated_at = datetime('now')
                     WHERE id = ?
                 """, (new_token, ra_id))
