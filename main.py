@@ -32591,17 +32591,104 @@ async def validate_self_checkout(request: Request):
             try:
                 import json
                 client_name = "Cliente"
+                client_first_name = ""
+                client_last_name = ""
+                vehicle_brand = ""
+                vehicle_model = ""
+                return_location = "Auto Prudente"
+                language = 'pt'
+                pickup_km = 0
+                
                 if extracted_data:
                     try:
                         data_dict = json.loads(extracted_data)
                         client_name = data_dict.get('client_name') or data_dict.get('nome_cliente') or "Cliente"
+                        client_first_name = data_dict.get('client_first_name', client_name.split()[0] if client_name else '')
+                        client_last_name = data_dict.get('client_last_name', ' '.join(client_name.split()[1:]) if client_name and len(client_name.split()) > 1 else '')
+                        vehicle_brand = data_dict.get('vehicle_brand') or data_dict.get('marca') or ''
+                        vehicle_model = data_dict.get('vehicle_model') or data_dict.get('modelo') or ''
+                        return_location = data_dict.get('return_location') or data_dict.get('local_devolucao') or 'Auto Prudente'
+                        language = data_dict.get('language', 'pt')
+                        pickup_km = data_dict.get('pickup_km') or data_dict.get('km_inicial') or 0
                     except:
                         pass
                 
-                # TODO: Implementar email de confirmação de self-checkout validado
-                logging.info(f"📧 Would send self-checkout confirmation to {client_email}")
+                # Calcular KMs percorridos
+                kms_driven = 0
+                if odometer_reading and pickup_km:
+                    try:
+                        kms_driven = int(odometer_reading) - int(pickup_km)
+                        if kms_driven < 0:
+                            kms_driven = 0
+                    except:
+                        pass
+                
+                # Buscar fotos do self-checkout para o email
+                photos_list = []
+                base_url = os.environ.get('BASE_URL', 'https://rentalprices.pt')
+                photo_labels = {
+                    'pt': {'front': 'Frontal', 'rear': 'Traseira', 'left': 'Lado Esquerdo', 'right': 'Lado Direito', 
+                           'front_left': 'Frente Esquerda', 'front_right': 'Frente Direita', 
+                           'rear_left': 'Traseira Esquerda', 'rear_right': 'Traseira Direita', 'odometer': 'Conta-KMs'},
+                    'en': {'front': 'Front', 'rear': 'Rear', 'left': 'Left Side', 'right': 'Right Side',
+                           'front_left': 'Front Left', 'front_right': 'Front Right',
+                           'rear_left': 'Rear Left', 'rear_right': 'Rear Right', 'odometer': 'Odometer'},
+                    'fr': {'front': 'Avant', 'rear': 'Arrière', 'left': 'Côté Gauche', 'right': 'Côté Droit',
+                           'front_left': 'Avant Gauche', 'front_right': 'Avant Droit',
+                           'rear_left': 'Arrière Gauche', 'rear_right': 'Arrière Droit', 'odometer': 'Compteur'}
+                }
+                labels = photo_labels.get(language, photo_labels['pt'])
+                
+                if is_postgres:
+                    cursor.execute("""
+                        SELECT photo_type FROM inspection_photos 
+                        WHERE inspection_id = %s AND photo_type NOT LIKE 'damage%%' AND photo_type != 'signature'
+                    """, (inspection_id,))
+                else:
+                    cursor.execute("""
+                        SELECT photo_type FROM inspection_photos 
+                        WHERE inspection_id = ? AND photo_type NOT LIKE 'damage%' AND photo_type != 'signature'
+                    """, (inspection_id,))
+                
+                photo_rows = cursor.fetchall()
+                for photo_row in photo_rows:
+                    photo_type = photo_row[0]
+                    photo_url = f"{base_url}/email-photo/{inspection_id}/{photo_type}"
+                    photo_label = labels.get(photo_type, photo_type.replace('_', ' ').title())
+                    photos_list.append({'url': photo_url, 'label': photo_label})
+                
+                # Preparar dados para o email
+                ra_data = {
+                    'ra_number': ra_number,
+                    'client_name': client_name,
+                    'client_first_name': client_first_name,
+                    'client_last_name': client_last_name,
+                    'plate': plate,
+                    'vehicle_brand': vehicle_brand,
+                    'vehicle_model': vehicle_model,
+                    'return_location': return_location
+                }
+                
+                inspection_email_data = {
+                    'odometer_reading': odometer_reading or 0,
+                    'fuel_level': fuel_level or 100,
+                    'created_at': selfcheckout_created_at,
+                    'kms_driven': kms_driven
+                }
+                
+                # Enviar email
+                _send_self_checkin_confirmation_email(
+                    to_email=client_email,
+                    ra_data=ra_data,
+                    inspection_data=inspection_email_data,
+                    photos_list=photos_list,
+                    language=language
+                )
+                logging.info(f"📧 Self-checkout confirmation email sent to {client_email}")
             except Exception as email_err:
                 logging.error(f"Failed to send confirmation email: {email_err}")
+                import traceback
+                traceback.print_exc()
         
         logging.info(f"✅ Self-checkout validated: {inspection_number}")
         
