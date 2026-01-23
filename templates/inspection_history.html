@@ -471,11 +471,8 @@
                     if (hasSelfCheckout) {
                         const status = contract.self_checkout.status || 'pending';
                         if (status === 'pending') {
-                            // Laranja com relógio
-                            selfCheckoutBadge = `<span class="px-2 py-1 rounded-full text-xs font-semibold bg-orange-100 text-orange-700 flex items-center gap-1">
-                                <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
-                                Self-checkout pendente
-                            </span>`;
+                            // Não mostrar badge - já está coberto por "PENDENTE VALIDAÇÃO"
+                            selfCheckoutBadge = '';
                         } else if (status === 'validated') {
                             // Verde com check
                             selfCheckoutBadge = `<span class="px-2 py-1 rounded-full text-xs font-semibold bg-green-100 text-green-700 flex items-center gap-1">
@@ -568,26 +565,6 @@
                                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/>
                                         </svg>
                                         <span class="hidden sm:inline text-sm font-medium ${contract.self_checkout.status === 'validated' ? 'text-green-600' : contract.self_checkout.status === 'invalidated' ? 'text-red-600' : 'text-orange-600'}">Self Check-Out</span>
-                                    </button>
-                                    ` : ''}
-                                    ${hasSelfCheckout && (contract.self_checkout.status === 'pending' || !contract.self_checkout.status) ? `
-                                    <button onclick="validateSelfCheckout('${contract.self_checkout.inspection_number}')" class="flex items-center gap-2 px-3 py-2 bg-blue-50 hover:bg-blue-100 rounded-lg transition-colors" title="Validar Self-Checkout">
-                                        <svg class="w-6 h-6 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
-                                        </svg>
-                                        <span class="hidden sm:inline text-sm font-medium text-blue-600">Validar</span>
-                                    </button>
-                                    <button onclick="warnSelfCheckout('${contract.self_checkout.inspection_number}')" class="flex items-center gap-2 px-3 py-2 bg-amber-50 hover:bg-amber-100 rounded-lg transition-colors" title="Advertir sobre Divergências">
-                                        <svg class="w-6 h-6 text-amber-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/>
-                                        </svg>
-                                        <span class="hidden sm:inline text-sm font-medium text-amber-600">Advertir</span>
-                                    </button>
-                                    <button onclick="invalidateSelfCheckout('${contract.self_checkout.inspection_number}')" class="flex items-center gap-2 px-3 py-2 bg-orange-50 hover:bg-orange-100 rounded-lg transition-colors" title="Invalidar Self-Checkout">
-                                        <svg class="w-6 h-6 text-orange-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/>
-                                        </svg>
-                                        <span class="hidden sm:inline text-sm font-medium text-orange-600">Invalidar</span>
                                     </button>
                                     ` : ''}
                                     <button onclick="showEmailModal(${contract.checkout ? `'${contract.checkout.inspection_number}'` : 'null'}, ${contract.checkin ? `'${contract.checkin.inspection_number}'` : 'null'}, '${contract.vehicle_plate}', '${contract.contract_number}', ${isOpen}, ${hasSelfCheckout})" class="flex items-center gap-2 px-3 py-2 bg-yellow-50 hover:bg-yellow-100 rounded-lg transition-colors" title="Enviar por Email">
