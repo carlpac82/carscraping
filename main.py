@@ -32413,7 +32413,7 @@ async def validate_self_checkout(request: Request):
                 SELECT 
                     vi.id, vi.vehicle_plate, vi.contract_number, vi.inspection_type, vi.status,
                     ra.self_checkin_email, ra.extracted_data, ra.id as ra_id,
-                    vi.fuel_level, vi.odometer_reading, vi.observations, vi.delivery_location,
+                    vi.fuel_level, vi.odometer_reading, vi.observations,
                     vi.inspector_name, vi.created_at
                 FROM vehicle_inspections vi
                 LEFT JOIN rental_agreements ra ON vi.contract_number = ra.rental_agreement_number
@@ -32424,7 +32424,7 @@ async def validate_self_checkout(request: Request):
                 SELECT 
                     vi.id, vi.vehicle_plate, vi.contract_number, vi.inspection_type, vi.status,
                     ra.self_checkin_email, ra.extracted_data, ra.id as ra_id,
-                    vi.fuel_level, vi.odometer_reading, vi.observations, vi.delivery_location,
+                    vi.fuel_level, vi.odometer_reading, vi.observations,
                     vi.inspector_name, vi.created_at
                 FROM vehicle_inspections vi
                 LEFT JOIN rental_agreements ra ON vi.contract_number = ra.rental_agreement_number
@@ -32439,7 +32439,7 @@ async def validate_self_checkout(request: Request):
                 "error": "Inspeção não encontrada"
             }, status_code=404)
         
-        inspection_id, plate, ra_number, inspection_type, status, client_email, extracted_data, ra_id, fuel_level, odometer_reading, observations, delivery_location, inspector_name, selfcheckout_created_at = row
+        inspection_id, plate, ra_number, inspection_type, status, client_email, extracted_data, ra_id, fuel_level, odometer_reading, observations, inspector_name, selfcheckout_created_at = row
         
         if inspection_type != 'self_checkout':
             return JSONResponse({
@@ -32475,18 +32475,18 @@ async def validate_self_checkout(request: Request):
             cursor.execute("""
                 INSERT INTO vehicle_inspections 
                 (inspection_number, vehicle_plate, contract_number, inspection_type, fuel_level, 
-                 odometer_reading, observations, delivery_location, status, created_at)
-                VALUES (%s, %s, %s, 'checkout', %s, %s, %s, %s, 'validated', NOW())
+                 odometer_reading, observations, status, created_at)
+                VALUES (%s, %s, %s, 'checkout', %s, %s, %s, 'validated', NOW())
                 RETURNING id
-            """, (checkout_inspection_number, plate, ra_number, fuel_level, odometer_reading, observations, delivery_location))
+            """, (checkout_inspection_number, plate, ra_number, fuel_level, odometer_reading, observations))
             checkout_id = cursor.fetchone()[0]
         else:
             cursor.execute("""
                 INSERT INTO vehicle_inspections 
                 (inspection_number, vehicle_plate, contract_number, inspection_type, fuel_level, 
-                 odometer_reading, observations, delivery_location, status, created_at)
-                VALUES (?, ?, ?, 'checkout', ?, ?, ?, ?, 'validated', datetime('now'))
-            """, (checkout_inspection_number, plate, ra_number, fuel_level, odometer_reading, observations, delivery_location))
+                 odometer_reading, observations, status, created_at)
+                VALUES (?, ?, ?, 'checkout', ?, ?, ?, 'validated', datetime('now'))
+            """, (checkout_inspection_number, plate, ra_number, fuel_level, odometer_reading, observations))
             checkout_id = cursor.lastrowid
         
         logging.info(f"✅ Criada inspeção checkout (recolha): {checkout_inspection_number} (ID: {checkout_id})")

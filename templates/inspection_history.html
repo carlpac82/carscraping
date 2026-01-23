@@ -2349,16 +2349,14 @@
                         </div>
                     `;
                     
-                    document.getElementById('previewModalContainer').innerHTML = '';
-                    document.getElementById('previewModalContainer').appendChild(modal);
+                    document.body.appendChild(modal);
+                    window.currentPreviewModal = modal;
                     
                     // Add click handlers for photos
                     modal.querySelectorAll('.photo-clickable').forEach(img => {
                         img.addEventListener('click', function() {
-                            const photoKey = this.getAttribute('data-photo-key');
-                            if (photoKey && window.currentInspectionPhotos[photoKey]) {
-                                openFullscreenPhoto(window.currentInspectionPhotos[photoKey], photoKey);
-                            }
+                            const photoKey = this.getAttribute('data-photo-key') || null;
+                            openPhotoInLightbox(photoKey, this.src);
                         });
                     });
                     
