@@ -865,16 +865,19 @@
 
         // Preview inspection document
         async function previewInspection(inspectionNumber, type) {
-            // checkout = RECOLHA (devolução), checkin = ENTREGA
-            const title = type === 'checkout' ? 'Relatório de Recolha' : 'Relatório de Entrega';
+            // checkout = RECOLHA (devolução), checkin = ENTREGA, self_checkout = Self-Checkout
+            const isSelfCheckout = type === 'self_checkout';
+            const title = isSelfCheckout ? 'Self-Checkout' : (type === 'checkout' ? 'Relatório de Recolha' : 'Relatório de Entrega');
             
             // Check if contract is closed (has both checkout and checkin)
             const contract = contracts.find(c => 
                 (c.checkout && c.checkout.inspection_number === inspectionNumber) ||
-                (c.checkin && c.checkin.inspection_number === inspectionNumber)
+                (c.checkin && c.checkin.inspection_number === inspectionNumber) ||
+                (c.self_checkout && c.self_checkout.inspection_number === inspectionNumber)
             );
             const isContractClosed = contract && contract.checkout && contract.checkin;
             const isCheckout = type === 'checkout';
+            const selfCheckoutStatus = isSelfCheckout && contract && contract.self_checkout ? contract.self_checkout.status : null;
             
             // Calculate KMs driven (for checkin only)
             let kmsDriven = 0;
@@ -981,14 +984,14 @@
                                     </div>
                                     <div>
                                         <p class="text-sm text-gray-600">Combustível</p>
-                                        <p class="font-bold text-gray-900">${inspection.fuel_level || 'N/A'}%</p>
+                                        <p class="font-bold text-gray-900">${inspection.fuel_level || inspection.fuel_level === 0 ? inspection.fuel_level + '%' : 'N/A'}</p>
                                     </div>
                                     <div>
                                         <p class="text-sm text-gray-600">Tipo</p>
-                                        <p class="font-bold text-gray-900">${inspection.inspection_type === 'checkin' ? 'Entrega' : 'Recolha'}</p>
+                                        <p class="font-bold text-gray-900">${isSelfCheckout ? 'Self-Checkout' : (inspection.inspection_type === 'checkin' ? 'Entrega' : 'Recolha')}</p>
                                     </div>
                                     <div>
-                                        <p class="text-sm text-gray-600">Inspetor</p>
+                                        <p class="text-sm text-gray-600">${isSelfCheckout ? 'Cliente' : 'Inspetor'}</p>
                                         <p class="font-bold text-gray-900">${inspection.inspector_name || 'N/A'}</p>
                                     </div>
                                     <div>
@@ -996,13 +999,19 @@
                                         <p class="font-bold text-gray-900">${inspection.damage_count || 0}</p>
                                     </div>
                                     <div>
-                                        <p class="text-sm text-gray-600">Data</p>
-                                        <p class="font-bold text-gray-900">${new Date(inspection.created_at).toLocaleDateString('pt-PT')}</p>
+                                        <p class="text-sm text-gray-600">Data e Hora</p>
+                                        <p class="font-bold text-gray-900">${new Date(inspection.created_at).toLocaleDateString('pt-PT')} ${new Date(inspection.created_at).toLocaleTimeString('pt-PT', {hour: '2-digit', minute: '2-digit'})}</p>
                                     </div>
                                     ${type === 'checkin' && kmsDriven > 0 ? `
                                     <div>
                                         <p class="text-sm text-gray-600">KMs Percorridos</p>
                                         <p class="font-bold text-green-600">${kmsDriven} km</p>
+                                    </div>
+                                    ` : ''}
+                                    ${isSelfCheckout ? `
+                                    <div>
+                                        <p class="text-sm text-gray-600">Estado</p>
+                                        <p class="font-bold ${selfCheckoutStatus === 'validated' ? 'text-green-600' : selfCheckoutStatus === 'warned' ? 'text-yellow-600' : selfCheckoutStatus === 'invalidated' ? 'text-red-600' : 'text-orange-600'}">${selfCheckoutStatus === 'validated' ? 'Validado' : selfCheckoutStatus === 'warned' ? 'Com Divergências' : selfCheckoutStatus === 'invalidated' ? 'Invalidado' : 'Pendente'}</p>
                                     </div>
                                     ` : ''}
                                 </div>
@@ -1127,12 +1136,30 @@
                             ` : ''}
                             
                             <!-- Action Buttons -->
-                            <div class="grid grid-cols-2 md:flex gap-2 md:gap-3 pt-4 border-t border-gray-200">
+                            <div class="grid grid-cols-2 md:flex flex-wrap gap-2 md:gap-3 pt-4 border-t border-gray-200">
                                 <button onclick="closePreviewModal()" 
                                         class="col-span-2 md:col-span-1 px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors text-sm md:text-base">
                                     Fechar
                                 </button>
-                                ${!(isContractClosed && !isCheckout) ? `
+                                ${isSelfCheckout && (!selfCheckoutStatus || selfCheckoutStatus === 'pending') ? `
+                                <button onclick="closePreviewModal(); validateSelfCheckout('${inspectionNumber}')" 
+                                        class="flex-1 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors font-semibold text-sm md:text-base">
+                                    ✓ Validar
+                                </button>
+                                <button onclick="closePreviewModal(); warnSelfCheckout('${inspectionNumber}')" 
+                                        class="flex-1 px-4 py-2 bg-yellow-500 text-white rounded-lg hover:bg-yellow-600 transition-colors font-semibold text-sm md:text-base">
+                                    ⚠ Divergências
+                                </button>
+                                <button onclick="closePreviewModal(); invalidateSelfCheckout('${inspectionNumber}')" 
+                                        class="flex-1 px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors font-semibold text-sm md:text-base">
+                                    ✗ Invalidar
+                                </button>
+                                <button onclick="closePreviewModal(); newInspectionFromSelfCheckout('${inspection.vehicle_plate}', '${inspection.contract_number}')" 
+                                        class="flex-1 px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors font-semibold text-sm md:text-base">
+                                    Nova Inspeção
+                                </button>
+                                ` : ''}
+                                ${!isSelfCheckout && !(isContractClosed && !isCheckout) ? `
                                 <button onclick="editInspection('${inspectionNumber}', '${type}')" 
                                         class="flex-1 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-semibold text-sm md:text-base">
                                     Editar
@@ -2042,6 +2069,13 @@
                 console.error('Error invalidating self-checkout:', error);
                 showNotification('Erro ao invalidar self-checkout: ' + error.message, 'error');
             }
+        }
+
+        // Create new inspection from self-checkout data
+        function newInspectionFromSelfCheckout(plate, raNumber) {
+            // Redirect to vehicle inspection page with pre-filled data
+            const url = `/vehicle-inspection?plate=${encodeURIComponent(plate)}&ra=${encodeURIComponent(raNumber)}&type=checkout`;
+            window.location.href = url;
         }
 
         // Send self-checkout link (for any open contract) - Opens modal
