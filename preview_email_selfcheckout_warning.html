@@ -47,18 +47,33 @@
         </tr>
     </table>
 
-    <!-- Warning Alert -->
-    <div style="background: #f59e0b15; border-left: 4px solid #f59e0b; padding: 20px; margin: 20px; border-radius: 8px;">
+    <!-- Damage Alert (Red) -->
+    <div style="background: #fef2f2; border-left: 4px solid #dc2626; padding: 20px; margin: 20px; border-radius: 8px;">
+        <h3 style="color: #dc2626; margin: 0 0 10px 0; font-size: 16px; font-weight: 600;">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="vertical-align: middle; margin-right: 8px;">
+                <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path>
+                <line x1="12" y1="9" x2="12" y2="13"></line>
+                <line x1="12" y1="17" x2="12.01" y2="17"></line>
+            </svg>
+            Danos Detectados no Veículo
+        </h3>
+        <p style="color: #991b1b; margin: 0; font-size: 13px; line-height: 1.5;">
+            Foram detectados danos no veículo durante a verificação. Consulte os detalhes abaixo.
+        </p>
+    </div>
+
+    <!-- Fuel Alert (Orange) -->
+    <div style="background: #fff7ed; border-left: 4px solid #f59e0b; padding: 20px; margin: 20px; border-radius: 8px;">
         <h3 style="color: #f59e0b; margin: 0 0 10px 0; font-size: 16px; font-weight: 600;">
             <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="vertical-align: middle; margin-right: 8px;">
                 <circle cx="12" cy="12" r="10"></circle>
                 <line x1="12" y1="8" x2="12" y2="12"></line>
                 <line x1="12" y1="16" x2="12.01" y2="16"></line>
             </svg>
-            Divergências Detectadas no Self Checkout
+            Advertência de Combustível
         </h3>
         <p style="color: #b45309; margin: 0; font-size: 13px; line-height: 1.5;">
-            Detectámos algumas divergências durante a validação do seu self checkout. A nossa equipa irá entrar em contacto consigo brevemente.
+            O veículo foi devolvido com menos combustível do que no momento da entrega.
         </p>
     </div>
 
@@ -101,26 +116,53 @@
             </tr>
             <tr>
                 <td style="background-color: #f9f9f9; font-weight: bold; color: #333333;">Status:</td>
-                <td style="color: #f59e0b; font-weight: bold;">⚠ Em Análise</td>
+                <td style="color: #f59e0b; font-weight: bold;">Em Análise</td>
             </tr>
         </table>
     </div>
 
-    <!-- Discrepancies Detected -->
-    <div style="background: #f59e0b15; border-left: 4px solid #f59e0b; padding: 20px; margin: 20px; border-radius: 8px;">
-        <h3 style="color: #f59e0b; margin: 0 0 10px 0; font-size: 16px; font-weight: 600;">
-            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="vertical-align: middle; margin-right: 8px;">
-                <circle cx="12" cy="12" r="10"></circle>
-                <line x1="12" y1="8" x2="12" y2="12"></line>
-                <line x1="12" y1="16" x2="12.01" y2="16"></line>
-            </svg>
-            Próximos Passos
-        </h3>
-        <p style="color: #b45309; margin: 0 0 10px 0; font-size: 13px; line-height: 1.5;">
-            A nossa equipa irá analisar as divergências detectadas e entrar em contacto consigo brevemente para esclarecimentos.
+    <!-- Damage Details Section -->
+    <div style="background: #ffffff; border: 1px solid #e5e7eb; padding: 20px; margin: 20px; border-radius: 8px;">
+        <h3 style="color: #333333; margin: 0 0 15px 0; font-size: 16px; font-weight: 600;">Detalhes dos Danos</h3>
+        
+        <!-- Croqui Placeholder -->
+        <p style="color: #666666; margin: 0 0 10px 0; font-size: 13px;"><strong>Croqui de Danos:</strong></p>
+        <div style="background: #f3f4f6; border: 1px solid #e5e7eb; border-radius: 8px; padding: 40px; text-align: center; margin-bottom: 15px;">
+            <p style="color: #9ca3af; margin: 0;">[Imagem do Croqui]</p>
+        </div>
+        
+        <!-- Photos Grid 3x3 -->
+        <p style="color: #666666; margin: 0 0 10px 0; font-size: 13px;"><strong>Fotos dos Danos:</strong></p>
+        <table width="100%" cellpadding="5" cellspacing="0">
+            <tr>
+                <td width="33%" style="padding: 5px;"><div style="background: #e5e7eb; border-radius: 6px; height: 80px; display: flex; align-items: center; justify-content: center;"><span style="color: #9ca3af; font-size: 11px;">[Foto 1]</span></div></td>
+                <td width="33%" style="padding: 5px;"><div style="background: #e5e7eb; border-radius: 6px; height: 80px; display: flex; align-items: center; justify-content: center;"><span style="color: #9ca3af; font-size: 11px;">[Foto 2]</span></div></td>
+                <td width="33%" style="padding: 5px;"><div style="background: #e5e7eb; border-radius: 6px; height: 80px; display: flex; align-items: center; justify-content: center;"><span style="color: #9ca3af; font-size: 11px;">[Foto 3]</span></div></td>
+            </tr>
+            <tr>
+                <td width="33%" style="padding: 5px;"><div style="background: #e5e7eb; border-radius: 6px; height: 80px; display: flex; align-items: center; justify-content: center;"><span style="color: #9ca3af; font-size: 11px;">[Foto 4]</span></div></td>
+                <td width="33%" style="padding: 5px;"><div style="background: #e5e7eb; border-radius: 6px; height: 80px; display: flex; align-items: center; justify-content: center;"><span style="color: #9ca3af; font-size: 11px;">[Foto 5]</span></div></td>
+                <td width="33%" style="padding: 5px;"><div style="background: #e5e7eb; border-radius: 6px; height: 80px; display: flex; align-items: center; justify-content: center;"><span style="color: #9ca3af; font-size: 11px;">[Foto 6]</span></div></td>
+            </tr>
+        </table>
+    </div>
+
+    <!-- Observations Section -->
+    <div style="background: #f9fafb; border: 1px solid #e5e7eb; padding: 20px; margin: 20px; border-radius: 8px;">
+        <h3 style="color: #374151; margin: 0 0 10px 0; font-size: 16px; font-weight: 600;"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#374151" stroke-width="2" style="vertical-align: middle; margin-right: 6px;"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><path d="M14 2v6h6M16 13H8m8 4H8m2-8H8"/></svg> Observações</h3>
+        <p style="color: #6b7280; margin: 0; font-size: 13px; line-height: 1.5;">
+            Cliente deixou o veículo no parque sem efetuar a verificação presencial. Danos foram detectados posteriormente pela equipa de inspeção.
         </p>
-        <p style="color: #b45309; margin: 0; font-size: 13px; line-height: 1.5;">
-            Caso tenha alguma questão ou pretenda esclarecer a situação, não hesite em contactar-nos através dos contactos abaixo.
+    </div>
+
+    <!-- Next Steps -->
+    <div style="background: #fffbeb; border-left: 4px solid #f59e0b; padding: 20px; margin: 20px; border-radius: 8px;">
+        <h3 style="color: #b45309; margin: 0 0 10px 0; font-size: 16px; font-weight: 600;">Próximos Passos</h3>
+        <p style="color: #92400e; margin: 0 0 10px 0; font-size: 13px; line-height: 1.5;">
+            A nossa equipa irá analisar as incidências detectadas e entrar em contacto consigo brevemente para esclarecimentos.
+        </p>
+        <p style="color: #92400e; margin: 0; font-size: 13px; line-height: 1.5;">
+            Caso tenha alguma questão, não hesite em contactar-nos através dos contactos abaixo.
         </p>
     </div>
 

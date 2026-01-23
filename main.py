@@ -33553,157 +33553,216 @@ async def _send_invalidation_email(
         
         subject = f"⚠️ Self-Checkout Invalidado - {' e '.join(subject_parts)} - {plate}"
         
-        # Build HTML content
+        # Build HTML content using the same template as warning emails
         html_content = f'''
 <!DOCTYPE html>
-<html>
+<html lang="pt">
 <head>
-    <meta charset="UTF-8">
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Self Checkout - Incidências Detectadas</title>
     <style>
-        body {{ font-family: Arial, sans-serif; line-height: 1.6; color: #333; margin: 0; padding: 0; background-color: #f5f5f5; }}
-        .container {{ max-width: 650px; margin: 0 auto; background-color: #ffffff; }}
-        .header {{ background: linear-gradient(135deg, #dc2626 0%, #b91c1c 100%); padding: 30px; text-align: center; }}
-        .header h1 {{ color: white; margin: 0; font-size: 24px; }}
-        .header p {{ color: rgba(255,255,255,0.9); margin: 10px 0 0 0; font-size: 14px; }}
-        .content {{ padding: 30px; }}
-        .alert-box {{ background-color: #fef2f2; border: 1px solid #fecaca; border-radius: 8px; padding: 20px; margin-bottom: 25px; }}
-        .alert-box h3 {{ color: #dc2626; margin: 0 0 10px 0; font-size: 18px; }}
-        .alert-box p {{ margin: 0; color: #7f1d1d; }}
-        .info-grid {{ display: table; width: 100%; margin-bottom: 25px; }}
-        .info-row {{ display: table-row; }}
-        .info-label {{ display: table-cell; padding: 10px; background-color: #f9fafb; font-weight: bold; width: 40%; border-bottom: 1px solid #e5e7eb; }}
-        .info-value {{ display: table-cell; padding: 10px; border-bottom: 1px solid #e5e7eb; }}
-        .fuel-section {{ background-color: #fff7ed; border: 1px solid #fed7aa; border-radius: 8px; padding: 20px; margin-bottom: 25px; }}
-        .fuel-section h3 {{ color: #c2410c; margin: 0 0 15px 0; }}
-        .fuel-bar {{ height: 30px; background-color: #e5e7eb; border-radius: 5px; overflow: hidden; margin: 10px 0; }}
-        .fuel-fill {{ height: 100%; background-color: #f97316; }}
-        .damage-section {{ background-color: #fef2f2; border: 1px solid #fecaca; border-radius: 8px; padding: 20px; margin-bottom: 25px; }}
-        .damage-section h3 {{ color: #dc2626; margin: 0 0 15px 0; }}
-        .photos-grid {{ display: table; width: 100%; border-collapse: separate; border-spacing: 5px; }}
-        .photos-row {{ display: table-row; }}
-        .photos-cell {{ display: table-cell; width: 33.33%; vertical-align: top; }}
-        .photos-cell img {{ width: 100%; height: auto; border-radius: 5px; border: 1px solid #e5e7eb; }}
-        .croqui-section {{ text-align: center; margin: 20px 0; }}
-        .croqui-section img {{ max-width: 100%; height: auto; border-radius: 8px; border: 2px solid #dc2626; }}
-        .observations {{ background-color: #f9fafb; border-radius: 8px; padding: 20px; margin-top: 20px; }}
-        .observations h4 {{ margin: 0 0 10px 0; color: #374151; }}
-        .observations p {{ margin: 0; color: #6b7280; white-space: pre-wrap; }}
-        .footer {{ background-color: #1f2937; padding: 25px; text-align: center; }}
-        .footer p {{ color: #9ca3af; margin: 0; font-size: 12px; }}
-        .footer a {{ color: #60a5fa; text-decoration: none; }}
+        body {{ margin: 0; padding: 0; font-family: Arial, sans-serif; background-color: #f4f4f4; }}
+        .email-container {{ max-width: 600px; min-width: 320px; margin: 0 auto; background-color: #ffffff; }}
     </style>
 </head>
-<body>
-    <div class="container">
-        <div class="header">
-            <h1>⚠️ Self-Checkout Invalidado</h1>
-            <p>Foram detectadas incidências na devolução do veículo</p>
-        </div>
-        
-        <div class="content">
-            <div class="alert-box">
-                <h3>Atenção, {client_name}</h3>
-                <p>O seu self-checkout foi invalidado devido a incidências detectadas durante a verificação do veículo. Por favor, reveja os detalhes abaixo.</p>
-            </div>
-            
-            <div class="info-grid">
-                <div class="info-row">
-                    <div class="info-label">Contrato</div>
-                    <div class="info-value">{contract_number}</div>
-                </div>
-                <div class="info-row">
-                    <div class="info-label">Matrícula</div>
-                    <div class="info-value">{plate}</div>
-                </div>
-            </div>
-'''
-        
-        # Fuel warning section
-        if has_fuel_warning:
-            fuel_diff = checkin_fuel - fuel_level
-            html_content += f'''
-            <div class="fuel-section">
-                <h3>⛽ Advertência de Combustível</h3>
-                <p>O veículo foi devolvido com menos combustível do que no momento da entrega.</p>
-                <table style="width: 100%; margin-top: 15px;">
+<body style="margin: 0; padding: 0; font-family: Arial, sans-serif; background-color: #f4f4f4;">
+    <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="margin: 0; padding: 0;">
+        <tr>
+            <td align="center" style="padding: 0;">
+                <table role="presentation" width="600" cellpadding="0" cellspacing="0" border="0" style="margin: 0 auto; background-color: #ffffff; width: 600px !important;">
                     <tr>
-                        <td style="width: 50%;">
-                            <strong>Combustível na Entrega:</strong><br>
-                            <span style="font-size: 24px; color: #059669;">{checkin_fuel}%</span>
+                        <td style="padding: 0;">
+    
+    <!-- Header -->
+    <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="background: linear-gradient(135deg, #00bcd4 0%, #0097a7 100%); background-color: #00bcd4;">
+        <tr>
+            <td style="padding: 20px;">
+                <table width="100%" cellpadding="0" cellspacing="0">
+                    <tr>
+                        <td style="width: 50%; text-align: left; vertical-align: middle;">
+                            <img src="https://carscraping.up.railway.app/static/ap-heather.png" alt="Auto Prudente" style="height: 50px; width: auto;">
                         </td>
-                        <td style="width: 50%;">
-                            <strong>Combustível na Devolução:</strong><br>
-                            <span style="font-size: 24px; color: #dc2626;">{fuel_level}%</span>
+                        <td style="width: 50%; text-align: right; vertical-align: middle;">
+                            <div style="background: rgba(255,255,255,0.2); padding: 10px 15px; border-radius: 6px; display: inline-block;">
+                                <span style="color: #ffffff; font-size: 16px; font-weight: bold;">R.A.: {contract_number}</span>
+                            </div>
                         </td>
                     </tr>
                 </table>
-                <p style="margin-top: 15px; padding: 10px; background-color: #fef3c7; border-radius: 5px; color: #92400e;">
-                    <strong>Diferença: -{fuel_diff}%</strong> - Será cobrado o valor correspondente ao combustível em falta.
-                </p>
-            </div>
+            </td>
+        </tr>
+    </table>
 '''
         
-        # Damage section
+        # Fuel warning alert (Orange)
+        if has_fuel_warning:
+            html_content += f'''
+    <!-- Fuel Alert (Orange) -->
+    <div style="background: #fff7ed; border-left: 4px solid #f59e0b; padding: 20px; margin: 20px; border-radius: 8px;">
+        <h3 style="color: #f59e0b; margin: 0 0 10px 0; font-size: 16px; font-weight: 600;">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="vertical-align: middle; margin-right: 8px;">
+                <circle cx="12" cy="12" r="10"></circle>
+                <line x1="12" y1="8" x2="12" y2="12"></line>
+                <line x1="12" y1="16" x2="12.01" y2="16"></line>
+            </svg>
+            Advertência de Combustível
+        </h3>
+        <p style="color: #b45309; margin: 0; font-size: 13px; line-height: 1.5;">
+            O veículo foi devolvido com menos combustível do que no momento da entrega.
+        </p>
+    </div>
+'''
+        
+        # Damage alert (Red)
         if has_damages:
             html_content += f'''
-            <div class="damage-section">
-                <h3>🚗 Danos Detectados</h3>
+    <!-- Damage Alert (Red) -->
+    <div style="background: #fef2f2; border-left: 4px solid #dc2626; padding: 20px; margin: 20px; border-radius: 8px;">
+        <h3 style="color: #dc2626; margin: 0 0 10px 0; font-size: 16px; font-weight: 600;">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="vertical-align: middle; margin-right: 8px;">
+                <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path>
+                <line x1="12" y1="9" x2="12" y2="13"></line>
+                <line x1="12" y1="17" x2="12.01" y2="17"></line>
+            </svg>
+            Danos Detectados no Veículo
+        </h3>
+        <p style="color: #991b1b; margin: 0; font-size: 13px; line-height: 1.5;">
+            Foram detectados danos no veículo durante a verificação. Consulte os detalhes abaixo.
+        </p>
+    </div>
 '''
-            if damage_description:
-                html_content += f'''
-                <p><strong>Descrição dos Danos:</strong></p>
-                <p style="background-color: #fff; padding: 15px; border-radius: 5px; border: 1px solid #fecaca;">{damage_description}</p>
+        
+        # Greeting section
+        html_content += f'''
+    <!-- Greeting -->
+    <div style="padding: 20px;">
+        <h2 style="color: #333333; margin: 0 0 15px 0; font-size: 18px;">Caro {client_name},</h2>
+        <p style="color: #666666; line-height: 1.6; margin: 0 0 12px 0; font-size: 14px;">Agradecemos o self checkout do veículo <strong>{plate}</strong>. No entanto, durante a validação, a nossa equipa detectou algumas divergências que necessitam de esclarecimento.</p>
+        <p style="color: #666666; line-height: 1.6; margin: 0; font-size: 14px;">Iremos analisar a situação com atenção e entraremos em contacto consigo nas próximas horas para resolver esta questão.</p>
+    </div>
 '''
-            
+        
+        # Damage Details section
+        if has_damages:
+            html_content += '''
+    <!-- Damage Details Section -->
+    <div style="background: #ffffff; border: 1px solid #e5e7eb; padding: 20px; margin: 20px; border-radius: 8px;">
+        <h3 style="color: #333333; margin: 0 0 15px 0; font-size: 16px; font-weight: 600;">Detalhes dos Danos</h3>
+'''
             # Croqui
             if damage_croqui and len(damage_croqui) > 100:
                 html_content += '''
-                <div class="croqui-section">
-                    <p><strong>Croqui de Danos:</strong></p>
-                    <img src="cid:damage_croqui" alt="Croqui de Danos">
-                </div>
+        <p style="color: #666666; margin: 0 0 10px 0; font-size: 13px;"><strong>Croqui de Danos:</strong></p>
+        <div style="text-align: center; margin-bottom: 15px;">
+            <img src="cid:damage_croqui" alt="Croqui de Danos" style="max-width: 100%; height: auto; border-radius: 8px; border: 1px solid #e5e7eb;">
+        </div>
 '''
             
             # Photos grid 3x3
             if damage_photos:
                 html_content += '''
-                <p style="margin-top: 20px;"><strong>Fotos dos Danos:</strong></p>
-                <table class="photos-grid" style="width: 100%;">
+        <p style="color: #666666; margin: 0 0 10px 0; font-size: 13px;"><strong>Fotos dos Danos:</strong></p>
+        <table width="100%" cellpadding="5" cellspacing="0">
 '''
                 for i in range(0, len(damage_photos), 3):
-                    html_content += '<tr class="photos-row">'
+                    html_content += '<tr>'
                     for j in range(3):
                         idx = i + j
                         if idx < len(damage_photos):
-                            html_content += f'<td class="photos-cell" style="width: 33.33%; padding: 5px;"><img src="cid:damage_photo_{idx}" alt="Dano {idx+1}" style="width: 100%; border-radius: 5px;"></td>'
+                            html_content += f'<td width="33%" style="padding: 5px;"><img src="cid:damage_photo_{idx}" alt="Dano {idx+1}" style="width: 100%; border-radius: 6px; border: 1px solid #e5e7eb;"></td>'
                         else:
-                            html_content += '<td class="photos-cell" style="width: 33.33%;"></td>'
+                            html_content += '<td width="33%" style="padding: 5px;"></td>'
                     html_content += '</tr>'
                 html_content += '</table>'
             
             html_content += '</div>'
         
-        # Observations
+        # Observations section
         if observations:
             html_content += f'''
-            <div class="observations">
-                <h4>📝 Observações</h4>
-                <p>{observations}</p>
-            </div>
+    <!-- Observations Section -->
+    <div style="background: #f9fafb; border: 1px solid #e5e7eb; padding: 20px; margin: 20px; border-radius: 8px;">
+        <h3 style="color: #374151; margin: 0 0 10px 0; font-size: 16px; font-weight: 600;">Observações</h3>
+        <p style="color: #6b7280; margin: 0; font-size: 13px; line-height: 1.5;">{observations}</p>
+    </div>
 '''
         
+        # Next Steps section (Yellow/Orange)
         html_content += '''
-            <p style="margin-top: 30px; padding: 20px; background-color: #f3f4f6; border-radius: 8px; text-align: center;">
-                Se tiver alguma questão sobre estas incidências, por favor contacte-nos através do email ou telefone indicados abaixo.
-            </p>
-        </div>
+    <!-- Next Steps -->
+    <div style="background: #fffbeb; border-left: 4px solid #f59e0b; padding: 20px; margin: 20px; border-radius: 8px;">
+        <h3 style="color: #b45309; margin: 0 0 10px 0; font-size: 16px; font-weight: 600;">Próximos Passos</h3>
+        <p style="color: #92400e; margin: 0 0 10px 0; font-size: 13px; line-height: 1.5;">
+            A nossa equipa irá analisar as incidências detectadas e entrar em contacto consigo brevemente para esclarecimentos.
+        </p>
+        <p style="color: #92400e; margin: 0; font-size: 13px; line-height: 1.5;">
+            Caso tenha alguma questão, não hesite em contactar-nos através dos contactos abaixo.
+        </p>
+    </div>
+
+    <!-- Separator Line -->
+    <div style="height: 2px; background: linear-gradient(to right, transparent, #00bcd4, transparent); margin: 30px 20px;"></div>
+
+    <!-- Closing -->
+    <div style="padding: 20px;">
+        <p style="color: #666666; line-height: 1.6; margin: 0 0 10px 0; font-size: 14px;">Agradecemos a sua compreensão e colaboração.</p>
+        <p style="color: #666666; line-height: 1.6; margin: 0; font-size: 14px;"><strong>Atentamente,</strong><br>Auto Prudente Rent a Car</p>
+    </div>
+
+    <!-- Separator Line -->
+    <div style="height: 2px; background: linear-gradient(to right, transparent, #00bcd4, transparent); margin: 30px 20px;"></div>
+
+    <!-- Contactos Úteis Section -->
+    <div style="padding: 20px; background-color: #f0f9fb;">
+        <h3 style="color: #00bcd4; margin: 0 0 20px 0; font-size: 20px; text-align: center; font-weight: bold;">Contactos Úteis</h3>
         
-        <div class="footer">
-            <p><strong>RR Rent a Car</strong></p>
-            <p>📧 geral@rrrentacar.com | 📞 +351 XXX XXX XXX</p>
-            <p style="margin-top: 10px;">Este email foi gerado automaticamente pelo sistema de inspeção de veículos.</p>
+        <div style="max-width: 500px; margin: 0 auto;">
+            <table width="100%" cellpadding="10" cellspacing="0" style="background: white; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
+                <tr>
+                    <td style="text-align: center; padding: 15px; border-bottom: 1px solid #e0e0e0;">
+                        <p style="color: #666666; margin: 0 0 5px 0; font-size: 13px; font-weight: bold;">ESCRITÓRIO</p>
+                        <p style="color: #00bcd4; margin: 0; font-size: 16px; font-weight: bold;">+351 289 542 160</p>
+                    </td>
+                </tr>
+                <tr>
+                    <td style="text-align: center; padding: 15px; border-bottom: 1px solid #e0e0e0;">
+                        <p style="color: #666666; margin: 0 0 5px 0; font-size: 13px; font-weight: bold;">ASSISTÊNCIA EM VIAGEM</p>
+                        <p style="color: #00bcd4; margin: 0; font-size: 16px; font-weight: bold;">+351 273 880 250</p>
+                    </td>
+                </tr>
+                <tr>
+                    <td style="text-align: center; padding: 15px;">
+                        <p style="color: #666666; margin: 0 0 5px 0; font-size: 13px; font-weight: bold;">EMAIL</p>
+                        <p style="color: #00bcd4; margin: 0; font-size: 16px; font-weight: bold;">info@auto-prudente.com</p>
+                    </td>
+                </tr>
+            </table>
         </div>
     </div>
+
+    <!-- Footer -->
+    <div style="background-color: #00bcd4; padding: 20px; text-align: center;">
+        <p style="color: #ffffff; margin: 0; font-size: 11px; opacity: 0.8;">© 2026 Auto Prudente Rent a Car. Todos os direitos reservados.</p>
+    </div>
+    
+    <!-- Legal Footer -->
+    <div style="background-color: #f4f4f4; padding: 20px; text-align: center; border-top: 1px solid #e0e0e0;">
+        <div style="max-width: 560px; margin: 0 auto;">
+            <p style="color: #666666; margin: 0; font-size: 10px; line-height: 1.5;">
+                <strong>Auto Prudente Rent a Car Unipessoal, Lda.</strong> - Número Fiscal: PT 503 539 791<br>
+                Sede: Estrada de Santa Eulália, Edifício Onda do Mar Loja E, 8200-269 Albufeira<br>
+                Telefone +351 289 542 160 | E-mail: info@auto-prudente.com
+            </p>
+        </div>
+    </div>
+    
+                        </td>
+                    </tr>
+                </table>
+            </td>
+        </tr>
+    </table>
 </body>
 </html>
 '''

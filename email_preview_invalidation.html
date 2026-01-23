@@ -1,0 +1,141 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>Preview Email Invalidação</title>
+    <style>
+        body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; margin: 0; padding: 0; background-color: #f5f5f5; }
+        .container { max-width: 650px; margin: 0 auto; background-color: #ffffff; }
+        .header { background: linear-gradient(135deg, #dc2626 0%, #b91c1c 100%); padding: 30px; text-align: center; }
+        .header h1 { color: white; margin: 0; font-size: 24px; }
+        .header p { color: rgba(255,255,255,0.9); margin: 10px 0 0 0; font-size: 14px; }
+        .content { padding: 30px; }
+        .alert-box { background-color: #fef2f2; border: 1px solid #fecaca; border-radius: 8px; padding: 20px; margin-bottom: 25px; }
+        .alert-box h3 { color: #dc2626; margin: 0 0 10px 0; font-size: 18px; }
+        .alert-box p { margin: 0; color: #7f1d1d; }
+        .info-grid { display: table; width: 100%; margin-bottom: 25px; }
+        .info-row { display: table-row; }
+        .info-label { display: table-cell; padding: 10px; background-color: #f9fafb; font-weight: bold; width: 40%; border-bottom: 1px solid #e5e7eb; }
+        .info-value { display: table-cell; padding: 10px; border-bottom: 1px solid #e5e7eb; }
+        .fuel-section { background-color: #fff7ed; border: 1px solid #fed7aa; border-radius: 8px; padding: 20px; margin-bottom: 25px; }
+        .fuel-section h3 { color: #c2410c; margin: 0 0 15px 0; }
+        .fuel-bar { height: 30px; background-color: #e5e7eb; border-radius: 5px; overflow: hidden; margin: 10px 0; }
+        .fuel-fill { height: 100%; background-color: #f97316; }
+        .damage-section { background-color: #fef2f2; border: 1px solid #fecaca; border-radius: 8px; padding: 20px; margin-bottom: 25px; }
+        .damage-section h3 { color: #dc2626; margin: 0 0 15px 0; }
+        .photos-grid { display: table; width: 100%; border-collapse: separate; border-spacing: 5px; }
+        .photos-row { display: table-row; }
+        .photos-cell { display: table-cell; width: 33.33%; vertical-align: top; }
+        .photos-cell img { width: 100%; height: auto; border-radius: 5px; border: 1px solid #e5e7eb; }
+        .croqui-section { text-align: center; margin: 20px 0; }
+        .croqui-section img { max-width: 100%; height: auto; border-radius: 8px; border: 2px solid #dc2626; }
+        .observations { background-color: #f9fafb; border-radius: 8px; padding: 20px; margin-top: 20px; }
+        .observations h4 { margin: 0 0 10px 0; color: #374151; }
+        .observations p { margin: 0; color: #6b7280; white-space: pre-wrap; }
+        .footer { background-color: #1f2937; padding: 25px; text-align: center; }
+        .footer p { color: #9ca3af; margin: 0; font-size: 12px; }
+        .footer a { color: #60a5fa; text-decoration: none; }
+        .placeholder-img { background: linear-gradient(45deg, #e5e7eb 25%, #f3f4f6 25%, #f3f4f6 50%, #e5e7eb 50%, #e5e7eb 75%, #f3f4f6 75%); background-size: 20px 20px; height: 120px; display: flex; align-items: center; justify-content: center; color: #9ca3af; border-radius: 5px; font-size: 12px; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>⚠️ Self-Checkout Invalidado</h1>
+            <p>Foram detectadas incidências na devolução do veículo</p>
+        </div>
+        
+        <div class="content">
+            <div class="alert-box">
+                <h3>Atenção, João Silva</h3>
+                <p>O seu self-checkout foi invalidado devido a incidências detectadas durante a verificação do veículo. Por favor, reveja os detalhes abaixo.</p>
+            </div>
+            
+            <div class="info-grid">
+                <div class="info-row">
+                    <div class="info-label">Contrato</div>
+                    <div class="info-value">RA-2024-001234</div>
+                </div>
+                <div class="info-row">
+                    <div class="info-label">Matrícula</div>
+                    <div class="info-value">AA-00-BB</div>
+                </div>
+            </div>
+
+            <div class="fuel-section">
+                <h3>⛽ Advertência de Combustível</h3>
+                <p>O veículo foi devolvido com menos combustível do que no momento da entrega.</p>
+                <table style="width: 100%; margin-top: 15px;">
+                    <tr>
+                        <td style="width: 50%;">
+                            <strong>Combustível na Entrega:</strong><br>
+                            <span style="font-size: 24px; color: #059669;">75%</span>
+                        </td>
+                        <td style="width: 50%;">
+                            <strong>Combustível na Devolução:</strong><br>
+                            <span style="font-size: 24px; color: #dc2626;">25%</span>
+                        </td>
+                    </tr>
+                </table>
+                <p style="margin-top: 15px; padding: 10px; background-color: #fef3c7; border-radius: 5px; color: #92400e;">
+                    <strong>Diferença: -50%</strong> - Será cobrado o valor correspondente ao combustível em falta.
+                </p>
+            </div>
+
+            <div class="damage-section">
+                <h3>🚗 Danos Detectados</h3>
+                <p><strong>Descrição dos Danos:</strong></p>
+                <p style="background-color: #fff; padding: 15px; border-radius: 5px; border: 1px solid #fecaca;">Riscos profundos na porta dianteira direita. Amolgadela no para-choques traseiro. Espelho lateral esquerdo partido.</p>
+                
+                <div class="croqui-section">
+                    <p><strong>Croqui de Danos:</strong></p>
+                    <div class="placeholder-img" style="height: 200px; border: 2px solid #dc2626;">
+                        [Imagem do Croqui com Danos Marcados]
+                    </div>
+                </div>
+                
+                <p style="margin-top: 20px;"><strong>Fotos dos Danos:</strong></p>
+                <table class="photos-grid" style="width: 100%;">
+                    <tr class="photos-row">
+                        <td class="photos-cell" style="width: 33.33%; padding: 5px;">
+                            <div class="placeholder-img">[Foto 1]</div>
+                        </td>
+                        <td class="photos-cell" style="width: 33.33%; padding: 5px;">
+                            <div class="placeholder-img">[Foto 2]</div>
+                        </td>
+                        <td class="photos-cell" style="width: 33.33%; padding: 5px;">
+                            <div class="placeholder-img">[Foto 3]</div>
+                        </td>
+                    </tr>
+                    <tr class="photos-row">
+                        <td class="photos-cell" style="width: 33.33%; padding: 5px;">
+                            <div class="placeholder-img">[Foto 4]</div>
+                        </td>
+                        <td class="photos-cell" style="width: 33.33%; padding: 5px;">
+                            <div class="placeholder-img">[Foto 5]</div>
+                        </td>
+                        <td class="photos-cell" style="width: 33.33%; padding: 5px;">
+                            <div class="placeholder-img">[Foto 6]</div>
+                        </td>
+                    </tr>
+                </table>
+            </div>
+
+            <div class="observations">
+                <h4>📝 Observações</h4>
+                <p>Cliente deixou o veículo no parque sem efetuar a verificação presencial. Danos foram detectados posteriormente pela equipa de inspeção. Será contactado para esclarecimentos adicionais.</p>
+            </div>
+
+            <p style="margin-top: 30px; padding: 20px; background-color: #f3f4f6; border-radius: 8px; text-align: center;">
+                Se tiver alguma questão sobre estas incidências, por favor contacte-nos através do email ou telefone indicados abaixo.
+            </p>
+        </div>
+        
+        <div class="footer">
+            <p><strong>RR Rent a Car</strong></p>
+            <p>📧 geral@rrrentacar.com | 📞 +351 XXX XXX XXX</p>
+            <p style="margin-top: 10px;">Este email foi gerado automaticamente pelo sistema de inspeção de veículos.</p>
+        </div>
+    </div>
+</body>
+</html>
