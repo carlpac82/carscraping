@@ -33271,6 +33271,7 @@ async def edit_and_validate_self_checkout(request: Request):
         new_fuel = data.get('fuel_level')
         checkin_fuel = data.get('checkin_fuel', 100)
         has_incidence = data.get('has_incidence', False)
+        odometer_photo = data.get('odometer_photo')  # Base64 photo of odometer as proof
         
         if not inspection_number:
             return JSONResponse({"success": False, "error": "Número de inspeção não fornecido"}, status_code=400)
@@ -33410,6 +33411,21 @@ async def edit_and_validate_self_checkout(request: Request):
                 cursor.execute("INSERT INTO inspection_photos (inspection_id, photo_type, image_data, created_at) VALUES (%s, 'damage_croqui', %s, NOW())", (checkout_id, croqui_row[0]))
             else:
                 cursor.execute("INSERT INTO inspection_photos (inspection_id, photo_type, image_data, created_at) VALUES (?, 'damage_croqui', ?, datetime('now'))", (checkout_id, croqui_row[0]))
+        
+        # Guardar foto do odómetro como prova (se fornecida)
+        if odometer_photo:
+            try:
+                if is_postgres:
+                    # Guardar na inspeção de self-checkout
+                    cursor.execute("INSERT INTO inspection_photos (inspection_id, photo_type, image_data, created_at) VALUES (%s, 'odometer_proof', %s, NOW())", (inspection_id, odometer_photo))
+                    # Também guardar na inspeção de checkout
+                    cursor.execute("INSERT INTO inspection_photos (inspection_id, photo_type, image_data, created_at) VALUES (%s, 'odometer_proof', %s, NOW())", (checkout_id, odometer_photo))
+                else:
+                    cursor.execute("INSERT INTO inspection_photos (inspection_id, photo_type, image_data, created_at) VALUES (?, 'odometer_proof', ?, datetime('now'))", (inspection_id, odometer_photo))
+                    cursor.execute("INSERT INTO inspection_photos (inspection_id, photo_type, image_data, created_at) VALUES (?, 'odometer_proof', ?, datetime('now'))", (checkout_id, odometer_photo))
+                logging.info(f"📸 Odometer proof photo saved for inspection {inspection_number}")
+            except Exception as photo_err:
+                logging.warning(f"Failed to save odometer photo: {photo_err}")
         
         # Atualizar KMs e combustível no gestor de frota
         if is_postgres:
