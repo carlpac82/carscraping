@@ -46772,23 +46772,18 @@ async def get_inspection_details(inspection_number: str, request: Request):
             inspector_name = inspection_row[5]
             if inspection_type == 'self_checkout' and (not inspector_name or inspector_name == 'Cliente'):
                 cursor.execute("""
-                    SELECT client_name, extracted_data FROM rental_agreements WHERE rental_agreement_number = %s
+                    SELECT extracted_data FROM rental_agreements WHERE rental_agreement_number = %s
                 """ if is_postgres else """
-                    SELECT client_name, extracted_data FROM rental_agreements WHERE rental_agreement_number = ?
+                    SELECT extracted_data FROM rental_agreements WHERE rental_agreement_number = ?
                 """, (contract_number,))
                 client_row = cursor.fetchone()
-                if client_row:
-                    # Try client_name column first
-                    if client_row[0]:
-                        inspector_name = client_row[0]
-                    elif client_row[1]:
-                        # Fallback to extracted_data
-                        try:
-                            import json
-                            extracted_data = json.loads(client_row[1])
-                            inspector_name = extracted_data.get('clientName') or extracted_data.get('client_name') or extracted_data.get('nome_cliente') or 'Cliente'
-                        except:
-                            inspector_name = 'Cliente'
+                if client_row and client_row[0]:
+                    try:
+                        import json
+                        extracted_data = json.loads(client_row[0])
+                        inspector_name = extracted_data.get('clientName') or extracted_data.get('client_name') or extracted_data.get('nome_cliente') or 'Cliente'
+                    except:
+                        inspector_name = 'Cliente'
             
             inspection = {
                 "inspection_number": inspection_row[1],
