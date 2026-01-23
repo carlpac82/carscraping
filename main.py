@@ -33516,7 +33516,7 @@ async def invalidate_self_checkout(request: Request):
                         pass
                 
                 # Send invalidation email
-                email_sent = await _send_invalidation_email(
+                email_sent = _send_invalidation_email(
                     client_email=client_email,
                     client_name=client_name,
                     plate=plate,
@@ -33559,7 +33559,7 @@ async def invalidate_self_checkout(request: Request):
             conn.close()
 
 
-async def _send_invalidation_email(
+def _send_invalidation_email(
     client_email: str,
     client_name: str,
     plate: str,
