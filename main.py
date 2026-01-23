@@ -46700,12 +46700,24 @@ async def get_inspection_details(inspection_number: str, request: Request):
                     else:
                         photos[photo_type] = f"data:image/jpeg;base64,{photo_base64}"
             
+            # For self_checkout, if inspector_name is empty, fetch client name from rental_agreement
+            inspector_name = inspection_row[5]
+            if inspection_type == 'self_checkout' and not inspector_name:
+                cursor.execute("""
+                    SELECT client_name FROM rental_agreements WHERE rental_agreement_number = %s
+                """ if is_postgres else """
+                    SELECT client_name FROM rental_agreements WHERE rental_agreement_number = ?
+                """, (contract_number,))
+                client_row = cursor.fetchone()
+                if client_row and client_row[0]:
+                    inspector_name = client_row[0]
+            
             inspection = {
                 "inspection_number": inspection_row[1],
                 "inspection_type": inspection_row[2],
                 "vehicle_plate": inspection_row[3],
                 "contract_number": inspection_row[4],
-                "inspector_name": inspection_row[5],
+                "inspector_name": inspector_name,
                 "inspector_notes": inspection_row[6],
                 "damage_count": inspection_row[7],
                 "odometer_reading": inspection_row[8],
