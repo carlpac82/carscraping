@@ -595,7 +595,8 @@
                     // Self-checkout NÃO fecha o contrato - apenas checkout validado fecha
                     const isOpen = hasCheckin && !hasCheckout;
                     const isClosed = hasCheckout && hasCheckin;
-                    const isPendingValidation = hasSelfCheckout && !hasCheckout;
+                    const selfCheckoutStatus = hasSelfCheckout ? (contract.self_checkout.status || 'pending') : null;
+                    const isPendingValidation = hasSelfCheckout && !hasCheckout && selfCheckoutStatus === 'pending';
                     
                     // Self-checkout status badge com ícones SVG monocromáticos
                     let selfCheckoutBadge = '';

@@ -47447,7 +47447,8 @@ async def get_inspections_history(request: Request):
                     "damage_count": row[8],
                     "status": row[9],
                     "damage_croqui": damage_croqui,
-                    "is_self_checkin": bool(row[11]) if len(row) > 11 else False
+                    "is_self_checkin": bool(row[11]) if len(row) > 11 else False,
+                    "has_damages": bool(row[14]) if len(row) > 14 else False
                 }
                 
                 if key not in grouped:
