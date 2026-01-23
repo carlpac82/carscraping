@@ -46182,9 +46182,9 @@ async def get_inspections_history(request: Request):
                                     if key in data:
                                         logging.info(f"🔍 DEBUG RA 06727 - {key}: '{data[key]}'")
                         
-                        # Try both snake_case and camelCase, and also 'email' as fallback
-                        client_name = data.get('client_name') or data.get('clientName')
-                        client_email = data.get('client_email') or data.get('clientEmail') or data.get('email')
+                        # Try camelCase first (standard format), then snake_case as fallback
+                        client_name = data.get('clientName') or data.get('client_name')
+                        client_email = data.get('clientEmail') or data.get('client_email') or data.get('email')
                     except Exception as e:
                         logging.error(f"Error parsing extracted_data for RA {ra}: {e}")
                 

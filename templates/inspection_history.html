@@ -1021,7 +1021,7 @@
                                     </div>
                                     <div>
                                         <p class="text-sm text-gray-600">Combustível</p>
-                                        <p class="font-bold text-gray-900">${inspection.fuel_level || inspection.fuel_level === 0 ? inspection.fuel_level + '%' : 'N/A'}</p>
+                                        <p class="font-bold text-gray-900">${inspection.fuel_level || 'N/A'}</p>
                                     </div>
                                     <div>
                                         <p class="text-sm text-gray-600">Tipo</p>
@@ -1029,7 +1029,7 @@
                                     </div>
                                     <div>
                                         <p class="text-sm text-gray-600">${isSelfCheckout ? 'Cliente' : 'Inspetor'}</p>
-                                        <p class="font-bold text-gray-900">${inspection.inspector_name || 'N/A'}</p>
+                                        <p class="font-bold text-gray-900">${isSelfCheckout && inspection.inspector_name ? getFirstLastName(inspection.inspector_name) : (inspection.inspector_name || 'N/A')}</p>
                                     </div>
                                     <div>
                                         <p class="text-sm text-gray-600">Danos</p>
@@ -1081,13 +1081,13 @@
                                         </div>
                                         
                                         <!-- Fuel level fill -->
-                                        <div class="h-full bg-[#009cb6] rounded-lg transition-all duration-300" style="width: ${inspection.fuel_level || 0}%;"></div>
+                                        <div class="h-full bg-[#009cb6] rounded-lg transition-all duration-300" style="width: ${fuelToPercent(inspection.fuel_level)}%;"></div>
                                     </div>
                                     
                                     <!-- Selected fuel level display -->
                                     <div class="text-center mt-2">
                                         <span class="text-sm font-semibold text-gray-700">Nível: </span>
-                                        <span class="text-sm font-bold text-[#009cb6]">${inspection.fuel_level || 0}%</span>
+                                        <span class="text-sm font-bold text-[#009cb6]">${inspection.fuel_level || 'N/A'}</span>
                                     </div>
                                 </div>
                             </div>
@@ -1967,6 +1967,37 @@
                 if (e.key === 'ArrowRight') navigateLightbox(1);
             }
         });
+        
+        // Helper: Convert fuel level string to percentage for bar width
+        function fuelToPercent(fuelLevel) {
+            if (!fuelLevel) return 0;
+            const fuel = String(fuelLevel).toLowerCase().trim();
+            
+            // Direct mappings
+            if (fuel === 'full' || fuel === 'f' || fuel === 'cheio') return 100;
+            if (fuel === 'empty' || fuel === 'e' || fuel === 'vazio' || fuel === 'r') return 0;
+            
+            // Fraction mappings
+            const fractionMap = {
+                '1/8': 12.5, '1/4': 25, '3/8': 37.5, '1/2': 50,
+                '5/8': 62.5, '3/4': 75, '7/8': 87.5
+            };
+            if (fractionMap[fuel]) return fractionMap[fuel];
+            
+            // Try parsing as number
+            const num = parseFloat(fuelLevel);
+            if (!isNaN(num)) return num > 1 ? num : num * 100;
+            
+            return 0;
+        }
+        
+        // Helper: Get first and last name from full name
+        function getFirstLastName(fullName) {
+            if (!fullName) return 'N/A';
+            const parts = fullName.trim().split(/\s+/);
+            if (parts.length <= 2) return fullName;
+            return `${parts[0]} ${parts[parts.length - 1]}`;
+        }
         
         // Legacy function for backwards compatibility
         function openPhotoInNewTab(photoUrl) {
