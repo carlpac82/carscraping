@@ -34924,6 +34924,55 @@ async def email_preview_fr(request: Request, ra: str = "06716-09"):
         traceback.print_exc()
         return HTMLResponse(content=f"<h1>Erreur de chargement du preview FR</h1><pre>{str(e)}</pre>")
 
+
+@app.get("/email-preview-warning", response_class=HTMLResponse)
+async def email_preview_warning(request: Request, lang: str = "pt"):
+    """Preview do template de email de INVALIDAÇÃO/WARNING"""
+    try:
+        # Mock data for preview
+        template_files = {
+            'pt': 'email_selfcheckout_warning_pt.html',
+            'en': 'email_selfcheckout_warning_en.html',
+            'fr': 'email_selfcheckout_warning_fr.html'
+        }
+        template_file = template_files.get(lang, template_files['pt'])
+        
+        greetings = {
+            'pt': 'Estimado(a)',
+            'en': 'Dear',
+            'fr': 'Cher(e)'
+        }
+        greeting = greetings.get(lang, greetings['pt'])
+        
+        # Read template
+        template_path = os.path.join(os.path.dirname(__file__), 'templates', template_file)
+        with open(template_path, 'r', encoding='utf-8') as f:
+            html_content = f.read()
+        
+        # Replace placeholders with mock data
+        html_content = html_content.replace('{{RA_NUMBER}}', '06716')
+        html_content = html_content.replace('{{GREETING}}', greeting)
+        html_content = html_content.replace('{{CLIENT_NAME}}', 'Pedro Neves')
+        html_content = html_content.replace('{{CLIENT_FIRST_NAME}}', 'Pedro')
+        html_content = html_content.replace('{{CLIENT_LAST_NAME}}', 'Neves')
+        html_content = html_content.replace('{{LICENSE_PLATE}}', 'AS-46-EO')
+        html_content = html_content.replace('{{VEHICLE_BRAND}}', 'SEAT')
+        html_content = html_content.replace('{{VEHICLE_MODEL}}', 'IBIZA')
+        html_content = html_content.replace('{{PICKUP_DATE}}', '23/01/2026')
+        html_content = html_content.replace('{{PICKUP_TIME}}', '16:30')
+        html_content = html_content.replace('{{LOCATION}}', 'Auto Prudente - Sede')
+        html_content = html_content.replace('{{ODOMETER_READING}}', '45230')
+        html_content = html_content.replace('{{KMS_DRIVEN}}', '156')
+        
+        return HTMLResponse(content=html_content)
+        
+    except Exception as e:
+        logging.error(f"Error loading warning preview: {e}")
+        import traceback
+        traceback.print_exc()
+        return HTMLResponse(content=f"<h1>Erro ao carregar preview Warning</h1><pre>{str(e)}</pre>")
+
+
 @app.get("/api/get_inspection")
 async def get_inspection(request: Request, plate: str, ra: str, type: str = 'checkout'):
     """Get inspection data (photos and damages) for pickup process"""
