@@ -632,7 +632,7 @@
                                 <!-- Actions: Car icons and email -->
                                 <div class="flex items-center justify-end gap-3 pt-2 border-t border-gray-100">
                                     ${hasCheckout ? `
-                                    <button onclick="previewInspection('${contract.checkout.inspection_number}', 'checkout')" class="flex items-center gap-2 px-3 py-2 bg-red-50 hover:bg-red-100 rounded-lg transition-colors" title="Ver Check-out">
+                                    <button onclick="previewRecolha('${contract.checkout.inspection_number}', ${hasSelfCheckout && contract.self_checkout.status === 'validated' ? `'${contract.self_checkout.inspection_number}'` : 'null'}, ${hasCheckin ? `'${contract.checkin.inspection_number}'` : 'null'})" class="flex items-center gap-2 px-3 py-2 bg-red-50 hover:bg-red-100 rounded-lg transition-colors" title="Ver Check-out">
                                         <svg class="w-6 h-6 text-red-600" fill="currentColor" viewBox="0 0 24 24">
                                             <path d="M18.92 6.01C18.72 5.42 18.16 5 17.5 5h-11c-.66 0-1.21.42-1.42 1.01L3 12v8c0 .55.45 1 1 1h1c.55 0 1-.45 1-1v-1h12v1c0 .55.45 1 1 1h1c.55 0 1-.45 1-1v-8l-2.08-5.99zM6.5 16c-.83 0-1.5-.67-1.5-1.5S5.67 13 6.5 13s1.5.67 1.5 1.5S7.33 16 6.5 16zm11 0c-.83 0-1.5-.67-1.5-1.5s.67-1.5 1.5-1.5 1.5.67 1.5 1.5-.67 1.5-1.5 1.5zM5 11l1.5-4.5h11L19 11H5z"/>
                                         </svg>
@@ -2160,6 +2160,219 @@
             } catch (error) {
                 console.error('❌ Error in previewSelfCheckout:', error);
                 alert('Erro ao abrir preview: ' + error.message);
+            }
+        }
+
+        // Preview Recolha - se há self-checkout validado, usa dados do self-checkout + croqui do CHECK-IN
+        async function previewRecolha(checkoutNumber, selfCheckoutNumber, checkinNumber) {
+            console.log('🚗 previewRecolha called with:', { checkoutNumber, selfCheckoutNumber, checkinNumber });
+            
+            // Se há self-checkout validado, usar dados do self-checkout
+            if (selfCheckoutNumber) {
+                try {
+                    // Buscar dados do self-checkout
+                    const selfCheckoutResponse = await fetch(`/api/inspections/${selfCheckoutNumber}`);
+                    const selfCheckoutData = await selfCheckoutResponse.json();
+                    
+                    if (!selfCheckoutData.ok) {
+                        throw new Error(selfCheckoutData.error || 'Erro ao carregar dados do self-checkout');
+                    }
+                    
+                    const inspection = selfCheckoutData.inspection;
+                    console.log('📋 Self-checkout data for Recolha:', inspection);
+                    
+                    // Buscar croqui do CHECK-IN (não do checkout)
+                    let checkinCroqui = null;
+                    let checkinDamageCount = 0;
+                    if (checkinNumber) {
+                        try {
+                            const checkinResponse = await fetch(`/api/inspections/${checkinNumber}`);
+                            const checkinData = await checkinResponse.json();
+                            if (checkinData.ok && checkinData.inspection) {
+                                checkinCroqui = checkinData.inspection.damage_croqui;
+                                checkinDamageCount = checkinData.inspection.damage_count || 0;
+                                console.log('🎨 Checkin croqui found:', checkinCroqui ? 'YES' : 'NO');
+                            }
+                        } catch (e) {
+                            console.error('Error fetching checkin croqui:', e);
+                        }
+                    }
+                    
+                    // Build photos HTML
+                    window.currentInspectionPhotos = inspection.photos || {};
+                    window.currentInspectionSignature = inspection.signature || null;
+                    
+                    let photosHtml = '';
+                    if (inspection.photos && Object.keys(inspection.photos).length > 0) {
+                        const photoLabels = {
+                            'front': 'Frente', 'front_left': 'Frente Esquerda', 'left': 'Lado Esquerdo',
+                            'back_left': 'Traseira Esquerda', 'back': 'Traseira', 'back_right': 'Traseira Direita',
+                            'right': 'Lado Direito', 'front_right': 'Frente Direita', 'odometer': 'Conta-Quilómetros'
+                        };
+                        
+                        if (!inspection.photos['odometer'] && inspection.photos['interior']) {
+                            inspection.photos['odometer'] = inspection.photos['interior'];
+                        }
+                        
+                        photosHtml = '<div class="grid grid-cols-2 md:grid-cols-3 gap-3 mb-6">';
+                        Object.keys(photoLabels).forEach(photoType => {
+                            if (inspection.photos[photoType]) {
+                                photosHtml += `
+                                    <div>
+                                        <h4 class="text-xs md:text-sm font-semibold text-gray-700 mb-1 md:mb-2">${photoLabels[photoType]}</h4>
+                                        <img src="${inspection.photos[photoType]}" alt="${photoLabels[photoType]}" 
+                                             class="w-full h-32 md:h-48 object-cover rounded-lg border border-gray-200 cursor-pointer photo-clickable"
+                                             data-photo-key="${photoType}"
+                                             onerror="this.style.display='none'; this.parentElement.innerHTML='<p class=text-gray-400 text-sm>Foto indisponível</p>'">
+                                    </div>
+                                `;
+                            }
+                        });
+                        photosHtml += '</div>';
+                    } else {
+                        photosHtml = '<p class="text-gray-500 text-center py-4">Nenhuma fotografia disponível</p>';
+                    }
+                    
+                    // Create modal with self-checkout data + checkin croqui
+                    const modal = document.createElement('div');
+                    modal.className = 'fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4';
+                    modal.innerHTML = `
+                        <div class="bg-white rounded-lg max-w-4xl w-full max-h-[90vh] overflow-auto">
+                            <div class="sticky top-0 bg-white border-b px-6 py-4 flex justify-between items-center">
+                                <h2 class="text-xl font-bold text-[#009cb6]">Relatório de Recolha - ${inspection.vehicle_plate}</h2>
+                                <button onclick="closePreviewModal()" class="text-gray-500 hover:text-gray-700">
+                                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+                                    </svg>
+                                </button>
+                            </div>
+                            
+                            <div class="p-6">
+                                <!-- Inspection Details -->
+                                <div class="bg-gray-50 rounded-lg p-4 mb-6">
+                                    <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
+                                        <div>
+                                            <p class="text-sm text-gray-600">Matrícula</p>
+                                            <p class="font-bold text-gray-900">${inspection.vehicle_plate || 'N/A'}</p>
+                                        </div>
+                                        <div>
+                                            <p class="text-sm text-gray-600">Contrato (RA)</p>
+                                            <p class="font-bold text-gray-900">${inspection.contract_number || 'N/A'}</p>
+                                        </div>
+                                        <div>
+                                            <p class="text-sm text-gray-600">Quilómetros</p>
+                                            <p class="font-bold text-gray-900">${inspection.odometer_reading ? inspection.odometer_reading + ' km' : 'N/A'}</p>
+                                        </div>
+                                        <div>
+                                            <p class="text-sm text-gray-600">Combustível</p>
+                                            <p class="font-bold text-gray-900">${inspection.fuel_level || 'N/A'}</p>
+                                        </div>
+                                        <div>
+                                            <p class="text-sm text-gray-600">Tipo</p>
+                                            <p class="font-bold text-gray-900">Recolha</p>
+                                        </div>
+                                        <div>
+                                            <p class="text-sm text-gray-600">Cliente</p>
+                                            <p class="font-bold text-gray-900">${inspection.inspector_name ? getFirstLastName(inspection.inspector_name) : 'N/A'}</p>
+                                        </div>
+                                        <div>
+                                            <p class="text-sm text-gray-600">Danos</p>
+                                            <p class="font-bold text-gray-900">${checkinDamageCount}</p>
+                                        </div>
+                                        <div>
+                                            <p class="text-sm text-gray-600">Data e Hora</p>
+                                            <p class="font-bold text-gray-900">${new Date(inspection.created_at).toLocaleDateString('pt-PT')} ${new Date(inspection.created_at).toLocaleTimeString('pt-PT', {hour: '2-digit', minute: '2-digit'})}</p>
+                                        </div>
+                                    </div>
+                                </div>
+                                
+                                <!-- Fuel Gauge Visual -->
+                                <div class="mb-6">
+                                    <h4 class="text-lg font-bold text-gray-900 mb-4">Nível de Combustível</h4>
+                                    <div class="fuel-selector">
+                                        <div class="relative max-w-xs mx-auto mb-1" style="height: 20px;">
+                                            <div class="relative">
+                                                <span class="text-xs font-semibold text-[#009cb6] absolute" style="left: 0%; transform: translateX(-50%);">R</span>
+                                                <span class="text-xs font-semibold text-[#009cb6] absolute" style="left: 25%; transform: translateX(-50%);">1/4</span>
+                                                <span class="text-xs font-semibold text-[#009cb6] absolute" style="left: 50%; transform: translateX(-50%);">1/2</span>
+                                                <span class="text-xs font-semibold text-[#009cb6] absolute" style="left: 75%; transform: translateX(-50%);">3/4</span>
+                                                <span class="text-xs font-semibold text-[#009cb6] absolute" style="right: 0%; transform: translateX(50%);">F</span>
+                                            </div>
+                                        </div>
+                                        <div class="relative bg-white border-2 border-[#009cb6] rounded-lg h-8 mb-2 max-w-xs mx-auto">
+                                            <div class="absolute inset-0 flex items-center">
+                                                <div class="w-0.5 h-4 bg-[#009cb6]" style="position: absolute; left: 0%;"></div>
+                                                <div class="w-0.5 h-4 bg-[#009cb6]" style="position: absolute; left: 25%;"></div>
+                                                <div class="w-0.5 h-4 bg-[#009cb6]" style="position: absolute; left: 50%;"></div>
+                                                <div class="w-0.5 h-4 bg-[#009cb6]" style="position: absolute; left: 75%;"></div>
+                                                <div class="w-0.5 h-4 bg-[#009cb6]" style="position: absolute; right: 0%;"></div>
+                                            </div>
+                                            <div class="h-full bg-[#009cb6] rounded-lg transition-all duration-300" style="width: ${fuelToPercent(inspection.fuel_level)}%;"></div>
+                                        </div>
+                                        <div class="text-center mt-2">
+                                            <span class="text-sm font-semibold text-gray-700">Nível: </span>
+                                            <span class="text-sm font-bold text-[#009cb6]">${inspection.fuel_level || 'N/A'}</span>
+                                        </div>
+                                    </div>
+                                </div>
+                                
+                                <!-- Croqui do CHECK-IN -->
+                                ${checkinCroqui ? `
+                                    <div class="mb-6">
+                                        <h4 class="text-lg font-bold text-gray-900 mb-4">Croqui de Danos (Check-In)</h4>
+                                        <div class="bg-white border border-gray-200 rounded-lg p-4">
+                                            <img src="${checkinCroqui.startsWith('data:') ? checkinCroqui : 'data:image/png;base64,' + checkinCroqui}" 
+                                                 alt="Croqui de Danos" 
+                                                 class="w-full max-w-2xl mx-auto rounded-lg"
+                                                 onerror="this.style.display='none'; this.parentElement.innerHTML='<p class=text-red-500>Erro ao carregar croqui</p>'">
+                                        </div>
+                                        <p class="text-sm text-gray-600 mt-2 text-center">
+                                            <span class="font-semibold">Total de Danos:</span> ${checkinDamageCount}
+                                        </p>
+                                    </div>
+                                ` : ''}
+                                
+                                <!-- Photos -->
+                                <div class="mb-6">
+                                    <h4 class="text-lg font-bold text-gray-900 mb-4">Fotografias do Self-Checkout</h4>
+                                    ${photosHtml}
+                                </div>
+                                
+                                <!-- Observations -->
+                                ${inspection.inspector_notes ? `
+                                    <div class="mb-6">
+                                        <h4 class="text-lg font-bold text-gray-900 mb-2">Observações</h4>
+                                        <p class="text-gray-700 bg-gray-50 p-4 rounded-lg">${inspection.inspector_notes}</p>
+                                    </div>
+                                ` : ''}
+                            </div>
+                        </div>
+                    `;
+                    
+                    document.getElementById('previewModalContainer').innerHTML = '';
+                    document.getElementById('previewModalContainer').appendChild(modal);
+                    
+                    // Add click handlers for photos
+                    modal.querySelectorAll('.photo-clickable').forEach(img => {
+                        img.addEventListener('click', function() {
+                            const photoKey = this.getAttribute('data-photo-key');
+                            if (photoKey && window.currentInspectionPhotos[photoKey]) {
+                                openFullscreenPhoto(window.currentInspectionPhotos[photoKey], photoKey);
+                            }
+                        });
+                    });
+                    
+                    modal.addEventListener('click', (e) => {
+                        if (e.target === modal) closePreviewModal();
+                    });
+                    
+                } catch (error) {
+                    console.error('❌ Error in previewRecolha:', error);
+                    alert('Erro ao abrir preview: ' + error.message);
+                }
+            } else {
+                // Sem self-checkout validado, usar preview normal do checkout
+                await previewInspection(checkoutNumber, 'checkout');
             }
         }
 

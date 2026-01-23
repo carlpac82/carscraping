@@ -31599,35 +31599,30 @@ async def submit_self_checkout(token: str, request: Request):
                         ext_data = json.loads(ra_extracted) if isinstance(ra_extracted, str) else ra_extracted
                         client_country = ext_data.get('country') or ext_data.get('pais') or 'PT'
                         return_location = ext_data.get('returnLocation') or ext_data.get('return_location') or 'Auto Prudente'
-                        pickup_km_raw = ext_data.get('kms') or ext_data.get('odometer') or 0
-                        try:
-                            pickup_km = int(str(pickup_km_raw).replace(',', '').replace('.', '').strip()) if pickup_km_raw else 0
-                        except:
-                            pickup_km = 0
                     except:
                         pass
                 
-                # Se pickup_km ainda for 0, buscar da inspeção de checkout (entrega ao cliente)
-                if pickup_km == 0:
-                    try:
-                        if is_postgres:
-                            cursor.execute("""
-                                SELECT odometer_reading FROM vehicle_inspections
-                                WHERE contract_number = %s AND inspection_type = 'checkout'
-                                ORDER BY created_at DESC LIMIT 1
-                            """, (ra_number,))
-                        else:
-                            cursor.execute("""
-                                SELECT odometer_reading FROM vehicle_inspections
-                                WHERE contract_number = ? AND inspection_type = 'checkout'
-                                ORDER BY created_at DESC LIMIT 1
-                            """, (ra_number,))
-                        checkout_row = cursor.fetchone()
-                        if checkout_row and checkout_row[0]:
-                            pickup_km = int(checkout_row[0])
-                            logging.info(f"📊 Found checkout odometer: {pickup_km} km for RA {ra_number}")
-                    except Exception as e:
-                        logging.warning(f"Could not fetch checkout odometer: {e}")
+                # SEMPRE buscar pickup_km da inspeção de checkin (entrega ao cliente = início do aluguer)
+                # Não usar extracted_data porque já foi atualizado com o odometer do self-checkout
+                try:
+                    if is_postgres:
+                        cursor.execute("""
+                            SELECT odometer_reading FROM vehicle_inspections
+                            WHERE contract_number = %s AND inspection_type = 'checkin'
+                            ORDER BY created_at ASC LIMIT 1
+                        """, (ra_number,))
+                    else:
+                        cursor.execute("""
+                            SELECT odometer_reading FROM vehicle_inspections
+                            WHERE contract_number = ? AND inspection_type = 'checkin'
+                            ORDER BY created_at ASC LIMIT 1
+                        """, (ra_number,))
+                    checkin_row = cursor.fetchone()
+                    if checkin_row and checkin_row[0]:
+                        pickup_km = int(checkin_row[0])
+                        logging.info(f"📊 Found checkin odometer: {pickup_km} km for RA {ra_number}")
+                except Exception as e:
+                    logging.warning(f"Could not fetch checkin odometer: {e}")
                 
                 # Determinar idioma baseado no país
                 language = 'pt'
@@ -32396,7 +32391,9 @@ async def validate_self_checkout(request: Request):
             cursor.execute("""
                 SELECT 
                     vi.id, vi.vehicle_plate, vi.contract_number, vi.inspection_type, vi.status,
-                    ra.self_checkin_email, ra.extracted_data, ra.id as ra_id
+                    ra.self_checkin_email, ra.extracted_data, ra.id as ra_id,
+                    vi.fuel_level, vi.odometer_reading, vi.observations, vi.delivery_location,
+                    vi.inspector_name, vi.created_at
                 FROM vehicle_inspections vi
                 LEFT JOIN rental_agreements ra ON vi.contract_number = ra.rental_agreement_number
                 WHERE vi.inspection_number = %s
@@ -32405,7 +32402,9 @@ async def validate_self_checkout(request: Request):
             cursor = conn.execute("""
                 SELECT 
                     vi.id, vi.vehicle_plate, vi.contract_number, vi.inspection_type, vi.status,
-                    ra.self_checkin_email, ra.extracted_data, ra.id as ra_id
+                    ra.self_checkin_email, ra.extracted_data, ra.id as ra_id,
+                    vi.fuel_level, vi.odometer_reading, vi.observations, vi.delivery_location,
+                    vi.inspector_name, vi.created_at
                 FROM vehicle_inspections vi
                 LEFT JOIN rental_agreements ra ON vi.contract_number = ra.rental_agreement_number
                 WHERE vi.inspection_number = ?
@@ -32419,7 +32418,7 @@ async def validate_self_checkout(request: Request):
                 "error": "Inspeção não encontrada"
             }, status_code=404)
         
-        inspection_id, plate, ra_number, inspection_type, status, client_email, extracted_data, ra_id = row
+        inspection_id, plate, ra_number, inspection_type, status, client_email, extracted_data, ra_id, fuel_level, odometer_reading, observations, delivery_location, inspector_name, selfcheckout_created_at = row
         
         if inspection_type != 'self_checkout':
             return JSONResponse({
@@ -32433,27 +32432,125 @@ async def validate_self_checkout(request: Request):
                 "error": "Self-checkout já foi validado"
             }, status_code=400)
         
-        # Atualizar status da inspeção para validado e converter para checkout
+        # Atualizar status da inspeção self_checkout para validado
         if is_postgres:
             cursor.execute("""
                 UPDATE vehicle_inspections
-                SET status = 'validated',
-                    inspection_type = 'checkout'
+                SET status = 'validated'
                 WHERE id = %s
             """, (inspection_id,))
         else:
             cursor.execute("""
                 UPDATE vehicle_inspections
-                SET status = 'validated',
-                    inspection_type = 'checkout'
+                SET status = 'validated'
                 WHERE id = ?
             """, (inspection_id,))
         
-        # Atualizar RA - marcar self_checkout como validado e limpar pending
+        # Criar inspeção de CHECKOUT (recolha) com os dados do self-checkout
+        import uuid
+        checkout_inspection_number = f"CHK-{uuid.uuid4().hex[:8].upper()}"
+        
+        if is_postgres:
+            cursor.execute("""
+                INSERT INTO vehicle_inspections 
+                (inspection_number, vehicle_plate, contract_number, inspection_type, fuel_level, 
+                 odometer_reading, observations, delivery_location, status, created_at)
+                VALUES (%s, %s, %s, 'checkout', %s, %s, %s, %s, 'validated', NOW())
+                RETURNING id
+            """, (checkout_inspection_number, plate, ra_number, fuel_level, odometer_reading, observations, delivery_location))
+            checkout_id = cursor.fetchone()[0]
+        else:
+            cursor.execute("""
+                INSERT INTO vehicle_inspections 
+                (inspection_number, vehicle_plate, contract_number, inspection_type, fuel_level, 
+                 odometer_reading, observations, delivery_location, status, created_at)
+                VALUES (?, ?, ?, 'checkout', ?, ?, ?, ?, 'validated', datetime('now'))
+            """, (checkout_inspection_number, plate, ra_number, fuel_level, odometer_reading, observations, delivery_location))
+            checkout_id = cursor.lastrowid
+        
+        logging.info(f"✅ Criada inspeção checkout (recolha): {checkout_inspection_number} (ID: {checkout_id})")
+        
+        # Copiar fotos do self-checkout para a nova inspeção de checkout (recolha)
+        if is_postgres:
+            cursor.execute("""
+                INSERT INTO inspection_photos (inspection_id, photo_type, image_data, created_at)
+                SELECT %s, photo_type, image_data, NOW()
+                FROM inspection_photos
+                WHERE inspection_id = %s
+            """, (checkout_id, inspection_id))
+        else:
+            cursor.execute("""
+                INSERT INTO inspection_photos (inspection_id, photo_type, image_data, created_at)
+                SELECT ?, photo_type, image_data, datetime('now')
+                FROM inspection_photos
+                WHERE inspection_id = ?
+            """, (checkout_id, inspection_id))
+        
+        logging.info(f"✅ Fotos copiadas do self-checkout para checkout (recolha)")
+        
+        # Buscar croqui do checkin original (entrega) para copiar para a recolha
+        if is_postgres:
+            cursor.execute("""
+                SELECT ip.image_data
+                FROM inspection_photos ip
+                JOIN vehicle_inspections vi ON ip.inspection_id = vi.id
+                WHERE vi.contract_number = %s 
+                AND vi.vehicle_plate = %s 
+                AND vi.inspection_type = 'checkin'
+                AND ip.photo_type = 'damage_croqui'
+                ORDER BY vi.created_at DESC
+                LIMIT 1
+            """, (ra_number, plate))
+        else:
+            cursor.execute("""
+                SELECT ip.image_data
+                FROM inspection_photos ip
+                JOIN vehicle_inspections vi ON ip.inspection_id = vi.id
+                WHERE vi.contract_number = ? 
+                AND vi.vehicle_plate = ? 
+                AND vi.inspection_type = 'checkin'
+                AND ip.photo_type = 'damage_croqui'
+                ORDER BY vi.created_at DESC
+                LIMIT 1
+            """, (ra_number, plate))
+        
+        croqui_row = cursor.fetchone()
+        if croqui_row and croqui_row[0]:
+            # Inserir croqui do checkin na inspeção de checkout (recolha)
+            if is_postgres:
+                cursor.execute("""
+                    INSERT INTO inspection_photos (inspection_id, photo_type, image_data, created_at)
+                    VALUES (%s, 'damage_croqui', %s, NOW())
+                """, (checkout_id, croqui_row[0]))
+            else:
+                cursor.execute("""
+                    INSERT INTO inspection_photos (inspection_id, photo_type, image_data, created_at)
+                    VALUES (?, 'damage_croqui', ?, datetime('now'))
+                """, (checkout_id, croqui_row[0]))
+            logging.info(f"✅ Croqui do checkin copiado para checkout (recolha)")
+        
+        # Atualizar KMs e combustível no gestor de frota (tabela vehicles)
+        if odometer_reading:
+            if is_postgres:
+                cursor.execute("""
+                    UPDATE vehicles
+                    SET km_atual = %s
+                    WHERE matricula = %s
+                """, (odometer_reading, plate))
+            else:
+                cursor.execute("""
+                    UPDATE vehicles
+                    SET km_atual = ?
+                    WHERE matricula = ?
+                """, (odometer_reading, plate))
+            logging.info(f"✅ KMs atualizados no gestor de frota: {odometer_reading}")
+        
+        # Atualizar RA - marcar como terminado e limpar pending
         if is_postgres:
             cursor.execute("""
                 UPDATE rental_agreements
                 SET self_checkout_pending = FALSE,
+                    ra_status = 'closed',
                     updated_at = NOW()
                 WHERE rental_agreement_number = %s
             """, (ra_number,))
@@ -32461,6 +32558,7 @@ async def validate_self_checkout(request: Request):
             cursor.execute("""
                 UPDATE rental_agreements
                 SET self_checkout_pending = 0,
+                    ra_status = 'closed',
                     updated_at = datetime('now')
                 WHERE rental_agreement_number = ?
             """, (ra_number,))
@@ -47519,19 +47617,33 @@ async def serve_email_photo(inspection_id: int, photo_type: str):
         # Handle data URL format (data:image/...;base64,...)
         elif isinstance(image_data, str) and image_data.startswith('data:image'):
             base64_part = image_data.split(',', 1)[1] if ',' in image_data else image_data
-            # Clean base64 string - remove whitespace and fix padding
+            # Clean base64 string - remove whitespace and invalid characters
             base64_part = base64_part.replace('\n', '').replace('\r', '').replace(' ', '')
-            missing_padding = len(base64_part) % 4
-            if missing_padding:
-                base64_part += '=' * (4 - missing_padding)
+            # Remove any trailing invalid characters and fix padding
+            # Valid base64 length must be divisible by 4
+            remainder = len(base64_part) % 4
+            if remainder == 1:
+                # 1 extra char is invalid - truncate it
+                base64_part = base64_part[:-1]
+            elif remainder == 2:
+                base64_part += '=='
+            elif remainder == 3:
+                base64_part += '='
             image_bytes = base64.b64decode(base64_part)
         # Handle plain base64 string
         elif isinstance(image_data, str):
-            # Clean base64 string - remove whitespace and fix padding
+            # Clean base64 string - remove whitespace
             base64_part = image_data.replace('\n', '').replace('\r', '').replace(' ', '')
-            missing_padding = len(base64_part) % 4
-            if missing_padding:
-                base64_part += '=' * (4 - missing_padding)
+            # Remove any trailing invalid characters and fix padding
+            # Valid base64 length must be divisible by 4
+            remainder = len(base64_part) % 4
+            if remainder == 1:
+                # 1 extra char is invalid - truncate it
+                base64_part = base64_part[:-1]
+            elif remainder == 2:
+                base64_part += '=='
+            elif remainder == 3:
+                base64_part += '='
             image_bytes = base64.b64decode(base64_part)
         # Handle raw bytes
         elif isinstance(image_data, bytes):
