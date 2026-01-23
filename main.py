@@ -33335,38 +33335,69 @@ async def invalidate_self_checkout(request: Request):
         conn = _db_connect()
         is_postgres = _is_postgresql_connection(conn)
         
-        # Buscar inspeção e dados do RA
+        # Buscar inspeção primeiro
         if is_postgres:
             cursor = conn.cursor()
             cursor.execute("""
-                SELECT 
-                    vi.id, vi.vehicle_plate, vi.contract_number, vi.inspection_type, vi.status,
-                    ra.self_checkin_email, ra.extracted_data, ra.id as ra_id
-                FROM vehicle_inspections vi
-                LEFT JOIN rental_agreements ra ON vi.contract_number LIKE '%%' || ra.rental_agreement_number || '%%'
-                   OR ra.rental_agreement_number LIKE '%%' || vi.contract_number || '%%'
-                WHERE vi.inspection_number = %s
+                SELECT id, vehicle_plate, contract_number, inspection_type, status
+                FROM vehicle_inspections
+                WHERE inspection_number = %s
             """, (inspection_number,))
         else:
             cursor = conn.execute("""
-                SELECT 
-                    vi.id, vi.vehicle_plate, vi.contract_number, vi.inspection_type, vi.status,
-                    ra.self_checkin_email, ra.extracted_data, ra.id as ra_id
-                FROM vehicle_inspections vi
-                LEFT JOIN rental_agreements ra ON vi.contract_number LIKE '%' || ra.rental_agreement_number || '%'
-                   OR ra.rental_agreement_number LIKE '%' || vi.contract_number || '%'
-                WHERE vi.inspection_number = ?
+                SELECT id, vehicle_plate, contract_number, inspection_type, status
+                FROM vehicle_inspections
+                WHERE inspection_number = ?
             """, (inspection_number,))
         
-        row = cursor.fetchone()
+        vi_row = cursor.fetchone()
         
-        if not row:
+        if not vi_row:
             return JSONResponse({
                 "success": False,
                 "error": "Inspeção não encontrada"
             }, status_code=404)
         
-        inspection_id, plate, ra_number, inspection_type, status, client_email, extracted_data, ra_id = row
+        inspection_id, plate, vi_contract_number, inspection_type, status = vi_row
+        
+        logging.info(f"📋 Invalidate - inspection found: id={inspection_id}, contract={vi_contract_number}")
+        
+        # Buscar RA por contract_number (usar o do request se fornecido, senão da inspeção)
+        ra_number_to_search = contract_number or vi_contract_number
+        client_email = None
+        extracted_data = None
+        ra_id = None
+        ra_number = ra_number_to_search  # Valor padrão
+        
+        if ra_number_to_search:
+            # Tentar match exato primeiro
+            if is_postgres:
+                cursor.execute("""
+                    SELECT id, self_checkin_email, extracted_data, rental_agreement_number
+                    FROM rental_agreements
+                    WHERE rental_agreement_number = %s
+                       OR rental_agreement_number LIKE %s
+                       OR %s LIKE '%%' || rental_agreement_number || '%%'
+                    ORDER BY created_at DESC
+                    LIMIT 1
+                """, (ra_number_to_search, f'%{ra_number_to_search}%', ra_number_to_search))
+            else:
+                cursor.execute("""
+                    SELECT id, self_checkin_email, extracted_data, rental_agreement_number
+                    FROM rental_agreements
+                    WHERE rental_agreement_number = ?
+                       OR rental_agreement_number LIKE ?
+                       OR ? LIKE '%' || rental_agreement_number || '%'
+                    ORDER BY created_at DESC
+                    LIMIT 1
+                """, (ra_number_to_search, f'%{ra_number_to_search}%', ra_number_to_search))
+            
+            ra_row = cursor.fetchone()
+            if ra_row:
+                ra_id, client_email, extracted_data, ra_number = ra_row
+                logging.info(f"📋 Invalidate - RA found: id={ra_id}, email={client_email}, ra_number={ra_number}")
+            else:
+                logging.warning(f"⚠️ Invalidate - No RA found for contract: {ra_number_to_search}")
         
         # Log para debug
         logging.info(f"📧 Invalidate - client_email from DB: {client_email}, ra_id: {ra_id}")
