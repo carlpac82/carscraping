@@ -31348,16 +31348,23 @@ async def submit_self_checkout(token: str, request: Request):
         # Buscar nome do cliente do extracted_data para usar como "inspetor"
         client_name_for_inspection = 'Cliente'
         if is_postgres:
-            cursor.execute("SELECT extracted_data FROM rental_agreements WHERE id = %s", (ra_id,))
+            cursor.execute("SELECT extracted_data, client_name FROM rental_agreements WHERE id = %s", (ra_id,))
         else:
-            cursor.execute("SELECT extracted_data FROM rental_agreements WHERE id = ?", (ra_id,))
+            cursor.execute("SELECT extracted_data, client_name FROM rental_agreements WHERE id = ?", (ra_id,))
         client_row = cursor.fetchone()
-        if client_row and client_row[0]:
-            try:
-                ext_data = json.loads(client_row[0]) if isinstance(client_row[0], str) else client_row[0]
-                client_name_for_inspection = ext_data.get('clientName') or ext_data.get('client_name') or 'Cliente'
-            except:
-                pass
+        if client_row:
+            # Try client_name column first (direct field)
+            if client_row[1]:
+                client_name_for_inspection = client_row[1]
+                logging.info(f"📛 Using client_name from column: {client_name_for_inspection}")
+            # Fall back to extracted_data JSON
+            elif client_row[0]:
+                try:
+                    ext_data = json.loads(client_row[0]) if isinstance(client_row[0], str) else client_row[0]
+                    client_name_for_inspection = ext_data.get('clientName') or ext_data.get('client_name') or ext_data.get('nome_cliente') or 'Cliente'
+                    logging.info(f"📛 Using client_name from extracted_data: {client_name_for_inspection}")
+                except Exception as e:
+                    logging.warning(f"⚠️ Error parsing extracted_data for client name: {e}")
         
         # Guardar inspeção como 'self_checkout' (pendente de validação)
         # Só será convertida para 'checkout' após validação pelo colaborador
@@ -46761,22 +46768,27 @@ async def get_inspection_details(inspection_number: str, request: Request):
                     else:
                         photos[photo_type] = f"data:image/jpeg;base64,{photo_base64}"
             
-            # For self_checkout, if inspector_name is empty, fetch client name from rental_agreement extracted_data
+            # For self_checkout, if inspector_name is empty or "Cliente", fetch real client name from rental_agreement
             inspector_name = inspection_row[5]
-            if inspection_type == 'self_checkout' and not inspector_name:
+            if inspection_type == 'self_checkout' and (not inspector_name or inspector_name == 'Cliente'):
                 cursor.execute("""
-                    SELECT extracted_data FROM rental_agreements WHERE rental_agreement_number = %s
+                    SELECT client_name, extracted_data FROM rental_agreements WHERE rental_agreement_number = %s
                 """ if is_postgres else """
-                    SELECT extracted_data FROM rental_agreements WHERE rental_agreement_number = ?
+                    SELECT client_name, extracted_data FROM rental_agreements WHERE rental_agreement_number = ?
                 """, (contract_number,))
                 client_row = cursor.fetchone()
-                if client_row and client_row[0]:
-                    try:
-                        import json
-                        extracted_data = json.loads(client_row[0])
-                        inspector_name = extracted_data.get('clientName') or extracted_data.get('client_name') or extracted_data.get('nome_cliente') or 'Cliente'
-                    except:
-                        inspector_name = 'Cliente'
+                if client_row:
+                    # Try client_name column first
+                    if client_row[0]:
+                        inspector_name = client_row[0]
+                    elif client_row[1]:
+                        # Fallback to extracted_data
+                        try:
+                            import json
+                            extracted_data = json.loads(client_row[1])
+                            inspector_name = extracted_data.get('clientName') or extracted_data.get('client_name') or extracted_data.get('nome_cliente') or 'Cliente'
+                        except:
+                            inspector_name = 'Cliente'
             
             inspection = {
                 "inspection_number": inspection_row[1],

@@ -45,6 +45,30 @@
     </style>
 </head>
 <body class="bg-gray-50 min-h-screen">
+    <!-- Photo Lightbox Modal -->
+    <div id="photoLightbox" class="fixed inset-0 bg-black bg-opacity-95 z-[100] hidden items-center justify-center">
+        <button onclick="closeLightbox()" class="absolute top-4 right-4 text-white hover:text-gray-300 z-10">
+            <svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+            </svg>
+        </button>
+        <button onclick="navigateLightbox(-1)" class="absolute left-4 top-1/2 -translate-y-1/2 text-white hover:text-gray-300 bg-black bg-opacity-50 rounded-full p-2 z-10">
+            <svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/>
+            </svg>
+        </button>
+        <button onclick="navigateLightbox(1)" class="absolute right-4 top-1/2 -translate-y-1/2 text-white hover:text-gray-300 bg-black bg-opacity-50 rounded-full p-2 z-10">
+            <svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/>
+            </svg>
+        </button>
+        <div class="flex flex-col items-center justify-center w-full h-full p-4">
+            <img id="lightboxImage" src="" alt="Foto" class="max-w-full max-h-[80vh] object-contain">
+            <p id="lightboxCaption" class="text-white text-center mt-4 text-lg"></p>
+            <p id="lightboxCounter" class="text-gray-400 text-center mt-1 text-sm"></p>
+        </div>
+    </div>
+
     <!-- Header -->
     <header class="bg-[#009cb6] shadow-md">
         <div class="max-w-7xl mx-auto px-4 py-3">
@@ -1159,10 +1183,11 @@
                 document.body.appendChild(modal);
                 window.currentPreviewModal = modal;
                 
-                // Add click handlers for photos (avoid base64 in onclick)
+                // Add click handlers for photos (open in lightbox)
                 modal.querySelectorAll('.photo-clickable').forEach(img => {
                     img.addEventListener('click', function() {
-                        openPhotoInNewTab(this.src);
+                        const photoKey = this.getAttribute('data-photo-key') || null;
+                        openPhotoInLightbox(photoKey, this.src);
                     });
                 });
                 
@@ -1842,25 +1867,99 @@
             }, 100);
         }
 
-        // Open photo in new tab (handles base64 images correctly)
+        // Lightbox state
+        let lightboxPhotos = [];
+        let lightboxCurrentIndex = 0;
+        
+        const photoLabelsMap = {
+            'front': 'Frente',
+            'front_left': 'Frente Esquerda',
+            'left': 'Lado Esquerdo',
+            'back_left': 'Traseira Esquerda',
+            'back': 'Traseira',
+            'back_right': 'Traseira Direita',
+            'right': 'Lado Direito',
+            'front_right': 'Frente Direita',
+            'odometer': 'Conta-Quilómetros',
+            'signature': 'Assinatura',
+            'damage_croqui': 'Croqui de Danos'
+        };
+        
+        // Open photo in lightbox
+        function openPhotoInLightbox(photoKey, photoUrl) {
+            // Build array of all available photos
+            lightboxPhotos = [];
+            const photos = window.currentInspectionPhotos || {};
+            
+            // Add standard photos in order
+            const photoOrder = ['front', 'front_left', 'left', 'back_left', 'back', 'back_right', 'right', 'front_right', 'odometer'];
+            photoOrder.forEach(key => {
+                if (photos[key]) {
+                    lightboxPhotos.push({ key: key, url: photos[key], label: photoLabelsMap[key] || key });
+                }
+            });
+            
+            // Add damage photos if any
+            const damagePhotos = window.currentInspectionDamagePhotos || {};
+            Object.keys(damagePhotos).forEach(key => {
+                lightboxPhotos.push({ key: key, url: damagePhotos[key], label: `Dano: ${key}` });
+            });
+            
+            // Signature is not included in lightbox (not clickable)
+            
+            // Find index of clicked photo
+            lightboxCurrentIndex = lightboxPhotos.findIndex(p => p.key === photoKey || p.url === photoUrl);
+            if (lightboxCurrentIndex === -1) lightboxCurrentIndex = 0;
+            
+            showLightboxPhoto();
+            document.getElementById('photoLightbox').classList.remove('hidden');
+            document.getElementById('photoLightbox').classList.add('flex');
+            document.body.style.overflow = 'hidden';
+        }
+        
+        function showLightboxPhoto() {
+            if (lightboxPhotos.length === 0) return;
+            const photo = lightboxPhotos[lightboxCurrentIndex];
+            document.getElementById('lightboxImage').src = photo.url;
+            document.getElementById('lightboxCaption').textContent = photo.label;
+            document.getElementById('lightboxCounter').textContent = `${lightboxCurrentIndex + 1} / ${lightboxPhotos.length}`;
+        }
+        
+        function navigateLightbox(direction) {
+            lightboxCurrentIndex += direction;
+            if (lightboxCurrentIndex < 0) lightboxCurrentIndex = lightboxPhotos.length - 1;
+            if (lightboxCurrentIndex >= lightboxPhotos.length) lightboxCurrentIndex = 0;
+            showLightboxPhoto();
+        }
+        
+        function closeLightbox() {
+            document.getElementById('photoLightbox').classList.add('hidden');
+            document.getElementById('photoLightbox').classList.remove('flex');
+            document.body.style.overflow = '';
+        }
+        
+        // Keyboard navigation for lightbox
+        document.addEventListener('keydown', function(e) {
+            const lightbox = document.getElementById('photoLightbox');
+            if (!lightbox.classList.contains('hidden')) {
+                if (e.key === 'Escape') closeLightbox();
+                if (e.key === 'ArrowLeft') navigateLightbox(-1);
+                if (e.key === 'ArrowRight') navigateLightbox(1);
+            }
+        });
+        
+        // Legacy function for backwards compatibility
         function openPhotoInNewTab(photoUrl) {
-            const newWindow = window.open();
-            newWindow.document.write(`
-                <!DOCTYPE html>
-                <html>
-                <head>
-                    <title>Fotografia</title>
-                    <style>
-                        body { margin: 0; padding: 0; background: #000; display: flex; align-items: center; justify-content: center; min-height: 100vh; }
-                        img { max-width: 100%; max-height: 100vh; object-fit: contain; }
-                    </style>
-                </head>
-                <body>
-                    <img src="${photoUrl}" alt="Fotografia">
-                </body>
-                </html>
-            `);
-            newWindow.document.close();
+            // Find the photo key from URL
+            const photos = window.currentInspectionPhotos || {};
+            let photoKey = null;
+            for (const [key, url] of Object.entries(photos)) {
+                if (url === photoUrl) {
+                    photoKey = key;
+                    break;
+                }
+            }
+            openPhotoInLightbox(photoKey, photoUrl);
         }
 
         // Validate self check-in
