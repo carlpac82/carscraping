@@ -46706,9 +46706,18 @@ async def get_inspection_details(inspection_number: str, request: Request):
                 image_data = photo_row[1]
                 if image_data:
                     try:
+                        # Debug logging for photo data type
+                        logging.info(f"📷 Photo {photo_type}: type={type(image_data).__name__}, len={len(image_data) if hasattr(image_data, '__len__') else 'N/A'}")
+                        
                         # Convert to base64 string
                         if isinstance(image_data, memoryview):
                             image_data = bytes(image_data)
+                        
+                        # Handle psycopg2 bytea format (comes as string like "\\x...")
+                        if isinstance(image_data, str) and image_data.startswith('\\x'):
+                            # PostgreSQL bytea hex format - convert to bytes
+                            image_data = bytes.fromhex(image_data[2:])
+                            logging.info(f"📷 Converted hex string to bytes for {photo_type}")
                         
                         if isinstance(image_data, bytes):
                             # Binary data - encode to base64 and remove any whitespace
