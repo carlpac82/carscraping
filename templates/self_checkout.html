@@ -1709,7 +1709,6 @@
                 const data = await response.json();
 
                 if (data.success) {
-                    alert(t.alertSuccess);
                     window.location.href = '/self-checkout-success';
                 } else {
                     alert(t.alertError + ' ' + (data.error || 'Erro desconhecido'));
