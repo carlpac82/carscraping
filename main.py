@@ -31513,19 +31513,19 @@ async def submit_self_checkout(token: str, request: Request):
             if is_postgres:
                 cursor.execute("""
                     SELECT 
-                        ra.client_name, ra.client_email, ra.client_country,
-                        ra.vehicle_brand, ra.vehicle_model, ra.return_location,
-                        ra.pickup_km, ra.extracted_data
+                        ra.client_name, ra.client_email, ra.extracted_data,
+                        v.marca, v.modelo
                     FROM rental_agreements ra
+                    LEFT JOIN vehicles v ON ra.vehicle_id = v.id
                     WHERE ra.id = %s
                 """, (ra_id,))
             else:
                 cursor.execute("""
                     SELECT 
-                        ra.client_name, ra.client_email, ra.client_country,
-                        ra.vehicle_brand, ra.vehicle_model, ra.return_location,
-                        ra.pickup_km, ra.extracted_data
+                        ra.client_name, ra.client_email, ra.extracted_data,
+                        v.marca, v.modelo
                     FROM rental_agreements ra
+                    LEFT JOIN vehicles v ON ra.vehicle_id = v.id
                     WHERE ra.id = ?
                 """, (ra_id,))
             
@@ -31533,11 +31533,22 @@ async def submit_self_checkout(token: str, request: Request):
             if ra_row:
                 client_name = ra_row[0] or ''
                 client_email = ra_row[1] or ''
-                client_country = ra_row[2] or 'PT'
+                ra_extracted = ra_row[2]
                 vehicle_brand = ra_row[3] or ''
                 vehicle_model = ra_row[4] or ''
-                return_location = ra_row[5] or 'Auto Prudente'
-                pickup_km = ra_row[6] or 0
+                
+                # Extrair dados do extracted_data JSON
+                client_country = 'PT'
+                return_location = 'Auto Prudente'
+                pickup_km = 0
+                if ra_extracted:
+                    try:
+                        ext_data = json.loads(ra_extracted) if isinstance(ra_extracted, str) else ra_extracted
+                        client_country = ext_data.get('country') or ext_data.get('pais') or 'PT'
+                        return_location = ext_data.get('returnLocation') or ext_data.get('return_location') or 'Auto Prudente'
+                        pickup_km = ext_data.get('kms') or ext_data.get('odometer') or 0
+                    except:
+                        pass
                 
                 # Determinar idioma baseado no país
                 language = 'pt'
