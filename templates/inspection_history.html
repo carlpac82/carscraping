@@ -637,7 +637,7 @@
                     
                     if (hasSelfCheckout) {
                         const status = contract.self_checkout.status || 'pending';
-                        const hasDamages = contract.self_checkout.has_damages;
+                        const hasDamages = contract.self_checkout.has_damages || (contract.self_checkout.damage_count && contract.self_checkout.damage_count > 0);
                         
                         if (status === 'pending') {
                             // Não mostrar badge - já está coberto por "PENDENTE VALIDAÇÃO"

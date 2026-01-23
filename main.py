@@ -33380,6 +33380,9 @@ async def invalidate_self_checkout(request: Request):
                 "error": "Self-checkout já foi invalidado"
             }, status_code=400)
         
+        # Contar danos (fotos de danos + marcações no croqui)
+        damage_count = len(damage_photos) if damage_photos else 0
+        
         # Atualizar inspeção com novos dados
         if is_postgres:
             cursor.execute("""
@@ -33388,9 +33391,10 @@ async def invalidate_self_checkout(request: Request):
                     fuel_level = %s,
                     odometer_reading = COALESCE(%s, odometer_reading),
                     observations = %s,
-                    has_damage = %s
+                    has_damage = %s,
+                    damage_count = CASE WHEN %s > 0 THEN %s ELSE damage_count END
                 WHERE id = %s
-            """, (fuel_level, odometer_reading, damage_description, has_damages, inspection_id))
+            """, (fuel_level, odometer_reading, damage_description, has_damages, damage_count, damage_count, inspection_id))
         else:
             cursor.execute("""
                 UPDATE vehicle_inspections
@@ -33398,9 +33402,10 @@ async def invalidate_self_checkout(request: Request):
                     fuel_level = ?,
                     odometer_reading = COALESCE(?, odometer_reading),
                     observations = ?,
-                    has_damage = ?
+                    has_damage = ?,
+                    damage_count = CASE WHEN ? > 0 THEN ? ELSE damage_count END
                 WHERE id = ?
-            """, (fuel_level, odometer_reading, damage_description, has_damages, inspection_id))
+            """, (fuel_level, odometer_reading, damage_description, has_damages, damage_count, damage_count, inspection_id))
         
         # Guardar croqui atualizado
         if damage_croqui and len(damage_croqui) > 100:
