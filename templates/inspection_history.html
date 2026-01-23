@@ -1109,6 +1109,23 @@
                         }
                     });
                     photosHtml += '</div>';
+                    
+                    // Adicionar foto do odómetro como prova (se existir)
+                    if (inspection.photos['odometer_proof']) {
+                        photosHtml += `
+                            <div class="mt-4 p-4 bg-orange-50 border border-orange-200 rounded-lg">
+                                <h4 class="text-sm font-semibold text-orange-700 mb-2 flex items-center gap-2">
+                                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/></svg>
+                                    Foto Prova - Odómetro (Staff)
+                                </h4>
+                                <p class="text-xs text-orange-600 mb-2">Foto tirada pelo staff como prova do nível de combustível real</p>
+                                <img src="${inspection.photos['odometer_proof']}" alt="Prova Odómetro" 
+                                     class="w-full max-w-md h-48 object-cover rounded-lg border-2 border-orange-300 cursor-pointer photo-clickable"
+                                     data-photo-key="odometer_proof"
+                                     onerror="this.style.display='none'">
+                            </div>
+                        `;
+                    }
                 } else {
                     photosHtml = '<p class="text-gray-500 text-center py-4">Nenhuma fotografia disponível</p>';
                 }
@@ -2328,6 +2345,23 @@
                             }
                         });
                         photosHtml += '</div>';
+                        
+                        // Adicionar foto do odómetro como prova (se existir)
+                        if (inspection.photos['odometer_proof']) {
+                            photosHtml += `
+                                <div class="mt-4 p-4 bg-orange-50 border border-orange-200 rounded-lg">
+                                    <h4 class="text-sm font-semibold text-orange-700 mb-2 flex items-center gap-2">
+                                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/></svg>
+                                        Foto Prova - Odómetro (Staff)
+                                    </h4>
+                                    <p class="text-xs text-orange-600 mb-2">Foto tirada pelo staff como prova do nível de combustível real</p>
+                                    <img src="${inspection.photos['odometer_proof']}" alt="Prova Odómetro" 
+                                         class="w-full max-w-md h-48 object-cover rounded-lg border-2 border-orange-300 cursor-pointer photo-clickable"
+                                         data-photo-key="odometer_proof"
+                                         onerror="this.style.display='none'">
+                                </div>
+                            `;
+                        }
                     } else {
                         photosHtml = '<p class="text-gray-500 text-center py-4">Nenhuma fotografia disponível</p>';
                     }
