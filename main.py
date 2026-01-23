@@ -32973,16 +32973,16 @@ async def edit_and_validate_self_checkout(request: Request):
         if is_postgres:
             cursor.execute("""
                 UPDATE vehicles
-                SET km_atual = %s, combustivel = %s
+                SET km_atual = %s
                 WHERE matricula = %s
-            """, (new_odometer, new_fuel, plate))
+            """, (new_odometer, plate))
         else:
             cursor.execute("""
                 UPDATE vehicles
-                SET km_atual = ?, combustivel = ?
+                SET km_atual = ?
                 WHERE matricula = ?
-            """, (new_odometer, new_fuel, plate))
-        logging.info(f"✅ KMs e combustível atualizados no gestor de frota: KMs={new_odometer}, Fuel={new_fuel}")
+            """, (new_odometer, plate))
+        logging.info(f"✅ KMs atualizados no gestor de frota: KMs={new_odometer}")
         
         # Atualizar RA - marcar como terminado
         if is_postgres:
@@ -33427,12 +33427,12 @@ async def edit_and_validate_self_checkout(request: Request):
             except Exception as photo_err:
                 logging.warning(f"Failed to save odometer photo: {photo_err}")
         
-        # Atualizar KMs e combustível no gestor de frota
+        # Atualizar KMs no gestor de frota
         if is_postgres:
-            cursor.execute("UPDATE vehicles SET km_atual = %s, combustivel = %s WHERE matricula = %s", (new_odometer, new_fuel, plate))
+            cursor.execute("UPDATE vehicles SET km_atual = %s WHERE matricula = %s", (new_odometer, plate))
         else:
-            cursor.execute("UPDATE vehicles SET km_atual = ?, combustivel = ? WHERE matricula = ?", (new_odometer, new_fuel, plate))
-        logging.info(f"✅ Gestor de frota atualizado: KMs={new_odometer}, Combustível={new_fuel}%")
+            cursor.execute("UPDATE vehicles SET km_atual = ? WHERE matricula = ?", (new_odometer, plate))
+        logging.info(f"✅ Gestor de frota atualizado: KMs={new_odometer}")
         
         # Atualizar RA - marcar como terminado
         if is_postgres:
