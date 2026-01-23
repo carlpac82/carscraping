@@ -33075,6 +33075,7 @@ async def edit_and_validate_self_checkout(request: Request):
                 
                 # Buscar pickup_km do checkin
                 try:
+                    logging.info(f"📊 Searching checkin for contract: {ra_number}")
                     if is_postgres:
                         cursor.execute("""
                             SELECT odometer_reading FROM vehicle_inspections
@@ -33088,10 +33089,14 @@ async def edit_and_validate_self_checkout(request: Request):
                             ORDER BY created_at ASC LIMIT 1
                         """, (ra_number,))
                     checkin_row = cursor.fetchone()
+                    logging.info(f"📊 Checkin row found: {checkin_row}")
                     if checkin_row and checkin_row[0]:
                         pickup_km = int(checkin_row[0])
-                except:
-                    pass
+                        logging.info(f"📊 Pickup KM from checkin: {pickup_km}")
+                    else:
+                        logging.warning(f"⚠️ No checkin odometer found for contract {ra_number}")
+                except Exception as checkin_err:
+                    logging.error(f"❌ Error fetching checkin: {checkin_err}")
                 
                 # Garantir conversão para int
                 try:
