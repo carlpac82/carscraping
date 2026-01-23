@@ -31149,11 +31149,11 @@ async def get_self_checkout_data(token: str):
                 "error": "Token inválido ou expirado"
             }, status_code=404)
         
-        # Verificar se já foi completado
+        # Verificar se este token específico já foi usado
         if row[7]:  # self_checkin_completed
             return JSONResponse({
                 "success": False,
-                "error": "Self check-in já foi realizado",
+                "error": "Este link de Self Check-Out já foi utilizado. Solicite um novo link se necessário.",
                 "completed": True,
                 "rental_agreement_number": row[1],
                 "license_plate": row[2]
@@ -31328,12 +31328,12 @@ async def submit_self_checkout(token: str, request: Request):
         if row[4]:  # já completado
             return JSONResponse({
                 "success": False,
-                "error": "Self check-in já foi realizado"
+                "error": "Self check-out já foi realizado para este contrato"
             }, status_code=400)
         
         ra_id, ra_number, plate, vehicle_id, _ = row
         
-        # Criar inspeção de self check-in
+        # Criar inspeção de self check-in (permite múltiplos self-checkouts se novos links forem enviados)
         import datetime
         inspection_number = f"SC-{ra_number}-{datetime.datetime.now().strftime('%Y%m%d%H%M%S')}"
         
