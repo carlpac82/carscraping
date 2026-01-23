@@ -33368,6 +33368,14 @@ async def invalidate_self_checkout(request: Request):
         
         inspection_id, plate, ra_number, inspection_type, status, client_email, extracted_data, ra_id = row
         
+        # Log para debug
+        logging.info(f"📧 Invalidate - client_email from DB: {client_email}, ra_id: {ra_id}")
+        
+        # Se não encontrou email no RA, tentar usar o email do request
+        if not client_email:
+            client_email = data.get('client_email')
+            logging.info(f"📧 Invalidate - using email from request: {client_email}")
+        
         if inspection_type != 'self_checkout':
             return JSONResponse({
                 "success": False,
