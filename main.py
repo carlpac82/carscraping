@@ -33445,13 +33445,6 @@ async def invalidate_self_checkout(request: Request):
                     VALUES (?, ?, ?, CURRENT_TIMESTAMP)
                 """, (inspection_id, f'invalidate_damage_{idx+1}', photo_base64))
         
-        # Fechar o contrato (marcar como closed)
-        if ra_id:
-            if is_postgres:
-                cursor.execute("UPDATE rental_agreements SET status = 'closed' WHERE id = %s", (ra_id,))
-            else:
-                cursor.execute("UPDATE rental_agreements SET status = 'closed' WHERE id = ?", (ra_id,))
-        
         conn.commit()
         
         # Enviar email de incidências ao cliente
