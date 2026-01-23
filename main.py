@@ -31348,23 +31348,17 @@ async def submit_self_checkout(token: str, request: Request):
         # Buscar nome do cliente do extracted_data para usar como "inspetor"
         client_name_for_inspection = 'Cliente'
         if is_postgres:
-            cursor.execute("SELECT extracted_data, client_name FROM rental_agreements WHERE id = %s", (ra_id,))
+            cursor.execute("SELECT extracted_data FROM rental_agreements WHERE id = %s", (ra_id,))
         else:
-            cursor.execute("SELECT extracted_data, client_name FROM rental_agreements WHERE id = ?", (ra_id,))
+            cursor.execute("SELECT extracted_data FROM rental_agreements WHERE id = ?", (ra_id,))
         client_row = cursor.fetchone()
-        if client_row:
-            # Try client_name column first (direct field)
-            if client_row[1]:
-                client_name_for_inspection = client_row[1]
-                logging.info(f"📛 Using client_name from column: {client_name_for_inspection}")
-            # Fall back to extracted_data JSON
-            elif client_row[0]:
-                try:
-                    ext_data = json.loads(client_row[0]) if isinstance(client_row[0], str) else client_row[0]
-                    client_name_for_inspection = ext_data.get('clientName') or ext_data.get('client_name') or ext_data.get('nome_cliente') or 'Cliente'
-                    logging.info(f"📛 Using client_name from extracted_data: {client_name_for_inspection}")
-                except Exception as e:
-                    logging.warning(f"⚠️ Error parsing extracted_data for client name: {e}")
+        if client_row and client_row[0]:
+            try:
+                ext_data = json.loads(client_row[0]) if isinstance(client_row[0], str) else client_row[0]
+                client_name_for_inspection = ext_data.get('clientName') or ext_data.get('client_name') or ext_data.get('nome_cliente') or 'Cliente'
+                logging.info(f"📛 Using client_name from extracted_data: {client_name_for_inspection}")
+            except Exception as e:
+                logging.warning(f"⚠️ Error parsing extracted_data for client name: {e}")
         
         # Guardar inspeção como 'self_checkout' (pendente de validação)
         # Só será convertida para 'checkout' após validação pelo colaborador
