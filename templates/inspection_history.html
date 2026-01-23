@@ -1008,6 +1008,11 @@
                         'odometer': 'Conta-Quilómetros'
                     };
                     
+                    // Fallback: se não tiver 'odometer' mas tiver 'interior', usar 'interior' como odometer
+                    if (!inspection.photos['odometer'] && inspection.photos['interior']) {
+                        inspection.photos['odometer'] = inspection.photos['interior'];
+                    }
+                    
                     photosHtml = '<div class="grid grid-cols-2 md:grid-cols-3 gap-3 mb-6">';
                     Object.keys(photoLabels).forEach(photoType => {
                         if (inspection.photos[photoType]) {

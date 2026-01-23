@@ -31607,26 +31607,26 @@ async def submit_self_checkout(token: str, request: Request):
                     except:
                         pass
                 
-                # Se pickup_km ainda for 0, buscar da inspeção de check-in (entrega ao cliente)
+                # Se pickup_km ainda for 0, buscar da inspeção de checkout (entrega ao cliente)
                 if pickup_km == 0:
                     try:
                         if is_postgres:
                             cursor.execute("""
                                 SELECT odometer_reading FROM inspections
-                                WHERE ra_number = %s AND inspection_type = 'checkin'
+                                WHERE ra_number = %s AND inspection_type = 'checkout'
                                 ORDER BY created_at DESC LIMIT 1
                             """, (ra_number,))
                         else:
                             cursor.execute("""
                                 SELECT odometer_reading FROM inspections
-                                WHERE ra_number = ? AND inspection_type = 'checkin'
+                                WHERE ra_number = ? AND inspection_type = 'checkout'
                                 ORDER BY created_at DESC LIMIT 1
                             """, (ra_number,))
-                        checkin_row = cursor.fetchone()
-                        if checkin_row and checkin_row[0]:
-                            pickup_km = int(checkin_row[0])
+                        checkout_row = cursor.fetchone()
+                        if checkout_row and checkout_row[0]:
+                            pickup_km = int(checkout_row[0])
                     except Exception as e:
-                        logging.warning(f"Could not fetch checkin odometer: {e}")
+                        logging.warning(f"Could not fetch checkout odometer: {e}")
                 
                 # Determinar idioma baseado no país
                 language = 'pt'
@@ -47470,6 +47470,7 @@ async def download_terms_en():
 @app.get("/email-photo/{inspection_id}/{photo_type}")
 async def serve_email_photo(inspection_id: int, photo_type: str):
     """Serve inspection photo via HTTP for email compatibility (kept for backward compatibility)"""
+    import base64
     try:
         conn = _db_connect()
         cursor = conn.cursor()
@@ -47494,27 +47495,53 @@ async def serve_email_photo(inspection_id: int, photo_type: str):
             return Response(content=b"", media_type="image/png", status_code=404)
         
         image_data = row[0]
+        image_bytes = None
         
-        # Handle both TEXT (base64 string) and BLOB (bytes)
-        if isinstance(image_data, str):
-            # TEXT: decode base64 string to bytes
-            import base64
-            # Remove data URL prefix if present (e.g., "data:image/png;base64,")
-            if image_data.startswith('data:image'):
-                # Extract only the base64 part after the comma
-                image_data = image_data.split(',', 1)[1] if ',' in image_data else image_data
-            image_bytes = base64.b64decode(image_data)
-        else:
-            # BLOB: already bytes
+        # Handle memoryview (PostgreSQL bytea)
+        if isinstance(image_data, memoryview):
+            image_bytes = bytes(image_data)
+        # Handle PostgreSQL hex format (\\x...)
+        elif isinstance(image_data, str) and image_data.startswith('\\x'):
+            image_bytes = bytes.fromhex(image_data[2:])
+        # Handle data URL format (data:image/...;base64,...)
+        elif isinstance(image_data, str) and image_data.startswith('data:image'):
+            base64_part = image_data.split(',', 1)[1] if ',' in image_data else image_data
+            # Clean base64 string - remove whitespace and fix padding
+            base64_part = base64_part.replace('\n', '').replace('\r', '').replace(' ', '')
+            missing_padding = len(base64_part) % 4
+            if missing_padding:
+                base64_part += '=' * (4 - missing_padding)
+            image_bytes = base64.b64decode(base64_part)
+        # Handle plain base64 string
+        elif isinstance(image_data, str):
+            # Clean base64 string - remove whitespace and fix padding
+            base64_part = image_data.replace('\n', '').replace('\r', '').replace(' ', '')
+            missing_padding = len(base64_part) % 4
+            if missing_padding:
+                base64_part += '=' * (4 - missing_padding)
+            image_bytes = base64.b64decode(base64_part)
+        # Handle raw bytes
+        elif isinstance(image_data, bytes):
             image_bytes = image_data
+        else:
+            logging.error(f"❌ Unknown image_data type: {type(image_data)}")
+            return Response(content=b"", media_type="image/png", status_code=500)
         
-        # Determine media type based on photo type
-        media_type = "image/png" if photo_type == "damage_croqui" else "image/jpeg"
+        # Determine media type based on photo type or image signature
+        media_type = "image/jpeg"
+        if photo_type in ["damage_croqui", "signature"]:
+            media_type = "image/png"
+        elif image_bytes and len(image_bytes) > 4:
+            # Check PNG signature
+            if image_bytes[:4] == b'\x89PNG':
+                media_type = "image/png"
         
         return Response(content=image_bytes, media_type=media_type)
         
     except Exception as e:
         logging.error(f"❌ Error serving email photo: {e}")
+        import traceback
+        traceback.print_exc()
         return Response(content=b"", media_type="image/png", status_code=500)
 
 @app.post("/api/extract-rental-agreement")
