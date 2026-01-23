@@ -31517,7 +31517,7 @@ async def submit_self_checkout(token: str, request: Request):
             if is_postgres:
                 cursor.execute("""
                     SELECT 
-                        ra.client_name, ra.client_email, ra.extracted_data,
+                        ra.extracted_data, ra.client_email,
                         v.marca, v.modelo
                     FROM rental_agreements ra
                     LEFT JOIN vehicles v ON ra.vehicle_id = v.id
@@ -31526,7 +31526,7 @@ async def submit_self_checkout(token: str, request: Request):
             else:
                 cursor.execute("""
                     SELECT 
-                        ra.client_name, ra.client_email, ra.extracted_data,
+                        ra.extracted_data, ra.client_email,
                         v.marca, v.modelo
                     FROM rental_agreements ra
                     LEFT JOIN vehicles v ON ra.vehicle_id = v.id
@@ -31535,11 +31535,21 @@ async def submit_self_checkout(token: str, request: Request):
             
             ra_row = cursor.fetchone()
             if ra_row:
-                client_name = ra_row[0] or ''
+                ra_extracted = ra_row[0]
                 client_email = ra_row[1] or ''
-                ra_extracted = ra_row[2]
-                vehicle_brand = ra_row[3] or ''
-                vehicle_model = ra_row[4] or ''
+                vehicle_brand = ra_row[2] or ''
+                vehicle_model = ra_row[3] or ''
+                client_name = ''
+                
+                # Extrair client_name e client_email do extracted_data se disponível
+                if ra_extracted:
+                    try:
+                        ext_data = json.loads(ra_extracted) if isinstance(ra_extracted, str) else ra_extracted
+                        client_name = ext_data.get('clientName') or ext_data.get('client_name') or ''
+                        if not client_email:
+                            client_email = ext_data.get('clientEmail') or ext_data.get('email') or ''
+                    except:
+                        pass
                 
                 # Extrair dados do extracted_data JSON
                 client_country = 'PT'
