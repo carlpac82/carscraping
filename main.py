@@ -31268,14 +31268,16 @@ async def get_self_checkout_data(token: str):
 
 
 @app.post("/api/self-checkout/{token}/submit")
-async def submit_self_checkin(token: str, request: Request):
+async def submit_self_checkout(token: str, request: Request):
     """
-    Submeter self check-in do cliente
+    Submeter self check-out do cliente
     Guarda fotos, kms, combustível (sem croqui)
     """
     conn = None
     try:
         data = await request.json()
+        logging.info(f"🚗 Self-checkout submit received for token: {token[:20]}...")
+        logging.info(f"📊 Data keys: {list(data.keys())}")
         
         conn = _db_connect()
         is_postgres = _is_postgresql_connection(conn)
@@ -31352,13 +31354,13 @@ async def submit_self_checkin(token: str, request: Request):
                     if is_postgres:
                         cursor.execute("""
                             INSERT INTO inspection_photos (
-                                inspection_id, photo_type, photo_data, created_at
+                                inspection_id, photo_type, image_data, created_at
                             ) VALUES (%s, %s, %s, NOW())
                         """, (inspection_id, photo_key, photo_bytes))
                     else:
                         cursor.execute("""
                             INSERT INTO inspection_photos (
-                                inspection_id, photo_type, photo_data, created_at
+                                inspection_id, photo_type, image_data, created_at
                             ) VALUES (?, ?, ?, datetime('now'))
                         """, (inspection_id, photo_key, photo_bytes))
                 except Exception as photo_err:
@@ -31498,14 +31500,14 @@ async def submit_self_checkin(token: str, request: Request):
                 # Buscar fotos da inspeção
                 if is_postgres:
                     cursor.execute("""
-                        SELECT photo_type, photo_data
+                        SELECT photo_type, image_data
                         FROM inspection_photos
                         WHERE inspection_id = %s
                         ORDER BY created_at
                     """, (inspection_id,))
                 else:
                     cursor.execute("""
-                        SELECT photo_type, photo_data
+                        SELECT photo_type, image_data
                         FROM inspection_photos
                         WHERE inspection_id = ?
                         ORDER BY created_at
