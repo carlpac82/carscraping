@@ -1976,7 +1976,8 @@
                     );
                     
                     if (contract) {
-                        const inspection = contract.checkout?.inspection_number === inspectionNumber ? contract.checkout : contract.checkin;
+                        const isCheckout = contract.checkout?.inspection_number === inspectionNumber;
+                        const inspection = isCheckout ? contract.checkout : contract.checkin;
                         if (inspection) {
                             // Update values directly
                             inspection.fuel_level = updateData.fuel_level;
@@ -1984,6 +1985,25 @@
                             if (updateData.damage_croqui) {
                                 inspection.damage_croqui = updateData.damage_croqui;
                             }
+                            
+                            // Se é checkout, atualizar também o self_checkout para refletir mudanças nos badges
+                            if (isCheckout && contract.self_checkout && contract.checkin) {
+                                const checkinFuel = parseInt(contract.checkin.fuel_level) || 0;
+                                const newFuel = parseInt(updateData.fuel_level) || 0;
+                                
+                                // Atualizar fuel_level do self_checkout
+                                contract.self_checkout.fuel_level = newFuel;
+                                
+                                // Atualizar status baseado na comparação com checkin
+                                if (newFuel >= checkinFuel && contract.self_checkout.status === 'warned') {
+                                    contract.self_checkout.status = 'validated';
+                                    console.log('✅ Self-checkout status changed to validated (fuel corrected)');
+                                } else if (newFuel < checkinFuel && contract.self_checkout.status === 'validated') {
+                                    contract.self_checkout.status = 'warned';
+                                    console.log('⚠️ Self-checkout status changed to warned (fuel below)');
+                                }
+                            }
+                            
                             console.log('✅ Card updated directly in frontend');
                             
                             // Re-render immediately
