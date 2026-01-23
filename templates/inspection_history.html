@@ -1126,16 +1126,17 @@
                     // Adicionar foto do odómetro como prova (se existir)
                     if (inspection.photos['odometer_proof']) {
                         photosHtml += `
-                            <div class="mt-4 p-4 bg-orange-50 border border-orange-200 rounded-lg">
-                                <h4 class="text-sm font-semibold text-orange-700 mb-2 flex items-center gap-2">
-                                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/></svg>
-                                    Foto Prova - Odómetro (Staff)
+                            <div class="mt-4">
+                                <h4 class="text-sm font-semibold text-orange-600 mb-2 flex items-center gap-2">
+                                    <svg class="w-5 h-5 text-orange-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/></svg>
+                                    Fotografias com Incidência
                                 </h4>
-                                <p class="text-xs text-orange-600 mb-2">Foto tirada pelo staff como prova do nível de combustível real</p>
                                 <img src="${inspection.photos['odometer_proof']}" alt="Prova Odómetro" 
-                                     class="w-full max-w-md h-48 object-cover rounded-lg border-2 border-orange-300 cursor-pointer photo-clickable"
+                                     class="w-full max-w-md h-48 object-cover rounded-lg border border-gray-200 cursor-pointer photo-clickable"
                                      data-photo-key="odometer_proof"
                                      onerror="this.style.display='none'">
+                                <p class="text-xs text-gray-500 mt-2">${inspection.created_at ? new Date(inspection.created_at).toLocaleString('pt-PT', {day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit'}) : ''}</p>
+                                <p class="text-xs text-gray-600">Por: ${inspection.inspector_name ? getFirstLastName(inspection.inspector_name) : 'N/A'}</p>
                             </div>
                         `;
                     }
@@ -1241,7 +1242,7 @@
                                     <!-- Selected fuel level display -->
                                     <div class="text-center mt-2">
                                         <span class="text-sm font-semibold text-gray-700">Nível: </span>
-                                        <span class="text-sm font-bold text-[#009cb6]">${inspection.fuel_level || 'N/A'}</span>
+                                        <span class="text-sm font-bold text-[#009cb6]">${fuelToFraction(inspection.fuel_level)}</span>
                                     </div>
                                 </div>
                             </div>
@@ -2120,6 +2121,17 @@
             }
         });
         
+        // Helper: Convert fuel level to fractional display (1/4, 1/2, etc.)
+        function fuelToFraction(fuelLevel) {
+            if (!fuelLevel && fuelLevel !== 0) return 'N/A';
+            const percent = fuelToPercent(fuelLevel);
+            if (percent >= 88) return 'Cheio (F)';
+            if (percent >= 63) return '3/4';
+            if (percent >= 38) return '1/2';
+            if (percent >= 13) return '1/4';
+            return 'Reserva (R)';
+        }
+        
         // Helper: Convert fuel level string to percentage for bar width
         function fuelToPercent(fuelLevel) {
             if (!fuelLevel) return 0;
@@ -2440,7 +2452,7 @@
                                         </div>
                                         <div class="text-center mt-2">
                                             <span class="text-sm font-semibold text-gray-700">Nível: </span>
-                                            <span class="text-sm font-bold text-[#009cb6]">${inspection.fuel_level || 'N/A'}</span>
+                                            <span class="text-sm font-bold text-[#009cb6]">${fuelToFraction(inspection.fuel_level)}</span>
                                         </div>
                                     </div>
                                 </div>
@@ -2470,20 +2482,18 @@
                                 <!-- Incidence Photos (odometer proof) -->
                                 ${inspection.photos && inspection.photos['odometer_proof'] ? `
                                 <div class="mb-6">
-                                    <h4 class="text-lg font-bold text-orange-700 mb-4 flex items-center gap-2">
-                                        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/></svg>
-                                        Fotografias Incidências
+                                    <h4 class="text-lg font-bold text-orange-600 mb-4 flex items-center gap-2">
+                                        <svg class="w-5 h-5 text-orange-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/></svg>
+                                        Fotografias com Incidência
                                     </h4>
-                                    <div class="p-4 bg-orange-50 border border-orange-200 rounded-lg">
-                                        <p class="text-sm text-orange-600 mb-3">Foto tirada pelo staff como prova do nível de combustível real</p>
-                                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                            <div>
-                                                <h5 class="text-sm font-semibold text-orange-700 mb-2">Prova Odómetro/Combustível</h5>
-                                                <img src="${inspection.photos['odometer_proof']}" alt="Prova Odómetro" 
-                                                     class="w-full h-48 object-cover rounded-lg border-2 border-orange-300 cursor-pointer photo-clickable"
-                                                     data-photo-key="odometer_proof"
-                                                     onerror="this.style.display='none'">
-                                            </div>
+                                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                        <div>
+                                            <img src="${inspection.photos['odometer_proof']}" alt="Prova Odómetro" 
+                                                 class="w-full h-48 object-cover rounded-lg border border-gray-200 cursor-pointer photo-clickable"
+                                                 data-photo-key="odometer_proof"
+                                                 onerror="this.style.display='none'">
+                                            <p class="text-xs text-gray-500 mt-2">${inspection.created_at ? new Date(inspection.created_at).toLocaleString('pt-PT', {day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit'}) : ''}</p>
+                                            <p class="text-xs text-gray-600">Por: ${inspection.inspector_name ? getFirstLastName(inspection.inspector_name) : 'N/A'}</p>
                                         </div>
                                     </div>
                                 </div>
