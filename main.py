@@ -33075,19 +33075,19 @@ async def edit_and_validate_self_checkout(request: Request):
                 
                 # Buscar pickup_km do checkin
                 try:
-                    logging.info(f"📊 Searching checkin for contract: {ra_number}")
+                    logging.info(f"📊 Searching checkin for contract: {ra_number}, plate: {plate}")
                     if is_postgres:
                         cursor.execute("""
                             SELECT odometer_reading FROM vehicle_inspections
-                            WHERE contract_number = %s AND inspection_type = 'checkin'
-                            ORDER BY created_at ASC LIMIT 1
-                        """, (ra_number,))
+                            WHERE contract_number LIKE %s AND inspection_type = 'checkin'
+                            ORDER BY created_at DESC LIMIT 1
+                        """, (f'%{ra_number}%',))
                     else:
                         cursor.execute("""
                             SELECT odometer_reading FROM vehicle_inspections
-                            WHERE contract_number = ? AND inspection_type = 'checkin'
-                            ORDER BY created_at ASC LIMIT 1
-                        """, (ra_number,))
+                            WHERE contract_number LIKE ? AND inspection_type = 'checkin'
+                            ORDER BY created_at DESC LIMIT 1
+                        """, (f'%{ra_number}%',))
                     checkin_row = cursor.fetchone()
                     logging.info(f"📊 Checkin row found: {checkin_row}")
                     if checkin_row and checkin_row[0]:
