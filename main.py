@@ -31306,13 +31306,15 @@ async def submit_self_checkout(token: str, request: Request):
         if is_postgres:
             cursor = conn.cursor()
             cursor.execute("""
-                SELECT id, rental_agreement_number, license_plate, vehicle_id, self_checkin_completed
+                SELECT id, rental_agreement_number, license_plate, vehicle_id, 
+                       self_checkin_completed, self_checkout_pending, self_checkout_inspection_id
                 FROM rental_agreements
                 WHERE self_checkin_token = %s
             """, (token,))
         else:
             cursor = conn.execute("""
-                SELECT id, rental_agreement_number, license_plate, vehicle_id, self_checkin_completed
+                SELECT id, rental_agreement_number, license_plate, vehicle_id, 
+                       self_checkin_completed, self_checkout_pending, self_checkout_inspection_id
                 FROM rental_agreements
                 WHERE self_checkin_token = ?
             """, (token,))
@@ -31322,16 +31324,35 @@ async def submit_self_checkout(token: str, request: Request):
         if not row:
             return JSONResponse({
                 "success": False,
-                "error": "Token inválido"
+                "error": "Token inválido ou expirado"
             }, status_code=404)
         
-        if row[4]:  # já completado
+        ra_id, ra_number, plate, vehicle_id, self_checkin_completed, self_checkout_pending, self_checkout_inspection_id = row
+        
+        logging.info(f"🔍 Self-checkout submit validation for RA {ra_number}:")
+        logging.info(f"   - self_checkin_completed: {self_checkin_completed} (type: {type(self_checkin_completed)})")
+        logging.info(f"   - self_checkout_pending: {self_checkout_pending} (type: {type(self_checkout_pending)})")
+        logging.info(f"   - self_checkout_inspection_id: {self_checkout_inspection_id}")
+        
+        # NOTA: Quando um novo link é enviado, os campos são resetados:
+        # - self_checkin_completed = FALSE
+        # - self_checkout_pending = FALSE
+        # - self_checkout_inspection_id = NULL
+        # Portanto, se o token é válido e esses campos estão resetados, permitir nova submissão
+        
+        # Verificar se este token específico já foi usado (self_checkin_completed = TRUE)
+        if self_checkin_completed:
             return JSONResponse({
                 "success": False,
-                "error": "Self check-out já foi realizado para este contrato"
+                "error": "Este link de self check-out já foi utilizado. Se precisar fazer novamente, solicite um novo link."
             }, status_code=400)
         
-        ra_id, ra_number, plate, vehicle_id, _ = row
+        # Verificar se já existe um self-checkout pendente de validação
+        if self_checkout_pending and self_checkout_inspection_id:
+            return JSONResponse({
+                "success": False,
+                "error": "Já existe um self check-out pendente de validação para este contrato."
+            }, status_code=400)
         
         # Criar inspeção de self check-in (permite múltiplos self-checkouts se novos links forem enviados)
         import datetime
@@ -31348,23 +31369,17 @@ async def submit_self_checkout(token: str, request: Request):
         # Buscar nome do cliente do extracted_data para usar como "inspetor"
         client_name_for_inspection = 'Cliente'
         if is_postgres:
-            cursor.execute("SELECT extracted_data, client_name FROM rental_agreements WHERE id = %s", (ra_id,))
+            cursor.execute("SELECT extracted_data FROM rental_agreements WHERE id = %s", (ra_id,))
         else:
-            cursor.execute("SELECT extracted_data, client_name FROM rental_agreements WHERE id = ?", (ra_id,))
+            cursor.execute("SELECT extracted_data FROM rental_agreements WHERE id = ?", (ra_id,))
         client_row = cursor.fetchone()
-        if client_row:
-            # Try client_name column first (direct field)
-            if client_row[1]:
-                client_name_for_inspection = client_row[1]
-                logging.info(f"📛 Using client_name from column: {client_name_for_inspection}")
-            # Fall back to extracted_data JSON
-            elif client_row[0]:
-                try:
-                    ext_data = json.loads(client_row[0]) if isinstance(client_row[0], str) else client_row[0]
-                    client_name_for_inspection = ext_data.get('clientName') or ext_data.get('client_name') or ext_data.get('nome_cliente') or 'Cliente'
-                    logging.info(f"📛 Using client_name from extracted_data: {client_name_for_inspection}")
-                except Exception as e:
-                    logging.warning(f"⚠️ Error parsing extracted_data for client name: {e}")
+        if client_row and client_row[0]:
+            try:
+                ext_data = json.loads(client_row[0]) if isinstance(client_row[0], str) else client_row[0]
+                client_name_for_inspection = ext_data.get('clientName') or ext_data.get('client_name') or ext_data.get('nome_cliente') or 'Cliente'
+                logging.info(f"📛 Using client_name from extracted_data: {client_name_for_inspection}")
+            except Exception as e:
+                logging.warning(f"⚠️ Error parsing extracted_data for client name: {e}")
         
         # Guardar inspeção como 'self_checkout' (pendente de validação)
         # Só será convertida para 'checkout' após validação pelo colaborador
@@ -31713,6 +31728,7 @@ async def submit_self_checkout(token: str, request: Request):
         if conn:
             conn.rollback()
         logging.error(f"Error submitting self check-in: {e}")
+        import traceback
         traceback.print_exc()
         return JSONResponse({
             "success": False,
