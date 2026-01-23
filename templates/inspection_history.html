@@ -532,16 +532,16 @@
                                 
                                 <!-- Info: Inspector and times -->
                                 <div class="flex flex-col gap-1 text-sm text-gray-600">
-                                    ${hasCheckout ? `
-                                    <div class="flex items-center gap-2">
-                                        <span class="font-medium">Entregue por:</span>
-                                        <span>${contract.checkout.inspector_name || 'N/A'} às ${checkoutTime} de ${checkoutDate}</span>
-                                    </div>
-                                    ` : ''}
                                     ${hasCheckin ? `
                                     <div class="flex items-center gap-2">
-                                        <span class="font-medium">Recolhido por:</span>
+                                        <span class="font-medium">Entregue por:</span>
                                         <span>${contract.checkin.inspector_name || 'N/A'} às ${checkinTime} de ${checkinDate}</span>
+                                    </div>
+                                    ` : ''}
+                                    ${hasCheckout ? `
+                                    <div class="flex items-center gap-2">
+                                        <span class="font-medium">Recolhido por:</span>
+                                        <span>${contract.checkout.inspector_name || 'N/A'} às ${checkoutTime} de ${checkoutDate}</span>
                                     </div>
                                     ` : ''}
                                 </div>
