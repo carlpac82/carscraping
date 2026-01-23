@@ -590,16 +590,8 @@
                     // Self-checkout date/time and name
                     const selfCheckoutTime = hasSelfCheckout ? new Date(contract.self_checkout.created_at).toLocaleTimeString('pt-PT', { hour: '2-digit', minute: '2-digit' }) : '';
                     const selfCheckoutDate = hasSelfCheckout ? new Date(contract.self_checkout.created_at).toLocaleDateString('pt-PT', { day: '2-digit', month: '2-digit', year: 'numeric' }) : '';
-                    // Get first and last name from inspector_name (full name)
-                    let selfCheckoutName = '';
-                    if (hasSelfCheckout && contract.self_checkout.inspector_name) {
-                        const nameParts = contract.self_checkout.inspector_name.trim().split(/\s+/);
-                        if (nameParts.length >= 2) {
-                            selfCheckoutName = nameParts[0] + ' ' + nameParts[nameParts.length - 1];
-                        } else {
-                            selfCheckoutName = contract.self_checkout.inspector_name;
-                        }
-                    }
+                    // Get first and last name from inspector_name (full name), normalized
+                    let selfCheckoutName = hasSelfCheckout ? getFirstLastName(contract.self_checkout.inspector_name) : '';
                     
                     html += `
                         <div class="p-4 hover:bg-gray-50 transition-colors">
