@@ -3458,12 +3458,12 @@
             `;
             
             countdownOverlay.innerHTML = `
-                <div style="text-align: center;">
-                    <svg style="width: 120px; height: 120px; margin-bottom: 30px;" fill="white" viewBox="0 0 24 24">
+                <div style="display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center;">
+                    <svg style="width: 120px; height: 120px; margin-bottom: 30px; display: block;" fill="white" viewBox="0 0 24 24">
                         <path d="M9 2L7.17 4H4c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2h-3.17L15 2H9zm3 15c-2.76 0-5-2.24-5-5s2.24-5 5-5 5 2.24 5 5-2.24 5-5 5z"/>
                     </svg>
-                    <div style="font-size: 100px; font-weight: bold; color: white; text-shadow: 0 4px 8px rgba(0,0,0,0.3);" id="invCountdownNumber">3</div>
-                    <p style="color: white; font-size: 22px; margin-top: 25px; text-shadow: 0 2px 4px rgba(0,0,0,0.3);">Foto de Dano ${photoNum}</p>
+                    <div style="font-size: 100px; font-weight: bold; color: white; text-shadow: 0 4px 8px rgba(0,0,0,0.3); line-height: 1;" id="invCountdownNumber">3</div>
+                    <p style="color: white; font-size: 22px; margin-top: 25px; text-shadow: 0 2px 4px rgba(0,0,0,0.3);">Captar Danos</p>
                 </div>
             `;
             
@@ -3520,14 +3520,8 @@
                     <div style="flex: 1; position: relative; overflow: hidden;">
                         <video id="invCameraPreview" autoplay playsinline style="width: 100%; height: 100%; object-fit: cover;"></video>
                     </div>
-                    <div style="background: black; padding: 20px; display: flex; justify-content: center; align-items: center; gap: 40px;">
-                        <button onclick="closeInvalidateCamera()" style="width: 50px; height: 50px; border-radius: 50%; background: #333; border: none; cursor: pointer;">
-                            <svg style="width: 24px; height: 24px;" fill="white" viewBox="0 0 24 24"><path d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>
-                        </button>
-                        <button onclick="captureInvalidatePhoto()" style="width: 70px; height: 70px; border-radius: 50%; background: white; border: 4px solid #00bcd4; cursor: pointer;">
-                            <svg style="width: 32px; height: 32px;" fill="#00bcd4" viewBox="0 0 24 24"><path d="M9 2L7.17 4H4c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2h-3.17L15 2H9zm3 15c-2.76 0-5-2.24-5-5s2.24-5 5-5 5 2.24 5 5-2.24 5-5 5z"/></svg>
-                        </button>
-                        <div style="width: 50px;"></div>
+                    <div style="background: black; padding: 20px; display: flex; justify-content: center; align-items: center;">
+                        <button onclick="captureInvalidatePhoto()" style="width: 70px; height: 70px; border-radius: 50%; background: white; border: none; cursor: pointer;"></button>
                     </div>
                 `;
                 
