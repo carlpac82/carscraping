@@ -1991,11 +1991,12 @@
             return 0;
         }
         
-        // Helper: Get first and last name from full name
+        // Helper: Get first and last name from full name, normalized (First Letter Uppercase)
         function getFirstLastName(fullName) {
             if (!fullName) return 'N/A';
-            const parts = fullName.trim().split(/\s+/);
-            if (parts.length <= 2) return fullName;
+            const normalize = (s) => s.charAt(0).toUpperCase() + s.slice(1).toLowerCase();
+            const parts = fullName.trim().split(/\s+/).map(normalize);
+            if (parts.length <= 2) return parts.join(' ');
             return `${parts[0]} ${parts[parts.length - 1]}`;
         }
         
