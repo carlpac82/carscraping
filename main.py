@@ -4014,6 +4014,14 @@ def init_db():
                         cur.execute("ALTER TABLE rental_agreements ADD COLUMN client_email TEXT")
                         logging.info("✅ Coluna client_email adicionada (PostgreSQL)")
                     
+                    if 'self_checkout_pending' not in existing_columns:
+                        cur.execute("ALTER TABLE rental_agreements ADD COLUMN self_checkout_pending BOOLEAN DEFAULT FALSE")
+                        logging.info("✅ Coluna self_checkout_pending adicionada (PostgreSQL)")
+                    
+                    if 'self_checkout_inspection_id' not in existing_columns:
+                        cur.execute("ALTER TABLE rental_agreements ADD COLUMN self_checkout_inspection_id INTEGER")
+                        logging.info("✅ Coluna self_checkout_inspection_id adicionada (PostgreSQL)")
+                    
                     conn.commit()
             else:
                 # SQLite: Usar try/except
@@ -4068,6 +4076,18 @@ def init_db():
                 try:
                     conn.execute("ALTER TABLE rental_agreements ADD COLUMN client_email TEXT")
                     logging.info("✅ Coluna client_email adicionada (SQLite)")
+                except Exception:
+                    pass
+                
+                try:
+                    conn.execute("ALTER TABLE rental_agreements ADD COLUMN self_checkout_pending INTEGER DEFAULT 0")
+                    logging.info("✅ Coluna self_checkout_pending adicionada (SQLite)")
+                except Exception:
+                    pass
+                
+                try:
+                    conn.execute("ALTER TABLE rental_agreements ADD COLUMN self_checkout_inspection_id INTEGER")
+                    logging.info("✅ Coluna self_checkout_inspection_id adicionada (SQLite)")
                 except Exception:
                     pass
                 
@@ -31322,6 +31342,8 @@ async def submit_self_checkout(token: str, request: Request):
         fuel_level = data.get('fuel_level')
         photos = data.get('photos', {})  # 9 fotos da grid
         damage_photos = data.get('damage_photos', [])  # fotos de danos
+        signature = data.get('signature')  # Assinatura do cliente (base64)
+        terms_accepted = data.get('terms_accepted', False)  # Termos aceitos
         
         # Guardar inspeção
         if is_postgres:
@@ -31425,12 +31447,13 @@ async def submit_self_checkout(token: str, request: Request):
         
         updated_extracted_json = json.dumps(existing_data)
         
-        # Atualizar RA como self check-in completado
+        # Atualizar RA como self checkout PENDENTE de validação (NÃO completado ainda)
+        # O contrato só será fechado após validação pelo colaborador
         if is_postgres:
             cursor.execute("""
                 UPDATE rental_agreements
-                SET self_checkin_completed = TRUE,
-                    self_checkin_inspection_id = %s,
+                SET self_checkout_pending = TRUE,
+                    self_checkout_inspection_id = %s,
                     extracted_data = %s,
                     updated_at = NOW()
                 WHERE id = %s
@@ -31438,8 +31461,8 @@ async def submit_self_checkout(token: str, request: Request):
         else:
             cursor.execute("""
                 UPDATE rental_agreements
-                SET self_checkin_completed = 1,
-                    self_checkin_inspection_id = ?,
+                SET self_checkout_pending = 1,
+                    self_checkout_inspection_id = ?,
                     extracted_data = ?,
                     updated_at = datetime('now')
                 WHERE id = ?
