@@ -31755,15 +31755,13 @@ async def validate_self_checkin(request: Request):
         if is_postgres:
             cursor.execute("""
                 UPDATE vehicle_inspections
-                SET status = 'validated',
-                    updated_at = NOW()
+                SET status = 'validated'
                 WHERE id = %s
             """, (inspection_id,))
         else:
             cursor.execute("""
                 UPDATE vehicle_inspections
-                SET status = 'validated',
-                    updated_at = datetime('now')
+                SET status = 'validated'
                 WHERE id = ?
             """, (inspection_id,))
         
@@ -32020,15 +32018,13 @@ async def warn_self_checkin(request: Request):
         if is_postgres:
             cursor.execute("""
                 UPDATE vehicle_inspections
-                SET status = 'warned',
-                    updated_at = NOW()
+                SET status = 'warned'
                 WHERE id = %s
             """, (inspection_id,))
         else:
             cursor.execute("""
                 UPDATE vehicle_inspections
-                SET status = 'warned',
-                    updated_at = datetime('now')
+                SET status = 'warned'
                 WHERE id = ?
             """, (inspection_id,))
         
@@ -32208,15 +32204,13 @@ async def invalidate_self_checkin(request: Request):
         if is_postgres:
             cursor.execute("""
                 UPDATE vehicle_inspections
-                SET status = 'invalidated',
-                    updated_at = NOW()
+                SET status = 'invalidated'
                 WHERE id = %s
             """, (inspection_id,))
         else:
             cursor.execute("""
                 UPDATE vehicle_inspections
-                SET status = 'invalidated',
-                    updated_at = datetime('now')
+                SET status = 'invalidated'
                 WHERE id = ?
             """, (inspection_id,))
         
@@ -32348,16 +32342,14 @@ async def validate_self_checkout(request: Request):
             cursor.execute("""
                 UPDATE vehicle_inspections
                 SET status = 'validated',
-                    inspection_type = 'checkout',
-                    updated_at = NOW()
+                    inspection_type = 'checkout'
                 WHERE id = %s
             """, (inspection_id,))
         else:
             cursor.execute("""
                 UPDATE vehicle_inspections
                 SET status = 'validated',
-                    inspection_type = 'checkout',
-                    updated_at = datetime('now')
+                    inspection_type = 'checkout'
                 WHERE id = ?
             """, (inspection_id,))
         
@@ -32488,15 +32480,13 @@ async def warn_self_checkout(request: Request):
         if is_postgres:
             cursor.execute("""
                 UPDATE vehicle_inspections
-                SET status = 'warned',
-                    updated_at = NOW()
+                SET status = 'warned'
                 WHERE id = %s
             """, (inspection_id,))
         else:
             cursor.execute("""
                 UPDATE vehicle_inspections
-                SET status = 'warned',
-                    updated_at = datetime('now')
+                SET status = 'warned'
                 WHERE id = ?
             """, (inspection_id,))
         
@@ -32609,15 +32599,13 @@ async def invalidate_self_checkout(request: Request):
         if is_postgres:
             cursor.execute("""
                 UPDATE vehicle_inspections
-                SET status = 'invalidated',
-                    updated_at = NOW()
+                SET status = 'invalidated'
                 WHERE id = %s
             """, (inspection_id,))
         else:
             cursor.execute("""
                 UPDATE vehicle_inspections
-                SET status = 'invalidated',
-                    updated_at = datetime('now')
+                SET status = 'invalidated'
                 WHERE id = ?
             """, (inspection_id,))
         
