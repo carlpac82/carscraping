@@ -33093,7 +33093,15 @@ async def edit_and_validate_self_checkout(request: Request):
                 except:
                     pass
                 
-                kms_driven = max(0, new_odometer - pickup_km) if new_odometer and pickup_km else 0
+                # Garantir conversão para int
+                try:
+                    odometer_int = int(new_odometer) if new_odometer else 0
+                    pickup_int = int(pickup_km) if pickup_km else 0
+                    kms_driven = max(0, odometer_int - pickup_int)
+                    logging.info(f"📊 Edit email KMs: odometer={odometer_int}, pickup={pickup_int}, driven={kms_driven}")
+                except Exception as km_err:
+                    logging.error(f"❌ Error calculating kms_driven: {km_err}")
+                    kms_driven = 0
                 
                 ra_data = {
                     'ra_number': ra_number,
