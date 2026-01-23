@@ -1141,7 +1141,7 @@
                                         class="col-span-2 md:col-span-1 px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors text-sm md:text-base">
                                     Fechar
                                 </button>
-                                ${isSelfCheckout && (!selfCheckoutStatus || selfCheckoutStatus === 'pending') ? `
+                                ${isSelfCheckout ? `
                                 <button onclick="closePreviewModal(); validateSelfCheckout('${inspectionNumber}')" 
                                         class="flex-1 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors font-semibold text-sm md:text-base">
                                     ✓ Validar
