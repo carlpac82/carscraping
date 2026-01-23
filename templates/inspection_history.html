@@ -3601,19 +3601,25 @@
             ctx.drawImage(img, 0, 0, mergeCanvas.width, mergeCanvas.height);
             
             // Draw check-in croqui background if exists
-            if (bgLayer) {
-                const bgImg = new Image();
-                bgImg.crossOrigin = 'anonymous';
-                await new Promise((resolve) => {
-                    bgImg.onload = resolve;
-                    bgImg.onerror = resolve;
+            if (bgLayer && bgLayer.style.backgroundImage && bgLayer.style.backgroundImage.startsWith('url(')) {
+                try {
+                    const bgImg = new Image();
+                    bgImg.crossOrigin = 'anonymous';
                     const bgUrl = bgLayer.style.backgroundImage.slice(5, -2);
-                    bgImg.src = bgUrl;
-                });
-                if (bgImg.complete && bgImg.naturalWidth > 0) {
-                    ctx.globalAlpha = 0.8;
-                    ctx.drawImage(bgImg, 0, 0, mergeCanvas.width, mergeCanvas.height);
-                    ctx.globalAlpha = 1.0;
+                    if (bgUrl && bgUrl.length > 10) {
+                        await new Promise((resolve) => {
+                            bgImg.onload = resolve;
+                            bgImg.onerror = resolve;
+                            bgImg.src = bgUrl;
+                        });
+                        if (bgImg.complete && bgImg.naturalWidth > 0) {
+                            ctx.globalAlpha = 0.8;
+                            ctx.drawImage(bgImg, 0, 0, mergeCanvas.width, mergeCanvas.height);
+                            ctx.globalAlpha = 1.0;
+                        }
+                    }
+                } catch (e) {
+                    console.log('Skipping background merge:', e);
                 }
             }
             
