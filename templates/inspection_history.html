@@ -679,6 +679,11 @@
                                     <div class="flex items-center gap-2">
                                         <span class="font-medium">Recolhido por:</span>
                                         <span>${contract.checkout.inspector_name || 'N/A'} às ${checkoutTime} de ${checkoutDate}</span>
+                                        ${(!contract.checkout.inspector_name || contract.checkout.inspector_name === 'N/A') && hasSelfCheckout && contract.self_checkout.status === 'validated' ? `
+                                        <button onclick="fixCheckoutInspector('${contract.ra_number}')" class="ml-2 px-2 py-1 bg-yellow-100 hover:bg-yellow-200 text-yellow-700 text-xs rounded transition-colors" title="Corrigir nome do inspetor">
+                                            ✏️ Corrigir
+                                        </button>
+                                        ` : ''}
                                     </div>
                                     ` : ''}
                                     ${hasSelfCheckout ? `
@@ -2209,6 +2214,27 @@
             } catch (error) {
                 console.error('Error invalidating self check-in:', error);
                 showNotification('Erro ao invalidar self check-in: ' + error.message, 'error');
+            }
+        }
+
+        // Corrigir inspector_name de checkouts antigos
+        async function fixCheckoutInspector(raNumber) {
+            try {
+                const response = await fetch('/api/self-checkout/fix-inspector-name', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ ra_number: raNumber })
+                });
+                const result = await response.json();
+                if (result.success) {
+                    alert('✅ ' + result.message);
+                    loadContracts(); // Recarregar lista
+                } else {
+                    alert('❌ Erro: ' + result.error);
+                }
+            } catch (error) {
+                console.error('Error fixing inspector:', error);
+                alert('❌ Erro ao corrigir: ' + error.message);
             }
         }
 
