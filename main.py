@@ -46653,45 +46653,31 @@ async def get_inspection_details(inspection_number: str, request: Request):
                 photo_type = photo_row[0]
                 image_data = photo_row[1]
                 if image_data:
-                    # Check if data is already base64 string or binary
-                    if isinstance(image_data, (bytes, memoryview)):
-                        # Convert memoryview to bytes if needed
+                    try:
+                        # Convert to base64 string
                         if isinstance(image_data, memoryview):
-                            image_data = image_data.tobytes()
+                            image_data = bytes(image_data)
                         
-                        # Try to decode as UTF-8 first (base64 string stored as bytes)
-                        try:
-                            decoded_str = image_data.decode('utf-8')
-                            # Check if it looks like base64 (starts with valid base64 chars)
-                            if decoded_str and (decoded_str[0].isalnum() or decoded_str[0] in '/+'):
-                                photo_base64 = decoded_str
-                            else:
-                                # Not base64, encode binary data
-                                photo_base64 = base64.b64encode(image_data).decode('utf-8')
-                        except UnicodeDecodeError:
-                            # Binary data, encode to base64
+                        if isinstance(image_data, bytes):
+                            # Binary data - encode to base64
                             photo_base64 = base64.b64encode(image_data).decode('utf-8')
-                    else:
-                        # Already a string (base64)
-                        photo_base64 = image_data
-                    
-                    # Clean and validate base64 if it already has data URL prefix
-                    if isinstance(photo_base64, str) and photo_base64.startswith('data:image'):
-                        # Extract base64 part after comma
-                        parts = photo_base64.split(',', 1)
-                        if len(parts) == 2:
-                            base64_part = parts[1]
-                            # Validate and re-encode to ensure clean base64
-                            try:
-                                decoded = base64.b64decode(base64_part)
-                                photo_base64 = base64.b64encode(decoded).decode('utf-8')
-                            except Exception as e:
-                                logging.warning(f"⚠️ Invalid base64 in photo {photo_type}, skipping: {e}")
-                                continue
+                        elif isinstance(image_data, str):
+                            # Already a string - check if it has data URL prefix
+                            if image_data.startswith('data:image'):
+                                # Extract base64 part
+                                parts = image_data.split(',', 1)
+                                if len(parts) == 2:
+                                    photo_base64 = parts[1]
+                                else:
+                                    continue
+                            else:
+                                photo_base64 = image_data
                         else:
-                            # Malformed data URL, skip
-                            logging.warning(f"⚠️ Malformed data URL in photo {photo_type}, skipping")
+                            logging.warning(f"⚠️ Unknown data type for photo {photo_type}: {type(image_data)}")
                             continue
+                    except Exception as e:
+                        logging.warning(f"⚠️ Error processing photo {photo_type}: {e}")
+                        continue
                     
                     # Separate damage croqui and damage photos from regular photos
                     if photo_type == 'damage_croqui':
