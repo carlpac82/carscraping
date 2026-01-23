@@ -614,11 +614,19 @@
                         return isNaN(num) ? 0 : num;
                     }
                     
-                    // Verificar se combustível do self-checkout está abaixo do check-in
-                    if (hasSelfCheckout && hasCheckin) {
-                        const selfCheckoutFuel = parseFuelLevel(contract.self_checkout.fuel_level);
+                    // Verificar se combustível está abaixo do check-in
+                    // Usar checkout (recolha) se existir, senão usar self_checkout
+                    if (hasCheckin) {
                         const checkinFuel = parseFuelLevel(contract.checkin.fuel_level);
-                        if (selfCheckoutFuel < checkinFuel) {
+                        let fuelToCompare = null;
+                        
+                        if (hasCheckout) {
+                            fuelToCompare = parseFuelLevel(contract.checkout.fuel_level);
+                        } else if (hasSelfCheckout) {
+                            fuelToCompare = parseFuelLevel(contract.self_checkout.fuel_level);
+                        }
+                        
+                        if (fuelToCompare !== null && fuelToCompare < checkinFuel) {
                             fuelWarningBadge = `<span class="px-2 py-1 rounded-full text-xs font-semibold bg-orange-100 text-orange-700 flex items-center gap-1">
                                 <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/></svg>
                                 COMBUSTÍVEL ABAIXO
@@ -1984,24 +1992,6 @@
                             inspection.odometer_reading = updateData.odometer_reading;
                             if (updateData.damage_croqui) {
                                 inspection.damage_croqui = updateData.damage_croqui;
-                            }
-                            
-                            // Se é checkout, atualizar também o self_checkout para refletir mudanças nos badges
-                            if (isCheckout && contract.self_checkout && contract.checkin) {
-                                const checkinFuel = parseInt(contract.checkin.fuel_level) || 0;
-                                const newFuel = parseInt(updateData.fuel_level) || 0;
-                                
-                                // Atualizar fuel_level do self_checkout
-                                contract.self_checkout.fuel_level = newFuel;
-                                
-                                // Atualizar status baseado na comparação com checkin
-                                if (newFuel >= checkinFuel && contract.self_checkout.status === 'warned') {
-                                    contract.self_checkout.status = 'validated';
-                                    console.log('✅ Self-checkout status changed to validated (fuel corrected)');
-                                } else if (newFuel < checkinFuel && contract.self_checkout.status === 'validated') {
-                                    contract.self_checkout.status = 'warned';
-                                    console.log('⚠️ Self-checkout status changed to warned (fuel below)');
-                                }
                             }
                             
                             console.log('✅ Card updated directly in frontend');
