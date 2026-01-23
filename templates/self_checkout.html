@@ -723,12 +723,18 @@
     <div id="cameraModal" class="camera-modal">
         <div class="flex flex-col items-center justify-center w-full h-full">
             <!-- Camera Header with blue gradient -->
-            <div class="absolute top-0 left-0 right-0 z-50 camera-header text-white p-6 text-center" style="padding-left: 70px; padding-right: 130px;">
-                <p id="cameraLocation" class="text-xl font-bold text-white mb-2">VISTA FRONTAL</p>
-                <p id="cameraInstruction" class="text-base opacity-95 max-w-2xl mx-auto">Centre a frente do veículo</p>
+            <div class="absolute top-0 left-0 right-0 z-50 camera-header text-white p-4" style="display: flex; align-items: center; justify-content: space-between;">
+                <!-- Espaço para o botão X à esquerda -->
+                <div style="width: 60px; flex-shrink: 0;"></div>
                 
-                <!-- Car Miniature (inside header) -->
-                <div id="carMiniature" style="position: absolute; top: 20px; right: 20px; width: 100px; height: 100px; z-index: 9999; display: none;">
+                <!-- Texto central -->
+                <div style="flex: 1; text-align: center; padding: 0 10px;">
+                    <p id="cameraLocation" class="text-lg font-bold text-white mb-1" style="margin: 0; line-height: 1.2;">VISTA FRONTAL</p>
+                    <p id="cameraInstruction" class="text-sm opacity-95" style="margin: 0; line-height: 1.3;">Centre a frente do veículo</p>
+                </div>
+                
+                <!-- Car Miniature à direita -->
+                <div id="carMiniature" style="width: 70px; height: 70px; flex-shrink: 0; display: none;">
                     <img id="carMiniatureImg" src="" alt="Car Position" style="width: 100%; height: 100%; object-fit: contain;">
                 </div>
             </div>
