@@ -1973,8 +1973,14 @@
         }
 
         // Preview self-checkout (ver detalhes do self-checkout do cliente)
-        function previewSelfCheckout(inspectionNumber) {
-            previewInspection(inspectionNumber, 'self_checkout');
+        async function previewSelfCheckout(inspectionNumber) {
+            console.log('🔍 previewSelfCheckout called with:', inspectionNumber);
+            try {
+                await previewInspection(inspectionNumber, 'self_checkout');
+            } catch (error) {
+                console.error('❌ Error in previewSelfCheckout:', error);
+                alert('Erro ao abrir preview: ' + error.message);
+            }
         }
 
         // Validate self-checkout
