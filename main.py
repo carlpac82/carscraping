@@ -32406,7 +32406,7 @@ async def validate_self_checkout(request: Request):
         conn = _db_connect()
         is_postgres = _is_postgresql_connection(conn)
         
-        # Buscar inspeção self_checkout e dados do RA
+        # Buscar inspeção self_checkout e dados do RA (incluindo marca/modelo do veículo)
         if is_postgres:
             cursor = conn.cursor()
             cursor.execute("""
@@ -32414,9 +32414,11 @@ async def validate_self_checkout(request: Request):
                     vi.id, vi.vehicle_plate, vi.contract_number, vi.inspection_type, vi.status,
                     ra.self_checkin_email, ra.extracted_data, ra.id as ra_id,
                     vi.fuel_level, vi.odometer_reading, vi.observations,
-                    vi.inspector_name, vi.created_at
+                    vi.inspector_name, vi.created_at,
+                    v.marca, v.modelo
                 FROM vehicle_inspections vi
                 LEFT JOIN rental_agreements ra ON vi.contract_number = ra.rental_agreement_number
+                LEFT JOIN vehicles v ON ra.vehicle_id = v.id
                 WHERE vi.inspection_number = %s
             """, (inspection_number,))
         else:
@@ -32425,9 +32427,11 @@ async def validate_self_checkout(request: Request):
                     vi.id, vi.vehicle_plate, vi.contract_number, vi.inspection_type, vi.status,
                     ra.self_checkin_email, ra.extracted_data, ra.id as ra_id,
                     vi.fuel_level, vi.odometer_reading, vi.observations,
-                    vi.inspector_name, vi.created_at
+                    vi.inspector_name, vi.created_at,
+                    v.marca, v.modelo
                 FROM vehicle_inspections vi
                 LEFT JOIN rental_agreements ra ON vi.contract_number = ra.rental_agreement_number
+                LEFT JOIN vehicles v ON ra.vehicle_id = v.id
                 WHERE vi.inspection_number = ?
             """, (inspection_number,))
         
@@ -32439,7 +32443,7 @@ async def validate_self_checkout(request: Request):
                 "error": "Inspeção não encontrada"
             }, status_code=404)
         
-        inspection_id, plate, ra_number, inspection_type, status, client_email, extracted_data, ra_id, fuel_level, odometer_reading, observations, inspector_name, selfcheckout_created_at = row
+        inspection_id, plate, ra_number, inspection_type, status, client_email, extracted_data, ra_id, fuel_level, odometer_reading, observations, inspector_name, selfcheckout_created_at, db_vehicle_brand, db_vehicle_model = row
         
         if inspection_type != 'self_checkout':
             return JSONResponse({
@@ -32471,22 +32475,39 @@ async def validate_self_checkout(request: Request):
         import uuid
         checkout_inspection_number = f"CHK-{uuid.uuid4().hex[:8].upper()}"
         
+        # Obter nome do utilizador logado (primeiro e último nome)
+        logged_user_name = "N/A"
+        try:
+            username = request.session.get("username")
+            if username:
+                if is_postgres:
+                    cursor.execute("SELECT first_name, last_name FROM users WHERE username = %s", (username,))
+                else:
+                    cursor.execute("SELECT first_name, last_name FROM users WHERE username = ?", (username,))
+                user_row = cursor.fetchone()
+                if user_row:
+                    first_name = user_row[0] or ""
+                    last_name = user_row[1] or ""
+                    logged_user_name = f"{first_name} {last_name}".strip() or username
+        except Exception as e:
+            logging.warning(f"Could not get logged user name: {e}")
+        
         if is_postgres:
             cursor.execute("""
                 INSERT INTO vehicle_inspections 
                 (inspection_number, vehicle_plate, contract_number, inspection_type, fuel_level, 
-                 odometer_reading, observations, status, created_at)
-                VALUES (%s, %s, %s, 'checkout', %s, %s, %s, 'validated', NOW())
+                 odometer_reading, observations, status, inspector_name, created_at)
+                VALUES (%s, %s, %s, 'checkout', %s, %s, %s, 'validated', %s, NOW())
                 RETURNING id
-            """, (checkout_inspection_number, plate, ra_number, fuel_level, odometer_reading, observations))
+            """, (checkout_inspection_number, plate, ra_number, fuel_level, odometer_reading, observations, logged_user_name))
             checkout_id = cursor.fetchone()[0]
         else:
             cursor.execute("""
                 INSERT INTO vehicle_inspections 
                 (inspection_number, vehicle_plate, contract_number, inspection_type, fuel_level, 
-                 odometer_reading, observations, status, created_at)
-                VALUES (?, ?, ?, 'checkout', ?, ?, ?, 'validated', datetime('now'))
-            """, (checkout_inspection_number, plate, ra_number, fuel_level, odometer_reading, observations))
+                 odometer_reading, observations, status, inspector_name, created_at)
+                VALUES (?, ?, ?, 'checkout', ?, ?, ?, 'validated', ?, datetime('now'))
+            """, (checkout_inspection_number, plate, ra_number, fuel_level, odometer_reading, observations, logged_user_name))
             checkout_id = cursor.lastrowid
         
         logging.info(f"✅ Criada inspeção checkout (recolha): {checkout_inspection_number} (ID: {checkout_id})")
@@ -32593,8 +32614,9 @@ async def validate_self_checkout(request: Request):
                 client_name = "Cliente"
                 client_first_name = ""
                 client_last_name = ""
-                vehicle_brand = ""
-                vehicle_model = ""
+                # Usar marca/modelo da base de dados (já buscados no JOIN)
+                vehicle_brand = db_vehicle_brand or ""
+                vehicle_model = db_vehicle_model or ""
                 return_location = "Auto Prudente"
                 language = 'pt'
                 pickup_km = 0
@@ -32602,16 +32624,48 @@ async def validate_self_checkout(request: Request):
                 if extracted_data:
                     try:
                         data_dict = json.loads(extracted_data)
-                        client_name = data_dict.get('client_name') or data_dict.get('nome_cliente') or "Cliente"
+                        client_name = data_dict.get('client_name') or data_dict.get('clientName') or data_dict.get('nome_cliente') or "Cliente"
                         client_first_name = data_dict.get('client_first_name', client_name.split()[0] if client_name else '')
                         client_last_name = data_dict.get('client_last_name', ' '.join(client_name.split()[1:]) if client_name and len(client_name.split()) > 1 else '')
-                        vehicle_brand = data_dict.get('vehicle_brand') or data_dict.get('marca') or ''
-                        vehicle_model = data_dict.get('vehicle_model') or data_dict.get('modelo') or ''
-                        return_location = data_dict.get('return_location') or data_dict.get('local_devolucao') or 'Auto Prudente'
-                        language = data_dict.get('language', 'pt')
-                        pickup_km = data_dict.get('pickup_km') or data_dict.get('km_inicial') or 0
+                        # Fallback para marca/modelo do extracted_data se não existir na DB
+                        if not vehicle_brand:
+                            vehicle_brand = data_dict.get('vehicle_brand') or data_dict.get('marca') or ''
+                        if not vehicle_model:
+                            vehicle_model = data_dict.get('vehicle_model') or data_dict.get('modelo') or ''
+                        return_location = data_dict.get('return_location') or data_dict.get('returnLocation') or data_dict.get('local_devolucao') or 'Auto Prudente'
+                        # Determinar idioma baseado no país
+                        client_country = data_dict.get('country') or data_dict.get('pais') or 'PT'
+                        if client_country.upper() in ['GB', 'UK', 'US', 'IE', 'CA', 'AU', 'NZ']:
+                            language = 'en'
+                        elif client_country.upper() in ['FR', 'BE', 'CH', 'LU', 'MC']:
+                            language = 'fr'
                     except:
                         pass
+                
+                # BUSCAR pickup_km da inspeção de checkin (entrega) - mesmo método do submit_self_checkout
+                try:
+                    if is_postgres:
+                        cursor.execute("""
+                            SELECT odometer_reading FROM vehicle_inspections
+                            WHERE (contract_number = %s OR contract_number LIKE %s OR vehicle_plate = %s)
+                            AND inspection_type IN ('checkin', 'check-in', 'delivery', 'entrega')
+                            ORDER BY created_at ASC
+                            LIMIT 1
+                        """, (ra_number, f'%{ra_number}%', plate))
+                    else:
+                        cursor.execute("""
+                            SELECT odometer_reading FROM vehicle_inspections
+                            WHERE (contract_number = ? OR contract_number LIKE ? OR vehicle_plate = ?)
+                            AND inspection_type IN ('checkin', 'check-in', 'delivery', 'entrega')
+                            ORDER BY created_at ASC
+                            LIMIT 1
+                        """, (ra_number, f'%{ra_number}%', plate))
+                    checkin_row = cursor.fetchone()
+                    if checkin_row and checkin_row[0]:
+                        pickup_km = int(checkin_row[0])
+                        logging.info(f"📊 Validate email: Found checkin odometer: {pickup_km} km")
+                except Exception as e:
+                    logging.warning(f"Could not fetch checkin odometer for validation email: {e}")
                 
                 # Calcular KMs percorridos
                 kms_driven = 0
@@ -32620,6 +32674,7 @@ async def validate_self_checkout(request: Request):
                         kms_driven = int(odometer_reading) - int(pickup_km)
                         if kms_driven < 0:
                             kms_driven = 0
+                        logging.info(f"📊 Validate email: KMs driven = {odometer_reading} - {pickup_km} = {kms_driven}")
                     except:
                         pass
                 
