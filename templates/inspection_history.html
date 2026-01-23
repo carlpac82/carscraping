@@ -457,11 +457,14 @@
                         client_name: contract.client_name,
                         client_email: contract.client_email
                     });
-                    const hasCheckout = contract.checkout !== null;  // checkout = recolha
+                    const hasCheckout = contract.checkout !== null;  // checkout = recolha (validado)
                     const hasCheckin = contract.checkin !== null;    // checkin = entrega
-                    // Contract is OPEN when has checkin (entrega) but no checkout (recolha)
+                    const hasSelfCheckout = contract.self_checkout !== null;  // self-checkout pendente
+                    // Contract is OPEN when has checkin (entrega) but no checkout (recolha validado)
+                    // Self-checkout NÃO fecha o contrato - apenas checkout validado fecha
                     const isOpen = hasCheckin && !hasCheckout;
                     const isClosed = hasCheckout && hasCheckin;
+                    const isPendingValidation = hasSelfCheckout && !hasCheckout;
                     
                     // Self-checkout status badge
                     let selfCheckoutBadge = '';
@@ -478,9 +481,14 @@
                         }
                     }
                     
-                    const statusBadge = isOpen 
-                        ? '<span class="px-3 py-1 rounded-full text-xs font-semibold bg-green-100 text-green-700">CONTRATO ABERTO</span>'
-                        : '<span class="px-3 py-1 rounded-full text-xs font-semibold bg-red-100 text-red-700">CONTRATO FECHADO</span>';
+                    let statusBadge;
+                    if (isPendingValidation) {
+                        statusBadge = '<span class="px-3 py-1 rounded-full text-xs font-semibold bg-yellow-100 text-yellow-700">⏳ PENDENTE VALIDAÇÃO</span>';
+                    } else if (isOpen) {
+                        statusBadge = '<span class="px-3 py-1 rounded-full text-xs font-semibold bg-green-100 text-green-700">CONTRATO ABERTO</span>';
+                    } else {
+                        statusBadge = '<span class="px-3 py-1 rounded-full text-xs font-semibold bg-red-100 text-red-700">CONTRATO FECHADO</span>';
+                    }
                     
                     const checkoutTime = hasCheckout ? new Date(contract.checkout.created_at).toLocaleTimeString('pt-PT', { hour: '2-digit', minute: '2-digit' }) : '';
                     const checkinTime = hasCheckin ? new Date(contract.checkin.created_at).toLocaleTimeString('pt-PT', { hour: '2-digit', minute: '2-digit' }) : '';
@@ -499,7 +507,7 @@
                                     </div>
                                     <div class="flex items-center gap-2">
                                         ${statusBadge}
-                                        ${hasCheckin && contract.checkin.is_self_checkin ? '<span class="px-2 py-1 rounded-full text-xs font-semibold bg-purple-100 text-purple-700">🚗 SELF-CHECKOUT</span>' : ''}
+                                        ${hasSelfCheckout ? '<span class="px-2 py-1 rounded-full text-xs font-semibold bg-purple-100 text-purple-700">🚗 SELF-CHECKOUT</span>' : ''}
                                         ${selfCheckoutBadge}
                                     </div>
                                 </div>

@@ -31345,25 +31345,26 @@ async def submit_self_checkout(token: str, request: Request):
         signature = data.get('signature')  # Assinatura do cliente (base64)
         terms_accepted = data.get('terms_accepted', False)  # Termos aceitos
         
-        # Guardar inspeção
+        # Guardar inspeção como 'self_checkout' (pendente de validação)
+        # Só será convertida para 'checkout' após validação pelo colaborador
         if is_postgres:
             cursor.execute("""
                 INSERT INTO vehicle_inspections (
                     inspection_number, inspection_type, vehicle_plate, 
                     contract_number, odometer_reading, fuel_level,
-                    created_at
-                ) VALUES (%s, %s, %s, %s, %s, %s, NOW())
+                    created_at, is_self_checkin
+                ) VALUES (%s, %s, %s, %s, %s, %s, NOW(), TRUE)
                 RETURNING id
-            """, (inspection_number, 'checkout', plate, ra_number, odometer, fuel_level))
+            """, (inspection_number, 'self_checkout', plate, ra_number, odometer, fuel_level))
             inspection_id = cursor.fetchone()[0]
         else:
             cursor.execute("""
                 INSERT INTO vehicle_inspections (
                     inspection_number, inspection_type, vehicle_plate, 
                     contract_number, odometer_reading, fuel_level,
-                    created_at
-                ) VALUES (?, ?, ?, ?, ?, ?, datetime('now'))
-            """, (inspection_number, 'checkout', plate, ra_number, odometer, fuel_level))
+                    created_at, is_self_checkin
+                ) VALUES (?, ?, ?, ?, ?, ?, datetime('now'), 1)
+            """, (inspection_number, 'self_checkout', plate, ra_number, odometer, fuel_level))
             inspection_id = cursor.lastrowid
         
         # Guardar fotos da grid (9 fotos)
@@ -31449,11 +31450,13 @@ async def submit_self_checkout(token: str, request: Request):
         
         # Atualizar RA como self checkout PENDENTE de validação (NÃO completado ainda)
         # O contrato só será fechado após validação pelo colaborador
+        # Marcar self_checkin_completed = TRUE para impedir reutilização do token
         if is_postgres:
             cursor.execute("""
                 UPDATE rental_agreements
                 SET self_checkout_pending = TRUE,
                     self_checkout_inspection_id = %s,
+                    self_checkin_completed = TRUE,
                     extracted_data = %s,
                     updated_at = NOW()
                 WHERE id = %s
@@ -31463,6 +31466,7 @@ async def submit_self_checkout(token: str, request: Request):
                 UPDATE rental_agreements
                 SET self_checkout_pending = 1,
                     self_checkout_inspection_id = ?,
+                    self_checkin_completed = 1,
                     extracted_data = ?,
                     updated_at = datetime('now')
                 WHERE id = ?
@@ -45786,6 +45790,10 @@ async def get_inspections_history(request: Request):
                 if row[3] == 'checkout':
                     if not grouped[key]["checkout"]:
                         grouped[key]["checkout"] = inspection_data
+                elif row[3] == 'self_checkout':
+                    # Self-checkout pendente de validação - guardar separadamente
+                    if not grouped[key].get("self_checkout"):
+                        grouped[key]["self_checkout"] = inspection_data
                 elif row[3] == 'checkin':
                     if not grouped[key]["checkin"]:
                         grouped[key]["checkin"] = inspection_data
