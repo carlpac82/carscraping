@@ -31612,19 +31612,20 @@ async def submit_self_checkout(token: str, request: Request):
                     try:
                         if is_postgres:
                             cursor.execute("""
-                                SELECT odometer_reading FROM inspections
-                                WHERE ra_number = %s AND inspection_type = 'checkout'
+                                SELECT odometer_reading FROM vehicle_inspections
+                                WHERE contract_number = %s AND inspection_type = 'checkout'
                                 ORDER BY created_at DESC LIMIT 1
                             """, (ra_number,))
                         else:
                             cursor.execute("""
-                                SELECT odometer_reading FROM inspections
-                                WHERE ra_number = ? AND inspection_type = 'checkout'
+                                SELECT odometer_reading FROM vehicle_inspections
+                                WHERE contract_number = ? AND inspection_type = 'checkout'
                                 ORDER BY created_at DESC LIMIT 1
                             """, (ra_number,))
                         checkout_row = cursor.fetchone()
                         if checkout_row and checkout_row[0]:
                             pickup_km = int(checkout_row[0])
+                            logging.info(f"📊 Found checkout odometer: {pickup_km} km for RA {ra_number}")
                     except Exception as e:
                         logging.warning(f"Could not fetch checkout odometer: {e}")
                 
@@ -31689,6 +31690,10 @@ async def submit_self_checkout(token: str, request: Request):
                 for photo_row in photo_rows:
                     photo_type = photo_row[0]
                     photo_data = photo_row[1]
+                    
+                    # Excluir assinatura e damage_croqui do email
+                    if photo_type in ('signature', 'damage_croqui'):
+                        continue
                     
                     if photo_data:
                         # Usar URL pública em vez de base64
