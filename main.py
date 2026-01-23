@@ -32767,6 +32767,80 @@ async def validate_self_checkout(request: Request):
             conn.close()
 
 
+@app.post("/api/self-checkout/fix-inspector-name")
+async def fix_checkout_inspector_name(request: Request):
+    """
+    Corrigir checkouts sem inspector_name (criados antes do fix)
+    Atualiza o inspector_name com o nome do utilizador logado
+    """
+    require_auth(request)
+    conn = None
+    try:
+        data = await request.json()
+        ra_number = data.get('ra_number')
+        
+        if not ra_number:
+            return JSONResponse({"success": False, "error": "RA number required"}, status_code=400)
+        
+        conn = _db_connect()
+        is_postgres = _is_postgresql_connection(conn)
+        cursor = conn.cursor()
+        
+        # Obter nome do utilizador logado
+        logged_user_name = "N/A"
+        try:
+            username = request.session.get("username")
+            if username:
+                if is_postgres:
+                    cursor.execute("SELECT first_name, last_name FROM users WHERE username = %s", (username,))
+                else:
+                    cursor.execute("SELECT first_name, last_name FROM users WHERE username = ?", (username,))
+                user_row = cursor.fetchone()
+                if user_row:
+                    first_name = user_row[0] or ""
+                    last_name = user_row[1] or ""
+                    logged_user_name = f"{first_name} {last_name}".strip() or username
+        except Exception as e:
+            logging.warning(f"Could not get logged user name: {e}")
+        
+        # Atualizar checkouts sem inspector_name para este RA
+        if is_postgres:
+            cursor.execute("""
+                UPDATE vehicle_inspections
+                SET inspector_name = %s
+                WHERE (contract_number = %s OR contract_number LIKE %s)
+                AND inspection_type = 'checkout'
+                AND (inspector_name IS NULL OR inspector_name = '' OR inspector_name = 'N/A')
+            """, (logged_user_name, ra_number, f'{ra_number}-%'))
+        else:
+            cursor.execute("""
+                UPDATE vehicle_inspections
+                SET inspector_name = ?
+                WHERE (contract_number = ? OR contract_number LIKE ?)
+                AND inspection_type = 'checkout'
+                AND (inspector_name IS NULL OR inspector_name = '' OR inspector_name = 'N/A')
+            """, (logged_user_name, ra_number, f'{ra_number}-%'))
+        
+        rows_updated = cursor.rowcount
+        conn.commit()
+        
+        logging.info(f"✅ Fixed {rows_updated} checkout(s) for RA {ra_number} with inspector: {logged_user_name}")
+        
+        return JSONResponse({
+            "success": True,
+            "message": f"Atualizado {rows_updated} checkout(s) com inspetor: {logged_user_name}"
+        })
+        
+    except Exception as e:
+        if conn:
+            conn.rollback()
+        logging.error(f"Error fixing inspector name: {e}")
+        return JSONResponse({"success": False, "error": str(e)}, status_code=500)
+    finally:
+        if conn:
+            conn.close()
+
+
 @app.post("/api/self-checkout/warn")
 async def warn_self_checkout(request: Request):
     """
