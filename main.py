@@ -46823,7 +46823,9 @@ async def get_inspection_details(inspection_number: str, request: Request):
                         if photo_type != 'damage_croqui':
                             damage_photos[photo_type] = f"data:image/jpeg;base64,{photo_base64}"
                     else:
-                        photos[photo_type] = f"data:image/jpeg;base64,{photo_base64}"
+                        # Normalize 'interior' to 'odometer' for backward compatibility
+                        normalized_type = 'odometer' if photo_type == 'interior' else photo_type
+                        photos[normalized_type] = f"data:image/jpeg;base64,{photo_base64}"
             
             # For self_checkout, if inspector_name is empty or "Cliente", fetch real client name from rental_agreement
             inspector_name = inspection_row[5]
