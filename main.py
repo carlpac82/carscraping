@@ -33303,14 +33303,24 @@ async def warn_self_checkout(request: Request):
 @app.post("/api/self-checkout/invalidate")
 async def invalidate_self_checkout(request: Request):
     """
-    Invalidar self-checkout
-    Marca como invalidado e envia email ao cliente sobre incidências
+    Invalidar self-checkout com danos e/ou advertência de combustível
+    Atualiza inspeção, guarda fotos de danos, fecha contrato e envia email ao cliente
     """
     require_auth(request)
     conn = None
     try:
         data = await request.json()
         inspection_number = data.get('inspection_number')
+        contract_number = data.get('contract_number')
+        fuel_level = data.get('fuel_level')
+        odometer_reading = data.get('odometer_reading')
+        damage_croqui = data.get('damage_croqui')
+        damage_photos = data.get('damage_photos', [])
+        damage_description = data.get('damage_description', '')
+        observations = data.get('observations', '')
+        checkin_fuel = data.get('checkin_fuel', 0)
+        has_damages = data.get('has_damages', False)
+        has_fuel_warning = data.get('has_fuel_warning', False)
         
         if not inspection_number:
             return JSONResponse({
@@ -33327,18 +33337,20 @@ async def invalidate_self_checkout(request: Request):
             cursor.execute("""
                 SELECT 
                     vi.id, vi.vehicle_plate, vi.contract_number, vi.inspection_type, vi.status,
-                    ra.self_checkin_email, ra.extracted_data
+                    ra.self_checkin_email, ra.extracted_data, ra.id as ra_id
                 FROM vehicle_inspections vi
-                LEFT JOIN rental_agreements ra ON vi.contract_number = ra.rental_agreement_number
+                LEFT JOIN rental_agreements ra ON vi.contract_number LIKE '%%' || ra.rental_agreement_number || '%%'
+                   OR ra.rental_agreement_number LIKE '%%' || vi.contract_number || '%%'
                 WHERE vi.inspection_number = %s
             """, (inspection_number,))
         else:
             cursor = conn.execute("""
                 SELECT 
                     vi.id, vi.vehicle_plate, vi.contract_number, vi.inspection_type, vi.status,
-                    ra.self_checkin_email, ra.extracted_data
+                    ra.self_checkin_email, ra.extracted_data, ra.id as ra_id
                 FROM vehicle_inspections vi
-                LEFT JOIN rental_agreements ra ON vi.contract_number = ra.rental_agreement_number
+                LEFT JOIN rental_agreements ra ON vi.contract_number LIKE '%' || ra.rental_agreement_number || '%'
+                   OR ra.rental_agreement_number LIKE '%' || vi.contract_number || '%'
                 WHERE vi.inspection_number = ?
             """, (inspection_number,))
         
@@ -33350,7 +33362,7 @@ async def invalidate_self_checkout(request: Request):
                 "error": "Inspeção não encontrada"
             }, status_code=404)
         
-        inspection_id, plate, ra_number, inspection_type, status, client_email, extracted_data = row
+        inspection_id, plate, ra_number, inspection_type, status, client_email, extracted_data, ra_id = row
         
         if inspection_type != 'self_checkout':
             return JSONResponse({
@@ -33364,23 +33376,86 @@ async def invalidate_self_checkout(request: Request):
                 "error": "Self-checkout já foi invalidado"
             }, status_code=400)
         
-        # Atualizar status da inspeção para invalidado
+        # Atualizar inspeção com novos dados
         if is_postgres:
             cursor.execute("""
                 UPDATE vehicle_inspections
-                SET status = 'invalidated'
+                SET status = 'invalidated',
+                    fuel_level = %s,
+                    odometer_reading = COALESCE(%s, odometer_reading),
+                    damage_notes = %s,
+                    has_damages = %s
                 WHERE id = %s
-            """, (inspection_id,))
+            """, (fuel_level, odometer_reading, damage_description, has_damages, inspection_id))
         else:
             cursor.execute("""
                 UPDATE vehicle_inspections
-                SET status = 'invalidated'
+                SET status = 'invalidated',
+                    fuel_level = ?,
+                    odometer_reading = COALESCE(?, odometer_reading),
+                    damage_notes = ?,
+                    has_damages = ?
                 WHERE id = ?
-            """, (inspection_id,))
+            """, (fuel_level, odometer_reading, damage_description, has_damages, inspection_id))
+        
+        # Guardar croqui atualizado
+        if damage_croqui and len(damage_croqui) > 100:
+            croqui_data = damage_croqui
+            if croqui_data.startswith('data:'):
+                croqui_data = croqui_data.split(',', 1)[1] if ',' in croqui_data else croqui_data
+            
+            # Check if croqui photo exists
+            if is_postgres:
+                cursor.execute("SELECT id FROM inspection_photos WHERE inspection_id = %s AND photo_type = 'damage_croqui'", (inspection_id,))
+            else:
+                cursor.execute("SELECT id FROM inspection_photos WHERE inspection_id = ? AND photo_type = 'damage_croqui'", (inspection_id,))
+            
+            existing = cursor.fetchone()
+            if existing:
+                if is_postgres:
+                    cursor.execute("UPDATE inspection_photos SET image_data = %s WHERE id = %s", (croqui_data, existing[0]))
+                else:
+                    cursor.execute("UPDATE inspection_photos SET image_data = ? WHERE id = ?", (croqui_data, existing[0]))
+            else:
+                if is_postgres:
+                    cursor.execute("""
+                        INSERT INTO inspection_photos (inspection_id, photo_type, image_data, created_at)
+                        VALUES (%s, 'damage_croqui', %s, NOW())
+                    """, (inspection_id, croqui_data))
+                else:
+                    cursor.execute("""
+                        INSERT INTO inspection_photos (inspection_id, photo_type, image_data, created_at)
+                        VALUES (?, 'damage_croqui', ?, CURRENT_TIMESTAMP)
+                    """, (inspection_id, croqui_data))
+        
+        # Guardar fotos de danos
+        for idx, photo_data in enumerate(damage_photos[:9]):  # Max 9 photos
+            photo_base64 = photo_data
+            if photo_base64.startswith('data:'):
+                photo_base64 = photo_base64.split(',', 1)[1] if ',' in photo_base64 else photo_base64
+            
+            if is_postgres:
+                cursor.execute("""
+                    INSERT INTO inspection_photos (inspection_id, photo_type, image_data, created_at)
+                    VALUES (%s, %s, %s, NOW())
+                """, (inspection_id, f'invalidate_damage_{idx+1}', photo_base64))
+            else:
+                cursor.execute("""
+                    INSERT INTO inspection_photos (inspection_id, photo_type, image_data, created_at)
+                    VALUES (?, ?, ?, CURRENT_TIMESTAMP)
+                """, (inspection_id, f'invalidate_damage_{idx+1}', photo_base64))
+        
+        # Fechar o contrato (marcar como closed)
+        if ra_id:
+            if is_postgres:
+                cursor.execute("UPDATE rental_agreements SET status = 'closed' WHERE id = %s", (ra_id,))
+            else:
+                cursor.execute("UPDATE rental_agreements SET status = 'closed' WHERE id = ?", (ra_id,))
         
         conn.commit()
         
         # Enviar email de incidências ao cliente
+        email_sent = False
         if client_email:
             try:
                 import json
@@ -33392,16 +33467,33 @@ async def invalidate_self_checkout(request: Request):
                     except:
                         pass
                 
-                # TODO: Implementar email de incidências de self-checkout
-                logging.info(f"📧 Would send self-checkout incident email to {client_email}")
+                # Send invalidation email
+                email_sent = await _send_invalidation_email(
+                    client_email=client_email,
+                    client_name=client_name,
+                    plate=plate,
+                    contract_number=ra_number or contract_number,
+                    fuel_level=fuel_level,
+                    checkin_fuel=checkin_fuel,
+                    has_damages=has_damages,
+                    has_fuel_warning=has_fuel_warning,
+                    damage_description=damage_description,
+                    observations=observations,
+                    damage_photos=damage_photos,
+                    damage_croqui=damage_croqui
+                )
+                
             except Exception as email_err:
-                logging.error(f"Failed to send incident email: {email_err}")
+                logging.error(f"Failed to send invalidation email: {email_err}")
+                import traceback
+                traceback.print_exc()
         
-        logging.info(f"❌ Self-checkout invalidated: {inspection_number}")
+        logging.info(f"❌ Self-checkout invalidated: {inspection_number}, has_damages={has_damages}, has_fuel_warning={has_fuel_warning}")
         
         return JSONResponse({
             "success": True,
-            "message": "Self-checkout invalidado. Cliente será notificado."
+            "message": "Self-checkout invalidado. Email enviado ao cliente.",
+            "email_sent": email_sent
         })
         
     except Exception as e:
@@ -33417,6 +33509,259 @@ async def invalidate_self_checkout(request: Request):
     finally:
         if conn:
             conn.close()
+
+
+async def _send_invalidation_email(
+    client_email: str,
+    client_name: str,
+    plate: str,
+    contract_number: str,
+    fuel_level: int,
+    checkin_fuel: int,
+    has_damages: bool,
+    has_fuel_warning: bool,
+    damage_description: str,
+    observations: str,
+    damage_photos: list,
+    damage_croqui: str
+) -> bool:
+    """
+    Enviar email de invalidação do self-checkout com danos e/ou advertência de combustível
+    """
+    try:
+        import smtplib
+        from email.mime.multipart import MIMEMultipart
+        from email.mime.text import MIMEText
+        from email.mime.image import MIMEImage
+        import base64
+        
+        smtp_host = os.environ.get('SMTP_HOST', 'smtp.hostinger.com')
+        smtp_port = int(os.environ.get('SMTP_PORT', 465))
+        smtp_user = os.environ.get('SMTP_USER', 'inspeccao@rrrentacar.com')
+        smtp_password = os.environ.get('SMTP_PASSWORD', '')
+        
+        if not smtp_password:
+            logging.warning("SMTP_PASSWORD not set, cannot send email")
+            return False
+        
+        # Build email subject
+        subject_parts = []
+        if has_damages:
+            subject_parts.append("Danos Detectados")
+        if has_fuel_warning:
+            subject_parts.append("Advertência de Combustível")
+        
+        subject = f"⚠️ Self-Checkout Invalidado - {' e '.join(subject_parts)} - {plate}"
+        
+        # Build HTML content
+        html_content = f'''
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <style>
+        body {{ font-family: Arial, sans-serif; line-height: 1.6; color: #333; margin: 0; padding: 0; background-color: #f5f5f5; }}
+        .container {{ max-width: 650px; margin: 0 auto; background-color: #ffffff; }}
+        .header {{ background: linear-gradient(135deg, #dc2626 0%, #b91c1c 100%); padding: 30px; text-align: center; }}
+        .header h1 {{ color: white; margin: 0; font-size: 24px; }}
+        .header p {{ color: rgba(255,255,255,0.9); margin: 10px 0 0 0; font-size: 14px; }}
+        .content {{ padding: 30px; }}
+        .alert-box {{ background-color: #fef2f2; border: 1px solid #fecaca; border-radius: 8px; padding: 20px; margin-bottom: 25px; }}
+        .alert-box h3 {{ color: #dc2626; margin: 0 0 10px 0; font-size: 18px; }}
+        .alert-box p {{ margin: 0; color: #7f1d1d; }}
+        .info-grid {{ display: table; width: 100%; margin-bottom: 25px; }}
+        .info-row {{ display: table-row; }}
+        .info-label {{ display: table-cell; padding: 10px; background-color: #f9fafb; font-weight: bold; width: 40%; border-bottom: 1px solid #e5e7eb; }}
+        .info-value {{ display: table-cell; padding: 10px; border-bottom: 1px solid #e5e7eb; }}
+        .fuel-section {{ background-color: #fff7ed; border: 1px solid #fed7aa; border-radius: 8px; padding: 20px; margin-bottom: 25px; }}
+        .fuel-section h3 {{ color: #c2410c; margin: 0 0 15px 0; }}
+        .fuel-bar {{ height: 30px; background-color: #e5e7eb; border-radius: 5px; overflow: hidden; margin: 10px 0; }}
+        .fuel-fill {{ height: 100%; background-color: #f97316; }}
+        .damage-section {{ background-color: #fef2f2; border: 1px solid #fecaca; border-radius: 8px; padding: 20px; margin-bottom: 25px; }}
+        .damage-section h3 {{ color: #dc2626; margin: 0 0 15px 0; }}
+        .photos-grid {{ display: table; width: 100%; border-collapse: separate; border-spacing: 5px; }}
+        .photos-row {{ display: table-row; }}
+        .photos-cell {{ display: table-cell; width: 33.33%; vertical-align: top; }}
+        .photos-cell img {{ width: 100%; height: auto; border-radius: 5px; border: 1px solid #e5e7eb; }}
+        .croqui-section {{ text-align: center; margin: 20px 0; }}
+        .croqui-section img {{ max-width: 100%; height: auto; border-radius: 8px; border: 2px solid #dc2626; }}
+        .observations {{ background-color: #f9fafb; border-radius: 8px; padding: 20px; margin-top: 20px; }}
+        .observations h4 {{ margin: 0 0 10px 0; color: #374151; }}
+        .observations p {{ margin: 0; color: #6b7280; white-space: pre-wrap; }}
+        .footer {{ background-color: #1f2937; padding: 25px; text-align: center; }}
+        .footer p {{ color: #9ca3af; margin: 0; font-size: 12px; }}
+        .footer a {{ color: #60a5fa; text-decoration: none; }}
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>⚠️ Self-Checkout Invalidado</h1>
+            <p>Foram detectadas incidências na devolução do veículo</p>
+        </div>
+        
+        <div class="content">
+            <div class="alert-box">
+                <h3>Atenção, {client_name}</h3>
+                <p>O seu self-checkout foi invalidado devido a incidências detectadas durante a verificação do veículo. Por favor, reveja os detalhes abaixo.</p>
+            </div>
+            
+            <div class="info-grid">
+                <div class="info-row">
+                    <div class="info-label">Contrato</div>
+                    <div class="info-value">{contract_number}</div>
+                </div>
+                <div class="info-row">
+                    <div class="info-label">Matrícula</div>
+                    <div class="info-value">{plate}</div>
+                </div>
+            </div>
+'''
+        
+        # Fuel warning section
+        if has_fuel_warning:
+            fuel_diff = checkin_fuel - fuel_level
+            html_content += f'''
+            <div class="fuel-section">
+                <h3>⛽ Advertência de Combustível</h3>
+                <p>O veículo foi devolvido com menos combustível do que no momento da entrega.</p>
+                <table style="width: 100%; margin-top: 15px;">
+                    <tr>
+                        <td style="width: 50%;">
+                            <strong>Combustível na Entrega:</strong><br>
+                            <span style="font-size: 24px; color: #059669;">{checkin_fuel}%</span>
+                        </td>
+                        <td style="width: 50%;">
+                            <strong>Combustível na Devolução:</strong><br>
+                            <span style="font-size: 24px; color: #dc2626;">{fuel_level}%</span>
+                        </td>
+                    </tr>
+                </table>
+                <p style="margin-top: 15px; padding: 10px; background-color: #fef3c7; border-radius: 5px; color: #92400e;">
+                    <strong>Diferença: -{fuel_diff}%</strong> - Será cobrado o valor correspondente ao combustível em falta.
+                </p>
+            </div>
+'''
+        
+        # Damage section
+        if has_damages:
+            html_content += f'''
+            <div class="damage-section">
+                <h3>🚗 Danos Detectados</h3>
+'''
+            if damage_description:
+                html_content += f'''
+                <p><strong>Descrição dos Danos:</strong></p>
+                <p style="background-color: #fff; padding: 15px; border-radius: 5px; border: 1px solid #fecaca;">{damage_description}</p>
+'''
+            
+            # Croqui
+            if damage_croqui and len(damage_croqui) > 100:
+                html_content += '''
+                <div class="croqui-section">
+                    <p><strong>Croqui de Danos:</strong></p>
+                    <img src="cid:damage_croqui" alt="Croqui de Danos">
+                </div>
+'''
+            
+            # Photos grid 3x3
+            if damage_photos:
+                html_content += '''
+                <p style="margin-top: 20px;"><strong>Fotos dos Danos:</strong></p>
+                <table class="photos-grid" style="width: 100%;">
+'''
+                for i in range(0, len(damage_photos), 3):
+                    html_content += '<tr class="photos-row">'
+                    for j in range(3):
+                        idx = i + j
+                        if idx < len(damage_photos):
+                            html_content += f'<td class="photos-cell" style="width: 33.33%; padding: 5px;"><img src="cid:damage_photo_{idx}" alt="Dano {idx+1}" style="width: 100%; border-radius: 5px;"></td>'
+                        else:
+                            html_content += '<td class="photos-cell" style="width: 33.33%;"></td>'
+                    html_content += '</tr>'
+                html_content += '</table>'
+            
+            html_content += '</div>'
+        
+        # Observations
+        if observations:
+            html_content += f'''
+            <div class="observations">
+                <h4>📝 Observações</h4>
+                <p>{observations}</p>
+            </div>
+'''
+        
+        html_content += '''
+            <p style="margin-top: 30px; padding: 20px; background-color: #f3f4f6; border-radius: 8px; text-align: center;">
+                Se tiver alguma questão sobre estas incidências, por favor contacte-nos através do email ou telefone indicados abaixo.
+            </p>
+        </div>
+        
+        <div class="footer">
+            <p><strong>RR Rent a Car</strong></p>
+            <p>📧 geral@rrrentacar.com | 📞 +351 XXX XXX XXX</p>
+            <p style="margin-top: 10px;">Este email foi gerado automaticamente pelo sistema de inspeção de veículos.</p>
+        </div>
+    </div>
+</body>
+</html>
+'''
+        
+        # Create email message
+        msg = MIMEMultipart('related')
+        msg['Subject'] = subject
+        msg['From'] = smtp_user
+        msg['To'] = client_email
+        
+        # Attach HTML
+        msg_alternative = MIMEMultipart('alternative')
+        msg.attach(msg_alternative)
+        msg_alternative.attach(MIMEText(html_content, 'html', 'utf-8'))
+        
+        # Attach croqui image
+        if damage_croqui and len(damage_croqui) > 100:
+            try:
+                croqui_b64 = damage_croqui
+                if croqui_b64.startswith('data:'):
+                    croqui_b64 = croqui_b64.split(',', 1)[1] if ',' in croqui_b64 else croqui_b64
+                
+                croqui_bytes = base64.b64decode(croqui_b64)
+                img = MIMEImage(croqui_bytes, _subtype='png')
+                img.add_header('Content-ID', '<damage_croqui>')
+                img.add_header('Content-Disposition', 'inline', filename='croqui_danos.png')
+                msg.attach(img)
+            except Exception as img_err:
+                logging.error(f"Error attaching croqui: {img_err}")
+        
+        # Attach damage photos
+        for idx, photo_data in enumerate(damage_photos[:9]):
+            try:
+                photo_b64 = photo_data
+                if photo_b64.startswith('data:'):
+                    photo_b64 = photo_b64.split(',', 1)[1] if ',' in photo_b64 else photo_b64
+                
+                photo_bytes = base64.b64decode(photo_b64)
+                img = MIMEImage(photo_bytes, _subtype='jpeg')
+                img.add_header('Content-ID', f'<damage_photo_{idx}>')
+                img.add_header('Content-Disposition', 'inline', filename=f'dano_{idx+1}.jpg')
+                msg.attach(img)
+            except Exception as img_err:
+                logging.error(f"Error attaching photo {idx}: {img_err}")
+        
+        # Send email
+        with smtplib.SMTP_SSL(smtp_host, smtp_port) as server:
+            server.login(smtp_user, smtp_password)
+            server.sendmail(smtp_user, client_email, msg.as_string())
+        
+        logging.info(f"📧 Invalidation email sent to {client_email}")
+        return True
+        
+    except Exception as e:
+        logging.error(f"Error sending invalidation email: {e}")
+        import traceback
+        traceback.print_exc()
+        return False
 
 
 @app.post("/api/self-checkin/resend-link")
@@ -46895,7 +47240,8 @@ async def get_inspections_history(request: Request):
                            vi.inspection_type, vi.inspector_name, vi.created_at, 
                            vi.fuel_level, vi.odometer_reading, vi.damage_count, vi.status, vi.id,
                            vi.is_self_checkin,
-                           ra.extracted_data, ra.self_checkin_email
+                           ra.extracted_data, ra.self_checkin_email,
+                           vi.has_damages
                     FROM vehicle_inspections vi
                     LEFT JOIN rental_agreements ra ON (
                         ra.rental_agreement_number = vi.contract_number 
@@ -46911,7 +47257,8 @@ async def get_inspections_history(request: Request):
                            vi.inspection_type, vi.inspector_name, vi.created_at, 
                            vi.fuel_level, vi.odometer_reading, vi.damage_count, vi.status, vi.id,
                            vi.is_self_checkin,
-                           ra.extracted_data, ra.self_checkin_email
+                           ra.extracted_data, ra.self_checkin_email,
+                           vi.has_damages
                     FROM vehicle_inspections vi
                     LEFT JOIN rental_agreements ra ON (
                         ra.rental_agreement_number = vi.contract_number 

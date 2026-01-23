@@ -636,6 +636,8 @@
                     
                     if (hasSelfCheckout) {
                         const status = contract.self_checkout.status || 'pending';
+                        const hasDamages = contract.self_checkout.has_damages;
+                        
                         if (status === 'pending') {
                             // Não mostrar badge - já está coberto por "PENDENTE VALIDAÇÃO"
                             selfCheckoutBadge = '';
@@ -652,11 +654,19 @@
                                 SELF-CHECKOUT DIVERGÊNCIAS
                             </span>`;
                         } else if (status === 'invalidated') {
-                            // Vermelho com triângulo
+                            // Vermelho com triângulo - INCIDÊNCIA
                             selfCheckoutBadge = `<span class="px-2 py-1 rounded-full text-xs font-semibold bg-red-100 text-red-700 flex items-center gap-1">
                                 <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/></svg>
-                                SELF-CHECKOUT INCIDÊNCIA
+                                SELF-CHECKOUT INVALIDADO
                             </span>`;
+                            
+                            // Badge de danos detectados (se há danos)
+                            if (hasDamages) {
+                                selfCheckoutBadge += `<span class="px-2 py-1 rounded-full text-xs font-semibold bg-red-600 text-white flex items-center gap-1">
+                                    <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 015.636 5.636m12.728 12.728L5.636 5.636"/></svg>
+                                    DANOS DETECTADOS
+                                </span>`;
+                            }
                         }
                     }
                     
@@ -2959,34 +2969,583 @@
             }
         }
 
-        // Invalidate self-checkout
+        // Invalidate self-checkout - Opens modal with croqui, damages, fuel, kms
+        let invalidatePhotos = [];
+        let invalidateCroquiCanvas = null;
+        let invalidateCroquiCtx = null;
+        let invalidateDamages = [];
+        let invalidateCurrentStroke = [];
+        let invalidateIsDrawing = false;
+        let invalidateCurrentTool = 'pin';
+        let invalidateCurrentSize = 'small';
+        let invalidateModal = null;
+        
         async function invalidateSelfCheckout(inspectionNumber) {
-            if (!confirm('Tem a certeza que deseja invalidar este self-checkout? Será enviado um email ao cliente informando sobre incidências.')) {
+            try {
+                // Buscar dados do self-checkout e do check-in
+                const contract = contracts.find(c => 
+                    c.self_checkout && c.self_checkout.inspection_number === inspectionNumber
+                );
+                
+                if (!contract) {
+                    showNotification('Contrato não encontrado', 'error');
+                    return;
+                }
+                
+                const selfCheckout = contract.self_checkout;
+                const checkin = contract.checkin;
+                
+                if (!checkin) {
+                    showNotification('Check-in não encontrado para este contrato', 'error');
+                    return;
+                }
+                
+                // Reset state
+                invalidatePhotos = [];
+                invalidateDamages = [];
+                invalidateCurrentStroke = [];
+                invalidateIsDrawing = false;
+                invalidateCurrentTool = 'pin';
+                invalidateCurrentSize = 'small';
+                
+                const checkinFuel = parseInt(checkin.fuel_level) || 0;
+                const selfCheckoutFuel = parseInt(selfCheckout.fuel_level) || 0;
+                const selfCheckoutKms = selfCheckout.odometer_reading || '';
+                
+                // Criar modal
+                invalidateModal = document.createElement('div');
+                invalidateModal.className = 'fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50';
+                invalidateModal.innerHTML = `
+                    <div class="bg-white rounded-lg p-6 max-w-4xl w-full mx-4 max-h-[95vh] overflow-y-auto">
+                        <div class="flex items-center justify-between mb-4">
+                            <h3 class="text-xl font-bold text-red-600">
+                                <svg class="w-6 h-6 inline mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/>
+                                </svg>
+                                Invalidar Self-Checkout - ${selfCheckout.vehicle_plate}
+                            </h3>
+                            <button onclick="closeInvalidateModal()" class="text-gray-500 hover:text-gray-700">
+                                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+                                </svg>
+                            </button>
+                        </div>
+                        
+                        <div class="bg-red-50 border border-red-200 rounded-lg p-3 mb-4">
+                            <p class="text-sm text-red-700">
+                                <strong>Atenção:</strong> Ao invalidar, será enviado um email ao cliente com os danos detectados e/ou advertência de combustível. O contrato será fechado.
+                            </p>
+                        </div>
+                        
+                        <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                            <!-- Coluna Esquerda: Croqui e Fotos -->
+                            <div class="space-y-4">
+                                <!-- Croqui de Danos -->
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-700 mb-2">Croqui de Danos (baseado no Check-in)</label>
+                                    
+                                    <!-- Ferramentas -->
+                                    <div class="flex justify-center gap-3 mb-3">
+                                        <button type="button" id="invToolPin" class="w-10 h-10 rounded-full bg-red-600 text-white hover:bg-red-700 flex items-center justify-center" onclick="selectInvalidateTool('pin')" title="Pins">
+                                            <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
+                                                <path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z"/>
+                                            </svg>
+                                        </button>
+                                        <button type="button" id="invToolDraw" class="w-10 h-10 rounded-full bg-gray-400 text-white hover:bg-gray-500 flex items-center justify-center" onclick="selectInvalidateTool('draw')" title="Desenhar">
+                                            <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
+                                                <path d="M3 17.25V21h3.75L17.81 9.94l-3.75-3.75L3 17.25zM20.71 7.04c.39-.39.39-1.02 0-1.41l-2.34-2.34c-.39-.39-1.02-.39-1.41 0l-1.83 1.83 3.75 3.75 1.83-1.83z"/>
+                                            </svg>
+                                        </button>
+                                        <button type="button" class="w-10 h-10 rounded-full bg-gray-400 text-white hover:bg-gray-500 flex items-center justify-center" onclick="clearInvalidateDamages()" title="Limpar Novos Danos">
+                                            <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
+                                                <path d="M6 19c0 1.1.9 2 2 2h8c1.1 0 2-.9 2-2V7H6v12zM19 4h-3.5l-1-1h-5l-1 1H5v2h14V4z"/>
+                                            </svg>
+                                        </button>
+                                    </div>
+                                    
+                                    <!-- Tamanhos -->
+                                    <div class="flex justify-center gap-2 mb-3">
+                                        <button type="button" class="w-7 h-7 rounded-full bg-gray-200 hover:bg-gray-300 flex items-center justify-center" onclick="selectInvalidateSize('tiny')" id="invSizeTiny">
+                                            <div class="w-1 h-1 bg-gray-600 rounded-full"></div>
+                                        </button>
+                                        <button type="button" class="w-7 h-7 rounded-full bg-red-600 flex items-center justify-center" onclick="selectInvalidateSize('small')" id="invSizeSmall">
+                                            <div class="w-2 h-2 bg-white rounded-full"></div>
+                                        </button>
+                                        <button type="button" class="w-7 h-7 rounded-full bg-gray-200 hover:bg-gray-300 flex items-center justify-center" onclick="selectInvalidateSize('medium')" id="invSizeMedium">
+                                            <div class="w-3 h-3 bg-gray-600 rounded-full"></div>
+                                        </button>
+                                        <button type="button" class="w-7 h-7 rounded-full bg-gray-200 hover:bg-gray-300 flex items-center justify-center" onclick="selectInvalidateSize('large')" id="invSizeLarge">
+                                            <div class="w-4 h-4 bg-gray-600 rounded-full"></div>
+                                        </button>
+                                    </div>
+                                    
+                                    <!-- Container do Croqui -->
+                                    <div id="invalidateCroquiContainer" class="relative border-2 border-red-300 rounded-lg overflow-hidden">
+                                        <img src="/static/images/Croqui.png" alt="Croqui" id="invalidateCroquiImg" style="width: 100%; height: auto; display: block; pointer-events: none;">
+                                        <canvas id="invalidateCroquiCanvas" style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; cursor: crosshair;"></canvas>
+                                    </div>
+                                    <p class="text-xs text-gray-500 mt-1 text-center">
+                                        Danos adicionados: <span id="invalidateDamageCount" class="font-semibold text-red-600">0</span>
+                                    </p>
+                                </div>
+                                
+                                <!-- Fotos de Danos -->
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-700 mb-2">Fotos dos Danos</label>
+                                    <div id="invalidatePhotosGrid" class="grid grid-cols-3 gap-2 mb-2">
+                                        <!-- Photos will be added here -->
+                                    </div>
+                                    <button type="button" onclick="addInvalidatePhoto()" class="w-full px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 flex items-center justify-center gap-2">
+                                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z"/>
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 13a3 3 0 11-6 0 3 3 0 016 0z"/>
+                                        </svg>
+                                        Adicionar Foto de Dano
+                                    </button>
+                                    <p class="text-xs text-gray-500 mt-1">Máximo 9 fotos (grelha 3x3 no email)</p>
+                                </div>
+                            </div>
+                            
+                            <!-- Coluna Direita: Dados e Observações -->
+                            <div class="space-y-4">
+                                <!-- Quilometragem -->
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-700 mb-2">Quilometragem (KM)</label>
+                                    <input type="number" id="invalidateKms" value="${selfCheckoutKms}" 
+                                           class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-red-500"
+                                           placeholder="Ex: 45000">
+                                    <p class="text-xs text-gray-500 mt-1">KMs no check-in: ${checkin.odometer_reading || 'N/A'}</p>
+                                </div>
+                                
+                                <!-- Nível de Combustível -->
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-700 mb-2">Nível de Combustível</label>
+                                    <div class="relative h-5 mb-1">
+                                        <span class="text-xs font-semibold text-red-600 absolute" style="left: 0%; transform: translateX(-50%);">R</span>
+                                        <span class="text-xs font-semibold text-red-600 absolute" style="left: 25%; transform: translateX(-50%);">1/4</span>
+                                        <span class="text-xs font-semibold text-red-600 absolute" style="left: 50%; transform: translateX(-50%);">1/2</span>
+                                        <span class="text-xs font-semibold text-red-600 absolute" style="left: 75%; transform: translateX(-50%);">3/4</span>
+                                        <span class="text-xs font-semibold text-red-600 absolute" style="right: 0%; transform: translateX(50%);">F</span>
+                                    </div>
+                                    <div class="relative bg-white border-2 border-red-400 rounded-lg h-8 mb-2">
+                                        <div class="absolute inset-0 flex items-center">
+                                            <div class="w-0.5 h-4 bg-red-400" style="position: absolute; left: 0%;"></div>
+                                            <div class="w-0.5 h-4 bg-red-400" style="position: absolute; left: 25%;"></div>
+                                            <div class="w-0.5 h-4 bg-red-400" style="position: absolute; left: 50%;"></div>
+                                            <div class="w-0.5 h-4 bg-red-400" style="position: absolute; left: 75%;"></div>
+                                            <div class="w-0.5 h-4 bg-red-400" style="position: absolute; right: 0%;"></div>
+                                        </div>
+                                        <div id="invalidateFuelFill" class="h-full bg-red-500 rounded-lg transition-all" style="width: ${selfCheckoutFuel}%;"></div>
+                                    </div>
+                                    <input type="range" id="invalidateFuel" class="w-full" min="0" max="100" value="${selfCheckoutFuel}" step="5" 
+                                           oninput="updateInvalidateFuelDisplay(this.value)" style="accent-color: #dc2626;">
+                                    <div class="text-center mt-1">
+                                        <span class="text-sm text-gray-600">Nível: </span>
+                                        <span id="invalidateFuelDisplay" class="text-sm font-bold text-red-600">${selfCheckoutFuel}%</span>
+                                    </div>
+                                    <p class="text-xs text-gray-500 mt-1">Combustível no check-in: <strong>${checkinFuel}%</strong></p>
+                                    <div id="invalidateFuelWarning" class="${selfCheckoutFuel < checkinFuel ? '' : 'hidden'} mt-2 p-2 bg-orange-100 border border-orange-300 rounded text-xs text-orange-700">
+                                        ⚠️ Combustível abaixo do check-in - será enviada advertência
+                                    </div>
+                                </div>
+                                
+                                <!-- Descrição dos Danos -->
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-700 mb-2">Descrição dos Danos</label>
+                                    <textarea id="invalidateDamageDescription" rows="3" 
+                                              class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500"
+                                              placeholder="Descreva os danos detectados..."></textarea>
+                                </div>
+                                
+                                <!-- Observações -->
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-700 mb-2">Observações Adicionais</label>
+                                    <textarea id="invalidateObservations" rows="3" 
+                                              class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500"
+                                              placeholder="Observações adicionais para o email..."></textarea>
+                                </div>
+                                
+                                <!-- Resumo -->
+                                <div class="bg-gray-50 rounded-lg p-3 text-sm">
+                                    <p class="font-semibold text-gray-700 mb-1">Resumo da Invalidação:</p>
+                                    <ul class="text-gray-600 space-y-1">
+                                        <li>• Contrato: <strong>${contract.contract_number}</strong></li>
+                                        <li>• Cliente: <strong>${selfCheckout.client_name || contract.client_name || 'N/A'}</strong></li>
+                                        <li>• Matrícula: <strong>${selfCheckout.vehicle_plate}</strong></li>
+                                    </ul>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- Botões -->
+                        <div class="flex gap-3 mt-6 pt-4 border-t">
+                            <button type="button" onclick="closeInvalidateModal()" 
+                                    class="flex-1 px-4 py-3 border border-gray-300 rounded-lg hover:bg-gray-50 font-medium">
+                                Cancelar
+                            </button>
+                            <button type="button" onclick="submitInvalidation('${inspectionNumber}', '${contract.contract_number}', ${checkinFuel})" 
+                                    class="flex-1 px-4 py-3 bg-red-600 text-white rounded-lg hover:bg-red-700 font-semibold flex items-center justify-center gap-2">
+                                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/>
+                                </svg>
+                                Invalidar e Enviar Email
+                            </button>
+                        </div>
+                    </div>
+                `;
+                
+                document.body.appendChild(invalidateModal);
+                
+                // Initialize croqui canvas com o croqui do check-in
+                setTimeout(() => {
+                    initializeInvalidateCroqui(checkin.damage_croqui);
+                }, 100);
+                
+            } catch (error) {
+                console.error('Error opening invalidate modal:', error);
+                showNotification('Erro ao abrir modal de invalidação: ' + error.message, 'error');
+            }
+        }
+        
+        function closeInvalidateModal() {
+            if (invalidateModal) {
+                document.body.removeChild(invalidateModal);
+                invalidateModal = null;
+            }
+        }
+        
+        function initializeInvalidateCroqui(checkinCroquiBase64) {
+            const container = document.getElementById('invalidateCroquiContainer');
+            const img = document.getElementById('invalidateCroquiImg');
+            invalidateCroquiCanvas = document.getElementById('invalidateCroquiCanvas');
+            
+            if (!invalidateCroquiCanvas) return;
+            
+            invalidateCroquiCtx = invalidateCroquiCanvas.getContext('2d');
+            
+            const setupCanvas = () => {
+                invalidateCroquiCanvas.width = img.naturalWidth;
+                invalidateCroquiCanvas.height = img.naturalHeight;
+                redrawInvalidateCroqui();
+            };
+            
+            if (img.complete) {
+                setupCanvas();
+            } else {
+                img.onload = setupCanvas;
+            }
+            
+            // Load existing check-in croqui as background
+            if (checkinCroquiBase64 && checkinCroquiBase64.length > 100) {
+                let imageUrl = checkinCroquiBase64;
+                if (!imageUrl.startsWith('data:')) {
+                    imageUrl = `data:image/png;base64,${imageUrl}`;
+                }
+                
+                let bgLayer = document.getElementById('invalidateCroquiBg');
+                if (!bgLayer) {
+                    bgLayer = document.createElement('div');
+                    bgLayer.id = 'invalidateCroquiBg';
+                    bgLayer.style.cssText = `
+                        position: absolute;
+                        top: 0;
+                        left: 0;
+                        width: 100%;
+                        height: 100%;
+                        background-image: url('${imageUrl}');
+                        background-size: contain;
+                        background-repeat: no-repeat;
+                        background-position: center;
+                        pointer-events: none;
+                        z-index: 1;
+                        opacity: 0.8;
+                    `;
+                    container.insertBefore(bgLayer, img.nextSibling);
+                }
+            }
+            
+            // Canvas events
+            invalidateCroquiCanvas.onmousedown = handleInvalidateCanvasMouseDown;
+            invalidateCroquiCanvas.onmousemove = handleInvalidateCanvasMouseMove;
+            invalidateCroquiCanvas.onmouseup = handleInvalidateCanvasMouseUp;
+            invalidateCroquiCanvas.onmouseleave = handleInvalidateCanvasMouseUp;
+            
+            // Touch events
+            invalidateCroquiCanvas.ontouchstart = (e) => { e.preventDefault(); handleInvalidateCanvasMouseDown(e.touches[0]); };
+            invalidateCroquiCanvas.ontouchmove = (e) => { e.preventDefault(); handleInvalidateCanvasMouseMove(e.touches[0]); };
+            invalidateCroquiCanvas.ontouchend = handleInvalidateCanvasMouseUp;
+        }
+        
+        function handleInvalidateCanvasMouseDown(e) {
+            const rect = invalidateCroquiCanvas.getBoundingClientRect();
+            const scaleX = invalidateCroquiCanvas.width / rect.width;
+            const scaleY = invalidateCroquiCanvas.height / rect.height;
+            const x = (e.clientX - rect.left) * scaleX;
+            const y = (e.clientY - rect.top) * scaleY;
+            
+            if (invalidateCurrentTool === 'pin') {
+                const sizeMap = { tiny: 8, small: 12, medium: 16, large: 20 };
+                invalidateDamages.push({ type: 'pin', x, y, radius: sizeMap[invalidateCurrentSize] || 12 });
+                redrawInvalidateCroqui();
+                updateInvalidateDamageCount();
+            } else if (invalidateCurrentTool === 'draw') {
+                invalidateIsDrawing = true;
+                invalidateCurrentStroke = [{x, y}];
+            }
+        }
+        
+        function handleInvalidateCanvasMouseMove(e) {
+            if (!invalidateIsDrawing || invalidateCurrentTool !== 'draw') return;
+            
+            const rect = invalidateCroquiCanvas.getBoundingClientRect();
+            const scaleX = invalidateCroquiCanvas.width / rect.width;
+            const scaleY = invalidateCroquiCanvas.height / rect.height;
+            const x = (e.clientX - rect.left) * scaleX;
+            const y = (e.clientY - rect.top) * scaleY;
+            
+            invalidateCurrentStroke.push({x, y});
+            redrawInvalidateCroqui();
+        }
+        
+        function handleInvalidateCanvasMouseUp() {
+            if (invalidateIsDrawing && invalidateCurrentStroke.length > 0) {
+                const sizeMap = { tiny: 2, small: 4, medium: 6, large: 8 };
+                invalidateDamages.push({
+                    type: 'drawing',
+                    points: [...invalidateCurrentStroke],
+                    lineWidth: sizeMap[invalidateCurrentSize] || 4
+                });
+                invalidateCurrentStroke = [];
+                redrawInvalidateCroqui();
+                updateInvalidateDamageCount();
+            }
+            invalidateIsDrawing = false;
+        }
+        
+        function redrawInvalidateCroqui() {
+            if (!invalidateCroquiCtx) return;
+            
+            invalidateCroquiCtx.clearRect(0, 0, invalidateCroquiCanvas.width, invalidateCroquiCanvas.height);
+            
+            const damageColor = '#dc2626'; // Red for invalidation damages
+            
+            invalidateDamages.forEach(damage => {
+                if (damage.type === 'pin') {
+                    invalidateCroquiCtx.beginPath();
+                    invalidateCroquiCtx.arc(damage.x, damage.y, damage.radius, 0, 2 * Math.PI);
+                    invalidateCroquiCtx.fillStyle = damageColor;
+                    invalidateCroquiCtx.fill();
+                    invalidateCroquiCtx.strokeStyle = '#fff';
+                    invalidateCroquiCtx.lineWidth = 2;
+                    invalidateCroquiCtx.stroke();
+                } else if (damage.type === 'drawing' && damage.points.length > 1) {
+                    invalidateCroquiCtx.beginPath();
+                    invalidateCroquiCtx.moveTo(damage.points[0].x, damage.points[0].y);
+                    for (let i = 1; i < damage.points.length; i++) {
+                        invalidateCroquiCtx.lineTo(damage.points[i].x, damage.points[i].y);
+                    }
+                    invalidateCroquiCtx.strokeStyle = damageColor;
+                    invalidateCroquiCtx.lineWidth = damage.lineWidth;
+                    invalidateCroquiCtx.lineCap = 'round';
+                    invalidateCroquiCtx.lineJoin = 'round';
+                    invalidateCroquiCtx.stroke();
+                }
+            });
+            
+            // Draw current stroke
+            if (invalidateCurrentStroke.length > 1) {
+                invalidateCroquiCtx.beginPath();
+                invalidateCroquiCtx.moveTo(invalidateCurrentStroke[0].x, invalidateCurrentStroke[0].y);
+                for (let i = 1; i < invalidateCurrentStroke.length; i++) {
+                    invalidateCroquiCtx.lineTo(invalidateCurrentStroke[i].x, invalidateCurrentStroke[i].y);
+                }
+                invalidateCroquiCtx.strokeStyle = damageColor;
+                const sizeMap = { tiny: 2, small: 4, medium: 6, large: 8 };
+                invalidateCroquiCtx.lineWidth = sizeMap[invalidateCurrentSize] || 4;
+                invalidateCroquiCtx.lineCap = 'round';
+                invalidateCroquiCtx.lineJoin = 'round';
+                invalidateCroquiCtx.stroke();
+            }
+        }
+        
+        function selectInvalidateTool(tool) {
+            invalidateCurrentTool = tool;
+            document.getElementById('invToolPin').className = `w-10 h-10 rounded-full ${tool === 'pin' ? 'bg-red-600' : 'bg-gray-400'} text-white hover:bg-${tool === 'pin' ? 'red-700' : 'gray-500'} flex items-center justify-center`;
+            document.getElementById('invToolDraw').className = `w-10 h-10 rounded-full ${tool === 'draw' ? 'bg-red-600' : 'bg-gray-400'} text-white hover:bg-${tool === 'draw' ? 'red-700' : 'gray-500'} flex items-center justify-center`;
+        }
+        
+        function selectInvalidateSize(size) {
+            invalidateCurrentSize = size;
+            ['tiny', 'small', 'medium', 'large'].forEach(s => {
+                const btn = document.getElementById(`invSize${s.charAt(0).toUpperCase() + s.slice(1)}`);
+                if (btn) {
+                    btn.className = `w-7 h-7 rounded-full ${s === size ? 'bg-red-600' : 'bg-gray-200 hover:bg-gray-300'} flex items-center justify-center`;
+                    const dot = btn.querySelector('div');
+                    if (dot) dot.className = dot.className.replace(/bg-\w+-\d+/g, s === size ? 'bg-white' : 'bg-gray-600');
+                }
+            });
+        }
+        
+        function clearInvalidateDamages() {
+            invalidateDamages = [];
+            redrawInvalidateCroqui();
+            updateInvalidateDamageCount();
+        }
+        
+        function updateInvalidateDamageCount() {
+            const countEl = document.getElementById('invalidateDamageCount');
+            if (countEl) countEl.textContent = invalidateDamages.length;
+        }
+        
+        function updateInvalidateFuelDisplay(value) {
+            const fill = document.getElementById('invalidateFuelFill');
+            const display = document.getElementById('invalidateFuelDisplay');
+            const warning = document.getElementById('invalidateFuelWarning');
+            
+            if (fill) fill.style.width = value + '%';
+            if (display) display.textContent = value + '%';
+            
+            // Check against check-in fuel (stored in data attribute or global)
+            const checkinFuel = parseInt(document.querySelector('#invalidateFuel')?.dataset?.checkinFuel || 0);
+            if (warning) {
+                if (parseInt(value) < checkinFuel) {
+                    warning.classList.remove('hidden');
+                } else {
+                    warning.classList.add('hidden');
+                }
+            }
+        }
+        
+        function addInvalidatePhoto() {
+            if (invalidatePhotos.length >= 9) {
+                showNotification('Máximo de 9 fotos atingido', 'warning');
                 return;
             }
             
+            const input = document.createElement('input');
+            input.type = 'file';
+            input.accept = 'image/*';
+            input.capture = 'environment';
+            
+            input.onchange = (e) => {
+                const file = e.target.files[0];
+                if (file) {
+                    const reader = new FileReader();
+                    reader.onload = (ev) => {
+                        invalidatePhotos.push(ev.target.result);
+                        renderInvalidatePhotos();
+                    };
+                    reader.readAsDataURL(file);
+                }
+            };
+            
+            input.click();
+        }
+        
+        function removeInvalidatePhoto(index) {
+            invalidatePhotos.splice(index, 1);
+            renderInvalidatePhotos();
+        }
+        
+        function renderInvalidatePhotos() {
+            const grid = document.getElementById('invalidatePhotosGrid');
+            if (!grid) return;
+            
+            grid.innerHTML = invalidatePhotos.map((photo, idx) => `
+                <div class="relative">
+                    <img src="${photo}" class="w-full h-20 object-cover rounded border">
+                    <button type="button" onclick="removeInvalidatePhoto(${idx})" 
+                            class="absolute -top-1 -right-1 w-5 h-5 bg-red-600 text-white rounded-full text-xs flex items-center justify-center hover:bg-red-700">×</button>
+                </div>
+            `).join('');
+        }
+        
+        async function captureInvalidateFinalCroqui() {
+            // Merge background + new damages into single image
+            const container = document.getElementById('invalidateCroquiContainer');
+            const img = document.getElementById('invalidateCroquiImg');
+            const bgLayer = document.getElementById('invalidateCroquiBg');
+            
+            const mergeCanvas = document.createElement('canvas');
+            mergeCanvas.width = invalidateCroquiCanvas.width;
+            mergeCanvas.height = invalidateCroquiCanvas.height;
+            const ctx = mergeCanvas.getContext('2d');
+            
+            // Draw base croqui image
+            ctx.drawImage(img, 0, 0, mergeCanvas.width, mergeCanvas.height);
+            
+            // Draw check-in croqui background if exists
+            if (bgLayer) {
+                const bgImg = new Image();
+                bgImg.crossOrigin = 'anonymous';
+                await new Promise((resolve) => {
+                    bgImg.onload = resolve;
+                    bgImg.onerror = resolve;
+                    const bgUrl = bgLayer.style.backgroundImage.slice(5, -2);
+                    bgImg.src = bgUrl;
+                });
+                if (bgImg.complete && bgImg.naturalWidth > 0) {
+                    ctx.globalAlpha = 0.8;
+                    ctx.drawImage(bgImg, 0, 0, mergeCanvas.width, mergeCanvas.height);
+                    ctx.globalAlpha = 1.0;
+                }
+            }
+            
+            // Draw new damages
+            ctx.drawImage(invalidateCroquiCanvas, 0, 0);
+            
+            return mergeCanvas.toDataURL('image/png');
+        }
+        
+        async function submitInvalidation(inspectionNumber, contractNumber, checkinFuel) {
             try {
+                const fuel = parseInt(document.getElementById('invalidateFuel').value) || 0;
+                const kms = document.getElementById('invalidateKms').value;
+                const damageDescription = document.getElementById('invalidateDamageDescription').value.trim();
+                const observations = document.getElementById('invalidateObservations').value.trim();
+                
+                // Validate - must have either damages or fuel warning
+                const hasDamages = invalidateDamages.length > 0 || invalidatePhotos.length > 0 || damageDescription;
+                const hasFuelWarning = fuel < checkinFuel;
+                
+                if (!hasDamages && !hasFuelWarning) {
+                    showNotification('Adicione danos ou ajuste o combustível para invalidar', 'error');
+                    return;
+                }
+                
+                // Capture final croqui
+                const finalCroqui = await captureInvalidateFinalCroqui();
+                
                 const response = await fetch('/api/self-checkout/invalidate', {
                     method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json'
-                    },
+                    headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({
-                        inspection_number: inspectionNumber
+                        inspection_number: inspectionNumber,
+                        contract_number: contractNumber,
+                        fuel_level: fuel,
+                        odometer_reading: kms ? parseInt(kms) : null,
+                        damage_croqui: finalCroqui,
+                        damage_photos: invalidatePhotos,
+                        damage_description: damageDescription,
+                        observations: observations,
+                        checkin_fuel: checkinFuel,
+                        has_damages: hasDamages,
+                        has_fuel_warning: hasFuelWarning
                     })
                 });
                 
                 const result = await response.json();
                 
                 if (result.success) {
-                    showNotification('Self-checkout invalidado. Email de incidências enviado ao cliente.', 'warning');
+                    closeInvalidateModal();
+                    showNotification('Self-checkout invalidado. Email enviado ao cliente.', 'warning');
                     await loadHistory(true);
                 } else {
-                    showNotification('Erro ao invalidar self-checkout: ' + (result.error || 'Erro desconhecido'), 'error');
+                    showNotification('Erro: ' + (result.error || 'Erro desconhecido'), 'error');
                 }
             } catch (error) {
-                console.error('Error invalidating self-checkout:', error);
-                showNotification('Erro ao invalidar self-checkout: ' + error.message, 'error');
+                console.error('Error submitting invalidation:', error);
+                showNotification('Erro ao invalidar: ' + error.message, 'error');
             }
         }
 
