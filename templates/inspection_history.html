@@ -1205,9 +1205,9 @@
                                 if (vehicleModel === 'N/A') vehicleModel = parts[1].trim();
                             }
                         }
-                        // Get expected return date
-                        expectedReturnDate = ed.returnDate || ed.return_date || ed.dropOffDate || null;
-                        console.log('📅 Expected return date:', expectedReturnDate);
+                        // Get expected return date (try multiple field names)
+                        expectedReturnDate = ed.data_entrega || ed.returnDate || ed.return_date || ed.dropOffDate || ed.dataEntrega || null;
+                        console.log('📅 Expected return date:', expectedReturnDate, 'from extracted_data:', ed);
                     }
                 } catch (e) {
                     console.error('Error fetching RA data:', e);
@@ -1499,8 +1499,8 @@
                             </div>
                             `}
                             
-                            ${type !== 'checkout' ? `
-                            <!-- Fuel Gauge Visual (Same design as inspection form) - só para checkin e self_checkout -->
+                            ${isSelfCheckout ? `
+                            <!-- Fuel Gauge Visual - só para self_checkout (checkin já tem no resumo) -->
                             <div class="mb-6">
                                 <h4 class="text-lg font-bold text-gray-900 mb-4">Nível de Combustível</h4>
                                 <div class="fuel-selector">
