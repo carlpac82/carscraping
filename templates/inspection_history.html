@@ -2438,6 +2438,11 @@
                             if (updateData.damage_croqui) {
                                 inspection.damage_croqui = updateData.damage_croqui;
                             }
+                            // Update expected return date if it was changed
+                            if (updateData.expected_return_date) {
+                                contract.expected_return_date = updateData.expected_return_date;
+                                contract.expected_return_time = updateData.expected_return_date.split(' ')[1] || '';
+                            }
                             
                             console.log('✅ Card updated directly in frontend');
                             
