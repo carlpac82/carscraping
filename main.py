@@ -25503,7 +25503,21 @@ def _generate_checkin_status_alert(lang, has_fuel_incident, has_damage_incident,
         </div>
         """)
     else:
-        # Has incidents - show fuel first (if exists), then damage
+        # Has incidents - show damage first (if exists), then fuel
+        if has_damage_incident:
+            alert_data = lang_texts['damage']
+            alerts.append(f"""
+            <div style="background: {alert_data['color']}15; border-left: 4px solid {alert_data['color']}; padding: 20px; margin: 20px; border-radius: 8px;">
+                <h3 style="color: {alert_data['color']}; margin: 0 0 10px 0; font-size: 16px; font-weight: 600;">
+                    {alert_data['icon']}
+                    {alert_data['title']}
+                </h3>
+                <p style="color: #dc2626; margin: 0; font-size: 13px; line-height: 1.5;">
+                    {alert_data['message']}
+                </p>
+            </div>
+            """)
+        
         if has_fuel_incident:
             alert_data = lang_texts['fuel']
             
@@ -25575,7 +25589,7 @@ def _generate_checkin_status_alert(lang, has_fuel_incident, has_damage_incident,
                             <td style="width: 0%; text-align: right; font-size: 10px; color: #6b7280;">F</td>
                         </tr>
                     </table>
-                    <p style="color: #00bcd4; margin: 10px 0 0 0; font-size: 24px; font-weight: bold;">{entrega_text}</p>
+                    <p style="color: #00bcd4; margin: 10px 0 0 0; font-size: 18px; font-weight: bold;">{entrega_text}</p>
                 </td>
                 <!-- Spacer -->
                 <td style="width: 4%;"></td>
@@ -25596,7 +25610,7 @@ def _generate_checkin_status_alert(lang, has_fuel_incident, has_damage_incident,
                             <td style="width: 0%; text-align: right; font-size: 10px; color: #6b7280;">F</td>
                         </tr>
                     </table>
-                    <p style="color: #f59e0b; margin: 10px 0 0 0; font-size: 24px; font-weight: bold;">{recolha_text}</p>
+                    <p style="color: #f59e0b; margin: 10px 0 0 0; font-size: 18px; font-weight: bold;">{recolha_text}</p>
                 </td>
             </tr>
         </table>
@@ -25619,20 +25633,6 @@ def _generate_checkin_status_alert(lang, has_fuel_incident, has_damage_incident,
                     {alert_data['message']}
                 </p>
                 {fuel_bars_html}
-            </div>
-            """)
-        
-        if has_damage_incident:
-            alert_data = lang_texts['damage']
-            alerts.append(f"""
-            <div style="background: {alert_data['color']}15; border-left: 4px solid {alert_data['color']}; padding: 20px; margin: 20px; border-radius: 8px;">
-                <h3 style="color: {alert_data['color']}; margin: 0 0 10px 0; font-size: 16px; font-weight: 600;">
-                    {alert_data['icon']}
-                    {alert_data['title']}
-                </h3>
-                <p style="color: #dc2626; margin: 0; font-size: 13px; line-height: 1.5;">
-                    {alert_data['message']}
-                </p>
             </div>
             """)
     
@@ -30744,16 +30744,24 @@ async def save_inspection(request: Request):
                             try:
                                 extracted_data = json.loads(ra_row[0])
                                 country = extracted_data.get('country', '').upper()
-                                client_name = extracted_data.get('clientName', 'Customer')
                                 
-                                # Extract first name
-                                if client_name and client_name != 'Customer' and isinstance(client_name, str):
-                                    name_parts = client_name.strip().split()
-                                    first_name = name_parts[0].title() if name_parts else 'Customer'
+                                # Extract client name and first name
+                                raw_client_name = extracted_data.get('clientName', '')
+                                if raw_client_name and isinstance(raw_client_name, str) and raw_client_name.strip():
+                                    client_name = raw_client_name.strip()
+                                    # Extract first name from full name
+                                    name_parts = client_name.split()
+                                    first_name = name_parts[0].title() if name_parts else client_name.title()
+                                else:
+                                    client_name = 'Customer'
+                                    first_name = 'Customer'
                                 
-                                # Get location from RA if not in inspection
-                                if delivery_location == 'N/A' or not delivery_location:
-                                    delivery_location = extracted_data.get('pickupLocation', 'N/A')
+                                # Get location from RA - prioritize extracted_data
+                                ra_location = extracted_data.get('pickupLocation', '')
+                                if ra_location and ra_location.strip():
+                                    delivery_location = ra_location
+                                elif not delivery_location or delivery_location == 'N/A':
+                                    delivery_location = 'N/A'
                                 
                                 # Detect language
                                 if country in ('PORTUGAL', 'PT'):
