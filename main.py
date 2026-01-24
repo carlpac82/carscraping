@@ -49472,17 +49472,23 @@ async def update_inspection(inspection_number: str, request: Request):
                     import json
                     extracted_data = json.loads(ra_row[0]) if ra_row[0] else {}
                     
-                    # Convert YYYY-MM-DD to DD/MM/YYYY
+                    # Convert YYYY-MM-DD to DD - MM - YYYY (with spaces, matching RA format)
                     new_return_date = data['expected_return_date']
-                    if '-' in new_return_date:
-                        year, month, day = new_return_date.split('-')
-                        formatted_date = f"{day}/{month}/{year}"
+                    if '-' in new_return_date and len(new_return_date.split('-')) == 3:
+                        parts = new_return_date.split('-')
+                        if len(parts[0]) == 4:  # YYYY-MM-DD format
+                            year, month, day = parts
+                            formatted_date = f"{day} - {month} - {year}"
+                        else:  # Already in DD-MM-YYYY format
+                            formatted_date = new_return_date.replace('-', ' - ')
                     else:
                         formatted_date = new_return_date
                     
                     # Update extracted_data
                     extracted_data['returnDate'] = formatted_date
                     extracted_data['return_date'] = formatted_date
+                    
+                    logging.info(f"📅 Converted date from {new_return_date} to {formatted_date}")
                     
                     # Update RA
                     if _USE_NEW_DB:
