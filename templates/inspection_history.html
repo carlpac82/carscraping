@@ -1067,11 +1067,20 @@
         async function deleteContractInspection(contractNumber, checkoutNumber, checkinNumber, selfCheckoutNumber) {
             // Se tem checkout (recolha), elimina primeiro o checkout
             if (checkoutNumber) {
-                if (!confirm(`Eliminar a RECOLHA do contrato ${contractNumber}?\n\nO contrato voltará a ficar aberto.`)) return;
+                // Verificar se tem self-checkout validado (contrato encerrado com self-checkout)
+                if (selfCheckoutNumber) {
+                    if (!confirm(`Eliminar a RECOLHA do contrato ${contractNumber}?\n\nO contrato voltará a ficar aberto e o Self Check-Out do cliente será mantido.`)) return;
+                } else {
+                    if (!confirm(`Eliminar a RECOLHA do contrato ${contractNumber}?\n\nO contrato voltará a ficar aberto.`)) return;
+                }
                 
                 const success = await deleteInspection(checkoutNumber);
                 if (success) {
-                    showNotification('Recolha eliminada. Contrato reaberto.', 'success');
+                    if (selfCheckoutNumber) {
+                        showNotification('Recolha eliminada. Contrato reaberto. Self Check-Out do cliente mantido.', 'success');
+                    } else {
+                        showNotification('Recolha eliminada. Contrato reaberto.', 'success');
+                    }
                     refreshHistory();
                 }
             }
