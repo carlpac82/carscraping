@@ -1049,8 +1049,8 @@ def generate_fuel_bars_image(entrega_pct, recolha_pct, entrega_label, recolha_la
             # Título
             draw.text((x + bar_width//2, y - 30), title, fill=text_dark, font=title_font, anchor="mm")
             
-            # Raio das bordas arredondadas
-            radius = 6
+            # Raio das bordas arredondadas (maior para ficar mais visível)
+            radius = 12
             
             # Desenhar fundo da barra com bordas arredondadas
             draw.rounded_rectangle([x, y, x + bar_width, y + bar_height], radius=radius, fill=bg_color, outline=border_color, width=2)
@@ -1074,7 +1074,7 @@ def generate_fuel_bars_image(entrega_pct, recolha_pct, entrega_label, recolha_la
                     # Criar uma máscara temporária para o preenchimento arredondado
                     mask = Image.new('L', (fill_width + 4, bar_height), 0)
                     mask_draw = ImageDraw.Draw(mask)
-                    mask_draw.rounded_rectangle([0, 0, fill_width + 4, bar_height], radius=radius-1, fill=255)
+                    mask_draw.rounded_rectangle([0, 0, fill_width + 4, bar_height], radius=radius-2, fill=255)
             
             # Marcadores E, 1/4, 1/2, 3/4, F
             markers_y = y + bar_height + 8
