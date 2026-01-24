@@ -33706,24 +33706,48 @@ def _send_invalidation_email(
             </td>
         </tr>
     </table>
+
+    <!-- Info Grid: Contrato e Matrícula -->
+    <div style="padding: 20px;">
+        <table width="100%" cellpadding="0" cellspacing="0" style="border: 1px solid #e5e7eb; border-radius: 8px; overflow: hidden;">
+            <tr>
+                <td style="padding: 12px 15px; background-color: #f9fafb; font-weight: bold; width: 40%; border-bottom: 1px solid #e5e7eb; color: #374151;">Contrato</td>
+                <td style="padding: 12px 15px; border-bottom: 1px solid #e5e7eb; color: #111827;">{contract_number}</td>
+            </tr>
+            <tr>
+                <td style="padding: 12px 15px; background-color: #f9fafb; font-weight: bold; width: 40%; color: #374151;">Matrícula</td>
+                <td style="padding: 12px 15px; color: #111827;">{plate}</td>
+            </tr>
+        </table>
+    </div>
 '''
         
-        # Fuel warning alert (Orange)
+        # Fuel warning section with side-by-side values
         if has_fuel_warning:
+            fuel_diff = checkin_fuel - fuel_level
             html_content += f'''
-    <!-- Fuel Alert (Orange) -->
-    <div style="background: #fff7ed; border-left: 4px solid #f59e0b; padding: 20px; margin: 20px; border-radius: 8px;">
-        <h3 style="color: #f59e0b; margin: 0 0 10px 0; font-size: 16px; font-weight: 600;">
-            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="vertical-align: middle; margin-right: 8px;">
-                <circle cx="12" cy="12" r="10"></circle>
-                <line x1="12" y1="8" x2="12" y2="12"></line>
-                <line x1="12" y1="16" x2="12.01" y2="16"></line>
-            </svg>
-            Advertência de Combustível
-        </h3>
-        <p style="color: #b45309; margin: 0; font-size: 13px; line-height: 1.5;">
-            O veículo foi devolvido com menos combustível do que no momento da entrega.
-        </p>
+    <!-- Fuel Warning Section (Orange) -->
+    <div style="background: #fff7ed; border: 1px solid #fed7aa; padding: 20px; margin: 0 20px 20px 20px; border-radius: 8px;">
+        <h3 style="color: #c2410c; margin: 0 0 15px 0; font-size: 16px; font-weight: 600;">⛽ Advertência de Combustível</h3>
+        <p style="color: #9a3412; margin: 0 0 15px 0; font-size: 13px;">O veículo foi devolvido com menos combustível do que no momento da entrega.</p>
+        
+        <table width="100%" cellpadding="0" cellspacing="0" style="margin-bottom: 15px;">
+            <tr>
+                <td style="width: 50%; text-align: center; padding: 10px;">
+                    <p style="color: #666666; margin: 0 0 5px 0; font-size: 12px;"><strong>Combustível na Entrega:</strong></p>
+                    <span style="font-size: 28px; color: #059669; font-weight: bold;">{checkin_fuel}%</span>
+                </td>
+                <td style="width: 50%; text-align: center; padding: 10px;">
+                    <p style="color: #666666; margin: 0 0 5px 0; font-size: 12px;"><strong>Combustível na Devolução:</strong></p>
+                    <span style="font-size: 28px; color: #dc2626; font-weight: bold;">{fuel_level}%</span>
+                </td>
+            </tr>
+        </table>
+        
+        <div style="padding: 10px 15px; background-color: #fef3c7; border-radius: 5px; text-align: center;">
+            <strong style="color: #92400e;">Diferença: -{fuel_diff}%</strong>
+            <span style="color: #92400e; font-size: 12px;"> - Será cobrado o valor correspondente ao combustível em falta.</span>
+        </div>
     </div>
 '''
         
