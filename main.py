@@ -31005,15 +31005,9 @@ async def save_inspection(request: Request):
                             PROMO_IMAGE_1=promo_base64.get('promo1', ''),
                             PROMO_IMAGE_2=promo_base64.get('promo2', ''),
                             PROMO_IMAGE_3=promo_base64.get('promo3', ''),
-                            PROMO_IMAGE_4=promo_base64.get('promo4', ''),
-                            PROMO_IMAGE_5=promo_base64.get('promo5', ''),
-                            PROMO_IMAGE_6=promo_base64.get('promo6', ''),
-                            PROMO_IMAGE_7=promo_base64.get('promo7', ''),
-                            PROMO_IMAGE_8=promo_base64.get('promo8', ''),
-                            PROMO_IMAGE_9=promo_base64.get('promo9', ''),
-                            PROMO_IMAGE_10=promo_base64.get('promo10', ''),
-                            PROMO_IMAGE_11=promo_base64.get('promo11', ''),
-                            PROMO_IMAGE_12=promo_base64.get('promo12', ''),
+                            BENAGIL_IMAGE=promo_base64.get('benagil', ''),
+                            LAGOS_IMAGE=promo_base64.get('lagos', ''),
+                            SAGRES_IMAGE=promo_base64.get('sagres', ''),
                             TC_DOWNLOAD_URL=tc_download_url
                         )
                         
