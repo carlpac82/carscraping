@@ -30755,6 +30755,10 @@ async def save_inspection(request: Request):
                         elif fuel_percentage < 12.5:
                             fuel_text = "Reserva"
                         
+                        # Calculate fill width in pixels (200px total bar width) for Outlook compatibility
+                        fill_width_px = int(200 * fuel_percentage / 100)
+                        empty_width_px = 200 - fill_width_px
+                        
                         fuel_gauge_html = f"""
                         <table width="100%" cellpadding="0" cellspacing="0" style="margin: 20px 0;">
                             <tr>
@@ -30765,10 +30769,10 @@ async def save_inspection(request: Request):
                                                 <span style="color: #009cb6; font-size: 14px; font-weight: 600;">R</span>
                                             </td>
                                             <td style="vertical-align: middle;">
-                                                <table cellpadding="0" cellspacing="0" style="width: 200px; border: 1px solid #ccc; border-radius: 10px; background: #e5e7eb;">
+                                                <table cellpadding="0" cellspacing="0" width="200" style="border: 1px solid #ccc; border-radius: 10px; background: #e5e7eb;">
                                                     <tr>
-                                                        <td style="background: #00bcd4; height: 20px; width: {fuel_percentage}%; border-radius: 10px;"></td>
-                                                        <td style="height: 20px;"></td>
+                                                        <td width="{fill_width_px}" style="background: #00bcd4; height: 20px; border-radius: 10px;"></td>
+                                                        <td width="{empty_width_px}" style="height: 20px;"></td>
                                                     </tr>
                                                 </table>
                                             </td>
@@ -36926,7 +36930,9 @@ async def send_inspection_email(request: Request, inspection_number: str):
             fuel_text = "Reserva"
         
         fuel_color = '#00bcd4'
-        fill_percentage = fuel_percentage
+        # Calculate fill width in pixels (200px total bar width) for Outlook compatibility
+        fill_width_px = int(200 * fuel_percentage / 100)
+        empty_width_px = 200 - fill_width_px
         
         # Generate horizontal fuel gauge using HTML/CSS (no base64 images)
         fuel_gauge_html = f"""
@@ -36939,10 +36945,10 @@ async def send_inspection_email(request: Request, inspection_number: str):
                                 <span style="color: #009cb6; font-size: 14px; font-weight: 600;">R</span>
                             </td>
                             <td style="vertical-align: middle;">
-                                <table cellpadding="0" cellspacing="0" style="width: 200px; border: 1px solid #ccc; border-radius: 10px; background: #e5e7eb;">
+                                <table cellpadding="0" cellspacing="0" width="200" style="border: 1px solid #ccc; border-radius: 10px; background: #e5e7eb;">
                                     <tr>
-                                        <td style="background: {fuel_color}; height: 20px; width: {fill_percentage}%; border-radius: 10px;"></td>
-                                        <td style="height: 20px;"></td>
+                                        <td width="{fill_width_px}" style="background: {fuel_color}; height: 20px; border-radius: 10px;"></td>
+                                        <td width="{empty_width_px}" style="height: 20px;"></td>
                                     </tr>
                                 </table>
                             </td>
