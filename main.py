@@ -30744,32 +30744,40 @@ async def save_inspection(request: Request):
                             try:
                                 extracted_data = json.loads(ra_row[0])
                                 logging.info(f"🔍 DEBUG extracted_data keys: {list(extracted_data.keys())}")
+                                logging.info(f"🔍 DEBUG FULL extracted_data: {json.dumps(extracted_data, indent=2, ensure_ascii=False)}")
                                 
                                 country = extracted_data.get('country', '').upper()
+                                logging.info(f"🔍 DEBUG country: '{country}'")
                                 
                                 # Extract client name (camelCase format)
                                 raw_client_name = extracted_data.get('clientName', '')
                                 
-                                logging.info(f"🔍 DEBUG raw_client_name: '{raw_client_name}'")
+                                logging.info(f"🔍 DEBUG raw_client_name: '{raw_client_name}' (type: {type(raw_client_name)})")
                                 
                                 if raw_client_name and isinstance(raw_client_name, str) and raw_client_name.strip():
                                     client_name = raw_client_name.strip()
                                     # Extract first name from full name
                                     name_parts = [p for p in client_name.split() if p]
                                     first_name = name_parts[0].title() if name_parts else client_name.title()
+                                    logging.info(f"✅ Client name extracted: '{client_name}', first: '{first_name}'")
                                 else:
                                     client_name = 'Customer'
                                     first_name = 'Customer'
+                                    logging.warning(f"⚠️ No client name found, using default 'Customer'")
                                 
                                 # Get location (camelCase format) - for checkout use returnLocation
                                 ra_location = extracted_data.get('returnLocation', '') if inspection_type == 'checkout' else extracted_data.get('pickupLocation', '')
                                 
                                 logging.info(f"🔍 DEBUG ra_location: '{ra_location}' (inspection_type: {inspection_type})")
+                                logging.info(f"🔍 DEBUG pickupLocation: '{extracted_data.get('pickupLocation', 'NOT FOUND')}'")
+                                logging.info(f"🔍 DEBUG returnLocation: '{extracted_data.get('returnLocation', 'NOT FOUND')}'")
                                 
                                 if ra_location and ra_location.strip():
                                     delivery_location = ra_location.strip()
+                                    logging.info(f"✅ Location extracted: '{delivery_location}'")
                                 elif not delivery_location or delivery_location == 'N/A':
                                     delivery_location = 'N/A'
+                                    logging.warning(f"⚠️ No location found, using 'N/A'")
                                 
                                 # Detect language
                                 if country in ('PORTUGAL', 'PT'):
