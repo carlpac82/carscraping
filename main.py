@@ -47548,7 +47548,7 @@ async def get_inspections_history(request: Request):
         }, status_code=500)
 
 @app.get("/api/debug/ra-data")
-async def debug_ra_data(request: Request, ra: str = "06727"):
+async def debug_ra_data(request: Request, ra: str = "06727", plate: str = None):
     """DEBUG ENDPOINT - Ver dados do RA na base de dados"""
     try:
         conn = _db_connect()
@@ -47569,20 +47569,35 @@ async def debug_ra_data(request: Request, ra: str = "06727"):
         
         ra_rows = cursor.fetchall()
         
-        # 2. Ver inspeções deste RA
-        cursor.execute("""
-            SELECT id, inspection_number, vehicle_plate, contract_number, 
-                   inspection_type, created_at
-            FROM vehicle_inspections 
-            WHERE contract_number = %s OR contract_number LIKE %s
-            ORDER BY created_at DESC
-        """ if _USE_NEW_DB else """
-            SELECT id, inspection_number, vehicle_plate, contract_number, 
-                   inspection_type, created_at
-            FROM vehicle_inspections 
-            WHERE contract_number = ? OR contract_number LIKE ?
-            ORDER BY created_at DESC
-        """, (ra, f"{ra}%"))
+        # 2. Ver inspeções deste RA ou plate
+        if plate:
+            cursor.execute("""
+                SELECT id, inspection_number, vehicle_plate, contract_number, 
+                       inspection_type, created_at
+                FROM vehicle_inspections 
+                WHERE vehicle_plate = %s
+                ORDER BY created_at DESC
+            """ if _USE_NEW_DB else """
+                SELECT id, inspection_number, vehicle_plate, contract_number, 
+                       inspection_type, created_at
+                FROM vehicle_inspections 
+                WHERE vehicle_plate = ?
+                ORDER BY created_at DESC
+            """, (plate,))
+        else:
+            cursor.execute("""
+                SELECT id, inspection_number, vehicle_plate, contract_number, 
+                       inspection_type, created_at
+                FROM vehicle_inspections 
+                WHERE contract_number = %s OR contract_number LIKE %s
+                ORDER BY created_at DESC
+            """ if _USE_NEW_DB else """
+                SELECT id, inspection_number, vehicle_plate, contract_number, 
+                       inspection_type, created_at
+                FROM vehicle_inspections 
+                WHERE contract_number = ? OR contract_number LIKE ?
+                ORDER BY created_at DESC
+            """, (ra, f"{ra}%"))
         
         inspection_rows = cursor.fetchall()
         
