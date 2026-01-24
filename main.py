@@ -30124,19 +30124,110 @@ async def save_inspection(request: Request):
                 
                 # Save damage croqui if present
                 logging.info(f"🔍 DEBUG SAVE CROQUI - Received: {bool(damage_croqui)}, Length: {len(damage_croqui) if damage_croqui else 0}")
-                if damage_croqui and len(damage_croqui) > 100:
+                
+                # For CHECKOUT (recolha), combine with checkin (entrega) croqui
+                final_croqui_to_save = damage_croqui
+                if inspection_type == 'checkout' and damage_croqui and len(damage_croqui) > 100:
+                    try:
+                        logging.info(f"🔄 CHECKOUT detected - attempting to combine with checkin croqui...")
+                        
+                        # Find the checkin inspection for same RA and plate
+                        base_ra = ra.split('-')[0] if '-' in ra else ra
+                        if is_postgres:
+                            cursor.execute("""
+                                SELECT vi.id FROM vehicle_inspections vi
+                                WHERE vi.contract_number LIKE %s
+                                  AND vi.vehicle_plate = %s
+                                  AND vi.inspection_type = 'checkin'
+                                ORDER BY vi.created_at DESC
+                                LIMIT 1
+                            """, (f"{base_ra}%", plate))
+                        else:
+                            cursor.execute("""
+                                SELECT vi.id FROM vehicle_inspections vi
+                                WHERE vi.contract_number LIKE ?
+                                  AND vi.vehicle_plate = ?
+                                  AND vi.inspection_type = 'checkin'
+                                ORDER BY vi.created_at DESC
+                                LIMIT 1
+                            """, (f"{base_ra}%", plate))
+                        
+                        checkin_row = cursor.fetchone()
+                        if checkin_row:
+                            checkin_id = checkin_row[0]
+                            logging.info(f"✅ Found checkin inspection ID: {checkin_id}")
+                            
+                            # Get checkin croqui
+                            if is_postgres:
+                                cursor.execute("""
+                                    SELECT image_data FROM inspection_photos
+                                    WHERE inspection_id = %s AND photo_type = 'damage_croqui'
+                                    LIMIT 1
+                                """, (checkin_id,))
+                            else:
+                                cursor.execute("""
+                                    SELECT image_data FROM inspection_photos
+                                    WHERE inspection_id = ? AND photo_type = 'damage_croqui'
+                                    LIMIT 1
+                                """, (checkin_id,))
+                            
+                            checkin_croqui_row = cursor.fetchone()
+                            if checkin_croqui_row and checkin_croqui_row[0]:
+                                checkin_croqui_data = checkin_croqui_row[0]
+                                
+                                # Convert to base64 string if needed
+                                if isinstance(checkin_croqui_data, bytes):
+                                    checkin_croqui_base64 = f"data:image/png;base64,{base64.b64encode(checkin_croqui_data).decode('utf-8')}"
+                                elif isinstance(checkin_croqui_data, str):
+                                    if not checkin_croqui_data.startswith('data:image'):
+                                        checkin_croqui_base64 = f"data:image/png;base64,{checkin_croqui_data}"
+                                    else:
+                                        checkin_croqui_base64 = checkin_croqui_data
+                                else:
+                                    checkin_croqui_base64 = None
+                                
+                                if checkin_croqui_base64:
+                                    # Extract damages from checkout croqui (current damages list)
+                                    checkout_damages = damages if damages else []
+                                    
+                                    logging.info(f"🎨 Combining checkin croqui with {len(checkout_damages)} checkout damages...")
+                                    
+                                    # Use combine_croqui_with_damages to merge
+                                    combined_croqui = combine_croqui_with_damages(
+                                        delivery_croqui_base64=checkin_croqui_base64,
+                                        pickup_damages=checkout_damages
+                                    )
+                                    
+                                    if combined_croqui:
+                                        final_croqui_to_save = combined_croqui
+                                        logging.info(f"✅ Croqui combined successfully!")
+                                    else:
+                                        logging.warning(f"⚠️ combine_croqui_with_damages returned None, using original")
+                                else:
+                                    logging.warning(f"⚠️ Could not convert checkin croqui to base64")
+                            else:
+                                logging.info(f"ℹ️ No checkin croqui found, using checkout croqui only")
+                        else:
+                            logging.info(f"ℹ️ No checkin inspection found for RA {base_ra} and plate {plate}")
+                    except Exception as combine_error:
+                        logging.error(f"❌ Error combining croquis: {combine_error}")
+                        import traceback
+                        logging.error(traceback.format_exc())
+                        logging.info(f"⚠️ Using original checkout croqui")
+                
+                if final_croqui_to_save and len(final_croqui_to_save) > 100:
                     try:
                         logging.info(f"💾 Saving damage croqui to database...")
                         
                         # Log first 100 chars to verify format
-                        logging.info(f"🔍 DEBUG SAVE CROQUI - First 100 chars: {damage_croqui[:100]}")
+                        logging.info(f"🔍 DEBUG SAVE CROQUI - First 100 chars: {final_croqui_to_save[:100]}")
                         
                         # Ensure it has data:image prefix for TEXT storage
-                        if not damage_croqui.startswith('data:image'):
-                            damage_croqui = f"data:image/png;base64,{damage_croqui}"
+                        if not final_croqui_to_save.startswith('data:image'):
+                            final_croqui_to_save = f"data:image/png;base64,{final_croqui_to_save}"
                             logging.info(f"🔍 DEBUG SAVE CROQUI - Added data URL prefix")
                         
-                        logging.info(f"✅ Damage croqui prepared as data URL: {len(damage_croqui)} chars")
+                        logging.info(f"✅ Damage croqui prepared as data URL: {len(final_croqui_to_save)} chars")
                         
                         if is_postgres:
                             cursor.execute("""
@@ -30148,17 +30239,17 @@ async def save_inspection(request: Request):
                                 inspection_id,
                                 'damage_croqui',
                                 99,  # High order number to keep it separate
-                                damage_croqui,
+                                final_croqui_to_save,
                                 'damage_croqui.png',
                                 True,
                                 True
                             ))
                         else:
                             # SQLite still uses BYTEA, decode to bytes
-                            if 'base64,' in damage_croqui:
-                                croqui_base64 = damage_croqui.split('base64,')[1]
+                            if 'base64,' in final_croqui_to_save:
+                                croqui_base64 = final_croqui_to_save.split('base64,')[1]
                             else:
-                                croqui_base64 = damage_croqui
+                                croqui_base64 = final_croqui_to_save
                             croqui_bytes = base64.b64decode(croqui_base64)
                             
                             cursor.execute("""
@@ -48485,6 +48576,10 @@ async def get_inspection_details(inspection_number: str, request: Request):
                         # Normalize 'interior' to 'odometer' for backward compatibility
                         normalized_type = 'odometer' if photo_type == 'interior' else photo_type
                         photos[normalized_type] = f"data:image/jpeg;base64,{photo_base64}"
+            
+            # For CHECKOUT inspections, the damage_croqui is already combined (saved during inspection)
+            # So we just use it as-is. The combination happens during save_inspection.
+            logging.info(f"🔍 Inspection type: {inspection_type}, has_damage_croqui: {damage_croqui is not None}")
             
             # For self_checkout, if inspector_name is empty or "Cliente", fetch real client name from rental_agreement
             inspector_name = inspection_row[5]
