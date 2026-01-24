@@ -33487,6 +33487,70 @@ async def invalidate_self_checkout(request: Request):
                     VALUES (?, ?, ?, CURRENT_TIMESTAMP)
                 """, (inspection_id, f'invalidate_damage_{idx+1}', photo_base64))
         
+        # Criar registo de checkout (recolha) com o nome do colaborador
+        # Obter nome do colaborador da sessão
+        inspector_username = request.session.get("username", "")
+        inspector_name = inspector_username
+        
+        # Buscar nome completo do colaborador
+        if inspector_username:
+            try:
+                if is_postgres:
+                    cursor.execute("SELECT first_name, last_name FROM users WHERE username = %s", (inspector_username,))
+                else:
+                    cursor.execute("SELECT first_name, last_name FROM users WHERE username = ?", (inspector_username,))
+                user_row = cursor.fetchone()
+                if user_row and (user_row[0] or user_row[1]):
+                    inspector_name = f"{user_row[0] or ''} {user_row[1] or ''}".strip()
+            except Exception as e:
+                logging.warning(f"Could not fetch inspector name: {e}")
+        
+        # Gerar número de inspeção para o checkout
+        import uuid
+        checkout_inspection_number = f"CHK-{uuid.uuid4().hex[:8].upper()}"
+        
+        # Criar checkout na base de dados
+        if is_postgres:
+            cursor.execute("""
+                INSERT INTO vehicle_inspections 
+                (inspection_number, vehicle_plate, contract_number, inspection_type, inspector_name, 
+                 fuel_level, odometer_reading, status, has_damage, damage_count, observations, created_at)
+                VALUES (%s, %s, %s, 'checkout', %s, %s, %s, 'completed', %s, %s, %s, NOW())
+                RETURNING id
+            """, (checkout_inspection_number, plate, vi_contract_number, inspector_name, 
+                  fuel_level, odometer_reading, has_damages, damage_count, 
+                  f"Recolha via invalidação de self-checkout. {observations}"))
+            checkout_id = cursor.fetchone()[0]
+        else:
+            cursor.execute("""
+                INSERT INTO vehicle_inspections 
+                (inspection_number, vehicle_plate, contract_number, inspection_type, inspector_name, 
+                 fuel_level, odometer_reading, status, has_damage, damage_count, observations, created_at)
+                VALUES (?, ?, ?, 'checkout', ?, ?, ?, 'completed', ?, ?, ?, CURRENT_TIMESTAMP)
+            """, (checkout_inspection_number, plate, vi_contract_number, inspector_name, 
+                  fuel_level, odometer_reading, has_damages, damage_count, 
+                  f"Recolha via invalidação de self-checkout. {observations}"))
+            checkout_id = cursor.lastrowid
+        
+        logging.info(f"✅ Created checkout record: {checkout_inspection_number} by {inspector_name}")
+        
+        # Copiar croqui de danos para o checkout
+        if damage_croqui and len(damage_croqui) > 100:
+            croqui_for_checkout = damage_croqui
+            if croqui_for_checkout.startswith('data:'):
+                croqui_for_checkout = croqui_for_checkout.split(',', 1)[1] if ',' in croqui_for_checkout else croqui_for_checkout
+            
+            if is_postgres:
+                cursor.execute("""
+                    INSERT INTO inspection_photos (inspection_id, photo_type, image_data, created_at)
+                    VALUES (%s, 'damage_croqui', %s, NOW())
+                """, (checkout_id, croqui_for_checkout))
+            else:
+                cursor.execute("""
+                    INSERT INTO inspection_photos (inspection_id, photo_type, image_data, created_at)
+                    VALUES (?, 'damage_croqui', ?, CURRENT_TIMESTAMP)
+                """, (checkout_id, croqui_for_checkout))
+        
         # Fechar contrato (marcar status como closed)
         if ra_id:
             if is_postgres:
