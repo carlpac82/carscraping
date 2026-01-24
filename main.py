@@ -33569,22 +33569,10 @@ def _send_invalidation_email(
 ) -> bool:
     """
     Enviar email de invalidação do self-checkout com danos e/ou advertência de combustível
+    Usa Gmail OAuth (via _send_notification_email)
     """
     try:
-        import smtplib
-        from email.mime.multipart import MIMEMultipart
-        from email.mime.text import MIMEText
-        from email.mime.image import MIMEImage
         import base64
-        
-        smtp_host = os.environ.get('SMTP_HOST', 'smtp.hostinger.com')
-        smtp_port = int(os.environ.get('SMTP_PORT', 465))
-        smtp_user = os.environ.get('SMTP_USER', 'inspeccao@rrrentacar.com')
-        smtp_password = os.environ.get('SMTP_PASSWORD', '')
-        
-        if not smtp_password:
-            logging.warning("SMTP_PASSWORD not set, cannot send email")
-            return False
         
         # Build email subject
         subject_parts = []
@@ -33692,16 +33680,17 @@ def _send_invalidation_email(
     <div style="background: #ffffff; border: 1px solid #e5e7eb; padding: 20px; margin: 20px; border-radius: 8px;">
         <h3 style="color: #333333; margin: 0 0 15px 0; font-size: 16px; font-weight: 600;">Detalhes dos Danos</h3>
 '''
-            # Croqui
+            # Croqui - usar base64 inline
             if damage_croqui and len(damage_croqui) > 100:
-                html_content += '''
+                croqui_src = damage_croqui if damage_croqui.startswith('data:') else f'data:image/png;base64,{damage_croqui}'
+                html_content += f'''
         <p style="color: #666666; margin: 0 0 10px 0; font-size: 13px;"><strong>Croqui de Danos:</strong></p>
         <div style="text-align: center; margin-bottom: 15px;">
-            <img src="cid:damage_croqui" alt="Croqui de Danos" style="max-width: 100%; height: auto; border-radius: 8px; border: 1px solid #e5e7eb;">
+            <img src="{croqui_src}" alt="Croqui de Danos" style="max-width: 100%; height: auto; border-radius: 8px; border: 1px solid #e5e7eb;">
         </div>
 '''
             
-            # Photos grid 3x3
+            # Photos grid 3x3 - usar base64 inline
             if damage_photos:
                 html_content += '''
         <p style="color: #666666; margin: 0 0 10px 0; font-size: 13px;"><strong>Fotos dos Danos:</strong></p>
@@ -33712,7 +33701,8 @@ def _send_invalidation_email(
                     for j in range(3):
                         idx = i + j
                         if idx < len(damage_photos):
-                            html_content += f'<td width="33%" style="padding: 5px;"><img src="cid:damage_photo_{idx}" alt="Dano {idx+1}" style="width: 100%; border-radius: 6px; border: 1px solid #e5e7eb;"></td>'
+                            photo_src = damage_photos[idx] if damage_photos[idx].startswith('data:') else f'data:image/jpeg;base64,{damage_photos[idx]}'
+                            html_content += f'<td width="33%" style="padding: 5px;"><img src="{photo_src}" alt="Dano {idx+1}" style="width: 100%; border-radius: 6px; border: 1px solid #e5e7eb;"></td>'
                         else:
                             html_content += '<td width="33%" style="padding: 5px;"></td>'
                     html_content += '</tr>'
@@ -33809,54 +33799,19 @@ def _send_invalidation_email(
 </html>
 '''
         
-        # Create email message
-        msg = MIMEMultipart('related')
-        msg['Subject'] = subject
-        msg['From'] = smtp_user
-        msg['To'] = client_email
+        # Send email using OAuth (same as other inspection emails)
+        email_sent = _send_notification_email(
+            to_email=client_email,
+            subject=subject,
+            html_content=html_content
+        )
         
-        # Attach HTML
-        msg_alternative = MIMEMultipart('alternative')
-        msg.attach(msg_alternative)
-        msg_alternative.attach(MIMEText(html_content, 'html', 'utf-8'))
-        
-        # Attach croqui image
-        if damage_croqui and len(damage_croqui) > 100:
-            try:
-                croqui_b64 = damage_croqui
-                if croqui_b64.startswith('data:'):
-                    croqui_b64 = croqui_b64.split(',', 1)[1] if ',' in croqui_b64 else croqui_b64
-                
-                croqui_bytes = base64.b64decode(croqui_b64)
-                img = MIMEImage(croqui_bytes, _subtype='png')
-                img.add_header('Content-ID', '<damage_croqui>')
-                img.add_header('Content-Disposition', 'inline', filename='croqui_danos.png')
-                msg.attach(img)
-            except Exception as img_err:
-                logging.error(f"Error attaching croqui: {img_err}")
-        
-        # Attach damage photos
-        for idx, photo_data in enumerate(damage_photos[:9]):
-            try:
-                photo_b64 = photo_data
-                if photo_b64.startswith('data:'):
-                    photo_b64 = photo_b64.split(',', 1)[1] if ',' in photo_b64 else photo_b64
-                
-                photo_bytes = base64.b64decode(photo_b64)
-                img = MIMEImage(photo_bytes, _subtype='jpeg')
-                img.add_header('Content-ID', f'<damage_photo_{idx}>')
-                img.add_header('Content-Disposition', 'inline', filename=f'dano_{idx+1}.jpg')
-                msg.attach(img)
-            except Exception as img_err:
-                logging.error(f"Error attaching photo {idx}: {img_err}")
-        
-        # Send email
-        with smtplib.SMTP_SSL(smtp_host, smtp_port) as server:
-            server.login(smtp_user, smtp_password)
-            server.sendmail(smtp_user, client_email, msg.as_string())
-        
-        logging.info(f"📧 Invalidation email sent to {client_email}")
-        return True
+        if email_sent:
+            logging.info(f"📧 Invalidation email sent to {client_email}")
+            return True
+        else:
+            logging.error(f"Failed to send invalidation email to {client_email}")
+            return False
         
     except Exception as e:
         logging.error(f"Error sending invalidation email: {e}")
