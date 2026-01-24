@@ -37698,7 +37698,13 @@ async def delete_inspection(request: Request, inspection_number: str):
                         WHERE rental_agreement_number = %s
                     """, (has_self_checkout, contract_number))
                     
+                    # Reset self_checkout status to 'pending' so it appears in pending list again
                     if has_self_checkout:
+                        cur.execute("""
+                            UPDATE vehicle_inspections 
+                            SET status = 'pending'
+                            WHERE contract_number = %s AND inspection_type = 'self_checkout'
+                        """, (contract_number,))
                         logging.info(f"🔓 Reopened contract {contract_number} after checkout deletion - self_checkout now pending validation")
                     else:
                         logging.info(f"🔓 Reopened contract {contract_number} after checkout deletion")
@@ -37762,7 +37768,13 @@ async def delete_inspection(request: Request, inspection_number: str):
                     WHERE rental_agreement_number = ?
                 """, (1 if has_self_checkout else 0, contract_number))
                 
+                # Reset self_checkout status to 'pending' so it appears in pending list again
                 if has_self_checkout:
+                    conn.execute("""
+                        UPDATE vehicle_inspections 
+                        SET status = 'pending'
+                        WHERE contract_number = ? AND inspection_type = 'self_checkout'
+                    """, (contract_number,))
                     logging.info(f"🔓 Reopened contract {contract_number} after checkout deletion - self_checkout now pending validation")
                 else:
                     logging.info(f"🔓 Reopened contract {contract_number} after checkout deletion")
