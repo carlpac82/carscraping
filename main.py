@@ -36277,8 +36277,14 @@ async def get_inspection(request: Request, plate: str, ra: str, type: str = 'che
                                                  extracted_data.get('email', ''))
                     
                     # Debug logs for important fields
-                    print(f"📧 client_email: '{extracted_data.get('client_email', 'NOT FOUND')}'", flush=True)
-                    print(f"📧 clientEmail: '{extracted_data.get('clientEmail', 'NOT FOUND')}'", flush=True)
+                    client_email_snake = extracted_data.get('client_email', 'NOT FOUND')
+                    client_email_camel = extracted_data.get('clientEmail', 'NOT FOUND')
+                    print(f"📧 client_email: '{client_email_snake}'", flush=True)
+                    print(f"📧 clientEmail: '{client_email_camel}'", flush=True)
+                    print(f"📧 client_email LENGTH: {len(client_email_snake) if client_email_snake != 'NOT FOUND' else 0}", flush=True)
+                    print(f"📧 clientEmail LENGTH: {len(client_email_camel) if client_email_camel != 'NOT FOUND' else 0}", flush=True)
+                    print(f"📧 client_email FULL (first 100 chars): '{str(client_email_snake)[:100]}'", flush=True)
+                    print(f"📧 clientEmail FULL (first 100 chars): '{str(client_email_camel)[:100]}'", flush=True)
                     print(f"👤 client_name: '{extracted_data.get('client_name', 'NOT FOUND')}'", flush=True)
                     print(f"👤 clientName: '{extracted_data.get('clientName', 'NOT FOUND')}'", flush=True)
                     print(f"📍 pickup_location: '{extracted_data.get('pickup_location', 'NOT FOUND')}'", flush=True)
@@ -36286,7 +36292,7 @@ async def get_inspection(request: Request, plate: str, ra: str, type: str = 'che
                     print(f"📍 return_location: '{extracted_data.get('return_location', 'NOT FOUND')}'", flush=True)
                     print(f"📍 returnLocation: '{extracted_data.get('returnLocation', 'NOT FOUND')}'", flush=True)
                     
-                    print(f"📧 Found client email from RA: {inspection['client_email']}", flush=True)
+                    print(f"📧 FINAL client email from RA (LENGTH {len(inspection['client_email'])}): '{inspection['client_email']}'", flush=True)
                     logging.info(f"📧 Found client email from RA: {inspection['client_email']}")
                 else:
                     print(f"⚠️ No RA found or empty extracted_data for RA: {ra}", flush=True)
