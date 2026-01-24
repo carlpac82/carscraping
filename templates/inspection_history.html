@@ -1167,16 +1167,46 @@
             let vehicleModel = contract && contract.vehicle_model ? contract.vehicle_model : 'N/A';
             
             // If not in contract, try fleet manager API
-            if ((vehicleBrand === 'N/A' || vehicleModel === 'N/A') && contract && contract.plate) {
+            const plate = contract && (contract.vehicle_plate || contract.plate);
+            if ((vehicleBrand === 'N/A' || vehicleModel === 'N/A') && plate) {
                 try {
-                    const vehicleResponse = await fetch(`/api/vehicles/by-plate/${encodeURIComponent(contract.plate)}`);
+                    const vehicleResponse = await fetch(`/api/vehicles/by-plate/${encodeURIComponent(plate)}`);
                     const vehicleData = await vehicleResponse.json();
+                    console.log('🚙 Fleet API response:', vehicleData);
                     if (vehicleData.ok && vehicleData.vehicle) {
                         if (vehicleBrand === 'N/A') vehicleBrand = vehicleData.vehicle.brand || 'N/A';
                         if (vehicleModel === 'N/A') vehicleModel = vehicleData.vehicle.model || 'N/A';
                     }
                 } catch (e) {
-                    console.error('Error fetching vehicle data:', e);
+                    console.error('Error fetching vehicle data from fleet:', e);
+                }
+            }
+            
+            // If still N/A, try rental agreement API
+            if ((vehicleBrand === 'N/A' || vehicleModel === 'N/A') && contract && contract.contract_number) {
+                try {
+                    const raResponse = await fetch(`/api/rental-agreements/${encodeURIComponent(contract.contract_number)}`);
+                    const raData = await raResponse.json();
+                    console.log('📄 RA API response:', raData);
+                    if (raData.ok && raData.extracted_data) {
+                        const ed = raData.extracted_data;
+                        if (vehicleBrand === 'N/A') {
+                            vehicleBrand = ed.vehicleBrand || ed.vehicle_brand || 'N/A';
+                        }
+                        if (vehicleModel === 'N/A') {
+                            vehicleModel = ed.vehicleModel || ed.vehicle_model || 'N/A';
+                        }
+                        // Try combined field
+                        if ((vehicleBrand === 'N/A' || vehicleModel === 'N/A') && ed.vehicleBrandModel) {
+                            const parts = ed.vehicleBrandModel.split(' / ');
+                            if (parts.length >= 2) {
+                                if (vehicleBrand === 'N/A') vehicleBrand = parts[0].trim();
+                                if (vehicleModel === 'N/A') vehicleModel = parts[1].trim();
+                            }
+                        }
+                    }
+                } catch (e) {
+                    console.error('Error fetching RA data:', e);
                 }
             }
             console.log('🚗 Vehicle brand/model:', vehicleBrand, vehicleModel);
@@ -1529,9 +1559,14 @@
                                                 'damage_front_right': 'Frente Direita',
                                                 'damage_odometer': 'Conta-Quilómetros'
                                             };
-                                            // Handle old format (damage_photo_1) and new format (damage_front)
-                                            const damageNum = key.replace('damage_photo_', '');
-                                            const label = photoLabels[key] || `Dano ${damageNum}`;
+                                            // Handle formats: damage_1, damage_photo_1, damage_front, etc.
+                                            let label = photoLabels[key];
+                                            if (!label) {
+                                                // Extract number from key (damage_1, damage_photo_1, etc.)
+                                                const numMatch = key.match(/(\d+)$/);
+                                                const damageNum = numMatch ? numMatch[1] : key.replace('damage_', '');
+                                                label = `Dano ${damageNum}`;
+                                            }
                                             return `
                                             <div>
                                                 <h5 class="text-sm font-semibold text-gray-700 mb-2">${label}</h5>
