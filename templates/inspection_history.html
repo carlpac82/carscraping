@@ -1835,8 +1835,10 @@
                 // If checkin, get return date from RA
                 if (type === 'checkin' && inspection.contract_number) {
                     try {
-                        console.log('🔍 Fetching RA data for contract:', inspection.contract_number);
-                        const raResponse = await fetch(`/api/rental-agreement/${inspection.contract_number}`);
+                        // Remove suffix from contract number (e.g., "06727-09" -> "06727")
+                        const raNumber = inspection.contract_number.split('-')[0];
+                        console.log('🔍 Fetching RA data for contract:', raNumber, '(original:', inspection.contract_number + ')');
+                        const raResponse = await fetch(`/api/rental-agreement/${raNumber}`);
                         const raData = await raResponse.json();
                         console.log('📄 RA Response:', raData);
                         
