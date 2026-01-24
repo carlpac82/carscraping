@@ -25697,55 +25697,55 @@ def _generate_checkin_status_alert(lang, has_fuel_incident, has_damage_incident,
                 entrega_text = pct_to_fraction(entrega_pct)
                 recolha_text = pct_to_fraction(recolha_pct)
                 
-                # HTML puro com barras maiores e textos visíveis (sem imagem)
+                # HTML puro com barras e textos no tamanho correto
                 fuel_bars_html = f"""
         <table width="100%" cellpadding="0" cellspacing="0" style="margin-bottom: 20px;">
             <tr>
                 <!-- Barra de combustível da entrega -->
                 <td style="width: 48%; padding: 10px; text-align: center;">
-                    <p style="color: #374151; margin: 0 0 10px 0; font-size: 14px; font-weight: 600;">{labels['delivery']}</p>
-                    <!-- Barra visual maior -->
+                    <p style="color: #374151; margin: 0 0 10px 0; font-size: 13px; font-weight: 600;">{labels['delivery']}</p>
+                    <!-- Barra visual -->
                     <table width="100%" cellpadding="0" cellspacing="0" border="0" style="background-color: #e5e7eb; border: 2px solid #00bcd4; border-radius: 6px;">
                         <tr>
-                            <td width="{entrega_pct}%" height="40" bgcolor="#00bcd4" style="background: linear-gradient(90deg, #00bcd4, #0097a7); font-size: 1px; line-height: 1px; border-radius: 4px 0 0 4px;">&nbsp;</td>
-                            <td width="{100-entrega_pct}%" height="40" bgcolor="#e5e7eb" style="background-color: #e5e7eb; font-size: 1px; line-height: 1px;">&nbsp;</td>
+                            <td width="{entrega_pct}%" height="30" bgcolor="#00bcd4" style="background: linear-gradient(90deg, #00bcd4, #0097a7); font-size: 1px; line-height: 1px; border-radius: 4px 0 0 4px;">&nbsp;</td>
+                            <td width="{100-entrega_pct}%" height="30" bgcolor="#e5e7eb" style="background-color: #e5e7eb; font-size: 1px; line-height: 1px;">&nbsp;</td>
                         </tr>
                     </table>
                     <!-- Marcadores -->
-                    <table width="100%" cellpadding="0" cellspacing="0" style="margin-top: 6px;">
+                    <table width="100%" cellpadding="0" cellspacing="0" style="margin-top: 4px;">
                         <tr>
-                            <td style="width: 0%; text-align: left; font-size: 11px; color: #6b7280; font-weight: 500;">E</td>
-                            <td style="width: 25%; text-align: center; font-size: 11px; color: #6b7280; font-weight: 500;">1/4</td>
-                            <td style="width: 25%; text-align: center; font-size: 11px; color: #6b7280; font-weight: 500;">1/2</td>
-                            <td style="width: 25%; text-align: center; font-size: 11px; color: #6b7280; font-weight: 500;">3/4</td>
-                            <td style="width: 0%; text-align: right; font-size: 11px; color: #6b7280; font-weight: 500;">F</td>
+                            <td style="width: 0%; text-align: left; font-size: 10px; color: #6b7280;">E</td>
+                            <td style="width: 25%; text-align: center; font-size: 10px; color: #6b7280;">1/4</td>
+                            <td style="width: 25%; text-align: center; font-size: 10px; color: #6b7280;">1/2</td>
+                            <td style="width: 25%; text-align: center; font-size: 10px; color: #6b7280;">3/4</td>
+                            <td style="width: 0%; text-align: right; font-size: 10px; color: #6b7280;">F</td>
                         </tr>
                     </table>
-                    <p style="color: #00bcd4; margin: 12px 0 0 0; font-size: 28px; font-weight: bold;">{entrega_text}</p>
+                    <p style="color: #00bcd4; margin: 10px 0 0 0; font-size: 16px; font-weight: bold;">{entrega_text}</p>
                 </td>
                 <!-- Espaçador -->
                 <td style="width: 4%;"></td>
                 <!-- Barra de combustível da recolha -->
                 <td style="width: 48%; padding: 10px; text-align: center;">
-                    <p style="color: #374151; margin: 0 0 10px 0; font-size: 14px; font-weight: 600;">{labels['pickup']}</p>
-                    <!-- Barra visual maior -->
-                    <table width="100%" cellpadding="0" cellspacing="0" border="0" style="background-color: #e5e7eb; border: 2px solid #f59e0b; border-radius: 6px;">
+                    <p style="color: #374151; margin: 0 0 10px 0; font-size: 13px; font-weight: 600;">{labels['pickup']}</p>
+                    <!-- Barra visual -->
+                    <table width="100%" cellpadding="0" cellspacing="0" border="0" style="background-color: #e5e7eb; border: 2px solid #00bcd4; border-radius: 6px;">
                         <tr>
-                            <td width="{recolha_pct}%" height="40" bgcolor="#f59e0b" style="background: linear-gradient(90deg, #f59e0b, #d97706); font-size: 1px; line-height: 1px; border-radius: 4px 0 0 4px;">&nbsp;</td>
-                            <td width="{100-recolha_pct}%" height="40" bgcolor="#e5e7eb" style="background-color: #e5e7eb; font-size: 1px; line-height: 1px;">&nbsp;</td>
+                            <td width="{recolha_pct}%" height="30" bgcolor="#00bcd4" style="background: linear-gradient(90deg, #00bcd4, #0097a7); font-size: 1px; line-height: 1px; border-radius: 4px 0 0 4px;">&nbsp;</td>
+                            <td width="{100-recolha_pct}%" height="30" bgcolor="#e5e7eb" style="background-color: #e5e7eb; font-size: 1px; line-height: 1px;">&nbsp;</td>
                         </tr>
                     </table>
                     <!-- Marcadores -->
-                    <table width="100%" cellpadding="0" cellspacing="0" style="margin-top: 6px;">
+                    <table width="100%" cellpadding="0" cellspacing="0" style="margin-top: 4px;">
                         <tr>
-                            <td style="width: 0%; text-align: left; font-size: 11px; color: #6b7280; font-weight: 500;">E</td>
-                            <td style="width: 25%; text-align: center; font-size: 11px; color: #6b7280; font-weight: 500;">1/4</td>
-                            <td style="width: 25%; text-align: center; font-size: 11px; color: #6b7280; font-weight: 500;">1/2</td>
-                            <td style="width: 25%; text-align: center; font-size: 11px; color: #6b7280; font-weight: 500;">3/4</td>
-                            <td style="width: 0%; text-align: right; font-size: 11px; color: #6b7280; font-weight: 500;">F</td>
+                            <td style="width: 0%; text-align: left; font-size: 10px; color: #6b7280;">E</td>
+                            <td style="width: 25%; text-align: center; font-size: 10px; color: #6b7280;">1/4</td>
+                            <td style="width: 25%; text-align: center; font-size: 10px; color: #6b7280;">1/2</td>
+                            <td style="width: 25%; text-align: center; font-size: 10px; color: #6b7280;">3/4</td>
+                            <td style="width: 0%; text-align: right; font-size: 10px; color: #6b7280;">F</td>
                         </tr>
                     </table>
-                    <p style="color: #f59e0b; margin: 12px 0 0 0; font-size: 28px; font-weight: bold;">{recolha_text}</p>
+                    <p style="color: #00bcd4; margin: 10px 0 0 0; font-size: 16px; font-weight: bold;">{recolha_text}</p>
                 </td>
             </tr>
         </table>
@@ -34184,49 +34184,49 @@ def _send_invalidation_email(
             <tr>
                 <!-- Barra de combustível da entrega -->
                 <td style="width: 48%; padding: 10px; text-align: center;">
-                    <p style="color: #374151; margin: 0 0 10px 0; font-size: 13px; font-weight: 600;">Combustível na Entrega</p>
-                    <!-- Barra visual -->
+                    <p style="color: #374151; margin: 0 0 10px 0; font-size: 14px; font-weight: 600;">Combustível na Entrega</p>
+                    <!-- Barra visual maior -->
                     <table width="100%" cellpadding="0" cellspacing="0" border="0" style="background-color: #e5e7eb; border: 2px solid #00bcd4; border-radius: 6px;">
                         <tr>
-                            <td width="{checkin_fuel}%" height="30" bgcolor="#00bcd4" style="background: linear-gradient(90deg, #00bcd4, #0097a7); font-size: 1px; line-height: 1px; border-radius: 4px 0 0 4px;">&nbsp;</td>
-                            <td width="{100-checkin_fuel}%" height="30" bgcolor="#e5e7eb" style="background-color: #e5e7eb; font-size: 1px; line-height: 1px;">&nbsp;</td>
+                            <td width="{checkin_fuel}%" height="40" bgcolor="#00bcd4" style="background: linear-gradient(90deg, #00bcd4, #0097a7); font-size: 1px; line-height: 1px; border-radius: 4px 0 0 4px;">&nbsp;</td>
+                            <td width="{100-checkin_fuel}%" height="40" bgcolor="#e5e7eb" style="background-color: #e5e7eb; font-size: 1px; line-height: 1px;">&nbsp;</td>
                         </tr>
                     </table>
                     <!-- Marcadores -->
-                    <table width="100%" cellpadding="0" cellspacing="0" style="margin-top: 4px;">
+                    <table width="100%" cellpadding="0" cellspacing="0" style="margin-top: 6px;">
                         <tr>
-                            <td style="width: 0%; text-align: left; font-size: 10px; color: #6b7280;">E</td>
-                            <td style="width: 25%; text-align: center; font-size: 10px; color: #6b7280;">1/4</td>
-                            <td style="width: 25%; text-align: center; font-size: 10px; color: #6b7280;">1/2</td>
-                            <td style="width: 25%; text-align: center; font-size: 10px; color: #6b7280;">3/4</td>
-                            <td style="width: 0%; text-align: right; font-size: 10px; color: #6b7280;">F</td>
+                            <td style="width: 0%; text-align: left; font-size: 11px; color: #6b7280; font-weight: 500;">E</td>
+                            <td style="width: 25%; text-align: center; font-size: 11px; color: #6b7280; font-weight: 500;">1/4</td>
+                            <td style="width: 25%; text-align: center; font-size: 11px; color: #6b7280; font-weight: 500;">1/2</td>
+                            <td style="width: 25%; text-align: center; font-size: 11px; color: #6b7280; font-weight: 500;">3/4</td>
+                            <td style="width: 0%; text-align: right; font-size: 11px; color: #6b7280; font-weight: 500;">F</td>
                         </tr>
                     </table>
-                    <p style="color: #00bcd4; margin: 10px 0 0 0; font-size: 24px; font-weight: bold;">{entrega_text}</p>
+                    <p style="color: #00bcd4; margin: 12px 0 0 0; font-size: 28px; font-weight: bold;">{entrega_text}</p>
                 </td>
                 <!-- Espaçador -->
                 <td style="width: 4%;"></td>
                 <!-- Barra de combustível da recolha -->
                 <td style="width: 48%; padding: 10px; text-align: center;">
-                    <p style="color: #374151; margin: 0 0 10px 0; font-size: 13px; font-weight: 600;">Combustível na Devolução</p>
-                    <!-- Barra visual -->
-                    <table width="100%" cellpadding="0" cellspacing="0" border="0" style="background-color: #e5e7eb; border: 2px solid #00bcd4; border-radius: 6px;">
+                    <p style="color: #374151; margin: 0 0 10px 0; font-size: 14px; font-weight: 600;">Combustível na Devolução</p>
+                    <!-- Barra visual maior -->
+                    <table width="100%" cellpadding="0" cellspacing="0" border="0" style="background-color: #e5e7eb; border: 2px solid #f59e0b; border-radius: 6px;">
                         <tr>
-                            <td width="{fuel_level}%" height="30" bgcolor="#00bcd4" style="background: linear-gradient(90deg, #00bcd4, #0097a7); font-size: 1px; line-height: 1px; border-radius: 4px 0 0 4px;">&nbsp;</td>
-                            <td width="{100-fuel_level}%" height="30" bgcolor="#e5e7eb" style="background-color: #e5e7eb; font-size: 1px; line-height: 1px;">&nbsp;</td>
+                            <td width="{fuel_level}%" height="40" bgcolor="#f59e0b" style="background: linear-gradient(90deg, #f59e0b, #d97706); font-size: 1px; line-height: 1px; border-radius: 4px 0 0 4px;">&nbsp;</td>
+                            <td width="{100-fuel_level}%" height="40" bgcolor="#e5e7eb" style="background-color: #e5e7eb; font-size: 1px; line-height: 1px;">&nbsp;</td>
                         </tr>
                     </table>
                     <!-- Marcadores -->
-                    <table width="100%" cellpadding="0" cellspacing="0" style="margin-top: 4px;">
+                    <table width="100%" cellpadding="0" cellspacing="0" style="margin-top: 6px;">
                         <tr>
-                            <td style="width: 0%; text-align: left; font-size: 10px; color: #6b7280;">E</td>
-                            <td style="width: 25%; text-align: center; font-size: 10px; color: #6b7280;">1/4</td>
-                            <td style="width: 25%; text-align: center; font-size: 10px; color: #6b7280;">1/2</td>
-                            <td style="width: 25%; text-align: center; font-size: 10px; color: #6b7280;">3/4</td>
-                            <td style="width: 0%; text-align: right; font-size: 10px; color: #6b7280;">F</td>
+                            <td style="width: 0%; text-align: left; font-size: 11px; color: #6b7280; font-weight: 500;">E</td>
+                            <td style="width: 25%; text-align: center; font-size: 11px; color: #6b7280; font-weight: 500;">1/4</td>
+                            <td style="width: 25%; text-align: center; font-size: 11px; color: #6b7280; font-weight: 500;">1/2</td>
+                            <td style="width: 25%; text-align: center; font-size: 11px; color: #6b7280; font-weight: 500;">3/4</td>
+                            <td style="width: 0%; text-align: right; font-size: 11px; color: #6b7280; font-weight: 500;">F</td>
                         </tr>
                     </table>
-                    <p style="color: #f59e0b; margin: 10px 0 0 0; font-size: 24px; font-weight: bold;">{recolha_text}</p>
+                    <p style="color: #f59e0b; margin: 12px 0 0 0; font-size: 28px; font-weight: bold;">{recolha_text}</p>
                 </td>
             </tr>
         </table>
