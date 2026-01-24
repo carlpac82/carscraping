@@ -1460,32 +1460,40 @@ function loadDeliveryDamagesOnCroqui() {
         return;
     }
     
-    // Try to load damage croqui directly on canvas if available
+    // Load damage croqui as BACKGROUND IMAGE (not on canvas) so eraser cannot delete it
     if (window.deliveryInspection.damage_croqui) {
-        console.log('📍 Loading delivery damage croqui on canvas...');
+        console.log('📍 Loading delivery damage croqui as background layer (protected from eraser)...');
         console.log('🔍 Croqui data length:', window.deliveryInspection.damage_croqui.length);
-        console.log('🔍 Croqui preview:', window.deliveryInspection.damage_croqui.substring(0, 100));
         
-        const canvas = document.getElementById('drawingCanvas');
-        const ctx = canvas ? canvas.getContext('2d') : null;
+        const container = document.getElementById('carDiagram');
         
-        console.log('🔍 Canvas found:', !!canvas);
-        console.log('🔍 Canvas size:', canvas ? `${canvas.width}x${canvas.height}` : 'N/A');
-        
-        if (canvas && ctx) {
-            const img = new Image();
-            img.onload = function() {
-                // Draw the checkout croqui on the canvas
-                ctx.clearRect(0, 0, canvas.width, canvas.height);
-                ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
-                console.log('✅ Delivery croqui loaded on canvas');
+        if (container) {
+            // Remove any existing background layer
+            const existingBg = document.getElementById('deliveryCroquiBackground');
+            if (existingBg) existingBg.remove();
+            
+            // Create background image layer for check-in damages (PROTECTED from eraser)
+            const bgImg = document.createElement('img');
+            bgImg.id = 'deliveryCroquiBackground';
+            bgImg.src = window.deliveryInspection.damage_croqui;
+            bgImg.style.position = 'absolute';
+            bgImg.style.top = '0';
+            bgImg.style.left = '0';
+            bgImg.style.width = '100%';
+            bgImg.style.height = '100%';
+            bgImg.style.pointerEvents = 'none'; // Don't interfere with clicks
+            bgImg.style.zIndex = '5'; // Between car image (1) and canvas (10)
+            bgImg.onload = function() {
+                console.log('✅ Delivery croqui loaded as protected background layer');
             };
-            img.onerror = function(error) {
+            bgImg.onerror = function(error) {
                 console.error('❌ Failed to load delivery croqui image:', error);
             };
-            img.src = window.deliveryInspection.damage_croqui;
+            
+            container.appendChild(bgImg);
+            console.log('✅ Check-in damages protected from eraser (background layer)');
         } else {
-            console.error('❌ Canvas not found or not initialized');
+            console.error('❌ Car diagram container not found');
         }
     } else {
         console.log('ℹ️ No damage croqui in delivery inspection');
@@ -1544,26 +1552,30 @@ function addPinAtPosition(x, y, isNewDamage = false) {
     pin.style.cursor = 'pointer';
     pin.style.zIndex = '10';
     
-    // Blue for delivery damages, red for new pickup damages
+    // Blue for delivery damages (protected), red for new pickup damages (can be removed)
     if (isNewDamage) {
         pin.style.background = '#dc3545'; // Red
         pin.style.border = 'none'; // No border for pickup damages
         pin.style.width = '16px';
         pin.style.height = '16px';
+        pin.style.cursor = 'pointer';
+        
+        // Only NEW damages can be removed with double click
+        pin.ondblclick = () => {
+            pin.remove();
+            if (window.damages) {
+                window.damages = window.damages.filter(d => d.id !== pinId);
+            }
+        };
     } else {
-        pin.style.background = '#009cb6'; // Blue (delivery damages)
+        pin.style.background = '#009cb6'; // Blue (delivery damages - PROTECTED)
         pin.style.border = 'none'; // No border for delivery damages
         pin.style.width = '16px';
         pin.style.height = '16px';
+        pin.style.cursor = 'default'; // Not clickable
+        // NO ondblclick - delivery damages cannot be removed during checkout
+        console.log('🔒 Delivery pin protected from removal:', pinId);
     }
-    
-    // Double click to remove
-    pin.ondblclick = () => {
-        pin.remove();
-        if (window.damages) {
-            window.damages = window.damages.filter(d => d.id !== pinId);
-        }
-    };
     
     container.appendChild(pin);
     
