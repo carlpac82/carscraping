@@ -1830,6 +1830,28 @@
                 console.log('📋 Inspection data:', inspection);
                 console.log('🖼️ Damage croqui:', inspection.damage_croqui ? `${inspection.damage_croqui.substring(0, 100)}... (${inspection.damage_croqui.length} chars)` : 'EMPTY');
                 
+                // If checkin, get return date from RA
+                if (type === 'checkin' && inspection.contract_number) {
+                    try {
+                        const raResponse = await fetch(`/api/rental-agreement/${inspection.contract_number}`);
+                        const raData = await raResponse.json();
+                        if (raData.ok && raData.extracted_data) {
+                            const returnDate = raData.extracted_data.returnDate || raData.extracted_data.return_date || raData.return_date;
+                            if (returnDate) {
+                                // Convert DD/MM/YYYY to YYYY-MM-DD for input[type="date"]
+                                if (returnDate.includes('/')) {
+                                    const [day, month, year] = returnDate.split('/');
+                                    inspection.expected_return_date = `${year}-${month.padStart(2, '0')}-${day.padStart(2, '0')}`;
+                                } else {
+                                    inspection.expected_return_date = returnDate;
+                                }
+                            }
+                        }
+                    } catch (err) {
+                        console.warn('Could not fetch RA return date:', err);
+                    }
+                }
+                
                 // Create edit modal
                 const modal = document.createElement('div');
                 modal.className = 'fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50';
@@ -1899,6 +1921,16 @@
                                        class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#009cb6]" 
                                        placeholder="Ex: 45000">
                             </div>
+                            
+                            <!-- Expected Return Date (only for checkin) -->
+                            ${type === 'checkin' ? `
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-2">Data de Devolução Prevista</label>
+                                <input type="date" id="expectedReturnDate" value="${inspection.expected_return_date || ''}" 
+                                       class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#009cb6]">
+                                <p class="text-xs text-gray-500 mt-1">Esta data é usada pelo scheduler para enviar o email automático 2 dias antes</p>
+                            </div>
+                            ` : ''}
                             
                             <!-- Damage Croqui Editor -->
                             <div>
@@ -2342,6 +2374,8 @@
                 const fuelLevel = document.getElementById('fuelLevel').value;
                 const odometerReading = document.getElementById('odometerReading').value;
                 const damageNotes = document.getElementById('damageNotes').value;
+                const expectedReturnDateInput = document.getElementById('expectedReturnDate');
+                const expectedReturnDate = expectedReturnDateInput ? expectedReturnDateInput.value : null;
                 
                 // Capture updated croqui (merge background + new damages)
                 let updatedCroqui = null;
@@ -2363,7 +2397,8 @@
                     damage_croqui: updatedCroqui,
                     fuel_level: parseInt(fuelLevel),
                     odometer_reading: odometerReading ? parseInt(odometerReading) : null,
-                    damage_notes: damageNotes.trim()
+                    damage_notes: damageNotes.trim(),
+                    expected_return_date: expectedReturnDate
                 };
                 
                 console.log('📦 Update data:', {

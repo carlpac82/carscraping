@@ -34041,7 +34041,8 @@ def _send_invalidation_email(
     damage_description: str,
     observations: str,
     damage_photos: list,
-    damage_croqui: str
+    damage_croqui: str,
+    lang: str = 'pt'
 ) -> bool:
     """
     Enviar email de invalidação do self-checkout com danos e/ou advertência de combustível
@@ -34056,23 +34057,132 @@ def _send_invalidation_email(
         logging.info(f"📧 Invalidation email - damage_croqui length: {len(damage_croqui) if damage_croqui else 0}")
         logging.info(f"📧 Invalidation email - odometer: checkin={checkin_odometer}, checkout={odometer_reading}")
         
+        # Multi-language support
+        translations = {
+            'pt': {
+                'subject_damages': 'Danos Detectados',
+                'subject_fuel': 'Advertência de Combustível',
+                'subject_prefix': 'Self-Checkout com Incidentes',
+                'title': 'Self Checkout - Incidências Detectadas',
+                'greeting': f'Caro {client_name},',
+                'intro_1': f'Agradecemos o self checkout do veículo <strong>{plate}</strong>. No entanto, durante a validação, a nossa equipa detectou algumas divergências que necessitam de esclarecimento.',
+                'intro_2': 'Iremos analisar a situação com atenção e entraremos em contacto consigo nas próximas horas para resolver esta questão.',
+                'contract': 'Contrato',
+                'plate': 'Matrícula',
+                'odometer_checkin': 'Odómetro Check-in',
+                'odometer_return': 'Odómetro Devolução',
+                'km_driven': 'KMs Percorridos',
+                'damage_alert_title': 'Danos Detectados no Veículo',
+                'damage_alert_text': 'Foram detectados danos no veículo durante a verificação. Consulte os detalhes abaixo.',
+                'fuel_warning_title': 'Advertência de Combustível',
+                'fuel_warning_text': 'O veículo foi devolvido com menos combustível do que no momento da entrega.',
+                'fuel_delivery': 'Combustível na Entrega',
+                'fuel_return': 'Combustível na Devolução',
+                'fuel_missing': 'Combustível em falta',
+                'fuel_charge_text': 'Será cobrado o valor correspondente ao combustível em falta + taxa de reabastecimento.',
+                'damage_details': 'Detalhes dos Danos',
+                'croqui_label': 'Croqui de Danos:',
+                'photos_label': 'Fotos dos Danos:',
+                'observations_title': 'Observações',
+                'next_steps_title': 'Próximos Passos',
+                'next_steps_1': 'A nossa equipa irá analisar as incidências detectadas e entrar em contacto consigo brevemente para esclarecimentos.',
+                'next_steps_2': 'Caso tenha alguma questão, não hesite em contactar-nos através dos contactos abaixo.',
+                'closing_1': 'Agradecemos a sua compreensão e colaboração.',
+                'closing_2': '<strong>Atentamente,</strong><br>Auto Prudente Rent a Car',
+                'contacts_title': 'Contactos Úteis',
+                'office': 'ESCRITÓRIO',
+                'emergency': 'EMERGÊNCIA 24H'
+            },
+            'en': {
+                'subject_damages': 'Damages Detected',
+                'subject_fuel': 'Fuel Warning',
+                'subject_prefix': 'Self-Checkout with Incidents',
+                'title': 'Self Checkout - Incidents Detected',
+                'greeting': f'Dear {client_name},',
+                'intro_1': f'Thank you for completing the self checkout of vehicle <strong>{plate}</strong>. However, during validation, our team detected some discrepancies that require clarification.',
+                'intro_2': 'We will carefully analyze the situation and contact you within the next few hours to resolve this matter.',
+                'contract': 'Contract',
+                'plate': 'License Plate',
+                'odometer_checkin': 'Check-in Odometer',
+                'odometer_return': 'Return Odometer',
+                'km_driven': 'KMs Driven',
+                'damage_alert_title': 'Vehicle Damages Detected',
+                'damage_alert_text': 'Damages were detected on the vehicle during inspection. Please see details below.',
+                'fuel_warning_title': 'Fuel Warning',
+                'fuel_warning_text': 'The vehicle was returned with less fuel than at the time of delivery.',
+                'fuel_delivery': 'Fuel at Delivery',
+                'fuel_return': 'Fuel at Return',
+                'fuel_missing': 'Missing fuel',
+                'fuel_charge_text': 'You will be charged for the missing fuel + refueling fee.',
+                'damage_details': 'Damage Details',
+                'croqui_label': 'Damage Sketch:',
+                'photos_label': 'Damage Photos:',
+                'observations_title': 'Observations',
+                'next_steps_title': 'Next Steps',
+                'next_steps_1': 'Our team will analyze the detected incidents and contact you shortly for clarification.',
+                'next_steps_2': 'If you have any questions, please do not hesitate to contact us using the details below.',
+                'closing_1': 'Thank you for your understanding and cooperation.',
+                'closing_2': '<strong>Best regards,</strong><br>Auto Prudente Rent a Car',
+                'contacts_title': 'Useful Contacts',
+                'office': 'OFFICE',
+                'emergency': '24H EMERGENCY'
+            },
+            'fr': {
+                'subject_damages': 'Dommages Détectés',
+                'subject_fuel': 'Avertissement Carburant',
+                'subject_prefix': 'Self-Checkout avec Incidents',
+                'title': 'Self Checkout - Incidents Détectés',
+                'greeting': f'Cher {client_name},',
+                'intro_1': f'Merci d\'avoir effectué le self checkout du véhicule <strong>{plate}</strong>. Cependant, lors de la validation, notre équipe a détecté certaines divergences qui nécessitent des éclaircissements.',
+                'intro_2': 'Nous analyserons attentivement la situation et vous contacterons dans les prochaines heures pour résoudre cette question.',
+                'contract': 'Contrat',
+                'plate': 'Plaque',
+                'odometer_checkin': 'Odomètre Check-in',
+                'odometer_return': 'Odomètre Retour',
+                'km_driven': 'KMs Parcourus',
+                'damage_alert_title': 'Dommages Détectés sur le Véhicule',
+                'damage_alert_text': 'Des dommages ont été détectés sur le véhicule lors de la vérification. Veuillez consulter les détails ci-dessous.',
+                'fuel_warning_title': 'Avertissement Carburant',
+                'fuel_warning_text': 'Le véhicule a été retourné avec moins de carburant qu\'au moment de la livraison.',
+                'fuel_delivery': 'Carburant à la Livraison',
+                'fuel_return': 'Carburant au Retour',
+                'fuel_missing': 'Carburant manquant',
+                'fuel_charge_text': 'Le montant correspondant au carburant manquant + frais de ravitaillement sera facturé.',
+                'damage_details': 'Détails des Dommages',
+                'croqui_label': 'Croquis des Dommages:',
+                'photos_label': 'Photos des Dommages:',
+                'observations_title': 'Observations',
+                'next_steps_title': 'Prochaines Étapes',
+                'next_steps_1': 'Notre équipe analysera les incidents détectés et vous contactera prochainement pour clarification.',
+                'next_steps_2': 'Si vous avez des questions, n\'hésitez pas à nous contacter via les coordonnées ci-dessous.',
+                'closing_1': 'Nous vous remercions de votre compréhension et coopération.',
+                'closing_2': '<strong>Cordialement,</strong><br>Auto Prudente Rent a Car',
+                'contacts_title': 'Contacts Utiles',
+                'office': 'BUREAU',
+                'emergency': 'URGENCE 24H'
+            }
+        }
+        
+        # Get translations for the selected language
+        t = translations.get(lang, translations['pt'])
+        
         # Build email subject
         subject_parts = []
         if has_damages:
-            subject_parts.append("Danos Detectados")
+            subject_parts.append(t['subject_damages'])
         if has_fuel_warning:
-            subject_parts.append("Advertência de Combustível")
+            subject_parts.append(t['subject_fuel'])
         
-        subject = f"⚠️ Self-Checkout com Incidentes - {' e '.join(subject_parts)} - {plate}"
+        subject = f"⚠️ {t['subject_prefix']} - {' e ' if lang == 'pt' else ' and ' if lang == 'en' else ' et '}{' '.join(subject_parts)} - {plate}"
         
         # Build HTML content using the same template as warning emails
         html_content = f'''
 <!DOCTYPE html>
-<html lang="pt">
+<html lang="{lang}">
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Self Checkout - Incidências Detectadas</title>
+    <title>{t['title']}</title>
     <style>
         body {{ margin: 0; padding: 0; font-family: Arial, sans-serif; background-color: #f4f4f4; }}
         .email-container {{ max-width: 600px; min-width: 320px; margin: 0 auto; background-color: #ffffff; }}
@@ -34108,32 +34218,32 @@ def _send_invalidation_email(
 
     <!-- Greeting - FIRST -->
     <div style="padding: 20px;">
-        <h2 style="color: #333333; margin: 0 0 15px 0; font-size: 18px;">Caro {client_name},</h2>
-        <p style="color: #666666; line-height: 1.6; margin: 0 0 12px 0; font-size: 14px;">Agradecemos o self checkout do veículo <strong>{plate}</strong>. No entanto, durante a validação, a nossa equipa detectou algumas divergências que necessitam de esclarecimento.</p>
-        <p style="color: #666666; line-height: 1.6; margin: 0; font-size: 14px;">Iremos analisar a situação com atenção e entraremos em contacto consigo nas próximas horas para resolver esta questão.</p>
+        <h2 style="color: #333333; margin: 0 0 15px 0; font-size: 18px;">{t['greeting']}</h2>
+        <p style="color: #666666; line-height: 1.6; margin: 0 0 12px 0; font-size: 14px;">{t['intro_1']}</p>
+        <p style="color: #666666; line-height: 1.6; margin: 0; font-size: 14px;">{t['intro_2']}</p>
     </div>
 
     <!-- Info Grid: Contrato e Matrícula -->
     <div style="padding: 20px;">
         <table width="100%" cellpadding="0" cellspacing="0" style="border: 1px solid #e5e7eb; border-radius: 8px; overflow: hidden;">
             <tr>
-                <td style="padding: 12px 15px; background-color: #f9fafb; font-weight: bold; width: 40%; border-bottom: 1px solid #e5e7eb; color: #374151;">Contrato</td>
+                <td style="padding: 12px 15px; background-color: #f9fafb; font-weight: bold; width: 40%; border-bottom: 1px solid #e5e7eb; color: #374151;">{t['contract']}</td>
                 <td style="padding: 12px 15px; border-bottom: 1px solid #e5e7eb; color: #111827;">{contract_number}</td>
             </tr>
             <tr>
-                <td style="padding: 12px 15px; background-color: #f9fafb; font-weight: bold; width: 40%; border-bottom: 1px solid #e5e7eb; color: #374151;">Matrícula</td>
+                <td style="padding: 12px 15px; background-color: #f9fafb; font-weight: bold; width: 40%; border-bottom: 1px solid #e5e7eb; color: #374151;">{t['plate']}</td>
                 <td style="padding: 12px 15px; border-bottom: 1px solid #e5e7eb; color: #111827;">{plate}</td>
             </tr>
             <tr>
-                <td style="padding: 12px 15px; background-color: #f9fafb; font-weight: bold; width: 40%; border-bottom: 1px solid #e5e7eb; color: #374151;">Odómetro Check-in</td>
+                <td style="padding: 12px 15px; background-color: #f9fafb; font-weight: bold; width: 40%; border-bottom: 1px solid #e5e7eb; color: #374151;">{t['odometer_checkin']}</td>
                 <td style="padding: 12px 15px; border-bottom: 1px solid #e5e7eb; color: #111827;">{checkin_odometer:,} km</td>
             </tr>
             <tr>
-                <td style="padding: 12px 15px; background-color: #f9fafb; font-weight: bold; width: 40%; border-bottom: 1px solid #e5e7eb; color: #374151;">Odómetro Devolução</td>
+                <td style="padding: 12px 15px; background-color: #f9fafb; font-weight: bold; width: 40%; border-bottom: 1px solid #e5e7eb; color: #374151;">{t['odometer_return']}</td>
                 <td style="padding: 12px 15px; border-bottom: 1px solid #e5e7eb; color: #111827;">{odometer_reading:,} km</td>
             </tr>
             <tr>
-                <td style="padding: 12px 15px; background-color: #f9fafb; font-weight: bold; width: 40%; color: #374151;">KMs Percorridos</td>
+                <td style="padding: 12px 15px; background-color: #f9fafb; font-weight: bold; width: 40%; color: #374151;">{t['km_driven']}</td>
                 <td style="padding: 12px 15px; color: #059669; font-weight: bold;">{odometer_reading - checkin_odometer:,} km</td>
             </tr>
         </table>
@@ -34145,9 +34255,9 @@ def _send_invalidation_email(
             html_content += f'''
     <!-- Damage Alert (Red) -->
     <div style="background: #fef2f2; border-left: 4px solid #dc2626; padding: 20px; margin: 20px; border-radius: 8px;">
-        <h3 style="color: #dc2626; margin: 0 0 10px 0; font-size: 16px; font-weight: 600;">Danos Detectados no Veículo</h3>
+        <h3 style="color: #dc2626; margin: 0 0 10px 0; font-size: 16px; font-weight: 600;">{t['damage_alert_title']}</h3>
         <p style="color: #991b1b; margin: 0; font-size: 13px; line-height: 1.5;">
-            Foram detectados danos no veículo durante a verificação. Consulte os detalhes abaixo.
+            {t['damage_alert_text']}
         </p>
     </div>
 '''
@@ -34174,9 +34284,9 @@ def _send_invalidation_email(
             html_content += f'''
     <!-- Fuel Warning Section (White background, Orange left border) -->
     <div style="background: #ffffff; border: 1px solid #e5e7eb; border-left: 4px solid #f97316; padding: 20px; margin: 20px; border-radius: 8px;">
-        <h3 style="color: #f97316; margin: 0 0 10px 0; font-size: 16px; font-weight: 600;">Advertência de Combustível</h3>
+        <h3 style="color: #f97316; margin: 0 0 10px 0; font-size: 16px; font-weight: 600;">{t['fuel_warning_title']}</h3>
         <p style="color: #666666; margin: 0 0 20px 0; font-size: 13px; line-height: 1.5;">
-            O veículo foi devolvido com menos combustível do que no momento da entrega.
+            {t['fuel_warning_text']}
         </p>
         
         <!-- Fuel bars HTML puro -->
@@ -34184,11 +34294,11 @@ def _send_invalidation_email(
             <tr>
                 <!-- Barra de combustível da entrega -->
                 <td style="width: 48%; padding: 10px; text-align: center;">
-                    <p style="color: #374151; margin: 0 0 10px 0; font-size: 14px; font-weight: 600;">Combustível na Entrega</p>
+                    <p style="color: #374151; margin: 0 0 10px 0; font-size: 14px; font-weight: 600;">{t['fuel_delivery']}</p>
                     <!-- Barra visual maior -->
-                    <table width="100%" cellpadding="0" cellspacing="0" border="0" style="background-color: #e5e7eb; border: 2px solid #00bcd4; border-radius: 6px;">
+                    <table width="100%" cellpadding="0" cellspacing="0" border="0" style="background-color: #e5e7eb; border: 2px solid #10b981; border-radius: 6px;">
                         <tr>
-                            <td width="{checkin_fuel}%" height="40" bgcolor="#00bcd4" style="background: linear-gradient(90deg, #00bcd4, #0097a7); font-size: 1px; line-height: 1px; border-radius: 4px 0 0 4px;">&nbsp;</td>
+                            <td width="{checkin_fuel}%" height="40" bgcolor="#10b981" style="background-color: #10b981; font-size: 1px; line-height: 1px; border-radius: 4px 0 0 4px;">&nbsp;</td>
                             <td width="{100-checkin_fuel}%" height="40" bgcolor="#e5e7eb" style="background-color: #e5e7eb; font-size: 1px; line-height: 1px;">&nbsp;</td>
                         </tr>
                     </table>
@@ -34202,17 +34312,17 @@ def _send_invalidation_email(
                             <td style="width: 0%; text-align: right; font-size: 11px; color: #6b7280; font-weight: 500;">F</td>
                         </tr>
                     </table>
-                    <p style="color: #00bcd4; margin: 12px 0 0 0; font-size: 28px; font-weight: bold;">{entrega_text}</p>
+                    <p style="color: #10b981; margin: 12px 0 0 0; font-size: 28px; font-weight: bold;">{entrega_text}</p>
                 </td>
                 <!-- Espaçador -->
                 <td style="width: 4%;"></td>
                 <!-- Barra de combustível da recolha -->
                 <td style="width: 48%; padding: 10px; text-align: center;">
-                    <p style="color: #374151; margin: 0 0 10px 0; font-size: 14px; font-weight: 600;">Combustível na Devolução</p>
+                    <p style="color: #374151; margin: 0 0 10px 0; font-size: 14px; font-weight: 600;">{t['fuel_return']}</p>
                     <!-- Barra visual maior -->
                     <table width="100%" cellpadding="0" cellspacing="0" border="0" style="background-color: #e5e7eb; border: 2px solid #f59e0b; border-radius: 6px;">
                         <tr>
-                            <td width="{fuel_level}%" height="40" bgcolor="#f59e0b" style="background: linear-gradient(90deg, #f59e0b, #d97706); font-size: 1px; line-height: 1px; border-radius: 4px 0 0 4px;">&nbsp;</td>
+                            <td width="{fuel_level}%" height="40" bgcolor="#f59e0b" style="background-color: #f59e0b; font-size: 1px; line-height: 1px; border-radius: 4px 0 0 4px;">&nbsp;</td>
                             <td width="{100-fuel_level}%" height="40" bgcolor="#e5e7eb" style="background-color: #e5e7eb; font-size: 1px; line-height: 1px;">&nbsp;</td>
                         </tr>
                     </table>
@@ -34234,10 +34344,10 @@ def _send_invalidation_email(
         <!-- Difference info -->
         <div style="text-align: center; padding: 15px; border-top: 1px solid #e5e7eb;">
             <p style="color: #f97316; margin: 0 0 5px 0; font-size: 15px; font-weight: 600;">
-                Combustível em falta: {fuel_diff}%
+                {t['fuel_missing']}: {fuel_diff}%
             </p>
             <p style="color: #666666; margin: 0; font-size: 13px;">
-                Será cobrado o valor correspondente ao combustível em falta + taxa de reabastecimento.
+                {t['fuel_charge_text']}
             </p>
         </div>
     </div>
@@ -34245,25 +34355,25 @@ def _send_invalidation_email(
         
         # Damage Details section
         if has_damages:
-            html_content += '''
+            html_content += f'''
     <!-- Damage Details Section -->
     <div style="background: #ffffff; border: 1px solid #e5e7eb; padding: 20px; margin: 20px; border-radius: 8px;">
-        <h3 style="color: #333333; margin: 0 0 15px 0; font-size: 16px; font-weight: 600;">Detalhes dos Danos</h3>
+        <h3 style="color: #333333; margin: 0 0 15px 0; font-size: 16px; font-weight: 600;">{t['damage_details']}</h3>
 '''
             # Croqui - usar base64 inline
             if damage_croqui and len(damage_croqui) > 100:
                 croqui_src = damage_croqui if damage_croqui.startswith('data:') else f'data:image/png;base64,{damage_croqui}'
                 html_content += f'''
-        <p style="color: #666666; margin: 0 0 10px 0; font-size: 13px;"><strong>Croqui de Danos:</strong></p>
+        <p style="color: #666666; margin: 0 0 10px 0; font-size: 13px;"><strong>{t['croqui_label']}</strong></p>
         <div style="text-align: center; margin-bottom: 15px;">
-            <img src="{croqui_src}" alt="Croqui de Danos" style="max-width: 100%; height: auto; border-radius: 8px; border: 1px solid #e5e7eb;">
+            <img src="{croqui_src}" alt="{t['croqui_label']}" style="max-width: 100%; height: auto; border-radius: 8px; border: 1px solid #e5e7eb;">
         </div>
 '''
             
             # Photos grid 3x3 - usar base64 inline
             if damage_photos:
-                html_content += '''
-        <p style="color: #666666; margin: 0 0 10px 0; font-size: 13px;"><strong>Fotos dos Danos:</strong></p>
+                html_content += f'''
+        <p style="color: #666666; margin: 0 0 10px 0; font-size: 13px;"><strong>{t['photos_label']}</strong></p>
         <table width="100%" cellpadding="5" cellspacing="0">
 '''
                 for i in range(0, len(damage_photos), 3):
@@ -34285,21 +34395,21 @@ def _send_invalidation_email(
             html_content += f'''
     <!-- Observations Section -->
     <div style="background: #f9fafb; border: 1px solid #e5e7eb; padding: 20px; margin: 20px; border-radius: 8px;">
-        <h3 style="color: #374151; margin: 0 0 10px 0; font-size: 16px; font-weight: 600;">Observações</h3>
+        <h3 style="color: #374151; margin: 0 0 10px 0; font-size: 16px; font-weight: 600;">{t['observations_title']}</h3>
         <p style="color: #6b7280; margin: 0; font-size: 13px; line-height: 1.5;">{observations}</p>
     </div>
 '''
         
         # Next Steps section (Yellow/Orange)
-        html_content += '''
+        html_content += f'''
     <!-- Next Steps -->
     <div style="background: #fffbeb; border-left: 4px solid #f59e0b; padding: 20px; margin: 20px; border-radius: 8px;">
-        <h3 style="color: #b45309; margin: 0 0 10px 0; font-size: 16px; font-weight: 600;">Próximos Passos</h3>
+        <h3 style="color: #b45309; margin: 0 0 10px 0; font-size: 16px; font-weight: 600;">{t['next_steps_title']}</h3>
         <p style="color: #92400e; margin: 0 0 10px 0; font-size: 13px; line-height: 1.5;">
-            A nossa equipa irá analisar as incidências detectadas e entrar em contacto consigo brevemente para esclarecimentos.
+            {t['next_steps_1']}
         </p>
         <p style="color: #92400e; margin: 0; font-size: 13px; line-height: 1.5;">
-            Caso tenha alguma questão, não hesite em contactar-nos através dos contactos abaixo.
+            {t['next_steps_2']}
         </p>
     </div>
 
@@ -34308,8 +34418,8 @@ def _send_invalidation_email(
 
     <!-- Closing -->
     <div style="padding: 20px;">
-        <p style="color: #666666; line-height: 1.6; margin: 0 0 10px 0; font-size: 14px;">Agradecemos a sua compreensão e colaboração.</p>
-        <p style="color: #666666; line-height: 1.6; margin: 0; font-size: 14px;"><strong>Atentamente,</strong><br>Auto Prudente Rent a Car</p>
+        <p style="color: #666666; line-height: 1.6; margin: 0 0 10px 0; font-size: 14px;">{t['closing_1']}</p>
+        <p style="color: #666666; line-height: 1.6; margin: 0; font-size: 14px;">{t['closing_2']}</p>
     </div>
 
     <!-- Separator Line -->
@@ -34317,19 +34427,19 @@ def _send_invalidation_email(
 
     <!-- Contactos Úteis Section -->
     <div style="padding: 20px; background-color: #f0f9fb;">
-        <h3 style="color: #00bcd4; margin: 0 0 20px 0; font-size: 20px; text-align: center; font-weight: bold;">Contactos Úteis</h3>
+        <h3 style="color: #00bcd4; margin: 0 0 20px 0; font-size: 20px; text-align: center; font-weight: bold;">{t['contacts_title']}</h3>
         
         <div style="max-width: 500px; margin: 0 auto;">
             <table width="100%" cellpadding="10" cellspacing="0" style="background: white; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
                 <tr>
                     <td style="text-align: center; padding: 15px; border-bottom: 1px solid #e0e0e0;">
-                        <p style="color: #666666; margin: 0 0 5px 0; font-size: 13px; font-weight: bold;">ESCRITÓRIO</p>
+                        <p style="color: #666666; margin: 0 0 5px 0; font-size: 13px; font-weight: bold;">{t['office']}</p>
                         <p style="color: #00bcd4; margin: 0; font-size: 16px; font-weight: bold;">+351 289 542 160</p>
                     </td>
                 </tr>
                 <tr>
                     <td style="text-align: center; padding: 15px; border-bottom: 1px solid #e0e0e0;">
-                        <p style="color: #666666; margin: 0 0 5px 0; font-size: 13px; font-weight: bold;">ASSISTÊNCIA EM VIAGEM</p>
+                        <p style="color: #666666; margin: 0 0 5px 0; font-size: 13px; font-weight: bold;">{t['emergency']}</p>
                         <p style="color: #00bcd4; margin: 0; font-size: 16px; font-weight: bold;">+351 273 880 250</p>
                     </td>
                 </tr>
@@ -48850,6 +48960,8 @@ async def get_inspection_details(inspection_number: str, request: Request):
             
             # For self_checkout, if inspector_name is empty or "Cliente", fetch real client name from rental_agreement
             inspector_name = inspection_row[5]
+            expected_return_date = None
+            
             if inspection_type == 'self_checkout' and (not inspector_name or inspector_name == 'Cliente'):
                 cursor.execute("""
                     SELECT extracted_data FROM rental_agreements WHERE rental_agreement_number = %s
@@ -48864,6 +48976,32 @@ async def get_inspection_details(inspection_number: str, request: Request):
                         inspector_name = extracted_data.get('clientName') or extracted_data.get('client_name') or extracted_data.get('nome_cliente') or 'Cliente'
                     except:
                         inspector_name = 'Cliente'
+            
+            # For checkin inspections, fetch the expected return date from RA
+            if inspection_type == 'checkin' and contract_number:
+                cursor.execute("""
+                    SELECT return_date, extracted_data FROM rental_agreements WHERE rental_agreement_number = %s
+                """ if is_postgres else """
+                    SELECT return_date, extracted_data FROM rental_agreements WHERE rental_agreement_number = ?
+                """, (contract_number,))
+                ra_row = cursor.fetchone()
+                if ra_row:
+                    # Try return_date column first
+                    if ra_row[0]:
+                        expected_return_date = ra_row[0]
+                    # Fallback to extracted_data
+                    elif ra_row[1]:
+                        try:
+                            import json
+                            extracted_data = json.loads(ra_row[1])
+                            expected_return_date = extracted_data.get('returnDate') or extracted_data.get('return_date')
+                        except:
+                            pass
+                    
+                    # Convert DD/MM/YYYY to YYYY-MM-DD for HTML date input
+                    if expected_return_date and '/' in expected_return_date:
+                        day, month, year = expected_return_date.split('/')
+                        expected_return_date = f"{year}-{month}-{day}"
             
             inspection = {
                 "inspection_number": inspection_row[1],
@@ -48880,7 +49018,8 @@ async def get_inspection_details(inspection_number: str, request: Request):
                 "photos": photos,
                 "damage_croqui": damage_croqui,
                 "damage_photos": damage_photos,
-                "signature": signature
+                "signature": signature,
+                "expected_return_date": expected_return_date
             }
             
             # Debug logging
@@ -49293,6 +49432,73 @@ async def update_inspection(inspection_number: str, request: Request):
             query = f"UPDATE vehicle_inspections SET {', '.join(update_fields)} WHERE inspection_number = {'%s' if _USE_NEW_DB else '?'}"
             cursor.execute(query, tuple(update_values))
             logging.info(f"✅ Updated inspection fields: {', '.join(update_fields)}")
+        
+        # Update expected return date in RA if provided (only for checkin inspections)
+        if 'expected_return_date' in data and data['expected_return_date']:
+            # Get inspection type and contract number
+            if _USE_NEW_DB:
+                cursor.execute("""
+                    SELECT inspection_type, contract_number 
+                    FROM vehicle_inspections 
+                    WHERE inspection_number = %s
+                """, (inspection_number,))
+            else:
+                cursor.execute("""
+                    SELECT inspection_type, contract_number 
+                    FROM vehicle_inspections 
+                    WHERE inspection_number = ?
+                """, (inspection_number,))
+            
+            inspection_info = cursor.fetchone()
+            if inspection_info and inspection_info[0] == 'checkin' and inspection_info[1]:
+                inspection_type, contract_number = inspection_info
+                
+                # Get current extracted_data
+                if _USE_NEW_DB:
+                    cursor.execute("""
+                        SELECT extracted_data, return_date 
+                        FROM rental_agreements 
+                        WHERE rental_agreement_number = %s
+                    """, (contract_number,))
+                else:
+                    cursor.execute("""
+                        SELECT extracted_data, return_date 
+                        FROM rental_agreements 
+                        WHERE rental_agreement_number = ?
+                    """, (contract_number,))
+                
+                ra_row = cursor.fetchone()
+                if ra_row:
+                    import json
+                    extracted_data = json.loads(ra_row[0]) if ra_row[0] else {}
+                    
+                    # Convert YYYY-MM-DD to DD/MM/YYYY
+                    new_return_date = data['expected_return_date']
+                    if '-' in new_return_date:
+                        year, month, day = new_return_date.split('-')
+                        formatted_date = f"{day}/{month}/{year}"
+                    else:
+                        formatted_date = new_return_date
+                    
+                    # Update extracted_data
+                    extracted_data['returnDate'] = formatted_date
+                    extracted_data['return_date'] = formatted_date
+                    
+                    # Update RA
+                    if _USE_NEW_DB:
+                        cursor.execute("""
+                            UPDATE rental_agreements 
+                            SET extracted_data = %s, return_date = %s
+                            WHERE rental_agreement_number = %s
+                        """, (json.dumps(extracted_data), formatted_date, contract_number))
+                    else:
+                        cursor.execute("""
+                            UPDATE rental_agreements 
+                            SET extracted_data = ?, return_date = ?
+                            WHERE rental_agreement_number = ?
+                        """, (json.dumps(extracted_data), formatted_date, contract_number))
+                    
+                    logging.info(f"✅ Updated return date in RA {contract_number}: {formatted_date}")
         
         # Update damage croqui if provided
         if 'damage_croqui' in data and data['damage_croqui']:
