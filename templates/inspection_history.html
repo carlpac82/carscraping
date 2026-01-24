@@ -819,7 +819,7 @@
         async function showEmailModal(checkoutNumber, checkinNumber, plate, ra, isOpen = false, hasSelfCheckout = false) {
             console.log('📧 showEmailModal called with:', { checkoutNumber, checkinNumber, plate, ra, isOpen, hasSelfCheckout });
             const inspectionNumber = checkoutNumber || checkinNumber;
-            if (!inspectionNumber && !isOpen) return;
+            if (!inspectionNumber && !isOpen && !hasSelfCheckout) return;
             
             // Get inspection to fetch client email
             let clientEmail = '';
