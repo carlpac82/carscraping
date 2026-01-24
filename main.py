@@ -25589,17 +25589,14 @@ def _generate_checkin_status_alert(lang, has_fuel_incident, has_damage_incident,
         <table width="100%" cellpadding="0" cellspacing="0" style="margin-bottom: 20px;">
             <tr>
                 <!-- Check-in fuel -->
-                <td style="width: 48%; padding: 10px; text-align: center; vertical-align: top;">
+                <td style="width: 48%; padding: 10px; text-align: center;">
                     <p style="color: #374151; margin: 0 0 10px 0; font-size: 13px; font-weight: 600;">{labels['delivery']}</p>
-                    <!-- Visual fuel bar using table for Outlook compatibility -->
-                    <table cellpadding="0" cellspacing="0" border="0" width="{bar_width}" style="margin: 0 auto; border: 2px solid #00bcd4;">
-                        <tr>
-                            <td width="{entrega_fill}" height="30" bgcolor="#00bcd4" style="background-color: #00bcd4; font-size: 1px; line-height: 1px;">&nbsp;</td>
-                            <td width="{entrega_empty}" height="30" bgcolor="#e5e7eb" style="background-color: #e5e7eb; font-size: 1px; line-height: 1px;">&nbsp;</td>
-                        </tr>
-                    </table>
+                    <!-- Visual fuel bar -->
+                    <div style="position: relative; background: #e5e7eb; border: 2px solid #00bcd4; border-radius: 6px; height: 30px; overflow: hidden;">
+                        <div style="background: linear-gradient(90deg, #00bcd4, #0097a7); height: 100%; width: {entrega_pct}%; border-radius: 4px;"></div>
+                    </div>
                     <!-- Fuel markers -->
-                    <table width="{bar_width}" cellpadding="0" cellspacing="0" style="margin: 4px auto 0 auto;">
+                    <table width="100%" cellpadding="0" cellspacing="0" style="margin-top: 4px;">
                         <tr>
                             <td style="width: 0%; text-align: left; font-size: 10px; color: #6b7280;">E</td>
                             <td style="width: 25%; text-align: center; font-size: 10px; color: #6b7280;">1/4</td>
@@ -25613,17 +25610,14 @@ def _generate_checkin_status_alert(lang, has_fuel_incident, has_damage_incident,
                 <!-- Spacer -->
                 <td style="width: 4%;"></td>
                 <!-- Checkout fuel -->
-                <td style="width: 48%; padding: 10px; text-align: center; vertical-align: top;">
+                <td style="width: 48%; padding: 10px; text-align: center;">
                     <p style="color: #374151; margin: 0 0 10px 0; font-size: 13px; font-weight: 600;">{labels['pickup']}</p>
-                    <!-- Visual fuel bar using table for Outlook compatibility -->
-                    <table cellpadding="0" cellspacing="0" border="0" width="{bar_width}" style="margin: 0 auto; border: 2px solid #00bcd4;">
-                        <tr>
-                            <td width="{recolha_fill}" height="30" bgcolor="#00bcd4" style="background-color: #00bcd4; font-size: 1px; line-height: 1px;">&nbsp;</td>
-                            <td width="{recolha_empty}" height="30" bgcolor="#e5e7eb" style="background-color: #e5e7eb; font-size: 1px; line-height: 1px;">&nbsp;</td>
-                        </tr>
-                    </table>
+                    <!-- Visual fuel bar -->
+                    <div style="position: relative; background: #e5e7eb; border: 2px solid #00bcd4; border-radius: 6px; height: 30px; overflow: hidden;">
+                        <div style="background: linear-gradient(90deg, #00bcd4, #0097a7); height: 100%; width: {recolha_pct}%; border-radius: 4px;"></div>
+                    </div>
                     <!-- Fuel markers -->
-                    <table width="{bar_width}" cellpadding="0" cellspacing="0" style="margin: 4px auto 0 auto;">
+                    <table width="100%" cellpadding="0" cellspacing="0" style="margin-top: 4px;">
                         <tr>
                             <td style="width: 0%; text-align: left; font-size: 10px; color: #6b7280;">E</td>
                             <td style="width: 25%; text-align: center; font-size: 10px; color: #6b7280;">1/4</td>
@@ -25638,18 +25632,14 @@ def _generate_checkin_status_alert(lang, has_fuel_incident, has_damage_incident,
         </table>
         
         <!-- Difference info -->
-        <table width="100%" cellpadding="15" cellspacing="0" style="border-top: 1px solid #e5e7eb;">
-            <tr>
-                <td style="text-align: center;">
-                    <p style="color: #f97316; margin: 0 0 5px 0; font-size: 14px;">
-                        <strong>{labels['missing']}: {fuel_diff}%</strong>
-                    </p>
-                    <p style="color: #666666; margin: 0; font-size: 13px;">
-                        {labels['charge']}
-                    </p>
-                </td>
-            </tr>
-        </table>
+        <div style="text-align: center; padding: 15px; border-top: 1px solid #e5e7eb;">
+            <p style="color: #f97316; margin: 0 0 5px 0; font-size: 14px;">
+                <strong>{labels['missing']}: {fuel_diff}%</strong>
+            </p>
+            <p style="color: #666666; margin: 0; font-size: 13px;">
+                {labels['charge']}
+            </p>
+        </div>
                 """
             
             alerts.append(f"""
