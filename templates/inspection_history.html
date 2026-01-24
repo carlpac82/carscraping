@@ -4014,11 +4014,44 @@
         
         async function captureInvalidateFinalCroqui() {
             try {
-                // Just return the drawn damages canvas
-                if (invalidateCroquiCanvas) {
-                    return invalidateCroquiCanvas.toDataURL('image/png');
+                const img = document.getElementById('invalidateCroquiImg');
+                const bgLayer = document.getElementById('invalidateCroquiBg');
+                
+                if (!invalidateCroquiCanvas || !img) {
+                    return '';
                 }
-                return '';
+                
+                // Create a combined canvas with all layers
+                const combinedCanvas = document.createElement('canvas');
+                combinedCanvas.width = invalidateCroquiCanvas.width;
+                combinedCanvas.height = invalidateCroquiCanvas.height;
+                const ctx = combinedCanvas.getContext('2d');
+                
+                // 1. Draw the car image (base layer)
+                ctx.drawImage(img, 0, 0, combinedCanvas.width, combinedCanvas.height);
+                
+                // 2. Draw the check-in croqui (if exists) as semi-transparent overlay
+                if (bgLayer && bgLayer.style.backgroundImage) {
+                    const bgUrl = bgLayer.style.backgroundImage.slice(5, -2); // Remove url(' and ')
+                    if (bgUrl && bgUrl.startsWith('data:')) {
+                        await new Promise((resolve) => {
+                            const bgImg = new Image();
+                            bgImg.onload = () => {
+                                ctx.globalAlpha = 0.8;
+                                ctx.drawImage(bgImg, 0, 0, combinedCanvas.width, combinedCanvas.height);
+                                ctx.globalAlpha = 1.0;
+                                resolve();
+                            };
+                            bgImg.onerror = resolve;
+                            bgImg.src = bgUrl;
+                        });
+                    }
+                }
+                
+                // 3. Draw the new damages (top layer)
+                ctx.drawImage(invalidateCroquiCanvas, 0, 0);
+                
+                return combinedCanvas.toDataURL('image/png');
             } catch (e) {
                 console.log('Error capturing croqui:', e);
                 return '';
