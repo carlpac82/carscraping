@@ -992,47 +992,36 @@ def generate_fuel_bars_image(entrega_pct, recolha_pct, entrega_label, recolha_la
     """
     Gera uma imagem PNG com as duas barras de combustível lado a lado.
     
-    Args:
-        entrega_pct: Percentagem de combustível na entrega (0-100)
-        recolha_pct: Percentagem de combustível na recolha (0-100)
-        entrega_label: Texto da fração na entrega (ex: "3/4", "CHEIO")
-        recolha_label: Texto da fração na recolha (ex: "1/2", "RESERVA")
-        delivery_text: Label "Combustível na Entrega" (traduzido)
-        pickup_text: Label "Combustível na Devolução" (traduzido)
-        lang: Idioma ('pt', 'en', 'fr')
-    
-    Returns:
-        String base64 da imagem PNG (data:image/png;base64,...)
     """
     try:
         from PIL import Image, ImageDraw, ImageFont
-        import base64
         import io
+        import base64
         
-        # Dimensões da imagem
-        width = 600
-        height = 200
-        
-        # Criar imagem com fundo branco
+        # Dimensões da imagem (2x para melhor qualidade)
+        scale = 2
+        width = 600 * scale
+        height = 200 * scale
         img = Image.new('RGB', (width, height), color='white')
         draw = ImageDraw.Draw(img)
         
-        # Tentar carregar fonte, senão usar default
+        # Configurações das barras (escaladas)
+        bar_width = 250 * scale
+        bar_height = 40 * scale
+        bar_y = 60 * scale
+        spacing = 20 * scale
+        left_bar_x = (width - (2 * bar_width + spacing)) // 2
+        right_bar_x = left_bar_x + bar_width + spacing
+        
+        # Fontes (escaladas)
         try:
-            title_font = ImageFont.truetype("/System/Library/Fonts/Helvetica.ttc", 14)
-            label_font = ImageFont.truetype("/System/Library/Fonts/Helvetica.ttc", 28)
-            marker_font = ImageFont.truetype("/System/Library/Fonts/Helvetica.ttc", 10)
+            title_font = ImageFont.truetype("/System/Library/Fonts/Helvetica.ttc", 14 * scale)
+            marker_font = ImageFont.truetype("/System/Library/Fonts/Helvetica.ttc", 11 * scale)
+            label_font = ImageFont.truetype("/System/Library/Fonts/Helvetica.ttc", 28 * scale)
         except:
             title_font = ImageFont.load_default()
-            label_font = ImageFont.load_default()
             marker_font = ImageFont.load_default()
-        
-        # Posições das duas barras
-        bar_width = 260
-        bar_height = 30
-        left_bar_x = 20
-        right_bar_x = 320
-        bar_y = 60
+            label_font = ImageFont.load_default()
         
         # Cores
         border_color = (0, 188, 212)  # #00bcd4
@@ -1047,37 +1036,46 @@ def generate_fuel_bars_image(entrega_pct, recolha_pct, entrega_label, recolha_la
         # Função para desenhar uma barra com bordas arredondadas
         def draw_fuel_bar(x, y, percentage, title, fraction_text, fraction_color):
             # Título
-            draw.text((x + bar_width//2, y - 30), title, fill=text_dark, font=title_font, anchor="mm")
+            draw.text((x + bar_width//2, y - 30 * scale), title, fill=text_dark, font=title_font, anchor="mm")
             
-            # Raio das bordas arredondadas (maior para ficar mais visível)
-            radius = 12
+            # Raio das bordas arredondadas (escalado)
+            radius = 12 * scale
+            border_width = 2 * scale
             
             # Desenhar fundo da barra com bordas arredondadas
-            draw.rounded_rectangle([x, y, x + bar_width, y + bar_height], radius=radius, fill=bg_color, outline=border_color, width=2)
+            draw.rounded_rectangle([x, y, x + bar_width, y + bar_height], radius=radius, fill=bg_color, outline=border_color, width=border_width)
             
             # Preenchimento com gradiente horizontal suave
             if percentage > 0:
-                fill_width = int((bar_width - 4) * percentage / 100)
+                fill_width = int((bar_width - border_width * 2) * percentage / 100)
                 if fill_width > 0:
-                    # Criar gradiente horizontal suave de ciano para ciano escuro
+                    # Criar uma imagem temporária para o gradiente com bordas arredondadas
+                    gradient_img = Image.new('RGBA', (fill_width, bar_height - border_width * 2), (0, 0, 0, 0))
+                    gradient_draw = ImageDraw.Draw(gradient_img)
+                    
+                    # Desenhar gradiente horizontal suave
                     for i in range(fill_width):
-                        # Interpolação linear entre as cores
-                        ratio = i / max(fill_width, 1)
+                        ratio = i / max(fill_width - 1, 1)
                         r = int(fill_start[0] + (fill_end[0] - fill_start[0]) * ratio)
                         g = int(fill_start[1] + (fill_end[1] - fill_start[1]) * ratio)
                         b = int(fill_start[2] + (fill_end[2] - fill_start[2]) * ratio)
-                        
-                        # Desenhar linha vertical do gradiente
-                        draw.line([(x + 2 + i, y + 2), (x + 2 + i, y + bar_height - 2)], fill=(r, g, b))
+                        gradient_draw.line([(i, 0), (i, bar_height - border_width * 2)], fill=(r, g, b, 255))
                     
-                    # Aplicar máscara de bordas arredondadas no preenchimento
-                    # Criar uma máscara temporária para o preenchimento arredondado
-                    mask = Image.new('L', (fill_width + 4, bar_height), 0)
+                    # Criar máscara com bordas arredondadas
+                    mask = Image.new('L', (fill_width, bar_height - border_width * 2), 0)
                     mask_draw = ImageDraw.Draw(mask)
-                    mask_draw.rounded_rectangle([0, 0, fill_width + 4, bar_height], radius=radius-2, fill=255)
+                    # Usar raio menor para a máscara interna
+                    inner_radius = max(radius - border_width, 0)
+                    mask_draw.rounded_rectangle([0, 0, fill_width, bar_height - border_width * 2], radius=inner_radius, fill=255)
+                    
+                    # Aplicar a máscara ao gradiente
+                    gradient_img.putalpha(mask)
+                    
+                    # Colar o gradiente com máscara na imagem principal
+                    img.paste(gradient_img, (x + border_width, y + border_width), gradient_img)
             
             # Marcadores E, 1/4, 1/2, 3/4, F
-            markers_y = y + bar_height + 8
+            markers_y = y + bar_height + 8 * scale
             draw.text((x, markers_y), "E", fill=text_gray, font=marker_font, anchor="lm")
             draw.text((x + bar_width//4, markers_y), "1/4", fill=text_gray, font=marker_font, anchor="mm")
             draw.text((x + bar_width//2, markers_y), "1/2", fill=text_gray, font=marker_font, anchor="mm")
@@ -1085,7 +1083,7 @@ def generate_fuel_bars_image(entrega_pct, recolha_pct, entrega_label, recolha_la
             draw.text((x + bar_width, markers_y), "F", fill=text_gray, font=marker_font, anchor="rm")
             
             # Texto da fração (grande e bold)
-            fraction_y = y + bar_height + 40
+            fraction_y = y + bar_height + 40 * scale
             draw.text((x + bar_width//2, fraction_y), fraction_text, fill=fraction_color, font=label_font, anchor="mm")
         
         # Desenhar barra da entrega (esquerda, azul)
@@ -1093,6 +1091,9 @@ def generate_fuel_bars_image(entrega_pct, recolha_pct, entrega_label, recolha_la
         
         # Desenhar barra da recolha (direita, laranja)
         draw_fuel_bar(right_bar_x, bar_y, recolha_pct, pickup_text, recolha_label, orange_text)
+        
+        # Redimensionar para tamanho final com anti-aliasing
+        img = img.resize((width // scale, height // scale), Image.Resampling.LANCZOS)
         
         # Converter para base64
         buffer = io.BytesIO()
