@@ -1804,6 +1804,8 @@
 
         // Edit inspection (fuel, sketch, kilometers)
         async function editInspection(inspectionNumber, type) {
+            console.log('🔧 editInspection called with:', {inspectionNumber, type});
+            
             // Set current inspection type for color coding
             currentInspectionType = type;
             
