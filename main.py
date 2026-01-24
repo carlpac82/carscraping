@@ -25707,7 +25707,7 @@ def _generate_checkin_status_alert(lang, has_fuel_incident, has_damage_incident,
                     <!-- Barra visual -->
                     <table width="100%" cellpadding="0" cellspacing="0" border="0" style="background-color: #e5e7eb; border: 2px solid #00bcd4; border-radius: 6px;">
                         <tr>
-                            <td width="{entrega_pct}%" height="30" bgcolor="#00bcd4" style="background: linear-gradient(to right, #4facfe 0%, #00f2fe 100%); font-size: 1px; line-height: 1px; border-radius: 4px 0 0 4px;">&nbsp;</td>
+                            <td width="{entrega_pct}%" height="30" bgcolor="#00bcd4" style="background: linear-gradient(90deg, #00bcd4, #0097a7); font-size: 1px; line-height: 1px; border-radius: 4px 0 0 4px;">&nbsp;</td>
                             <td width="{100-entrega_pct}%" height="30" bgcolor="#e5e7eb" style="background-color: #e5e7eb; font-size: 1px; line-height: 1px;">&nbsp;</td>
                         </tr>
                     </table>
@@ -25731,7 +25731,7 @@ def _generate_checkin_status_alert(lang, has_fuel_incident, has_damage_incident,
                     <!-- Barra visual -->
                     <table width="100%" cellpadding="0" cellspacing="0" border="0" style="background-color: #e5e7eb; border: 2px solid #00bcd4; border-radius: 6px;">
                         <tr>
-                            <td width="{recolha_pct}%" height="30" bgcolor="#00bcd4" style="background: linear-gradient(to right, #4facfe 0%, #00f2fe 100%); font-size: 1px; line-height: 1px; border-radius: 4px 0 0 4px;">&nbsp;</td>
+                            <td width="{recolha_pct}%" height="30" bgcolor="#00bcd4" style="background: linear-gradient(90deg, #00bcd4, #0097a7); font-size: 1px; line-height: 1px; border-radius: 4px 0 0 4px;">&nbsp;</td>
                             <td width="{100-recolha_pct}%" height="30" bgcolor="#e5e7eb" style="background-color: #e5e7eb; font-size: 1px; line-height: 1px;">&nbsp;</td>
                         </tr>
                     </table>
