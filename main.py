@@ -48126,7 +48126,8 @@ async def get_inspections_history(request: Request):
                            vi.fuel_level, vi.odometer_reading, vi.damage_count, vi.status, vi.id,
                            vi.is_self_checkin,
                            ra.extracted_data, ra.self_checkin_email,
-                           vi.has_damage
+                           vi.has_damage,
+                           ra.status, ra.inspection_completed
                     FROM vehicle_inspections vi
                     LEFT JOIN rental_agreements ra ON (
                         ra.rental_agreement_number = vi.contract_number 
@@ -48143,7 +48144,8 @@ async def get_inspections_history(request: Request):
                            vi.fuel_level, vi.odometer_reading, vi.damage_count, vi.status, vi.id,
                            vi.is_self_checkin,
                            ra.extracted_data, ra.self_checkin_email,
-                           vi.has_damage
+                           vi.has_damage,
+                           ra.status, ra.inspection_completed
                     FROM vehicle_inspections vi
                     LEFT JOIN rental_agreements ra ON (
                         ra.rental_agreement_number = vi.contract_number 
@@ -48174,6 +48176,8 @@ async def get_inspections_history(request: Request):
                 # Extract client info from rental agreement
                 extracted_data = row[12] if len(row) > 12 else None
                 self_checkin_email = row[13] if len(row) > 13 else None
+                ra_status = row[15] if len(row) > 15 else None
+                inspection_completed = row[16] if len(row) > 16 else None
                 
                 # DEBUG: Log row data for RA 06727
                 if ra_base == "06727":
@@ -48181,6 +48185,8 @@ async def get_inspections_history(request: Request):
                     logging.info(f"  - contract_number from inspection: '{ra}'")
                     logging.info(f"  - extracted_data (raw): {type(extracted_data)} = {extracted_data[:100] if extracted_data else 'NULL'}")
                     logging.info(f"  - self_checkin_email: {self_checkin_email}")
+                    logging.info(f"  - ra_status: {ra_status}")
+                    logging.info(f"  - inspection_completed: {inspection_completed}")
                 
                 client_name = None
                 client_email = None
@@ -48288,7 +48294,9 @@ async def get_inspections_history(request: Request):
                         "checkout": None,
                         "checkin": None,
                         "self_checkout": None,  # Self-checkout pendente de validação
-                        "latest_date": str(row[5]) if row[5] else None
+                        "latest_date": str(row[5]) if row[5] else None,
+                        "ra_status": ra_status,
+                        "inspection_completed": inspection_completed
                     }
                 else:
                     # Update client info if not already set
