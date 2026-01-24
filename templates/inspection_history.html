@@ -3396,6 +3396,13 @@
                                     </div>
                                     <div class="relative bg-gray-100 border-2 border-cyan-300 rounded-full h-8 mb-3 overflow-hidden">
                                         <div id="invalidateFuelFill" class="h-full bg-gradient-to-r from-cyan-400 to-cyan-600 rounded-full transition-all" style="width: ${selfCheckoutFuel}%;"></div>
+                                        <div class="absolute inset-0 flex justify-between pointer-events-none">
+                                            <span class="w-px h-full bg-gray-400 opacity-50"></span>
+                                            <span class="w-px h-full bg-gray-400 opacity-50"></span>
+                                            <span class="w-px h-full bg-gray-400 opacity-50"></span>
+                                            <span class="w-px h-full bg-gray-400 opacity-50"></span>
+                                            <span class="w-px h-full bg-gray-400 opacity-50"></span>
+                                        </div>
                                     </div>
                                     <input type="range" id="invalidateFuel" class="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer" min="0" max="100" value="${selfCheckoutFuel}" step="5" 
                                            oninput="updateInvalidateFuelDisplay(this.value)" style="accent-color: #00bcd4;">
