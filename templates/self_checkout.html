@@ -1686,9 +1686,8 @@
                 return;
             }
 
-            // Get fuel level
-            const fuelValue = parseInt(document.getElementById('fuelSlider').value);
-            const fuelLevel = fuelLevels[Math.floor(fuelValue / 12.5)];
+            // Get fuel level - enviar valor numérico (0-100)
+            const fuelLevel = parseInt(document.getElementById('fuelSlider').value);
 
             // Collect damage photos with descriptions
             const validDamagePhotos = [];
