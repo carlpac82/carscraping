@@ -48328,6 +48328,8 @@ async def get_inspections_history(request: Request):
                     # Self-checkout pendente de validação - guardar separadamente
                     if not grouped[key].get("self_checkout"):
                         grouped[key]["self_checkout"] = inspection_data
+                        # DEBUG: Log self-checkout status
+                        logging.info(f"🔍 Self-checkout {row[0]} for RA {ra_base}: status = '{row[9]}'")
                 elif row[3] == 'checkin':
                     if not grouped[key]["checkin"]:
                         grouped[key]["checkin"] = inspection_data
