@@ -1214,8 +1214,16 @@
                             }
                         }
                         // Get expected return date and time (try multiple field names)
-                        expectedReturnDate = ed.returnDate || ed.return_date || ed.data_entrega || ed.dropOffDate || ed.dataEntrega || null;
-                        expectedReturnTime = ed.returnTime || ed.return_time || ed.hora_entrega || ed.dropOffTime || ed.horaEntrega || null;
+                        let rawDate = ed.returnDate || ed.return_date || ed.data_entrega || ed.dropOffDate || ed.dataEntrega || null;
+                        let rawTime = ed.returnTime || ed.return_time || ed.hora_entrega || ed.dropOffTime || ed.horaEntrega || null;
+                        // Normalize date format: "21 - 01 - 2026" -> "21/01/2026"
+                        if (rawDate) {
+                            expectedReturnDate = rawDate.replace(/\s*-\s*/g, '/').trim();
+                        }
+                        // Normalize time format: "10 : 00" -> "10:00"
+                        if (rawTime) {
+                            expectedReturnTime = rawTime.replace(/\s*:\s*/g, ':').trim();
+                        }
                         console.log('📅 Expected return date:', expectedReturnDate, 'time:', expectedReturnTime, 'from extracted_data:', ed);
                     }
                 } catch (e) {
