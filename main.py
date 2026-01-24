@@ -33551,6 +33551,25 @@ async def invalidate_self_checkout(request: Request):
                     VALUES (?, 'damage_croqui', ?, CURRENT_TIMESTAMP)
                 """, (checkout_id, croqui_for_checkout))
         
+        # Copiar fotos de danos para o checkout
+        for idx, photo_data in enumerate(damage_photos[:9]):
+            photo_base64_checkout = photo_data
+            if photo_base64_checkout.startswith('data:'):
+                photo_base64_checkout = photo_base64_checkout.split(',', 1)[1] if ',' in photo_base64_checkout else photo_base64_checkout
+            
+            if is_postgres:
+                cursor.execute("""
+                    INSERT INTO inspection_photos (inspection_id, photo_type, image_data, created_at)
+                    VALUES (%s, %s, %s, NOW())
+                """, (checkout_id, f'damage_{idx+1}', photo_base64_checkout))
+            else:
+                cursor.execute("""
+                    INSERT INTO inspection_photos (inspection_id, photo_type, image_data, created_at)
+                    VALUES (?, ?, ?, CURRENT_TIMESTAMP)
+                """, (checkout_id, f'damage_{idx+1}', photo_base64_checkout))
+        
+        logging.info(f"📸 Copied {len(damage_photos)} damage photos to checkout {checkout_inspection_number}")
+        
         # Fechar contrato (marcar status como closed)
         if ra_id:
             if is_postgres:
