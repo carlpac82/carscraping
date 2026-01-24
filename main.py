@@ -25284,57 +25284,37 @@ def _validate_checkin_incidents(cursor, is_postgres, ra, plate, checkin_fuel_lev
     try:
         # Get checkin (entrega) inspection data for same RA and plate to compare with checkout (recolha)
         # checkout (recolha) deve comparar com checkin (entrega anterior)
-        # Try exact RA match first, then try base RA (without suffix like -09)
+        # Extract base RA (without suffix like -09) for flexible matching
+        base_ra = ra.split('-')[0] if '-' in ra else ra
+        
+        logging.info(f"🔍 Looking for checkin: RA={ra}, base_ra={base_ra}, plate={plate}")
+        
+        # Try multiple RA formats: exact, base, with suffix, or LIKE match
         if is_postgres:
             cursor.execute("""
-                SELECT fuel_level, damage_count, id
+                SELECT fuel_level, damage_count, id, contract_number
                 FROM vehicle_inspections
-                WHERE contract_number = %s
+                WHERE (contract_number = %s OR contract_number = %s OR contract_number LIKE %s)
                 AND vehicle_plate = %s
                 AND inspection_type = 'checkin'
                 ORDER BY created_at DESC
                 LIMIT 1
-            """, (ra, plate))
+            """, (ra, base_ra, base_ra + '%', plate))
         else:
             cursor.execute("""
-                SELECT fuel_level, damage_count, id
+                SELECT fuel_level, damage_count, id, contract_number
                 FROM vehicle_inspections
-                WHERE contract_number = ?
+                WHERE (contract_number = ? OR contract_number = ? OR contract_number LIKE ?)
                 AND vehicle_plate = ?
                 AND inspection_type = 'checkin'
                 ORDER BY created_at DESC
                 LIMIT 1
-            """, (ra, plate))
+            """, (ra, base_ra, base_ra + '%', plate))
         
         checkin_row = cursor.fetchone()
         
-        # If not found with exact RA, try base RA (e.g., 06716 instead of 06716-09)
-        if not checkin_row and '-' in ra:
-            base_ra = ra.split('-')[0]
-            logging.info(f"🔍 Trying base RA: {base_ra}")
-            
-            if is_postgres:
-                cursor.execute("""
-                    SELECT fuel_level, damage_count, id
-                    FROM vehicle_inspections
-                    WHERE contract_number = %s
-                    AND vehicle_plate = %s
-                    AND inspection_type = 'checkin'
-                    ORDER BY created_at DESC
-                    LIMIT 1
-                """, (base_ra, plate))
-            else:
-                cursor.execute("""
-                    SELECT fuel_level, damage_count, id
-                    FROM vehicle_inspections
-                    WHERE contract_number = ?
-                    AND vehicle_plate = ?
-                    AND inspection_type = 'checkin'
-                    ORDER BY created_at DESC
-                    LIMIT 1
-                """, (base_ra, plate))
-            
-            checkin_row = cursor.fetchone()
+        if checkin_row:
+            logging.info(f"✅ Found checkin with contract_number: {checkin_row[3]}")
         
         if not checkin_row:
             logging.warning(f"⚠️ No checkin (entrega) inspection found for RA={ra}, Plate={plate}")
