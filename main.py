@@ -36688,12 +36688,17 @@ async def send_inspection_email(request: Request, inspection_number: str):
         if ra_row and ra_row[0]:
             import json
             try:
-                extracted_data = json.loads(ra_row[0])
+                # Handle both string and dict formats
+                if isinstance(ra_row[0], str):
+                    extracted_data = json.loads(ra_row[0])
+                else:
+                    extracted_data = ra_row[0]
+                
                 logging.info(f"   ✅ Extracted data parsed successfully")
-                logging.info(f"   📋 Available fields: {list(extracted_data.keys())}")
+                logging.info(f"   📋 Available fields: {list(extracted_data.keys()) if isinstance(extracted_data, dict) else 'NOT_A_DICT'}")
                 
                 country = extracted_data.get('country', '').upper()
-                client_name = extracted_data.get('clientName', 'Customer')
+                client_name = extracted_data.get('clientName', extracted_data.get('client_name', 'Customer'))
                 
                 logging.info(f"   🔍 RAW client_name from RA: '{client_name}' (type: {type(client_name)})")
                 
