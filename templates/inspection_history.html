@@ -1305,8 +1305,8 @@
                 modal.className = 'fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4';
                 modal.innerHTML = `
                     <div class="bg-white rounded-lg max-w-4xl w-full max-h-[90vh] overflow-auto">
-                        <div class="sticky top-0 bg-white border-b px-6 py-4 flex justify-between items-center">
-                            <h2 class="text-xl font-bold text-[#009cb6]">${title} - ${data.inspection.vehicle_plate}</h2>
+                        <div class="sticky top-0 bg-white border-b px-3 py-3 md:px-6 md:py-4 flex justify-between items-center">
+                            <h2 class="text-lg md:text-xl font-bold text-[#009cb6] truncate">${title} - ${data.inspection.vehicle_plate}</h2>
                             <button onclick="closePreviewModal()" class="text-gray-500 hover:text-gray-700">
                                 <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
@@ -1314,7 +1314,7 @@
                             </button>
                         </div>
                         
-                        <div class="p-6">
+                        <div class="p-3 md:p-6">
                             <!-- Basic Info (Marca, Modelo, Matrícula, RA, Cliente, KMs) -->
                             <div class="bg-gray-50 rounded-lg p-4 mb-6">
                                 <div class="grid grid-cols-2 md:grid-cols-3 gap-4">
@@ -1380,7 +1380,7 @@
                                         <div class="mt-4 pt-3 border-t border-[#009cb6]">
                                             <p class="text-xs text-gray-600 mb-2 text-center">Combustível na Entrega</p>
                                             <div class="relative mb-1" style="height: 14px;">
-                                                <div class="relative flex justify-between text-xs font-semibold text-[#009cb6]">
+                                                <div class="relative flex justify-between text-[10px] md:text-xs font-semibold text-[#009cb6]">
                                                     <span>R</span><span>1/4</span><span>1/2</span><span>3/4</span><span>F</span>
                                                 </div>
                                             </div>
@@ -1428,7 +1428,7 @@
                                         <div class="mt-4 pt-3 border-t border-yellow-400">
                                             <p class="text-xs text-gray-600 mb-2 text-center">Combustível na Recolha</p>
                                             <div class="relative mb-1" style="height: 14px;">
-                                                <div class="relative flex justify-between text-xs font-semibold text-[#009cb6]">
+                                                <div class="relative flex justify-between text-[10px] md:text-xs font-semibold text-[#009cb6]">
                                                     <span>R</span><span>1/4</span><span>1/2</span><span>3/4</span><span>F</span>
                                                 </div>
                                             </div>
@@ -1546,7 +1546,7 @@
                             ${inspection.damage_photos && Object.keys(inspection.damage_photos).length > 0 ? `
                                 <div class="mb-6">
                                     <h4 class="text-lg font-bold text-gray-900 mb-4">${type === 'checkin' ? 'Fotografias de Recolha' : 'Fotografias de Danos'}</h4>
-                                    <div class="grid grid-cols-3 gap-4">
+                                    <div class="grid grid-cols-2 md:grid-cols-3 gap-2 md:gap-4">
                                         ${Object.entries(inspection.damage_photos).map(([key, url]) => {
                                             const photoLabels = {
                                                 'damage_front': 'Frente',
@@ -3142,7 +3142,7 @@
                                         <div class="mt-4 pt-3 border-t border-green-200">
                                             <p class="text-xs text-gray-600 mb-2 text-center">Combustível na Entrega</p>
                                             <div class="relative mb-1" style="height: 14px;">
-                                                <div class="relative flex justify-between text-xs font-semibold text-[#009cb6]">
+                                                <div class="relative flex justify-between text-[10px] md:text-xs font-semibold text-[#009cb6]">
                                                     <span>R</span><span>1/4</span><span>1/2</span><span>3/4</span><span>F</span>
                                                 </div>
                                             </div>
@@ -3190,7 +3190,7 @@
                                         <div class="mt-4 pt-3 border-t border-red-200">
                                             <p class="text-xs text-gray-600 mb-2 text-center">Combustível na Recolha</p>
                                             <div class="relative mb-1" style="height: 14px;">
-                                                <div class="relative flex justify-between text-xs font-semibold text-[#009cb6]">
+                                                <div class="relative flex justify-between text-[10px] md:text-xs font-semibold text-[#009cb6]">
                                                     <span>R</span><span>1/4</span><span>1/2</span><span>3/4</span><span>F</span>
                                                 </div>
                                             </div>
