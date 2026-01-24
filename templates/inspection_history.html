@@ -3728,7 +3728,7 @@
                 return;
             }
             
-            // Mostrar countdown
+            // Mostrar countdown com fundo preto e círculo animado (como no checkin)
             const photoNum = invalidatePhotos.length + 1;
             const countdownOverlay = document.createElement('div');
             countdownOverlay.id = 'invalidateCountdownOverlay';
@@ -3740,7 +3740,7 @@
                 bottom: 0 !important;
                 width: 100vw !important;
                 height: 100vh !important;
-                background: rgba(0, 188, 212, 0.90) !important;
+                background: rgba(0, 0, 0, 0.85) !important;
                 display: flex !important;
                 flex-direction: column !important;
                 align-items: center !important;
@@ -3749,11 +3749,33 @@
             `;
             
             countdownOverlay.innerHTML = `
+                <style>
+                    @keyframes spinInvCountdown {
+                        from { transform: translate(-50%, -50%) rotate(0deg); }
+                        to { transform: translate(-50%, -50%) rotate(360deg); }
+                    }
+                </style>
                 <div style="display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center;">
                     <svg style="width: 120px; height: 120px; margin-bottom: 30px; display: block;" fill="white" viewBox="0 0 24 24">
                         <path d="M9 2L7.17 4H4c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2h-3.17L15 2H9zm3 15c-2.76 0-5-2.24-5-5s2.24-5 5-5 5 2.24 5 5-2.24 5-5 5z"/>
                     </svg>
-                    <div style="font-size: 100px; font-weight: bold; color: white; text-shadow: 0 4px 8px rgba(0,0,0,0.3); line-height: 1;" id="invCountdownNumber">3</div>
+                    <div style="position: relative; display: inline-block;">
+                        <div style="font-size: 43px; font-weight: bold; color: #ff4757; text-shadow: 0 0 20px rgba(0, 0, 0, 0.8), 0 4px 8px rgba(0, 0, 0, 0.5); position: relative; z-index: 10;" id="invCountdownNumber">3</div>
+                        <div style="
+                            position: absolute;
+                            top: 50%;
+                            left: 50%;
+                            transform: translate(-50%, -50%);
+                            width: 67px;
+                            height: 67px;
+                            border: 3px solid transparent;
+                            border-top-color: white;
+                            border-right-color: white;
+                            border-radius: 50%;
+                            z-index: 9;
+                            animation: spinInvCountdown 1s linear infinite;
+                        "></div>
+                    </div>
                     <p style="color: white; font-size: 22px; margin-top: 25px; text-shadow: 0 2px 4px rgba(0,0,0,0.3);">Fotografe os Danos</p>
                 </div>
             `;
