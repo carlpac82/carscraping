@@ -988,6 +988,111 @@ def _preload_promotional_images():
     
     logging.info(f"✅ Promotional images cache ready: {len(PROMO_IMAGES_CACHE)} images")
 
+def generate_fuel_bars_image(entrega_pct, recolha_pct, entrega_label, recolha_label, delivery_text, pickup_text, lang='pt'):
+    """
+    Gera uma imagem PNG com as duas barras de combustível lado a lado.
+    
+    Args:
+        entrega_pct: Percentagem de combustível na entrega (0-100)
+        recolha_pct: Percentagem de combustível na recolha (0-100)
+        entrega_label: Texto da fração na entrega (ex: "3/4", "CHEIO")
+        recolha_label: Texto da fração na recolha (ex: "1/2", "RESERVA")
+        delivery_text: Label "Combustível na Entrega" (traduzido)
+        pickup_text: Label "Combustível na Devolução" (traduzido)
+        lang: Idioma ('pt', 'en', 'fr')
+    
+    Returns:
+        String base64 da imagem PNG (data:image/png;base64,...)
+    """
+    try:
+        from PIL import Image, ImageDraw, ImageFont
+        import base64
+        import io
+        
+        # Dimensões da imagem
+        width = 600
+        height = 200
+        
+        # Criar imagem com fundo branco
+        img = Image.new('RGB', (width, height), color='white')
+        draw = ImageDraw.Draw(img)
+        
+        # Tentar carregar fonte, senão usar default
+        try:
+            title_font = ImageFont.truetype("/System/Library/Fonts/Helvetica.ttc", 14)
+            label_font = ImageFont.truetype("/System/Library/Fonts/Helvetica.ttc", 28)
+            marker_font = ImageFont.truetype("/System/Library/Fonts/Helvetica.ttc", 10)
+        except:
+            title_font = ImageFont.load_default()
+            label_font = ImageFont.load_default()
+            marker_font = ImageFont.load_default()
+        
+        # Posições das duas barras
+        bar_width = 260
+        bar_height = 30
+        left_bar_x = 20
+        right_bar_x = 320
+        bar_y = 60
+        
+        # Cores
+        border_color = (0, 188, 212)  # #00bcd4
+        fill_start = (0, 188, 212)    # #00bcd4
+        fill_end = (0, 151, 167)      # #0097a7
+        bg_color = (229, 231, 235)    # #e5e7eb
+        text_gray = (107, 114, 128)   # #6b7280
+        text_dark = (55, 65, 81)      # #374151
+        blue_text = (0, 188, 212)     # #00bcd4
+        orange_text = (245, 158, 11)  # #f59e0b
+        
+        # Função para desenhar uma barra
+        def draw_fuel_bar(x, y, percentage, title, fraction_text, fraction_color):
+            # Título
+            draw.text((x + bar_width//2, y - 30), title, fill=text_dark, font=title_font, anchor="mm")
+            
+            # Fundo da barra
+            draw.rectangle([x, y, x + bar_width, y + bar_height], fill=bg_color, outline=border_color, width=2)
+            
+            # Preenchimento com gradiente simulado (3 tons)
+            if percentage > 0:
+                fill_width = int((bar_width - 4) * percentage / 100)
+                if fill_width > 0:
+                    # Simular gradiente com 3 retângulos
+                    third = fill_width // 3
+                    draw.rectangle([x + 2, y + 2, x + 2 + third, y + bar_height - 2], fill=fill_start)
+                    draw.rectangle([x + 2 + third, y + 2, x + 2 + 2*third, y + bar_height - 2], fill=(0, 169, 189))
+                    draw.rectangle([x + 2 + 2*third, y + 2, x + 2 + fill_width, y + bar_height - 2], fill=fill_end)
+            
+            # Marcadores E, 1/4, 1/2, 3/4, F
+            markers_y = y + bar_height + 8
+            draw.text((x, markers_y), "E", fill=text_gray, font=marker_font, anchor="lm")
+            draw.text((x + bar_width//4, markers_y), "1/4", fill=text_gray, font=marker_font, anchor="mm")
+            draw.text((x + bar_width//2, markers_y), "1/2", fill=text_gray, font=marker_font, anchor="mm")
+            draw.text((x + 3*bar_width//4, markers_y), "3/4", fill=text_gray, font=marker_font, anchor="mm")
+            draw.text((x + bar_width, markers_y), "F", fill=text_gray, font=marker_font, anchor="rm")
+            
+            # Texto da fração (grande e bold)
+            fraction_y = y + bar_height + 40
+            draw.text((x + bar_width//2, fraction_y), fraction_text, fill=fraction_color, font=label_font, anchor="mm")
+        
+        # Desenhar barra da entrega (esquerda, azul)
+        draw_fuel_bar(left_bar_x, bar_y, entrega_pct, delivery_text, entrega_label, blue_text)
+        
+        # Desenhar barra da recolha (direita, laranja)
+        draw_fuel_bar(right_bar_x, bar_y, recolha_pct, pickup_text, recolha_label, orange_text)
+        
+        # Converter para base64
+        buffer = io.BytesIO()
+        img.save(buffer, format='PNG', optimize=True)
+        img_data = buffer.getvalue()
+        img_base64 = base64.b64encode(img_data).decode('utf-8')
+        
+        return f"data:image/png;base64,{img_base64}"
+        
+    except Exception as e:
+        logging.error(f"❌ Erro ao gerar imagem de barras de combustível: {e}")
+        return None
+
+
 def combine_croqui_with_damages(delivery_croqui_base64=None, pickup_damages=None):
     """
     Combina o croqui de entrega com os danos extra da recolha (pins vermelhos).
@@ -25577,54 +25682,38 @@ def _generate_checkin_status_alert(lang, has_fuel_incident, has_damage_incident,
                 entrega_text = pct_to_fraction(entrega_pct)
                 recolha_text = pct_to_fraction(recolha_pct)
                 
-                fuel_bars_html = f"""
-        <table width="100%" cellpadding="0" cellspacing="0" style="margin-bottom: 20px;">
-            <tr>
-                <!-- Check-in fuel -->
-                <td style="width: 48%; padding: 10px; text-align: center;">
-                    <p style="color: #374151; margin: 0 0 10px 0; font-size: 13px; font-weight: 600;">{labels['delivery']}</p>
-                    <!-- Visual fuel bar -->
-                    <div style="position: relative; background: #e5e7eb; border: 2px solid #00bcd4; border-radius: 6px; height: 30px; overflow: hidden;">
-                        <div style="background: linear-gradient(90deg, #00bcd4, #0097a7); height: 100%; width: {entrega_pct}%; border-radius: 4px;"></div>
-                    </div>
-                    <!-- Fuel markers -->
-                    <table width="100%" cellpadding="0" cellspacing="0" style="margin-top: 4px;">
-                        <tr>
-                            <td style="width: 0%; text-align: left; font-size: 10px; color: #6b7280;">E</td>
-                            <td style="width: 25%; text-align: center; font-size: 10px; color: #6b7280;">1/4</td>
-                            <td style="width: 25%; text-align: center; font-size: 10px; color: #6b7280;">1/2</td>
-                            <td style="width: 25%; text-align: center; font-size: 10px; color: #6b7280;">3/4</td>
-                            <td style="width: 0%; text-align: right; font-size: 10px; color: #6b7280;">F</td>
-                        </tr>
-                    </table>
-                    <p style="color: #00bcd4; margin: 10px 0 0 0; font-size: 24px; font-weight: bold;">{entrega_text}</p>
-                </td>
-                <!-- Spacer -->
-                <td style="width: 4%;"></td>
-                <!-- Checkout fuel -->
-                <td style="width: 48%; padding: 10px; text-align: center;">
-                    <p style="color: #374151; margin: 0 0 10px 0; font-size: 13px; font-weight: 600;">{labels['pickup']}</p>
-                    <!-- Visual fuel bar -->
-                    <div style="position: relative; background: #e5e7eb; border: 2px solid #00bcd4; border-radius: 6px; height: 30px; overflow: hidden;">
-                        <div style="background: linear-gradient(90deg, #00bcd4, #0097a7); height: 100%; width: {recolha_pct}%; border-radius: 4px;"></div>
-                    </div>
-                    <!-- Fuel markers -->
-                    <table width="100%" cellpadding="0" cellspacing="0" style="margin-top: 4px;">
-                        <tr>
-                            <td style="width: 0%; text-align: left; font-size: 10px; color: #6b7280;">E</td>
-                            <td style="width: 25%; text-align: center; font-size: 10px; color: #6b7280;">1/4</td>
-                            <td style="width: 25%; text-align: center; font-size: 10px; color: #6b7280;">1/2</td>
-                            <td style="width: 25%; text-align: center; font-size: 10px; color: #6b7280;">3/4</td>
-                            <td style="width: 0%; text-align: right; font-size: 10px; color: #6b7280;">F</td>
-                        </tr>
-                    </table>
-                    <p style="color: #f59e0b; margin: 10px 0 0 0; font-size: 24px; font-weight: bold;">{recolha_text}</p>
-                </td>
-            </tr>
-        </table>
+                # Gerar imagem das barras de combustível
+                fuel_bars_image = generate_fuel_bars_image(
+                    entrega_pct=entrega_pct,
+                    recolha_pct=recolha_pct,
+                    entrega_label=entrega_text,
+                    recolha_label=recolha_text,
+                    delivery_text=labels['delivery'],
+                    pickup_text=labels['pickup'],
+                    lang=lang
+                )
+                
+                if fuel_bars_image:
+                    fuel_bars_html = f"""
+        <!-- Fuel bars as image for Outlook compatibility -->
+        <div style="text-align: center; margin-bottom: 20px;">
+            <img src="{fuel_bars_image}" alt="Fuel Comparison" style="max-width: 100%; height: auto; display: block; margin: 0 auto;">
+        </div>
         
         <!-- Difference info -->
         <div style="text-align: center; padding: 15px; border-top: 1px solid #e5e7eb;">
+            <p style="color: #f97316; margin: 0 0 5px 0; font-size: 14px;">
+                <strong>{labels['missing']}: {fuel_diff}%</strong>
+            </p>
+            <p style="color: #666666; margin: 0; font-size: 13px;">
+                {labels['charge']}
+            </p>
+        </div>
+                """
+                else:
+                    # Fallback se a imagem não puder ser gerada
+                    fuel_bars_html = f"""
+        <div style="text-align: center; padding: 15px;">
             <p style="color: #f97316; margin: 0 0 5px 0; font-size: 14px;">
                 <strong>{labels['missing']}: {fuel_diff}%</strong>
             </p>
