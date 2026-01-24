@@ -188,38 +188,38 @@
         </div>
 
         <!-- Search Filters -->
-        <div class="bg-white rounded-lg shadow-md p-6 mb-6">
-            <h3 class="text-lg font-semibold text-gray-800 mb-4">Pesquisar Inspeções</h3>
-            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
+        <div class="bg-white rounded-lg shadow-md p-3 md:p-6 mb-6">
+            <h3 class="text-base md:text-lg font-semibold text-gray-800 mb-3 md:mb-4">Pesquisar Inspeções</h3>
+            <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-2 md:gap-4">
                 <!-- Search by Plate -->
                 <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-2">Matrícula</label>
+                    <label class="block text-xs md:text-sm font-medium text-gray-700 mb-1">Matrícula</label>
                     <input type="text" id="searchPlate" placeholder="Ex: AS-46-EO" 
-                           class="w-full h-[42px] px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#009cb6]" 
+                           class="w-full h-[36px] md:h-[42px] px-2 md:px-4 py-1 md:py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#009cb6]" 
                            oninput="filterInspections()">
                 </div>
                 
                 <!-- Search by RA -->
                 <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-2">Rental Agreement (RA)</label>
+                    <label class="block text-xs md:text-sm font-medium text-gray-700 mb-1">RA</label>
                     <input type="text" id="searchRA" placeholder="Ex: 06716-09" 
-                           class="w-full h-[42px] px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#009cb6]" 
+                           class="w-full h-[36px] md:h-[42px] px-2 md:px-4 py-1 md:py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#009cb6]" 
                            oninput="filterInspections()">
                 </div>
                 
                 <!-- Search by Date -->
                 <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-2">Data</label>
+                    <label class="block text-xs md:text-sm font-medium text-gray-700 mb-1">Data</label>
                     <input type="date" id="searchDate" 
-                           class="w-full h-[42px] px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#009cb6]" 
+                           class="w-full h-[36px] md:h-[42px] px-2 md:px-4 py-1 md:py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#009cb6]" 
                            onchange="filterInspections()">
                 </div>
                 
                 <!-- Filter by Self-Checkout -->
                 <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-2">Tipo</label>
+                    <label class="block text-xs md:text-sm font-medium text-gray-700 mb-1">Tipo</label>
                     <select id="filterSelfCheckout" 
-                            class="custom-select w-full h-[42px] px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#009cb6] appearance-none bg-white" 
+                            class="custom-select w-full h-[36px] md:h-[42px] px-2 md:px-4 py-1 md:py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#009cb6] appearance-none bg-white" 
                             onchange="filterInspections()">
                         <option value="all">Todos</option>
                         <option value="self">Apenas Self-Checkout</option>
@@ -229,9 +229,9 @@
                 
                 <!-- Filter by Status -->
                 <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-2">Status</label>
+                    <label class="block text-xs md:text-sm font-medium text-gray-700 mb-1">Status</label>
                     <select id="filterStatus" 
-                            class="custom-select w-full h-[42px] px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#009cb6] appearance-none bg-white" 
+                            class="custom-select w-full h-[36px] md:h-[42px] px-2 md:px-4 py-1 md:py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#009cb6] appearance-none bg-white" 
                             onchange="filterInspections()">
                         <option value="all">Todos</option>
                         <option value="pending">Pendente</option>
@@ -243,8 +243,8 @@
             </div>
             
             <!-- Clear Filters Button -->
-            <div class="mt-4">
-                <button onclick="clearFilters()" class="px-6 py-2 bg-gray-500 text-white rounded-lg hover:bg-gray-600 transition-colors">
+            <div class="mt-3 md:mt-4">
+                <button onclick="clearFilters()" class="px-4 md:px-6 py-1.5 md:py-2 text-sm bg-gray-500 text-white rounded-lg hover:bg-gray-600 transition-colors">
                     Limpar Filtros
                 </button>
             </div>
@@ -1241,6 +1241,7 @@
                 // Build photos HTML - ALL 9 PHOTOS
                 // Store photos globally for click handling (avoids base64 in onclick)
                 window.currentInspectionPhotos = inspection.photos || {};
+                window.currentInspectionDamagePhotos = inspection.damage_photos || {};
                 window.currentInspectionSignature = inspection.signature || null;
                 
                 let photosHtml = '';
@@ -1545,7 +1546,7 @@
                             <!-- Damage Photos -->
                             ${inspection.damage_photos && Object.keys(inspection.damage_photos).length > 0 ? `
                                 <div class="mb-6">
-                                    <h4 class="text-lg font-bold text-gray-900 mb-4">${type === 'checkin' ? 'Fotografias de Recolha' : 'Fotografias de Danos'}</h4>
+                                    <h4 class="text-lg font-bold text-gray-900 mb-4">${type === 'checkin' ? 'Fotografias de Recolha' : (type === 'checkout' && !contract?.self_checkout ? 'Fotografias de Recolha' : 'Fotografias de Danos')}</h4>
                                     <div class="grid grid-cols-2 md:grid-cols-3 gap-2 md:gap-4">
                                         ${Object.entries(inspection.damage_photos).map(([key, url]) => {
                                             const photoLabels = {
@@ -1603,7 +1604,8 @@
                                         <div>
                                             <h5 class="text-xs md:text-sm font-semibold text-gray-700 mb-1 md:mb-2">${photoLabels[photoType]}</h5>
                                             <img src="${photoUrl}" alt="${photoLabels[photoType]}" 
-                                                 class="w-full h-32 md:h-48 object-cover rounded-lg border border-gray-200 cursor-pointer"
+                                                 class="w-full h-32 md:h-48 object-cover rounded-lg border border-gray-200 cursor-pointer photo-clickable"
+                                                 data-photo-key="checkin_${photoType}"
                                                  onerror="this.style.display='none'; this.parentElement.innerHTML='<p class=text-gray-400 text-sm>Foto indisponível</p>'">
                                         </div>
                                         `;
@@ -1643,7 +1645,8 @@
                                         <div>
                                             <h5 class="text-xs md:text-sm font-semibold text-gray-700 mb-1 md:mb-2">${photoLabels[photoType]}</h5>
                                             <img src="${photoUrl}" alt="${photoLabels[photoType]}" 
-                                                 class="w-full h-32 md:h-48 object-cover rounded-lg border border-gray-200 cursor-pointer"
+                                                 class="w-full h-32 md:h-48 object-cover rounded-lg border border-gray-200 cursor-pointer photo-clickable"
+                                                 data-photo-key="checkin_${photoType}"
                                                  onerror="this.style.display='none'; this.parentElement.innerHTML='<p class=text-gray-400 text-sm>Foto indisponível</p>'">
                                         </div>
                                         `;
