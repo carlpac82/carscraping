@@ -34133,29 +34133,16 @@ def _send_invalidation_email(
         if has_fuel_warning:
             fuel_diff = checkin_fuel - fuel_level
             
-            # Convert percentage to fraction label
-            def fuel_to_fraction(pct):
-                if pct >= 100:
-                    return "CHEIO"
-                elif pct >= 87:
-                    return "7/8"
-                elif pct >= 75:
-                    return "3/4"
-                elif pct >= 62:
-                    return "5/8"
-                elif pct >= 50:
-                    return "1/2"
-                elif pct >= 37:
-                    return "3/8"
-                elif pct >= 25:
-                    return "1/4"
-                elif pct >= 12:
-                    return "1/8"
-                else:
-                    return "RESERVA"
-            
-            checkin_fuel_label = fuel_to_fraction(checkin_fuel)
-            checkout_fuel_label = fuel_to_fraction(fuel_level)
+            # Gerar imagem PNG das barras de combustível
+            fuel_bars_image = generate_fuel_bars_image(
+                entrega_pct=checkin_fuel,
+                recolha_pct=fuel_level,
+                entrega_label="Combustível na Entrega",
+                recolha_label="Combustível na Devolução",
+                delivery_text="",
+                pickup_text="",
+                lang='pt'
+            )
             
             html_content += f'''
     <!-- Fuel Warning Section (White background, Orange left border) -->
@@ -34165,51 +34152,10 @@ def _send_invalidation_email(
             O veículo foi devolvido com menos combustível do que no momento da entrega.
         </p>
         
-        <!-- Fuel bars side by side -->
-        <table width="100%" cellpadding="0" cellspacing="0" style="margin-bottom: 20px;">
-            <tr>
-                <!-- Check-in fuel -->
-                <td style="width: 48%; padding: 10px; text-align: center;">
-                    <p style="color: #374151; margin: 0 0 10px 0; font-size: 13px; font-weight: 600;">Combustível na Entrega</p>
-                    <!-- Visual fuel bar -->
-                    <div style="position: relative; background: #e5e7eb; border: 2px solid #00bcd4; border-radius: 6px; height: 30px; overflow: hidden;">
-                        <div style="background: linear-gradient(90deg, #00bcd4, #0097a7); height: 100%; width: {checkin_fuel}%; border-radius: 4px;"></div>
-                    </div>
-                    <!-- Fuel markers -->
-                    <table width="100%" cellpadding="0" cellspacing="0" style="margin-top: 4px;">
-                        <tr>
-                            <td style="width: 0%; text-align: left; font-size: 10px; color: #6b7280;">E</td>
-                            <td style="width: 25%; text-align: center; font-size: 10px; color: #6b7280;">1/4</td>
-                            <td style="width: 25%; text-align: center; font-size: 10px; color: #6b7280;">1/2</td>
-                            <td style="width: 25%; text-align: center; font-size: 10px; color: #6b7280;">3/4</td>
-                            <td style="width: 0%; text-align: right; font-size: 10px; color: #6b7280;">F</td>
-                        </tr>
-                    </table>
-                    <p style="color: #00bcd4; margin: 10px 0 0 0; font-size: 24px; font-weight: bold;">{checkin_fuel_label}</p>
-                </td>
-                <!-- Spacer -->
-                <td style="width: 4%;"></td>
-                <!-- Checkout fuel -->
-                <td style="width: 48%; padding: 10px; text-align: center;">
-                    <p style="color: #374151; margin: 0 0 10px 0; font-size: 13px; font-weight: 600;">Combustível na Devolução</p>
-                    <!-- Visual fuel bar -->
-                    <div style="position: relative; background: #e5e7eb; border: 2px solid #00bcd4; border-radius: 6px; height: 30px; overflow: hidden;">
-                        <div style="background: linear-gradient(90deg, #00bcd4, #0097a7); height: 100%; width: {fuel_level}%; border-radius: 4px;"></div>
-                    </div>
-                    <!-- Fuel markers -->
-                    <table width="100%" cellpadding="0" cellspacing="0" style="margin-top: 4px;">
-                        <tr>
-                            <td style="width: 0%; text-align: left; font-size: 10px; color: #6b7280;">E</td>
-                            <td style="width: 25%; text-align: center; font-size: 10px; color: #6b7280;">1/4</td>
-                            <td style="width: 25%; text-align: center; font-size: 10px; color: #6b7280;">1/2</td>
-                            <td style="width: 25%; text-align: center; font-size: 10px; color: #6b7280;">3/4</td>
-                            <td style="width: 0%; text-align: right; font-size: 10px; color: #6b7280;">F</td>
-                        </tr>
-                    </table>
-                    <p style="color: #f59e0b; margin: 10px 0 0 0; font-size: 24px; font-weight: bold;">{checkout_fuel_label}</p>
-                </td>
-            </tr>
-        </table>
+        <!-- Fuel bars image -->
+        <div style="text-align: center; margin-bottom: 20px;">
+            <img src="{fuel_bars_image}" alt="Barras de Combustível" style="max-width: 100%; height: auto; border-radius: 8px;">
+        </div>
         
         <!-- Difference info -->
         <div style="text-align: center; padding: 15px; border-top: 1px solid #e5e7eb;">
