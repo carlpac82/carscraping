@@ -3593,7 +3593,7 @@
                                     class="flex-1 px-4 py-3 border-2 border-gray-300 text-gray-700 rounded-lg hover:bg-gray-100 font-semibold transition-all">
                                 Cancelar
                             </button>
-                            <button type="button" onclick="submitInvalidation('${inspectionNumber}', '${contract.contract_number}', ${checkinFuel}, '${contract.client_email || ''}')" 
+                            <button type="button" onclick="submitInvalidation('${inspectionNumber}', '${contract.contract_number}', ${checkinFuel}, '${contract.client_email || ''}', ${checkin.odometer_reading || 0})" 
                                     class="flex-1 px-4 py-3 bg-gradient-to-r from-cyan-600 to-cyan-500 text-white rounded-lg hover:from-cyan-700 hover:to-cyan-600 font-semibold flex items-center justify-center gap-2 shadow-lg transition-all">
                                 <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>
@@ -4058,7 +4058,7 @@
             }
         }
         
-        async function submitInvalidation(inspectionNumber, contractNumber, checkinFuel, clientEmail) {
+        async function submitInvalidation(inspectionNumber, contractNumber, checkinFuel, clientEmail, checkinOdometer) {
             try {
                 const fuel = parseInt(document.getElementById('invalidateFuel').value) || 0;
                 const kms = document.getElementById('invalidateKms').value;
@@ -4090,6 +4090,7 @@
                         damage_description: '',
                         observations: observations,
                         checkin_fuel: checkinFuel,
+                        checkin_odometer: checkinOdometer || 0,
                         has_damages: hasDamages,
                         has_fuel_warning: hasFuelWarning,
                         client_email: clientEmail || ''

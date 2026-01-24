@@ -33317,6 +33317,7 @@ async def invalidate_self_checkout(request: Request):
         damage_description = data.get('damage_description', '')
         observations = data.get('observations', '')
         checkin_fuel = data.get('checkin_fuel', 0)
+        checkin_odometer = data.get('checkin_odometer', 0)
         has_damages = data.get('has_damages', False)
         has_fuel_warning = data.get('has_fuel_warning', False)
         
@@ -33600,6 +33601,8 @@ async def invalidate_self_checkout(request: Request):
                     contract_number=ra_number or contract_number,
                     fuel_level=fuel_level,
                     checkin_fuel=checkin_fuel,
+                    odometer_reading=odometer_reading,
+                    checkin_odometer=checkin_odometer,
                     has_damages=has_damages,
                     has_fuel_warning=has_fuel_warning,
                     damage_description=damage_description,
@@ -33643,6 +33646,8 @@ def _send_invalidation_email(
     contract_number: str,
     fuel_level: int,
     checkin_fuel: int,
+    odometer_reading: int,
+    checkin_odometer: int,
     has_damages: bool,
     has_fuel_warning: bool,
     damage_description: str,
@@ -33656,6 +33661,12 @@ def _send_invalidation_email(
     """
     try:
         import base64
+        
+        # Debug logging
+        logging.info(f"📧 Invalidation email - has_damages={has_damages}, has_fuel_warning={has_fuel_warning}")
+        logging.info(f"📧 Invalidation email - damage_photos count: {len(damage_photos) if damage_photos else 0}")
+        logging.info(f"📧 Invalidation email - damage_croqui length: {len(damage_croqui) if damage_croqui else 0}")
+        logging.info(f"📧 Invalidation email - odometer: checkin={checkin_odometer}, checkout={odometer_reading}")
         
         # Build email subject
         subject_parts = []
@@ -33715,8 +33726,20 @@ def _send_invalidation_email(
                 <td style="padding: 12px 15px; border-bottom: 1px solid #e5e7eb; color: #111827;">{contract_number}</td>
             </tr>
             <tr>
-                <td style="padding: 12px 15px; background-color: #f9fafb; font-weight: bold; width: 40%; color: #374151;">Matrícula</td>
-                <td style="padding: 12px 15px; color: #111827;">{plate}</td>
+                <td style="padding: 12px 15px; background-color: #f9fafb; font-weight: bold; width: 40%; border-bottom: 1px solid #e5e7eb; color: #374151;">Matrícula</td>
+                <td style="padding: 12px 15px; border-bottom: 1px solid #e5e7eb; color: #111827;">{plate}</td>
+            </tr>
+            <tr>
+                <td style="padding: 12px 15px; background-color: #f9fafb; font-weight: bold; width: 40%; border-bottom: 1px solid #e5e7eb; color: #374151;">Odómetro Check-in</td>
+                <td style="padding: 12px 15px; border-bottom: 1px solid #e5e7eb; color: #111827;">{checkin_odometer:,} km</td>
+            </tr>
+            <tr>
+                <td style="padding: 12px 15px; background-color: #f9fafb; font-weight: bold; width: 40%; border-bottom: 1px solid #e5e7eb; color: #374151;">Odómetro Devolução</td>
+                <td style="padding: 12px 15px; border-bottom: 1px solid #e5e7eb; color: #111827;">{odometer_reading:,} km</td>
+            </tr>
+            <tr>
+                <td style="padding: 12px 15px; background-color: #f9fafb; font-weight: bold; width: 40%; color: #374151;">KMs Percorridos</td>
+                <td style="padding: 12px 15px; color: #059669; font-weight: bold;">{odometer_reading - checkin_odometer:,} km</td>
             </tr>
         </table>
     </div>
@@ -37011,9 +37034,11 @@ async def delete_inspection(request: Request, inspection_number: str):
                 elif inspection_type == 'checkout':
                     cur.execute("""
                         UPDATE rental_agreements 
-                        SET inspection_completed = FALSE
+                        SET inspection_completed = FALSE,
+                            status = 'open'
                         WHERE rental_agreement_number = %s
                     """, (contract_number,))
+                    logging.info(f"🔓 Reopened contract {contract_number} after checkout deletion")
                 elif inspection_type == 'checkin':
                     cur.execute("""
                         UPDATE rental_agreements 
@@ -37060,9 +37085,11 @@ async def delete_inspection(request: Request, inspection_number: str):
             elif inspection_type == 'checkout':
                 conn.execute("""
                     UPDATE rental_agreements 
-                    SET inspection_completed = 0
+                    SET inspection_completed = 0,
+                        status = 'open'
                     WHERE rental_agreement_number = ?
                 """, (contract_number,))
+                logging.info(f"🔓 Reopened contract {contract_number} after checkout deletion")
             elif inspection_type == 'checkin':
                 conn.execute("""
                     UPDATE rental_agreements 
