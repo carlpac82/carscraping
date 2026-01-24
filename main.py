@@ -30747,16 +30747,8 @@ async def save_inspection(request: Request):
                                 
                                 country = extracted_data.get('country', '').upper()
                                 
-                                # Extract client name - try multiple possible field names
-                                raw_client_name = (
-                                    extracted_data.get('clientName') or 
-                                    extracted_data.get('client_name') or
-                                    extracted_data.get('customerName') or
-                                    extracted_data.get('customer_name') or
-                                    extracted_data.get('nome_cliente') or
-                                    extracted_data.get('name') or
-                                    ''
-                                )
+                                # Extract client name (camelCase format)
+                                raw_client_name = extracted_data.get('clientName', '')
                                 
                                 logging.info(f"🔍 DEBUG raw_client_name: '{raw_client_name}'")
                                 
@@ -30769,18 +30761,10 @@ async def save_inspection(request: Request):
                                     client_name = 'Customer'
                                     first_name = 'Customer'
                                 
-                                # Get location - try multiple possible field names
-                                ra_location = (
-                                    extracted_data.get('pickupLocation') or
-                                    extracted_data.get('pickup_location') or
-                                    extracted_data.get('deliveryLocation') or
-                                    extracted_data.get('delivery_location') or
-                                    extracted_data.get('local_entrega') or
-                                    extracted_data.get('location') or
-                                    ''
-                                )
+                                # Get location (camelCase format) - for checkout use returnLocation
+                                ra_location = extracted_data.get('returnLocation', '') if inspection_type == 'checkout' else extracted_data.get('pickupLocation', '')
                                 
-                                logging.info(f"🔍 DEBUG ra_location: '{ra_location}'")
+                                logging.info(f"🔍 DEBUG ra_location: '{ra_location}' (inspection_type: {inspection_type})")
                                 
                                 if ra_location and ra_location.strip():
                                     delivery_location = ra_location.strip()
