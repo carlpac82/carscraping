@@ -25697,40 +25697,63 @@ def _generate_checkin_status_alert(lang, has_fuel_incident, has_damage_incident,
                 entrega_text = pct_to_fraction(entrega_pct)
                 recolha_text = pct_to_fraction(recolha_pct)
                 
-                # Gerar imagem das barras de combustível
-                fuel_bars_image = generate_fuel_bars_image(
-                    entrega_pct=entrega_pct,
-                    recolha_pct=recolha_pct,
-                    entrega_label=entrega_text,
-                    recolha_label=recolha_text,
-                    delivery_text=labels['delivery'],
-                    pickup_text=labels['pickup'],
-                    lang=lang
-                )
-                
-                if fuel_bars_image:
-                    fuel_bars_html = f"""
-        <!-- Fuel bars as image for Outlook compatibility -->
-        <div style="text-align: center; margin-bottom: 20px;">
-            <img src="{fuel_bars_image}" alt="Fuel Comparison" style="max-width: 100%; height: auto; display: block; margin: 0 auto;">
-        </div>
+                # HTML puro com barras maiores e textos visíveis (sem imagem)
+                fuel_bars_html = f"""
+        <table width="100%" cellpadding="0" cellspacing="0" style="margin-bottom: 20px;">
+            <tr>
+                <!-- Barra de combustível da entrega -->
+                <td style="width: 48%; padding: 10px; text-align: center;">
+                    <p style="color: #374151; margin: 0 0 10px 0; font-size: 14px; font-weight: 600;">{labels['delivery']}</p>
+                    <!-- Barra visual maior -->
+                    <table width="100%" cellpadding="0" cellspacing="0" border="0" style="background-color: #e5e7eb; border: 2px solid #00bcd4; border-radius: 6px;">
+                        <tr>
+                            <td width="{entrega_pct}%" height="40" bgcolor="#00bcd4" style="background: linear-gradient(90deg, #00bcd4, #0097a7); font-size: 1px; line-height: 1px; border-radius: 4px 0 0 4px;">&nbsp;</td>
+                            <td width="{100-entrega_pct}%" height="40" bgcolor="#e5e7eb" style="background-color: #e5e7eb; font-size: 1px; line-height: 1px;">&nbsp;</td>
+                        </tr>
+                    </table>
+                    <!-- Marcadores -->
+                    <table width="100%" cellpadding="0" cellspacing="0" style="margin-top: 6px;">
+                        <tr>
+                            <td style="width: 0%; text-align: left; font-size: 11px; color: #6b7280; font-weight: 500;">E</td>
+                            <td style="width: 25%; text-align: center; font-size: 11px; color: #6b7280; font-weight: 500;">1/4</td>
+                            <td style="width: 25%; text-align: center; font-size: 11px; color: #6b7280; font-weight: 500;">1/2</td>
+                            <td style="width: 25%; text-align: center; font-size: 11px; color: #6b7280; font-weight: 500;">3/4</td>
+                            <td style="width: 0%; text-align: right; font-size: 11px; color: #6b7280; font-weight: 500;">F</td>
+                        </tr>
+                    </table>
+                    <p style="color: #00bcd4; margin: 12px 0 0 0; font-size: 28px; font-weight: bold;">{entrega_text}</p>
+                </td>
+                <!-- Espaçador -->
+                <td style="width: 4%;"></td>
+                <!-- Barra de combustível da recolha -->
+                <td style="width: 48%; padding: 10px; text-align: center;">
+                    <p style="color: #374151; margin: 0 0 10px 0; font-size: 14px; font-weight: 600;">{labels['pickup']}</p>
+                    <!-- Barra visual maior -->
+                    <table width="100%" cellpadding="0" cellspacing="0" border="0" style="background-color: #e5e7eb; border: 2px solid #f59e0b; border-radius: 6px;">
+                        <tr>
+                            <td width="{recolha_pct}%" height="40" bgcolor="#f59e0b" style="background: linear-gradient(90deg, #f59e0b, #d97706); font-size: 1px; line-height: 1px; border-radius: 4px 0 0 4px;">&nbsp;</td>
+                            <td width="{100-recolha_pct}%" height="40" bgcolor="#e5e7eb" style="background-color: #e5e7eb; font-size: 1px; line-height: 1px;">&nbsp;</td>
+                        </tr>
+                    </table>
+                    <!-- Marcadores -->
+                    <table width="100%" cellpadding="0" cellspacing="0" style="margin-top: 6px;">
+                        <tr>
+                            <td style="width: 0%; text-align: left; font-size: 11px; color: #6b7280; font-weight: 500;">E</td>
+                            <td style="width: 25%; text-align: center; font-size: 11px; color: #6b7280; font-weight: 500;">1/4</td>
+                            <td style="width: 25%; text-align: center; font-size: 11px; color: #6b7280; font-weight: 500;">1/2</td>
+                            <td style="width: 25%; text-align: center; font-size: 11px; color: #6b7280; font-weight: 500;">3/4</td>
+                            <td style="width: 0%; text-align: right; font-size: 11px; color: #6b7280; font-weight: 500;">F</td>
+                        </tr>
+                    </table>
+                    <p style="color: #f59e0b; margin: 12px 0 0 0; font-size: 28px; font-weight: bold;">{recolha_text}</p>
+                </td>
+            </tr>
+        </table>
         
-        <!-- Difference info -->
+        <!-- Informação sobre a diferença -->
         <div style="text-align: center; padding: 15px; border-top: 1px solid #e5e7eb;">
-            <p style="color: #f97316; margin: 0 0 5px 0; font-size: 14px;">
-                <strong>{labels['missing']}: {fuel_diff}%</strong>
-            </p>
-            <p style="color: #666666; margin: 0; font-size: 13px;">
-                {labels['charge']}
-            </p>
-        </div>
-                """
-                else:
-                    # Fallback se a imagem não puder ser gerada
-                    fuel_bars_html = f"""
-        <div style="text-align: center; padding: 15px;">
-            <p style="color: #f97316; margin: 0 0 5px 0; font-size: 14px;">
-                <strong>{labels['missing']}: {fuel_diff}%</strong>
+            <p style="color: #f97316; margin: 0 0 5px 0; font-size: 15px; font-weight: 600;">
+                {labels['missing']}: {fuel_diff}%
             </p>
             <p style="color: #666666; margin: 0; font-size: 13px;">
                 {labels['charge']}
@@ -34133,16 +34156,20 @@ def _send_invalidation_email(
         if has_fuel_warning:
             fuel_diff = checkin_fuel - fuel_level
             
-            # Gerar imagem PNG das barras de combustível
-            fuel_bars_image = generate_fuel_bars_image(
-                entrega_pct=checkin_fuel,
-                recolha_pct=fuel_level,
-                entrega_label="Combustível na Entrega",
-                recolha_label="Combustível na Devolução",
-                delivery_text="",
-                pickup_text="",
-                lang='pt'
-            )
+            # Converter percentagens para texto de fração
+            def pct_to_fraction(pct):
+                if pct >= 100: return "CHEIO"
+                elif pct >= 87: return "7/8"
+                elif pct >= 75: return "3/4"
+                elif pct >= 62: return "5/8"
+                elif pct >= 50: return "1/2"
+                elif pct >= 37: return "3/8"
+                elif pct >= 25: return "1/4"
+                elif pct >= 12: return "1/8"
+                else: return "RESERVA"
+            
+            entrega_text = pct_to_fraction(checkin_fuel)
+            recolha_text = pct_to_fraction(fuel_level)
             
             html_content += f'''
     <!-- Fuel Warning Section (White background, Orange left border) -->
@@ -34152,15 +34179,62 @@ def _send_invalidation_email(
             O veículo foi devolvido com menos combustível do que no momento da entrega.
         </p>
         
-        <!-- Fuel bars image -->
-        <div style="text-align: center; margin-bottom: 20px;">
-            <img src="{fuel_bars_image}" alt="Barras de Combustível" style="max-width: 100%; height: auto; border-radius: 8px;">
-        </div>
+        <!-- Fuel bars HTML puro -->
+        <table width="100%" cellpadding="0" cellspacing="0" style="margin-bottom: 20px;">
+            <tr>
+                <!-- Barra de combustível da entrega -->
+                <td style="width: 48%; padding: 10px; text-align: center;">
+                    <p style="color: #374151; margin: 0 0 10px 0; font-size: 14px; font-weight: 600;">Combustível na Entrega</p>
+                    <!-- Barra visual maior -->
+                    <table width="100%" cellpadding="0" cellspacing="0" border="0" style="background-color: #e5e7eb; border: 2px solid #00bcd4; border-radius: 6px;">
+                        <tr>
+                            <td width="{checkin_fuel}%" height="40" bgcolor="#00bcd4" style="background: linear-gradient(90deg, #00bcd4, #0097a7); font-size: 1px; line-height: 1px; border-radius: 4px 0 0 4px;">&nbsp;</td>
+                            <td width="{100-checkin_fuel}%" height="40" bgcolor="#e5e7eb" style="background-color: #e5e7eb; font-size: 1px; line-height: 1px;">&nbsp;</td>
+                        </tr>
+                    </table>
+                    <!-- Marcadores -->
+                    <table width="100%" cellpadding="0" cellspacing="0" style="margin-top: 6px;">
+                        <tr>
+                            <td style="width: 0%; text-align: left; font-size: 11px; color: #6b7280; font-weight: 500;">E</td>
+                            <td style="width: 25%; text-align: center; font-size: 11px; color: #6b7280; font-weight: 500;">1/4</td>
+                            <td style="width: 25%; text-align: center; font-size: 11px; color: #6b7280; font-weight: 500;">1/2</td>
+                            <td style="width: 25%; text-align: center; font-size: 11px; color: #6b7280; font-weight: 500;">3/4</td>
+                            <td style="width: 0%; text-align: right; font-size: 11px; color: #6b7280; font-weight: 500;">F</td>
+                        </tr>
+                    </table>
+                    <p style="color: #00bcd4; margin: 12px 0 0 0; font-size: 28px; font-weight: bold;">{entrega_text}</p>
+                </td>
+                <!-- Espaçador -->
+                <td style="width: 4%;"></td>
+                <!-- Barra de combustível da recolha -->
+                <td style="width: 48%; padding: 10px; text-align: center;">
+                    <p style="color: #374151; margin: 0 0 10px 0; font-size: 14px; font-weight: 600;">Combustível na Devolução</p>
+                    <!-- Barra visual maior -->
+                    <table width="100%" cellpadding="0" cellspacing="0" border="0" style="background-color: #e5e7eb; border: 2px solid #f59e0b; border-radius: 6px;">
+                        <tr>
+                            <td width="{fuel_level}%" height="40" bgcolor="#f59e0b" style="background: linear-gradient(90deg, #f59e0b, #d97706); font-size: 1px; line-height: 1px; border-radius: 4px 0 0 4px;">&nbsp;</td>
+                            <td width="{100-fuel_level}%" height="40" bgcolor="#e5e7eb" style="background-color: #e5e7eb; font-size: 1px; line-height: 1px;">&nbsp;</td>
+                        </tr>
+                    </table>
+                    <!-- Marcadores -->
+                    <table width="100%" cellpadding="0" cellspacing="0" style="margin-top: 6px;">
+                        <tr>
+                            <td style="width: 0%; text-align: left; font-size: 11px; color: #6b7280; font-weight: 500;">E</td>
+                            <td style="width: 25%; text-align: center; font-size: 11px; color: #6b7280; font-weight: 500;">1/4</td>
+                            <td style="width: 25%; text-align: center; font-size: 11px; color: #6b7280; font-weight: 500;">1/2</td>
+                            <td style="width: 25%; text-align: center; font-size: 11px; color: #6b7280; font-weight: 500;">3/4</td>
+                            <td style="width: 0%; text-align: right; font-size: 11px; color: #6b7280; font-weight: 500;">F</td>
+                        </tr>
+                    </table>
+                    <p style="color: #f59e0b; margin: 12px 0 0 0; font-size: 28px; font-weight: bold;">{recolha_text}</p>
+                </td>
+            </tr>
+        </table>
         
         <!-- Difference info -->
         <div style="text-align: center; padding: 15px; border-top: 1px solid #e5e7eb;">
-            <p style="color: #f97316; margin: 0 0 5px 0; font-size: 14px;">
-                <strong>Combustível em falta: {fuel_diff}%</strong>
+            <p style="color: #f97316; margin: 0 0 5px 0; font-size: 15px; font-weight: 600;">
+                Combustível em falta: {fuel_diff}%
             </p>
             <p style="color: #666666; margin: 0; font-size: 13px;">
                 Será cobrado o valor correspondente ao combustível em falta + taxa de reabastecimento.
