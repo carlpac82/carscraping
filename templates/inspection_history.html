@@ -1190,8 +1190,15 @@
                     const raResponse = await fetch(`/api/rental-agreement/by-plate/${encodeURIComponent(plate)}`);
                     const raData = await raResponse.json();
                     console.log('📄 RA API response:', raData);
+                    console.log('📄 raData.rental_agreement:', raData.rental_agreement);
+                    console.log('📄 raData.rental_agreement?.extracted_data:', raData.rental_agreement?.extracted_data);
+                    // Store RA data globally for debugging
+                    window.currentRAData = raData.rental_agreement;
                     if (raData.success && raData.rental_agreement && raData.rental_agreement.extracted_data) {
                         const ed = raData.rental_agreement.extracted_data;
+                        console.log('📄 extracted_data object:', ed);
+                        console.log('📄 ed.return_date:', ed.return_date);
+                        console.log('📄 ed.return_time:', ed.return_time);
                         if (vehicleBrand === 'N/A') {
                             vehicleBrand = ed.vehicleBrand || ed.vehicle_brand || 'N/A';
                         }
