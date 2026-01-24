@@ -1836,15 +1836,22 @@
                         const raResponse = await fetch(`/api/rental-agreement/${inspection.contract_number}`);
                         const raData = await raResponse.json();
                         if (raData.ok && raData.extracted_data) {
-                            const returnDate = raData.extracted_data.returnDate || raData.extracted_data.return_date || raData.return_date;
+                            let returnDate = raData.extracted_data.returnDate || raData.extracted_data.return_date || raData.return_date;
                             if (returnDate) {
-                                // Convert DD/MM/YYYY to YYYY-MM-DD for input[type="date"]
-                                if (returnDate.includes('/')) {
-                                    const [day, month, year] = returnDate.split('/');
-                                    inspection.expected_return_date = `${year}-${month.padStart(2, '0')}-${day.padStart(2, '0')}`;
+                                // Remove spaces from date string (e.g., "21 - 01 - 2026" -> "21-01-2026")
+                                returnDate = returnDate.replace(/\s+/g, '');
+                                
+                                // Convert DD-MM-YYYY or DD/MM/YYYY to YYYY-MM-DD for input[type="date"]
+                                if (returnDate.includes('/') || returnDate.includes('-')) {
+                                    const parts = returnDate.split(/[-\/]/);
+                                    if (parts.length === 3) {
+                                        const [day, month, year] = parts;
+                                        inspection.expected_return_date = `${year}-${month.padStart(2, '0')}-${day.padStart(2, '0')}`;
+                                    }
                                 } else {
                                     inspection.expected_return_date = returnDate;
                                 }
+                                console.log('📅 Parsed return date for edit modal:', inspection.expected_return_date);
                             }
                         }
                     } catch (err) {
@@ -2405,7 +2412,8 @@
                     hasCroqui: !!updateData.damage_croqui,
                     croquiLength: updateData.damage_croqui ? updateData.damage_croqui.length : 0,
                     fuel_level: updateData.fuel_level,
-                    odometer_reading: updateData.odometer_reading
+                    odometer_reading: updateData.odometer_reading,
+                    expected_return_date: updateData.expected_return_date
                 });
                 
                 const response = await fetch(`/api/inspections/${inspectionNumber}/update`, {
