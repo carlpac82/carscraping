@@ -36270,7 +36270,22 @@ async def get_inspection(request: Request, plate: str, ra: str, type: str = 'che
                     extracted_data = json.loads(ra_row[1])
                     print(f"🔍 Extracted data keys: {list(extracted_data.keys())}", flush=True)
                     logging.info(f"🔍 Extracted data keys: {list(extracted_data.keys())}")
-                    inspection["client_email"] = extracted_data.get('clientEmail', '')
+                    
+                    # Try both camelCase and snake_case for all fields
+                    inspection["client_email"] = (extracted_data.get('clientEmail', '') or 
+                                                 extracted_data.get('client_email', '') or 
+                                                 extracted_data.get('email', ''))
+                    
+                    # Debug logs for important fields
+                    print(f"📧 client_email: '{extracted_data.get('client_email', 'NOT FOUND')}'", flush=True)
+                    print(f"📧 clientEmail: '{extracted_data.get('clientEmail', 'NOT FOUND')}'", flush=True)
+                    print(f"👤 client_name: '{extracted_data.get('client_name', 'NOT FOUND')}'", flush=True)
+                    print(f"👤 clientName: '{extracted_data.get('clientName', 'NOT FOUND')}'", flush=True)
+                    print(f"📍 pickup_location: '{extracted_data.get('pickup_location', 'NOT FOUND')}'", flush=True)
+                    print(f"📍 pickupLocation: '{extracted_data.get('pickupLocation', 'NOT FOUND')}'", flush=True)
+                    print(f"📍 return_location: '{extracted_data.get('return_location', 'NOT FOUND')}'", flush=True)
+                    print(f"📍 returnLocation: '{extracted_data.get('returnLocation', 'NOT FOUND')}'", flush=True)
+                    
                     print(f"📧 Found client email from RA: {inspection['client_email']}", flush=True)
                     logging.info(f"📧 Found client email from RA: {inspection['client_email']}")
                 else:
