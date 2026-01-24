@@ -2379,7 +2379,7 @@
             // Se há self-checkout validado, usar dados do self-checkout
             if (selfCheckoutNumber) {
                 try {
-                    // Buscar dados do self-checkout
+                    // Buscar dados do self-checkout (RECOLHA)
                     const selfCheckoutResponse = await fetch(`/api/inspections/${selfCheckoutNumber}`);
                     const selfCheckoutData = await selfCheckoutResponse.json();
                     
@@ -2390,46 +2390,55 @@
                     const inspection = selfCheckoutData.inspection;
                     console.log('📋 Self-checkout data for Recolha:', inspection);
                     
-                    // Buscar croqui do CHECK-IN (não do checkout)
+                    // Buscar dados completos do CHECK-IN (ENTREGA)
+                    let checkinData = null;
                     let checkinCroqui = null;
                     let checkinDamageCount = 0;
+                    let checkinFuel = 0;
+                    let checkinOdometer = 0;
+                    let checkinDate = null;
+                    let checkinInspector = null;
+                    let checkinPhotos = {};
+                    
                     if (checkinNumber) {
                         try {
                             const checkinResponse = await fetch(`/api/inspections/${checkinNumber}`);
-                            const checkinData = await checkinResponse.json();
-                            if (checkinData.ok && checkinData.inspection) {
-                                checkinCroqui = checkinData.inspection.damage_croqui;
-                                checkinDamageCount = checkinData.inspection.damage_count || 0;
-                                console.log('🎨 Checkin croqui found:', checkinCroqui ? 'YES' : 'NO');
+                            const checkinResult = await checkinResponse.json();
+                            if (checkinResult.ok && checkinResult.inspection) {
+                                checkinData = checkinResult.inspection;
+                                checkinCroqui = checkinData.damage_croqui;
+                                checkinDamageCount = checkinData.damage_count || 0;
+                                checkinFuel = checkinData.fuel_level || 0;
+                                checkinOdometer = checkinData.odometer_reading || 0;
+                                checkinDate = checkinData.created_at;
+                                checkinInspector = checkinData.inspector_name;
+                                checkinPhotos = checkinData.photos || {};
+                                console.log('🎨 Checkin data found:', checkinData);
                             }
                         } catch (e) {
-                            console.error('Error fetching checkin croqui:', e);
+                            console.error('Error fetching checkin data:', e);
                         }
                     }
                     
-                    // Build photos HTML
-                    window.currentInspectionPhotos = inspection.photos || {};
-                    window.currentInspectionSignature = inspection.signature || null;
+                    // Calcular KMs percorridos
+                    const kmsPercorridos = (inspection.odometer_reading || 0) - checkinOdometer;
                     
-                    let photosHtml = '';
-                    if (inspection.photos && Object.keys(inspection.photos).length > 0) {
+                    // Build Entrega photos HTML (9 fotos do check-in)
+                    let entregaPhotosHtml = '';
+                    if (checkinPhotos && Object.keys(checkinPhotos).length > 0) {
                         const photoLabels = {
                             'front': 'Frente', 'front_left': 'Frente Esquerda', 'left': 'Lado Esquerdo',
                             'back_left': 'Traseira Esquerda', 'back': 'Traseira', 'back_right': 'Traseira Direita',
                             'right': 'Lado Direito', 'front_right': 'Frente Direita', 'odometer': 'Conta-Quilómetros'
                         };
                         
-                        if (!inspection.photos['odometer'] && inspection.photos['interior']) {
-                            inspection.photos['odometer'] = inspection.photos['interior'];
-                        }
-                        
-                        photosHtml = '<div class="grid grid-cols-2 md:grid-cols-3 gap-3 mb-6">';
+                        entregaPhotosHtml = '<div class="grid grid-cols-2 md:grid-cols-3 gap-3 mb-6">';
                         Object.keys(photoLabels).forEach(photoType => {
-                            if (inspection.photos[photoType]) {
-                                photosHtml += `
+                            if (checkinPhotos[photoType]) {
+                                entregaPhotosHtml += `
                                     <div>
                                         <h4 class="text-xs md:text-sm font-semibold text-gray-700 mb-1 md:mb-2">${photoLabels[photoType]}</h4>
-                                        <img src="${inspection.photos[photoType]}" alt="${photoLabels[photoType]}" 
+                                        <img src="${checkinPhotos[photoType]}" alt="${photoLabels[photoType]}" 
                                              class="w-full h-32 md:h-48 object-cover rounded-lg border border-gray-200 cursor-pointer photo-clickable"
                                              data-photo-key="${photoType}"
                                              onerror="this.style.display='none'; this.parentElement.innerHTML='<p class=text-gray-400 text-sm>Foto indisponível</p>'">
@@ -2437,17 +2446,17 @@
                                 `;
                             }
                         });
-                        photosHtml += '</div>';
+                        entregaPhotosHtml += '</div>';
                     } else {
-                        photosHtml = '<p class="text-gray-500 text-center py-4">Nenhuma fotografia disponível</p>';
+                        entregaPhotosHtml = '<p class="text-gray-500 text-center py-4">Nenhuma fotografia de entrega disponível</p>';
                     }
                     
-                    // Create modal with self-checkout data + checkin croqui
+                    // Create modal
                     const modal = document.createElement('div');
                     modal.className = 'fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4';
                     modal.innerHTML = `
                         <div class="bg-white rounded-lg max-w-4xl w-full max-h-[90vh] overflow-auto">
-                            <div class="sticky top-0 bg-white border-b px-6 py-4 flex justify-between items-center">
+                            <div class="sticky top-0 bg-white border-b px-6 py-4 flex justify-between items-center z-10">
                                 <h2 class="text-xl font-bold text-[#009cb6]">Relatório de Recolha - ${inspection.vehicle_plate}</h2>
                                 <button onclick="closePreviewModal()" class="text-gray-500 hover:text-gray-700">
                                     <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -2457,7 +2466,7 @@
                             </div>
                             
                             <div class="p-6">
-                                <!-- Inspection Details -->
+                                <!-- Basic Info -->
                                 <div class="bg-gray-50 rounded-lg p-4 mb-6">
                                     <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
                                         <div>
@@ -2469,58 +2478,114 @@
                                             <p class="font-bold text-gray-900">${inspection.contract_number || 'N/A'}</p>
                                         </div>
                                         <div>
-                                            <p class="text-sm text-gray-600">Quilómetros</p>
-                                            <p class="font-bold text-gray-900">${inspection.odometer_reading ? inspection.odometer_reading + ' km' : 'N/A'}</p>
-                                        </div>
-                                        <div>
-                                            <p class="text-sm text-gray-600">Combustível</p>
-                                            <p class="font-bold text-gray-900">${inspection.fuel_level || 'N/A'}</p>
-                                        </div>
-                                        <div>
-                                            <p class="text-sm text-gray-600">Tipo</p>
-                                            <p class="font-bold text-gray-900">Recolha</p>
-                                        </div>
-                                        <div>
                                             <p class="text-sm text-gray-600">Cliente</p>
                                             <p class="font-bold text-gray-900">${inspection.inspector_name ? getFirstLastName(inspection.inspector_name) : 'N/A'}</p>
                                         </div>
                                         <div>
-                                            <p class="text-sm text-gray-600">Danos</p>
-                                            <p class="font-bold text-gray-900">${checkinDamageCount}</p>
-                                        </div>
-                                        <div>
-                                            <p class="text-sm text-gray-600">Data e Hora</p>
-                                            <p class="font-bold text-gray-900">${new Date(inspection.created_at).toLocaleDateString('pt-PT')} ${new Date(inspection.created_at).toLocaleTimeString('pt-PT', {hour: '2-digit', minute: '2-digit'})}</p>
+                                            <p class="text-sm text-gray-600">KMs Percorridos</p>
+                                            <p class="font-bold text-[#009cb6]">${kmsPercorridos > 0 ? kmsPercorridos.toLocaleString() + ' km' : 'N/A'}</p>
                                         </div>
                                     </div>
                                 </div>
                                 
-                                <!-- Fuel Gauge Visual -->
+                                <!-- Resumo Entrega vs Recolha -->
                                 <div class="mb-6">
-                                    <h4 class="text-lg font-bold text-gray-900 mb-4">Nível de Combustível</h4>
-                                    <div class="fuel-selector">
-                                        <div class="relative max-w-xs mx-auto mb-1" style="height: 20px;">
-                                            <div class="relative">
-                                                <span class="text-xs font-semibold text-[#009cb6] absolute" style="left: 0%; transform: translateX(-50%);">R</span>
-                                                <span class="text-xs font-semibold text-[#009cb6] absolute" style="left: 25%; transform: translateX(-50%);">1/4</span>
-                                                <span class="text-xs font-semibold text-[#009cb6] absolute" style="left: 50%; transform: translateX(-50%);">1/2</span>
-                                                <span class="text-xs font-semibold text-[#009cb6] absolute" style="left: 75%; transform: translateX(-50%);">3/4</span>
-                                                <span class="text-xs font-semibold text-[#009cb6] absolute" style="right: 0%; transform: translateX(50%);">F</span>
+                                    <h4 class="text-lg font-bold text-gray-900 mb-4">Resumo da Inspeção</h4>
+                                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                        <!-- Entrega (Check-in) -->
+                                        <div class="bg-green-50 border border-green-200 rounded-lg p-4">
+                                            <h5 class="font-bold text-green-700 mb-3 flex items-center gap-2">
+                                                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>
+                                                </svg>
+                                                Entrega (Check-In)
+                                            </h5>
+                                            <div class="space-y-2 text-sm">
+                                                <div class="flex justify-between">
+                                                    <span class="text-gray-600">Data:</span>
+                                                    <span class="font-semibold">${checkinDate ? new Date(checkinDate).toLocaleDateString('pt-PT') + ' ' + new Date(checkinDate).toLocaleTimeString('pt-PT', {hour: '2-digit', minute: '2-digit'}) : 'N/A'}</span>
+                                                </div>
+                                                <div class="flex justify-between">
+                                                    <span class="text-gray-600">Inspetor:</span>
+                                                    <span class="font-semibold">${checkinInspector ? getFirstLastName(checkinInspector) : 'N/A'}</span>
+                                                </div>
+                                                <div class="flex justify-between">
+                                                    <span class="text-gray-600">Quilómetros:</span>
+                                                    <span class="font-semibold">${checkinOdometer ? checkinOdometer.toLocaleString() + ' km' : 'N/A'}</span>
+                                                </div>
+                                                <div class="flex justify-between">
+                                                    <span class="text-gray-600">Danos:</span>
+                                                    <span class="font-semibold">${checkinDamageCount}</span>
+                                                </div>
+                                            </div>
+                                            <!-- Fuel bar Entrega -->
+                                            <div class="mt-4 pt-3 border-t border-green-200">
+                                                <p class="text-xs text-gray-600 mb-2 text-center">Combustível na Entrega</p>
+                                                <div class="relative mb-1" style="height: 14px;">
+                                                    <div class="relative flex justify-between text-xs font-semibold text-[#009cb6]">
+                                                        <span>R</span><span>1/4</span><span>1/2</span><span>3/4</span><span>F</span>
+                                                    </div>
+                                                </div>
+                                                <div class="relative bg-white border-2 border-[#009cb6] rounded-lg h-6">
+                                                    <div class="absolute inset-0 flex items-center">
+                                                        <div class="w-0.5 h-3 bg-[#009cb6]" style="position: absolute; left: 0%;"></div>
+                                                        <div class="w-0.5 h-3 bg-[#009cb6]" style="position: absolute; left: 25%;"></div>
+                                                        <div class="w-0.5 h-3 bg-[#009cb6]" style="position: absolute; left: 50%;"></div>
+                                                        <div class="w-0.5 h-3 bg-[#009cb6]" style="position: absolute; left: 75%;"></div>
+                                                        <div class="w-0.5 h-3 bg-[#009cb6]" style="position: absolute; right: 0%;"></div>
+                                                    </div>
+                                                    <div class="h-full bg-[#009cb6] rounded-lg" style="width: ${fuelToPercent(checkinFuel)}%;"></div>
+                                                </div>
+                                                <p class="text-center text-sm font-bold text-[#009cb6] mt-1">${fuelToFraction(checkinFuel)}</p>
                                             </div>
                                         </div>
-                                        <div class="relative bg-white border-2 border-[#009cb6] rounded-lg h-8 mb-2 max-w-xs mx-auto">
-                                            <div class="absolute inset-0 flex items-center">
-                                                <div class="w-0.5 h-4 bg-[#009cb6]" style="position: absolute; left: 0%;"></div>
-                                                <div class="w-0.5 h-4 bg-[#009cb6]" style="position: absolute; left: 25%;"></div>
-                                                <div class="w-0.5 h-4 bg-[#009cb6]" style="position: absolute; left: 50%;"></div>
-                                                <div class="w-0.5 h-4 bg-[#009cb6]" style="position: absolute; left: 75%;"></div>
-                                                <div class="w-0.5 h-4 bg-[#009cb6]" style="position: absolute; right: 0%;"></div>
+                                        
+                                        <!-- Recolha (Self-Checkout) -->
+                                        <div class="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                                            <h5 class="font-bold text-blue-700 mb-3 flex items-center gap-2">
+                                                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                                                </svg>
+                                                Recolha (Self-Checkout)
+                                            </h5>
+                                            <div class="space-y-2 text-sm">
+                                                <div class="flex justify-between">
+                                                    <span class="text-gray-600">Data:</span>
+                                                    <span class="font-semibold">${new Date(inspection.created_at).toLocaleDateString('pt-PT')} ${new Date(inspection.created_at).toLocaleTimeString('pt-PT', {hour: '2-digit', minute: '2-digit'})}</span>
+                                                </div>
+                                                <div class="flex justify-between">
+                                                    <span class="text-gray-600">Cliente:</span>
+                                                    <span class="font-semibold">${inspection.inspector_name ? getFirstLastName(inspection.inspector_name) : 'N/A'}</span>
+                                                </div>
+                                                <div class="flex justify-between">
+                                                    <span class="text-gray-600">Quilómetros:</span>
+                                                    <span class="font-semibold">${inspection.odometer_reading ? inspection.odometer_reading.toLocaleString() + ' km' : 'N/A'}</span>
+                                                </div>
+                                                <div class="flex justify-between">
+                                                    <span class="text-gray-600">Status:</span>
+                                                    <span class="font-semibold text-green-600">Validado</span>
+                                                </div>
                                             </div>
-                                            <div class="h-full bg-[#009cb6] rounded-lg transition-all duration-300" style="width: ${fuelToPercent(inspection.fuel_level)}%;"></div>
-                                        </div>
-                                        <div class="text-center mt-2">
-                                            <span class="text-sm font-semibold text-gray-700">Nível: </span>
-                                            <span class="text-sm font-bold text-[#009cb6]">${fuelToFraction(inspection.fuel_level)}</span>
+                                            <!-- Fuel bar Recolha -->
+                                            <div class="mt-4 pt-3 border-t border-blue-200">
+                                                <p class="text-xs text-gray-600 mb-2 text-center">Combustível na Recolha</p>
+                                                <div class="relative mb-1" style="height: 14px;">
+                                                    <div class="relative flex justify-between text-xs font-semibold text-[#009cb6]">
+                                                        <span>R</span><span>1/4</span><span>1/2</span><span>3/4</span><span>F</span>
+                                                    </div>
+                                                </div>
+                                                <div class="relative bg-white border-2 border-[#009cb6] rounded-lg h-6">
+                                                    <div class="absolute inset-0 flex items-center">
+                                                        <div class="w-0.5 h-3 bg-[#009cb6]" style="position: absolute; left: 0%;"></div>
+                                                        <div class="w-0.5 h-3 bg-[#009cb6]" style="position: absolute; left: 25%;"></div>
+                                                        <div class="w-0.5 h-3 bg-[#009cb6]" style="position: absolute; left: 50%;"></div>
+                                                        <div class="w-0.5 h-3 bg-[#009cb6]" style="position: absolute; left: 75%;"></div>
+                                                        <div class="w-0.5 h-3 bg-[#009cb6]" style="position: absolute; right: 0%;"></div>
+                                                    </div>
+                                                    <div class="h-full bg-[#009cb6] rounded-lg" style="width: ${fuelToPercent(inspection.fuel_level)}%;"></div>
+                                                </div>
+                                                <p class="text-center text-sm font-bold text-[#009cb6] mt-1">${fuelToFraction(inspection.fuel_level)}</p>
+                                            </div>
                                         </div>
                                     </div>
                                 </div>
@@ -2528,44 +2593,21 @@
                                 <!-- Croqui do CHECK-IN -->
                                 ${checkinCroqui ? `
                                     <div class="mb-6">
-                                        <h4 class="text-lg font-bold text-gray-900 mb-4">Croqui de Danos (Check-In)</h4>
+                                        <h4 class="text-lg font-bold text-gray-900 mb-4">Croqui de Danos</h4>
                                         <div class="bg-white border border-gray-200 rounded-lg p-4">
                                             <img src="${checkinCroqui.startsWith('data:') ? checkinCroqui : 'data:image/png;base64,' + checkinCroqui}" 
                                                  alt="Croqui de Danos" 
                                                  class="w-full max-w-2xl mx-auto rounded-lg"
                                                  onerror="this.style.display='none'; this.parentElement.innerHTML='<p class=text-red-500>Erro ao carregar croqui</p>'">
                                         </div>
-                                        <p class="text-sm text-gray-600 mt-2 text-center">
-                                            <span class="font-semibold">Total de Danos:</span> ${checkinDamageCount}
-                                        </p>
                                     </div>
                                 ` : ''}
                                 
-                                <!-- Photos -->
+                                <!-- Fotos Entrega (9 fotos do check-in) -->
                                 <div class="mb-6">
-                                    <h4 class="text-lg font-bold text-gray-900 mb-4">Fotografias de Recolha</h4>
-                                    ${photosHtml}
+                                    <h4 class="text-lg font-bold text-gray-900 mb-4">Fotos Entrega</h4>
+                                    ${entregaPhotosHtml}
                                 </div>
-                                
-                                <!-- Incidence Photos (odometer proof) -->
-                                ${inspection.photos && inspection.photos['odometer_proof'] ? `
-                                <div class="mb-6">
-                                    <h4 class="text-lg font-bold text-orange-600 mb-4 flex items-center gap-2">
-                                        <svg class="w-5 h-5 text-orange-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/></svg>
-                                        Fotografias com Incidência
-                                    </h4>
-                                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                        <div>
-                                            <img src="${inspection.photos['odometer_proof']}" alt="Prova Odómetro" 
-                                                 class="w-full h-48 object-cover rounded-lg border border-gray-200 cursor-pointer photo-clickable"
-                                                 data-photo-key="odometer_proof"
-                                                 onerror="this.style.display='none'">
-                                            <p class="text-xs text-gray-500 mt-2">${inspection.created_at ? new Date(inspection.created_at).toLocaleString('pt-PT', {day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit'}) : ''}</p>
-                                            <p class="text-xs text-gray-600">Por: ${inspection.inspector_name ? getFirstLastName(inspection.inspector_name) : 'N/A'}</p>
-                                        </div>
-                                    </div>
-                                </div>
-                                ` : ''}
                                 
                                 <!-- Observations -->
                                 ${inspection.inspector_notes ? `
