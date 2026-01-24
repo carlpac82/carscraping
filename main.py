@@ -30749,8 +30749,10 @@ async def save_inspection(request: Request):
                                 country = extracted_data.get('country', '').upper()
                                 logging.info(f"🔍 DEBUG country: '{country}'")
                                 
-                                # Extract client name (camelCase format)
-                                raw_client_name = extracted_data.get('clientName', '')
+                                # Extract client name (try both camelCase and snake_case)
+                                raw_client_name = (extracted_data.get('clientName', '') or 
+                                                  extracted_data.get('client_name', '') or 
+                                                  extracted_data.get('nome_cliente', ''))
                                 
                                 logging.info(f"🔍 DEBUG raw_client_name: '{raw_client_name}' (type: {type(raw_client_name)})")
                                 
@@ -30765,12 +30767,21 @@ async def save_inspection(request: Request):
                                     first_name = 'Customer'
                                     logging.warning(f"⚠️ No client name found, using default 'Customer'")
                                 
-                                # Get location (camelCase format) - for checkout use returnLocation
-                                ra_location = extracted_data.get('returnLocation', '') if inspection_type == 'checkout' else extracted_data.get('pickupLocation', '')
+                                # Get location (try both camelCase and snake_case)
+                                if inspection_type == 'checkout':
+                                    ra_location = (extracted_data.get('returnLocation', '') or 
+                                                  extracted_data.get('return_location', '') or
+                                                  extracted_data.get('local_devolucao', ''))
+                                else:
+                                    ra_location = (extracted_data.get('pickupLocation', '') or 
+                                                  extracted_data.get('pickup_location', '') or
+                                                  extracted_data.get('local_levantamento', ''))
                                 
                                 logging.info(f"🔍 DEBUG ra_location: '{ra_location}' (inspection_type: {inspection_type})")
                                 logging.info(f"🔍 DEBUG pickupLocation: '{extracted_data.get('pickupLocation', 'NOT FOUND')}'")
                                 logging.info(f"🔍 DEBUG returnLocation: '{extracted_data.get('returnLocation', 'NOT FOUND')}'")
+                                logging.info(f"🔍 DEBUG pickup_location: '{extracted_data.get('pickup_location', 'NOT FOUND')}'")
+                                logging.info(f"🔍 DEBUG return_location: '{extracted_data.get('return_location', 'NOT FOUND')}'")
                                 
                                 if ra_location and ra_location.strip():
                                     delivery_location = ra_location.strip()
