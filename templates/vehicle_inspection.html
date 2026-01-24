@@ -939,7 +939,9 @@
                 <!-- Croqui do Carro -->
                 <div class="car-svg-container" id="carDiagram">
                     <img src="/static/images/Croqui.png" alt="Croqui do Carro" style="width: 100%; height: auto; display: block;">
-                    <!-- Canvas para desenho -->
+                    <!-- Canvas de fundo para danos do check-in (não editável) -->
+                    <canvas id="checkinDamagesCanvas" class="drawing-canvas" style="pointer-events: none;"></canvas>
+                    <!-- Canvas para desenho de novos danos (checkout) -->
                     <canvas id="drawingCanvas" class="drawing-canvas"></canvas>
                     <!-- Pins adicionados dinamicamente aqui -->
                     <!-- Pin preview -->
@@ -1680,6 +1682,14 @@
             const resizeCanvas = () => {
                 canvas.width = img.offsetWidth;
                 canvas.height = img.offsetHeight;
+                
+                // Also resize the check-in damages canvas to match
+                const checkinCanvas = document.getElementById('checkinDamagesCanvas');
+                if (checkinCanvas) {
+                    checkinCanvas.width = img.offsetWidth;
+                    checkinCanvas.height = img.offsetHeight;
+                }
+                
                 // Save dimensions for later use in capture (before canvas might be resized to 0x0)
                 if (canvas.width > 0 && canvas.height > 0) {
                     savedCanvasWidth = canvas.width;
@@ -2792,6 +2802,13 @@
                 
                 // Draw background
                 tempCtx.drawImage(croquiImg, 0, 0);
+                
+                // Draw check-in damages canvas (protected layer) if it exists and has content
+                const checkinCanvas = document.getElementById('checkinDamagesCanvas');
+                if (checkinCanvas && checkinCanvas.width > 0 && checkinCanvas.height > 0) {
+                    console.log('🎨 Adding check-in damages layer to final croqui');
+                    tempCtx.drawImage(checkinCanvas, 0, 0, tempCanvas.width, tempCanvas.height);
+                }
                 
                 // Calculate scale using SAVED dimensions (canvas might be 0x0 at this point)
                 const canvasWidth = savedCanvasWidth > 0 ? savedCanvasWidth : (canvas && canvas.width > 0 ? canvas.width : croquiImg.offsetWidth || croquiImg.naturalWidth);

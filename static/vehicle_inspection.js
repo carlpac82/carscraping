@@ -1460,40 +1460,35 @@ function loadDeliveryDamagesOnCroqui() {
         return;
     }
     
-    // Load damage croqui as BACKGROUND IMAGE (not on canvas) so eraser cannot delete it
+    // Load damage croqui on the dedicated PROTECTED canvas (checkinDamagesCanvas)
+    // This canvas has pointer-events: none and is not affected by the eraser
     if (window.deliveryInspection.damage_croqui) {
-        console.log('📍 Loading delivery damage croqui as background layer (protected from eraser)...');
+        console.log('📍 Loading delivery damage croqui on protected canvas...');
         console.log('🔍 Croqui data length:', window.deliveryInspection.damage_croqui.length);
         
-        const container = document.getElementById('carDiagram');
+        const checkinCanvas = document.getElementById('checkinDamagesCanvas');
+        const drawingCanvas = document.getElementById('drawingCanvas');
         
-        if (container) {
-            // Remove any existing background layer
-            const existingBg = document.getElementById('deliveryCroquiBackground');
-            if (existingBg) existingBg.remove();
+        if (checkinCanvas && drawingCanvas) {
+            // Ensure checkin canvas has same dimensions as drawing canvas
+            checkinCanvas.width = drawingCanvas.width;
+            checkinCanvas.height = drawingCanvas.height;
             
-            // Create background image layer for check-in damages (PROTECTED from eraser)
-            const bgImg = document.createElement('img');
-            bgImg.id = 'deliveryCroquiBackground';
-            bgImg.src = window.deliveryInspection.damage_croqui;
-            bgImg.style.position = 'absolute';
-            bgImg.style.top = '0';
-            bgImg.style.left = '0';
-            bgImg.style.width = '100%';
-            bgImg.style.height = '100%';
-            bgImg.style.pointerEvents = 'none'; // Don't interfere with clicks
-            bgImg.style.zIndex = '5'; // Between car image (1) and canvas (10)
-            bgImg.onload = function() {
-                console.log('✅ Delivery croqui loaded as protected background layer');
+            const ctx = checkinCanvas.getContext('2d');
+            
+            const img = new Image();
+            img.onload = function() {
+                // Draw the check-in croqui on the PROTECTED canvas
+                ctx.clearRect(0, 0, checkinCanvas.width, checkinCanvas.height);
+                ctx.drawImage(img, 0, 0, checkinCanvas.width, checkinCanvas.height);
+                console.log('✅ Delivery croqui loaded on protected canvas (eraser-safe)');
             };
-            bgImg.onerror = function(error) {
+            img.onerror = function(error) {
                 console.error('❌ Failed to load delivery croqui image:', error);
             };
-            
-            container.appendChild(bgImg);
-            console.log('✅ Check-in damages protected from eraser (background layer)');
+            img.src = window.deliveryInspection.damage_croqui;
         } else {
-            console.error('❌ Car diagram container not found');
+            console.error('❌ Canvas not found - checkinCanvas:', !!checkinCanvas, 'drawingCanvas:', !!drawingCanvas);
         }
     } else {
         console.log('ℹ️ No damage croqui in delivery inspection');
