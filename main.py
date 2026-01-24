@@ -33700,6 +33700,13 @@ def _send_invalidation_email(
         </tr>
     </table>
 
+    <!-- Greeting - FIRST -->
+    <div style="padding: 20px;">
+        <h2 style="color: #333333; margin: 0 0 15px 0; font-size: 18px;">Caro {client_name},</h2>
+        <p style="color: #666666; line-height: 1.6; margin: 0 0 12px 0; font-size: 14px;">Agradecemos o self checkout do veículo <strong>{plate}</strong>. No entanto, durante a validação, a nossa equipa detectou algumas divergências que necessitam de esclarecimento.</p>
+        <p style="color: #666666; line-height: 1.6; margin: 0; font-size: 14px;">Iremos analisar a situação com atenção e entraremos em contacto consigo nas próximas horas para resolver esta questão.</p>
+    </div>
+
     <!-- Info Grid: Contrato e Matrícula -->
     <div style="padding: 20px;">
         <table width="100%" cellpadding="0" cellspacing="0" style="border: 1px solid #e5e7eb; border-radius: 8px; overflow: hidden;">
@@ -33725,13 +33732,6 @@ def _send_invalidation_email(
             </tr>
         </table>
     </div>
-
-    <!-- Greeting - FIRST -->
-    <div style="padding: 20px;">
-        <h2 style="color: #333333; margin: 0 0 15px 0; font-size: 18px;">Caro {client_name},</h2>
-        <p style="color: #666666; line-height: 1.6; margin: 0 0 12px 0; font-size: 14px;">Agradecemos o self checkout do veículo <strong>{plate}</strong>. No entanto, durante a validação, a nossa equipa detectou algumas divergências que necessitam de esclarecimento.</p>
-        <p style="color: #666666; line-height: 1.6; margin: 0; font-size: 14px;">Iremos analisar a situação com atenção e entraremos em contacto consigo nas próximas horas para resolver esta questão.</p>
-    </div>
 '''
         
         # Damage alert (Red)
@@ -33739,14 +33739,7 @@ def _send_invalidation_email(
             html_content += f'''
     <!-- Damage Alert (Red) -->
     <div style="background: #fef2f2; border-left: 4px solid #dc2626; padding: 20px; margin: 20px; border-radius: 8px;">
-        <h3 style="color: #dc2626; margin: 0 0 10px 0; font-size: 16px; font-weight: 600;">
-            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="vertical-align: middle; margin-right: 8px;">
-                <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path>
-                <line x1="12" y1="9" x2="12" y2="13"></line>
-                <line x1="12" y1="17" x2="12.01" y2="17"></line>
-            </svg>
-            Danos Detectados no Veículo
-        </h3>
+        <h3 style="color: #dc2626; margin: 0 0 10px 0; font-size: 16px; font-weight: 600;">Danos Detectados no Veículo</h3>
         <p style="color: #991b1b; margin: 0; font-size: 13px; line-height: 1.5;">
             Foram detectados danos no veículo durante a verificação. Consulte os detalhes abaixo.
         </p>
@@ -33756,18 +33749,35 @@ def _send_invalidation_email(
         # Fuel warning section - AFTER damages, with visual fuel bars
         if has_fuel_warning:
             fuel_diff = checkin_fuel - fuel_level
+            
+            # Convert percentage to fraction label
+            def fuel_to_fraction(pct):
+                if pct >= 100:
+                    return "CHEIO"
+                elif pct >= 87:
+                    return "7/8"
+                elif pct >= 75:
+                    return "3/4"
+                elif pct >= 62:
+                    return "5/8"
+                elif pct >= 50:
+                    return "1/2"
+                elif pct >= 37:
+                    return "3/8"
+                elif pct >= 25:
+                    return "1/4"
+                elif pct >= 12:
+                    return "1/8"
+                else:
+                    return "RESERVA"
+            
+            checkin_fuel_label = fuel_to_fraction(checkin_fuel)
+            checkout_fuel_label = fuel_to_fraction(fuel_level)
+            
             html_content += f'''
     <!-- Fuel Warning Section (White background, Orange left border) -->
-    <div style="background: #ffffff; border-left: 4px solid #f97316; padding: 20px; margin: 20px; border-radius: 8px; border: 1px solid #e5e7eb; border-left: 4px solid #f97316;">
-        <h3 style="color: #f97316; margin: 0 0 10px 0; font-size: 16px; font-weight: 600;">
-            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="vertical-align: middle; margin-right: 8px;">
-                <path d="M3 22V8a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2v14"></path>
-                <path d="M17 12h2a2 2 0 0 1 2 2v2a2 2 0 0 1-2 2h-2"></path>
-                <path d="M7 10h6"></path>
-                <path d="M7 14h6"></path>
-            </svg>
-            Advertência de Combustível
-        </h3>
+    <div style="background: #ffffff; border: 1px solid #e5e7eb; border-left: 4px solid #f97316; padding: 20px; margin: 20px; border-radius: 8px;">
+        <h3 style="color: #f97316; margin: 0 0 10px 0; font-size: 16px; font-weight: 600;">Advertência de Combustível</h3>
         <p style="color: #666666; margin: 0 0 20px 0; font-size: 13px; line-height: 1.5;">
             O veículo foi devolvido com menos combustível do que no momento da entrega.
         </p>
@@ -33792,7 +33802,7 @@ def _send_invalidation_email(
                             <td style="width: 0%; text-align: right; font-size: 10px; color: #6b7280;">F</td>
                         </tr>
                     </table>
-                    <p style="color: #059669; margin: 10px 0 0 0; font-size: 24px; font-weight: bold;">{checkin_fuel}%</p>
+                    <p style="color: #00bcd4; margin: 10px 0 0 0; font-size: 24px; font-weight: bold;">{checkin_fuel_label}</p>
                 </td>
                 <!-- Spacer -->
                 <td style="width: 4%;"></td>
@@ -33813,7 +33823,7 @@ def _send_invalidation_email(
                             <td style="width: 0%; text-align: right; font-size: 10px; color: #6b7280;">F</td>
                         </tr>
                     </table>
-                    <p style="color: #dc2626; margin: 10px 0 0 0; font-size: 24px; font-weight: bold;">{fuel_level}%</p>
+                    <p style="color: #f59e0b; margin: 10px 0 0 0; font-size: 24px; font-weight: bold;">{checkout_fuel_label}</p>
                 </td>
             </tr>
         </table>

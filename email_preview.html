@@ -1,290 +1,249 @@
 <!DOCTYPE html>
-<html>
+<html lang="pt">
 <head>
-    <meta charset="UTF-8">
+    <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Self Checkout - Incidências Detectadas</title>
     <style>
-        body {
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
-            margin: 0;
-            padding: 20px;
-            background-color: #f5f5f5;
-        }
-        .email-container {
-            max-width: 800px;
-            margin: 0 auto;
-            background-color: #fff;
-        }
-        .header {
-            background-color: #009cb6;
-            padding: 15px 20px;
-        }
-        .header-content {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-        }
-        .logo img {
-            height: 35px;
-        }
-        .header-info {
-            text-align: right;
-            color: #fff;
-        }
-        .header-title {
-            font-size: 16px;
-            font-weight: bold;
-            margin: 0;
-        }
-        .header-subtitle {
-            font-size: 12px;
-            margin: 5px 0 0 0;
-            opacity: 0.9;
-        }
-        .content {
-            padding: 30px 20px;
-        }
-        .group-card {
-            background: #fff;
-            border: 1px solid #e2e8f0;
-            border-radius: 8px;
-            padding: 20px;
-            margin-bottom: 20px;
-        }
-        .group-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 15px;
-            padding-bottom: 15px;
-            border-bottom: 2px solid #009cb6;
-        }
-        .group-name {
-            font-size: 18px;
-            font-weight: bold;
-            color: #1e293b;
-        }
-        .price-comparison {
-            background: #f8fafc;
-            border-radius: 6px;
-            padding: 15px;
-            margin-bottom: 10px;
-        }
-        .competitor {
-            display: flex;
-            align-items: flex-start;
-            padding: 16px 12px;
-            margin: 8px 0;
-            background: #fff;
-            border: 1px solid #e2e8f0;
-            border-radius: 6px;
-            gap: 20px;
-        }
-        .competitor.autoprudente {
-            background: #e0f7fa;
-            border: 2px solid #009cb6;
-        }
-        .stats-box {
-            display: flex;
-            justify-content: space-around;
-            background: #f8fafc;
-            padding: 20px;
-            border-radius: 8px;
-            margin-bottom: 25px;
-        }
-        .stat {
-            text-align: center;
-        }
-        .stat-value {
-            font-size: 32px;
-            font-weight: bold;
-            color: #009cb6;
-        }
-        .stat-label {
-            font-size: 13px;
-            color: #64748b;
-            margin-top: 5px;
-        }
+        body { margin: 0; padding: 0; font-family: Arial, sans-serif; background-color: #f4f4f4; }
+        .email-container { max-width: 600px; min-width: 320px; margin: 0 auto; background-color: #ffffff; }
     </style>
 </head>
-<body>
-    <div class="email-container">
-        <div class="header">
-            <div class="header-content">
-                <div class="logo">
-                    <img src="https://carrental-api-5f8q.onrender.com/static/ap-heather.png" alt="Auto Prudente" style="height:35px"/>
-                </div>
-                <div class="header-info">
-                    <div class="header-title">Relatório Diário - Aeroporto de Faro</div>
-                    <div class="header-subtitle">10 de Novembro de 2025</div>
-                </div>
-            </div>
-        </div>
-        <div class="content">
-            
-            <!-- Stats Box -->
-            <div class="stats-box">
-                <div class="stat">
-                    <div class="stat-value" style="color: #009cb6;">3</div>
-                    <div class="stat-label">Melhores Preços</div>
-                </div>
-                <div class="stat">
-                    <div class="stat-value" style="color: #92400e;">3</div>
-                    <div class="stat-label">Competitivos</div>
-                </div>
-                <div class="stat">
-                    <div class="stat-value">21%</div>
-                    <div class="stat-label">Taxa de Liderança</div>
-                </div>
-            </div>
+<body style="margin: 0; padding: 0; font-family: Arial, sans-serif; background-color: #f4f4f4;">
+    <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="margin: 0; padding: 0;">
+        <tr>
+            <td align="center" style="padding: 0;">
+                <table role="presentation" width="600" cellpadding="0" cellspacing="0" border="0" style="margin: 0 auto; background-color: #ffffff; width: 600px !important;">
+                    <tr>
+                        <td style="padding: 0;">
+    
+    <!-- Header -->
+    <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="background: linear-gradient(135deg, #00bcd4 0%, #0097a7 100%); background-color: #00bcd4;">
+        <tr>
+            <td style="padding: 20px;">
+                <table width="100%" cellpadding="0" cellspacing="0">
+                    <tr>
+                        <td style="width: 50%; text-align: left; vertical-align: middle;">
+                            <img src="https://carscraping.up.railway.app/static/ap-heather.png" alt="Auto Prudente" style="height: 50px; width: auto;">
+                        </td>
+                        <td style="width: 50%; text-align: right; vertical-align: middle;">
+                            <div style="background: rgba(255,255,255,0.2); padding: 10px 15px; border-radius: 6px; display: inline-block;">
+                                <span style="color: #ffffff; font-size: 16px; font-weight: bold;">R.A.: 06716</span>
+                            </div>
+                        </td>
+                    </tr>
+                </table>
+            </td>
+        </tr>
+    </table>
 
-            <!-- Barra azul - Dias -->
-            <div style="background: #009cb6; padding: 15px 20px; margin: 30px 0 20px 0; border-radius: 6px;">
-                <div style="color: #fff; font-size: 18px; font-weight: bold; display: flex; align-items: center; gap: 8px;">
-                    <svg width="16" height="16" fill="currentColor" viewBox="0 0 24 24"><path d="M19 4h-1V2h-2v2H8V2H6v2H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2zm0 16H5V10h14v10zM5 8V6h14v2H5z"/></svg>
-                    7 dias
-                </div>
-            </div>
+    <!-- Greeting - FIRST -->
+    <div style="padding: 20px;">
+        <h2 style="color: #333333; margin: 0 0 15px 0; font-size: 18px;">Caro PEDRO MANUEL DOS REIS NEVES,</h2>
+        <p style="color: #666666; line-height: 1.6; margin: 0 0 12px 0; font-size: 14px;">Agradecemos o self checkout do veículo <strong>AS-46-EO</strong>. No entanto, durante a validação, a nossa equipa detectou algumas divergências que necessitam de esclarecimento.</p>
+        <p style="color: #666666; line-height: 1.6; margin: 0; font-size: 14px;">Iremos analisar a situação com atenção e entraremos em contacto consigo nas próximas horas para resolver esta questão.</p>
+    </div>
 
-            <!-- Barra amarela - Separador -->
-            <div style="background: #fbbf24; height: 3px; margin: 15px 0 15px 0;"></div>
+    <!-- Info Grid: Contrato e Matrícula -->
+    <div style="padding: 20px;">
+        <table width="100%" cellpadding="0" cellspacing="0" style="border: 1px solid #e5e7eb; border-radius: 8px; overflow: hidden;">
+            <tr>
+                <td style="padding: 12px 15px; background-color: #f9fafb; font-weight: bold; width: 40%; border-bottom: 1px solid #e5e7eb; color: #374151;">Contrato</td>
+                <td style="padding: 12px 15px; border-bottom: 1px solid #e5e7eb; color: #111827;">06716</td>
+            </tr>
+            <tr>
+                <td style="padding: 12px 15px; background-color: #f9fafb; font-weight: bold; width: 40%; border-bottom: 1px solid #e5e7eb; color: #374151;">Matrícula</td>
+                <td style="padding: 12px 15px; border-bottom: 1px solid #e5e7eb; color: #111827;">AS-46-EO</td>
+            </tr>
+            <tr>
+                <td style="padding: 12px 15px; background-color: #f9fafb; font-weight: bold; width: 40%; border-bottom: 1px solid #e5e7eb; color: #374151;">Odómetro Check-in</td>
+                <td style="padding: 12px 15px; border-bottom: 1px solid #e5e7eb; color: #111827;">50,000 km</td>
+            </tr>
+            <tr>
+                <td style="padding: 12px 15px; background-color: #f9fafb; font-weight: bold; width: 40%; border-bottom: 1px solid #e5e7eb; color: #374151;">Odómetro Devolução</td>
+                <td style="padding: 12px 15px; border-bottom: 1px solid #e5e7eb; color: #111827;">54,000 km</td>
+            </tr>
+            <tr>
+                <td style="padding: 12px 15px; background-color: #f9fafb; font-weight: bold; width: 40%; color: #374151;">KMs Percorridos</td>
+                <td style="padding: 12px 15px; color: #059669; font-weight: bold;">4,000 km</td>
+            </tr>
+        </table>
+    </div>
 
-            <!-- Group Card -->
-            <div class="group-card">
-                <div class="group-header">
-                    <div style="display: flex; align-items: center; gap: 10px;">
-                        <svg width="18" height="18" fill="currentColor" viewBox="0 0 24 24"><path d="M18.92 6.01C18.72 5.42 18.16 5 17.5 5h-11c-.66 0-1.21.42-1.42 1.01L3 12v8c0 .55.45 1 1 1h1c.55 0 1-.45 1-1v-1h12v1c0 .55.45 1 1 1h1c.55 0 1-.45 1-1v-8l-2.08-5.99zM6.5 16c-.83 0-1.5-.67-1.5-1.5S5.67 13 6.5 13s1.5.67 1.5 1.5S7.33 16 6.5 16zm11 0c-.83 0-1.5-.67-1.5-1.5s.67-1.5 1.5-1.5 1.5.67 1.5 1.5-.67 1.5-1.5 1.5zM5 11l1.5-4.5h11L19 11H5z"/></svg>
-                        <span class="group-name">B1</span>
-                    </div>
-                    <div style="display: flex; align-items: center; gap: 8px; background: #009cb6; color: #fff; padding: 8px 16px; border-radius: 6px; font-size: 14px; font-weight: 600; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
-                        <svg width="18" height="18" fill="currentColor" viewBox="0 0 24 24"><path d="M20 7h-2V5c0-1.1-.9-2-2-2H8c-1.1 0-2 .9-2 2v2H4c-1.1 0-2 .9-2 2v3c0 2.5 1.5 4.7 3.8 5.7.5 1.7 1.8 3 3.5 3.7V23h5v-1.6c1.7-.7 3-2 3.5-3.7 2.3-1 3.8-3.2 3.8-5.7V9c0-1.1-.9-2-2-2zm0 5c0 1.9-1.2 3.5-2.9 4.1-.2-1.3-.8-2.4-1.7-3.3l-1.4 1.4c.6.6 1 1.5 1 2.4 0 1.9-1.6 3.5-3.5 3.5S8 18.5 8 16.6c0-.9.4-1.8 1-2.4L7.6 12.8c-.9.9-1.5 2-1.7 3.3C4.2 15.5 3 13.9 3 12V9h3V5h12v4h3v3z"/></svg>
-                        <span>3º</span>
-                    </div>
-                </div>
-                <div class="price-comparison">
+    <!-- Damage Alert (Red) -->
+    <div style="background: #fef2f2; border-left: 4px solid #dc2626; padding: 20px; margin: 20px; border-radius: 8px;">
+        <h3 style="color: #dc2626; margin: 0 0 10px 0; font-size: 16px; font-weight: 600;">
+            Danos Detectados no Veículo
+        </h3>
+        <p style="color: #991b1b; margin: 0; font-size: 13px; line-height: 1.5;">
+            Foram detectados danos no veículo durante a verificação. Consulte os detalhes abaixo.
+        </p>
+    </div>
 
-                    <!-- Competitor 1 - COM BADGE MELHOR -->
-                    <div class="competitor">
-                        <div style="flex-shrink: 0; width: 90px; display: flex; align-items: flex-start; justify-content: center;">
-                            <img src="https://images.carjet.com/deu/mietwagen/T-Renault-Twingo.jpg" alt="Renault Twingo" style="width: 85px; max-height: 60px; object-fit: contain; border-radius: 8px; box-shadow: 0 2px 6px rgba(0,0,0,0.15);">
-                        </div>
-                        <div style="flex: 1; min-width: 0;">
-                            <div style="font-weight: 600; color: #1e293b; font-size: 13px; margin-bottom: 4px; line-height: 1.4;">
-                                1. Keddy by Europcar
-                            </div>
-                            <div style="font-size: 12px; color: #64748b; line-height: 1.4;">
-                                Renault Twingo
-                            </div>
-                        </div>
-                        <div style="flex-shrink: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; min-width: 100px;">
-                            <div style="font-size: 14px; font-weight: bold; color: #1e293b; white-space: nowrap; text-align: center;">
-                                36.97€
-                            </div>
-                            <div style="margin-top: 4px;"><span style="display: inline-block; background: #f4ad0f; color: #fff; padding: 3px 8px; border-radius: 4px; font-size: 10px; font-weight: bold;">MELHOR</span></div>
-                        </div>
-                    </div>
-
-                    <!-- Competitor 2 -->
-                    <div class="competitor">
-                        <div style="flex-shrink: 0; width: 90px; display: flex; align-items: flex-start; justify-content: center;">
-                            <img src="https://images.carjet.com/deu/mietwagen/T-Renault-Twingo.jpg" alt="Renault Twingo" style="width: 85px; max-height: 60px; object-fit: contain; border-radius: 8px; box-shadow: 0 2px 6px rgba(0,0,0,0.15);">
-                        </div>
-                        <div style="flex: 1; min-width: 0;">
-                            <div style="font-weight: 600; color: #1e293b; font-size: 13px; margin-bottom: 4px; line-height: 1.4;">
-                                2. Keddy by Europcar
-                            </div>
-                            <div style="font-size: 12px; color: #64748b; line-height: 1.4;">
-                                Renault Twingo
-                            </div>
-                        </div>
-                        <div style="flex-shrink: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; min-width: 100px;">
-                            <div style="font-size: 14px; font-weight: bold; color: #1e293b; white-space: nowrap; text-align: center;">
-                                37.53€
-                            </div>
-                        </div>
-                    </div>
-
-                    <!-- Competitor 3 - AUTO PRUDENTE -->
-                    <div class="competitor autoprudente">
-                        <div style="flex-shrink: 0; width: 90px; display: flex; align-items: flex-start; justify-content: center;">
-                            <img src="https://images.carjet.com/deu/mietwagen/T-Peugeot-108.jpg" alt="Peugeot 108" style="width: 85px; max-height: 60px; object-fit: contain; border-radius: 8px; box-shadow: 0 2px 6px rgba(0,0,0,0.15);">
-                        </div>
-                        <div style="flex: 1; min-width: 0;">
-                            <div style="font-weight: bold; color: #009cb6; font-size: 13px; margin-bottom: 4px; line-height: 1.4;">
-                                3. Auto Prudente Rent a Car
-                            </div>
-                            <div style="font-size: 12px; color: #64748b; line-height: 1.4;">
-                                Peugeot 108
-                            </div>
-                        </div>
-                        <div style="flex-shrink: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; min-width: 100px;">
-                            <div style="font-size: 14px; font-weight: bold; color: #009cb6; white-space: nowrap; text-align: center;">
-                                44.39€
-                            </div>
-                        </div>
-                    </div>
-
-                    <!-- Competitor 4 - AUTO PRUDENTE -->
-                    <div class="competitor autoprudente">
-                        <div style="flex-shrink: 0; width: 90px; display: flex; align-items: flex-start; justify-content: center;">
-                            <img src="https://images.carjet.com/deu/mietwagen/T-Peugeot-108.jpg" alt="Peugeot 108" style="width: 85px; max-height: 60px; object-fit: contain; border-radius: 8px; box-shadow: 0 2px 6px rgba(0,0,0,0.15);">
-                        </div>
-                        <div style="flex: 1; min-width: 0;">
-                            <div style="font-weight: bold; color: #009cb6; font-size: 13px; margin-bottom: 4px; line-height: 1.4;">
-                                4. Auto Prudente Rent a Car
-                            </div>
-                            <div style="font-size: 12px; color: #64748b; line-height: 1.4;">
-                                Peugeot 108
-                            </div>
-                        </div>
-                        <div style="flex-shrink: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; min-width: 100px;">
-                            <div style="font-size: 14px; font-weight: bold; color: #009cb6; white-space: nowrap; text-align: center;">
-                                44.39€
-                            </div>
-                        </div>
-                    </div>
-
-                    <!-- Competitor 5 -->
-                    <div class="competitor">
-                        <div style="flex-shrink: 0; width: 90px; display: flex; align-items: flex-start; justify-content: center;">
-                            <img src="https://images.carjet.com/deu/mietwagen/T-Fiat-500.jpg" alt="Fiat 500" style="width: 85px; max-height: 60px; object-fit: contain; border-radius: 8px; box-shadow: 0 2px 6px rgba(0,0,0,0.15);">
-                        </div>
-                        <div style="flex: 1; min-width: 0;">
-                            <div style="font-weight: 600; color: #1e293b; font-size: 13px; margin-bottom: 4px; line-height: 1.4;">
-                                5. Europcar
-                            </div>
-                            <div style="font-size: 12px; color: #64748b; line-height: 1.4;">
-                                Fiat 500
-                            </div>
-                        </div>
-                        <div style="flex-shrink: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; min-width: 100px;">
-                            <div style="font-size: 14px; font-weight: bold; color: #1e293b; white-space: nowrap; text-align: center;">
-                                47.61€
-                            </div>
-                        </div>
-                    </div>
-
-                </div>
-            </div>
-
-        </div>
+    <!-- Fuel Warning Section -->
+    <div style="background: #ffffff; border: 1px solid #e5e7eb; border-left: 4px solid #f97316; padding: 20px; margin: 20px; border-radius: 8px;">
+        <h3 style="color: #f97316; margin: 0 0 10px 0; font-size: 16px; font-weight: 600;">
+            Advertência de Combustível
+        </h3>
+        <p style="color: #666666; margin: 0 0 20px 0; font-size: 13px; line-height: 1.5;">
+            O veículo foi devolvido com menos combustível do que no momento da entrega.
+        </p>
         
-        <!-- Footer azul -->
-        <div style="background: #009cb6; padding: 20px; text-align: center;">
-            <p style="margin: 0; font-size: 14px; color: #fff; font-weight: 500;">
-                Auto Prudente © 2025
-            </p>
-        </div>
+        <!-- Fuel bars side by side -->
+        <table width="100%" cellpadding="0" cellspacing="0" style="margin-bottom: 20px;">
+            <tr>
+                <!-- Check-in fuel -->
+                <td style="width: 48%; padding: 10px; text-align: center;">
+                    <p style="color: #374151; margin: 0 0 10px 0; font-size: 13px; font-weight: 600;">Combustível na Entrega</p>
+                    <div style="position: relative; background: #e5e7eb; border: 2px solid #00bcd4; border-radius: 6px; height: 30px; overflow: hidden;">
+                        <div style="background: linear-gradient(90deg, #00bcd4, #0097a7); height: 100%; width: 100%; border-radius: 4px;"></div>
+                    </div>
+                    <table width="100%" cellpadding="0" cellspacing="0" style="margin-top: 4px;">
+                        <tr>
+                            <td style="width: 0%; text-align: left; font-size: 8px; color: #6b7280;">RESERVA</td>
+                            <td style="width: 25%; text-align: center; font-size: 8px; color: #6b7280;">1/4</td>
+                            <td style="width: 25%; text-align: center; font-size: 8px; color: #6b7280;">1/2</td>
+                            <td style="width: 25%; text-align: center; font-size: 8px; color: #6b7280;">3/4</td>
+                            <td style="width: 0%; text-align: right; font-size: 8px; color: #6b7280;">CHEIO</td>
+                        </tr>
+                    </table>
+                    <p style="color: #00bcd4; margin: 10px 0 0 0; font-size: 18px; font-weight: bold;">CHEIO</p>
+                </td>
+                <td style="width: 4%;"></td>
+                <!-- Checkout fuel -->
+                <td style="width: 48%; padding: 10px; text-align: center;">
+                    <p style="color: #374151; margin: 0 0 10px 0; font-size: 13px; font-weight: 600;">Combustível na Devolução</p>
+                    <div style="position: relative; background: #e5e7eb; border: 2px solid #00bcd4; border-radius: 6px; height: 30px; overflow: hidden;">
+                        <div style="background: linear-gradient(90deg, #00bcd4, #0097a7); height: 100%; width: 75%; border-radius: 4px;"></div>
+                    </div>
+                    <table width="100%" cellpadding="0" cellspacing="0" style="margin-top: 4px;">
+                        <tr>
+                            <td style="width: 0%; text-align: left; font-size: 8px; color: #6b7280;">RESERVA</td>
+                            <td style="width: 25%; text-align: center; font-size: 8px; color: #6b7280;">1/4</td>
+                            <td style="width: 25%; text-align: center; font-size: 8px; color: #6b7280;">1/2</td>
+                            <td style="width: 25%; text-align: center; font-size: 8px; color: #6b7280;">3/4</td>
+                            <td style="width: 0%; text-align: right; font-size: 8px; color: #6b7280;">CHEIO</td>
+                        </tr>
+                    </table>
+                    <p style="color: #f59e0b; margin: 10px 0 0 0; font-size: 18px; font-weight: bold;">3/4</p>
+                </td>
+            </tr>
+        </table>
         
-        <!-- Texto abaixo -->
-        <div style="background: #f8fafc; padding: 20px; text-align: center;">
-            <p style="margin: 0; font-size: 12px; color: #64748b; font-weight: 500;">
-                Sistema de Monitorização de Preços
+        <!-- Difference info -->
+        <div style="text-align: center; padding: 15px; border-top: 1px solid #e5e7eb;">
+            <p style="color: #f97316; margin: 0 0 5px 0; font-size: 14px;">
+                <strong>Combustível em falta: 25%</strong>
             </p>
-            <p style="margin: 10px 0 0 0; font-size: 11px; color: #94a3b8;">
-                Dados baseados na última pesquisa • Atualizado automaticamente
+            <p style="color: #666666; margin: 0; font-size: 13px;">
+                Será cobrado o valor correspondente ao combustível em falta + taxa de reabastecimento.
             </p>
         </div>
     </div>
+
+    <!-- Damage Details Section -->
+    <div style="background: #ffffff; border: 1px solid #e5e7eb; padding: 20px; margin: 20px; border-radius: 8px;">
+        <h3 style="color: #333333; margin: 0 0 15px 0; font-size: 16px; font-weight: 600;">Detalhes dos Danos</h3>
+        
+        <p style="color: #666666; margin: 0 0 10px 0; font-size: 13px;"><strong>Croqui de Danos:</strong></p>
+        <div style="text-align: center; margin-bottom: 15px;">
+            <div style="background: #f0f0f0; height: 200px; border-radius: 8px; display: flex; align-items: center; justify-content: center; border: 1px solid #e5e7eb;">
+                <span style="color: #999;">[Imagem do Croqui com danos marcados]</span>
+            </div>
+        </div>
+        
+        <p style="color: #666666; margin: 0 0 10px 0; font-size: 13px;"><strong>Fotos dos Danos:</strong></p>
+        <table width="100%" cellpadding="5" cellspacing="0">
+            <tr>
+                <td width="33%" style="padding: 5px;"><div style="background: #333; height: 100px; border-radius: 6px;"></div></td>
+                <td width="33%" style="padding: 5px;"><div style="background: #333; height: 100px; border-radius: 6px;"></div></td>
+                <td width="33%" style="padding: 5px;"><div style="background: #333; height: 100px; border-radius: 6px;"></div></td>
+            </tr>
+            <tr>
+                <td width="33%" style="padding: 5px;"><div style="background: #333; height: 100px; border-radius: 6px;"></div></td>
+                <td width="33%" style="padding: 5px;"><div style="background: #333; height: 100px; border-radius: 6px;"></div></td>
+                <td width="33%" style="padding: 5px;"><div style="background: #333; height: 100px; border-radius: 6px;"></div></td>
+            </tr>
+            <tr>
+                <td width="33%" style="padding: 5px;"><div style="background: #333; height: 100px; border-radius: 6px;"></div></td>
+                <td width="33%" style="padding: 5px;"></td>
+                <td width="33%" style="padding: 5px;"></td>
+            </tr>
+        </table>
+    </div>
+
+    <!-- Next Steps -->
+    <div style="background: #fffbeb; border-left: 4px solid #f59e0b; padding: 20px; margin: 20px; border-radius: 8px;">
+        <h3 style="color: #b45309; margin: 0 0 10px 0; font-size: 16px; font-weight: 600;">Próximos Passos</h3>
+        <p style="color: #92400e; margin: 0 0 10px 0; font-size: 13px; line-height: 1.5;">
+            A nossa equipa irá analisar as incidências detectadas e entrar em contacto consigo brevemente para esclarecimentos.
+        </p>
+        <p style="color: #92400e; margin: 0; font-size: 13px; line-height: 1.5;">
+            Caso tenha alguma questão, não hesite em contactar-nos através dos contactos abaixo.
+        </p>
+    </div>
+
+    <!-- Separator Line -->
+    <div style="height: 2px; background: linear-gradient(to right, transparent, #00bcd4, transparent); margin: 30px 20px;"></div>
+
+    <!-- Closing -->
+    <div style="padding: 20px;">
+        <p style="color: #666666; line-height: 1.6; margin: 0 0 10px 0; font-size: 14px;">Agradecemos a sua compreensão e colaboração.</p>
+        <p style="color: #666666; line-height: 1.6; margin: 0; font-size: 14px;"><strong>Atentamente,</strong><br>Auto Prudente Rent a Car</p>
+    </div>
+
+    <!-- Separator Line -->
+    <div style="height: 2px; background: linear-gradient(to right, transparent, #00bcd4, transparent); margin: 30px 20px;"></div>
+
+    <!-- Contactos Úteis Section -->
+    <div style="padding: 20px; background-color: #f0f9fb;">
+        <h3 style="color: #00bcd4; margin: 0 0 20px 0; font-size: 20px; text-align: center; font-weight: bold;">Contactos Úteis</h3>
+        
+        <div style="max-width: 500px; margin: 0 auto;">
+            <table width="100%" cellpadding="10" cellspacing="0" style="background: white; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
+                <tr>
+                    <td style="text-align: center; padding: 15px; border-bottom: 1px solid #e0e0e0;">
+                        <p style="color: #666666; margin: 0 0 5px 0; font-size: 13px; font-weight: bold;">ESCRITÓRIO</p>
+                        <p style="color: #00bcd4; margin: 0; font-size: 16px; font-weight: bold;">+351 289 542 160</p>
+                    </td>
+                </tr>
+                <tr>
+                    <td style="text-align: center; padding: 15px; border-bottom: 1px solid #e0e0e0;">
+                        <p style="color: #666666; margin: 0 0 5px 0; font-size: 13px; font-weight: bold;">ASSISTÊNCIA EM VIAGEM</p>
+                        <p style="color: #00bcd4; margin: 0; font-size: 16px; font-weight: bold;">+351 273 880 250</p>
+                    </td>
+                </tr>
+                <tr>
+                    <td style="text-align: center; padding: 15px;">
+                        <p style="color: #666666; margin: 0 0 5px 0; font-size: 13px; font-weight: bold;">EMAIL</p>
+                        <p style="color: #00bcd4; margin: 0; font-size: 16px; font-weight: bold;">info@auto-prudente.com</p>
+                    </td>
+                </tr>
+            </table>
+        </div>
+    </div>
+
+    <!-- Footer -->
+    <div style="background-color: #00bcd4; padding: 20px; text-align: center;">
+        <p style="color: #ffffff; margin: 0; font-size: 11px; opacity: 0.8;">© 2026 Auto Prudente Rent a Car. Todos os direitos reservados.</p>
+    </div>
+    
+    <!-- Legal Footer -->
+    <div style="background-color: #f4f4f4; padding: 20px; text-align: center; border-top: 1px solid #e0e0e0;">
+        <div style="max-width: 560px; margin: 0 auto;">
+            <p style="color: #666666; margin: 0; font-size: 10px; line-height: 1.5;">
+                <strong>Auto Prudente Rent a Car Unipessoal, Lda.</strong> - Número Fiscal: PT 503 539 791<br>
+                Sede: Estrada de Santa Eulália, Edifício Onda do Mar Loja E, 8200-269 Albufeira<br>
+                Telefone +351 289 542 160 | E-mail: info@auto-prudente.com
+            </p>
+        </div>
+    </div>
+    
+                        </td>
+                    </tr>
+                </table>
+            </td>
+        </tr>
+    </table>
 </body>
 </html>
