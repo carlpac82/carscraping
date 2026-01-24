@@ -36620,6 +36620,91 @@ async def send_inspection_email(request: Request, inspection_number: str):
                 import traceback
                 logging.error(traceback.format_exc())
             
+            # If there are incidents, use the SAME email template as invalidation
+            has_any_incident = incidents.get('has_fuel_incident', False) or incidents.get('has_damage_incident', False)
+            
+            if has_any_incident:
+                logging.info(f"🚨 INCIDENTS DETECTED - Using invalidation email template")
+                
+                # Get checkin (entrega) data for comparison
+                base_ra = ra.split('-')[0] if '-' in ra else ra
+                if _USE_NEW_DB:
+                    cursor.execute("""
+                        SELECT fuel_level, odometer_reading FROM vehicle_inspections
+                        WHERE (contract_number = %s OR contract_number = %s OR contract_number LIKE %s)
+                        AND vehicle_plate = %s AND inspection_type = 'checkin'
+                        ORDER BY created_at DESC LIMIT 1
+                    """, (ra, base_ra, base_ra + '%', vehicle_plate))
+                else:
+                    cursor.execute("""
+                        SELECT fuel_level, odometer_reading FROM vehicle_inspections
+                        WHERE (contract_number = ? OR contract_number = ? OR contract_number LIKE ?)
+                        AND vehicle_plate = ? AND inspection_type = 'checkin'
+                        ORDER BY created_at DESC LIMIT 1
+                    """, (ra, base_ra, base_ra + '%', vehicle_plate))
+                
+                checkin_data = cursor.fetchone()
+                checkin_fuel = int(checkin_data[0]) if checkin_data and checkin_data[0] else 100
+                checkin_odometer = int(checkin_data[1]) if checkin_data and checkin_data[1] else 0
+                
+                # Get damage photos for this inspection
+                if _USE_NEW_DB:
+                    cursor.execute("""
+                        SELECT image_data FROM inspection_photos 
+                        WHERE inspection_id = %s AND photo_type LIKE 'damage%%'
+                    """, (inspection_id,))
+                else:
+                    cursor.execute("""
+                        SELECT image_data FROM inspection_photos 
+                        WHERE inspection_id = ? AND photo_type LIKE 'damage%%'
+                    """, (inspection_id,))
+                
+                damage_photo_rows = cursor.fetchall()
+                damage_photos = [row[0] for row in damage_photo_rows if row[0]] if damage_photo_rows else []
+                
+                # Get croqui
+                if _USE_NEW_DB:
+                    cursor.execute("""
+                        SELECT image_data FROM inspection_photos 
+                        WHERE inspection_id = %s AND photo_type = 'damage_croqui'
+                        LIMIT 1
+                    """, (inspection_id,))
+                else:
+                    cursor.execute("""
+                        SELECT image_data FROM inspection_photos 
+                        WHERE inspection_id = ? AND photo_type = 'damage_croqui'
+                        LIMIT 1
+                    """, (inspection_id,))
+                
+                croqui_row = cursor.fetchone()
+                damage_croqui = croqui_row[0] if croqui_row and croqui_row[0] else ""
+                
+                conn.close()
+                
+                # Send invalidation-style email
+                email_sent = _send_invalidation_email(
+                    client_email=email,
+                    client_name=client_name,
+                    plate=vehicle_plate,
+                    contract_number=ra,
+                    fuel_level=int(fuel_level),
+                    checkin_fuel=checkin_fuel,
+                    odometer_reading=int(odometer),
+                    checkin_odometer=checkin_odometer,
+                    has_damages=incidents.get('has_damage_incident', False),
+                    has_fuel_warning=incidents.get('has_fuel_incident', False),
+                    damage_description="",
+                    observations="",
+                    damage_photos=damage_photos,
+                    damage_croqui=damage_croqui
+                )
+                
+                if email_sent:
+                    logging.info(f"✅ Invalidation-style email sent successfully to {email}")
+                    return JSONResponse({"ok": True, "message": f"Email sent to {email}"})
+                else:
+                    return JSONResponse({"ok": False, "error": "Failed to send email"}, status_code=500)
+            
             # Use check-out template with incident alerts
             template_name = f"email_checkout_{detected_lang}.html" if detected_lang in ['pt', 'fr', 'en'] else "email_checkout_en.html"
             
