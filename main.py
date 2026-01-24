@@ -49472,22 +49472,31 @@ async def update_inspection(inspection_number: str, request: Request):
                     import json
                     extracted_data = json.loads(ra_row[0]) if ra_row[0] else {}
                     
+                    logging.info(f"🔍 BEFORE UPDATE - extracted_data: {extracted_data}")
+                    
                     # Convert YYYY-MM-DD to DD - MM - YYYY (with spaces, matching RA format)
                     new_return_date = data['expected_return_date']
+                    logging.info(f"📅 Received return date from frontend: {new_return_date}")
+                    
                     if '-' in new_return_date and len(new_return_date.split('-')) == 3:
                         parts = new_return_date.split('-')
+                        logging.info(f"📅 Date parts: {parts}")
                         if len(parts[0]) == 4:  # YYYY-MM-DD format
                             year, month, day = parts
                             formatted_date = f"{day} - {month} - {year}"
+                            logging.info(f"📅 Converted YYYY-MM-DD to DD - MM - YYYY: {formatted_date}")
                         else:  # Already in DD-MM-YYYY format
                             formatted_date = new_return_date.replace('-', ' - ')
+                            logging.info(f"📅 Added spaces to DD-MM-YYYY: {formatted_date}")
                     else:
                         formatted_date = new_return_date
+                        logging.info(f"📅 Using date as-is: {formatted_date}")
                     
                     # Update extracted_data
                     extracted_data['returnDate'] = formatted_date
                     extracted_data['return_date'] = formatted_date
                     
+                    logging.info(f"🔍 AFTER UPDATE - extracted_data: {extracted_data}")
                     logging.info(f"📅 Converted date from {new_return_date} to {formatted_date}")
                     
                     # Update RA
@@ -49505,6 +49514,7 @@ async def update_inspection(inspection_number: str, request: Request):
                         """, (json.dumps(extracted_data), formatted_date, contract_number))
                     
                     logging.info(f"✅ Updated return date in RA {contract_number}: {formatted_date}")
+                    logging.info(f"✅ Updated extracted_data in database")
         
         # Update damage croqui if provided
         if 'damage_croqui' in data and data['damage_croqui']:

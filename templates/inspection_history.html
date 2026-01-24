@@ -1833,29 +1833,43 @@
                 // If checkin, get return date from RA
                 if (type === 'checkin' && inspection.contract_number) {
                     try {
+                        console.log('🔍 Fetching RA data for contract:', inspection.contract_number);
                         const raResponse = await fetch(`/api/rental-agreement/${inspection.contract_number}`);
                         const raData = await raResponse.json();
+                        console.log('📄 RA Response:', raData);
+                        
                         if (raData.ok && raData.extracted_data) {
+                            console.log('📄 extracted_data:', raData.extracted_data);
                             let returnDate = raData.extracted_data.returnDate || raData.extracted_data.return_date || raData.return_date;
+                            console.log('📅 Raw return date from RA:', returnDate);
+                            
                             if (returnDate) {
                                 // Remove spaces from date string (e.g., "21 - 01 - 2026" -> "21-01-2026")
-                                returnDate = returnDate.replace(/\s+/g, '');
+                                const cleanedDate = returnDate.replace(/\s+/g, '');
+                                console.log('📅 Cleaned date (no spaces):', cleanedDate);
                                 
                                 // Convert DD-MM-YYYY or DD/MM/YYYY to YYYY-MM-DD for input[type="date"]
-                                if (returnDate.includes('/') || returnDate.includes('-')) {
-                                    const parts = returnDate.split(/[-\/]/);
+                                if (cleanedDate.includes('/') || cleanedDate.includes('-')) {
+                                    const parts = cleanedDate.split(/[-\/]/);
+                                    console.log('📅 Date parts:', parts);
                                     if (parts.length === 3) {
                                         const [day, month, year] = parts;
                                         inspection.expected_return_date = `${year}-${month.padStart(2, '0')}-${day.padStart(2, '0')}`;
+                                        console.log('📅 Converted to YYYY-MM-DD:', inspection.expected_return_date);
                                     }
                                 } else {
-                                    inspection.expected_return_date = returnDate;
+                                    inspection.expected_return_date = cleanedDate;
+                                    console.log('📅 Using date as-is:', inspection.expected_return_date);
                                 }
-                                console.log('📅 Parsed return date for edit modal:', inspection.expected_return_date);
+                                console.log('✅ Final expected_return_date for modal:', inspection.expected_return_date);
+                            } else {
+                                console.warn('⚠️ No return date found in RA data');
                             }
+                        } else {
+                            console.warn('⚠️ RA response missing ok or extracted_data');
                         }
                     } catch (err) {
-                        console.warn('Could not fetch RA return date:', err);
+                        console.error('❌ Error fetching RA return date:', err);
                     }
                 }
                 
@@ -2383,6 +2397,12 @@
                 const damageNotes = document.getElementById('damageNotes').value;
                 const expectedReturnDateInput = document.getElementById('expectedReturnDate');
                 const expectedReturnDate = expectedReturnDateInput ? expectedReturnDateInput.value : null;
+                
+                console.log('📅 FRONTEND - Expected Return Date Input:', {
+                    inputExists: !!expectedReturnDateInput,
+                    inputValue: expectedReturnDate,
+                    inputType: expectedReturnDateInput?.type
+                });
                 
                 // Capture updated croqui (merge background + new damages)
                 let updatedCroqui = null;
