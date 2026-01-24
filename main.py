@@ -36300,7 +36300,7 @@ async def send_inspection_email(request: Request, inspection_number: str):
             cursor.execute("""
                 SELECT id, contract_number, vehicle_plate, inspection_type, 
                        fuel_level, odometer_reading, pickup_location, return_location,
-                       inspector_name, created_at, observations
+                       inspector_name, created_at, observations, status, has_damage
                 FROM vehicle_inspections 
                 WHERE inspection_number = %s
             """, (inspection_number,))
@@ -36308,7 +36308,7 @@ async def send_inspection_email(request: Request, inspection_number: str):
             cursor.execute("""
                 SELECT id, contract_number, vehicle_plate, inspection_type, 
                        fuel_level, odometer_reading, pickup_location, return_location,
-                       inspector_name, created_at, observations
+                       inspector_name, created_at, observations, status, has_damage
                 FROM vehicle_inspections 
                 WHERE inspection_number = ?
             """, (inspection_number,))
@@ -36330,6 +36330,12 @@ async def send_inspection_email(request: Request, inspection_number: str):
         inspector = inspection[8] or 'N/A'
         created_at = inspection[9]
         observations = inspection[10] or ''
+        inspection_status = inspection[11] or ''
+        has_damage_field = inspection[12] or False
+        
+        # Check if this is an invalidated self-checkout (recolha com incidências)
+        is_invalidated = inspection_status == 'invalidated'
+        logging.info(f"📋 Inspection status: {inspection_status}, is_invalidated: {is_invalidated}, has_damage: {has_damage_field}")
         
         # Use correct location based on inspection type
         # Checkin (delivery/entrega) = pickup location (where customer picks up car)
@@ -36512,9 +36518,13 @@ async def send_inspection_email(request: Request, inspection_number: str):
                 
                 logging.info(f"📊 Incidents validation result: {incidents}")
                 
-                # FALLBACK: If has_damage flag is True but validation didn't detect it, force damage incident
-                if has_damage_flag and not incidents.get('has_damage_incident', False):
-                    logging.warning(f"⚠️ FALLBACK: has_damage={has_damage_flag} but validation returned False - forcing damage incident")
+                # FALLBACK: If inspection is invalidated or has_damage flag is True, force damage incident
+                if is_invalidated and not incidents.get('has_damage_incident', False):
+                    logging.warning(f"⚠️ FALLBACK: is_invalidated={is_invalidated} - forcing damage incident for invalidated self-checkout")
+                    incidents['has_damage_incident'] = True
+                
+                if has_damage_field and not incidents.get('has_damage_incident', False):
+                    logging.warning(f"⚠️ FALLBACK: has_damage={has_damage_field} but validation returned False - forcing damage incident")
                     incidents['has_damage_incident'] = True
                 
                 # Generate STATUS_ALERT based on incidents
