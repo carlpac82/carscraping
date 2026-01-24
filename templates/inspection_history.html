@@ -2653,7 +2653,7 @@
                 modal.innerHTML = `
                     <div class="bg-white rounded-lg max-w-4xl w-full max-h-[90vh] overflow-auto">
                         <div class="sticky top-0 bg-white border-b px-6 py-4 flex justify-between items-center">
-                            <h2 class="text-xl font-bold text-red-600">Relatório de Recolha (Invalidado) - ${inspection.vehicle_plate}</h2>
+                            <h2 class="text-xl font-bold text-[#009cb6]">Relatório de Recolha (Com Incidências) - ${inspection.vehicle_plate}</h2>
                             <button onclick="closePreviewModal()" class="text-gray-500 hover:text-gray-700">
                                 <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
@@ -2662,16 +2662,6 @@
                         </div>
                         
                         <div class="p-6">
-                            <!-- Alert Banner -->
-                            <div class="bg-red-50 border-l-4 border-red-500 p-4 mb-6">
-                                <div class="flex items-center">
-                                    <svg class="w-6 h-6 text-red-500 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/>
-                                    </svg>
-                                    <p class="font-semibold text-red-700">Self-Checkout Invalidado - Danos Detectados</p>
-                                </div>
-                            </div>
-                            
                             <!-- Inspection Details -->
                             <div class="bg-gray-50 rounded-lg p-4 mb-6">
                                 <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
