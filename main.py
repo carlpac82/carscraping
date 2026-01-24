@@ -36528,7 +36528,8 @@ async def send_inspection_email(request: Request, inspection_number: str):
                     incidents['has_damage_incident'] = True
                 
                 # FALLBACK for fuel incident: Compare fuel levels directly if validation didn't detect it
-                if is_invalidated and not incidents.get('has_fuel_incident', False):
+                # Apply to ALL checkout/self_checkout, not just invalidated ones
+                if not incidents.get('has_fuel_incident', False):
                     # Get checkin (entrega) fuel level for comparison
                     try:
                         if _USE_NEW_DB:
