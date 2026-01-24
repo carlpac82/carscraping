@@ -593,10 +593,10 @@
                     const hasSelfCheckout = contract.self_checkout !== null;  // self-checkout pendente
                     const selfCheckoutStatus = hasSelfCheckout ? (contract.self_checkout.status || 'pending') : null;
                     // Contract is OPEN when has checkin (entrega) but no checkout (recolha validado)
-                    // Self-checkout invalidado também fecha o contrato
+                    // Self-checkout invalidado só fecha o contrato se houver checkout validado
                     const isSelfCheckoutInvalidated = selfCheckoutStatus === 'invalidated';
-                    const isOpen = hasCheckin && !hasCheckout && !isSelfCheckoutInvalidated;
-                    const isClosed = (hasCheckout && hasCheckin) || isSelfCheckoutInvalidated;
+                    const isOpen = hasCheckin && !hasCheckout;
+                    const isClosed = hasCheckout && hasCheckin;
                     const isPendingValidation = hasSelfCheckout && !hasCheckout && selfCheckoutStatus === 'pending';
                     
                     // Self-checkout status badge com ícones SVG monocromáticos
