@@ -25591,10 +25591,13 @@ def _generate_checkin_status_alert(lang, has_fuel_incident, has_damage_incident,
                 <!-- Check-in fuel -->
                 <td style="width: 48%; padding: 10px; text-align: center;">
                     <p style="color: #374151; margin: 0 0 10px 0; font-size: 13px; font-weight: 600;">{labels['delivery']}</p>
-                    <!-- Visual fuel bar -->
-                    <div style="position: relative; background: #e5e7eb; border: 2px solid #00bcd4; border-radius: 6px; height: 30px; overflow: hidden;">
-                        <div style="background: linear-gradient(90deg, #00bcd4, #0097a7); height: 100%; width: {entrega_pct}%; border-radius: 4px;"></div>
-                    </div>
+                    <!-- Visual fuel bar using table for Outlook compatibility -->
+                    <table cellpadding="0" cellspacing="0" border="0" width="100%" style="border: 2px solid #00bcd4; background-color: #e5e7eb;">
+                        <tr>
+                            <td width="{entrega_pct}%" height="30" bgcolor="#00bcd4" style="background-color: #00bcd4; font-size: 1px; line-height: 1px;">&nbsp;</td>
+                            <td width="{100-entrega_pct}%" height="30" bgcolor="#e5e7eb" style="background-color: #e5e7eb; font-size: 1px; line-height: 1px;">&nbsp;</td>
+                        </tr>
+                    </table>
                     <!-- Fuel markers -->
                     <table width="100%" cellpadding="0" cellspacing="0" style="margin-top: 4px;">
                         <tr>
@@ -25612,10 +25615,13 @@ def _generate_checkin_status_alert(lang, has_fuel_incident, has_damage_incident,
                 <!-- Checkout fuel -->
                 <td style="width: 48%; padding: 10px; text-align: center;">
                     <p style="color: #374151; margin: 0 0 10px 0; font-size: 13px; font-weight: 600;">{labels['pickup']}</p>
-                    <!-- Visual fuel bar -->
-                    <div style="position: relative; background: #e5e7eb; border: 2px solid #00bcd4; border-radius: 6px; height: 30px; overflow: hidden;">
-                        <div style="background: linear-gradient(90deg, #00bcd4, #0097a7); height: 100%; width: {recolha_pct}%; border-radius: 4px;"></div>
-                    </div>
+                    <!-- Visual fuel bar using table for Outlook compatibility -->
+                    <table cellpadding="0" cellspacing="0" border="0" width="100%" style="border: 2px solid #00bcd4; background-color: #e5e7eb;">
+                        <tr>
+                            <td width="{recolha_pct}%" height="30" bgcolor="#00bcd4" style="background-color: #00bcd4; font-size: 1px; line-height: 1px;">&nbsp;</td>
+                            <td width="{100-recolha_pct}%" height="30" bgcolor="#e5e7eb" style="background-color: #e5e7eb; font-size: 1px; line-height: 1px;">&nbsp;</td>
+                        </tr>
+                    </table>
                     <!-- Fuel markers -->
                     <table width="100%" cellpadding="0" cellspacing="0" style="margin-top: 4px;">
                         <tr>
@@ -25632,14 +25638,18 @@ def _generate_checkin_status_alert(lang, has_fuel_incident, has_damage_incident,
         </table>
         
         <!-- Difference info -->
-        <div style="text-align: center; padding: 15px; border-top: 1px solid #e5e7eb;">
-            <p style="color: #f97316; margin: 0 0 5px 0; font-size: 14px;">
-                <strong>{labels['missing']}: {fuel_diff}%</strong>
-            </p>
-            <p style="color: #666666; margin: 0; font-size: 13px;">
-                {labels['charge']}
-            </p>
-        </div>
+        <table width="100%" cellpadding="0" cellspacing="0" style="border-top: 1px solid #e5e7eb; padding-top: 15px;">
+            <tr>
+                <td style="text-align: center; padding: 15px 0;">
+                    <p style="color: #f97316; margin: 0 0 5px 0; font-size: 14px;">
+                        <strong>{labels['missing']}: {fuel_diff}%</strong>
+                    </p>
+                    <p style="color: #666666; margin: 0; font-size: 13px;">
+                        {labels['charge']}
+                    </p>
+                </td>
+            </tr>
+        </table>
                 """
             
             alerts.append(f"""
