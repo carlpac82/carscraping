@@ -25509,18 +25509,35 @@ def _generate_checkin_status_alert(lang, has_fuel_incident, has_damage_incident,
             
             # Generate fuel bars comparison HTML if fuel levels are provided
             fuel_bars_html = ""
+            fuel_diff_text = ""
             if entrega_fuel is not None and recolha_fuel is not None:
                 # Labels based on language
                 fuel_labels = {
-                    'pt': {'delivery': 'Combustível na Entrega', 'pickup': 'Combustível na Devolução'},
-                    'en': {'delivery': 'Fuel at Delivery', 'pickup': 'Fuel at Return'},
-                    'fr': {'delivery': 'Carburant à la Livraison', 'pickup': 'Carburant au Retour'}
+                    'pt': {
+                        'delivery': 'Combustível na Entrega', 
+                        'pickup': 'Combustível na Devolução',
+                        'missing': 'Combustível em falta',
+                        'charge': 'Será cobrado o valor correspondente ao combustível em falta + taxa de reabastecimento.'
+                    },
+                    'en': {
+                        'delivery': 'Fuel at Delivery', 
+                        'pickup': 'Fuel at Return',
+                        'missing': 'Missing fuel',
+                        'charge': 'The corresponding amount for the missing fuel + refueling fee will be charged.'
+                    },
+                    'fr': {
+                        'delivery': 'Carburant à la Livraison', 
+                        'pickup': 'Carburant au Retour',
+                        'missing': 'Carburant manquant',
+                        'charge': 'Le montant correspondant au carburant manquant + frais de ravitaillement sera facturé.'
+                    }
                 }
                 labels = fuel_labels.get(lang, fuel_labels['en'])
                 
                 # Values are already percentages (0-100)
                 entrega_pct = int(entrega_fuel) if entrega_fuel else 0
                 recolha_pct = int(recolha_fuel) if recolha_fuel else 0
+                fuel_diff = entrega_pct - recolha_pct
                 
                 # Convert to fraction text for display (uppercase for PT, title case for others)
                 def pct_to_fraction(pct):
@@ -25583,15 +25600,22 @@ def _generate_checkin_status_alert(lang, has_fuel_incident, has_damage_incident,
                 </td>
             </tr>
         </table>
+        
+        <!-- Difference info -->
+        <div style="text-align: center; padding: 15px; border-top: 1px solid #e5e7eb;">
+            <p style="color: #f97316; margin: 0 0 5px 0; font-size: 14px;">
+                <strong>{labels['missing']}: {fuel_diff}%</strong>
+            </p>
+            <p style="color: #666666; margin: 0; font-size: 13px;">
+                {labels['charge']}
+            </p>
+        </div>
                 """
             
             alerts.append(f"""
-            <div style="background: {alert_data['color']}15; border-left: 4px solid {alert_data['color']}; padding: 20px; margin: 20px; border-radius: 8px;">
-                <h3 style="color: {alert_data['color']}; margin: 0 0 10px 0; font-size: 16px; font-weight: 600;">
-                    {alert_data['icon']}
-                    {alert_data['title']}
-                </h3>
-                <p style="color: #b45309; margin: 0; font-size: 13px; line-height: 1.5;">
+            <div style="background: #ffffff; border: 1px solid #e5e7eb; border-left: 4px solid #f97316; padding: 20px; margin: 20px; border-radius: 8px;">
+                <h3 style="color: #f97316; margin: 0 0 10px 0; font-size: 16px; font-weight: 600;">{alert_data['title']}</h3>
+                <p style="color: #666666; margin: 0 0 20px 0; font-size: 13px; line-height: 1.5;">
                     {alert_data['message']}
                 </p>
                 {fuel_bars_html}
