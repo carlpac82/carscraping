@@ -3331,26 +3331,16 @@
                                 </div>
                                 <div class="border-t border-gray-200 pt-2 mt-2">
                                     <h4 class="text-cyan-700 font-semibold mb-2">Dados da Entrega (Check-in)</h4>
-                                    <div class="grid grid-cols-1 sm:grid-cols-3 gap-x-6 gap-y-1 mb-3">
+                                    <div class="grid grid-cols-2 sm:grid-cols-4 gap-x-4 gap-y-2">
                                         <span><strong class="text-gray-600">Data:</strong> ${new Date(checkin.created_at).toLocaleDateString('pt-PT', { year: 'numeric', month: '2-digit', day: '2-digit' })}</span>
                                         <span><strong class="text-gray-600">Hora:</strong> ${new Date(checkin.created_at).toLocaleTimeString('pt-PT', { hour: '2-digit', minute: '2-digit' })}</span>
                                         <span><strong class="text-gray-600">KMs:</strong> ${checkin.odometer_reading || 'N/A'}</span>
-                                    </div>
-                                    <!-- Barra de Combustível Check-in -->
-                                    <div class="mt-2">
-                                        <span class="text-gray-600 text-sm font-medium">Combustível:</span>
-                                        <div class="relative h-4 mt-1">
-                                            <div class="flex justify-between text-xs text-gray-500 mb-1">
-                                                <span>R</span>
-                                                <span>1/4</span>
-                                                <span>1/2</span>
-                                                <span>3/4</span>
-                                                <span>F</span>
+                                        <div class="flex items-center gap-2">
+                                            <strong class="text-gray-600">Combustível:</strong>
+                                            <div class="flex-1 h-3 bg-gray-200 rounded-full overflow-hidden max-w-[80px]">
+                                                <div class="h-full bg-gradient-to-r from-cyan-400 to-cyan-600 rounded-full" style="width: ${checkinFuel}%;"></div>
                                             </div>
-                                            <div class="h-6 bg-gray-200 rounded-full overflow-hidden border border-gray-300">
-                                                <div class="h-full bg-gradient-to-r from-cyan-400 to-cyan-600 rounded-full transition-all" style="width: ${checkinFuel}%;"></div>
-                                            </div>
-                                            <div class="text-center text-xs text-gray-600 mt-1">Nível: <strong>${checkinFuel}%</strong></div>
+                                            <span class="text-xs font-semibold">${checkinFuel}%</span>
                                         </div>
                                     </div>
                                 </div>
