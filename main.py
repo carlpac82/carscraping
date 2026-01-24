@@ -37682,13 +37682,26 @@ async def delete_inspection(request: Request, inspection_number: str):
                         WHERE rental_agreement_number = %s
                     """, (contract_number,))
                 elif inspection_type == 'checkout':
+                    # Check if there's a self_checkout for this RA
+                    cur.execute("""
+                        SELECT id FROM vehicle_inspections 
+                        WHERE contract_number = %s AND inspection_type = 'self_checkout'
+                    """, (contract_number,))
+                    has_self_checkout = cur.fetchone() is not None
+                    
+                    # Reopen contract and set self_checkout_pending if self_checkout exists
                     cur.execute("""
                         UPDATE rental_agreements 
                         SET inspection_completed = FALSE,
-                            status = 'open'
+                            status = 'open',
+                            self_checkout_pending = %s
                         WHERE rental_agreement_number = %s
-                    """, (contract_number,))
-                    logging.info(f"🔓 Reopened contract {contract_number} after checkout deletion")
+                    """, (has_self_checkout, contract_number))
+                    
+                    if has_self_checkout:
+                        logging.info(f"🔓 Reopened contract {contract_number} after checkout deletion - self_checkout now pending validation")
+                    else:
+                        logging.info(f"🔓 Reopened contract {contract_number} after checkout deletion")
                 elif inspection_type == 'checkin':
                     cur.execute("""
                         UPDATE rental_agreements 
@@ -37733,13 +37746,26 @@ async def delete_inspection(request: Request, inspection_number: str):
                     WHERE rental_agreement_number = ?
                 """, (contract_number,))
             elif inspection_type == 'checkout':
+                # Check if there's a self_checkout for this RA
+                cursor = conn.execute("""
+                    SELECT id FROM vehicle_inspections 
+                    WHERE contract_number = ? AND inspection_type = 'self_checkout'
+                """, (contract_number,))
+                has_self_checkout = cursor.fetchone() is not None
+                
+                # Reopen contract and set self_checkout_pending if self_checkout exists
                 conn.execute("""
                     UPDATE rental_agreements 
                     SET inspection_completed = 0,
-                        status = 'open'
+                        status = 'open',
+                        self_checkout_pending = ?
                     WHERE rental_agreement_number = ?
-                """, (contract_number,))
-                logging.info(f"🔓 Reopened contract {contract_number} after checkout deletion")
+                """, (1 if has_self_checkout else 0, contract_number))
+                
+                if has_self_checkout:
+                    logging.info(f"🔓 Reopened contract {contract_number} after checkout deletion - self_checkout now pending validation")
+                else:
+                    logging.info(f"🔓 Reopened contract {contract_number} after checkout deletion")
             elif inspection_type == 'checkin':
                 conn.execute("""
                     UPDATE rental_agreements 
