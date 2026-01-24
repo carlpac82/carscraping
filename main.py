@@ -25745,7 +25745,7 @@ def _generate_checkin_status_alert(lang, has_fuel_incident, has_damage_incident,
                             <td style="width: 0%; text-align: right; font-size: 10px; color: #6b7280;">F</td>
                         </tr>
                     </table>
-                    <p style="color: #ff9800; margin: 10px 0 0 0; font-size: 16px; font-weight: bold;">{recolha_text}</p>
+                    <p style="color: #FFC107; margin: 10px 0 0 0; font-size: 16px; font-weight: bold;">{recolha_text}</p>
                 </td>
             </tr>
         </table>
