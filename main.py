@@ -25544,7 +25544,7 @@ def _generate_checkin_status_alert(lang, has_fuel_incident, has_damage_incident,
                 recolha_fill = int(bar_width * recolha_pct / 100)
                 recolha_empty = bar_width - recolha_fill
                 
-                # Use tables with fixed pixel widths for Outlook compatibility
+                # Use tables with fixed pixel widths and bgcolor attribute for Outlook compatibility
                 fuel_bars_html = f"""
                 <table cellpadding="0" cellspacing="0" border="0" width="100%" style="margin-top: 15px;">
                     <tr>
@@ -25555,10 +25555,10 @@ def _generate_checkin_status_alert(lang, has_fuel_incident, has_damage_incident,
                                 </tr>
                                 <tr>
                                     <td>
-                                        <table cellpadding="0" cellspacing="0" border="0" width="{bar_width}" style="background-color: #e5e7eb; height: 20px;">
+                                        <table cellpadding="0" cellspacing="0" border="0" width="{bar_width}" bgcolor="#e5e7eb" style="background-color: #e5e7eb;">
                                             <tr>
-                                                <td width="{entrega_fill}" style="background-color: #10b981; height: 20px;"></td>
-                                                <td width="{entrega_empty}" style="height: 20px;"></td>
+                                                <td width="{entrega_fill}" height="20" bgcolor="#10b981" style="background-color: #10b981; font-size: 1px; line-height: 1px;">&nbsp;</td>
+                                                <td width="{entrega_empty}" height="20" bgcolor="#e5e7eb" style="background-color: #e5e7eb; font-size: 1px; line-height: 1px;">&nbsp;</td>
                                             </tr>
                                         </table>
                                     </td>
@@ -25573,10 +25573,10 @@ def _generate_checkin_status_alert(lang, has_fuel_incident, has_damage_incident,
                                 </tr>
                                 <tr>
                                     <td>
-                                        <table cellpadding="0" cellspacing="0" border="0" width="{bar_width}" style="background-color: #e5e7eb; height: 20px;">
+                                        <table cellpadding="0" cellspacing="0" border="0" width="{bar_width}" bgcolor="#e5e7eb" style="background-color: #e5e7eb;">
                                             <tr>
-                                                <td width="{recolha_fill}" style="background-color: #f59e0b; height: 20px;"></td>
-                                                <td width="{recolha_empty}" style="height: 20px;"></td>
+                                                <td width="{recolha_fill}" height="20" bgcolor="#f59e0b" style="background-color: #f59e0b; font-size: 1px; line-height: 1px;">&nbsp;</td>
+                                                <td width="{recolha_empty}" height="20" bgcolor="#e5e7eb" style="background-color: #e5e7eb; font-size: 1px; line-height: 1px;">&nbsp;</td>
                                             </tr>
                                         </table>
                                     </td>
@@ -30844,19 +30844,19 @@ async def save_inspection(request: Request):
                         empty_width_px = 200 - fill_width_px
                         
                         fuel_gauge_html = f"""
-                        <table width="100%" cellpadding="0" cellspacing="0" style="margin: 20px 0;">
+                        <table width="100%" cellpadding="0" cellspacing="0" border="0" style="margin: 20px 0;">
                             <tr>
                                 <td align="center">
-                                    <table cellpadding="0" cellspacing="0" style="margin: 0 auto;">
+                                    <table cellpadding="0" cellspacing="0" border="0" style="margin: 0 auto;">
                                         <tr>
                                             <td style="padding-right: 15px; vertical-align: middle;">
                                                 <span style="color: #009cb6; font-size: 14px; font-weight: 600;">R</span>
                                             </td>
                                             <td style="vertical-align: middle;">
-                                                <table cellpadding="0" cellspacing="0" width="200" style="border: 1px solid #ccc; border-radius: 10px; background: #e5e7eb;">
+                                                <table cellpadding="0" cellspacing="0" border="0" width="200" bgcolor="#e5e7eb" style="border: 1px solid #ccc; background-color: #e5e7eb;">
                                                     <tr>
-                                                        <td width="{fill_width_px}" style="background: #00bcd4; height: 20px; border-radius: 10px;"></td>
-                                                        <td width="{empty_width_px}" style="height: 20px;"></td>
+                                                        <td width="{fill_width_px}" height="20" bgcolor="#00bcd4" style="background-color: #00bcd4; font-size: 1px; line-height: 1px;">&nbsp;</td>
+                                                        <td width="{empty_width_px}" height="20" bgcolor="#e5e7eb" style="background-color: #e5e7eb; font-size: 1px; line-height: 1px;">&nbsp;</td>
                                                     </tr>
                                                 </table>
                                             </td>
