@@ -36441,21 +36441,24 @@ async def send_inspection_email(request: Request, inspection_number: str):
         photos_section_html = ""
         croqui_title = ""
         damage_count = 0
+        has_damage_flag = False
         
-        # Get damage count from inspection (for both checkout and check-in)
+        # Get damage count and has_damage flag from inspection (for both checkout and check-in)
         if _USE_NEW_DB:
             cursor.execute("""
-                SELECT damage_count FROM vehicle_inspections 
+                SELECT damage_count, has_damage FROM vehicle_inspections 
                 WHERE id = %s
             """, (inspection_id,))
         else:
             cursor.execute("""
-                SELECT damage_count FROM vehicle_inspections 
+                SELECT damage_count, has_damage FROM vehicle_inspections 
                 WHERE id = ?
             """, (inspection_id,))
         
         damage_row = cursor.fetchone()
         damage_count = damage_row[0] if damage_row and damage_row[0] else 0
+        has_damage_flag = bool(damage_row[1]) if damage_row and damage_row[1] else False
+        logging.info(f"📊 Inspection damage data: count={damage_count}, has_damage={has_damage_flag}")
         
         # Validate incidents
         # CHECK-IN (entrega/checkin DB): NO alerts - just document damages, fuel, photos
@@ -36499,6 +36502,11 @@ async def send_inspection_email(request: Request, inspection_number: str):
                 )
                 
                 logging.info(f"📊 Incidents validation result: {incidents}")
+                
+                # FALLBACK: If has_damage flag is True but validation didn't detect it, force damage incident
+                if has_damage_flag and not incidents.get('has_damage_incident', False):
+                    logging.warning(f"⚠️ FALLBACK: has_damage={has_damage_flag} but validation returned False - forcing damage incident")
+                    incidents['has_damage_incident'] = True
                 
                 # Generate STATUS_ALERT based on incidents
                 if incidents:
