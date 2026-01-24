@@ -1086,7 +1086,8 @@
                     } else {
                         showNotification('Recolha eliminada. Contrato reaberto.', 'success');
                     }
-                    refreshHistory();
+                    // Force refresh to reload updated self-checkout status
+                    await refreshHistory(true);
                 }
             }
             // Se não tem checkout mas tem checkin (entrega), elimina o checkin
