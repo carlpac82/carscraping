@@ -745,14 +745,14 @@
                                 <!-- Actions: Car icons and email -->
                                 <div class="flex items-center justify-end gap-3 pt-2 border-t border-gray-100">
                                     ${hasCheckout ? `
-                                    <button onclick="previewRecolha('${contract.checkout.inspection_number}', ${hasSelfCheckout && contract.self_checkout.status === 'validated' ? `'${contract.self_checkout.inspection_number}'` : 'null'}, ${hasCheckin ? `'${contract.checkin.inspection_number}'` : 'null'})" class="flex items-center gap-2 px-3 py-2 bg-red-50 hover:bg-red-100 rounded-lg transition-colors" title="Ver Check-out">
+                                    <button onclick="previewRecolha('${contract.checkout.inspection_number}', ${hasSelfCheckout && contract.self_checkout.status === 'validated' ? `'${contract.self_checkout.inspection_number}'` : 'null'}, ${hasCheckin ? `'${contract.checkin.inspection_number}'` : 'null'}, '${contract.vehicle_brand || ''}', '${contract.vehicle_model || ''}')" class="flex items-center gap-2 px-3 py-2 bg-red-50 hover:bg-red-100 rounded-lg transition-colors" title="Ver Check-out">
                                         <svg class="w-6 h-6 text-red-600" fill="currentColor" viewBox="0 0 24 24">
                                             <path d="M18.92 6.01C18.72 5.42 18.16 5 17.5 5h-11c-.66 0-1.21.42-1.42 1.01L3 12v8c0 .55.45 1 1 1h1c.55 0 1-.45 1-1v-1h12v1c0 .55.45 1 1 1h1c.55 0 1-.45 1-1v-8l-2.08-5.99zM6.5 16c-.83 0-1.5-.67-1.5-1.5S5.67 13 6.5 13s1.5.67 1.5 1.5S7.33 16 6.5 16zm11 0c-.83 0-1.5-.67-1.5-1.5s.67-1.5 1.5-1.5 1.5.67 1.5 1.5-.67 1.5-1.5 1.5zM5 11l1.5-4.5h11L19 11H5z"/>
                                         </svg>
                                         <span class="hidden sm:inline text-sm font-medium text-red-600">Recolha</span>
                                     </button>
                                     ` : isSelfCheckoutInvalidated ? `
-                                    <button onclick="previewRecolhaInvalidated('${contract.self_checkout.inspection_number}', ${hasCheckin ? `'${contract.checkin.inspection_number}'` : 'null'})" class="flex items-center gap-2 px-3 py-2 bg-red-50 hover:bg-red-100 rounded-lg transition-colors" title="Ver Recolha (Invalidado)">
+                                    <button onclick="previewRecolhaInvalidated('${contract.self_checkout.inspection_number}', ${hasCheckin ? `'${contract.checkin.inspection_number}'` : 'null'}, '${contract.vehicle_brand || ''}', '${contract.vehicle_model || ''}')" class="flex items-center gap-2 px-3 py-2 bg-red-50 hover:bg-red-100 rounded-lg transition-colors" title="Ver Recolha (Invalidado)">
                                         <svg class="w-6 h-6 text-red-600" fill="currentColor" viewBox="0 0 24 24">
                                             <path d="M18.92 6.01C18.72 5.42 18.16 5 17.5 5h-11c-.66 0-1.21.42-1.42 1.01L3 12v8c0 .55.45 1 1 1h1c.55 0 1-.45 1-1v-1h12v1c0 .55.45 1 1 1h1c.55 0 1-.45 1-1v-8l-2.08-5.99zM6.5 16c-.83 0-1.5-.67-1.5-1.5S5.67 13 6.5 13s1.5.67 1.5 1.5S7.33 16 6.5 16zm11 0c-.83 0-1.5-.67-1.5-1.5s.67-1.5 1.5-1.5 1.5.67 1.5 1.5-.67 1.5-1.5 1.5zM5 11l1.5-4.5h11L19 11H5z"/>
                                         </svg>
@@ -2373,8 +2373,8 @@
         }
 
         // Preview Recolha - se há self-checkout validado, usa dados do self-checkout + croqui do CHECK-IN
-        async function previewRecolha(checkoutNumber, selfCheckoutNumber, checkinNumber) {
-            console.log('🚗 previewRecolha called with:', { checkoutNumber, selfCheckoutNumber, checkinNumber });
+        async function previewRecolha(checkoutNumber, selfCheckoutNumber, checkinNumber, vehicleBrand, vehicleModel) {
+            console.log('🚗 previewRecolha called with:', { checkoutNumber, selfCheckoutNumber, checkinNumber, vehicleBrand, vehicleModel });
             
             // Se há self-checkout validado, usar dados do self-checkout
             if (selfCheckoutNumber) {
@@ -2468,7 +2468,15 @@
                             <div class="p-6">
                                 <!-- Basic Info -->
                                 <div class="bg-gray-50 rounded-lg p-4 mb-6">
-                                    <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
+                                    <div class="grid grid-cols-2 md:grid-cols-3 gap-4">
+                                        <div>
+                                            <p class="text-sm text-gray-600">Marca</p>
+                                            <p class="font-bold text-gray-900">${vehicleBrand || 'N/A'}</p>
+                                        </div>
+                                        <div>
+                                            <p class="text-sm text-gray-600">Modelo</p>
+                                            <p class="font-bold text-gray-900">${vehicleModel || 'N/A'}</p>
+                                        </div>
                                         <div>
                                             <p class="text-sm text-gray-600">Matrícula</p>
                                             <p class="font-bold text-gray-900">${inspection.vehicle_plate || 'N/A'}</p>
@@ -2506,7 +2514,7 @@
                                                     <span class="font-semibold">${checkinDate ? new Date(checkinDate).toLocaleDateString('pt-PT') + ' ' + new Date(checkinDate).toLocaleTimeString('pt-PT', {hour: '2-digit', minute: '2-digit'}) : 'N/A'}</span>
                                                 </div>
                                                 <div class="flex justify-between">
-                                                    <span class="text-gray-600">Inspetor:</span>
+                                                    <span class="text-gray-600">Entregue por:</span>
                                                     <span class="font-semibold">${checkinInspector ? getFirstLastName(checkinInspector) : 'N/A'}</span>
                                                 </div>
                                                 <div class="flex justify-between">
@@ -2554,7 +2562,7 @@
                                                     <span class="font-semibold">${new Date(inspection.created_at).toLocaleDateString('pt-PT')} ${new Date(inspection.created_at).toLocaleTimeString('pt-PT', {hour: '2-digit', minute: '2-digit'})}</span>
                                                 </div>
                                                 <div class="flex justify-between">
-                                                    <span class="text-gray-600">Cliente:</span>
+                                                    <span class="text-gray-600">Recolhido por:</span>
                                                     <span class="font-semibold">${inspection.inspector_name ? getFirstLastName(inspection.inspector_name) : 'N/A'}</span>
                                                 </div>
                                                 <div class="flex justify-between">
@@ -2646,8 +2654,8 @@
         }
 
         // Preview Recolha Invalidated - mostra dados do self-checkout invalidado com fotos de danos
-        async function previewRecolhaInvalidated(selfCheckoutNumber, checkinNumber) {
-            console.log('🚗 previewRecolhaInvalidated called with:', { selfCheckoutNumber, checkinNumber });
+        async function previewRecolhaInvalidated(selfCheckoutNumber, checkinNumber, vehicleBrand, vehicleModel) {
+            console.log('🚗 previewRecolhaInvalidated called with:', { selfCheckoutNumber, checkinNumber, vehicleBrand, vehicleModel });
             
             try {
                 // Buscar dados do self-checkout invalidado (RECOLHA)
@@ -2785,7 +2793,15 @@
                         <div class="p-6">
                             <!-- Basic Info -->
                             <div class="bg-gray-50 rounded-lg p-4 mb-6">
-                                <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
+                                <div class="grid grid-cols-2 md:grid-cols-3 gap-4">
+                                    <div>
+                                        <p class="text-sm text-gray-600">Marca</p>
+                                        <p class="font-bold text-gray-900">${vehicleBrand || 'N/A'}</p>
+                                    </div>
+                                    <div>
+                                        <p class="text-sm text-gray-600">Modelo</p>
+                                        <p class="font-bold text-gray-900">${vehicleModel || 'N/A'}</p>
+                                    </div>
                                     <div>
                                         <p class="text-sm text-gray-600">Matrícula</p>
                                         <p class="font-bold text-gray-900">${inspection.vehicle_plate || 'N/A'}</p>
@@ -2823,7 +2839,7 @@
                                                 <span class="font-semibold">${checkinDate ? new Date(checkinDate).toLocaleDateString('pt-PT') + ' ' + new Date(checkinDate).toLocaleTimeString('pt-PT', {hour: '2-digit', minute: '2-digit'}) : 'N/A'}</span>
                                             </div>
                                             <div class="flex justify-between">
-                                                <span class="text-gray-600">Inspetor:</span>
+                                                <span class="text-gray-600">Entregue por:</span>
                                                 <span class="font-semibold">${checkinInspector ? getFirstLastName(checkinInspector) : 'N/A'}</span>
                                             </div>
                                             <div class="flex justify-between">
@@ -2871,7 +2887,7 @@
                                                 <span class="font-semibold">${new Date(inspection.created_at).toLocaleDateString('pt-PT')} ${new Date(inspection.created_at).toLocaleTimeString('pt-PT', {hour: '2-digit', minute: '2-digit'})}</span>
                                             </div>
                                             <div class="flex justify-between">
-                                                <span class="text-gray-600">Cliente:</span>
+                                                <span class="text-gray-600">Recolhido por:</span>
                                                 <span class="font-semibold">${inspection.inspector_name ? getFirstLastName(inspection.inspector_name) : 'N/A'}</span>
                                             </div>
                                             <div class="flex justify-between">

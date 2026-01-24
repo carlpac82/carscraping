@@ -47711,6 +47711,8 @@ async def get_inspections_history(request: Request):
                 
                 client_name = None
                 client_email = None
+                vehicle_brand = ''
+                vehicle_model = ''
                 
                 if extracted_data:
                     try:
@@ -47731,6 +47733,8 @@ async def get_inspections_history(request: Request):
                         # Try camelCase first (standard format), then snake_case as fallback
                         client_name = data.get('clientName') or data.get('client_name')
                         client_email = data.get('clientEmail') or data.get('client_email') or data.get('email')
+                        vehicle_brand = data.get('vehicleBrand') or data.get('vehicle_brand') or ''
+                        vehicle_model = data.get('vehicleModel') or data.get('vehicle_model') or ''
                     except Exception as e:
                         logging.error(f"Error parsing extracted_data for RA {ra}: {e}")
                 
@@ -47806,6 +47810,8 @@ async def get_inspections_history(request: Request):
                         "contract_number": ra_base,  # Use RA base for grouping
                         "client_name": client_name,
                         "client_email": client_email,
+                        "vehicle_brand": vehicle_brand,
+                        "vehicle_model": vehicle_model,
                         "checkout": None,
                         "checkin": None,
                         "self_checkout": None,  # Self-checkout pendente de validação
@@ -47817,6 +47823,10 @@ async def get_inspections_history(request: Request):
                         grouped[key]["client_name"] = client_name
                     if not grouped[key].get("client_email") and client_email:
                         grouped[key]["client_email"] = client_email
+                    if not grouped[key].get("vehicle_brand") and vehicle_brand:
+                        grouped[key]["vehicle_brand"] = vehicle_brand
+                    if not grouped[key].get("vehicle_model") and vehicle_model:
+                        grouped[key]["vehicle_model"] = vehicle_model
                 
                 if row[3] == 'checkout':
                     if not grouped[key]["checkout"]:
