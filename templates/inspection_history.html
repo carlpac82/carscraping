@@ -2900,7 +2900,8 @@
             let checkinData = null;
             let contractData = null;
             try {
-                const contractsData = window.lastLoadedContracts || [];
+                // Use global contracts variable
+                const contractsData = contracts || [];
                 contractData = contractsData.find(c => c.ra_number === contractNumber || c.contract_number === contractNumber);
                 if (contractData && contractData.checkin) {
                     checkinFuel = contractData.checkin.fuel_level || 100;
