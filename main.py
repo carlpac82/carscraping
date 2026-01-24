@@ -36693,12 +36693,12 @@ async def send_inspection_email(request: Request, inspection_number: str):
                 if _USE_NEW_DB:
                     cursor.execute("""
                         SELECT image_data FROM inspection_photos 
-                        WHERE inspection_id = %s AND photo_type LIKE 'damage%%'
+                        WHERE inspection_id = %s AND photo_type LIKE 'damage%%' AND photo_type != 'damage_croqui'
                     """, (inspection_id,))
                 else:
                     cursor.execute("""
                         SELECT image_data FROM inspection_photos 
-                        WHERE inspection_id = ? AND photo_type LIKE 'damage%%'
+                        WHERE inspection_id = ? AND photo_type LIKE 'damage%%' AND photo_type != 'damage_croqui'
                     """, (inspection_id,))
                 
                 damage_photo_rows = cursor.fetchall()
