@@ -1227,7 +1227,15 @@
                         <div class="p-6">
                             <!-- Inspection Details -->
                             <div class="bg-gray-50 rounded-lg p-4 mb-6">
-                                <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
+                                <div class="grid grid-cols-2 md:grid-cols-3 gap-4">
+                                    <div>
+                                        <p class="text-sm text-gray-600">Marca</p>
+                                        <p class="font-bold text-gray-900">${contract && contract.vehicle_brand ? contract.vehicle_brand : 'N/A'}</p>
+                                    </div>
+                                    <div>
+                                        <p class="text-sm text-gray-600">Modelo</p>
+                                        <p class="font-bold text-gray-900">${contract && contract.vehicle_model ? contract.vehicle_model : 'N/A'}</p>
+                                    </div>
                                     <div>
                                         <p class="text-sm text-gray-600">Matrícula</p>
                                         <p class="font-bold text-gray-900">${inspection.vehicle_plate || 'N/A'}</p>
@@ -1237,20 +1245,16 @@
                                         <p class="font-bold text-gray-900">${inspection.contract_number || 'N/A'}</p>
                                     </div>
                                     <div>
+                                        <p class="text-sm text-gray-600">${isSelfCheckout ? 'Recolhido por' : (type === 'checkout' ? 'Recolhido por' : 'Entregue por')}</p>
+                                        <p class="font-bold text-gray-900">${inspection.inspector_name ? getFirstLastName(inspection.inspector_name) : 'N/A'}</p>
+                                    </div>
+                                    <div>
                                         <p class="text-sm text-gray-600">Quilómetros</p>
-                                        <p class="font-bold text-gray-900">${inspection.odometer_reading ? inspection.odometer_reading + ' km' : 'N/A'}</p>
+                                        <p class="font-bold text-gray-900">${inspection.odometer_reading ? inspection.odometer_reading.toLocaleString() + ' km' : 'N/A'}</p>
                                     </div>
                                     <div>
                                         <p class="text-sm text-gray-600">Combustível</p>
                                         <p class="font-bold text-gray-900">${inspection.fuel_level || 'N/A'}</p>
-                                    </div>
-                                    <div>
-                                        <p class="text-sm text-gray-600">Tipo</p>
-                                        <p class="font-bold text-gray-900">${isSelfCheckout ? 'Self-Checkout' : (inspection.inspection_type === 'checkin' ? 'Entrega' : 'Recolha')}</p>
-                                    </div>
-                                    <div>
-                                        <p class="text-sm text-gray-600">${isSelfCheckout ? 'Cliente' : 'Inspetor'}</p>
-                                        <p class="font-bold text-gray-900">${isSelfCheckout && inspection.inspector_name ? getFirstLastName(inspection.inspector_name) : (inspection.inspector_name || 'N/A')}</p>
                                     </div>
                                     <div>
                                         <p class="text-sm text-gray-600">Danos</p>
@@ -1263,7 +1267,7 @@
                                     ${type === 'checkin' && kmsDriven > 0 ? `
                                     <div>
                                         <p class="text-sm text-gray-600">KMs Percorridos</p>
-                                        <p class="font-bold text-green-600">${kmsDriven} km</p>
+                                        <p class="font-bold text-green-600">${kmsDriven.toLocaleString()} km</p>
                                     </div>
                                     ` : ''}
                                     ${isSelfCheckout ? `
