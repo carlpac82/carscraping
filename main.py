@@ -25729,9 +25729,9 @@ def _generate_checkin_status_alert(lang, has_fuel_incident, has_damage_incident,
                 <td style="width: 48%; padding: 10px; text-align: center;">
                     <p style="color: #374151; margin: 0 0 10px 0; font-size: 13px; font-weight: 600;">{labels['pickup']}</p>
                     <!-- Barra visual -->
-                    <table width="100%" cellpadding="0" cellspacing="0" border="0" style="background-color: #e5e7eb; border: 2px solid #00bcd4; border-radius: 6px;">
+                    <table width="100%" cellpadding="0" cellspacing="0" border="0" style="background-color: #e5e7eb; border: 2px solid #f59e0b; border-radius: 6px;">
                         <tr>
-                            <td width="{recolha_pct}%" height="30" bgcolor="#00bcd4" style="background: linear-gradient(90deg, #00bcd4, #0097a7); font-size: 1px; line-height: 1px; border-radius: 4px 0 0 4px;">&nbsp;</td>
+                            <td width="{recolha_pct}%" height="30" bgcolor="#f59e0b" style="background: linear-gradient(90deg, #f59e0b, #d97706); font-size: 1px; line-height: 1px; border-radius: 4px 0 0 4px;">&nbsp;</td>
                             <td width="{100-recolha_pct}%" height="30" bgcolor="#e5e7eb" style="background-color: #e5e7eb; font-size: 1px; line-height: 1px;">&nbsp;</td>
                         </tr>
                     </table>
@@ -25745,7 +25745,7 @@ def _generate_checkin_status_alert(lang, has_fuel_incident, has_damage_incident,
                             <td style="width: 0%; text-align: right; font-size: 10px; color: #6b7280;">F</td>
                         </tr>
                     </table>
-                    <p style="color: #00bcd4; margin: 10px 0 0 0; font-size: 16px; font-weight: bold;">{recolha_text}</p>
+                    <p style="color: #f59e0b; margin: 10px 0 0 0; font-size: 16px; font-weight: bold;">{recolha_text}</p>
                 </td>
             </tr>
         </table>
