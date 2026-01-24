@@ -36794,11 +36794,12 @@ async def send_inspection_email(request: Request, inspection_number: str):
                 import traceback
                 logging.error(traceback.format_exc())
             
-            # If there are incidents, use the SAME email template as invalidation
+            # If there are incidents, check if it's self_checkout or regular checkout
             has_any_incident = incidents.get('has_fuel_incident', False) or incidents.get('has_damage_incident', False)
             
-            if has_any_incident:
-                logging.info(f"🚨 INCIDENTS DETECTED - Using invalidation email template")
+            if has_any_incident and inspection_type == 'self_checkout':
+                # SELF-CHECKOUT with incidents - use invalidation email template
+                logging.info(f"🚨 SELF-CHECKOUT INCIDENTS DETECTED - Using invalidation email template")
                 
                 # Get checkin (entrega) data for comparison
                 base_ra = ra.split('-')[0] if '-' in ra else ra
@@ -36855,7 +36856,7 @@ async def send_inspection_email(request: Request, inspection_number: str):
                 
                 conn.close()
                 
-                # Send invalidation-style email
+                # Send invalidation-style email (self-checkout template)
                 email_sent = _send_invalidation_email(
                     client_email=email,
                     client_name=client_name,
@@ -36874,10 +36875,14 @@ async def send_inspection_email(request: Request, inspection_number: str):
                 )
                 
                 if email_sent:
-                    logging.info(f"✅ Invalidation-style email sent successfully to {email}")
+                    logging.info(f"✅ Self-checkout invalidation email sent successfully to {email}")
                     return JSONResponse({"ok": True, "message": f"Email sent to {email}"})
                 else:
                     return JSONResponse({"ok": False, "error": "Failed to send email"}, status_code=500)
+            
+            # REGULAR CHECKOUT (with or without incidents) - continue to use checkout template with STATUS_ALERT
+            if has_any_incident:
+                logging.info(f"🚨 REGULAR CHECKOUT INCIDENTS DETECTED - Using checkout template with STATUS_ALERT")
             
             # Use check-out template with incident alerts
             template_name = f"email_checkout_{detected_lang}.html" if detected_lang in ['pt', 'fr', 'en'] else "email_checkout_en.html"
