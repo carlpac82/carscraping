@@ -30929,6 +30929,32 @@ async def save_inspection(request: Request):
                         }
                         inspection_type_label = t_labels.get(inspection_type, {}).get(detected_lang, inspection_type)
                         
+                        # Calculate kilometers driven (for checkout only)
+                        km_driven = 0
+                        if inspection_type == 'checkout':
+                            # Get checkin odometer reading
+                            try:
+                                if is_postgres:
+                                    cursor.execute("""
+                                        SELECT odometer_reading FROM vehicle_inspections
+                                        WHERE contract_number = %s AND vehicle_plate = %s AND inspection_type = 'checkin'
+                                        ORDER BY created_at DESC LIMIT 1
+                                    """, (ra, plate))
+                                else:
+                                    cursor.execute("""
+                                        SELECT odometer_reading FROM vehicle_inspections
+                                        WHERE contract_number = ? AND vehicle_plate = ? AND inspection_type = 'checkin'
+                                        ORDER BY created_at DESC LIMIT 1
+                                    """, (ra, plate))
+                                
+                                checkin_odometer_row = cursor.fetchone()
+                                if checkin_odometer_row and checkin_odometer_row[0]:
+                                    checkin_odometer = int(checkin_odometer_row[0])
+                                    km_driven = int(odometer_reading) - checkin_odometer
+                                    logging.info(f"📊 KM Driven: {km_driven} km (Checkout: {odometer_reading} - Checkin: {checkin_odometer})")
+                            except Exception as km_err:
+                                logging.error(f"❌ Error calculating km driven: {km_err}")
+                        
                         # Use incidents already validated before email block
                         status_alert_html = ""
                         photos_section_html = ""
@@ -31071,6 +31097,7 @@ async def save_inspection(request: Request):
                             LOCATION=delivery_location,
                             INSPECTION_DATE=inspection_date,
                             ODOMETER=str(odometer_reading),
+                            KM_DRIVEN=str(km_driven),
                             INSPECTOR_NAME=receptionist,
                             FUEL_GAUGE_SVG=fuel_gauge_html,
                             CROQUI_IMAGE=final_croqui,
