@@ -29764,16 +29764,16 @@ async def save_inspection(request: Request):
                         )
                         LIMIT 1
                     """, (ra, plate))
+                        
+                        pending_checkout = cursor.fetchone()
+                        if pending_checkout:
+                            pending_plate = pending_checkout[0]
+                            logging.error(f"❌ Cannot do delivery: pending pickup for {pending_plate} with RA {ra}")
+                            return JSONResponse({
+                                "ok": False,
+                                "error": f"Tem que fazer a Recolha da viatura {pending_plate} (RA {ra}) antes de fazer Entrega da nova viatura. Troca de viatura requer Recolha da viatura anterior primeiro."
+                            }, status_code=400)
                     
-                    pending_checkout = cursor.fetchone()
-                    if pending_checkout:
-                        pending_plate = pending_checkout[0]
-                        logging.error(f"❌ Cannot do delivery: pending pickup for {pending_plate} with RA {ra}")
-                        return JSONResponse({
-                            "ok": False,
-                            "error": f"Tem que fazer a Recolha da viatura {pending_plate} (RA {ra}) antes de fazer Entrega da nova viatura. Troca de viatura requer Recolha da viatura anterior primeiro."
-                        }, status_code=400)
-                
                     # Delete previous inspection with same RA+plate (if exists)
                     # This prevents duplicate check-outs for the same vehicle+contract
                     # Exception: If RA is same but plate is different, keep both (vehicle swap)
