@@ -36527,6 +36527,38 @@ async def send_inspection_email(request: Request, inspection_number: str):
                     logging.warning(f"⚠️ FALLBACK: has_damage={has_damage_field} but validation returned False - forcing damage incident")
                     incidents['has_damage_incident'] = True
                 
+                # FALLBACK for fuel incident: Compare fuel levels directly if validation didn't detect it
+                if is_invalidated and not incidents.get('has_fuel_incident', False):
+                    # Get checkin (entrega) fuel level for comparison
+                    try:
+                        if _USE_NEW_DB:
+                            cursor.execute("""
+                                SELECT fuel_level FROM vehicle_inspections
+                                WHERE contract_number = %s AND vehicle_plate = %s AND inspection_type = 'checkin'
+                                ORDER BY created_at DESC LIMIT 1
+                            """, (ra, vehicle_plate))
+                        else:
+                            cursor.execute("""
+                                SELECT fuel_level FROM vehicle_inspections
+                                WHERE contract_number = ? AND vehicle_plate = ? AND inspection_type = 'checkin'
+                                ORDER BY created_at DESC LIMIT 1
+                            """, (ra, vehicle_plate))
+                        
+                        checkin_fuel_row = cursor.fetchone()
+                        if checkin_fuel_row and checkin_fuel_row[0]:
+                            entrega_fuel = float(checkin_fuel_row[0])
+                            recolha_fuel = float(fuel_level)
+                            fuel_diff = entrega_fuel - recolha_fuel
+                            logging.info(f"🔍 FUEL FALLBACK CHECK: entrega={entrega_fuel}%, recolha={recolha_fuel}%, diff={fuel_diff}%")
+                            
+                            if fuel_diff > 5:  # Client returned with LESS fuel than received
+                                logging.warning(f"⚠️ FALLBACK: Fuel incident detected - shortage of {fuel_diff}%")
+                                incidents['has_fuel_incident'] = True
+                                incidents['fuel_diff'] = fuel_diff
+                                incidents['checkout_fuel'] = entrega_fuel
+                    except Exception as fuel_err:
+                        logging.error(f"❌ Error in fuel fallback check: {fuel_err}")
+                
                 # Generate STATUS_ALERT based on incidents
                 if incidents:
                     status_alert_html = _generate_checkin_status_alert(
