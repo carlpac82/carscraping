@@ -4741,15 +4741,17 @@ def _send_notification_email(to_email: str, subject: str, message: str, attachme
         ).execute()
         
         logging.info(f"✅ Notification email sent via Gmail OAuth to {to_email}")
+        return True
         
     except Exception as e:
         logging.error(f"❌ Failed to send notification email via OAuth: {str(e)}")
         # Tentar SMTP como fallback
         try:
             _send_notification_email_smtp(to_email, subject, message, attachments)
+            return True
         except Exception as smtp_error:
             logging.error(f"❌ SMTP fallback also failed: {str(smtp_error)}")
-            raise
+            return False
 
 def _send_notification_email_smtp(to_email: str, subject: str, message: str, attachments: list = None):
     """Enviar email de notificação via SMTP (fallback)
@@ -36506,6 +36508,36 @@ async def send_inspection_email(request: Request, inspection_number: str):
                 if has_damage_field and not incidents.get('has_damage_incident', False):
                     logging.warning(f"⚠️ FALLBACK: has_damage={has_damage_field} but validation returned False - forcing damage incident")
                     incidents['has_damage_incident'] = True
+                
+                # FALLBACK: Check if there's an invalidated self_checkout for same contract/plate
+                # This handles the case where we're sending email for a checkout created after invalidation
+                if not incidents.get('has_damage_incident', False):
+                    try:
+                        if _USE_NEW_DB:
+                            cursor.execute("""
+                                SELECT id, has_damage FROM vehicle_inspections
+                                WHERE (contract_number = %s OR contract_number LIKE %s)
+                                AND vehicle_plate = %s 
+                                AND inspection_type = 'self_checkout'
+                                AND status = 'invalidated'
+                                ORDER BY created_at DESC LIMIT 1
+                            """, (ra, ra.split('-')[0] + '%', vehicle_plate))
+                        else:
+                            cursor.execute("""
+                                SELECT id, has_damage FROM vehicle_inspections
+                                WHERE (contract_number = ? OR contract_number LIKE ?)
+                                AND vehicle_plate = ? 
+                                AND inspection_type = 'self_checkout'
+                                AND status = 'invalidated'
+                                ORDER BY created_at DESC LIMIT 1
+                            """, (ra, ra.split('-')[0] + '%', vehicle_plate))
+                        
+                        invalidated_sc = cursor.fetchone()
+                        if invalidated_sc:
+                            logging.warning(f"⚠️ FALLBACK: Found invalidated self_checkout (id={invalidated_sc[0]}) - forcing damage incident")
+                            incidents['has_damage_incident'] = True
+                    except Exception as sc_err:
+                        logging.error(f"❌ Error checking for invalidated self_checkout: {sc_err}")
                 
                 # FALLBACK for fuel incident: Compare fuel levels directly if validation didn't detect it
                 # Apply to ALL checkout/self_checkout, not just invalidated ones
