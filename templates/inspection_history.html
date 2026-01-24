@@ -3335,12 +3335,28 @@
                                         <span><strong class="text-gray-600">Data:</strong> ${new Date(checkin.created_at).toLocaleDateString('pt-PT', { year: 'numeric', month: '2-digit', day: '2-digit' })}</span>
                                         <span><strong class="text-gray-600">Hora:</strong> ${new Date(checkin.created_at).toLocaleTimeString('pt-PT', { hour: '2-digit', minute: '2-digit' })}</span>
                                         <span><strong class="text-gray-600">KMs:</strong> ${checkin.odometer_reading || 'N/A'}</span>
-                                        <div class="flex items-center gap-2">
+                                        <div>
                                             <strong class="text-gray-600">Combustível:</strong>
-                                            <div class="flex-1 h-3 bg-gray-200 rounded-full overflow-hidden max-w-[80px]">
-                                                <div class="h-full bg-gradient-to-r from-cyan-400 to-cyan-600 rounded-full" style="width: ${checkinFuel}%;"></div>
+                                            <div class="mt-1" style="max-width: 120px;">
+                                                <div class="flex justify-between text-[9px] text-gray-500 mb-0.5">
+                                                    <span>R</span>
+                                                    <span>1/4</span>
+                                                    <span>1/2</span>
+                                                    <span>3/4</span>
+                                                    <span>F</span>
+                                                </div>
+                                                <div class="h-3 bg-gray-200 rounded overflow-hidden border border-gray-300 relative">
+                                                    <div class="h-full bg-gradient-to-r from-cyan-400 to-cyan-600" style="width: ${checkinFuel}%;"></div>
+                                                    <div class="absolute inset-0 flex justify-between px-0">
+                                                        <span class="w-px h-full bg-gray-400"></span>
+                                                        <span class="w-px h-full bg-gray-400"></span>
+                                                        <span class="w-px h-full bg-gray-400"></span>
+                                                        <span class="w-px h-full bg-gray-400"></span>
+                                                        <span class="w-px h-full bg-gray-400"></span>
+                                                    </div>
+                                                </div>
+                                                <div class="text-center text-[9px] text-gray-500 mt-0.5">Nível: ${checkinFuel <= 12 ? 'R' : checkinFuel <= 25 ? '1/4' : checkinFuel <= 50 ? '1/2' : checkinFuel <= 75 ? '3/4' : 'Full'}</div>
                                             </div>
-                                            <span class="text-xs font-semibold">${checkinFuel}%</span>
                                         </div>
                                     </div>
                                 </div>
