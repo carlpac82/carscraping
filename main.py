@@ -33886,7 +33886,7 @@ def _send_invalidation_email(
         email_sent = _send_notification_email(
             to_email=client_email,
             subject=subject,
-            html_content=html_content
+            message=html_content
         )
         
         if email_sent:
