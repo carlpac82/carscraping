@@ -1182,8 +1182,9 @@
                 }
             }
             
-            // If still N/A, try rental agreement API
-            if ((vehicleBrand === 'N/A' || vehicleModel === 'N/A') && contract && contract.contract_number) {
+            // Fetch rental agreement data for vehicle info and return date
+            let expectedReturnDate = null;
+            if (contract && contract.contract_number) {
                 try {
                     const raResponse = await fetch(`/api/rental-agreements/${encodeURIComponent(contract.contract_number)}`);
                     const raData = await raResponse.json();
@@ -1204,6 +1205,9 @@
                                 if (vehicleModel === 'N/A') vehicleModel = parts[1].trim();
                             }
                         }
+                        // Get expected return date
+                        expectedReturnDate = ed.returnDate || ed.return_date || ed.dropOffDate || null;
+                        console.log('📅 Expected return date:', expectedReturnDate);
                     }
                 } catch (e) {
                     console.error('Error fetching RA data:', e);
@@ -1339,14 +1343,16 @@
                                         <p class="text-sm text-gray-600">Cliente</p>
                                         <p class="font-bold text-gray-900">${contract && contract.client_name ? getFirstLastName(contract.client_name) : 'N/A'}</p>
                                     </div>
+                                    ${type === 'checkout' ? `
                                     <div>
                                         <p class="text-sm text-gray-600">KMs Percorridos</p>
-                                        <p class="font-bold text-[#009cb6]">${kmsDriven !== null && kmsDriven !== undefined && (type === 'checkout' || type === 'checkin') ? kmsDriven.toLocaleString() + ' km' : 'N/A'}</p>
+                                        <p class="font-bold text-[#009cb6]">${kmsDriven !== null && kmsDriven !== undefined ? kmsDriven.toLocaleString() + ' km' : 'N/A'}</p>
                                     </div>
+                                    ` : ''}
                                 </div>
                             </div>
                             
-                            ${type === 'checkout' ? `
+                            ${type === 'checkout' || type === 'checkin' ? `
                             <!-- Resumo Entrega vs Recolha (só para checkout) -->
                             <div class="mb-6">
                                 <h4 class="text-lg font-bold text-gray-900 mb-4">Resumo da Inspeção</h4>
@@ -1362,19 +1368,19 @@
                                         <div class="space-y-2 text-sm">
                                             <div class="flex justify-between">
                                                 <span class="text-gray-600">Data:</span>
-                                                <span class="font-semibold">${checkinInspectionData ? new Date(checkinInspectionData.created_at).toLocaleDateString('pt-PT') + ' ' + new Date(checkinInspectionData.created_at).toLocaleTimeString('pt-PT', {hour: '2-digit', minute: '2-digit'}) : 'N/A'}</span>
+                                                <span class="font-semibold">${type === 'checkin' ? new Date(inspection.created_at).toLocaleDateString('pt-PT') + ' ' + new Date(inspection.created_at).toLocaleTimeString('pt-PT', {hour: '2-digit', minute: '2-digit'}) : (checkinInspectionData ? new Date(checkinInspectionData.created_at).toLocaleDateString('pt-PT') + ' ' + new Date(checkinInspectionData.created_at).toLocaleTimeString('pt-PT', {hour: '2-digit', minute: '2-digit'}) : 'N/A')}</span>
                                             </div>
                                             <div class="flex justify-between">
                                                 <span class="text-gray-600">Entregue por:</span>
-                                                <span class="font-semibold">${checkinInspectionData && checkinInspectionData.inspector_name ? getFirstLastName(checkinInspectionData.inspector_name) : 'N/A'}</span>
+                                                <span class="font-semibold">${type === 'checkin' ? (inspection.inspector_name ? getFirstLastName(inspection.inspector_name) : 'N/A') : (checkinInspectionData && checkinInspectionData.inspector_name ? getFirstLastName(checkinInspectionData.inspector_name) : 'N/A')}</span>
                                             </div>
                                             <div class="flex justify-between">
                                                 <span class="text-gray-600">Quilómetros:</span>
-                                                <span class="font-semibold">${checkinInspectionData && checkinInspectionData.odometer_reading ? checkinInspectionData.odometer_reading.toLocaleString() + ' km' : 'N/A'}</span>
+                                                <span class="font-semibold">${type === 'checkin' ? (inspection.odometer_reading ? inspection.odometer_reading.toLocaleString() + ' km' : 'N/A') : (checkinInspectionData && checkinInspectionData.odometer_reading ? checkinInspectionData.odometer_reading.toLocaleString() + ' km' : 'N/A')}</span>
                                             </div>
                                             <div class="flex justify-between">
                                                 <span class="text-gray-600">Danos:</span>
-                                                <span class="font-semibold">${checkinInspectionData ? checkinInspectionData.damage_count || 0 : 0}</span>
+                                                <span class="font-semibold">${type === 'checkin' ? (inspection.damage_count || 0) : (checkinInspectionData ? checkinInspectionData.damage_count || 0 : 0)}</span>
                                             </div>
                                         </div>
                                         <!-- Fuel bar Entrega -->
@@ -1393,9 +1399,9 @@
                                                     <div class="w-0.5 h-3 bg-[#009cb6]" style="position: absolute; left: 75%;"></div>
                                                     <div class="w-0.5 h-3 bg-[#009cb6]" style="position: absolute; right: 0%;"></div>
                                                 </div>
-                                                <div class="h-full bg-[#009cb6] rounded-lg" style="width: ${fuelToPercent(checkinInspectionData ? checkinInspectionData.fuel_level : 0)}%;"></div>
+                                                <div class="h-full bg-[#009cb6] rounded-lg" style="width: ${fuelToPercent(type === 'checkin' ? inspection.fuel_level : (checkinInspectionData ? checkinInspectionData.fuel_level : 0))}%;"></div>
                                             </div>
-                                            <p class="text-center text-sm font-bold text-[#009cb6] mt-1">${fuelToFraction(checkinInspectionData ? checkinInspectionData.fuel_level : 0)}</p>
+                                            <p class="text-center text-sm font-bold text-[#009cb6] mt-1">${fuelToFraction(type === 'checkin' ? inspection.fuel_level : (checkinInspectionData ? checkinInspectionData.fuel_level : 0))}</p>
                                         </div>
                                     </div>
                                     
@@ -1405,13 +1411,14 @@
                                             <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
                                             </svg>
-                                            Recolha (Check-Out)
+                                            Recolha (Check-Out)${type === 'checkin' ? ' - Prevista' : ''}
                                         </h5>
                                         <div class="space-y-2 text-sm">
                                             <div class="flex justify-between">
                                                 <span class="text-gray-600">Data:</span>
-                                                <span class="font-semibold">${new Date(inspection.created_at).toLocaleDateString('pt-PT')} ${new Date(inspection.created_at).toLocaleTimeString('pt-PT', {hour: '2-digit', minute: '2-digit'})}</span>
+                                                <span class="font-semibold">${type === 'checkin' ? (expectedReturnDate || 'N/A') : new Date(inspection.created_at).toLocaleDateString('pt-PT') + ' ' + new Date(inspection.created_at).toLocaleTimeString('pt-PT', {hour: '2-digit', minute: '2-digit'})}</span>
                                             </div>
+                                            ${type === 'checkout' ? `
                                             <div class="flex justify-between">
                                                 <span class="text-gray-600">Recolhido por:</span>
                                                 <span class="font-semibold">${inspection.inspector_name ? getFirstLastName(inspection.inspector_name) : 'N/A'}</span>
@@ -1424,7 +1431,14 @@
                                                 <span class="text-gray-600">Danos:</span>
                                                 <span class="font-semibold">${inspection.damage_count || 0}</span>
                                             </div>
+                                            ` : `
+                                            <div class="flex justify-between">
+                                                <span class="text-gray-600">Estado:</span>
+                                                <span class="font-semibold text-yellow-600">Pendente</span>
+                                            </div>
+                                            `}
                                         </div>
+                                        ${type === 'checkout' ? `
                                         <!-- Fuel bar Recolha -->
                                         <div class="mt-4 pt-3 border-t border-yellow-400">
                                             <p class="text-xs text-gray-600 mb-2 text-center">Combustível na Recolha</p>
@@ -1445,6 +1459,7 @@
                                             </div>
                                             <p class="text-center text-sm font-bold text-[#009cb6] mt-1">${fuelToFraction(inspection.fuel_level)}</p>
                                         </div>
+                                        ` : ''}
                                     </div>
                                 </div>
                             </div>
