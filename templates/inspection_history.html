@@ -415,9 +415,12 @@
                     const checkoutDate = new Date(contract.checkout.created_at).toISOString().split('T')[0];
                     if (checkoutDate === today) checkoutCount++;
                 }
-                // Count self-checkouts pendentes de validação (tem self_checkout mas não tem checkout)
+                // Count self-checkouts pendentes de validação (tem self_checkout mas não tem checkout E não está invalidado)
                 if (contract.self_checkout && !contract.checkout) {
-                    pendingCount++;
+                    const status = contract.self_checkout.status || 'pending';
+                    if (status !== 'invalidated') {
+                        pendingCount++;
+                    }
                 }
             });
             
@@ -454,8 +457,10 @@
             } else if (type === 'self_checkout') {
                 document.getElementById('searchDate').value = '';
                 filtered = filtered.filter(c => {
-                    // Pendentes de validação: tem self_checkout mas não tem checkout
-                    return c.self_checkout && !c.checkout;
+                    // Pendentes de validação: tem self_checkout mas não tem checkout E não está invalidado
+                    if (!c.self_checkout || c.checkout) return false;
+                    const status = c.self_checkout.status || 'pending';
+                    return status !== 'invalidated';
                 });
             }
             
