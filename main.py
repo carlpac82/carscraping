@@ -25328,7 +25328,8 @@ def _validate_checkin_incidents(cursor, is_postgres, ra, plate, checkin_fuel_lev
         entrega_damage_count = int(checkin_row[1]) if checkin_row[1] else 0
         entrega_id = checkin_row[2]
         
-        result['checkout_fuel'] = entrega_fuel
+        result['checkout_fuel'] = entrega_fuel  # Combustível na ENTREGA
+        result['recolha_fuel'] = float(checkin_fuel_level)  # Combustível na RECOLHA (devolução)
         result['checkout_damage_count'] = entrega_damage_count
         
         logging.info(f"📊 ENTREGA (checkin) data: Fuel={entrega_fuel}%, Damages={entrega_damage_count}")
@@ -25412,10 +25413,11 @@ def _validate_checkin_incidents(cursor, is_postgres, ra, plate, checkin_fuel_lev
     
     return result
 
-def _generate_checkin_status_alert(lang, has_fuel_incident, has_damage_incident):
+def _generate_checkin_status_alert(lang, has_fuel_incident, has_damage_incident, entrega_fuel=None, recolha_fuel=None):
     """
     Generate STATUS_ALERT HTML for check-in emails based on incidents
     Returns: HTML string for status alert
+    If entrega_fuel and recolha_fuel are provided, shows visual fuel bars comparison
     """
     alerts = []
     
@@ -25504,6 +25506,87 @@ def _generate_checkin_status_alert(lang, has_fuel_incident, has_damage_incident)
         # Has incidents - show fuel first (if exists), then damage
         if has_fuel_incident:
             alert_data = lang_texts['fuel']
+            
+            # Generate fuel bars comparison HTML if fuel levels are provided
+            fuel_bars_html = ""
+            if entrega_fuel is not None and recolha_fuel is not None:
+                # Labels based on language
+                fuel_labels = {
+                    'pt': {'delivery': 'Entrega', 'pickup': 'Recolha'},
+                    'en': {'delivery': 'Delivery', 'pickup': 'Return'},
+                    'fr': {'delivery': 'Livraison', 'pickup': 'Retour'}
+                }
+                labels = fuel_labels.get(lang, fuel_labels['en'])
+                
+                # Values are already percentages (0-100)
+                entrega_pct = int(entrega_fuel) if entrega_fuel else 0
+                recolha_pct = int(recolha_fuel) if recolha_fuel else 0
+                
+                # Convert to fraction text for display
+                def pct_to_fraction(pct):
+                    if pct >= 100: return "Cheio" if lang == 'pt' else ("Plein" if lang == 'fr' else "Full")
+                    elif pct >= 87.5: return "7/8"
+                    elif pct >= 75: return "3/4"
+                    elif pct >= 62.5: return "5/8"
+                    elif pct >= 50: return "1/2"
+                    elif pct >= 37.5: return "3/8"
+                    elif pct >= 25: return "1/4"
+                    elif pct >= 12.5: return "1/8"
+                    else: return "Reserva" if lang == 'pt' else ("Réserve" if lang == 'fr' else "Reserve")
+                
+                entrega_text = pct_to_fraction(entrega_pct)
+                recolha_text = pct_to_fraction(recolha_pct)
+                
+                # Calculate width in pixels (200px bar width) for Outlook compatibility
+                bar_width = 200
+                entrega_fill = int(bar_width * entrega_pct / 100)
+                entrega_empty = bar_width - entrega_fill
+                recolha_fill = int(bar_width * recolha_pct / 100)
+                recolha_empty = bar_width - recolha_fill
+                
+                # Use tables with fixed pixel widths for Outlook compatibility
+                fuel_bars_html = f"""
+                <table cellpadding="0" cellspacing="0" border="0" width="100%" style="margin-top: 15px;">
+                    <tr>
+                        <td width="48%" style="vertical-align: top; padding-right: 10px;">
+                            <table cellpadding="0" cellspacing="0" border="0" width="100%">
+                                <tr>
+                                    <td style="font-size: 12px; font-weight: 600; color: #374151; padding-bottom: 5px;">{labels['delivery']}: {entrega_text}</td>
+                                </tr>
+                                <tr>
+                                    <td>
+                                        <table cellpadding="0" cellspacing="0" border="0" width="{bar_width}" style="background-color: #e5e7eb; height: 20px;">
+                                            <tr>
+                                                <td width="{entrega_fill}" style="background-color: #10b981; height: 20px;"></td>
+                                                <td width="{entrega_empty}" style="height: 20px;"></td>
+                                            </tr>
+                                        </table>
+                                    </td>
+                                </tr>
+                            </table>
+                        </td>
+                        <td width="4%"></td>
+                        <td width="48%" style="vertical-align: top; padding-left: 10px;">
+                            <table cellpadding="0" cellspacing="0" border="0" width="100%">
+                                <tr>
+                                    <td style="font-size: 12px; font-weight: 600; color: #374151; padding-bottom: 5px;">{labels['pickup']}: {recolha_text}</td>
+                                </tr>
+                                <tr>
+                                    <td>
+                                        <table cellpadding="0" cellspacing="0" border="0" width="{bar_width}" style="background-color: #e5e7eb; height: 20px;">
+                                            <tr>
+                                                <td width="{recolha_fill}" style="background-color: #f59e0b; height: 20px;"></td>
+                                                <td width="{recolha_empty}" style="height: 20px;"></td>
+                                            </tr>
+                                        </table>
+                                    </td>
+                                </tr>
+                            </table>
+                        </td>
+                    </tr>
+                </table>
+                """
+            
             alerts.append(f"""
             <div style="background: {alert_data['color']}15; border-left: 4px solid {alert_data['color']}; padding: 20px; margin: 20px; border-radius: 8px;">
                 <h3 style="color: {alert_data['color']}; margin: 0 0 10px 0; font-size: 16px; font-weight: 600;">
@@ -25513,6 +25596,7 @@ def _generate_checkin_status_alert(lang, has_fuel_incident, has_damage_incident)
                 <p style="color: #b45309; margin: 0; font-size: 13px; line-height: 1.5;">
                     {alert_data['message']}
                 </p>
+                {fuel_bars_html}
             </div>
             """)
         
@@ -30852,10 +30936,16 @@ async def save_inspection(request: Request):
                         # Generate STATUS_ALERT based on incidents (already validated above)
                         if inspection_type == 'checkout':
                             logging.info("📧 Generating STATUS_ALERT for CHECK-OUT email...")
+                            # Pass fuel levels for visual comparison bars
+                            entrega_fuel_val = incidents.get('checkout_fuel')  # Fuel at delivery
+                            recolha_fuel_val = incidents.get('recolha_fuel')   # Fuel at pickup
+                            logging.info(f"📧 Fuel levels for alert: entrega={entrega_fuel_val}, recolha={recolha_fuel_val}")
                             status_alert_html = _generate_checkin_status_alert(
                                 detected_lang,
                                 incidents['has_fuel_incident'],
-                                incidents['has_damage_incident']
+                                incidents['has_damage_incident'],
+                                entrega_fuel=entrega_fuel_val,
+                                recolha_fuel=recolha_fuel_val
                             )
                         else:
                             logging.info("📧 CHECK-IN email - No STATUS_ALERT needed")
@@ -36578,6 +36668,10 @@ async def send_inspection_email(request: Request, inspection_number: str):
                             fuel_diff = entrega_fuel - recolha_fuel
                             logging.info(f"🔍 FUEL FALLBACK CHECK: entrega={entrega_fuel}%, recolha={recolha_fuel}%, diff={fuel_diff}%")
                             
+                            # Store fuel values for email alert
+                            incidents['entrega_fuel'] = entrega_fuel
+                            incidents['recolha_fuel'] = recolha_fuel
+                            
                             if fuel_diff > 5:  # Client returned with LESS fuel than received
                                 logging.warning(f"⚠️ FALLBACK: Fuel incident detected - shortage of {fuel_diff}%")
                                 incidents['has_fuel_incident'] = True
@@ -36588,10 +36682,17 @@ async def send_inspection_email(request: Request, inspection_number: str):
                 
                 # Generate STATUS_ALERT based on incidents
                 if incidents:
+                    # Get fuel values for the alert from incidents dict
+                    alert_entrega_fuel = incidents.get('entrega_fuel') or incidents.get('checkout_fuel')
+                    alert_recolha_fuel = incidents.get('recolha_fuel') or (float(fuel_level) if fuel_level else None)
+                    logging.info(f"📧 Checkout email fuel levels: entrega={alert_entrega_fuel}, recolha={alert_recolha_fuel}")
+                    
                     status_alert_html = _generate_checkin_status_alert(
                         detected_lang,
                         incidents.get('has_fuel_incident', False),
-                        incidents.get('has_damage_incident', False)
+                        incidents.get('has_damage_incident', False),
+                        entrega_fuel=alert_entrega_fuel,
+                        recolha_fuel=alert_recolha_fuel
                     )
                     
                     # Build PHOTOS_SECTION based on incidents
