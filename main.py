@@ -49636,8 +49636,9 @@ async def get_latest_ra_by_plate(request: Request, plate: str):
             "updated_at": str(ra_row[9]) if ra_row[9] else None
         }
         
-        # Extract email from extracted_data JSON if available
+        # Extract email and other data from extracted_data JSON if available
         client_email = None
+        extracted_data = {}
         if ra_row[10]:  # extracted_data
             try:
                 import json
@@ -49650,6 +49651,7 @@ async def get_latest_ra_by_plate(request: Request, plate: str):
         else:
             logging.warning(f"📧 No extracted_data found for RA {ra_row[1]}")
         ra_data["client_email"] = client_email
+        ra_data["extracted_data"] = extracted_data
         logging.info(f"📧 Final ra_data client_email: {ra_data.get('client_email')}")
         
         # Get vehicle info if vehicle_id exists

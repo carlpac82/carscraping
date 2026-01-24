@@ -1184,13 +1184,14 @@
             
             // Fetch rental agreement data for vehicle info and return date
             let expectedReturnDate = null;
-            if (contract && contract.contract_number) {
+            let expectedReturnTime = null;
+            if (plate) {
                 try {
-                    const raResponse = await fetch(`/api/rental-agreements/${encodeURIComponent(contract.contract_number)}`);
+                    const raResponse = await fetch(`/api/rental-agreement/by-plate/${encodeURIComponent(plate)}`);
                     const raData = await raResponse.json();
                     console.log('📄 RA API response:', raData);
-                    if (raData.ok && raData.extracted_data) {
-                        const ed = raData.extracted_data;
+                    if (raData.success && raData.rental_agreement && raData.rental_agreement.extracted_data) {
+                        const ed = raData.rental_agreement.extracted_data;
                         if (vehicleBrand === 'N/A') {
                             vehicleBrand = ed.vehicleBrand || ed.vehicle_brand || 'N/A';
                         }
@@ -1205,9 +1206,10 @@
                                 if (vehicleModel === 'N/A') vehicleModel = parts[1].trim();
                             }
                         }
-                        // Get expected return date (try multiple field names)
-                        expectedReturnDate = ed.data_entrega || ed.returnDate || ed.return_date || ed.dropOffDate || ed.dataEntrega || null;
-                        console.log('📅 Expected return date:', expectedReturnDate, 'from extracted_data:', ed);
+                        // Get expected return date and time (try multiple field names)
+                        expectedReturnDate = ed.returnDate || ed.return_date || ed.data_entrega || ed.dropOffDate || ed.dataEntrega || null;
+                        expectedReturnTime = ed.returnTime || ed.return_time || ed.hora_entrega || ed.dropOffTime || ed.horaEntrega || null;
+                        console.log('📅 Expected return date:', expectedReturnDate, 'time:', expectedReturnTime, 'from extracted_data:', ed);
                     }
                 } catch (e) {
                     console.error('Error fetching RA data:', e);
@@ -1418,7 +1420,7 @@
                                         <div class="space-y-2 text-sm">
                                             <div class="flex justify-between">
                                                 <span class="text-gray-600">Data:</span>
-                                                <span class="font-semibold">${type === 'checkin' ? (expectedReturnDate || 'N/A') : new Date(inspection.created_at).toLocaleDateString('pt-PT') + ' ' + new Date(inspection.created_at).toLocaleTimeString('pt-PT', {hour: '2-digit', minute: '2-digit'})}</span>
+                                                <span class="font-semibold">${type === 'checkin' ? ((expectedReturnDate || 'N/A') + (expectedReturnTime ? ' ' + expectedReturnTime : '')) : new Date(inspection.created_at).toLocaleDateString('pt-PT') + ' ' + new Date(inspection.created_at).toLocaleTimeString('pt-PT', {hour: '2-digit', minute: '2-digit'})}</span>
                                             </div>
                                             ${type === 'checkout' ? `
                                             <div class="flex justify-between">
