@@ -1044,23 +1044,37 @@ def generate_fuel_bars_image(entrega_pct, recolha_pct, entrega_label, recolha_la
         blue_text = (0, 188, 212)     # #00bcd4
         orange_text = (245, 158, 11)  # #f59e0b
         
-        # Função para desenhar uma barra
+        # Função para desenhar uma barra com bordas arredondadas
         def draw_fuel_bar(x, y, percentage, title, fraction_text, fraction_color):
             # Título
             draw.text((x + bar_width//2, y - 30), title, fill=text_dark, font=title_font, anchor="mm")
             
-            # Fundo da barra
-            draw.rectangle([x, y, x + bar_width, y + bar_height], fill=bg_color, outline=border_color, width=2)
+            # Raio das bordas arredondadas
+            radius = 6
             
-            # Preenchimento com gradiente simulado (3 tons)
+            # Desenhar fundo da barra com bordas arredondadas
+            draw.rounded_rectangle([x, y, x + bar_width, y + bar_height], radius=radius, fill=bg_color, outline=border_color, width=2)
+            
+            # Preenchimento com gradiente horizontal suave
             if percentage > 0:
                 fill_width = int((bar_width - 4) * percentage / 100)
                 if fill_width > 0:
-                    # Simular gradiente com 3 retângulos
-                    third = fill_width // 3
-                    draw.rectangle([x + 2, y + 2, x + 2 + third, y + bar_height - 2], fill=fill_start)
-                    draw.rectangle([x + 2 + third, y + 2, x + 2 + 2*third, y + bar_height - 2], fill=(0, 169, 189))
-                    draw.rectangle([x + 2 + 2*third, y + 2, x + 2 + fill_width, y + bar_height - 2], fill=fill_end)
+                    # Criar gradiente horizontal suave de ciano para ciano escuro
+                    for i in range(fill_width):
+                        # Interpolação linear entre as cores
+                        ratio = i / max(fill_width, 1)
+                        r = int(fill_start[0] + (fill_end[0] - fill_start[0]) * ratio)
+                        g = int(fill_start[1] + (fill_end[1] - fill_start[1]) * ratio)
+                        b = int(fill_start[2] + (fill_end[2] - fill_start[2]) * ratio)
+                        
+                        # Desenhar linha vertical do gradiente
+                        draw.line([(x + 2 + i, y + 2), (x + 2 + i, y + bar_height - 2)], fill=(r, g, b))
+                    
+                    # Aplicar máscara de bordas arredondadas no preenchimento
+                    # Criar uma máscara temporária para o preenchimento arredondado
+                    mask = Image.new('L', (fill_width + 4, bar_height), 0)
+                    mask_draw = ImageDraw.Draw(mask)
+                    mask_draw.rounded_rectangle([0, 0, fill_width + 4, bar_height], radius=radius-1, fill=255)
             
             # Marcadores E, 1/4, 1/2, 3/4, F
             markers_y = y + bar_height + 8
