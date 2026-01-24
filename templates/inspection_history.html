@@ -208,7 +208,7 @@
                 </div>
                 
                 <!-- Search by Date -->
-                <div>
+                <div class="col-span-2 md:col-span-1">
                     <label class="block text-xs md:text-sm font-medium text-gray-700 mb-1">Data</label>
                     <input type="date" id="searchDate" 
                            class="w-full h-[36px] md:h-[42px] px-2 md:px-4 py-1 md:py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#009cb6]" 
@@ -1247,6 +1247,8 @@
                 window.currentInspectionPhotos = inspection.photos || {};
                 window.currentInspectionDamagePhotos = inspection.damage_photos || {};
                 window.currentInspectionSignature = inspection.signature || null;
+                // Store checkin photos for lightbox when viewing checkout
+                window.currentCheckinPhotos = checkinInspectionData ? checkinInspectionData.photos || {} : {};
                 
                 let photosHtml = '';
                 if (inspection.photos && Object.keys(inspection.photos).length > 0) {
@@ -1561,7 +1563,7 @@
                             <!-- Damage Photos -->
                             ${inspection.damage_photos && Object.keys(inspection.damage_photos).length > 0 ? `
                                 <div class="mb-6">
-                                    <h4 class="text-lg font-bold text-gray-900 mb-4">${type === 'checkin' ? 'Fotografias de Recolha' : (type === 'checkout' && !contract?.self_checkout ? 'Fotografias de Recolha' : 'Fotografias de Danos')}</h4>
+                                    <h4 class="text-lg font-bold text-gray-900 mb-4">Fotografias de Danos</h4>
                                     <div class="grid grid-cols-2 md:grid-cols-3 gap-2 md:gap-4">
                                         ${Object.entries(inspection.damage_photos).map(([key, url]) => {
                                             const photoLabels = {
@@ -2436,20 +2438,36 @@
             // Build array of all available photos
             lightboxPhotos = [];
             const photos = window.currentInspectionPhotos || {};
+            const checkinPhotos = window.currentCheckinPhotos || {};
             
-            // Add standard photos in order
-            const photoOrder = ['front', 'front_left', 'left', 'back_left', 'back', 'back_right', 'right', 'front_right', 'odometer'];
-            photoOrder.forEach(key => {
-                if (photos[key]) {
-                    lightboxPhotos.push({ key: key, url: photos[key], label: photoLabelsMap[key] || key });
-                }
-            });
+            // Check if clicked photo is from checkin (key starts with "checkin_")
+            const isCheckinPhoto = photoKey && photoKey.startsWith('checkin_');
             
-            // Add damage photos if any
-            const damagePhotos = window.currentInspectionDamagePhotos || {};
-            Object.keys(damagePhotos).forEach(key => {
-                lightboxPhotos.push({ key: key, url: damagePhotos[key], label: `Dano: ${key}` });
-            });
+            if (isCheckinPhoto) {
+                // Show checkin photos only
+                const photoOrder = ['front', 'front_left', 'left', 'back_left', 'back', 'back_right', 'right', 'front_right', 'odometer'];
+                photoOrder.forEach(key => {
+                    if (checkinPhotos[key]) {
+                        lightboxPhotos.push({ key: 'checkin_' + key, url: checkinPhotos[key], label: photoLabelsMap[key] || key });
+                    }
+                });
+            } else {
+                // Show inspection photos (checkout)
+                const photoOrder = ['front', 'front_left', 'left', 'back_left', 'back', 'back_right', 'right', 'front_right', 'odometer'];
+                photoOrder.forEach(key => {
+                    if (photos[key]) {
+                        lightboxPhotos.push({ key: key, url: photos[key], label: photoLabelsMap[key] || key });
+                    }
+                });
+                
+                // Add damage photos if any (only for inspection photos, not checkin)
+                const damagePhotos = window.currentInspectionDamagePhotos || {};
+                Object.keys(damagePhotos).forEach(key => {
+                    const numMatch = key.match(/(\d+)$/);
+                    const damageNum = numMatch ? numMatch[1] : key.replace('damage_', '');
+                    lightboxPhotos.push({ key: key, url: damagePhotos[key], label: `Dano ${damageNum}` });
+                });
+            }
             
             // Signature is not included in lightbox (not clickable)
             
