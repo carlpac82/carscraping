@@ -30743,23 +30743,47 @@ async def save_inspection(request: Request):
                             import json
                             try:
                                 extracted_data = json.loads(ra_row[0])
+                                logging.info(f"🔍 DEBUG extracted_data keys: {list(extracted_data.keys())}")
+                                
                                 country = extracted_data.get('country', '').upper()
                                 
-                                # Extract client name and first name
-                                raw_client_name = extracted_data.get('clientName', '')
+                                # Extract client name - try multiple possible field names
+                                raw_client_name = (
+                                    extracted_data.get('clientName') or 
+                                    extracted_data.get('client_name') or
+                                    extracted_data.get('customerName') or
+                                    extracted_data.get('customer_name') or
+                                    extracted_data.get('nome_cliente') or
+                                    extracted_data.get('name') or
+                                    ''
+                                )
+                                
+                                logging.info(f"🔍 DEBUG raw_client_name: '{raw_client_name}'")
+                                
                                 if raw_client_name and isinstance(raw_client_name, str) and raw_client_name.strip():
                                     client_name = raw_client_name.strip()
                                     # Extract first name from full name
-                                    name_parts = client_name.split()
+                                    name_parts = [p for p in client_name.split() if p]
                                     first_name = name_parts[0].title() if name_parts else client_name.title()
                                 else:
                                     client_name = 'Customer'
                                     first_name = 'Customer'
                                 
-                                # Get location from RA - prioritize extracted_data
-                                ra_location = extracted_data.get('pickupLocation', '')
+                                # Get location - try multiple possible field names
+                                ra_location = (
+                                    extracted_data.get('pickupLocation') or
+                                    extracted_data.get('pickup_location') or
+                                    extracted_data.get('deliveryLocation') or
+                                    extracted_data.get('delivery_location') or
+                                    extracted_data.get('local_entrega') or
+                                    extracted_data.get('location') or
+                                    ''
+                                )
+                                
+                                logging.info(f"🔍 DEBUG ra_location: '{ra_location}'")
+                                
                                 if ra_location and ra_location.strip():
-                                    delivery_location = ra_location
+                                    delivery_location = ra_location.strip()
                                 elif not delivery_location or delivery_location == 'N/A':
                                     delivery_location = 'N/A'
                                 
@@ -30772,6 +30796,8 @@ async def save_inspection(request: Request):
                                 logging.info(f"🌍 Language: {detected_lang}, Client: {client_name}, First: {first_name}, Location: {delivery_location}")
                             except Exception as e:
                                 logging.error(f"❌ Error parsing RA data: {e}")
+                                import traceback
+                                logging.error(f"❌ Traceback: {traceback.format_exc()}")
                         
                         # Get vehicle data from fleet
                         if is_postgres:
