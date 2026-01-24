@@ -36488,8 +36488,8 @@ async def send_inspection_email(request: Request, inspection_number: str):
             logging.info(f"📧 Using check-in (entrega) template: {template_name}")
             logging.info(f"📧 Subject: {email_title}")
             
-        elif inspection_type == 'checkout':
-            logging.info("🔍 CHECK-OUT (recolha) DETECTED - Validating incidents...")
+        elif inspection_type == 'checkout' or inspection_type == 'self_checkout':
+            logging.info(f"🔍 CHECK-OUT/SELF-CHECKOUT (recolha) DETECTED - type={inspection_type} - Validating incidents...")
             
             # Validate incidents by comparing with check-in (entrega)
             try:
