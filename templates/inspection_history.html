@@ -3168,29 +3168,31 @@
                 `;
                 
                 cameraModal.innerHTML = `
-                    <div style="position: absolute; top: 0; left: 0; right: 0; padding: 20px; background: linear-gradient(to bottom, rgba(0,0,0,0.7), transparent); z-index: 10;">
-                        <div style="display: flex; justify-content: space-between; align-items: center;">
-                            <button onclick="closeOdometerCamera()" style="background: rgba(255,255,255,0.2); border: none; border-radius: 50%; width: 44px; height: 44px; cursor: pointer;">
-                                <svg style="width: 24px; height: 24px; color: white;" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
-                                </svg>
-                            </button>
-                            <div style="text-align: center; flex: 1;">
-                                <p style="color: white; font-size: 18px; font-weight: bold; margin: 0;">ODÓMETRO</p>
-                                <p style="color: rgba(255,255,255,0.8); font-size: 14px; margin: 5px 0 0 0;">Centre o painel com os KMs</p>
-                            </div>
-                            <div style="width: 44px;"></div>
-                        </div>
+                    <!-- Header igual ao check-in -->
+                    <div style="position: absolute; top: 0; left: 0; right: 0; z-index: 50; background: rgba(0,0,0,0.9); color: white; padding: 24px; text-align: center; padding-right: 130px;">
+                        <p style="font-size: 20px; font-weight: bold; color: #10b981; margin: 0 0 8px 0;">ODÓMETRO</p>
+                        <p style="font-size: 16px; opacity: 0.95; margin: 0;">Centre o painel com os KMs</p>
                     </div>
                     
-                    <video id="odometerVideoPreview" autoplay playsinline style="flex: 1; object-fit: cover; width: 100%;"></video>
+                    <!-- Botão fechar -->
+                    <button onclick="closeOdometerCamera()" style="position: fixed; top: 20px; left: 20px; z-index: 9999; background: rgba(255,255,255,0.2); border: none; border-radius: 50%; width: 44px; height: 44px; cursor: pointer; display: flex; align-items: center; justify-content: center;">
+                        <svg style="width: 24px; height: 24px; color: white;" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+                        </svg>
+                    </button>
                     
-                    <div style="position: absolute; bottom: 0; left: 0; right: 0; padding: 30px; background: linear-gradient(to top, rgba(0,0,0,0.7), transparent); z-index: 10;">
-                        <div style="display: flex; justify-content: center;">
-                            <button onclick="captureOdometerPhoto()" style="width: 70px; height: 70px; border-radius: 50%; background: white; border: 4px solid rgba(255,255,255,0.5); cursor: pointer;">
-                                <div style="width: 100%; height: 100%; border-radius: 50%; background: white;"></div>
-                            </button>
-                        </div>
+                    <!-- Imagem miniatura do odómetro - igual ao check-in -->
+                    <div style="position: fixed; top: 20px; right: 20px; width: 100px; height: 100px; z-index: 9999;">
+                        <img src="/static/Inspecçao/Odometro.png" alt="Odómetro" style="width: 100%; height: 100%; object-fit: contain;">
+                    </div>
+                    
+                    <video id="odometerVideoPreview" autoplay playsinline style="width: 100%; height: 100vh; object-fit: cover;"></video>
+                    
+                    <!-- Botão captura estilo iPhone - igual ao check-in -->
+                    <div style="position: fixed; bottom: 80px; left: 0; right: 0; z-index: 10000; display: flex; justify-content: center;">
+                        <button onclick="captureOdometerPhoto()" style="width: 70px; height: 70px; border-radius: 50%; background: transparent; border: 4px solid rgba(255,255,255,0.4); cursor: pointer; display: flex; align-items: center; justify-content: center; padding: 0;">
+                            <div style="width: 58px; height: 58px; border-radius: 50%; background: white;"></div>
+                        </button>
                     </div>
                 `;
                 
