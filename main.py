@@ -25512,9 +25512,9 @@ def _generate_checkin_status_alert(lang, has_fuel_incident, has_damage_incident,
             if entrega_fuel is not None and recolha_fuel is not None:
                 # Labels based on language
                 fuel_labels = {
-                    'pt': {'delivery': 'Entrega', 'pickup': 'Recolha'},
-                    'en': {'delivery': 'Delivery', 'pickup': 'Return'},
-                    'fr': {'delivery': 'Livraison', 'pickup': 'Retour'}
+                    'pt': {'delivery': 'Combustível na Entrega', 'pickup': 'Combustível na Devolução'},
+                    'en': {'delivery': 'Fuel at Delivery', 'pickup': 'Fuel at Return'},
+                    'fr': {'delivery': 'Carburant à la Livraison', 'pickup': 'Carburant au Retour'}
                 }
                 labels = fuel_labels.get(lang, fuel_labels['en'])
                 
@@ -25522,69 +25522,67 @@ def _generate_checkin_status_alert(lang, has_fuel_incident, has_damage_incident,
                 entrega_pct = int(entrega_fuel) if entrega_fuel else 0
                 recolha_pct = int(recolha_fuel) if recolha_fuel else 0
                 
-                # Convert to fraction text for display
+                # Convert to fraction text for display (uppercase for PT, title case for others)
                 def pct_to_fraction(pct):
-                    if pct >= 100: return "Cheio" if lang == 'pt' else ("Plein" if lang == 'fr' else "Full")
-                    elif pct >= 87.5: return "7/8"
+                    if pct >= 100: return "CHEIO" if lang == 'pt' else ("PLEIN" if lang == 'fr' else "FULL")
+                    elif pct >= 87: return "7/8"
                     elif pct >= 75: return "3/4"
-                    elif pct >= 62.5: return "5/8"
+                    elif pct >= 62: return "5/8"
                     elif pct >= 50: return "1/2"
-                    elif pct >= 37.5: return "3/8"
+                    elif pct >= 37: return "3/8"
                     elif pct >= 25: return "1/4"
-                    elif pct >= 12.5: return "1/8"
-                    else: return "Reserva" if lang == 'pt' else ("Réserve" if lang == 'fr' else "Reserve")
+                    elif pct >= 12: return "1/8"
+                    else: return "RESERVA" if lang == 'pt' else ("RÉSERVE" if lang == 'fr' else "RESERVE")
                 
                 entrega_text = pct_to_fraction(entrega_pct)
                 recolha_text = pct_to_fraction(recolha_pct)
                 
-                # Calculate width in pixels (200px bar width) for Outlook compatibility
-                bar_width = 200
-                entrega_fill = int(bar_width * entrega_pct / 100)
-                entrega_empty = bar_width - entrega_fill
-                recolha_fill = int(bar_width * recolha_pct / 100)
-                recolha_empty = bar_width - recolha_fill
-                
-                # Use tables with fixed pixel widths and bgcolor attribute for Outlook compatibility
+                # Use EXACT same HTML as self-checkout invalidation email
                 fuel_bars_html = f"""
-                <table cellpadding="0" cellspacing="0" border="0" width="100%" style="margin-top: 15px;">
-                    <tr>
-                        <td width="48%" style="vertical-align: top; padding-right: 10px;">
-                            <table cellpadding="0" cellspacing="0" border="0" width="100%">
-                                <tr>
-                                    <td style="font-size: 12px; font-weight: 600; color: #374151; padding-bottom: 5px;">{labels['delivery']}: {entrega_text}</td>
-                                </tr>
-                                <tr>
-                                    <td>
-                                        <table cellpadding="0" cellspacing="0" border="0" width="{bar_width}" bgcolor="#e5e7eb" style="background-color: #e5e7eb;">
-                                            <tr>
-                                                <td width="{entrega_fill}" height="20" bgcolor="#10b981" style="background-color: #10b981; font-size: 1px; line-height: 1px;">&nbsp;</td>
-                                                <td width="{entrega_empty}" height="20" bgcolor="#e5e7eb" style="background-color: #e5e7eb; font-size: 1px; line-height: 1px;">&nbsp;</td>
-                                            </tr>
-                                        </table>
-                                    </td>
-                                </tr>
-                            </table>
-                        </td>
-                        <td width="4%"></td>
-                        <td width="48%" style="vertical-align: top; padding-left: 10px;">
-                            <table cellpadding="0" cellspacing="0" border="0" width="100%">
-                                <tr>
-                                    <td style="font-size: 12px; font-weight: 600; color: #374151; padding-bottom: 5px;">{labels['pickup']}: {recolha_text}</td>
-                                </tr>
-                                <tr>
-                                    <td>
-                                        <table cellpadding="0" cellspacing="0" border="0" width="{bar_width}" bgcolor="#e5e7eb" style="background-color: #e5e7eb;">
-                                            <tr>
-                                                <td width="{recolha_fill}" height="20" bgcolor="#f59e0b" style="background-color: #f59e0b; font-size: 1px; line-height: 1px;">&nbsp;</td>
-                                                <td width="{recolha_empty}" height="20" bgcolor="#e5e7eb" style="background-color: #e5e7eb; font-size: 1px; line-height: 1px;">&nbsp;</td>
-                                            </tr>
-                                        </table>
-                                    </td>
-                                </tr>
-                            </table>
-                        </td>
-                    </tr>
-                </table>
+        <table width="100%" cellpadding="0" cellspacing="0" style="margin-bottom: 20px;">
+            <tr>
+                <!-- Check-in fuel -->
+                <td style="width: 48%; padding: 10px; text-align: center;">
+                    <p style="color: #374151; margin: 0 0 10px 0; font-size: 13px; font-weight: 600;">{labels['delivery']}</p>
+                    <!-- Visual fuel bar -->
+                    <div style="position: relative; background: #e5e7eb; border: 2px solid #00bcd4; border-radius: 6px; height: 30px; overflow: hidden;">
+                        <div style="background: linear-gradient(90deg, #00bcd4, #0097a7); height: 100%; width: {entrega_pct}%; border-radius: 4px;"></div>
+                    </div>
+                    <!-- Fuel markers -->
+                    <table width="100%" cellpadding="0" cellspacing="0" style="margin-top: 4px;">
+                        <tr>
+                            <td style="width: 0%; text-align: left; font-size: 10px; color: #6b7280;">E</td>
+                            <td style="width: 25%; text-align: center; font-size: 10px; color: #6b7280;">1/4</td>
+                            <td style="width: 25%; text-align: center; font-size: 10px; color: #6b7280;">1/2</td>
+                            <td style="width: 25%; text-align: center; font-size: 10px; color: #6b7280;">3/4</td>
+                            <td style="width: 0%; text-align: right; font-size: 10px; color: #6b7280;">F</td>
+                        </tr>
+                    </table>
+                    <p style="color: #00bcd4; margin: 10px 0 0 0; font-size: 24px; font-weight: bold;">{entrega_text}</p>
+                </td>
+                <!-- Spacer -->
+                <td style="width: 4%;"></td>
+                <!-- Checkout fuel -->
+                <td style="width: 48%; padding: 10px; text-align: center;">
+                    <p style="color: #374151; margin: 0 0 10px 0; font-size: 13px; font-weight: 600;">{labels['pickup']}</p>
+                    <!-- Visual fuel bar -->
+                    <div style="position: relative; background: #e5e7eb; border: 2px solid #00bcd4; border-radius: 6px; height: 30px; overflow: hidden;">
+                        <div style="background: linear-gradient(90deg, #00bcd4, #0097a7); height: 100%; width: {recolha_pct}%; border-radius: 4px;"></div>
+                    </div>
+                    <!-- Fuel markers -->
+                    <table width="100%" cellpadding="0" cellspacing="0" style="margin-top: 4px;">
+                        <tr>
+                            <td style="width: 0%; text-align: left; font-size: 10px; color: #6b7280;">E</td>
+                            <td style="width: 25%; text-align: center; font-size: 10px; color: #6b7280;">1/4</td>
+                            <td style="width: 25%; text-align: center; font-size: 10px; color: #6b7280;">1/2</td>
+                            <td style="width: 25%; text-align: center; font-size: 10px; color: #6b7280;">3/4</td>
+                            <td style="width: 0%; text-align: right; font-size: 10px; color: #6b7280;">F</td>
+                        </tr>
+                    </table>
+                    <p style="color: #f59e0b; margin: 10px 0 0 0; font-size: 24px; font-weight: bold;">{recolha_text}</p>
+                </td>
+            </tr>
+        </table>
                 """
             
             alerts.append(f"""
