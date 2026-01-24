@@ -36903,7 +36903,7 @@ async def debug_ra_data(request: Request, ra_number: str):
 
 @app.delete("/api/inspections/{inspection_number}")
 async def delete_inspection(request: Request, inspection_number: str):
-    """Delete an inspection and all related inspections (both check-in and check-out) for the same RA"""
+    """Delete only the specific inspection (not all inspections for the RA)"""
     try:
         require_inspection_access(request)
     except HTTPException:
@@ -36915,9 +36915,9 @@ async def delete_inspection(request: Request, inspection_number: str):
         
         if is_postgres:
             with conn.cursor() as cur:
-                # First, get the contract_number (RA) from the inspection
+                # Get the inspection details
                 cur.execute("""
-                    SELECT contract_number FROM vehicle_inspections 
+                    SELECT id, contract_number, inspection_type FROM vehicle_inspections 
                     WHERE inspection_number = %s
                 """, (inspection_number,))
                 
@@ -36925,44 +36925,53 @@ async def delete_inspection(request: Request, inspection_number: str):
                 if not result:
                     return JSONResponse({"ok": False, "error": "Inspection not found"}, status_code=404)
                 
-                contract_number = result[0]
-                logging.info(f"🗑️ Deleting ALL inspections for RA: {contract_number}")
+                inspection_id, contract_number, inspection_type = result
+                logging.info(f"🗑️ Deleting inspection {inspection_number} (type: {inspection_type}) for RA: {contract_number}")
                 
-                # Delete photos for ALL inspections with this contract_number
+                # Delete photos only for THIS inspection
                 cur.execute("""
                     DELETE FROM inspection_photos 
-                    WHERE inspection_id IN (
-                        SELECT id FROM vehicle_inspections WHERE contract_number = %s
-                    )
-                """, (contract_number,))
+                    WHERE inspection_id = %s
+                """, (inspection_id,))
                 
                 photos_deleted = cur.rowcount
-                logging.info(f"🗑️ Deleted {photos_deleted} photos")
+                logging.info(f"🗑️ Deleted {photos_deleted} photos for inspection {inspection_number}")
                 
-                # Delete ALL inspections (check-in and check-out) for this contract_number
+                # Delete only THIS inspection
                 cur.execute("""
-                    DELETE FROM vehicle_inspections WHERE contract_number = %s
-                """, (contract_number,))
+                    DELETE FROM vehicle_inspections WHERE inspection_number = %s
+                """, (inspection_number,))
                 
-                inspections_deleted = cur.rowcount
-                logging.info(f"🗑️ Deleted {inspections_deleted} inspection(s)")
+                logging.info(f"🗑️ Deleted inspection {inspection_number}")
                 
-                # Reset flags in rental_agreements
-                cur.execute("""
-                    UPDATE rental_agreements 
-                    SET inspection_completed = FALSE, 
-                        inspection_id = NULL,
-                        self_checkout_pending = FALSE,
-                        self_checkout_inspection_id = NULL
-                    WHERE rental_agreement_number = %s
-                """, (contract_number,))
-                logging.info(f"🔄 Reset rental_agreement flags for RA: {contract_number}")
+                # Update rental_agreements flags based on what was deleted
+                if inspection_type == 'self_checkout':
+                    cur.execute("""
+                        UPDATE rental_agreements 
+                        SET self_checkout_pending = FALSE,
+                            self_checkout_inspection_id = NULL
+                        WHERE rental_agreement_number = %s
+                    """, (contract_number,))
+                elif inspection_type == 'checkout':
+                    cur.execute("""
+                        UPDATE rental_agreements 
+                        SET inspection_completed = FALSE
+                        WHERE rental_agreement_number = %s
+                    """, (contract_number,))
+                elif inspection_type == 'checkin':
+                    cur.execute("""
+                        UPDATE rental_agreements 
+                        SET inspection_id = NULL
+                        WHERE rental_agreement_number = %s
+                    """, (contract_number,))
+                
+                logging.info(f"🔄 Updated rental_agreement flags for RA: {contract_number}")
                 
             conn.commit()
         else:
-            # First, get the contract_number (RA) from the inspection
+            # Get the inspection details
             cursor = conn.execute("""
-                SELECT contract_number FROM vehicle_inspections 
+                SELECT id, contract_number, inspection_type FROM vehicle_inspections 
                 WHERE inspection_number = ?
             """, (inspection_number,))
             
@@ -36970,42 +36979,52 @@ async def delete_inspection(request: Request, inspection_number: str):
             if not result:
                 return JSONResponse({"ok": False, "error": "Inspection not found"}, status_code=404)
             
-            contract_number = result[0]
-            logging.info(f"🗑️ Deleting ALL inspections for RA: {contract_number}")
+            inspection_id, contract_number, inspection_type = result
+            logging.info(f"🗑️ Deleting inspection {inspection_number} (type: {inspection_type}) for RA: {contract_number}")
             
-            # Delete photos for ALL inspections with this contract_number
+            # Delete photos only for THIS inspection
             conn.execute("""
                 DELETE FROM inspection_photos 
-                WHERE inspection_id IN (
-                    SELECT id FROM vehicle_inspections WHERE contract_number = ?
-                )
-            """, (contract_number,))
+                WHERE inspection_id = ?
+            """, (inspection_id,))
             
-            # Delete ALL inspections (check-in and check-out) for this contract_number
+            # Delete only THIS inspection
             conn.execute("""
-                DELETE FROM vehicle_inspections WHERE contract_number = ?
-            """, (contract_number,))
+                DELETE FROM vehicle_inspections WHERE inspection_number = ?
+            """, (inspection_number,))
             
-            # Reset flags in rental_agreements
-            conn.execute("""
-                UPDATE rental_agreements 
-                SET inspection_completed = 0, 
-                    inspection_id = NULL,
-                    self_checkout_pending = 0,
-                    self_checkout_inspection_id = NULL
-                WHERE rental_agreement_number = ?
-            """, (contract_number,))
-            logging.info(f"🔄 Reset rental_agreement flags for RA: {contract_number}")
+            # Update rental_agreements flags based on what was deleted
+            if inspection_type == 'self_checkout':
+                conn.execute("""
+                    UPDATE rental_agreements 
+                    SET self_checkout_pending = 0,
+                        self_checkout_inspection_id = NULL
+                    WHERE rental_agreement_number = ?
+                """, (contract_number,))
+            elif inspection_type == 'checkout':
+                conn.execute("""
+                    UPDATE rental_agreements 
+                    SET inspection_completed = 0
+                    WHERE rental_agreement_number = ?
+                """, (contract_number,))
+            elif inspection_type == 'checkin':
+                conn.execute("""
+                    UPDATE rental_agreements 
+                    SET inspection_id = NULL
+                    WHERE rental_agreement_number = ?
+                """, (contract_number,))
+            
+            logging.info(f"🔄 Updated rental_agreement flags for RA: {contract_number}")
             
             conn.commit()
         
         conn.close()
         
-        logging.info(f"✅ All inspections deleted for RA: {contract_number}")
+        logging.info(f"✅ Inspection {inspection_number} deleted")
         
         return JSONResponse({
             "ok": True,
-            "message": f"All inspections deleted for RA {contract_number}"
+            "message": f"Inspection {inspection_number} deleted"
         })
     
     except Exception as e:
