@@ -1144,6 +1144,36 @@
                 }
             }
             
+            // For self_checkout, fetch check-in (ENTREGA) data to show delivery photos
+            if (isSelfCheckout && contract && contract.checkin) {
+                checkinData = contract.checkin;
+                try {
+                    const checkinResponse = await fetch(`/api/inspections/${contract.checkin.inspection_number}`);
+                    const checkinDataFull = await checkinResponse.json();
+                    if (checkinDataFull.ok) {
+                        checkinInspectionData = checkinDataFull.inspection;
+                    }
+                } catch (e) {
+                    console.error('Error fetching checkin data for self_checkout:', e);
+                }
+            }
+            
+            // Fetch vehicle brand/model from fleet manager
+            let vehicleBrand = 'N/A';
+            let vehicleModel = 'N/A';
+            if (contract && contract.plate) {
+                try {
+                    const vehicleResponse = await fetch(`/api/vehicles/by-plate/${encodeURIComponent(contract.plate)}`);
+                    const vehicleData = await vehicleResponse.json();
+                    if (vehicleData.ok && vehicleData.vehicle) {
+                        vehicleBrand = vehicleData.vehicle.brand || 'N/A';
+                        vehicleModel = vehicleData.vehicle.model || 'N/A';
+                    }
+                } catch (e) {
+                    console.error('Error fetching vehicle data:', e);
+                }
+            }
+            
             try {
                 // First, get inspection data
                 const response = await fetch(`/api/inspections/${inspectionNumber}`);
@@ -1253,11 +1283,11 @@
                                 <div class="grid grid-cols-2 md:grid-cols-3 gap-4">
                                     <div>
                                         <p class="text-sm text-gray-600">Marca</p>
-                                        <p class="font-bold text-gray-900">${contract && contract.vehicle_brand ? contract.vehicle_brand : 'N/A'}</p>
+                                        <p class="font-bold text-gray-900">${vehicleBrand}</p>
                                     </div>
                                     <div>
                                         <p class="text-sm text-gray-600">Modelo</p>
-                                        <p class="font-bold text-gray-900">${contract && contract.vehicle_model ? contract.vehicle_model : 'N/A'}</p>
+                                        <p class="font-bold text-gray-900">${vehicleModel}</p>
                                     </div>
                                     <div>
                                         <p class="text-sm text-gray-600">Matrícula</p>
@@ -1283,9 +1313,9 @@
                             <div class="mb-6">
                                 <h4 class="text-lg font-bold text-gray-900 mb-4">Resumo da Inspeção</h4>
                                 <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                    <!-- Entrega (Check-in) -->
-                                    <div class="bg-green-50 border border-green-200 rounded-lg p-4">
-                                        <h5 class="font-bold text-green-700 mb-3 flex items-center gap-2">
+                                    <!-- Entrega (Check-in) - AZUL -->
+                                    <div class="bg-[#e6f7fa] border border-[#009cb6] rounded-lg p-4">
+                                        <h5 class="font-bold text-[#009cb6] mb-3 flex items-center gap-2">
                                             <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>
                                             </svg>
@@ -1310,7 +1340,7 @@
                                             </div>
                                         </div>
                                         <!-- Fuel bar Entrega -->
-                                        <div class="mt-4 pt-3 border-t border-green-200">
+                                        <div class="mt-4 pt-3 border-t border-[#009cb6]">
                                             <p class="text-xs text-gray-600 mb-2 text-center">Combustível na Entrega</p>
                                             <div class="relative mb-1" style="height: 14px;">
                                                 <div class="relative flex justify-between text-xs font-semibold text-[#009cb6]">
@@ -1331,9 +1361,9 @@
                                         </div>
                                     </div>
                                     
-                                    <!-- Recolha (Check-out) -->
-                                    <div class="bg-blue-50 border border-blue-200 rounded-lg p-4">
-                                        <h5 class="font-bold text-blue-700 mb-3 flex items-center gap-2">
+                                    <!-- Recolha (Check-out) - AMARELO -->
+                                    <div class="bg-yellow-50 border border-yellow-400 rounded-lg p-4">
+                                        <h5 class="font-bold text-yellow-600 mb-3 flex items-center gap-2">
                                             <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
                                             </svg>
@@ -1358,7 +1388,7 @@
                                             </div>
                                         </div>
                                         <!-- Fuel bar Recolha -->
-                                        <div class="mt-4 pt-3 border-t border-blue-200">
+                                        <div class="mt-4 pt-3 border-t border-yellow-400">
                                             <p class="text-xs text-gray-600 mb-2 text-center">Combustível na Recolha</p>
                                             <div class="relative mb-1" style="height: 14px;">
                                                 <div class="relative flex justify-between text-xs font-semibold text-[#009cb6]">
@@ -1508,11 +1538,53 @@
                                 </div>
                             ` : ''}
                             
-                            <!-- Photos -->
+                            <!-- Fotografias de Entrega (para self_checkout, mostrar fotos do check-in) -->
+                            ${isSelfCheckout && checkinInspectionData && checkinInspectionData.photos ? `
                             <div class="mb-6">
-                                <h4 class="text-lg font-bold text-gray-900 mb-4">${type === 'checkin' ? 'Fotografias de Entrega' : 'Fotografias de Recolha'}</h4>
+                                <h4 class="text-lg font-bold text-[#009cb6] mb-4">Fotografias de Entrega</h4>
+                                <div class="grid grid-cols-2 md:grid-cols-3 gap-3">
+                                    ${Object.entries(checkinInspectionData.photos).map(([photoType, photoUrl]) => {
+                                        const photoLabels = {
+                                            'front': 'Frente',
+                                            'front_left': 'Frente Esquerda',
+                                            'left': 'Lado Esquerdo',
+                                            'back_left': 'Traseira Esquerda',
+                                            'back': 'Traseira',
+                                            'back_right': 'Traseira Direita',
+                                            'right': 'Lado Direito',
+                                            'front_right': 'Frente Direita',
+                                            'odometer': 'Conta-Quilómetros',
+                                            'interior': 'Interior'
+                                        };
+                                        if (!photoLabels[photoType]) return '';
+                                        return `
+                                        <div>
+                                            <h5 class="text-xs md:text-sm font-semibold text-gray-700 mb-1 md:mb-2">${photoLabels[photoType]}</h5>
+                                            <img src="${photoUrl}" alt="${photoLabels[photoType]}" 
+                                                 class="w-full h-32 md:h-48 object-cover rounded-lg border border-gray-200 cursor-pointer"
+                                                 onerror="this.style.display='none'; this.parentElement.innerHTML='<p class=text-gray-400 text-sm>Foto indisponível</p>'">
+                                        </div>
+                                        `;
+                                    }).join('')}
+                                </div>
+                            </div>
+                            ` : ''}
+                            
+                            <!-- Fotografias de Recolha (só para checkout feito pelo colaborador) -->
+                            ${type === 'checkout' && photosHtml && Object.keys(inspection.photos || {}).length > 0 ? `
+                            <div class="mb-6">
+                                <h4 class="text-lg font-bold text-yellow-600 mb-4">Fotografias de Recolha</h4>
                                 ${photosHtml}
                             </div>
+                            ` : ''}
+                            
+                            <!-- Fotografias de Entrega (para checkin) -->
+                            ${type === 'checkin' && photosHtml && Object.keys(inspection.photos || {}).length > 0 ? `
+                            <div class="mb-6">
+                                <h4 class="text-lg font-bold text-[#009cb6] mb-4">Fotografias de Entrega</h4>
+                                ${photosHtml}
+                            </div>
+                            ` : ''}
                             
                             <!-- Observations -->
                             ${inspection.inspector_notes ? `

@@ -50102,6 +50102,55 @@ async def import_vehicles_from_excel(request: Request):
             "error": str(e)
         }, status_code=500)
 
+@app.get("/api/vehicles/by-plate/{plate}")
+async def get_vehicle_by_plate(plate: str, request: Request):
+    """Buscar veículo por matrícula (para obter marca/modelo)"""
+    require_auth(request)
+    
+    try:
+        with _db_lock:
+            con = _db_connect()
+            is_postgres = _is_postgresql_connection(con)
+            try:
+                if is_postgres:
+                    with con.cursor() as cur:
+                        cur.execute("""
+                            SELECT marca, modelo, grupo, tipo_combustivel, km_atual
+                            FROM vehicles WHERE matricula = %s
+                        """, (plate,))
+                        row = cur.fetchone()
+                else:
+                    cur = con.execute("""
+                        SELECT marca, modelo, grupo, tipo_combustivel, km_atual
+                        FROM vehicles WHERE matricula = ?
+                    """, (plate,))
+                    row = cur.fetchone()
+                
+                if row:
+                    return JSONResponse({
+                        "ok": True,
+                        "vehicle": {
+                            "brand": row[0] or 'N/A',
+                            "model": row[1] or 'N/A',
+                            "group": row[2] or 'N/A',
+                            "fuel_type": row[3] or 'N/A',
+                            "km": row[4] or 0
+                        }
+                    })
+                else:
+                    return JSONResponse({
+                        "ok": False,
+                        "error": "Veículo não encontrado na frota"
+                    }, status_code=404)
+            finally:
+                con.close()
+    except Exception as e:
+        logging.error(f"Error getting vehicle by plate: {e}")
+        return JSONResponse({
+            "ok": False,
+            "error": str(e)
+        }, status_code=500)
+
 @app.get("/api/admin/vehicles")
 async def get_vehicles(request: Request):
     """Listar todos os veículos"""
