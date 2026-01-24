@@ -790,7 +790,7 @@
                                         <span class="hidden sm:inline text-sm font-medium text-blue-600">Parque</span>
                                     </button>
                                     ${isAdmin && (hasCheckout || hasCheckin || hasSelfCheckout) ? `
-                                    <button onclick="deleteInspection('${hasCheckout ? contract.checkout.inspection_number : hasCheckin ? contract.checkin.inspection_number : contract.self_checkout.inspection_number}')" class="flex items-center gap-2 px-3 py-2 bg-red-50 hover:bg-red-100 rounded-lg transition-colors" title="Eliminar">
+                                    <button onclick="deleteContractInspection('${contract.contract_number}', ${hasCheckout ? `'${contract.checkout.inspection_number}'` : 'null'}, ${hasCheckin ? `'${contract.checkin.inspection_number}'` : 'null'}, ${hasSelfCheckout ? `'${contract.self_checkout.inspection_number}'` : 'null'})" class="flex items-center gap-2 px-3 py-2 bg-red-50 hover:bg-red-100 rounded-lg transition-colors" title="Eliminar">
                                         <svg class="w-6 h-6 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
                                         </svg>
@@ -1034,20 +1034,58 @@
         }
 
         async function deleteInspection(inspectionNumber) {
-            if (!confirm('Tem a certeza que deseja eliminar esta inspeção?')) return;
-            
             try {
                 const response = await fetch(`/api/inspections/${inspectionNumber}`, { method: 'DELETE' });
                 const data = await response.json();
                 
                 if (data.ok) {
-                    showNotification('Inspeção eliminada com sucesso', 'success');
-                    refreshHistory();
+                    return true;
                 } else {
                     showNotification('Erro ao eliminar: ' + data.error, 'error');
+                    return false;
                 }
             } catch (error) {
                 showNotification('Erro ao eliminar: ' + error.message, 'error');
+                return false;
+            }
+        }
+
+        // Eliminar contrato em cascata: primeiro checkout, depois checkin
+        async function deleteContractInspection(contractNumber, checkoutNumber, checkinNumber, selfCheckoutNumber) {
+            // Se tem checkout (recolha), elimina primeiro o checkout
+            if (checkoutNumber) {
+                if (!confirm(`Eliminar a RECOLHA do contrato ${contractNumber}?\n\nO contrato voltará a ficar aberto.`)) return;
+                
+                const success = await deleteInspection(checkoutNumber);
+                if (success) {
+                    showNotification('Recolha eliminada. Contrato reaberto.', 'success');
+                    refreshHistory();
+                }
+            }
+            // Se não tem checkout mas tem checkin (entrega), elimina o checkin
+            else if (checkinNumber) {
+                if (!confirm(`Eliminar a ENTREGA do contrato ${contractNumber}?\n\nO contrato será removido do histórico.`)) return;
+                
+                // Se tem self-checkout, elimina também
+                if (selfCheckoutNumber) {
+                    await deleteInspection(selfCheckoutNumber);
+                }
+                
+                const success = await deleteInspection(checkinNumber);
+                if (success) {
+                    showNotification('Contrato eliminado do histórico.', 'success');
+                    refreshHistory();
+                }
+            }
+            // Se só tem self-checkout
+            else if (selfCheckoutNumber) {
+                if (!confirm(`Eliminar o Self Check-Out do contrato ${contractNumber}?`)) return;
+                
+                const success = await deleteInspection(selfCheckoutNumber);
+                if (success) {
+                    showNotification('Self Check-Out eliminado.', 'success');
+                    refreshHistory();
+                }
             }
         }
 
