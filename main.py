@@ -33745,36 +33745,7 @@ def _send_invalidation_email(
     </div>
 '''
         
-        # Fuel warning section with side-by-side values
-        if has_fuel_warning:
-            fuel_diff = checkin_fuel - fuel_level
-            html_content += f'''
-    <!-- Fuel Warning Section (Orange) -->
-    <div style="background: #fff7ed; border: 1px solid #fed7aa; padding: 20px; margin: 0 20px 20px 20px; border-radius: 8px;">
-        <h3 style="color: #c2410c; margin: 0 0 15px 0; font-size: 16px; font-weight: 600;">⛽ Advertência de Combustível</h3>
-        <p style="color: #9a3412; margin: 0 0 15px 0; font-size: 13px;">O veículo foi devolvido com menos combustível do que no momento da entrega.</p>
-        
-        <table width="100%" cellpadding="0" cellspacing="0" style="margin-bottom: 15px;">
-            <tr>
-                <td style="width: 50%; text-align: center; padding: 10px;">
-                    <p style="color: #666666; margin: 0 0 5px 0; font-size: 12px;"><strong>Combustível na Entrega:</strong></p>
-                    <span style="font-size: 28px; color: #059669; font-weight: bold;">{checkin_fuel}%</span>
-                </td>
-                <td style="width: 50%; text-align: center; padding: 10px;">
-                    <p style="color: #666666; margin: 0 0 5px 0; font-size: 12px;"><strong>Combustível na Devolução:</strong></p>
-                    <span style="font-size: 28px; color: #dc2626; font-weight: bold;">{fuel_level}%</span>
-                </td>
-            </tr>
-        </table>
-        
-        <div style="padding: 10px 15px; background-color: #fef3c7; border-radius: 5px; text-align: center;">
-            <strong style="color: #92400e;">Diferença: -{fuel_diff}%</strong>
-            <span style="color: #92400e; font-size: 12px;"> - Será cobrado o valor correspondente ao combustível em falta.</span>
-        </div>
-    </div>
-'''
-        
-        # Damage alert (Red)
+        # Damage alert (Red) - FIRST
         if has_damages:
             html_content += f'''
     <!-- Damage Alert (Red) -->
@@ -33790,6 +33761,71 @@ def _send_invalidation_email(
         <p style="color: #991b1b; margin: 0; font-size: 13px; line-height: 1.5;">
             Foram detectados danos no veículo durante a verificação. Consulte os detalhes abaixo.
         </p>
+    </div>
+'''
+        
+        # Fuel warning section - AFTER damages, with visual fuel bars
+        if has_fuel_warning:
+            fuel_diff = checkin_fuel - fuel_level
+            html_content += f'''
+    <!-- Fuel Warning Section (Cyan theme, same design as damages) -->
+    <div style="background: #ecfeff; border-left: 4px solid #00bcd4; padding: 20px; margin: 20px; border-radius: 8px;">
+        <h3 style="color: #0e7490; margin: 0 0 10px 0; font-size: 16px; font-weight: 600;">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="vertical-align: middle; margin-right: 8px;">
+                <path d="M3 22V8a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2v14"></path>
+                <path d="M17 12h2a2 2 0 0 1 2 2v2a2 2 0 0 1-2 2h-2"></path>
+                <path d="M7 10h6"></path>
+                <path d="M7 14h6"></path>
+            </svg>
+            Advertência de Combustível
+        </h3>
+        <p style="color: #155e75; margin: 0 0 20px 0; font-size: 13px; line-height: 1.5;">
+            O veículo foi devolvido com menos combustível do que no momento da entrega.
+        </p>
+        
+        <!-- Fuel bars side by side -->
+        <table width="100%" cellpadding="0" cellspacing="0" style="margin-bottom: 20px;">
+            <tr>
+                <!-- Check-in fuel -->
+                <td style="width: 48%; padding: 10px; text-align: center;">
+                    <p style="color: #374151; margin: 0 0 10px 0; font-size: 13px; font-weight: 600;">Combustível na Entrega</p>
+                    <!-- Visual fuel bar -->
+                    <div style="position: relative; background: #e5e7eb; border: 2px solid #00bcd4; border-radius: 6px; height: 30px; overflow: hidden;">
+                        <div style="background: linear-gradient(90deg, #00bcd4, #0097a7); height: 100%; width: {checkin_fuel}%; border-radius: 4px;"></div>
+                    </div>
+                    <!-- Fuel markers -->
+                    <div style="display: flex; justify-content: space-between; margin-top: 4px; font-size: 10px; color: #6b7280;">
+                        <span>E</span><span>1/4</span><span>1/2</span><span>3/4</span><span>F</span>
+                    </div>
+                    <p style="color: #059669; margin: 10px 0 0 0; font-size: 24px; font-weight: bold;">{checkin_fuel}%</p>
+                </td>
+                <!-- Spacer -->
+                <td style="width: 4%;"></td>
+                <!-- Checkout fuel -->
+                <td style="width: 48%; padding: 10px; text-align: center;">
+                    <p style="color: #374151; margin: 0 0 10px 0; font-size: 13px; font-weight: 600;">Combustível na Devolução</p>
+                    <!-- Visual fuel bar -->
+                    <div style="position: relative; background: #e5e7eb; border: 2px solid #00bcd4; border-radius: 6px; height: 30px; overflow: hidden;">
+                        <div style="background: linear-gradient(90deg, #00bcd4, #0097a7); height: 100%; width: {fuel_level}%; border-radius: 4px;"></div>
+                    </div>
+                    <!-- Fuel markers -->
+                    <div style="display: flex; justify-content: space-between; margin-top: 4px; font-size: 10px; color: #6b7280;">
+                        <span>E</span><span>1/4</span><span>1/2</span><span>3/4</span><span>F</span>
+                    </div>
+                    <p style="color: #dc2626; margin: 10px 0 0 0; font-size: 24px; font-weight: bold;">{fuel_level}%</p>
+                </td>
+            </tr>
+        </table>
+        
+        <!-- Difference info -->
+        <div style="text-align: center; padding: 15px; border-top: 1px solid #cffafe;">
+            <p style="color: #0e7490; margin: 0 0 5px 0; font-size: 14px;">
+                <strong>Combustível em falta: {fuel_diff}%</strong>
+            </p>
+            <p style="color: #155e75; margin: 0; font-size: 13px;">
+                Será cobrado o valor correspondente ao combustível em falta + taxa de reabastecimento.
+            </p>
+        </div>
     </div>
 '''
         
