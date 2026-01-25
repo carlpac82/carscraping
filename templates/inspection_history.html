@@ -1832,10 +1832,11 @@
                 console.log('📋 Inspection data:', inspection);
                 console.log('🖼️ Damage croqui:', inspection.damage_croqui ? `${inspection.damage_croqui.substring(0, 100)}... (${inspection.damage_croqui.length} chars)` : 'EMPTY');
                 
-                // If checkin, get return date from RA BEFORE creating modal
-                if (type === 'checkin' && inspection.contract_number) {
+                // If checkin and NO expected_return_date from backend, get it from RA
+                // If backend already has a date (edited previously), use that instead
+                if (type === 'checkin' && inspection.contract_number && !inspection.expected_return_date) {
                     try {
-                        console.log('🔍 Fetching RA data for contract:', inspection.contract_number);
+                        console.log('🔍 No expected_return_date from backend, fetching from RA:', inspection.contract_number);
                         const raResponse = await fetch(`/api/rental-agreement/by-number/${inspection.contract_number}`);
                         const raData = await raResponse.json();
                         console.log('📄 RA Response:', raData);
@@ -1873,6 +1874,8 @@
                     } catch (err) {
                         console.error('❌ Error fetching RA return date:', err);
                     }
+                } else if (type === 'checkin' && inspection.expected_return_date) {
+                    console.log('✅ Using expected_return_date from backend (already edited):', inspection.expected_return_date);
                 }
                 
                 console.log('🎯 About to create modal with expected_return_date:', inspection.expected_return_date);
