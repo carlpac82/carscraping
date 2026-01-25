@@ -50575,7 +50575,7 @@ async def get_ra_by_number(request: Request, ra_number: str):
                            vehicle_id, odometer, fuel_level, 
                            inspection_completed, inspection_id,
                            created_at, updated_at, extracted_data, return_date,
-                           client_email, contract_closed
+                           client_email
                     FROM rental_agreements
                     WHERE rental_agreement_number = %s
                     LIMIT 1
@@ -50587,7 +50587,7 @@ async def get_ra_by_number(request: Request, ra_number: str):
                        vehicle_id, odometer, fuel_level, 
                        inspection_completed, inspection_id,
                        created_at, updated_at, extracted_data, return_date,
-                       client_email, contract_closed
+                       client_email
                 FROM rental_agreements
                 WHERE rental_agreement_number = ?
                 LIMIT 1
@@ -50615,8 +50615,7 @@ async def get_ra_by_number(request: Request, ra_number: str):
             "updated_at": str(ra_row[9]) if ra_row[9] else None,
             "extracted_data": ra_row[10],
             "return_date": ra_row[11],
-            "client_email": ra_row[12],
-            "contract_closed": bool(ra_row[13]) if ra_row[13] is not None else False
+            "client_email": ra_row[12]
         }
         
         conn.close()
