@@ -343,6 +343,14 @@ def generate_inspection_pdf(inspection_data, extracted_data_json):
                     else:
                         encoded = signature_data
                     
+                    # Remove any whitespace
+                    encoded = encoded.strip().replace('\n', '').replace('\r', '').replace(' ', '')
+                    
+                    # Fix padding
+                    padding_needed = (4 - len(encoded) % 4) % 4
+                    if padding_needed:
+                        encoded += '=' * padding_needed
+                    
                     # Decode base64
                     sig_img_data = base64.b64decode(encoded)
                     sig_img = Image.open(io.BytesIO(sig_img_data))
@@ -926,7 +934,16 @@ def generate_inspection_pdf(inspection_data, extracted_data_json):
                     else:
                         encoded = photo_data
                     
-                    # Decode base64 - Python's base64 module handles padding automatically
+                    # Remove any whitespace
+                    encoded = encoded.strip().replace('\n', '').replace('\r', '').replace(' ', '')
+                    
+                    # Fix padding - base64 strings must be multiple of 4
+                    padding_needed = (4 - len(encoded) % 4) % 4
+                    if padding_needed:
+                        encoded += '=' * padding_needed
+                        logging.info(f"📸 Photo {idx}: Added {padding_needed} padding chars")
+                    
+                    # Decode base64
                     img_data = base64.b64decode(encoded)
                     img = Image.open(io.BytesIO(img_data))
                     
