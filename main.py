@@ -52173,6 +52173,65 @@ async def emergency_fix_base64_endpoint(request: Request):
             "traceback": traceback.format_exc()
         }, status_code=500)
 
+@app.get("/api/admin/diagnose-inspection/{inspection_number}")
+async def diagnose_inspection_photos(request: Request, inspection_number: str):
+    """DIAGNOSTIC: Check photos for specific inspection"""
+    require_admin(request)
+    
+    try:
+        conn = _db_connect()
+        cursor = conn.cursor()
+        is_postgres = 'psycopg' in type(conn).__name__.lower() or os.getenv('DATABASE_URL')
+        
+        # Get inspection ID
+        if is_postgres:
+            cursor.execute("SELECT id, inspection_type FROM vehicle_inspections WHERE inspection_number = %s", (inspection_number,))
+        else:
+            cursor.execute("SELECT id, inspection_type FROM vehicle_inspections WHERE inspection_number = ?", (inspection_number,))
+        
+        inspection_row = cursor.fetchone()
+        if not inspection_row:
+            return JSONResponse({"ok": False, "error": f"Inspection {inspection_number} not found"}, status_code=404)
+        
+        inspection_id, inspection_type = inspection_row
+        
+        # Get photos for this inspection
+        if is_postgres:
+            cursor.execute("SELECT id, photo_type, LENGTH(image_data) as len FROM inspection_photos WHERE inspection_id = %s ORDER BY created_at", (inspection_id,))
+        else:
+            cursor.execute("SELECT id, photo_type, LENGTH(image_data) as len FROM inspection_photos WHERE inspection_id = ? ORDER BY created_at", (inspection_id,))
+        
+        photos = cursor.fetchall()
+        
+        photo_info = []
+        for photo_id, photo_type, length in photos:
+            photo_info.append({
+                "id": photo_id,
+                "type": photo_type,
+                "length": length
+            })
+        
+        cursor.close()
+        conn.close()
+        
+        return JSONResponse({
+            "ok": True,
+            "inspection_number": inspection_number,
+            "inspection_id": inspection_id,
+            "inspection_type": inspection_type,
+            "photo_count": len(photos),
+            "photos": photo_info
+        })
+        
+    except Exception as e:
+        logging.error(f"❌ Error diagnosing inspection: {e}")
+        import traceback
+        return JSONResponse({
+            "ok": False,
+            "error": str(e),
+            "traceback": traceback.format_exc()
+        }, status_code=500)
+
 @app.get("/api/admin/diagnose-photos")
 async def diagnose_photos_format(request: Request):
     """DIAGNOSTIC: Check format of photos in database"""
