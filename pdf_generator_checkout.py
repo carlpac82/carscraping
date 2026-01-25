@@ -548,107 +548,189 @@ def generate_inspection_pdf(inspection_data, extracted_data_json):
         except Exception as e:
             logging.error(f"Error adding croqui to PDF: {e}")
     
-    # Photos grid (3x3 - fill rectangles)
-    photos = inspection_data.get('photos', [])
-    if photos:
-        c.setFont("Helvetica-Bold", 10)
-        c.setFillColor(HexColor('#1f2937'))
-        c.drawString(40, y_pos, "Fotografias da Inspeção")
-        y_pos -= 15
+    # Photos grid - CONDITIONAL LOGIC for checkout (recolha)
+    all_photos = inspection_data.get('photos', [])
+    
+    # Separate damage photos from normal inspection photos
+    damage_photos = [p for p in all_photos if p.get('photo_type', '').startswith('damage_') and p.get('photo_type') != 'damage_croqui']
+    normal_photos = [p for p in all_photos if not p.get('photo_type', '').startswith('damage_') and p.get('photo_type') != 'damage_croqui' and p.get('photo_type') != 'signature']
+    
+    # Get checkin photos if this is a checkout and we need them
+    checkin_photos = inspection_data.get('checkin_photos', [])
+    
+    # Determine which photos to show based on scenario
+    photos_to_show = []
+    section_title = ""
+    
+    if inspection_data['inspection_type'] == 'checkout':
+        # CHECKOUT (RECOLHA) - Apply conditional logic
+        has_damage_photos = len(damage_photos) > 0
+        has_normal_photos = len(normal_photos) > 0
+        has_checkin_photos = len(checkin_photos) > 0
         
-        # Grid settings - same width as croqui box
-        cols = 3
-        grid_total_width = width - 80  # Same as croqui border_width
-        spacing_horizontal = 10
-        photo_width = (grid_total_width - spacing_horizontal * 2) / cols
-        photo_height = photo_width * 0.6  # Smaller ratio
-        spacing_vertical = 15  # Increased vertical spacing
+        logging.info(f"📸 PDF Photos - damage: {len(damage_photos)}, normal: {len(normal_photos)}, checkin: {len(checkin_photos)}")
         
-        # Photo labels
+        # Scenario 1: No new photos in checkout -> show checkin photos
+        if not has_normal_photos and not has_damage_photos and has_checkin_photos:
+            photos_to_show = [{'photos': checkin_photos, 'title': 'Fotografias da Entrega'}]
+        
+        # Scenario 2: Only new normal photos -> show only checkout normal photos
+        elif has_normal_photos and not has_damage_photos:
+            photos_to_show = [{'photos': normal_photos, 'title': 'Fotografias da Recolha'}]
+        
+        # Scenario 3: New normal photos + damage photos -> show damage first, then normal
+        elif has_normal_photos and has_damage_photos:
+            photos_to_show = [
+                {'photos': damage_photos, 'title': 'Fotografias dos Danos (Recolha)'},
+                {'photos': normal_photos, 'title': 'Fotografias da Recolha'}
+            ]
+        
+        # Scenario 4: Only damage photos -> show damage + checkin photos
+        elif has_damage_photos and not has_normal_photos and has_checkin_photos:
+            photos_to_show = [
+                {'photos': damage_photos, 'title': 'Fotografias dos Danos (Recolha)'},
+                {'photos': checkin_photos, 'title': 'Fotografias da Entrega'}
+            ]
+        
+        # Scenario 5: Only damage photos, no checkin -> show only damage
+        elif has_damage_photos and not has_normal_photos and not has_checkin_photos:
+            photos_to_show = [{'photos': damage_photos, 'title': 'Fotografias dos Danos (Recolha)'}]
+    else:
+        # CHECKIN (ENTREGA) - Show all photos normally
+        if all_photos:
+            photos_to_show = [{'photos': all_photos, 'title': 'Fotografias da Inspeção'}]
+    
+    # Render photos sections
+    if photos_to_show:
+        # Photo labels for standard inspection photos
         photo_labels = [
             "Frente", "Frente Esquerda", "Lado Esquerdo",
             "Traseira Esquerda", "Traseira", "Traseira Direita",
             "Lado Direito", "Frente Direita", "Conta-Quilómetros"
         ]
         
-        x_start = 40
-        y_start = y_pos
+        # Calculate dynamic sizing based on total photos
+        total_photos = sum(len(section['photos']) for section in photos_to_show)
         
-        for idx, photo in enumerate(photos[:9]):
-            if idx > 0 and idx % cols == 0:
-                y_start -= photo_height + spacing_vertical + 8
-            
-            col = idx % cols
-            x = x_start + col * (photo_width + spacing_horizontal)
-            y = y_start - photo_height
-            
-            try:
-                photo_data = photo['image_data']
-                if photo_data.startswith('data:image'):
-                    photo_data = photo_data.split(',')[1]
-                
-                img_data = base64.b64decode(photo_data)
-                img = Image.open(io.BytesIO(img_data))
-                
-                # Convert to RGB if needed
-                if img.mode == 'RGBA':
-                    background = Image.new('RGB', img.size, (255, 255, 255))
-                    background.paste(img, mask=img.split()[3])
-                    img = background
-                elif img.mode != 'RGB':
-                    img = img.convert('RGB')
-                
-                # Calculate target size in pixels for the photo box
-                target_width_px = int(photo_width * 2)  # 2x for better quality
-                target_height_px = int(photo_height * 2)
-                
-                # Calculate cover fit dimensions
-                img_width, img_height = img.size
-                img_aspect = img_width / img_height
-                photo_aspect = target_width_px / target_height_px
-                
-                if img_aspect > photo_aspect:
-                    # Image is wider - fit to height and crop width
-                    new_height = target_height_px
-                    new_width = int(new_height * img_aspect)
-                    crop_x = (new_width - target_width_px) // 2
-                    crop_y = 0
-                else:
-                    # Image is taller - fit to width and crop height
-                    new_width = target_width_px
-                    new_height = int(new_width / img_aspect)
-                    crop_x = 0
-                    crop_y = (new_height - target_height_px) // 2
-                
-                # Resize image
-                img_resized = img.resize((new_width, new_height), Image.Resampling.LANCZOS)
-                
-                # Crop to exact size
-                img_cropped = img_resized.crop((crop_x, crop_y, crop_x + target_width_px, crop_y + target_height_px))
-                
-                # Create rounded corners mask
-                mask = Image.new('L', (target_width_px, target_height_px), 0)
-                draw = ImageDraw.Draw(mask)
-                radius_px = int(6 * 2)  # 2x for better quality
-                draw.rounded_rectangle([(0, 0), (target_width_px, target_height_px)], radius=radius_px, fill=255)
-                
-                # Apply mask
-                output = Image.new('RGB', (target_width_px, target_height_px), (255, 255, 255))
-                output.paste(img_cropped, (0, 0))
-                output.putalpha(mask)
-                
-                # Draw image
-                c.drawImage(ImageReader(output), x, y, width=photo_width, height=photo_height, mask='auto')
-                
-                # Draw label below photo
-                c.setFont("Helvetica", 5)
-                c.setFillColor(HexColor('#6b7280'))
-                label = photo_labels[idx] if idx < len(photo_labels) else f"Foto {idx + 1}"
-                c.drawCentredString(x + photo_width / 2, y - 6, label)
-            except Exception as e:
-                logging.error(f"Error adding photo {idx} to PDF: {e}")
+        # Adjust photo size if we have many photos to fit in page
+        if total_photos > 18:
+            size_multiplier = 0.7
+        elif total_photos > 9:
+            size_multiplier = 0.85
+        else:
+            size_multiplier = 1.0
         
-        y_pos = y_start - (photo_height + spacing_vertical + 8) * 3 - 15
+        for section in photos_to_show:
+            photos = section['photos']
+            title = section['title']
+            
+            if not photos:
+                continue
+            
+            # Section title
+            c.setFont("Helvetica-Bold", 10)
+            c.setFillColor(HexColor('#1f2937'))
+            c.drawString(40, y_pos, title)
+            y_pos -= 15
+            
+            # Grid settings - dynamic sizing
+            cols = 3
+            grid_total_width = width - 80
+            spacing_horizontal = 10
+            photo_width = (grid_total_width - spacing_horizontal * 2) / cols * size_multiplier
+            photo_height = photo_width * 0.6
+            spacing_vertical = 12 * size_multiplier
+            
+            x_start = 40
+            y_start = y_pos
+            
+            for idx, photo in enumerate(photos[:9]):  # Max 9 photos per section
+                if idx > 0 and idx % cols == 0:
+                    y_start -= photo_height + spacing_vertical + 8
+                
+                col = idx % cols
+                x = x_start + col * (photo_width + spacing_horizontal)
+                y = y_start - photo_height
+                
+                try:
+                    photo_data = photo.get('image_data', '')
+                    if not photo_data:
+                        continue
+                    
+                    if photo_data.startswith('data:image'):
+                        photo_data = photo_data.split(',')[1]
+                    
+                    img_data = base64.b64decode(photo_data)
+                    img = Image.open(io.BytesIO(img_data))
+                    
+                    # Convert to RGB if needed
+                    if img.mode == 'RGBA':
+                        background = Image.new('RGB', img.size, (255, 255, 255))
+                        background.paste(img, mask=img.split()[3])
+                        img = background
+                    elif img.mode != 'RGB':
+                        img = img.convert('RGB')
+                    
+                    # Calculate target size in pixels for the photo box
+                    target_width_px = int(photo_width * 2)
+                    target_height_px = int(photo_height * 2)
+                    
+                    # Calculate cover fit dimensions
+                    img_width, img_height = img.size
+                    img_aspect = img_width / img_height
+                    photo_aspect = target_width_px / target_height_px
+                    
+                    if img_aspect > photo_aspect:
+                        new_height = target_height_px
+                        new_width = int(new_height * img_aspect)
+                        crop_x = (new_width - target_width_px) // 2
+                        crop_y = 0
+                    else:
+                        new_width = target_width_px
+                        new_height = int(new_width / img_aspect)
+                        crop_x = 0
+                        crop_y = (new_height - target_height_px) // 2
+                    
+                    # Resize image
+                    img_resized = img.resize((new_width, new_height), Image.Resampling.LANCZOS)
+                    
+                    # Crop to exact size
+                    img_cropped = img_resized.crop((crop_x, crop_y, crop_x + target_width_px, crop_y + target_height_px))
+                    
+                    # Create rounded corners mask
+                    mask = Image.new('L', (target_width_px, target_height_px), 0)
+                    draw = ImageDraw.Draw(mask)
+                    radius_px = int(6 * 2)
+                    draw.rounded_rectangle([(0, 0), (target_width_px, target_height_px)], radius=radius_px, fill=255)
+                    
+                    # Apply mask
+                    output = Image.new('RGB', (target_width_px, target_height_px), (255, 255, 255))
+                    output.paste(img_cropped, (0, 0))
+                    output.putalpha(mask)
+                    
+                    # Draw image
+                    c.drawImage(ImageReader(output), x, y, width=photo_width, height=photo_height, mask='auto')
+                    
+                    # Draw label below photo
+                    c.setFont("Helvetica", 5)
+                    c.setFillColor(HexColor('#6b7280'))
+                    
+                    # Determine label based on photo type
+                    photo_type = photo.get('photo_type', '')
+                    if photo_type.startswith('damage_'):
+                        label = f"Dano {idx + 1}"
+                    elif idx < len(photo_labels):
+                        label = photo_labels[idx]
+                    else:
+                        label = f"Foto {idx + 1}"
+                    
+                    c.drawCentredString(x + photo_width / 2, y - 6, label)
+                except Exception as e:
+                    logging.error(f"Error adding photo {idx} to PDF: {e}")
+            
+            # Update y_pos for next section
+            rows = (len(photos) + cols - 1) // cols
+            y_pos = y_start - (photo_height + spacing_vertical + 8) * rows - 20
     
     # Footer with company info (no "Entregue por" section - it's already in the card)
     # Cyan footer bar

@@ -49348,6 +49348,71 @@ async def get_inspection_pdf(inspection_number: str, request: Request):
             
             inspection_data['photos'] = inspection_photos
             
+            # For checkout, also fetch check-in photos (for conditional display)
+            checkin_photos = []
+            if row[1] == 'checkout':
+                try:
+                    base_ra = row[3].split('-')[0] if '-' in row[3] else row[3]
+                    
+                    # Find check-in inspection ID
+                    if is_postgres:
+                        cursor.execute("""
+                            SELECT id FROM vehicle_inspections
+                            WHERE inspection_type = 'checkin'
+                            AND vehicle_plate = %s
+                            AND (contract_number = %s OR contract_number LIKE %s)
+                            ORDER BY created_at DESC
+                            LIMIT 1
+                        """, (row[2], row[3], f"{base_ra}%"))
+                    else:
+                        cursor.execute("""
+                            SELECT id FROM vehicle_inspections
+                            WHERE inspection_type = 'checkin'
+                            AND vehicle_plate = ?
+                            AND (contract_number = ? OR contract_number LIKE ?)
+                            ORDER BY created_at DESC
+                            LIMIT 1
+                        """, (row[2], row[3], f"{base_ra}%"))
+                    
+                    checkin_id_row = cursor.fetchone()
+                    if checkin_id_row:
+                        checkin_id = checkin_id_row[0]
+                        
+                        # Fetch check-in photos (exclude damage_croqui and signature)
+                        if is_postgres:
+                            cursor.execute("""
+                                SELECT image_data, photo_type 
+                                FROM inspection_photos 
+                                WHERE inspection_id = %s
+                                AND photo_type != 'damage_croqui'
+                                AND photo_type != 'signature'
+                                AND photo_type NOT LIKE 'damage_%%'
+                                ORDER BY created_at
+                            """, (checkin_id,))
+                        else:
+                            cursor.execute("""
+                                SELECT image_data, photo_type 
+                                FROM inspection_photos 
+                                WHERE inspection_id = ?
+                                AND photo_type != 'damage_croqui'
+                                AND photo_type != 'signature'
+                                AND photo_type NOT LIKE 'damage_%'
+                                ORDER BY created_at
+                            """, (checkin_id,))
+                        
+                        for photo_row in cursor.fetchall():
+                            if photo_row[0]:
+                                checkin_photos.append({
+                                    'image_data': photo_row[0],
+                                    'photo_type': photo_row[1]
+                                })
+                        
+                        logging.info(f"📸 Fetched {len(checkin_photos)} check-in photos for checkout PDF")
+                except Exception as e:
+                    logging.error(f"❌ Error fetching check-in photos: {e}")
+            
+            inspection_data['checkin_photos'] = checkin_photos
+            
         finally:
             conn.close()
         
