@@ -51641,6 +51641,87 @@ async def fix_ra_06716(request: Request):
         traceback.print_exc()
         return JSONResponse({"error": str(e), "traceback": traceback.format_exc()}, status_code=500)
 
+@app.post("/api/admin/update-inspections-from-ra")
+async def update_inspections_from_ra(request: Request):
+    """Update existing inspections with data from rental agreements"""
+    require_auth(request)
+    
+    try:
+        import json
+        conn = _db_connect()
+        cursor = conn.cursor()
+        
+        # Get all inspections with contract numbers
+        cursor.execute("""
+            SELECT id, contract_number, vehicle_brand, vehicle_model, client_name, pickup_location, return_location
+            FROM vehicle_inspections
+            WHERE contract_number IS NOT NULL AND contract_number != ''
+        """)
+        
+        inspections = cursor.fetchall()
+        updated_count = 0
+        
+        for insp in inspections:
+            insp_id, ra_number, current_brand, current_model, current_client, current_pickup, current_return = insp
+            
+            # Skip if already has all data
+            if current_brand and current_model and current_client and current_pickup:
+                continue
+            
+            # Get RA data
+            ra_base = ra_number.split('-')[0] if '-' in ra_number else ra_number
+            cursor.execute("""
+                SELECT extracted_data FROM rental_agreements WHERE rental_agreement_number LIKE %s LIMIT 1
+            """, (f"{ra_base}%",))
+            
+            ra_row = cursor.fetchone()
+            if ra_row and ra_row[0]:
+                ra_data = json.loads(ra_row[0])
+                
+                # Update inspection with RA data
+                cursor.execute("""
+                    UPDATE vehicle_inspections
+                    SET vehicle_brand = COALESCE(vehicle_brand, %s),
+                        vehicle_model = COALESCE(vehicle_model, %s),
+                        client_name = COALESCE(client_name, %s),
+                        pickup_location = COALESCE(pickup_location, %s),
+                        return_location = COALESCE(return_location, %s),
+                        pickup_date = COALESCE(pickup_date, %s),
+                        return_date = COALESCE(return_date, %s),
+                        country = COALESCE(country, %s)
+                    WHERE id = %s
+                """, (
+                    ra_data.get('vehicleBrand', ''),
+                    ra_data.get('vehicleModel', ''),
+                    ra_data.get('clientName', ''),
+                    ra_data.get('pickupLocation', ''),
+                    ra_data.get('returnLocation', ''),
+                    ra_data.get('pickupDate', ''),
+                    ra_data.get('returnDate', ''),
+                    ra_data.get('country', ''),
+                    insp_id
+                ))
+                updated_count += 1
+                logging.info(f"✅ Updated inspection {insp_id} with RA {ra_number} data")
+        
+        conn.commit()
+        conn.close()
+        
+        return JSONResponse({
+            "ok": True,
+            "message": f"Updated {updated_count} inspections",
+            "total_checked": len(inspections)
+        })
+        
+    except Exception as e:
+        logging.error(f"❌ Error updating inspections: {e}")
+        import traceback
+        return JSONResponse({
+            "ok": False,
+            "error": str(e),
+            "traceback": traceback.format_exc()
+        }, status_code=500)
+
 if __name__ == "__main__":
     import uvicorn
     uvicorn.run(app, host="0.0.0.0", port=8000)
