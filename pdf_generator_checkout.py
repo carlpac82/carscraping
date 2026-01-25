@@ -411,6 +411,38 @@ def generate_inspection_pdf(inspection_data, extracted_data_json):
             elif img.mode != 'RGB':
                 img = img.convert('RGB')
             
+            # Add legend to croqui for checkout (recolha) inspection
+            if inspection_data['inspection_type'] == 'checkout':
+                from PIL import ImageFont
+                draw = ImageDraw.Draw(img)
+                
+                # Legend position (bottom-right corner with padding)
+                legend_x = img.width - 180
+                legend_y = img.height - 50
+                
+                # Legend background (semi-transparent white box)
+                draw.rectangle(
+                    [(legend_x - 10, legend_y - 5), (img.width - 10, img.height - 10)],
+                    fill=(255, 255, 255, 230),
+                    outline=(200, 200, 200)
+                )
+                
+                # Try to use a font, fallback to default if not available
+                try:
+                    font_small = ImageFont.truetype("/System/Library/Fonts/Helvetica.ttc", 11)
+                except:
+                    font_small = ImageFont.load_default()
+                
+                # Red line for pickup damages (recolha)
+                line_y = legend_y + 2
+                draw.line([(legend_x, line_y), (legend_x + 20, line_y)], fill='#dc3545', width=3)
+                draw.text((legend_x + 25, line_y - 8), "Danos na recolha", fill='#333333', font=font_small)
+                
+                # Black line for delivery damages (entrega)
+                line_y += 18
+                draw.line([(legend_x, line_y), (legend_x + 20, line_y)], fill='#000000', width=3)
+                draw.text((legend_x + 25, line_y - 8), "Danos na entrega", fill='#333333', font=font_small)
+            
             # Two boxes side by side - same dimensions as check-in/checkout boxes
             total_width = width - 80
             box_spacing = 10
