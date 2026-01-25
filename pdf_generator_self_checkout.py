@@ -909,15 +909,21 @@ def generate_inspection_pdf(inspection_data, extracted_data_json):
                 
                 try:
                     photo_data = photo['image_data']
+                    original_length = len(photo_data)
+                    
                     if photo_data.startswith('data:image'):
                         photo_data = photo_data.split(',', 1)[1]
                     
                     # Fix base64 padding if needed
                     missing_padding = len(photo_data) % 4
                     if missing_padding:
+                        logging.info(f"📸 Photo {idx}: Adding {4 - missing_padding} padding chars (length: {len(photo_data)} -> {len(photo_data) + (4 - missing_padding)})")
                         photo_data += '=' * (4 - missing_padding)
+                    else:
+                        logging.info(f"📸 Photo {idx}: No padding needed (length: {len(photo_data)})")
                     
                     img_data = base64.b64decode(photo_data)
+                    logging.info(f"📸 Photo {idx}: Successfully decoded base64")
                     img = Image.open(io.BytesIO(img_data))
                     
                     # Convert to RGB if needed
