@@ -229,7 +229,10 @@ def generate_inspection_pdf(inspection_data, extracted_data_json):
     c.drawString(label_x_left, content_y_left, "Data:")
     c.setFont("Helvetica-Bold", 8)
     c.setFillColor(HexColor('#111827'))
-    date_str_checkin = inspection_data['created_at'].strftime('%d/%m/%Y %H:%M') if inspection_data.get('created_at') else 'N/A'
+    if is_checkout and inspection_data.get('checkin_created_at'):
+        date_str_checkin = inspection_data['checkin_created_at'].strftime('%d/%m/%Y %H:%M')
+    else:
+        date_str_checkin = inspection_data['created_at'].strftime('%d/%m/%Y %H:%M') if inspection_data.get('created_at') else 'N/A'
     c.drawRightString(value_x_left, content_y_left, date_str_checkin)
     
     content_y_left -= 12
@@ -378,6 +381,13 @@ def generate_inspection_pdf(inspection_data, extracted_data_json):
     
     # Process odometer and fuel for check-in (blue box)
     is_checkout = inspection_data.get('inspection_type') == 'checkout'
+    
+    print(f"🔍 DEBUG - inspection_data keys: {inspection_data.keys()}")
+    print(f"🔍 DEBUG - checkin_odometer: '{inspection_data.get('checkin_odometer')}'")
+    print(f"🔍 DEBUG - checkin_fuel: '{inspection_data.get('checkin_fuel')}'")
+    print(f"🔍 DEBUG - checkin_created_at: '{inspection_data.get('checkin_created_at')}'")
+    print(f"🔍 DEBUG - odometer_reading: '{inspection_data.get('odometer_reading')}'")
+    print(f"🔍 DEBUG - fuel_level: '{inspection_data.get('fuel_level')}'")
     
     if is_checkout:
         # Para checkout, usar dados do check-in na caixa azul

@@ -49127,7 +49127,6 @@ async def get_inspection_pdf(inspection_number: str, request: Request):
     
     try:
         from fastapi.responses import Response
-        from pdf_generator import generate_inspection_pdf
         import os
         
         logging.info(f"📄 Generating modern PDF for inspection: {inspection_number}")
@@ -49241,6 +49240,54 @@ async def get_inspection_pdf(inspection_number: str, request: Request):
             inspection_data['return_location'] = ''
             inspection_data['return_date'] = ''
             inspection_data['return_time'] = ''
+            
+            # For checkout, fetch check-in data (quilómetros e combustível da entrega)
+            if row[1] == 'checkout':
+                try:
+                    base_ra = row[3].split('-')[0] if '-' in row[3] else row[3]
+                    logging.info(f"🔍 Searching check-in for: plate={row[2]}, contract={row[3]}, base_ra={base_ra}")
+                    
+                    if is_postgres:
+                        cursor.execute("""
+                            SELECT odometer_reading, fuel_level, inspection_number, created_at
+                            FROM vehicle_inspections
+                            WHERE inspection_type = 'checkin'
+                            AND vehicle_plate = %s
+                            AND (contract_number = %s OR contract_number LIKE %s)
+                            ORDER BY created_at DESC
+                            LIMIT 1
+                        """, (row[2], row[3], f"{base_ra}%"))
+                    else:
+                        cursor.execute("""
+                            SELECT odometer_reading, fuel_level, inspection_number, created_at
+                            FROM vehicle_inspections
+                            WHERE inspection_type = 'checkin'
+                            AND vehicle_plate = ?
+                            AND (contract_number = ? OR contract_number LIKE ?)
+                            ORDER BY created_at DESC
+                            LIMIT 1
+                        """, (row[2], row[3], f"{base_ra}%"))
+                    
+                    checkin_row = cursor.fetchone()
+                    if checkin_row:
+                        inspection_data['checkin_odometer'] = str(checkin_row[0]) if checkin_row[0] else ''
+                        inspection_data['checkin_fuel'] = checkin_row[1] or ''
+                        inspection_data['checkin_created_at'] = checkin_row[3]
+                        logging.info(f"✅ Check-in data found: inspection={checkin_row[2]}, odometer={checkin_row[0]}, fuel={checkin_row[1]}, created_at={checkin_row[3]}")
+                    else:
+                        inspection_data['checkin_odometer'] = ''
+                        inspection_data['checkin_fuel'] = ''
+                        inspection_data['checkin_created_at'] = None
+                        logging.warning(f"⚠️ No check-in data found for checkout {inspection_number} (plate={row[2]}, contract={row[3]})")
+                except Exception as e:
+                    logging.error(f"❌ Error fetching check-in data: {e}")
+                    inspection_data['checkin_odometer'] = ''
+                    inspection_data['checkin_fuel'] = ''
+                    inspection_data['checkin_created_at'] = None
+            else:
+                inspection_data['checkin_odometer'] = ''
+                inspection_data['checkin_fuel'] = ''
+                inspection_data['checkin_created_at'] = None
             
             # Get client_name, vehicle_brand, vehicle_model from extracted_data if still missing
             if extracted_data_json:
