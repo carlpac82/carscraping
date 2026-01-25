@@ -558,10 +558,6 @@ def generate_inspection_pdf(inspection_data, extracted_data_json):
                 img_data = base64.b64decode(photo_data)
                 img = Image.open(io.BytesIO(img_data))
                 
-                # Draw white background with rounded corners
-                c.setFillColor(HexColor('#ffffff'))
-                c.roundRect(x, y, photo_width, photo_height, 6, fill=1, stroke=0)
-                
                 # Save state for clipping
                 c.saveState()
                 
@@ -603,11 +599,6 @@ def generate_inspection_pdf(inspection_data, extracted_data_json):
                 
                 # Restore state to remove clipping
                 c.restoreState()
-                
-                # Draw rounded border
-                c.setStrokeColor(HexColor('#d1d5db'))
-                c.setLineWidth(0.5)
-                c.roundRect(x, y, photo_width, photo_height, 6, fill=0, stroke=1)
                 
                 # Draw label below photo
                 c.setFont("Helvetica", 5)
