@@ -1,1 +1,1 @@
-2026-01-25T23:34:00Z UTC - Fix: fallback to fetch RA data from table columns when extracted_data is empty - Force Railway rebuild
+2026-01-25T23:50:00Z UTC - Add: debug log after fallback to show final values - Force Railway rebuild

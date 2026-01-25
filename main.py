@@ -30097,6 +30097,9 @@ async def save_inspection(request: Request):
                                         ra_country = fallback_row[5]
                                 else:
                                     logging.warning(f"⚠️ No RA found in table for: {ra} (base: {ra_base})")
+                            
+                            # LOG FINAL: Mostrar valores após fallback
+                            logging.info(f"📊 FINAL VALUES after fallback: return_location='{ra_return_location}', return_date='{ra_return_date}', client_name='{ra_client_name}'")
                         except Exception as e:
                             logging.warning(f"⚠️ Could not fetch RA data: {e}")
                     
