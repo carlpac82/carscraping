@@ -49368,6 +49368,18 @@ async def get_inspection_pdf(inspection_number: str, request: Request):
                 if photo_row[0]:
                     photo_type = photo_row[1]
                     image_data = photo_row[0]
+                    
+                    # Debug: Check image_data format
+                    logging.info(f"📸 Photo {photo_type}: type={type(image_data)}, is_bytes={isinstance(image_data, bytes)}")
+                    if isinstance(image_data, str):
+                        has_prefix = image_data.startswith('data:image')
+                        logging.info(f"📸 Photo {photo_type}: has_prefix={has_prefix}, length={len(image_data)}")
+                        if has_prefix:
+                            # Extract base64 part to check padding
+                            base64_part = image_data.split(',', 1)[1] if ',' in image_data else image_data
+                            padding_needed = len(base64_part) % 4
+                            logging.info(f"📸 Photo {photo_type}: base64_length={len(base64_part)}, padding_needed={padding_needed}")
+                    
                     # Convert bytes to base64 string if needed (PostgreSQL stores as TEXT, SQLite as BLOB)
                     if isinstance(image_data, bytes):
                         import base64
@@ -49376,7 +49388,7 @@ async def get_inspection_pdf(inspection_number: str, request: Request):
                         'image_data': image_data,
                         'photo_type': photo_type
                     })
-                    logging.info(f"📸 Added photo: {photo_type}, data length: {len(str(image_data))}")
+                    logging.info(f"📸 Added photo: {photo_type}, final data length: {len(str(image_data))}")
             
             logging.info(f"📸 Total inspection photos added: {len(inspection_photos)}")
             inspection_data['photos'] = inspection_photos
