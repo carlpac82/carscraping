@@ -13,6 +13,11 @@ from reportlab.lib.utils import ImageReader
 def generate_inspection_pdf(inspection_data, extracted_data_json):
     """Generate a modern, clean PDF for check-in, check-out, or self-checkout inspection"""
     
+    # IMMEDIATE LOGGING
+    logging.info(f"📸 PDF GENERATOR STARTED - Type: {inspection_data.get('inspection_type')}")
+    logging.info(f"📸 PDF GENERATOR - photos count: {len(inspection_data.get('photos', []))}")
+    logging.info(f"📸 PDF GENERATOR - checkin_photos count: {len(inspection_data.get('checkin_photos', []))}")
+    
     # Parse extracted_data
     extracted = {}
     if extracted_data_json:

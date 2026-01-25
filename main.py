@@ -49358,6 +49358,7 @@ async def get_inspection_pdf(inspection_number: str, request: Request):
             
             logging.info(f"📸 Total inspection photos added: {len(inspection_photos)}")
             inspection_data['photos'] = inspection_photos
+            logging.info(f"📸 CHECKPOINT 1: inspection_data['photos'] has {len(inspection_data['photos'])} items")
             
             # For checkout, also fetch check-in photos (for conditional display)
             checkin_photos = []
@@ -49432,11 +49433,13 @@ async def get_inspection_pdf(inspection_number: str, request: Request):
                     logging.error(f"❌ Error fetching check-in photos: {e}")
             
             inspection_data['checkin_photos'] = checkin_photos
+            logging.info(f"📸 CHECKPOINT 2: inspection_data['checkin_photos'] has {len(inspection_data['checkin_photos'])} items")
             
         finally:
             conn.close()
         
         # Generate PDF using modern generator
+        logging.info(f"📸 FINAL CHECK before PDF generation: photos={len(inspection_data.get('photos', []))}, checkin_photos={len(inspection_data.get('checkin_photos', []))}")
         pdf_content = generate_inspection_pdf(inspection_data, extracted_data_json)
         
         logging.info(f"✅ PDF generated: {len(pdf_content)} bytes")
