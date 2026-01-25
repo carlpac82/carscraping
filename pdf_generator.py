@@ -429,7 +429,14 @@ def generate_inspection_pdf(inspection_data, extracted_data_json):
         # Try to get date and time
         return_date = extracted.get('returnDate') or extracted.get('return_date', 'N/A')
         return_time = extracted.get('returnTime') or extracted.get('return_time', '')
+        
+        # Normalize date format from "21 - 01 - 2026" to "21/01/2026"
+        if return_date and return_date != 'N/A':
+            return_date = return_date.replace(' - ', '/').replace('-', '/')
+        
+        # Normalize time format from "10 : 00" to "10:00"
         if return_time:
+            return_time = return_time.replace(' : ', ':').replace(' :', ':').replace(': ', ':')
             return_datetime = f"{return_date} {return_time}".strip()
         else:
             return_datetime = return_date
