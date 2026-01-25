@@ -1,4 +1,5 @@
 """Modern PDF generator for vehicle inspections"""
+# VERSION: 2026-01-25-20:32 - FORCE RECOMPILE WITH BASE64 PADDING FIX
 import base64
 import io
 import json
@@ -14,6 +15,9 @@ from PIL import Image, ImageDraw
 
 def generate_inspection_pdf(inspection_data, extracted_data_json):
     """Generate a modern, clean PDF for check-in, check-out, or self-checkout inspection"""
+    
+    # VERSION CHECK - Log to confirm new code is running
+    logging.info("🚨🚨🚨 PDF GENERATOR VERSION 2026-01-25-20:32 WITH BASE64 PADDING FIX ACTIVE 🚨🚨🚨")
     
     # Parse extracted_data
     extracted = {}
