@@ -25,11 +25,10 @@ def generate_inspection_pdf(inspection_data, extracted_data_json):
             pass
     
     # DEBUG: Log data
-    logging.info(f"DEBUG PDF - inspection_data keys: {inspection_data.keys()}")
-    logging.info(f"DEBUG PDF - fuel_level: {inspection_data.get('fuel_level')}")
+    logging.info(f"DEBUG PDF - inspection_data keys: {list(inspection_data.keys())}")
+    logging.info(f"DEBUG PDF - fuel_level: {inspection_data.get('fuel_level')} (type: {type(inspection_data.get('fuel_level'))})")
     logging.info(f"DEBUG PDF - client_name: {inspection_data.get('client_name')}")
-    logging.info(f"DEBUG PDF - ra_customer_name: {inspection_data.get('ra_customer_name')}")
-    logging.info(f"DEBUG PDF - extracted keys: {extracted.keys() if extracted else 'None'}")
+    logging.info(f"DEBUG PDF - extracted keys: {list(extracted.keys()) if extracted else 'None'}")
     if extracted:
         logging.info(f"DEBUG PDF - extracted clientName: {extracted.get('clientName')}")
         logging.info(f"DEBUG PDF - extracted customerName: {extracted.get('customerName')}")
@@ -150,7 +149,7 @@ def generate_inspection_pdf(inspection_data, extracted_data_json):
     c.drawString(50 + col_width, row_y, "Cliente")
     c.setFont("Helvetica-Bold", 9)
     c.setFillColor(HexColor('#111827'))
-    client_name = inspection_data.get('ra_customer_name') or inspection_data.get('client_name') or extracted.get('clientName') or extracted.get('customerName') or extracted.get('name') or 'N/A'
+    client_name = inspection_data.get('client_name') or extracted.get('clientName') or extracted.get('customerName') or extracted.get('name') or 'N/A'
     # Truncate if too long
     if len(client_name) > 20:
         client_name = client_name[:17] + '...'
