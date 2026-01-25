@@ -34,17 +34,36 @@ def generate_inspection_pdf(inspection_data, extracted_data_json):
     c.setFillColor(header_color)
     c.rect(0, height - 70, width, 70, fill=1, stroke=0)
     
-    # Logo (ap-heather.png)
+    # Logo on left (ap-heather.png)
     logo_path = '/Users/filipepacheco/CascadeProjects/carscraping/static/ap-heather.png'
     if os.path.exists(logo_path):
         try:
-            c.drawImage(logo_path, 30, height - 60, width=100, height=40, preserveAspectRatio=True, mask='auto')
+            c.drawImage(logo_path, 30, height - 60, width=150, height=50, preserveAspectRatio=True, mask='auto')
         except Exception as e:
             logging.warning(f"Could not load logo: {e}")
     
-    # Title in header (white text)
+    # RA number on right in header (white text in box)
     c.setFillColor(HexColor('#ffffff'))
+    c.setFont("Helvetica-Bold", 18)
+    ra_text = f"R.A.: {inspection_data['contract_number']}"
+    ra_width = c.stringWidth(ra_text, "Helvetica-Bold", 18)
+    
+    # Box for RA
+    box_padding = 15
+    box_x = width - ra_width - box_padding * 2 - 30
+    box_y = height - 55
+    c.setFillColor(HexColor('#ffffff'))
+    c.setFillColorRGB(1, 1, 1, alpha=0.2)
+    c.roundRect(box_x, box_y, ra_width + box_padding * 2, 30, 5, fill=1, stroke=0)
+    
+    c.setFillColor(HexColor('#ffffff'))
+    c.drawString(box_x + box_padding, box_y + 8, ra_text)
+    
+    # Start content - Title below header
+    y_pos = height - 90
+    
     c.setFont("Helvetica-Bold", 16)
+    c.setFillColor(HexColor('#1f2937'))
     
     if inspection_data['inspection_type'] == 'checkin':
         title = "Relatório de Entrega - "
@@ -54,10 +73,9 @@ def generate_inspection_pdf(inspection_data, extracted_data_json):
         title = "Relatório de Devolução - "
     
     title += inspection_data.get('vehicle_plate', 'N/A')
-    c.drawString(width / 2 - c.stringWidth(title, "Helvetica-Bold", 16) / 2, height - 40, title)
+    c.drawCentredString(width / 2, y_pos, title)
     
-    # Start content
-    y_pos = height - 100
+    y_pos -= 30
     
     # Vehicle and contract info in 2 columns
     c.setFont("Helvetica-Bold", 11)
@@ -322,7 +340,7 @@ def generate_inspection_pdf(inspection_data, extracted_data_json):
         for idx, photo in enumerate(photos[:9]):
             if idx > 0 and idx % cols == 0:
                 y_start -= photo_size + spacing
-                if y_start < 100:
+                if y_start < 150:
                     c.showPage()
                     y_start = height - 60
             
@@ -342,11 +360,62 @@ def generate_inspection_pdf(inspection_data, extracted_data_json):
                 c.drawImage(ImageReader(img), x, y, width=photo_size, height=photo_size, preserveAspectRatio=True)
             except Exception as e:
                 logging.error(f"Error adding photo {idx} to PDF: {e}")
+        
+        y_pos = y_start - photo_size - 30
     
-    # Footer
+    # "Entregue por" section after photos
+    if y_pos < 150:
+        c.showPage()
+        y_pos = height - 60
+    
+    c.setFont("Helvetica-Bold", 11)
+    c.setFillColor(HexColor('#1f2937'))
+    
+    # Get first and last name
+    inspector_name = inspection_data.get('inspector_name', 'N/A')
+    if inspector_name and inspector_name != 'N/A':
+        name_parts = inspector_name.split()
+        if len(name_parts) >= 2:
+            short_name = f"{name_parts[0]} {name_parts[-1]}"
+        else:
+            short_name = inspector_name
+    else:
+        short_name = 'N/A'
+    
+    date_time_str = inspection_data['created_at'].strftime('%d/%m/%Y às %H:%M') if inspection_data.get('created_at') else 'N/A'
+    
+    c.drawString(40, y_pos, f"Entregue por: {short_name}")
+    c.setFont("Helvetica", 10)
+    c.setFillColor(HexColor('#4b5563'))
+    c.drawString(40, y_pos - 15, date_time_str)
+    
+    y_pos -= 40
+    
+    # Footer with company info (like in image)
+    footer_height = 80
+    footer_y = footer_height
+    
+    # Cyan footer bar
+    c.setFillColor(HexColor('#009cb6'))
+    c.rect(0, 0, width, 35, fill=1, stroke=0)
+    
+    # Copyright text in cyan bar
+    c.setFont("Helvetica-Bold", 9)
+    c.setFillColor(HexColor('#ffffff'))
+    c.drawCentredString(width / 2, 12, "© 2026 Auto Prudente Rent a Car. Todos os direitos reservados.")
+    
+    # Company details above cyan bar
+    c.setFont("Helvetica-Bold", 8)
+    c.setFillColor(HexColor('#4b5563'))
+    c.drawCentredString(width / 2, 70, "Auto Prudente Rent a Car Unipessoal, Lda. - Número Fiscal: PT 503 539 791")
+    
     c.setFont("Helvetica", 8)
-    c.setFillColor(HexColor('#9ca3af'))
-    c.drawCentredString(width / 2, 30, "Auto Prudente - Rent a Car")
+    c.setFillColor(HexColor('#6b7280'))
+    c.drawCentredString(width / 2, 58, "Sede: Estrada de Santa Eulália, Edifício Onda do Mar Loja E, 8200-269 Albufeira")
+    
+    c.setFont("Helvetica", 8)
+    phone_email = "Telefone +351 289 542 160 | E-mail: info@auto-prudente.com"
+    c.drawCentredString(width / 2, 46, phone_email)
     
     c.save()
     buffer.seek(0)
