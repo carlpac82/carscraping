@@ -48979,29 +48979,44 @@ async def get_inspection_details(inspection_number: str, request: Request):
             
             # For checkin inspections, fetch the expected return date from RA
             if inspection_type == 'checkin' and contract_number:
+                # Remove suffix from contract_number (e.g., "06727-09" -> "06727")
+                ra_number = contract_number.split('-')[0]
+                logging.info(f"📅 Fetching return date for RA: {ra_number} (original: {contract_number})")
+                
                 cursor.execute("""
                     SELECT return_date, extracted_data FROM rental_agreements WHERE rental_agreement_number = %s
                 """ if is_postgres else """
                     SELECT return_date, extracted_data FROM rental_agreements WHERE rental_agreement_number = ?
-                """, (contract_number,))
+                """, (ra_number,))
                 ra_row = cursor.fetchone()
                 if ra_row:
-                    # Try return_date column first
+                    # Try return_date column first (this is the edited/updated date)
                     if ra_row[0]:
                         expected_return_date = ra_row[0]
+                        logging.info(f"📅 Found return_date in column: {expected_return_date}")
                     # Fallback to extracted_data
                     elif ra_row[1]:
                         try:
                             import json
                             extracted_data = json.loads(ra_row[1])
                             expected_return_date = extracted_data.get('returnDate') or extracted_data.get('return_date')
+                            logging.info(f"📅 Found return_date in extracted_data: {expected_return_date}")
                         except:
                             pass
                     
-                    # Convert DD/MM/YYYY to YYYY-MM-DD for HTML date input
-                    if expected_return_date and '/' in expected_return_date:
-                        day, month, year = expected_return_date.split('/')
-                        expected_return_date = f"{year}-{month}-{day}"
+                    # Convert DD - MM - YYYY or DD/MM/YYYY to YYYY-MM-DD for HTML date input
+                    if expected_return_date:
+                        # Remove spaces first
+                        cleaned_date = expected_return_date.replace(' ', '')
+                        if '/' in cleaned_date:
+                            day, month, year = cleaned_date.split('/')
+                            expected_return_date = f"{year}-{month.zfill(2)}-{day.zfill(2)}"
+                        elif '-' in cleaned_date and len(cleaned_date.split('-')) == 3:
+                            parts = cleaned_date.split('-')
+                            if len(parts[0]) == 2:  # DD-MM-YYYY
+                                day, month, year = parts
+                                expected_return_date = f"{year}-{month.zfill(2)}-{day.zfill(2)}"
+                        logging.info(f"📅 Converted to YYYY-MM-DD: {expected_return_date}")
             
             inspection = {
                 "inspection_number": inspection_row[1],
