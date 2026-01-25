@@ -154,7 +154,7 @@ def generate_inspection_pdf(inspection_data, extracted_data_json):
     
     # Two boxes side by side (no title)
     box_width = (width - 100) / 2
-    box_height = 115
+    box_height = 120
     
     # Left box - Check-in info (BLUE like website)
     box_color = HexColor('#eff6ff')  # bg-blue-50 (lighter)
@@ -189,7 +189,7 @@ def generate_inspection_pdf(inspection_data, extracted_data_json):
     date_str = inspection_data['created_at'].strftime('%d/%m/%Y %H:%M') if inspection_data.get('created_at') else 'N/A'
     c.drawRightString(value_x, content_y, date_str)
     
-    content_y -= 15
+    content_y -= 12
     c.setFont("Helvetica", 8)
     c.setFillColor(HexColor('#6b7280'))
     if inspection_data['inspection_type'] == 'checkin':
@@ -205,7 +205,7 @@ def generate_inspection_pdf(inspection_data, extracted_data_json):
             inspector = f"{parts[0]} {parts[-1]}"
     c.drawRightString(value_x, content_y, inspector)
     
-    content_y -= 15
+    content_y -= 12
     c.setFont("Helvetica", 8)
     c.setFillColor(HexColor('#6b7280'))
     c.drawString(label_x, content_y, "Quilómetros:")
@@ -221,7 +221,7 @@ def generate_inspection_pdf(inspection_data, extracted_data_json):
         odometer_str = 'N/A'
     c.drawRightString(value_x, content_y, odometer_str)
     
-    content_y -= 15
+    content_y -= 12
     c.setFont("Helvetica", 8)
     c.setFillColor(HexColor('#6b7280'))
     c.drawString(label_x, content_y, "Danos:")
@@ -233,19 +233,19 @@ def generate_inspection_pdf(inspection_data, extracted_data_json):
     fuel_level = inspection_data.get('fuel_level', 'R')
     fuel_percent = fuel_to_percent(fuel_level)
     
-    content_y -= 15
+    content_y -= 12
     c.setStrokeColor(border_color)
     c.setLineWidth(0.5)
     c.line(50, content_y, 40 + box_width - 10, content_y)
     
-    content_y -= 10
-    c.setFont("Helvetica", 7)
+    content_y -= 8
+    c.setFont("Helvetica", 6)
     c.setFillColor(HexColor('#6b7280'))
     label_text = "Combustível na Entrega" if inspection_data['inspection_type'] == 'checkin' else "Combustível na Recolha"
     c.drawCentredString(40 + box_width / 2, content_y, label_text)
     
     # Fuel markers
-    content_y -= 8
+    content_y -= 7
     c.setFont("Helvetica-Bold", 6)
     c.setFillColor(HexColor('#009cb6'))
     bar_left = 50
@@ -257,7 +257,7 @@ def generate_inspection_pdf(inspection_data, extracted_data_json):
     c.drawString(bar_left + bar_width_inner - 2, content_y, "F")
     
     # Fuel bar with rounded corners (exact canvas design)
-    content_y -= 11
+    content_y -= 10
     bar_height = 12
     
     # Background bar (white with cyan border)
