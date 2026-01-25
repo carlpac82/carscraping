@@ -382,28 +382,47 @@ def generate_inspection_pdf(inspection_data, extracted_data_json):
     if is_checkout:
         # Para checkout, usar dados do check-in na caixa azul
         checkin_odometer = inspection_data.get('checkin_odometer', 'N/A')
-        if checkin_odometer and checkin_odometer != 'N/A':
+        checkin_odometer_raw = 0
+        if checkin_odometer and checkin_odometer != 'N/A' and checkin_odometer != '':
             try:
-                odometer_str = f"{int(checkin_odometer):,} km".replace(',', ' ')
+                checkin_odometer_raw = int(checkin_odometer)
+                odometer_str = f"{checkin_odometer_raw:,} km".replace(',', ' ')
             except (ValueError, TypeError):
                 odometer_str = f"{checkin_odometer} km"
         else:
             odometer_str = 'N/A'
         
+        print(f"🔵 Check-in odometer: {checkin_odometer} -> {odometer_str}")
+        
         # Fuel do check-in para a caixa azul
         fuel_level = inspection_data.get('checkin_fuel') or 'R'
+        print(f"🔵 Check-in fuel: {fuel_level}")
         
         # Processar também dados do checkout para a caixa amarela
         checkout_odometer = inspection_data.get('odometer_reading', 'N/A')
+        checkout_odometer_raw = 0
         if checkout_odometer and checkout_odometer != 'N/A':
             try:
-                checkout_odometer_str = f"{int(checkout_odometer):,} km".replace(',', ' ')
+                checkout_odometer_raw = int(checkout_odometer)
+                checkout_odometer_str = f"{checkout_odometer_raw:,} km".replace(',', ' ')
             except (ValueError, TypeError):
                 checkout_odometer_str = f"{checkout_odometer} km"
         else:
             checkout_odometer_str = 'N/A'
         
+        print(f"🟡 Check-out odometer: {checkout_odometer} -> {checkout_odometer_str}")
+        
+        # Calcular quilómetros percorridos
+        percorridos_str = 'N/A'
+        if checkin_odometer_raw > 0 and checkout_odometer_raw > 0:
+            percorridos = checkout_odometer_raw - checkin_odometer_raw
+            if percorridos >= 0:
+                percorridos_str = f"{percorridos:,} km".replace(',', ' ')
+        
+        print(f"📊 Percorridos: {percorridos_str}")
+        
         checkout_fuel_level = inspection_data.get('fuel_level') or 'R'
+        print(f"🟡 Check-out fuel: {checkout_fuel_level}")
     else:
         # Para check-in, usar dados normais
         odometer = inspection_data.get('odometer_reading', 'N/A')
@@ -418,6 +437,7 @@ def generate_inspection_pdf(inspection_data, extracted_data_json):
         fuel_level = inspection_data.get('fuel_level') or 'R'
         checkout_odometer_str = 'N/A'
         checkout_fuel_level = 'R'
+        percorridos_str = 'N/A'
     
     print(f"⛽ Raw fuel_level (check-in): '{fuel_level}' (type: {type(fuel_level)})")
     
@@ -699,7 +719,7 @@ def generate_inspection_pdf(inspection_data, extracted_data_json):
             c.setFillColor(HexColor('#111827'))
             c.drawCentredString(right_col_center, content_y_km, odometer_str)
             
-            content_y_km -= 24
+            content_y_km -= 20
             
             # Recolha
             c.setFont("Helvetica-Bold", 7)
@@ -711,6 +731,19 @@ def generate_inspection_pdf(inspection_data, extracted_data_json):
             c.setFont("Helvetica-Bold", 10)
             c.setFillColor(HexColor('#111827'))
             c.drawCentredString(right_col_center, content_y_km, checkout_odometer_str)
+            
+            content_y_km -= 20
+            
+            # Percorridos
+            c.setFont("Helvetica-Bold", 7)
+            c.setFillColor(HexColor('#009cb6'))
+            c.drawCentredString(right_col_center, content_y_km, "Percorridos")
+            
+            content_y_km -= 12
+            
+            c.setFont("Helvetica-Bold", 10)
+            c.setFillColor(HexColor('#111827'))
+            c.drawCentredString(right_col_center, content_y_km, percorridos_str)
             
             # Right box - SEMPRE caixa branca com croqui
             right_box_x = 40 + left_box_width + box_spacing
