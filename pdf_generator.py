@@ -281,19 +281,50 @@ def generate_inspection_pdf(inspection_data, extracted_data_json):
             inspector = f"{parts[0]} {parts[-1]}"
     c.drawRightString(value_x, content_y, inspector)
     
-    # Process odometer for later use in blue box
-    odometer = inspection_data.get('odometer_reading', 'N/A')
-    if odometer and odometer != 'N/A':
-        try:
-            odometer_str = f"{int(odometer):,} km".replace(',', ' ')
-        except (ValueError, TypeError):
-            odometer_str = f"{odometer} km"
-    else:
-        odometer_str = 'N/A'
+    # Process odometer and fuel for check-in (blue box)
+    is_checkout = inspection_data.get('inspection_type') == 'checkout'
     
-    # Process fuel level for later use
-    fuel_level = inspection_data.get('fuel_level') or 'R'
-    print(f"⛽ Raw fuel_level: '{fuel_level}' (type: {type(fuel_level)})")
+    if is_checkout:
+        # Para checkout, usar dados do check-in na caixa azul
+        checkin_odometer = inspection_data.get('checkin_odometer', 'N/A')
+        if checkin_odometer and checkin_odometer != 'N/A':
+            try:
+                odometer_str = f"{int(checkin_odometer):,} km".replace(',', ' ')
+            except (ValueError, TypeError):
+                odometer_str = f"{checkin_odometer} km"
+        else:
+            odometer_str = 'N/A'
+        
+        # Fuel do check-in para a caixa azul
+        fuel_level = inspection_data.get('checkin_fuel') or 'R'
+        
+        # Processar também dados do checkout para a caixa amarela
+        checkout_odometer = inspection_data.get('odometer_reading', 'N/A')
+        if checkout_odometer and checkout_odometer != 'N/A':
+            try:
+                checkout_odometer_str = f"{int(checkout_odometer):,} km".replace(',', ' ')
+            except (ValueError, TypeError):
+                checkout_odometer_str = f"{checkout_odometer} km"
+        else:
+            checkout_odometer_str = 'N/A'
+        
+        checkout_fuel_level = inspection_data.get('fuel_level') or 'R'
+    else:
+        # Para check-in, usar dados normais
+        odometer = inspection_data.get('odometer_reading', 'N/A')
+        if odometer and odometer != 'N/A':
+            try:
+                odometer_str = f"{int(odometer):,} km".replace(',', ' ')
+            except (ValueError, TypeError):
+                odometer_str = f"{odometer} km"
+        else:
+            odometer_str = 'N/A'
+        
+        fuel_level = inspection_data.get('fuel_level') or 'R'
+        checkout_odometer_str = 'N/A'
+        checkout_fuel_level = 'R'
+    
+    print(f"⛽ Raw fuel_level (check-in): '{fuel_level}' (type: {type(fuel_level)})")
     
     # Convert string to number if needed
     if isinstance(fuel_level, str) and fuel_level.strip().replace('.', '', 1).isdigit():
@@ -322,9 +353,44 @@ def generate_inspection_pdf(inspection_data, extracted_data_json):
             fuel_level = '7/8'
         else:
             fuel_level = 'F'
-    print(f"✅ Converted fuel_level: '{fuel_level}'")
+    print(f"✅ Converted fuel_level (check-in): '{fuel_level}'")
     fuel_percent = fuel_to_percent(fuel_level)
-    print(f"📊 Fuel percent: {fuel_percent}%")
+    print(f"📊 Fuel percent (check-in): {fuel_percent}%")
+    
+    # Process checkout fuel if checkout
+    if is_checkout:
+        print(f"⛽ Raw checkout_fuel_level: '{checkout_fuel_level}' (type: {type(checkout_fuel_level)})")
+        
+        if isinstance(checkout_fuel_level, str) and checkout_fuel_level.strip().replace('.', '', 1).isdigit():
+            try:
+                checkout_fuel_level = float(checkout_fuel_level) if '.' in checkout_fuel_level else int(checkout_fuel_level)
+            except (ValueError, TypeError):
+                pass
+        
+        if isinstance(checkout_fuel_level, (int, float)):
+            if checkout_fuel_level == 0:
+                checkout_fuel_level = 'R'
+            elif checkout_fuel_level <= 12.5:
+                checkout_fuel_level = '1/8'
+            elif checkout_fuel_level <= 25:
+                checkout_fuel_level = '1/4'
+            elif checkout_fuel_level <= 37.5:
+                checkout_fuel_level = '3/8'
+            elif checkout_fuel_level <= 50:
+                checkout_fuel_level = '1/2'
+            elif checkout_fuel_level <= 62.5:
+                checkout_fuel_level = '5/8'
+            elif checkout_fuel_level <= 75:
+                checkout_fuel_level = '3/4'
+            elif checkout_fuel_level <= 87.5:
+                checkout_fuel_level = '7/8'
+            else:
+                checkout_fuel_level = 'F'
+        print(f"✅ Converted checkout_fuel_level: '{checkout_fuel_level}'")
+        checkout_fuel_percent = fuel_to_percent(checkout_fuel_level)
+        print(f"📊 Checkout fuel percent: {checkout_fuel_percent}%")
+    else:
+        checkout_fuel_percent = 0
     
     # Right box - Return date (YELLOW/AMBER)
     if inspection_data['inspection_type'] == 'checkin':
@@ -499,15 +565,7 @@ def generate_inspection_pdf(inspection_data, extracted_data_json):
                 box_center_x_right = right_box_x + right_box_width / 2
                 content_y_right = y_pos - 25
                 
-                # Quilómetros do checkout
-                checkout_odometer_str = "N/A"
-                checkout_odometer = inspection_data.get('odometer_reading', 'N/A')
-                if checkout_odometer and checkout_odometer != 'N/A':
-                    try:
-                        checkout_odometer_str = f"{int(checkout_odometer):,} km".replace(',', ' ')
-                    except (ValueError, TypeError):
-                        checkout_odometer_str = f"{checkout_odometer} km"
-                
+                # Quilómetros do checkout (já processado anteriormente)
                 c.setFont("Helvetica", 8)
                 c.setFillColor(HexColor('#6b7280'))
                 c.drawCentredString(box_center_x_right, content_y_right, "Quilómetros:")
@@ -545,9 +603,10 @@ def generate_inspection_pdf(inspection_data, extracted_data_json):
                 c.setFillColor(HexColor('#ffffff'))
                 c.roundRect(bar_left_right, content_y_right, bar_width_inner_right, bar_height, 5, fill=1, stroke=1)
                 
-                if fuel_percent > 0:
+                # Usar checkout_fuel_percent em vez de fuel_percent
+                if checkout_fuel_percent > 0:
                     c.setFillColor(HexColor('#f59e0b'))
-                    fill_width = max(10, (bar_width_inner_right - 4) * (fuel_percent / 100))
+                    fill_width = max(10, (bar_width_inner_right - 4) * (checkout_fuel_percent / 100))
                     c.roundRect(bar_left_right + 2, content_y_right + 2, fill_width, bar_height - 4, 4, fill=1, stroke=0)
                 
                 c.setStrokeColor(HexColor('#f59e0b'))
