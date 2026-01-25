@@ -254,16 +254,8 @@ def generate_inspection_pdf(inspection_data, extracted_data_json):
         c.drawString(label_x, content_y, "Data de Recolha Esperada:")
         c.setFont("Helvetica-Bold", 8)
         c.setFillColor(HexColor('#111827'))
-        return_date = (extracted.get('returnDate') or 
-                      extracted.get('return_date') or 
-                      extracted.get('data_entrega') or 
-                      extracted.get('dropOffDate') or 
-                      'N/A')
-        return_time = (extracted.get('returnTime') or 
-                      extracted.get('return_time') or 
-                      extracted.get('hora_entrega') or 
-                      extracted.get('dropOffTime') or 
-                      '')
+        return_date = inspection_data.get('return_date') or 'N/A'
+        return_time = inspection_data.get('return_time') or ''
         return_datetime = f"{return_date} {return_time}".strip() if return_date != 'N/A' else 'N/A'
         c.drawRightString(value_x, content_y, return_datetime)
     
