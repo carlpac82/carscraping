@@ -29,16 +29,17 @@ def generate_inspection_pdf(inspection_data, extracted_data_json):
     c = pdf_canvas.Canvas(buffer, pagesize=A4)
     width, height = A4
     
-    # Cyan header bar
+    # Cyan header bar (smaller)
+    header_height = 50
     header_color = HexColor('#009cb6')
     c.setFillColor(header_color)
-    c.rect(0, height - 70, width, 70, fill=1, stroke=0)
+    c.rect(0, height - header_height, width, header_height, fill=1, stroke=0)
     
-    # Logo on left (ap-heather.png)
+    # Logo on left (smaller)
     logo_path = 'static/ap-heather.png'
     if os.path.exists(logo_path):
         try:
-            c.drawImage(logo_path, 30, height - 60, width=150, height=50, preserveAspectRatio=True, mask='auto')
+            c.drawImage(logo_path, 20, height - 45, width=100, height=35, preserveAspectRatio=True, mask='auto')
         except Exception as e:
             logging.warning(f"Could not load logo: {e}")
     else:
@@ -46,121 +47,114 @@ def generate_inspection_pdf(inspection_data, extracted_data_json):
         logo_path = '/app/static/ap-heather.png'
         if os.path.exists(logo_path):
             try:
-                c.drawImage(logo_path, 30, height - 60, width=150, height=50, preserveAspectRatio=True, mask='auto')
+                c.drawImage(logo_path, 20, height - 45, width=100, height=35, preserveAspectRatio=True, mask='auto')
             except Exception as e:
                 logging.warning(f"Could not load logo: {e}")
     
-    # RA number on right in header (white text in box)
+    # RA number on right in header (smaller)
     c.setFillColor(HexColor('#ffffff'))
-    c.setFont("Helvetica-Bold", 18)
+    c.setFont("Helvetica-Bold", 14)
     ra_text = f"R.A.: {inspection_data['contract_number']}"
-    ra_width = c.stringWidth(ra_text, "Helvetica-Bold", 18)
+    ra_width = c.stringWidth(ra_text, "Helvetica-Bold", 14)
     
-    # Box for RA
-    box_padding = 15
-    box_x = width - ra_width - box_padding * 2 - 30
-    box_y = height - 55
+    # Box for RA (smaller)
+    box_padding = 10
+    box_x = width - ra_width - box_padding * 2 - 20
+    box_y = height - 38
     c.setFillColor(HexColor('#ffffff'))
     c.setFillColorRGB(1, 1, 1, alpha=0.2)
-    c.roundRect(box_x, box_y, ra_width + box_padding * 2, 30, 5, fill=1, stroke=0)
+    c.roundRect(box_x, box_y, ra_width + box_padding * 2, 22, 4, fill=1, stroke=0)
     
     c.setFillColor(HexColor('#ffffff'))
-    c.drawString(box_x + box_padding, box_y + 8, ra_text)
+    c.drawString(box_x + box_padding, box_y + 6, ra_text)
     
-    # Start content - Title below header
-    y_pos = height - 90
+    # Start content - Title below header (without plate)
+    y_pos = height - 65
     
-    c.setFont("Helvetica-Bold", 16)
+    c.setFont("Helvetica-Bold", 14)
     c.setFillColor(HexColor('#1f2937'))
     
     if inspection_data['inspection_type'] == 'checkin':
-        title = "Relatório de Entrega - "
+        title = "Relatório de Entrega"
     elif inspection_data['inspection_type'] == 'self_checkout':
-        title = "Relatório de Devolução - "
+        title = "Relatório de Devolução"
     else:
-        title = "Relatório de Devolução - "
+        title = "Relatório de Devolução"
     
-    title += inspection_data.get('vehicle_plate', 'N/A')
     c.drawCentredString(width / 2, y_pos, title)
     
-    y_pos -= 30
+    y_pos -= 20
     
-    # Gray box with vehicle info (like modal)
-    box_height = 70
+    # Gray box with vehicle info (smaller)
+    box_height = 60
     c.setFillColor(HexColor('#f9fafb'))  # bg-gray-50
     c.roundRect(40, y_pos - box_height, width - 80, box_height, 5, fill=1, stroke=0)
     
-    # Grid 3 columns inside gray box
+    # Grid 3 columns inside gray box (smaller fonts)
     col_width = (width - 100) / 3
     
     # Row 1
-    row_y = y_pos - 20
+    row_y = y_pos - 15
     
     # Marca
-    c.setFont("Helvetica", 9)
+    c.setFont("Helvetica", 8)
     c.setFillColor(HexColor('#6b7280'))
     c.drawString(50, row_y, "Marca")
-    c.setFont("Helvetica-Bold", 10)
+    c.setFont("Helvetica-Bold", 9)
     c.setFillColor(HexColor('#111827'))
     brand = extracted.get('brand', 'N/A')
-    c.drawString(50, row_y - 12, brand)
+    c.drawString(50, row_y - 10, brand)
     
     # Modelo
-    c.setFont("Helvetica", 9)
+    c.setFont("Helvetica", 8)
     c.setFillColor(HexColor('#6b7280'))
     c.drawString(50 + col_width, row_y, "Modelo")
-    c.setFont("Helvetica-Bold", 10)
+    c.setFont("Helvetica-Bold", 9)
     c.setFillColor(HexColor('#111827'))
     model = extracted.get('model', 'N/A')
-    c.drawString(50 + col_width, row_y - 12, model)
+    c.drawString(50 + col_width, row_y - 10, model)
     
     # Matrícula
-    c.setFont("Helvetica", 9)
+    c.setFont("Helvetica", 8)
     c.setFillColor(HexColor('#6b7280'))
     c.drawString(50 + col_width * 2, row_y, "Matrícula")
-    c.setFont("Helvetica-Bold", 10)
+    c.setFont("Helvetica-Bold", 9)
     c.setFillColor(HexColor('#111827'))
-    c.drawString(50 + col_width * 2, row_y - 12, inspection_data.get('vehicle_plate', 'N/A'))
+    c.drawString(50 + col_width * 2, row_y - 10, inspection_data.get('vehicle_plate', 'N/A'))
     
     # Row 2
-    row_y -= 35
+    row_y -= 28
     
     # Contrato (RA)
-    c.setFont("Helvetica", 9)
+    c.setFont("Helvetica", 8)
     c.setFillColor(HexColor('#6b7280'))
     c.drawString(50, row_y, "Contrato (RA)")
-    c.setFont("Helvetica-Bold", 10)
+    c.setFont("Helvetica-Bold", 9)
     c.setFillColor(HexColor('#111827'))
-    c.drawString(50, row_y - 12, inspection_data['contract_number'])
+    c.drawString(50, row_y - 10, inspection_data['contract_number'])
     
     # Cliente
-    c.setFont("Helvetica", 9)
+    c.setFont("Helvetica", 8)
     c.setFillColor(HexColor('#6b7280'))
     c.drawString(50 + col_width, row_y, "Cliente")
-    c.setFont("Helvetica-Bold", 10)
+    c.setFont("Helvetica-Bold", 9)
     c.setFillColor(HexColor('#111827'))
     client_name = inspection_data.get('client_name') or extracted.get('clientName', 'N/A')
     # Truncate if too long
     if len(client_name) > 20:
         client_name = client_name[:17] + '...'
-    c.drawString(50 + col_width, row_y - 12, client_name)
+    c.drawString(50 + col_width, row_y - 10, client_name)
     
-    y_pos -= box_height + 20
+    y_pos -= box_height + 15
     
     # Helper function to convert fuel level to percentage
     def fuel_to_percent(fuel_level):
         fuel_map = {'R': 0, '1/8': 12.5, '1/4': 25, '3/8': 37.5, '1/2': 50, '5/8': 62.5, '3/4': 75, '7/8': 87.5, 'F': 100}
         return fuel_map.get(fuel_level, 0)
     
-    # Inspection summary section
-    c.setFont("Helvetica-Bold", 13)
-    c.setFillColor(HexColor('#1f2937'))
-    c.drawString(40, y_pos, "Resumo da Inspeção")
-    y_pos -= 30
-    
-    # Two boxes side by side
+    # Two boxes side by side (no title)
     box_width = (width - 100) / 2
-    box_height = 135
+    box_height = 115
     
     # Left box - Check-in info (BLUE like website)
     box_color = HexColor('#eff6ff')  # bg-blue-50 (lighter)
@@ -285,11 +279,7 @@ def generate_inspection_pdf(inspection_data, extracted_data_json):
         x = bar_left + bar_width_inner * pos
         c.line(x, content_y + 4, x, content_y + bar_height - 4)
     
-    # Fuel level text
-    content_y -= 10
-    c.setFont("Helvetica-Bold", 9)
-    c.setFillColor(HexColor('#009cb6'))
-    c.drawCentredString(40 + box_width / 2, content_y, fuel_level)
+    # No fuel level text below bar
     
     # Right box - Return date (YELLOW/AMBER)
     if inspection_data['inspection_type'] == 'checkin':
@@ -328,14 +318,14 @@ def generate_inspection_pdf(inspection_data, extracted_data_json):
         c.setFillColor(HexColor('#f59e0b'))
         c.drawRightString(value_x, content_y, "Pendente")
     
-    y_pos -= box_height + 20
+    y_pos -= box_height + 15
     
-    # Croqui de Danos (full width with border like check-in)
+    # Croqui de Danos (smaller)
     if inspection_data.get('damage_croqui'):
-        c.setFont("Helvetica-Bold", 11)
+        c.setFont("Helvetica-Bold", 10)
         c.setFillColor(HexColor('#1f2937'))
         c.drawString(40, y_pos, "Croqui de Danos")
-        y_pos -= 12
+        y_pos -= 10
         
         try:
             croqui_data = inspection_data['damage_croqui']
@@ -358,9 +348,9 @@ def generate_inspection_pdf(inspection_data, extracted_data_json):
             img_width = border_width - 20  # padding inside border
             img_height = img_width * img.height / img.width
             
-            # Limit height
-            if img_height > 140:
-                img_height = 140
+            # Limit height (smaller)
+            if img_height > 100:
+                img_height = 100
                 img_width = img_height * img.width / img.height
             
             # Draw border box (full width)
@@ -375,23 +365,23 @@ def generate_inspection_pdf(inspection_data, extracted_data_json):
             # Draw croqui centered
             c.drawImage(ImageReader(img), x_pos, y_pos - img_height - 10, width=img_width, height=img_height)
             
-            y_pos -= img_height + 30
+            y_pos -= img_height + 20
         except Exception as e:
             logging.error(f"Error adding croqui to PDF: {e}")
     
-    # Photos grid (3x3 landscape like check-in)
+    # Photos grid (3x3 - fill rectangles)
     photos = inspection_data.get('photos', [])
     if photos:
-        c.setFont("Helvetica-Bold", 11)
+        c.setFont("Helvetica-Bold", 10)
         c.setFillColor(HexColor('#1f2937'))
         c.drawString(40, y_pos, "Fotografias da Inspeção")
-        y_pos -= 12
+        y_pos -= 10
         
-        # Grid settings - smaller landscape photos
+        # Grid settings - smaller photos
         cols = 3
         photo_width = (width - 100) / cols - 8
-        photo_height = photo_width * 0.65  # Landscape ratio (smaller)
-        spacing = 6
+        photo_height = photo_width * 0.6  # Smaller ratio
+        spacing = 5
         
         # Photo labels
         photo_labels = [
@@ -405,7 +395,7 @@ def generate_inspection_pdf(inspection_data, extracted_data_json):
         
         for idx, photo in enumerate(photos[:9]):
             if idx > 0 and idx % cols == 0:
-                y_start -= photo_height + spacing + 10
+                y_start -= photo_height + spacing + 8
             
             col = idx % cols
             x = x_start + col * (photo_width + spacing)
@@ -419,24 +409,27 @@ def generate_inspection_pdf(inspection_data, extracted_data_json):
                 img_data = base64.b64decode(photo_data)
                 img = Image.open(io.BytesIO(img_data))
                 
-                # Draw photo with border (landscape)
+                # Draw photo with border (fill rectangle - no preserveAspectRatio)
                 c.setStrokeColor(HexColor('#d1d5db'))
                 c.setLineWidth(0.5)
                 c.rect(x, y, photo_width, photo_height, fill=0, stroke=1)
-                c.drawImage(ImageReader(img), x, y, width=photo_width, height=photo_height, preserveAspectRatio=True, mask='auto')
+                c.drawImage(ImageReader(img), x, y, width=photo_width, height=photo_height, preserveAspectRatio=False, mask='auto')
                 
                 # Draw label below photo
-                c.setFont("Helvetica", 6)
+                c.setFont("Helvetica", 5)
                 c.setFillColor(HexColor('#6b7280'))
                 label = photo_labels[idx] if idx < len(photo_labels) else f"Foto {idx + 1}"
-                c.drawCentredString(x + photo_width / 2, y - 7, label)
+                c.drawCentredString(x + photo_width / 2, y - 6, label)
             except Exception as e:
                 logging.error(f"Error adding photo {idx} to PDF: {e}")
         
-        y_pos = y_start - (photo_height + spacing + 10) * 3 - 8
+        y_pos = y_start - (photo_height + spacing + 8) * 3 - 15
     
-    # "Entregue por" section after photos
-    c.setFont("Helvetica-Bold", 9)
+    # "Entregue por" section after photos (ensure space for footer)
+    if y_pos < 100:
+        y_pos = 100
+    
+    c.setFont("Helvetica-Bold", 8)
     c.setFillColor(HexColor('#1f2937'))
     
     # Get first and last name
@@ -453,9 +446,9 @@ def generate_inspection_pdf(inspection_data, extracted_data_json):
     date_time_str = inspection_data['created_at'].strftime('%d/%m/%Y às %H:%M') if inspection_data.get('created_at') else 'N/A'
     
     c.drawString(40, y_pos, f"Entregue por: {short_name}")
-    c.setFont("Helvetica", 8)
+    c.setFont("Helvetica", 7)
     c.setFillColor(HexColor('#6b7280'))
-    c.drawString(40, y_pos - 12, date_time_str)
+    c.drawString(40, y_pos - 10, date_time_str)
     
     # Footer with company info (like in image)
     footer_height = 80
