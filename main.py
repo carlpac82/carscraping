@@ -49147,7 +49147,10 @@ async def get_inspection_pdf(inspection_number: str, request: Request):
                         (SELECT image_data FROM inspection_photos WHERE inspection_id = vi.id AND photo_type = 'damage_croqui' LIMIT 1) as damage_croqui,
                         ra.extracted_data, vi.vehicle_brand, vi.vehicle_model, vi.pickup_location
                     FROM vehicle_inspections vi
-                    LEFT JOIN rental_agreements ra ON vi.contract_number = ra.rental_agreement_number
+                    LEFT JOIN rental_agreements ra ON (
+                        ra.rental_agreement_number = vi.contract_number 
+                        OR ra.rental_agreement_number = SPLIT_PART(vi.contract_number, '-', 1)
+                    )
                     WHERE vi.inspection_number = %s
                 """, (inspection_number,))
             else:
@@ -49159,7 +49162,14 @@ async def get_inspection_pdf(inspection_number: str, request: Request):
                         (SELECT image_data FROM inspection_photos WHERE inspection_id = vi.id AND photo_type = 'damage_croqui' LIMIT 1) as damage_croqui,
                         ra.extracted_data, vi.vehicle_brand, vi.vehicle_model, vi.pickup_location
                     FROM vehicle_inspections vi
-                    LEFT JOIN rental_agreements ra ON vi.contract_number = ra.rental_agreement_number
+                    LEFT JOIN rental_agreements ra ON (
+                        ra.rental_agreement_number = vi.contract_number 
+                        OR ra.rental_agreement_number = SUBSTR(vi.contract_number, 1, 
+                            CASE WHEN INSTR(vi.contract_number, '-') > 0 
+                                 THEN INSTR(vi.contract_number, '-') - 1 
+                                 ELSE LENGTH(vi.contract_number) 
+                            END)
+                    )
                     WHERE vi.inspection_number = ?
                 """, (inspection_number,))
             
