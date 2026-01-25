@@ -697,19 +697,30 @@ def generate_inspection_pdf(inspection_data, extracted_data_json):
                     # Crop to exact size
                     img_cropped = img_resized.crop((crop_x, crop_y, crop_x + target_width_px, crop_y + target_height_px))
                     
-                    # Create rounded corners mask
+                    # Create rounded corners mask with anti-aliasing
                     mask = Image.new('L', (target_width_px, target_height_px), 0)
                     draw = ImageDraw.Draw(mask)
-                    radius_px = int(6 * 2)
+                    radius_px = int(6 * 2)  # 2x for better quality, matches 6px radius
                     draw.rounded_rectangle([(0, 0), (target_width_px, target_height_px)], radius=radius_px, fill=255)
                     
-                    # Apply mask
-                    output = Image.new('RGB', (target_width_px, target_height_px), (255, 255, 255))
+                    # Apply mask directly to the cropped image
+                    # Convert to RGBA to support transparency
+                    img_cropped = img_cropped.convert('RGBA')
+                    
+                    # Create output with transparent background
+                    output = Image.new('RGBA', (target_width_px, target_height_px), (0, 0, 0, 0))
                     output.paste(img_cropped, (0, 0))
+                    
+                    # Apply the rounded corner mask to the alpha channel
                     output.putalpha(mask)
                     
+                    # Save to bytes for ReportLab with transparency
+                    img_buffer = io.BytesIO()
+                    output.save(img_buffer, format='PNG')
+                    img_buffer.seek(0)
+                    
                     # Draw image
-                    c.drawImage(ImageReader(output), x, y, width=photo_width, height=photo_height, mask='auto')
+                    c.drawImage(ImageReader(img_buffer), x, y, width=photo_width, height=photo_height)
                     
                     # Draw label below photo
                     c.setFont("Helvetica", 5)
