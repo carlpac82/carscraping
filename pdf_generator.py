@@ -169,9 +169,6 @@ def generate_inspection_pdf(inspection_data, extracted_data_json):
             'N/A'
         )
     print(f"✅ Final client_name used: '{client_name}'")
-    # Truncate if too long
-    if len(client_name) > 20:
-        client_name = client_name[:17] + '...'
     c.drawString(50 + col_width, row_y - 10, client_name)
     
     y_pos -= box_height + 15
@@ -235,10 +232,14 @@ def generate_inspection_pdf(inspection_data, extracted_data_json):
         c.drawString(label_x, content_y, "Data:")
         c.setFont("Helvetica-Bold", 8)
         c.setFillColor(HexColor('#111827'))
-        return_date = inspection_data.get('return_date') or 'N/A'
-        return_time = inspection_data.get('return_time') or ''
-        return_datetime = f"{return_date} {return_time}".strip() if return_date != 'N/A' else 'N/A'
-        c.drawRightString(value_x, content_y, return_datetime)
+        # Format date as dd/mm/yyyy HH:MM
+        if inspection_data.get('created_at'):
+            date_str = inspection_data['created_at'].strftime('%d/%m/%Y %H:%M')
+        else:
+            return_date = inspection_data.get('return_date') or 'N/A'
+            return_time = inspection_data.get('return_time') or ''
+            date_str = f"{return_date} {return_time}".strip() if return_date != 'N/A' else 'N/A'
+        c.drawRightString(value_x, content_y, date_str)
     else:
         # For checkin, show Local de Entrega and Data
         c.setFont("Helvetica", 8)
@@ -425,8 +426,14 @@ def generate_inspection_pdf(inspection_data, extracted_data_json):
         c.drawString(label_x, content_y, "Data:")
         c.setFont("Helvetica-Bold", 8)
         c.setFillColor(HexColor('#111827'))
+        # Try to get date and time
         return_date = extracted.get('returnDate') or extracted.get('return_date', 'N/A')
-        c.drawRightString(value_x, content_y, return_date)
+        return_time = extracted.get('returnTime') or extracted.get('return_time', '')
+        if return_time:
+            return_datetime = f"{return_date} {return_time}".strip()
+        else:
+            return_datetime = return_date
+        c.drawRightString(value_x, content_y, return_datetime)
         
         content_y -= 12
         c.setFont("Helvetica", 8)
