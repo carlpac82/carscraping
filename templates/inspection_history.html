@@ -2485,23 +2485,6 @@
                                     raw: updateData.expected_return_date,
                                     formatted: formattedDate
                                 });
-                                
-                                // Update the view modal if it's open (find the date display element)
-                                const viewModal = document.querySelector('.fixed.inset-0.bg-black.bg-opacity-50:not(#editModal)');
-                                if (viewModal) {
-                                    // Find the "Recolha (Check-Out) - Prevista" section and update the date
-                                    const dateElements = viewModal.querySelectorAll('.flex.justify-between');
-                                    dateElements.forEach(el => {
-                                        const label = el.querySelector('.text-gray-600');
-                                        if (label && label.textContent.trim() === 'Data:') {
-                                            const valueSpan = el.querySelector('.font-semibold');
-                                            if (valueSpan) {
-                                                valueSpan.textContent = formattedDate;
-                                                console.log('✅ Updated date in view modal to:', formattedDate);
-                                            }
-                                        }
-                                    });
-                                }
                             }
                             
                             console.log('✅ Card updated directly in frontend');
@@ -2512,10 +2495,15 @@
                         }
                     }
                     
-                    // Close edit modal after a short delay
+                    // Close both modals after a short delay
                     setTimeout(() => {
-                        console.log('✅ Closing edit modal...');
+                        console.log('✅ Closing all modals...');
                         closeEditModal();
+                        // Also close view modal if it exists
+                        const viewModal = document.querySelector('.fixed.inset-0.bg-black.bg-opacity-50');
+                        if (viewModal && viewModal !== window.currentEditModal) {
+                            document.body.removeChild(viewModal);
+                        }
                     }, 500);
                 } else {
                     throw new Error(result.error || 'Erro ao atualizar inspeção');
