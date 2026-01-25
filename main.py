@@ -49435,12 +49435,62 @@ async def get_inspection_pdf(inspection_number: str, request: Request):
             inspection_data['checkin_photos'] = checkin_photos
             logging.info(f"📸 CHECKPOINT 2: inspection_data['checkin_photos'] has {len(inspection_data['checkin_photos'])} items")
             
+            # For self-checkout, replace damage_croqui with check-in's croqui
+            if row[1] == 'self_checkout':
+                try:
+                    base_ra = row[3].split('-')[0] if '-' in row[3] else row[3]
+                    
+                    # Find check-in inspection and get its croqui
+                    if is_postgres:
+                        cursor.execute("""
+                            SELECT ip.image_data
+                            FROM vehicle_inspections vi
+                            JOIN inspection_photos ip ON ip.inspection_id = vi.id
+                            WHERE vi.inspection_type = 'checkin'
+                            AND vi.vehicle_plate = %s
+                            AND (vi.contract_number = %s OR vi.contract_number LIKE %s)
+                            AND ip.photo_type = 'damage_croqui'
+                            ORDER BY vi.created_at DESC
+                            LIMIT 1
+                        """, (row[2], row[3], f"{base_ra}%"))
+                    else:
+                        cursor.execute("""
+                            SELECT ip.image_data
+                            FROM vehicle_inspections vi
+                            JOIN inspection_photos ip ON ip.inspection_id = vi.id
+                            WHERE vi.inspection_type = 'checkin'
+                            AND vi.vehicle_plate = ?
+                            AND (vi.contract_number = ? OR vi.contract_number LIKE ?)
+                            AND ip.photo_type = 'damage_croqui'
+                            ORDER BY vi.created_at DESC
+                            LIMIT 1
+                        """, (row[2], row[3], f"{base_ra}%"))
+                    
+                    checkin_croqui_row = cursor.fetchone()
+                    if checkin_croqui_row and checkin_croqui_row[0]:
+                        croqui_data = checkin_croqui_row[0]
+                        # Convert bytes to base64 string if needed
+                        if isinstance(croqui_data, bytes):
+                            import base64
+                            croqui_data = f"data:image/jpeg;base64,{base64.b64encode(croqui_data).decode('utf-8')}"
+                        inspection_data['damage_croqui'] = croqui_data
+                        logging.info(f"✅ Self-checkout: Using check-in croqui (data length: {len(str(croqui_data))})")
+                    else:
+                        logging.warning(f"⚠️ Self-checkout: No check-in croqui found")
+                except Exception as e:
+                    logging.error(f"❌ Error fetching check-in croqui for self-checkout: {e}")
+            
         finally:
             conn.close()
         
-        # Generate PDF using modern generator
+        # Generate PDF using appropriate generator based on inspection type
         logging.info(f"📸 FINAL CHECK before PDF generation: photos={len(inspection_data.get('photos', []))}, checkin_photos={len(inspection_data.get('checkin_photos', []))}")
-        pdf_content = generate_inspection_pdf(inspection_data, extracted_data_json)
+        
+        if row[1] == 'self_checkout':
+            from pdf_generator_self_checkout import generate_inspection_pdf as generate_self_checkout_pdf
+            pdf_content = generate_self_checkout_pdf(inspection_data, extracted_data_json)
+        else:
+            pdf_content = generate_inspection_pdf(inspection_data, extracted_data_json)
         
         logging.info(f"✅ PDF generated: {len(pdf_content)} bytes")
         
