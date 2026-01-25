@@ -590,57 +590,124 @@ def generate_inspection_pdf(inspection_data, extracted_data_json):
             c.setLineWidth(1)
             c.roundRect(40, y_pos - box_height_croqui, left_box_width, box_height_croqui, 8, fill=0, stroke=1)
             
-            # Caixa azul - sempre com dados do check-in
-            box_center_x = 40 + left_box_width / 2
-            content_y = y_pos - 25
+            # Caixa azul - duas colunas: Combustível (esquerda) e Quilómetros (direita)
+            content_y = y_pos - 20
             
-            c.setFont("Helvetica", 8)
-            c.setFillColor(HexColor('#6b7280'))
-            c.drawCentredString(box_center_x, content_y, "Quilómetros:")
+            # Coluna esquerda - Combustível
+            left_col_x = 50
+            left_col_width = (left_box_width - 60) / 2
             
-            content_y -= 12
+            c.setFont("Helvetica-Bold", 9)
+            c.setFillColor(HexColor('#009cb6'))
+            c.drawString(left_col_x, content_y, "Combustível:")
             
-            c.setFont("Helvetica-Bold", 10)
-            c.setFillColor(HexColor('#111827'))
-            c.drawCentredString(box_center_x, content_y, odometer_str)
+            content_y_fuel = content_y - 15
             
-            content_y -= 20
-            
-            c.setFont("Helvetica", 8)
-            c.setFillColor(HexColor('#6b7280'))
-            c.drawCentredString(box_center_x, content_y, "Combustível:")
-            
-            content_y -= 12
-            
-            bar_width_inner = (left_box_width - 40) * 0.7
-            bar_left = 40 + (left_box_width - bar_width_inner) / 2
-            bar_height = 16
-            
+            # Barra Entrega
             c.setFont("Helvetica-Bold", 7)
             c.setFillColor(HexColor('#009cb6'))
-            c.drawString(bar_left - 8, content_y, "R")
-            c.drawCentredString(bar_left + bar_width_inner * 0.25, content_y, "1/4")
-            c.drawCentredString(bar_left + bar_width_inner * 0.5, content_y, "1/2")
-            c.drawCentredString(bar_left + bar_width_inner * 0.75, content_y, "3/4")
-            c.drawString(bar_left + bar_width_inner + 5, content_y, "F")
+            c.drawString(left_col_x, content_y_fuel, "Entrega")
             
-            content_y -= 22
+            content_y_fuel -= 10
             
+            bar_width_small = left_col_width - 10
+            bar_height_small = 12
+            
+            # Marcadores barra entrega
+            c.setFont("Helvetica-Bold", 5)
+            c.drawString(left_col_x - 3, content_y_fuel, "R")
+            c.drawCentredString(left_col_x + bar_width_small * 0.25, content_y_fuel, "1/4")
+            c.drawCentredString(left_col_x + bar_width_small * 0.5, content_y_fuel, "1/2")
+            c.drawCentredString(left_col_x + bar_width_small * 0.75, content_y_fuel, "3/4")
+            c.drawString(left_col_x + bar_width_small + 2, content_y_fuel, "F")
+            
+            content_y_fuel -= 12
+            
+            # Barra entrega
             c.setStrokeColor(HexColor('#009cb6'))
-            c.setLineWidth(2)
+            c.setLineWidth(1.5)
             c.setFillColor(HexColor('#ffffff'))
-            c.roundRect(bar_left, content_y, bar_width_inner, bar_height, 5, fill=1, stroke=1)
+            c.roundRect(left_col_x, content_y_fuel, bar_width_small, bar_height_small, 3, fill=1, stroke=1)
             
             if fuel_percent > 0:
                 c.setFillColor(HexColor('#009cb6'))
-                fill_width = max(10, (bar_width_inner - 4) * (fuel_percent / 100))
-                c.roundRect(bar_left + 2, content_y + 2, fill_width, bar_height - 4, 4, fill=1, stroke=0)
+                fill_width = max(6, (bar_width_small - 3) * (fuel_percent / 100))
+                c.roundRect(left_col_x + 1.5, content_y_fuel + 1.5, fill_width, bar_height_small - 3, 2, fill=1, stroke=0)
             
             c.setStrokeColor(HexColor('#009cb6'))
             c.setLineWidth(0.5)
             for pos in [0, 0.25, 0.5, 0.75, 1.0]:
-                x = bar_left + bar_width_inner * pos
-                c.line(x, content_y + 3, x, content_y + bar_height - 3)
+                x = left_col_x + bar_width_small * pos
+                c.line(x, content_y_fuel + 2, x, content_y_fuel + bar_height_small - 2)
+            
+            content_y_fuel -= 18
+            
+            # Barra Recolha
+            c.setFont("Helvetica-Bold", 7)
+            c.setFillColor(HexColor('#009cb6'))
+            c.drawString(left_col_x, content_y_fuel, "Recolha")
+            
+            content_y_fuel -= 10
+            
+            # Marcadores barra recolha
+            c.setFont("Helvetica-Bold", 5)
+            c.drawString(left_col_x - 3, content_y_fuel, "R")
+            c.drawCentredString(left_col_x + bar_width_small * 0.25, content_y_fuel, "1/4")
+            c.drawCentredString(left_col_x + bar_width_small * 0.5, content_y_fuel, "1/2")
+            c.drawCentredString(left_col_x + bar_width_small * 0.75, content_y_fuel, "3/4")
+            c.drawString(left_col_x + bar_width_small + 2, content_y_fuel, "F")
+            
+            content_y_fuel -= 12
+            
+            # Barra recolha
+            c.setStrokeColor(HexColor('#009cb6'))
+            c.setLineWidth(1.5)
+            c.setFillColor(HexColor('#ffffff'))
+            c.roundRect(left_col_x, content_y_fuel, bar_width_small, bar_height_small, 3, fill=1, stroke=1)
+            
+            if checkout_fuel_percent > 0:
+                c.setFillColor(HexColor('#009cb6'))
+                fill_width = max(6, (bar_width_small - 3) * (checkout_fuel_percent / 100))
+                c.roundRect(left_col_x + 1.5, content_y_fuel + 1.5, fill_width, bar_height_small - 3, 2, fill=1, stroke=0)
+            
+            c.setStrokeColor(HexColor('#009cb6'))
+            c.setLineWidth(0.5)
+            for pos in [0, 0.25, 0.5, 0.75, 1.0]:
+                x = left_col_x + bar_width_small * pos
+                c.line(x, content_y_fuel + 2, x, content_y_fuel + bar_height_small - 2)
+            
+            # Coluna direita - Quilómetros
+            right_col_x = 40 + left_box_width / 2 + 10
+            
+            c.setFont("Helvetica-Bold", 9)
+            c.setFillColor(HexColor('#009cb6'))
+            c.drawString(right_col_x, content_y, "Quilómetros:")
+            
+            content_y_km = content_y - 15
+            
+            # Entrega
+            c.setFont("Helvetica-Bold", 7)
+            c.setFillColor(HexColor('#009cb6'))
+            c.drawString(right_col_x, content_y_km, "Entrega")
+            
+            content_y_km -= 10
+            
+            c.setFont("Helvetica-Bold", 9)
+            c.setFillColor(HexColor('#111827'))
+            c.drawString(right_col_x, content_y_km, odometer_str)
+            
+            content_y_km -= 20
+            
+            # Recolha
+            c.setFont("Helvetica-Bold", 7)
+            c.setFillColor(HexColor('#009cb6'))
+            c.drawString(right_col_x, content_y_km, "Recolha")
+            
+            content_y_km -= 10
+            
+            c.setFont("Helvetica-Bold", 9)
+            c.setFillColor(HexColor('#111827'))
+            c.drawString(right_col_x, content_y_km, checkout_odometer_str)
             
             # Right box - SEMPRE caixa branca com croqui
             right_box_x = 40 + left_box_width + box_spacing
