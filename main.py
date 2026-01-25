@@ -49140,7 +49140,7 @@ async def get_inspection_pdf(inspection_number: str, request: Request):
                         vi.created_at, vi.client_name, vi.damage_croqui,
                         ra.extracted_data
                     FROM vehicle_inspections vi
-                    LEFT JOIN rental_agreements ra ON vi.contract_number = ra.ra_number
+                    LEFT JOIN rental_agreements ra ON vi.contract_number = ra.rental_agreement_number
                     WHERE vi.inspection_number = %s
                 """, (inspection_number,))
             else:
@@ -49151,7 +49151,7 @@ async def get_inspection_pdf(inspection_number: str, request: Request):
                         vi.created_at, vi.client_name, vi.damage_croqui,
                         ra.extracted_data
                     FROM vehicle_inspections vi
-                    LEFT JOIN rental_agreements ra ON vi.contract_number = ra.ra_number
+                    LEFT JOIN rental_agreements ra ON vi.contract_number = ra.rental_agreement_number
                     WHERE vi.inspection_number = ?
                 """, (inspection_number,))
             
