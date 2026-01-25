@@ -120,7 +120,7 @@ def generate_inspection_pdf(inspection_data, extracted_data_json):
     brand = inspection_data.get('vehicle_brand') or ''
     if not brand:
         extracted = extracted_data_json or {}
-        brand = extracted.get('brand') or extracted.get('vehicleBrand') or extracted.get('make') or 'N/A'
+        brand = extracted.get('vehicleBrand') or extracted.get('brand') or extracted.get('make') or 'N/A'
     else:
         extracted = extracted_data_json or {}
     c.drawString(50, row_y - 10, brand)
@@ -134,7 +134,7 @@ def generate_inspection_pdf(inspection_data, extracted_data_json):
     # Extract model - prioritize inspection_data, then extracted_data_json
     model = inspection_data.get('vehicle_model') or ''
     if not model:
-        model = extracted.get('model') or extracted.get('vehicleModel') or 'N/A'
+        model = extracted.get('vehicleModel') or extracted.get('model') or 'N/A'
     c.drawString(50 + col_width, row_y - 10, model)
     
     # Matrícula
@@ -167,8 +167,8 @@ def generate_inspection_pdf(inspection_data, extracted_data_json):
     if not client_name:
         client_name = (
             extracted.get('clientName') or 
-            extracted.get('customerName') or 
             extracted.get('client_name') or 
+            extracted.get('customerName') or 
             'N/A'
         )
     print(f"✅ Final client_name used: '{client_name}'")
