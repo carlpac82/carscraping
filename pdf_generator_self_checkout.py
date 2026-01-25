@@ -923,13 +923,17 @@ def generate_inspection_pdf(inspection_data, extracted_data_json):
                 
                 try:
                     photo_data = photo['image_data']
+                    photo_type = photo.get('type', f'photo_{idx}')
+                    
                     if not photo_data:
+                        logging.error(f"❌ Photo {idx} ({photo_type}): No data")
                         continue
                     
                     # Extract base64 part from data URI
                     if photo_data.startswith('data:image'):
                         parts = photo_data.split(',', 1)
                         if len(parts) != 2:
+                            logging.error(f"❌ Photo {idx} ({photo_type}): Invalid data URI")
                             continue
                         encoded = parts[1]
                     else:
@@ -944,6 +948,7 @@ def generate_inspection_pdf(inspection_data, extracted_data_json):
                     # Decode base64
                     img_data = base64.b64decode(encoded)
                     img = Image.open(io.BytesIO(img_data))
+                    logging.info(f"✅ Photo {idx} ({photo_type}): Decoded OK")
                     
                     # Convert to RGB if needed
                     if img.mode == 'RGBA':
@@ -1001,7 +1006,9 @@ def generate_inspection_pdf(inspection_data, extracted_data_json):
                     label = photo_labels[idx] if idx < len(photo_labels) else f"Foto {idx + 1}"
                     c.drawCentredString(x + photo_width / 2, y - 6, label)
                 except Exception as e:
-                    logging.error(f"Error adding photo {idx} to PDF: {e}")
+                    logging.error(f"❌ Error adding photo {idx} ({photo.get('type', 'unknown')}): {type(e).__name__}: {e}")
+                    import traceback
+                    logging.error(f"   Traceback: {traceback.format_exc()}")
             
             y_pos = y_start - (photo_height + spacing_vertical + 8) * 3 - 15
     

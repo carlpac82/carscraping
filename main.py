@@ -1,4 +1,4 @@
-# DEPLOY FORCE: 2026-01-25 20:56 UTC - Removed excessive logs, clean code with padding fix only
+# DEPLOY FORCE: 2026-01-25 20:59 UTC - Added minimal error logging to identify photo decode issues
 from __future__ import annotations
 
 # Todas as funções helper foram movidas para depois dos imports principais
