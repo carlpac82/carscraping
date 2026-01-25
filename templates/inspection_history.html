@@ -1352,6 +1352,15 @@
                     photosHtml = '<p class="text-gray-500 text-center py-4">Nenhuma fotografia disponível</p>';
                 }
                 
+                // DEBUG: Log photos info
+                console.log('📸 Photos debug:', {
+                    isSelfCheckout,
+                    hasPhotos: inspection.photos && Object.keys(inspection.photos).length > 0,
+                    photoKeys: inspection.photos ? Object.keys(inspection.photos) : [],
+                    photosHtmlLength: photosHtml.length,
+                    photosHtmlPreview: photosHtml.substring(0, 100)
+                });
+                
                 // Create preview modal
                 const modal = document.createElement('div');
                 modal.className = 'fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4';
@@ -1643,7 +1652,15 @@
                                 </div>
                             ` : ''}
                             
-                            <!-- Fotografias de Entrega (para self_checkout, mostrar fotos do check-in) -->
+                            <!-- Fotografias do Self-Checkout (mostrar PRIMEIRO) -->
+                            ${isSelfCheckout && photosHtml && Object.keys(inspection.photos || {}).length > 0 ? `
+                            <div class="mb-6">
+                                <h4 class="text-lg font-bold text-gray-900 mb-4">Fotografias da Devolução (Self-Checkout)</h4>
+                                ${photosHtml}
+                            </div>
+                            ` : ''}
+                            
+                            <!-- Fotografias de Entrega (para self_checkout, mostrar fotos do check-in DEPOIS) -->
                             ${isSelfCheckout && checkinInspectionData && checkinInspectionData.photos ? `
                             <div class="mb-6">
                                 <h4 class="text-lg font-bold text-[#009cb6] mb-4">Fotografias de Entrega</h4>
