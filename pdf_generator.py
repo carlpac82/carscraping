@@ -24,15 +24,20 @@ def generate_inspection_pdf(inspection_data, extracted_data_json):
         except:
             pass
     
-    # DEBUG: Log data
-    logging.info(f"DEBUG PDF - inspection_data keys: {list(inspection_data.keys())}")
-    logging.info(f"DEBUG PDF - fuel_level: {inspection_data.get('fuel_level')} (type: {type(inspection_data.get('fuel_level'))})")
-    logging.info(f"DEBUG PDF - client_name: {inspection_data.get('client_name')}")
-    logging.info(f"DEBUG PDF - extracted keys: {list(extracted.keys()) if extracted else 'None'}")
+    # DEBUG: Console prints
+    print("\n" + "="*80)
+    print("🔍 DEBUG PDF GENERATION")
+    print("="*80)
+    print(f"📋 inspection_data keys: {list(inspection_data.keys())}")
+    print(f"⛽ fuel_level: '{inspection_data.get('fuel_level')}' (type: {type(inspection_data.get('fuel_level'))})")
+    print(f"👤 client_name: '{inspection_data.get('client_name')}'")
+    print(f"📦 extracted keys: {list(extracted.keys()) if extracted else 'None'}")
     if extracted:
-        logging.info(f"DEBUG PDF - extracted clientName: {extracted.get('clientName')}")
-        logging.info(f"DEBUG PDF - extracted customerName: {extracted.get('customerName')}")
-        logging.info(f"DEBUG PDF - extracted name: {extracted.get('name')}")
+        print(f"   - client_name (snake): '{extracted.get('client_name')}'")
+        print(f"   - clientName (camel): '{extracted.get('clientName')}'")
+        print(f"   - customerName: '{extracted.get('customerName')}'")
+        print(f"   - name: '{extracted.get('name')}'")
+    print("="*80 + "\n")
     
     # Create PDF
     buffer = io.BytesIO()
@@ -149,7 +154,8 @@ def generate_inspection_pdf(inspection_data, extracted_data_json):
     c.drawString(50 + col_width, row_y, "Cliente")
     c.setFont("Helvetica-Bold", 9)
     c.setFillColor(HexColor('#111827'))
-    client_name = inspection_data.get('client_name') or extracted.get('clientName') or extracted.get('customerName') or extracted.get('name') or 'N/A'
+    client_name = inspection_data.get('client_name') or extracted.get('client_name') or extracted.get('clientName') or extracted.get('customerName') or extracted.get('name') or 'N/A'
+    print(f"✅ Final client_name used: '{client_name}'")
     # Truncate if too long
     if len(client_name) > 20:
         client_name = client_name[:17] + '...'
@@ -241,6 +247,7 @@ def generate_inspection_pdf(inspection_data, extracted_data_json):
     
     # Fuel bar section (INSIDE the blue box)
     fuel_level = inspection_data.get('fuel_level') or 'R'
+    print(f"⛽ Raw fuel_level: '{fuel_level}' (type: {type(fuel_level)})")
     # Convert numeric fuel level to fraction if needed
     if isinstance(fuel_level, (int, float)):
         if fuel_level == 0:
@@ -261,7 +268,9 @@ def generate_inspection_pdf(inspection_data, extracted_data_json):
             fuel_level = '7/8'
         else:
             fuel_level = 'F'
+    print(f"✅ Converted fuel_level: '{fuel_level}'")
     fuel_percent = fuel_to_percent(fuel_level)
+    print(f"📊 Fuel percent: {fuel_percent}%")
     
     content_y -= 12
     c.setStrokeColor(border_color)
