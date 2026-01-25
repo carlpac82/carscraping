@@ -160,12 +160,12 @@ def generate_inspection_pdf(inspection_data, extracted_data_json):
     
     # Two boxes side by side
     box_width = (width - 100) / 2
-    box_height = 120
+    box_height = 135
     
     # Left box - Check-in info (BLUE like website)
-    box_color = HexColor('#dbeafe')  # bg-blue-50
-    border_color = HexColor('#93c5fd')  # border-blue-300
-    title_color = HexColor('#1e40af')  # text-blue-700
+    box_color = HexColor('#eff6ff')  # bg-blue-50 (lighter)
+    border_color = HexColor('#bfdbfe')  # border-blue-200
+    title_color = HexColor('#009cb6')  # cyan title
     
     c.setFillColor(box_color)
     c.roundRect(40, y_pos - box_height, box_width, box_height, 8, fill=1, stroke=0)
@@ -175,15 +175,15 @@ def generate_inspection_pdf(inspection_data, extracted_data_json):
     c.roundRect(40, y_pos - box_height, box_width, box_height, 8, fill=0, stroke=1)
     
     # Title with icon space
-    c.setFont("Helvetica-Bold", 10)
+    c.setFont("Helvetica-Bold", 11)
     c.setFillColor(title_color)
     if inspection_data['inspection_type'] == 'checkin':
-        c.drawString(55, y_pos - 20, "Entrega (Check-In)")
+        c.drawString(50, y_pos - 18, "Entrega (Check-In)")
     else:
-        c.drawString(55, y_pos - 20, "Recolha (Check-Out)")
+        c.drawString(50, y_pos - 18, "Recolha (Check-Out)")
     
     # Content with flex layout (label left, value right)
-    content_y = y_pos - 40
+    content_y = y_pos - 38
     label_x = 50
     value_x = 40 + box_width - 10
     
@@ -239,20 +239,20 @@ def generate_inspection_pdf(inspection_data, extracted_data_json):
     fuel_level = inspection_data.get('fuel_level', 'R')
     fuel_percent = fuel_to_percent(fuel_level)
     
-    content_y -= 20
+    content_y -= 18
     c.setStrokeColor(border_color)
     c.setLineWidth(0.5)
     c.line(50, content_y, 40 + box_width - 10, content_y)
     
-    content_y -= 15
+    content_y -= 12
     c.setFont("Helvetica", 7)
     c.setFillColor(HexColor('#6b7280'))
     label_text = "Combustível na Entrega" if inspection_data['inspection_type'] == 'checkin' else "Combustível na Recolha"
     c.drawCentredString(40 + box_width / 2, content_y, label_text)
     
     # Fuel markers
-    content_y -= 12
-    c.setFont("Helvetica-Bold", 6)
+    content_y -= 10
+    c.setFont("Helvetica-Bold", 7)
     c.setFillColor(HexColor('#009cb6'))
     bar_left = 50
     bar_width_inner = box_width - 20
@@ -263,39 +263,39 @@ def generate_inspection_pdf(inspection_data, extracted_data_json):
     c.drawString(bar_left + bar_width_inner - 2, content_y, "F")
     
     # Fuel bar with rounded corners (exact canvas design)
-    content_y -= 15
-    bar_height = 12
+    content_y -= 13
+    bar_height = 14
     
     # Background bar (white with cyan border)
     c.setStrokeColor(HexColor('#009cb6'))
     c.setLineWidth(2)
     c.setFillColor(HexColor('#ffffff'))
-    c.roundRect(bar_left, content_y, bar_width_inner, bar_height, 4, fill=1, stroke=1)
+    c.roundRect(bar_left, content_y, bar_width_inner, bar_height, 5, fill=1, stroke=1)
     
     # Fuel bar fill (cyan, rounded, INSIDE the border)
     if fuel_percent > 0:
         c.setFillColor(HexColor('#009cb6'))
-        fill_width = max(8, (bar_width_inner - 4) * (fuel_percent / 100))  # -4 for border
-        c.roundRect(bar_left + 2, content_y + 2, fill_width, bar_height - 4, 3, fill=1, stroke=0)
+        fill_width = max(10, (bar_width_inner - 4) * (fuel_percent / 100))  # -4 for border
+        c.roundRect(bar_left + 2, content_y + 2, fill_width, bar_height - 4, 4, fill=1, stroke=0)
     
     # Fuel bar markers (vertical lines) - AFTER fill
     c.setStrokeColor(HexColor('#009cb6'))
     c.setLineWidth(0.5)
     for pos in [0, 0.25, 0.5, 0.75, 1.0]:
         x = bar_left + bar_width_inner * pos
-        c.line(x, content_y + 3, x, content_y + bar_height - 3)
+        c.line(x, content_y + 4, x, content_y + bar_height - 4)
     
     # Fuel level text
-    content_y -= 12
-    c.setFont("Helvetica-Bold", 8)
+    content_y -= 10
+    c.setFont("Helvetica-Bold", 9)
     c.setFillColor(HexColor('#009cb6'))
     c.drawCentredString(40 + box_width / 2, content_y, fuel_level)
     
     # Right box - Return date (YELLOW/AMBER)
     if inspection_data['inspection_type'] == 'checkin':
-        box_color = HexColor('#fef3c7')  # bg-amber-50
-        border_color = HexColor('#fcd34d')  # border-amber-300
-        title_color = HexColor('#b45309')  # text-amber-700
+        box_color = HexColor('#fffbeb')  # bg-amber-50 (lighter)
+        border_color = HexColor('#fde68a')  # border-amber-200
+        title_color = HexColor('#d97706')  # text-amber-600
         
         c.setFillColor(box_color)
         c.roundRect(50 + box_width, y_pos - box_height, box_width, box_height, 8, fill=1, stroke=0)
@@ -304,11 +304,11 @@ def generate_inspection_pdf(inspection_data, extracted_data_json):
         c.setLineWidth(1)
         c.roundRect(50 + box_width, y_pos - box_height, box_width, box_height, 8, fill=0, stroke=1)
         
-        c.setFont("Helvetica-Bold", 9)
+        c.setFont("Helvetica-Bold", 11)
         c.setFillColor(title_color)
-        c.drawString(60 + box_width, y_pos - 20, "Recolha (Check-Out) - Prevista")
+        c.drawString(60 + box_width, y_pos - 18, "Recolha (Check-Out) - Prevista")
         
-        content_y = y_pos - 40
+        content_y = y_pos - 38
         label_x = 60 + box_width
         value_x = 50 + box_width * 2 - 10
         
@@ -328,14 +328,14 @@ def generate_inspection_pdf(inspection_data, extracted_data_json):
         c.setFillColor(HexColor('#f59e0b'))
         c.drawRightString(value_x, content_y, "Pendente")
     
-    y_pos -= box_height + 30
+    y_pos -= box_height + 20
     
-    # Croqui de Danos (full width, centered)
+    # Croqui de Danos (full width with border like check-in)
     if inspection_data.get('damage_croqui'):
         c.setFont("Helvetica-Bold", 11)
         c.setFillColor(HexColor('#1f2937'))
         c.drawString(40, y_pos, "Croqui de Danos")
-        y_pos -= 15
+        y_pos -= 12
         
         try:
             croqui_data = inspection_data['damage_croqui']
@@ -353,28 +353,29 @@ def generate_inspection_pdf(inspection_data, extracted_data_json):
             elif img.mode != 'RGB':
                 img = img.convert('RGB')
             
-            # Full width with padding
-            img_width = width - 80
+            # Full width border box (like check-in modal)
+            border_width = width - 80
+            img_width = border_width - 20  # padding inside border
             img_height = img_width * img.height / img.width
             
-            # Limit height to fit page
-            if img_height > 120:
-                img_height = 120
+            # Limit height
+            if img_height > 140:
+                img_height = 140
                 img_width = img_height * img.width / img.height
             
-            # Center horizontally
-            x_pos = (width - img_width) / 2
-            
-            # Draw white background box
+            # Draw border box (full width)
             c.setFillColor(HexColor('#ffffff'))
-            c.setStrokeColor(HexColor('#e5e7eb'))
+            c.setStrokeColor(HexColor('#d1d5db'))
             c.setLineWidth(1)
-            c.rect(x_pos - 5, y_pos - img_height - 5, img_width + 10, img_height + 10, fill=1, stroke=1)
+            c.roundRect(40, y_pos - img_height - 20, border_width, img_height + 20, 8, fill=1, stroke=1)
+            
+            # Center image inside border box
+            x_pos = 40 + (border_width - img_width) / 2
             
             # Draw croqui centered
-            c.drawImage(ImageReader(img), x_pos, y_pos - img_height, width=img_width, height=img_height)
+            c.drawImage(ImageReader(img), x_pos, y_pos - img_height - 10, width=img_width, height=img_height)
             
-            y_pos -= img_height + 20
+            y_pos -= img_height + 30
         except Exception as e:
             logging.error(f"Error adding croqui to PDF: {e}")
     
@@ -384,13 +385,13 @@ def generate_inspection_pdf(inspection_data, extracted_data_json):
         c.setFont("Helvetica-Bold", 11)
         c.setFillColor(HexColor('#1f2937'))
         c.drawString(40, y_pos, "Fotografias da Inspeção")
-        y_pos -= 15
+        y_pos -= 12
         
-        # Grid settings - landscape photos
+        # Grid settings - smaller landscape photos
         cols = 3
-        photo_width = (width - 100) / cols - 5
-        photo_height = photo_width * 0.75  # Landscape ratio
-        spacing = 8
+        photo_width = (width - 100) / cols - 8
+        photo_height = photo_width * 0.65  # Landscape ratio (smaller)
+        spacing = 6
         
         # Photo labels
         photo_labels = [
@@ -404,7 +405,7 @@ def generate_inspection_pdf(inspection_data, extracted_data_json):
         
         for idx, photo in enumerate(photos[:9]):
             if idx > 0 and idx % cols == 0:
-                y_start -= photo_height + spacing + 12
+                y_start -= photo_height + spacing + 10
             
             col = idx % cols
             x = x_start + col * (photo_width + spacing)
@@ -428,11 +429,11 @@ def generate_inspection_pdf(inspection_data, extracted_data_json):
                 c.setFont("Helvetica", 6)
                 c.setFillColor(HexColor('#6b7280'))
                 label = photo_labels[idx] if idx < len(photo_labels) else f"Foto {idx + 1}"
-                c.drawCentredString(x + photo_width / 2, y - 8, label)
+                c.drawCentredString(x + photo_width / 2, y - 7, label)
             except Exception as e:
                 logging.error(f"Error adding photo {idx} to PDF: {e}")
         
-        y_pos = y_start - (photo_height + spacing + 12) * 3 - 10
+        y_pos = y_start - (photo_height + spacing + 10) * 3 - 8
     
     # "Entregue por" section after photos
     c.setFont("Helvetica-Bold", 9)
