@@ -851,25 +851,45 @@ def check_and_send_scheduled_checkout_emails():
                 
                 cursor = conn.cursor()
                 
-                # Buscar token de self-checkout
+                # Primeiro, buscar o contract_number do check-in
+                cursor.execute("""
+                    SELECT contract_number
+                    FROM vehicle_inspections
+                    WHERE inspection_number = %s
+                """, (inspection_number,))
+                
+                checkin_row = cursor.fetchone()
+                if not checkin_row or not checkin_row[0]:
+                    logging.error(f"❌ No contract_number found for check-in {inspection_number}")
+                    mark_email_sent(inspection_number, success=False, error_message="Contract number not found")
+                    conn.close()
+                    continue
+                
+                contract_number = checkin_row[0]
+                # Remover sufixo (e.g., "06691-09" -> "06691")
+                ra_base = contract_number.split('-')[0] if '-' in contract_number else contract_number
+                logging.info(f"🔍 Looking for RA token using contract: {contract_number} (base: {ra_base})")
+                
+                # Buscar token de self-checkout usando o RA number
                 cursor.execute("""
                     SELECT self_checkin_token, rental_agreement_number
                     FROM rental_agreements
-                    WHERE license_plate = %s
+                    WHERE rental_agreement_number LIKE %s
                     ORDER BY created_at DESC
                     LIMIT 1
-                """, (vehicle_plate,))
+                """, (f"{ra_base}%",))
                 
                 row = cursor.fetchone()
                 conn.close()
                 
                 if not row or not row[0]:
-                    logging.error(f"❌ No self-checkout token found for {inspection_number}")
+                    logging.error(f"❌ No self-checkout token found for RA {ra_base}")
                     mark_email_sent(inspection_number, success=False, error_message="Self-checkout token not found")
                     continue
                 
                 token = row[0]
                 ra_number = row[1]
+                logging.info(f"✅ Found token for RA {ra_number}")
                 
                 # Construir link de self-checkout
                 base_url = os.environ.get('BASE_URL', 'https://carscraping-production.up.railway.app')
