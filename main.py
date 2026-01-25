@@ -49137,7 +49137,7 @@ async def get_inspection_pdf(inspection_number: str, request: Request):
                     SELECT 
                         vi.inspection_number, vi.inspection_type, vi.vehicle_plate, vi.contract_number,
                         vi.inspector_name, vi.inspector_notes, vi.odometer_reading, vi.fuel_level,
-                        vi.created_at, vi.customer_name,
+                        vi.created_at, vi.client_name,
                         (SELECT image_data FROM inspection_photos WHERE inspection_id = vi.id AND photo_type = 'damage_croqui' LIMIT 1) as damage_croqui,
                         ra.extracted_data, vi.vehicle_brand, vi.vehicle_model, vi.pickup_location
                     FROM vehicle_inspections vi
@@ -49149,7 +49149,7 @@ async def get_inspection_pdf(inspection_number: str, request: Request):
                     SELECT 
                         vi.inspection_number, vi.inspection_type, vi.vehicle_plate, vi.contract_number,
                         vi.inspector_name, vi.inspector_notes, vi.odometer_reading, vi.fuel_level,
-                        vi.created_at, vi.customer_name,
+                        vi.created_at, vi.client_name,
                         (SELECT image_data FROM inspection_photos WHERE inspection_id = vi.id AND photo_type = 'damage_croqui' LIMIT 1) as damage_croqui,
                         ra.extracted_data, vi.vehicle_brand, vi.vehicle_model, vi.pickup_location
                     FROM vehicle_inspections vi
@@ -49164,6 +49164,24 @@ async def get_inspection_pdf(inspection_number: str, request: Request):
                     status_code=404,
                     media_type="text/plain"
                 )
+            
+            # Debug: Log raw row data
+            logging.info(f"📊 Raw SQL row data:")
+            logging.info(f"  [0] inspection_number: {row[0]}")
+            logging.info(f"  [1] inspection_type: {row[1]}")
+            logging.info(f"  [2] vehicle_plate: {row[2]}")
+            logging.info(f"  [3] contract_number: {row[3]}")
+            logging.info(f"  [4] inspector_name: {row[4]}")
+            logging.info(f"  [5] inspector_notes: {row[5]}")
+            logging.info(f"  [6] odometer_reading: {row[6]}")
+            logging.info(f"  [7] fuel_level: {row[7]}")
+            logging.info(f"  [8] created_at: {row[8]}")
+            logging.info(f"  [9] client_name: {row[9]}")
+            logging.info(f"  [10] damage_croqui: {'<image_data>' if row[10] else 'None'}")
+            logging.info(f"  [11] extracted_data: {'<json_data>' if row[11] else 'None'}")
+            logging.info(f"  [12] vehicle_brand: {row[12]}")
+            logging.info(f"  [13] vehicle_model: {row[13]}")
+            logging.info(f"  [14] pickup_location: {row[14]}")
             
             inspection_data = {
                 'inspection_number': row[0] or '',
