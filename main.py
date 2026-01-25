@@ -30604,13 +30604,13 @@ async def save_inspection(request: Request):
                                 logging.error(f"❌ Error updating extracted_data: {extract_error}")
                                 updated_extracted_json = None
                             
-                            # SEGUNDO: Verificar se o local de recolha é "Aeroporto de Faro"
+                            # SEGUNDO: Verificar se o local de DEVOLUÇÃO é "Aeroporto de Faro"
                             # Self check-in só é configurado automaticamente para este local
                             is_faro_airport = False
-                            if ra_pickup_location:
-                                pickup_lower = ra_pickup_location.lower()
-                                is_faro_airport = 'aeroporto' in pickup_lower and 'faro' in pickup_lower
-                                logging.info(f"📍 Pickup location: {ra_pickup_location} | Is Faro Airport: {is_faro_airport}")
+                            if ra_return_location:
+                                return_lower = ra_return_location.lower()
+                                is_faro_airport = 'aeroporto' in return_lower and 'faro' in return_lower
+                                logging.info(f"📍 Return location: {ra_return_location} | Is Faro Airport: {is_faro_airport}")
                             
                             if is_faro_airport:
                                 # Gerar token único
@@ -30723,7 +30723,7 @@ async def save_inspection(request: Request):
                                         schedule_success = schedule_checkout_email(
                                             inspection_number=inspection_number,
                                             checkout_date=return_date,
-                                            pickup_location=ra_pickup_location,
+                                            pickup_location=ra_return_location,
                                             client_email=email,
                                             client_name=ra_client_name,
                                             vehicle_plate=plate,
@@ -30779,7 +30779,7 @@ async def save_inspection(request: Request):
                                               AND UPPER(license_plate) = UPPER(?)
                                         """, (inspection_id, ra, plate))
                             
-                            logging.info(f"ℹ️ Self check-in NOT configured for RA {ra} (location: {ra_pickup_location}) - only Aeroporto de Faro gets automatic self check-in")
+                            logging.info(f"ℹ️ Self check-in NOT configured for RA {ra} (return location: {ra_return_location}) - only Aeroporto de Faro gets automatic self check-in")
                         else:
                             # Check-in normal - apenas marcar como completo, mas atualizar extracted_data
                             if is_postgres:
