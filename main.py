@@ -49324,6 +49324,7 @@ async def get_inspection_pdf(inspection_number: str, request: Request):
                 logging.warning(f"⚠️ No extracted_data_json found for contract {inspection_data['contract_number']}")
             
             # Fetch inspection photos for grid
+            logging.info(f"📸 Querying photos for inspection {inspection_number}, type: {row[1]}")
             cursor.execute("""
                 SELECT image_data, photo_type 
                 FROM inspection_photos 
