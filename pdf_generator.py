@@ -51,7 +51,7 @@ def generate_inspection_pdf(inspection_data, extracted_data_json):
             except Exception as e:
                 logging.warning(f"Could not load logo: {e}")
     
-    # Title in center of header (uppercase)
+    # Title in center of header (uppercase, vertically centered)
     c.setFillColor(HexColor('#ffffff'))
     c.setFont("Helvetica-Bold", 14)
     
@@ -62,7 +62,8 @@ def generate_inspection_pdf(inspection_data, extracted_data_json):
     else:
         title = "RELATÓRIO DE DEVOLUÇÃO"
     
-    c.drawCentredString(width / 2, height - 28, title)
+    # Center vertically in header (header_height = 50)
+    c.drawCentredString(width / 2, height - 30, title)
     
     # RA number on right in header (much smaller)
     c.setFillColor(HexColor('#ffffff'))
@@ -364,7 +365,7 @@ def generate_inspection_pdf(inspection_data, extracted_data_json):
             # Draw croqui centered
             c.drawImage(ImageReader(img), x_pos, y_pos - img_height - 10, width=img_width, height=img_height)
             
-            y_pos -= img_height + 20
+            y_pos -= img_height + 25
         except Exception as e:
             logging.error(f"Error adding croqui to PDF: {e}")
     
@@ -374,7 +375,7 @@ def generate_inspection_pdf(inspection_data, extracted_data_json):
         c.setFont("Helvetica-Bold", 10)
         c.setFillColor(HexColor('#1f2937'))
         c.drawString(40, y_pos, "Fotografias da Inspeção")
-        y_pos -= 10
+        y_pos -= 15
         
         # Grid settings - smaller photos
         cols = 3
@@ -408,11 +409,33 @@ def generate_inspection_pdf(inspection_data, extracted_data_json):
                 img_data = base64.b64decode(photo_data)
                 img = Image.open(io.BytesIO(img_data))
                 
-                # Draw photo with rounded border (fill rectangle - no preserveAspectRatio)
+                # Draw photo with rounded corners using clipping path
+                c.saveState()
+                
+                # Create rounded rectangle clipping path
+                p = c.beginPath()
+                radius = 4
+                p.moveTo(x + radius, y)
+                p.lineTo(x + photo_width - radius, y)
+                p.arcTo(x + photo_width - radius, y, x + photo_width, y + radius, radius)
+                p.lineTo(x + photo_width, y + photo_height - radius)
+                p.arcTo(x + photo_width, y + photo_height - radius, x + photo_width - radius, y + photo_height, radius)
+                p.lineTo(x + radius, y + photo_height)
+                p.arcTo(x + radius, y + photo_height, x, y + photo_height - radius, radius)
+                p.lineTo(x, y + radius)
+                p.arcTo(x, y + radius, x + radius, y, radius)
+                p.close()
+                c.clipPath(p, stroke=0, fill=0)
+                
+                # Draw image (will be clipped to rounded rect)
+                c.drawImage(ImageReader(img), x, y, width=photo_width, height=photo_height, preserveAspectRatio=False, mask='auto')
+                
+                c.restoreState()
+                
+                # Draw rounded border
                 c.setStrokeColor(HexColor('#d1d5db'))
                 c.setLineWidth(0.5)
                 c.roundRect(x, y, photo_width, photo_height, 4, fill=0, stroke=1)
-                c.drawImage(ImageReader(img), x, y, width=photo_width, height=photo_height, preserveAspectRatio=False, mask='auto')
                 
                 # Draw label below photo
                 c.setFont("Helvetica", 5)
