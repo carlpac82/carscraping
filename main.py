@@ -52530,6 +52530,139 @@ async def fix_base64_padding_emergency(request: Request):
             "traceback": traceback.format_exc()
         }, status_code=500)
 
+@app.post("/api/admin/fix-inspection-padding/{inspection_number}")
+async def fix_inspection_padding(request: Request, inspection_number: str):
+    """
+    Fix base64 padding for a specific inspection's photos
+    """
+    try:
+        require_inspection_access(request)
+    except HTTPException:
+        return JSONResponse({"ok": False, "error": "Unauthorized"}, status_code=403)
+    
+    try:
+        conn = _db_connect()
+        is_postgres = _is_postgresql_connection(conn)
+        
+        if not is_postgres:
+            return JSONResponse({
+                "ok": False,
+                "error": "This endpoint only works with PostgreSQL"
+            }, status_code=400)
+        
+        cursor = conn.cursor()
+        
+        # Get inspection ID
+        cursor.execute("""
+            SELECT id FROM vehicle_inspections 
+            WHERE inspection_number = %s
+        """, (inspection_number,))
+        
+        result = cursor.fetchone()
+        if not result:
+            return JSONResponse({
+                "ok": False,
+                "error": f"Inspection {inspection_number} not found"
+            }, status_code=404)
+        
+        inspection_id = result[0]
+        
+        logging.info(f"🔧 Fixing padding for inspection {inspection_number} (ID: {inspection_id})")
+        
+        # Fix photos
+        cursor.execute("""
+            SELECT id, image_data FROM inspection_photos 
+            WHERE inspection_id = %s
+        """, (inspection_id,))
+        
+        photos = cursor.fetchall()
+        fixed_count = 0
+        
+        for photo_id, image_data in photos:
+            if not image_data or not isinstance(image_data, str):
+                continue
+            
+            if not image_data.startswith('data:image'):
+                continue
+            
+            parts = image_data.split(',', 1)
+            if len(parts) != 2:
+                continue
+            
+            header, encoded = parts
+            
+            # Remove whitespace and existing padding
+            encoded = encoded.strip().replace('\n', '').replace('\r', '').replace(' ', '').rstrip('=')
+            
+            # Calculate and add correct padding
+            padding_needed = (4 - len(encoded) % 4) % 4
+            if padding_needed:
+                encoded += '=' * padding_needed
+                fixed_data = f"{header},{encoded}"
+                
+                cursor.execute("""
+                    UPDATE inspection_photos 
+                    SET image_data = %s 
+                    WHERE id = %s
+                """, (fixed_data, photo_id))
+                
+                fixed_count += 1
+                logging.info(f"✅ Fixed photo ID {photo_id}: added {padding_needed} padding chars")
+        
+        # Fix signature
+        cursor.execute("""
+            SELECT signature FROM vehicle_inspections 
+            WHERE id = %s
+        """, (inspection_id,))
+        
+        sig_result = cursor.fetchone()
+        sig_fixed = False
+        
+        if sig_result and sig_result[0]:
+            signature = sig_result[0]
+            
+            if isinstance(signature, str) and signature.startswith('data:image'):
+                parts = signature.split(',', 1)
+                if len(parts) == 2:
+                    header, encoded = parts
+                    encoded = encoded.strip().replace('\n', '').replace('\r', '').replace(' ', '').rstrip('=')
+                    padding_needed = (4 - len(encoded) % 4) % 4
+                    
+                    if padding_needed:
+                        encoded += '=' * padding_needed
+                        fixed_sig = f"{header},{encoded}"
+                        
+                        cursor.execute("""
+                            UPDATE vehicle_inspections 
+                            SET signature = %s 
+                            WHERE id = %s
+                        """, (fixed_sig, inspection_id))
+                        
+                        sig_fixed = True
+                        logging.info(f"✅ Fixed signature: added {padding_needed} padding chars")
+        
+        conn.commit()
+        cursor.close()
+        conn.close()
+        
+        return JSONResponse({
+            "ok": True,
+            "inspection_number": inspection_number,
+            "photos_fixed": fixed_count,
+            "signature_fixed": sig_fixed,
+            "message": f"Fixed {fixed_count} photos" + (" and signature" if sig_fixed else "")
+        })
+        
+    except Exception as e:
+        logging.error(f"❌ Error fixing inspection padding: {e}")
+        import traceback
+        logging.error(traceback.format_exc())
+        return JSONResponse({
+            "ok": False,
+            "error": str(e),
+            "traceback": traceback.format_exc()
+        }, status_code=500)
+
 @app.post("/api/admin/setup-scheduled-emails-table")
 async def setup_scheduled_emails_table(request: Request):
     """
