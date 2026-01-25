@@ -1,4 +1,4 @@
-# DEPLOY FORCE: 2026-01-25 20:45 UTC - Added fix-self-checkout-photos endpoint for IDs 178-187
+# DEPLOY FORCE: 2026-01-25 20:48 UTC - Added detailed logging to pdf_generator_self_checkout for debugging
 from __future__ import annotations
 
 # Todas as funções helper foram movidas para depois dos imports principais

@@ -330,6 +330,8 @@ def generate_inspection_pdf(inspection_data, extracted_data_json):
         # Assinatura da cliente (apenas para self-checkout)
         if inspection_data.get('inspection_type') == 'self_checkout':
             signature_data = inspection_data.get('signature')
+            logging.info(f"✍️ Signature data present: {bool(signature_data)}, length={len(signature_data) if signature_data else 0}")
+            
             if signature_data:
                 try:
                     # Label
@@ -339,19 +341,39 @@ def generate_inspection_pdf(inspection_data, extracted_data_json):
                     
                     # Extract base64 part from data URI
                     if signature_data.startswith('data:image'):
-                        encoded = signature_data.split(',', 1)[1]
+                        parts = signature_data.split(',', 1)
+                        if len(parts) != 2:
+                            logging.error(f"❌ Signature: Invalid data URI format")
+                            raise ValueError("Invalid signature data URI format")
+                        encoded = parts[1]
+                        logging.info(f"📦 Signature: Extracted base64 from data URI, length={len(encoded)}")
                     else:
                         encoded = signature_data
+                        logging.info(f"📦 Signature: Using raw data, length={len(encoded)}")
                     
                     # Fix padding: remove whitespace and add padding if needed
-                    encoded = encoded.strip().replace('\n', '').replace('\r', '').replace(' ', '')
-                    padding_needed = (4 - len(encoded) % 4) % 4
+                    encoded_clean = encoded.strip().replace('\n', '').replace('\r', '').replace(' ', '')
+                    original_len = len(encoded_clean)
+                    padding_needed = (4 - len(encoded_clean) % 4) % 4
+                    
                     if padding_needed:
-                        encoded += '=' * padding_needed
+                        encoded_clean += '=' * padding_needed
+                        logging.info(f"🔧 Signature: Added {padding_needed} padding chars (len: {original_len} -> {len(encoded_clean)})")
+                    else:
+                        logging.info(f"✅ Signature: Padding already correct (len: {len(encoded_clean)})")
                     
                     # Decode base64
-                    sig_img_data = base64.b64decode(encoded)
+                    try:
+                        sig_img_data = base64.b64decode(encoded_clean)
+                        logging.info(f"✅ Signature: Base64 decoded successfully, {len(sig_img_data)} bytes")
+                    except Exception as decode_error:
+                        logging.error(f"❌ Signature: Base64 decode failed: {decode_error}")
+                        logging.error(f"   First 100 chars: {encoded_clean[:100]}")
+                        logging.error(f"   Last 100 chars: {encoded_clean[-100:]}")
+                        raise
+                    
                     sig_img = Image.open(io.BytesIO(sig_img_data))
+                    logging.info(f"✅ Signature: Image opened successfully, size={sig_img.size}, mode={sig_img.mode}")
                     
                     # Convert to RGBA if needed and remove background
                     if sig_img.mode != 'RGBA':
@@ -919,22 +941,49 @@ def generate_inspection_pdf(inspection_data, extracted_data_json):
                 
                 try:
                     photo_data = photo['image_data']
+                    photo_type = photo.get('type', f'photo_{idx}')
+                    
+                    logging.info(f"🖼️ Processing photo {idx} ({photo_type}): data length={len(photo_data) if photo_data else 0}")
+                    
+                    if not photo_data:
+                        logging.warning(f"⚠️ Photo {idx} ({photo_type}) has no data, skipping")
+                        continue
                     
                     # Extract base64 part from data URI
                     if photo_data.startswith('data:image'):
-                        encoded = photo_data.split(',', 1)[1]
+                        parts = photo_data.split(',', 1)
+                        if len(parts) != 2:
+                            logging.error(f"❌ Photo {idx} ({photo_type}): Invalid data URI format")
+                            continue
+                        encoded = parts[1]
+                        logging.info(f"📦 Photo {idx} ({photo_type}): Extracted base64 from data URI, length={len(encoded)}")
                     else:
                         encoded = photo_data
+                        logging.info(f"📦 Photo {idx} ({photo_type}): Using raw data, length={len(encoded)}")
                     
                     # Fix padding: remove whitespace and add padding if needed
-                    encoded = encoded.strip().replace('\n', '').replace('\r', '').replace(' ', '')
-                    padding_needed = (4 - len(encoded) % 4) % 4
+                    encoded_clean = encoded.strip().replace('\n', '').replace('\r', '').replace(' ', '')
+                    original_len = len(encoded_clean)
+                    padding_needed = (4 - len(encoded_clean) % 4) % 4
+                    
                     if padding_needed:
-                        encoded += '=' * padding_needed
+                        encoded_clean += '=' * padding_needed
+                        logging.info(f"🔧 Photo {idx} ({photo_type}): Added {padding_needed} padding chars (len: {original_len} -> {len(encoded_clean)})")
+                    else:
+                        logging.info(f"✅ Photo {idx} ({photo_type}): Padding already correct (len: {len(encoded_clean)})")
                     
                     # Decode base64
-                    img_data = base64.b64decode(encoded)
+                    try:
+                        img_data = base64.b64decode(encoded_clean)
+                        logging.info(f"✅ Photo {idx} ({photo_type}): Base64 decoded successfully, {len(img_data)} bytes")
+                    except Exception as decode_error:
+                        logging.error(f"❌ Photo {idx} ({photo_type}): Base64 decode failed: {decode_error}")
+                        logging.error(f"   First 100 chars: {encoded_clean[:100]}")
+                        logging.error(f"   Last 100 chars: {encoded_clean[-100:]}")
+                        continue
+                    
                     img = Image.open(io.BytesIO(img_data))
+                    logging.info(f"✅ Photo {idx} ({photo_type}): Image opened successfully, size={img.size}, mode={img.mode}")
                     
                     # Convert to RGB if needed
                     if img.mode == 'RGBA':
