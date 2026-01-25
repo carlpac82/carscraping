@@ -179,107 +179,202 @@ def generate_inspection_pdf(inspection_data, extracted_data_json):
         fuel_map = {'R': 0, '1/8': 12.5, '1/4': 25, '3/8': 37.5, '1/2': 50, '5/8': 62.5, '3/4': 75, '7/8': 87.5, 'F': 100}
         return fuel_map.get(fuel_level, 0)
     
-    # Two boxes side by side (no title) - same width calculation as croqui boxes
+    # Two boxes side by side - same width calculation as croqui boxes
     total_width = width - 80
     box_spacing = 10
     box_width = (total_width - box_spacing) / 2
     box_height = 120
     
-    # Left box - Check-in/Check-out info (colors match website)
-    if inspection_data['inspection_type'] == 'checkin':
-        box_color = HexColor('#e6f7fa')  # bg heather light blue
-        border_color = HexColor('#009cb6')  # border heather cyan
-        title_color = HexColor('#009cb6')  # heather cyan
-    else:
-        box_color = HexColor('#fffbeb')  # bg-yellow-50
-        border_color = HexColor('#fbbf24')  # border-yellow-400
-        title_color = HexColor('#d97706')  # text-yellow-600
+    is_checkout = inspection_data['inspection_type'] == 'checkout'
     
-    c.setFillColor(box_color)
+    # Left box - SEMPRE Entrega (Check-In) - azul
+    box_color_left = HexColor('#e6f7fa')  # bg heather light blue
+    border_color_left = HexColor('#009cb6')  # border heather cyan
+    title_color_left = HexColor('#009cb6')  # heather cyan
+    
+    c.setFillColor(box_color_left)
     c.roundRect(40, y_pos - box_height, box_width, box_height, 8, fill=1, stroke=0)
     
-    c.setStrokeColor(border_color)
+    c.setStrokeColor(border_color_left)
     c.setLineWidth(1)
     c.roundRect(40, y_pos - box_height, box_width, box_height, 8, fill=0, stroke=1)
     
-    # Title with icon space
+    # Title caixa azul
     c.setFont("Helvetica-Bold", 11)
-    c.setFillColor(title_color)
-    if inspection_data['inspection_type'] == 'checkin':
-        c.drawString(50, y_pos - 18, "Entrega (Check-In)")
-    else:
-        c.drawString(50, y_pos - 18, "Recolha (Check-Out)")
+    c.setFillColor(title_color_left)
+    c.drawString(50, y_pos - 18, "Entrega (Check-In)")
     
-    # Content with flex layout (label left, value right)
-    content_y = y_pos - 38
-    label_x = 50
-    value_x = 40 + box_width - 10
+    # Content caixa azul
+    content_y_left = y_pos - 38
+    label_x_left = 50
+    value_x_left = 40 + box_width - 10
     
-    # For checkout, show Local de Recolha first, then Data de Recolha Esperada
-    if inspection_data['inspection_type'] == 'checkout':
+    # Local de Entrega
+    c.setFont("Helvetica", 8)
+    c.setFillColor(HexColor('#6b7280'))
+    c.drawString(label_x_left, content_y_left, "Local de Entrega:")
+    location_checkin = (inspection_data.get('pickup_location') or 
+                extracted.get('pickupLocation') or 
+                extracted.get('pickup_location') or 
+                'N/A')
+    c.setFont("Helvetica-Bold", 8)
+    c.setFillColor(HexColor('#111827'))
+    c.drawRightString(value_x_left, content_y_left, location_checkin)
+    
+    content_y_left -= 12
+    
+    # Data
+    c.setFont("Helvetica", 8)
+    c.setFillColor(HexColor('#6b7280'))
+    c.drawString(label_x_left, content_y_left, "Data:")
+    c.setFont("Helvetica-Bold", 8)
+    c.setFillColor(HexColor('#111827'))
+    date_str_checkin = inspection_data['created_at'].strftime('%d/%m/%Y %H:%M') if inspection_data.get('created_at') else 'N/A'
+    c.drawRightString(value_x_left, content_y_left, date_str_checkin)
+    
+    content_y_left -= 12
+    
+    # Entregue por
+    c.setFont("Helvetica", 8)
+    c.setFillColor(HexColor('#6b7280'))
+    c.drawString(label_x_left, content_y_left, "Entregue por:")
+    c.setFont("Helvetica-Bold", 8)
+    c.setFillColor(HexColor('#111827'))
+    inspector_checkin = inspection_data.get('inspector_name', 'N/A')
+    if inspector_checkin and inspector_checkin != 'N/A':
+        parts = inspector_checkin.split()
+        if len(parts) >= 2:
+            inspector_checkin = f"{parts[0]} {parts[-1]}"
+    c.drawRightString(value_x_left, content_y_left, inspector_checkin)
+    
+    # Right box - Recolha (Check-Out) se for checkout, ou Recolha Prevista se for checkin
+    right_box_x = 40 + box_width + box_spacing
+    
+    if is_checkout:
+        # Caixa amarela - Recolha (Check-Out)
+        box_color_right = HexColor('#fffbeb')  # bg-yellow-50
+        border_color_right = HexColor('#fbbf24')  # border-yellow-400
+        title_color_right = HexColor('#d97706')  # text-yellow-600
+        
+        c.setFillColor(box_color_right)
+        c.roundRect(right_box_x, y_pos - box_height, box_width, box_height, 8, fill=1, stroke=0)
+        
+        c.setStrokeColor(border_color_right)
+        c.setLineWidth(1)
+        c.roundRect(right_box_x, y_pos - box_height, box_width, box_height, 8, fill=0, stroke=1)
+        
+        # Title caixa amarela
+        c.setFont("Helvetica-Bold", 11)
+        c.setFillColor(title_color_right)
+        c.drawString(right_box_x + 10, y_pos - 18, "Recolha (Check-Out)")
+        
+        # Content caixa amarela
+        content_y_right = y_pos - 38
+        label_x_right = right_box_x + 10
+        value_x_right = right_box_x + box_width - 10
+        
         # Local de Recolha
         c.setFont("Helvetica", 8)
         c.setFillColor(HexColor('#6b7280'))
-        c.drawString(label_x, content_y, "Local de Recolha:")
+        c.drawString(label_x_right, content_y_right, "Local de Recolha:")
+        location_checkout = (inspection_data.get('return_location') or 
+                    extracted.get('returnLocation') or 
+                    extracted.get('return_location') or 
+                    'N/A')
+        c.setFont("Helvetica-Bold", 8)
+        c.setFillColor(HexColor('#111827'))
+        c.drawRightString(value_x_right, content_y_right, location_checkout)
+        
+        content_y_right -= 12
+        
+        # Data
+        c.setFont("Helvetica", 8)
+        c.setFillColor(HexColor('#6b7280'))
+        c.drawString(label_x_right, content_y_right, "Data:")
+        c.setFont("Helvetica-Bold", 8)
+        c.setFillColor(HexColor('#111827'))
+        date_str_checkout = inspection_data['created_at'].strftime('%d/%m/%Y %H:%M') if inspection_data.get('created_at') else 'N/A'
+        c.drawRightString(value_x_right, content_y_right, date_str_checkout)
+        
+        content_y_right -= 12
+        
+        # Recolhido por
+        c.setFont("Helvetica", 8)
+        c.setFillColor(HexColor('#6b7280'))
+        c.drawString(label_x_right, content_y_right, "Recolhido por:")
+        c.setFont("Helvetica-Bold", 8)
+        c.setFillColor(HexColor('#111827'))
+        inspector_checkout = inspection_data.get('inspector_name', 'N/A')
+        if inspector_checkout and inspector_checkout != 'N/A':
+            parts = inspector_checkout.split()
+            if len(parts) >= 2:
+                inspector_checkout = f"{parts[0]} {parts[-1]}"
+        c.drawRightString(value_x_right, content_y_right, inspector_checkout)
+    else:
+        # Caixa amarela - Recolha Prevista (check-in)
+        box_color_right = HexColor('#fffbeb')  # bg-yellow-50
+        border_color_right = HexColor('#fbbf24')  # border-yellow-400
+        title_color_right = HexColor('#d97706')  # text-yellow-600
+        
+        c.setFillColor(box_color_right)
+        c.roundRect(right_box_x, y_pos - box_height, box_width, box_height, 8, fill=1, stroke=0)
+        
+        c.setStrokeColor(border_color_right)
+        c.setLineWidth(1)
+        c.roundRect(right_box_x, y_pos - box_height, box_width, box_height, 8, fill=0, stroke=1)
+        
+        # Title
+        c.setFont("Helvetica-Bold", 11)
+        c.setFillColor(title_color_right)
+        c.drawString(right_box_x + 10, y_pos - 18, "Recolha (Check-Out)")
+        
+        # Content
+        content_y_right = y_pos - 38
+        label_x_right = right_box_x + 10
+        value_x_right = right_box_x + box_width - 10
+        
+        # Local de Recolha
+        c.setFont("Helvetica", 8)
+        c.setFillColor(HexColor('#6b7280'))
+        c.drawString(label_x_right, content_y_right, "Local de Recolha:")
         location = (inspection_data.get('return_location') or 
                     extracted.get('returnLocation') or 
                     extracted.get('return_location') or 
                     'N/A')
         c.setFont("Helvetica-Bold", 8)
         c.setFillColor(HexColor('#111827'))
-        c.drawRightString(value_x, content_y, location)
+        c.drawRightString(value_x_right, content_y_right, location)
         
-        content_y -= 12
+        content_y_right -= 12
+        
+        # Data
         c.setFont("Helvetica", 8)
         c.setFillColor(HexColor('#6b7280'))
-        c.drawString(label_x, content_y, "Data:")
+        c.drawString(label_x_right, content_y_right, "Data:")
         c.setFont("Helvetica-Bold", 8)
         c.setFillColor(HexColor('#111827'))
-        # Format date as dd/mm/yyyy HH:MM
-        if inspection_data.get('created_at'):
-            date_str = inspection_data['created_at'].strftime('%d/%m/%Y %H:%M')
+        return_date = extracted.get('returnDate') or extracted.get('return_date') or 'N/A'
+        return_time = extracted.get('returnTime') or extracted.get('return_time') or ''
+        if return_date and return_date != 'N/A':
+            return_date = return_date.replace(' - ', '/').replace('-', '/')
+            if return_time:
+                return_time = return_time.replace(' : ', ':').replace(' :', ':').replace(': ', ':')
+                return_datetime = f"{return_date} {return_time}".strip()
+            else:
+                return_datetime = return_date
         else:
-            return_date = inspection_data.get('return_date') or 'N/A'
-            return_time = inspection_data.get('return_time') or ''
-            date_str = f"{return_date} {return_time}".strip() if return_date != 'N/A' else 'N/A'
-        c.drawRightString(value_x, content_y, date_str)
-    else:
-        # For checkin, show Local de Entrega and Data
-        c.setFont("Helvetica", 8)
-        c.setFillColor(HexColor('#6b7280'))
-        c.drawString(label_x, content_y, "Local de Entrega:")
-        location = (inspection_data.get('pickup_location') or 
-                    extracted.get('pickupLocation') or 
-                    extracted.get('pickup_location') or 
-                    'N/A')
-        c.setFont("Helvetica-Bold", 8)
-        c.setFillColor(HexColor('#111827'))
-        c.drawRightString(value_x, content_y, location)
+            return_datetime = 'N/A'
+        c.drawRightString(value_x_right, content_y_right, return_datetime)
         
-        content_y -= 12
+        content_y_right -= 12
+        
+        # Estado
         c.setFont("Helvetica", 8)
         c.setFillColor(HexColor('#6b7280'))
-        c.drawString(label_x, content_y, "Data:")
+        c.drawString(label_x_right, content_y_right, "Estado:")
         c.setFont("Helvetica-Bold", 8)
-        c.setFillColor(HexColor('#111827'))
-        date_str = inspection_data['created_at'].strftime('%d/%m/%Y %H:%M') if inspection_data.get('created_at') else 'N/A'
-        c.drawRightString(value_x, content_y, date_str)
-    
-    content_y -= 12
-    c.setFont("Helvetica", 8)
-    c.setFillColor(HexColor('#6b7280'))
-    if inspection_data['inspection_type'] == 'checkin':
-        c.drawString(label_x, content_y, "Entregue por:")
-    else:
-        c.drawString(label_x, content_y, "Recolhido por:")
-    c.setFont("Helvetica-Bold", 8)
-    c.setFillColor(HexColor('#111827'))
-    inspector = inspection_data.get('inspector_name', 'N/A')
-    if inspector and inspector != 'N/A':
-        parts = inspector.split()
-        if len(parts) >= 2:
-            inspector = f"{parts[0]} {parts[-1]}"
-    c.drawRightString(value_x, content_y, inspector)
+        c.setFillColor(HexColor('#f59e0b'))
+        c.drawRightString(value_x_right, content_y_right, "Pendente")
     
     # Process odometer and fuel for check-in (blue box)
     is_checkout = inspection_data.get('inspection_type') == 'checkout'
