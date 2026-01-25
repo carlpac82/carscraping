@@ -212,8 +212,8 @@ def generate_inspection_pdf(inspection_data, extracted_data_json):
     c.setFont("Helvetica-Bold", 8)
     c.setFillColor(HexColor('#111827'))
     location = (inspection_data.get('pickup_location') or 
-                extracted_data_json.get('pickupLocation') or 
-                extracted_data_json.get('pickup_location') or 
+                extracted.get('pickupLocation') or 
+                extracted.get('pickup_location') or 
                 'N/A')
     c.drawRightString(value_x, content_y, location)
     
