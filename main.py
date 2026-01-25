@@ -49116,114 +49116,17 @@ async def debug_checkout_coordinates(request: Request):
 
 @app.get("/api/inspections/{inspection_number}/pdf")
 async def get_inspection_pdf(inspection_number: str, request: Request):
-    """Generate inspection PDF using mapped template"""
+    """Generate modern, clean inspection PDF for check-in, check-out, and self-checkout"""
     require_auth(request)
     
     try:
         from fastapi.responses import Response
-        import base64
-        from PyPDF2 import PdfReader, PdfWriter
-        from reportlab.pdfgen import canvas
-        from reportlab.lib.pagesizes import A4
-        from reportlab.lib.colors import black
-        import io
+        from pdf_generator import generate_inspection_pdf
         import os
         
-        logging.info(f"🔍 Generating PDF for inspection: {inspection_number}")
+        logging.info(f"📄 Generating modern PDF for inspection: {inspection_number}")
         
-        # 1. Determinar tipo de inspeção e buscar template apropriado
-        # Primeiro, buscar a inspeção para saber o tipo
-        conn_temp = _db_connect()
-        try:
-            is_postgres = 'psycopg' in type(conn_temp).__name__.lower() or os.getenv('DATABASE_URL')
-            cursor_temp = conn_temp.cursor()
-            
-            if is_postgres:
-                cursor_temp.execute("SELECT inspection_type FROM vehicle_inspections WHERE inspection_number = %s", (inspection_number,))
-            else:
-                cursor_temp.execute("SELECT inspection_type FROM vehicle_inspections WHERE inspection_number = ?", (inspection_number,))
-            
-            row_temp = cursor_temp.fetchone()
-            inspection_type = row_temp[0] if row_temp else 'checkout'
-        finally:
-            conn_temp.close()
-        
-        logging.info(f"📋 Inspection type: {inspection_type}")
-        
-        # Buscar template baseado no tipo de inspeção
-        if inspection_type == 'checkin':
-            # Tentar buscar template de checkin, se não existir usar checkout
-            logging.info("📄 Fetching Check-in template...")
-            template_data_b64 = _get_setting('checkin_template_data_b64')
-            coordinates_setting_key = 'checkin_coordinates'
-            
-            if not template_data_b64:
-                # Fallback para checkout template
-                logging.warning("⚠️ No Check-in template found, using Check-out template")
-                template_data_b64 = _get_setting('checkout_template_data_b64')
-                coordinates_setting_key = 'checkout_coordinates'
-        else:
-            logging.info("📄 Fetching Check-out template...")
-            template_data_b64 = _get_setting('checkout_template_data_b64')
-            coordinates_setting_key = 'checkout_coordinates'
-        
-        if not template_data_b64:
-            # Fallback para hex
-            template_data_hex = _get_setting('checkout_template_data')
-            if template_data_hex:
-                template_pdf_bytes = bytes.fromhex(template_data_hex)
-            else:
-                logging.error("❌ No template found")
-                return Response(
-                    content=b"No template available. Please upload a template first.",
-                    status_code=404,
-                    media_type="text/plain"
-                )
-        else:
-            template_pdf_bytes = base64.b64decode(template_data_b64)
-        
-        logging.info(f"✅ Template loaded: {len(template_pdf_bytes)} bytes")
-        
-        # 2. Buscar coordenadas mapeadas
-        logging.info(f"📍 Fetching mapped coordinates from '{coordinates_setting_key}'...")
-        coordinates_json = _get_setting(coordinates_setting_key)
-        coordinates = {}
-        if coordinates_json:
-            import json
-            try:
-                parsed_coords = json.loads(coordinates_json)
-                
-                # Converter array para dict se necessário
-                if isinstance(parsed_coords, list):
-                    # Formato: [{field_id: "x", x: 100, y: 200, ...}, ...]
-                    # Converter para: {"x": {x: 100, y: 200, ...}, ...}
-                    logging.info(f"📦 Converting array to dict: {len(parsed_coords)} items")
-                    coordinates = {}
-                    for item in parsed_coords:
-                        if isinstance(item, dict) and 'field_id' in item:
-                            field_id = item['field_id']
-                            coordinates[field_id] = {
-                                'x': item.get('x'),
-                                'y': item.get('y'),
-                                'width': item.get('width'),
-                                'height': item.get('height'),
-                                'page': item.get('page', 1),
-                                'field_type': item.get('field_type', 'text')
-                            }
-                    logging.info(f"✅ Coordinates converted to dict: {len(coordinates)} fields")
-                elif isinstance(parsed_coords, dict):
-                    # Já é dicionário
-                    coordinates = parsed_coords
-                    logging.info(f"✅ Coordinates loaded as dict: {len(coordinates)} fields")
-                else:
-                    logging.warning(f"⚠️ Unexpected format: {type(parsed_coords)}")
-                    coordinates = {}
-            except Exception as e:
-                logging.error(f"❌ Failed to parse coordinates: {e}")
-                coordinates = {}
-        
-        # 3. Buscar dados da inspeção da base de dados
-        logging.info(f"🔍 Fetching inspection data for: {inspection_number}")
+        # Fetch inspection data
         conn = _db_connect()
         try:
             is_postgres = 'psycopg' in type(conn).__name__.lower() or os.getenv('DATABASE_URL')
@@ -49232,137 +49135,55 @@ async def get_inspection_pdf(inspection_number: str, request: Request):
             if is_postgres:
                 cursor.execute("""
                     SELECT 
-                        inspection_number, inspection_type, vehicle_plate, contract_number,
-                        inspector_name, inspector_notes, odometer_reading, fuel_level,
-                        created_at, client_name, pickup_date, pickup_location, 
-                        return_date, return_location, country
-                    FROM vehicle_inspections
-                    WHERE inspection_number = %s
+                        vi.inspection_number, vi.inspection_type, vi.vehicle_plate, vi.contract_number,
+                        vi.inspector_name, vi.inspector_notes, vi.odometer_reading, vi.fuel_level,
+                        vi.created_at, vi.client_name, vi.damage_croqui,
+                        ra.extracted_data
+                    FROM vehicle_inspections vi
+                    LEFT JOIN rental_agreements ra ON vi.contract_number = ra.ra_number
+                    WHERE vi.inspection_number = %s
                 """, (inspection_number,))
             else:
                 cursor.execute("""
                     SELECT 
-                        inspection_number, inspection_type, vehicle_plate, contract_number,
-                        inspector_name, inspector_notes, odometer_reading, fuel_level,
-                        created_at, client_name, pickup_date, pickup_location,
-                        return_date, return_location, country
-                    FROM vehicle_inspections
-                    WHERE inspection_number = ?
+                        vi.inspection_number, vi.inspection_type, vi.vehicle_plate, vi.contract_number,
+                        vi.inspector_name, vi.inspector_notes, vi.odometer_reading, vi.fuel_level,
+                        vi.created_at, vi.client_name, vi.damage_croqui,
+                        ra.extracted_data
+                    FROM vehicle_inspections vi
+                    LEFT JOIN rental_agreements ra ON vi.contract_number = ra.ra_number
+                    WHERE vi.inspection_number = ?
                 """, (inspection_number,))
             
             row = cursor.fetchone()
             if not row:
-                logging.error(f"❌ Inspection not found: {inspection_number}")
                 return Response(
                     content=b"Inspection not found",
                     status_code=404,
                     media_type="text/plain"
                 )
             
-            # Parse inspection data
             inspection_data = {
                 'inspection_number': row[0] or '',
                 'inspection_type': row[1] or '',
                 'vehicle_plate': row[2] or '',
                 'contract_number': row[3] or '',
-                'ra_number': row[3] or '',  # Same as contract_number
                 'inspector_name': row[4] or '',
                 'inspector_notes': row[5] or '',
-                'observations': row[5] or '',
                 'odometer_reading': str(row[6]) if row[6] else '',
-                'vehicle_km': str(row[6]) if row[6] else '',
                 'fuel_level': row[7] or '',
-                'inspection_date': row[8].strftime('%d/%m/%Y') if row[8] else '',
-                'inspection_time': row[8].strftime('%H:%M') if row[8] else '',
+                'created_at': row[8],
                 'client_name': row[9] or '',
-                'pickup_date': row[10] or '',
-                'pickup_location': row[11] or '',
-                'return_date': row[12] or '',
-                'return_location': row[13] or '',
-                'country': row[14] or '',
+                'damage_croqui': row[10] or '',
             }
             
-            logging.info(f"✅ Inspection data loaded: {len(inspection_data)} fields")
-            logging.info(f"📋 Client: {inspection_data['client_name']}, Pickup: {inspection_data['pickup_date']}/{inspection_data['pickup_location']}, Return: {inspection_data['return_date']}/{inspection_data['return_location']}")
+            extracted_data_json = row[11]
             
         finally:
             conn.close()
         
-        # 4. Criar PDF com template + overlay de texto
-        logging.info("🎨 Creating PDF overlay...")
-        
-        # Ler template
-        template_pdf = PdfReader(io.BytesIO(template_pdf_bytes))
-        output = PdfWriter()
-        
-        # Para cada página do template (Check-out usa páginas 1 e 2)
-        num_pages = min(len(template_pdf.pages), 2)  # Apenas páginas 1 e 2
-        logging.info(f"📄 Processing {num_pages} pages...")
-        
-        for page_num in range(num_pages):
-            page = template_pdf.pages[page_num]
-            
-            # Criar overlay com texto
-            packet = io.BytesIO()
-            can = canvas.Canvas(packet, pagesize=A4)
-            can.setFillColor(black)
-            can.setFont("Helvetica", 10)
-            
-            # Adicionar texto nas coordenadas mapeadas (se existirem)
-            if isinstance(coordinates, dict) and coordinates:
-                fields_on_page = 0
-                for field_id, coord_data in coordinates.items():
-                    # Verificar se é para esta página
-                    if isinstance(coord_data, dict):
-                        coord_list = [coord_data]
-                    else:
-                        coord_list = coord_data if isinstance(coord_data, list) else []
-                    
-                    for coord in coord_list:
-                        if isinstance(coord, dict) and coord.get('page', 1) == (page_num + 1):
-                            # Obter valor do campo
-                            field_value = inspection_data.get(field_id, '')
-                            
-                            if field_value and coord.get('x') is not None and coord.get('y') is not None:
-                                try:
-                                    # Skip image fields
-                                    if coord.get('field_type') == 'image':
-                                        continue
-                                    
-                                    # Coords estão em canvas points (já divididos por scale=2)
-                                    # Converter para PDF points: canvas usa ≈595x842, igual a A4
-                                    x = float(coord['x'])
-                                    y = A4[1] - float(coord['y'])  # Inverter Y
-                                    
-                                    can.drawString(x, y, str(field_value))
-                                    fields_on_page += 1
-                                    logging.info(f"  ✓ {field_id}: '{field_value}' at ({x:.1f}, {y:.1f}) on page {page_num + 1}")
-                                except (ValueError, TypeError) as e:
-                                    logging.warning(f"  ⚠️ Invalid coordinates for {field_id}: {e}")
-                            elif not field_value:
-                                logging.debug(f"  ⊘ {field_id}: no value in inspection_data")
-                            else:
-                                logging.debug(f"  ⊘ {field_id}: missing x or y coordinate")
-                
-                logging.info(f"  📄 Page {page_num + 1}: {fields_on_page} fields rendered")
-            else:
-                logging.warning(f"⚠️ No valid coordinates to process (type: {type(coordinates)})")
-            
-            can.save()
-            
-            # Merge overlay com página do template
-            packet.seek(0)
-            overlay_pdf = PdfReader(packet)
-            page.merge_page(overlay_pdf.pages[0])
-            
-            output.add_page(page)
-        
-        # 5. Gerar PDF final
-        logging.info("💾 Finalizing PDF...")
-        final_buffer = io.BytesIO()
-        output.write(final_buffer)
-        final_buffer.seek(0)
-        pdf_content = final_buffer.getvalue()
+        # Generate PDF using modern generator
+        pdf_content = generate_inspection_pdf(inspection_data, extracted_data_json)
         
         logging.info(f"✅ PDF generated: {len(pdf_content)} bytes")
         
