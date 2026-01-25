@@ -258,7 +258,7 @@ def generate_inspection_pdf(inspection_data, extracted_data_json):
     
     # Fuel bar with rounded corners (exact canvas design)
     content_y -= 10
-    bar_height = 12
+    bar_height = 14
     
     # Background bar (white with cyan border)
     c.setStrokeColor(HexColor('#009cb6'))
@@ -277,7 +277,7 @@ def generate_inspection_pdf(inspection_data, extracted_data_json):
     c.setLineWidth(0.5)
     for pos in [0, 0.25, 0.5, 0.75, 1.0]:
         x = bar_left + bar_width_inner * pos
-        c.line(x, content_y + 4, x, content_y + bar_height - 4)
+        c.line(x, content_y + 3, x, content_y + bar_height - 3)
     
     # No fuel level text below bar
     
@@ -377,11 +377,12 @@ def generate_inspection_pdf(inspection_data, extracted_data_json):
         c.drawString(40, y_pos, "Fotografias da Inspeção")
         y_pos -= 15
         
-        # Grid settings - photos with increased vertical spacing
+        # Grid settings - same width as croqui box
         cols = 3
-        photo_width = (width - 100) / cols - 8
+        grid_total_width = width - 80  # Same as croqui border_width
+        spacing_horizontal = 10
+        photo_width = (grid_total_width - spacing_horizontal * 2) / cols
         photo_height = photo_width * 0.6  # Smaller ratio
-        spacing_horizontal = 5
         spacing_vertical = 15  # Increased vertical spacing
         
         # Photo labels
@@ -410,12 +411,16 @@ def generate_inspection_pdf(inspection_data, extracted_data_json):
                 img_data = base64.b64decode(photo_data)
                 img = Image.open(io.BytesIO(img_data))
                 
-                # Draw photo with rounded corners using clipping path
+                # Draw white background with rounded corners
+                c.setFillColor(HexColor('#ffffff'))
+                c.roundRect(x, y, photo_width, photo_height, 6, fill=1, stroke=0)
+                
+                # Save state for clipping
                 c.saveState()
                 
                 # Create rounded rectangle clipping path
                 p = c.beginPath()
-                radius = 4
+                radius = 6
                 p.moveTo(x + radius, y)
                 p.lineTo(x + photo_width - radius, y)
                 p.arcTo(x + photo_width - radius, y, x + photo_width, y + radius, radius)
@@ -428,15 +433,32 @@ def generate_inspection_pdf(inspection_data, extracted_data_json):
                 p.close()
                 c.clipPath(p, stroke=0, fill=0)
                 
+                # Resize image to fill the rectangle while maintaining aspect ratio
+                img_aspect = img.width / img.height
+                photo_aspect = photo_width / photo_height
+                
+                if img_aspect > photo_aspect:
+                    # Image is wider - fit to height
+                    draw_height = photo_height
+                    draw_width = draw_height * img_aspect
+                    draw_x = x - (draw_width - photo_width) / 2
+                    draw_y = y
+                else:
+                    # Image is taller - fit to width
+                    draw_width = photo_width
+                    draw_height = draw_width / img_aspect
+                    draw_x = x
+                    draw_y = y - (draw_height - photo_height) / 2
+                
                 # Draw image (will be clipped to rounded rect)
-                c.drawImage(ImageReader(img), x, y, width=photo_width, height=photo_height, preserveAspectRatio=False, mask='auto')
+                c.drawImage(ImageReader(img), draw_x, draw_y, width=draw_width, height=draw_height, mask='auto')
                 
                 c.restoreState()
                 
                 # Draw rounded border
                 c.setStrokeColor(HexColor('#d1d5db'))
                 c.setLineWidth(0.5)
-                c.roundRect(x, y, photo_width, photo_height, 4, fill=0, stroke=1)
+                c.roundRect(x, y, photo_width, photo_height, 6, fill=0, stroke=1)
                 
                 # Draw label below photo
                 c.setFont("Helvetica", 5)
