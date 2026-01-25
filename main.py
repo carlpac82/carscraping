@@ -49754,6 +49754,51 @@ async def update_inspection(inspection_number: str, request: Request):
                     
                     logging.info(f"✅ Updated return date in RA {ra_number} (original: {contract_number}): {formatted_date}")
                     logging.info(f"✅ Updated extracted_data in database")
+                    
+                    # REAGENDAR EMAIL DE SELF-CHECKOUT quando data é alterada
+                    if _USE_NEW_DB and 'return_location' in extracted_data:
+                        return_location = extracted_data.get('return_location') or extracted_data.get('returnLocation', '')
+                        
+                        # Verificar se é Aeroporto de Faro
+                        is_faro_airport = False
+                        if return_location:
+                            return_lower = return_location.lower()
+                            is_faro_airport = 'aeroporto' in return_lower and 'faro' in return_lower
+                        
+                        if is_faro_airport:
+                            logging.info(f"📧 Return date changed for Faro Airport - rescheduling email")
+                            
+                            # Buscar dados do check-in para reagendar
+                            cursor.execute("""
+                                SELECT client_email, client_name, vehicle_plate
+                                FROM vehicle_inspections
+                                WHERE inspection_number = %s
+                            """, (inspection_number,))
+                            checkin_data = cursor.fetchone()
+                            
+                            if checkin_data:
+                                client_email, client_name, vehicle_plate = checkin_data
+                                
+                                # Reagendar email (cancela anterior e cria novo)
+                                from schedule_checkout_emails import schedule_checkout_email
+                                schedule_success = schedule_checkout_email(
+                                    inspection_number=inspection_number,
+                                    checkout_date=formatted_date,
+                                    pickup_location=return_location,
+                                    client_email=client_email or extracted_data.get('client_email') or extracted_data.get('clientEmail', ''),
+                                    client_name=client_name or extracted_data.get('client_name') or extracted_data.get('clientName', ''),
+                                    vehicle_plate=vehicle_plate,
+                                    conn=conn
+                                )
+                                
+                                if schedule_success:
+                                    logging.info(f"✅ Email rescheduled for {inspection_number} with new date: {formatted_date}")
+                                else:
+                                    logging.warning(f"⚠️ Failed to reschedule email for {inspection_number}")
+                            else:
+                                logging.warning(f"⚠️ Could not find check-in data for rescheduling")
+                        else:
+                            logging.info(f"⏭️ Not Faro Airport, skipping email reschedule")
         
         # Update damage croqui if provided
         if 'damage_croqui' in data and data['damage_croqui']:
