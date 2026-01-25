@@ -49339,13 +49339,23 @@ async def get_inspection_pdf(inspection_number: str, request: Request):
             """, (inspection_number,))
             
             inspection_photos = []
-            for photo_row in cursor.fetchall():
+            photo_rows = cursor.fetchall()
+            logging.info(f"📸 Fetched {len(photo_rows)} photo rows from database for inspection {inspection_number}")
+            for photo_row in photo_rows:
                 if photo_row[0]:
+                    photo_type = photo_row[1]
+                    image_data = photo_row[0]
+                    # Convert bytes to base64 string if needed (PostgreSQL stores as TEXT, SQLite as BLOB)
+                    if isinstance(image_data, bytes):
+                        import base64
+                        image_data = f"data:image/jpeg;base64,{base64.b64encode(image_data).decode('utf-8')}"
                     inspection_photos.append({
-                        'image_data': photo_row[0],
-                        'photo_type': photo_row[1]
+                        'image_data': image_data,
+                        'photo_type': photo_type
                     })
+                    logging.info(f"📸 Added photo: {photo_type}, data length: {len(str(image_data))}")
             
+            logging.info(f"📸 Total inspection photos added: {len(inspection_photos)}")
             inspection_data['photos'] = inspection_photos
             
             # For checkout, also fetch check-in photos (for conditional display)
@@ -49400,14 +49410,23 @@ async def get_inspection_pdf(inspection_number: str, request: Request):
                                 ORDER BY created_at
                             """, (checkin_id,))
                         
-                        for photo_row in cursor.fetchall():
+                        checkin_photo_rows = cursor.fetchall()
+                        logging.info(f"📸 Fetched {len(checkin_photo_rows)} check-in photo rows from database")
+                        for photo_row in checkin_photo_rows:
                             if photo_row[0]:
+                                photo_type = photo_row[1]
+                                image_data = photo_row[0]
+                                # Convert bytes to base64 string if needed
+                                if isinstance(image_data, bytes):
+                                    import base64
+                                    image_data = f"data:image/jpeg;base64,{base64.b64encode(image_data).decode('utf-8')}"
                                 checkin_photos.append({
-                                    'image_data': photo_row[0],
-                                    'photo_type': photo_row[1]
+                                    'image_data': image_data,
+                                    'photo_type': photo_type
                                 })
+                                logging.info(f"📸 Added check-in photo: {photo_type}, data length: {len(str(image_data))}")
                         
-                        logging.info(f"📸 Fetched {len(checkin_photos)} check-in photos for checkout PDF")
+                        logging.info(f"📸 Total check-in photos added: {len(checkin_photos)}")
                 except Exception as e:
                     logging.error(f"❌ Error fetching check-in photos: {e}")
             
