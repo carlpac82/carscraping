@@ -52033,6 +52033,96 @@ async def update_inspections_from_ra(request: Request):
             "traceback": traceback.format_exc()
         }, status_code=500)
 
+@app.post("/api/admin/fix-base64-padding")
+async def fix_base64_padding_emergency(request: Request):
+    """EMERGENCY: Fix base64 padding in database for photos and signatures"""
+    require_admin(request)
+    
+    try:
+        conn = _db_connect()
+        cursor = conn.cursor()
+        is_postgres = 'psycopg' in type(conn).__name__.lower() or os.getenv('DATABASE_URL')
+        
+        if not is_postgres:
+            return JSONResponse({"ok": False, "error": "Only works with PostgreSQL"}, status_code=400)
+        
+        fixed_photos = 0
+        fixed_sigs = 0
+        
+        # Fix inspection_photos
+        cursor.execute("SELECT id, image_data FROM inspection_photos WHERE image_data LIKE 'data:image%'")
+        photos = cursor.fetchall()
+        
+        for photo_id, image_data in photos:
+            if not image_data or not image_data.startswith('data:image'):
+                continue
+            
+            parts = image_data.split(',', 1)
+            if len(parts) != 2:
+                continue
+            
+            header, encoded = parts
+            original_len = len(encoded)
+            
+            # Remove whitespace
+            encoded = encoded.strip().replace('\n', '').replace('\r', '').replace(' ', '')
+            
+            # Calculate and add padding
+            padding_needed = (4 - len(encoded) % 4) % 4
+            if padding_needed:
+                encoded += '=' * padding_needed
+                fixed_data = f"{header},{encoded}"
+                cursor.execute("UPDATE inspection_photos SET image_data = %s WHERE id = %s", (fixed_data, photo_id))
+                fixed_photos += 1
+                logging.info(f"🔧 Fixed photo ID {photo_id}: {original_len} -> {len(encoded)} (+{padding_needed} padding)")
+        
+        # Fix vehicle_inspections signatures
+        cursor.execute("SELECT id, signature FROM vehicle_inspections WHERE signature LIKE 'data:image%'")
+        signatures = cursor.fetchall()
+        
+        for inspection_id, signature in signatures:
+            if not signature or not signature.startswith('data:image'):
+                continue
+            
+            parts = signature.split(',', 1)
+            if len(parts) != 2:
+                continue
+            
+            header, encoded = parts
+            original_len = len(encoded)
+            
+            # Remove whitespace
+            encoded = encoded.strip().replace('\n', '').replace('\r', '').replace(' ', '')
+            
+            # Calculate and add padding
+            padding_needed = (4 - len(encoded) % 4) % 4
+            if padding_needed:
+                encoded += '=' * padding_needed
+                fixed_sig = f"{header},{encoded}"
+                cursor.execute("UPDATE vehicle_inspections SET signature = %s WHERE id = %s", (fixed_sig, inspection_id))
+                fixed_sigs += 1
+                logging.info(f"🔧 Fixed signature for inspection ID {inspection_id}: {original_len} -> {len(encoded)} (+{padding_needed} padding)")
+        
+        conn.commit()
+        cursor.close()
+        conn.close()
+        
+        return JSONResponse({
+            "ok": True,
+            "fixed_photos": fixed_photos,
+            "fixed_signatures": fixed_sigs,
+            "message": f"Fixed {fixed_photos} photos and {fixed_sigs} signatures"
+        })
+        
+    except Exception as e:
+        logging.error(f"❌ Error fixing base64 padding: {e}")
+        import traceback
+        return JSONResponse({
+            "ok": False,
+            "error": str(e),
+            "traceback": traceback.format_exc()
+        }, status_code=500)
+
 if __name__ == "__main__":
     import uvicorn
     uvicorn.run(app, host="0.0.0.0", port=8000)
