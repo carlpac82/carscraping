@@ -102,7 +102,7 @@ def generate_inspection_pdf(inspection_data, extracted_data_json):
     c.drawString(50, row_y, "Marca")
     c.setFont("Helvetica-Bold", 9)
     c.setFillColor(HexColor('#111827'))
-    brand = extracted.get('brand', 'N/A')
+    brand = extracted.get('brand') or extracted.get('vehicleBrand') or extracted.get('make') or 'N/A'
     c.drawString(50, row_y - 10, brand)
     
     # Modelo
@@ -111,7 +111,7 @@ def generate_inspection_pdf(inspection_data, extracted_data_json):
     c.drawString(50 + col_width, row_y, "Modelo")
     c.setFont("Helvetica-Bold", 9)
     c.setFillColor(HexColor('#111827'))
-    model = extracted.get('model', 'N/A')
+    model = extracted.get('model') or extracted.get('vehicleModel') or 'N/A'
     c.drawString(50 + col_width, row_y - 10, model)
     
     # Matrícula
@@ -139,7 +139,7 @@ def generate_inspection_pdf(inspection_data, extracted_data_json):
     c.drawString(50 + col_width, row_y, "Cliente")
     c.setFont("Helvetica-Bold", 9)
     c.setFillColor(HexColor('#111827'))
-    client_name = inspection_data.get('client_name') or extracted.get('clientName', 'N/A')
+    client_name = inspection_data.get('client_name') or extracted.get('clientName') or extracted.get('customerName') or extracted.get('name') or 'N/A'
     # Truncate if too long
     if len(client_name) > 20:
         client_name = client_name[:17] + '...'
@@ -230,7 +230,27 @@ def generate_inspection_pdf(inspection_data, extracted_data_json):
     c.drawRightString(value_x, content_y, "4")
     
     # Fuel bar section (INSIDE the blue box)
-    fuel_level = inspection_data.get('fuel_level', 'R')
+    fuel_level = inspection_data.get('fuel_level') or 'R'
+    # Convert numeric fuel level to fraction if needed
+    if isinstance(fuel_level, (int, float)):
+        if fuel_level == 0:
+            fuel_level = 'R'
+        elif fuel_level <= 12.5:
+            fuel_level = '1/8'
+        elif fuel_level <= 25:
+            fuel_level = '1/4'
+        elif fuel_level <= 37.5:
+            fuel_level = '3/8'
+        elif fuel_level <= 50:
+            fuel_level = '1/2'
+        elif fuel_level <= 62.5:
+            fuel_level = '5/8'
+        elif fuel_level <= 75:
+            fuel_level = '3/4'
+        elif fuel_level <= 87.5:
+            fuel_level = '7/8'
+        else:
+            fuel_level = 'F'
     fuel_percent = fuel_to_percent(fuel_level)
     
     content_y -= 12
@@ -433,22 +453,22 @@ def generate_inspection_pdf(inspection_data, extracted_data_json):
                 p.close()
                 c.clipPath(p, stroke=0, fill=0)
                 
-                # Resize image to fill the rectangle while maintaining aspect ratio
+                # Calculate dimensions to cover the rectangle (like CSS object-fit: cover)
                 img_aspect = img.width / img.height
                 photo_aspect = photo_width / photo_height
                 
                 if img_aspect > photo_aspect:
-                    # Image is wider - fit to height
-                    draw_height = photo_height
-                    draw_width = draw_height * img_aspect
-                    draw_x = x - (draw_width - photo_width) / 2
-                    draw_y = y
-                else:
-                    # Image is taller - fit to width
+                    # Image is wider - fit to width and crop height
                     draw_width = photo_width
                     draw_height = draw_width / img_aspect
                     draw_x = x
-                    draw_y = y - (draw_height - photo_height) / 2
+                    draw_y = y + (photo_height - draw_height) / 2
+                else:
+                    # Image is taller - fit to height and crop width
+                    draw_height = photo_height
+                    draw_width = draw_height * img_aspect
+                    draw_x = x + (photo_width - draw_width) / 2
+                    draw_y = y
                 
                 # Draw image (will be clipped to rounded rect)
                 c.drawImage(ImageReader(img), draw_x, draw_y, width=draw_width, height=draw_height, mask='auto')
