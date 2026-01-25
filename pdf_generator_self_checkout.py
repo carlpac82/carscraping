@@ -333,7 +333,12 @@ def generate_inspection_pdf(inspection_data, extracted_data_json):
                     
                     # Process signature image
                     if signature_data.startswith('data:image'):
-                        signature_data = signature_data.split(',')[1]
+                        signature_data = signature_data.split(',', 1)[1]
+                    
+                    # Fix base64 padding if needed
+                    missing_padding = len(signature_data) % 4
+                    if missing_padding:
+                        signature_data += '=' * (4 - missing_padding)
                     
                     sig_img_data = base64.b64decode(signature_data)
                     sig_img = Image.open(io.BytesIO(sig_img_data))
@@ -905,7 +910,12 @@ def generate_inspection_pdf(inspection_data, extracted_data_json):
                 try:
                     photo_data = photo['image_data']
                     if photo_data.startswith('data:image'):
-                        photo_data = photo_data.split(',')[1]
+                        photo_data = photo_data.split(',', 1)[1]
+                    
+                    # Fix base64 padding if needed
+                    missing_padding = len(photo_data) % 4
+                    if missing_padding:
+                        photo_data += '=' * (4 - missing_padding)
                     
                     img_data = base64.b64decode(photo_data)
                     img = Image.open(io.BytesIO(img_data))
