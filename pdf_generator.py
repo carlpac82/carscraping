@@ -452,7 +452,7 @@ def generate_inspection_pdf(inspection_data, extracted_data_json):
     
     y_pos -= box_height + 15
     
-    # Croqui de Danos (smaller)
+    # Croqui de Danos e Informações da Entrega (side by side)
     if inspection_data.get('damage_croqui'):
         c.setFont("Helvetica-Bold", 10)
         c.setFillColor(HexColor('#1f2937'))
@@ -475,29 +475,64 @@ def generate_inspection_pdf(inspection_data, extracted_data_json):
             elif img.mode != 'RGB':
                 img = img.convert('RGB')
             
-            # Full width border box (like check-in modal)
-            border_width = width - 80
-            img_width = border_width - 20  # padding inside border
-            img_height = img_width * img.height / img.width
+            # Two boxes side by side
+            total_width = width - 80
+            box_spacing = 10
+            left_box_width = (total_width - box_spacing) / 2
+            right_box_width = (total_width - box_spacing) / 2
+            box_height_croqui = 120
             
-            # Limit height (smaller)
-            if img_height > 100:
-                img_height = 100
-                img_width = img_height * img.width / img.height
-            
-            # Draw border box (full width)
+            # Left box - Croqui with border
             c.setFillColor(HexColor('#ffffff'))
             c.setStrokeColor(HexColor('#d1d5db'))
             c.setLineWidth(1)
-            c.roundRect(40, y_pos - img_height - 20, border_width, img_height + 20, 8, fill=1, stroke=1)
+            c.roundRect(40, y_pos - box_height_croqui, left_box_width, box_height_croqui, 8, fill=1, stroke=1)
             
-            # Center image inside border box
-            x_pos = 40 + (border_width - img_width) / 2
+            # Calculate croqui size to fit left box
+            img_width = left_box_width - 20  # padding inside border
+            img_height = img_width * img.height / img.width
             
-            # Draw croqui centered
-            c.drawImage(ImageReader(img), x_pos, y_pos - img_height - 10, width=img_width, height=img_height)
+            # Limit height
+            if img_height > box_height_croqui - 20:
+                img_height = box_height_croqui - 20
+                img_width = img_height * img.width / img.height
             
-            y_pos -= img_height + 25
+            # Center croqui in left box
+            x_pos = 40 + (left_box_width - img_width) / 2
+            y_img_pos = y_pos - box_height_croqui + (box_height_croqui - img_height) / 2
+            
+            # Draw croqui
+            c.drawImage(ImageReader(img), x_pos, y_img_pos, width=img_width, height=img_height)
+            
+            # Right box - Blue info box (no border)
+            right_box_x = 40 + left_box_width + box_spacing
+            c.setFillColor(HexColor('#e6f7fa'))  # bg heather light blue
+            c.roundRect(right_box_x, y_pos - box_height_croqui, right_box_width, box_height_croqui, 8, fill=1, stroke=0)
+            
+            # Content in right box
+            content_y = y_pos - 20
+            label_x = right_box_x + 10
+            value_x = right_box_x + right_box_width - 10
+            
+            # Combustível
+            c.setFont("Helvetica", 8)
+            c.setFillColor(HexColor('#6b7280'))
+            c.drawString(label_x, content_y, "Combustível:")
+            c.setFont("Helvetica-Bold", 8)
+            c.setFillColor(HexColor('#111827'))
+            c.drawRightString(value_x, content_y, fuel_level)
+            
+            content_y -= 15
+            
+            # Quilómetros
+            c.setFont("Helvetica", 8)
+            c.setFillColor(HexColor('#6b7280'))
+            c.drawString(label_x, content_y, "Quilómetros:")
+            c.setFont("Helvetica-Bold", 8)
+            c.setFillColor(HexColor('#111827'))
+            c.drawRightString(value_x, content_y, odometer_str)
+            
+            y_pos -= box_height_croqui + 15
         except Exception as e:
             logging.error(f"Error adding croqui to PDF: {e}")
     
