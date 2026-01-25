@@ -49213,7 +49213,7 @@ async def get_inspection_pdf(inspection_number: str, request: Request):
             if (not inspection_data['vehicle_brand'] or not inspection_data['vehicle_model']) and vehicle_plate:
                 try:
                     cursor2 = conn.cursor()
-                    cursor2.execute("SELECT brand, model FROM vehicles WHERE license_plate = %s" if is_postgres else "SELECT brand, model FROM vehicles WHERE license_plate = ?", (vehicle_plate,))
+                    cursor2.execute("SELECT marca, modelo FROM vehicles WHERE matricula = %s" if is_postgres else "SELECT marca, modelo FROM vehicles WHERE matricula = ?", (vehicle_plate,))
                     vehicle_row = cursor2.fetchone()
                     cursor2.close()
                     if vehicle_row:
@@ -49224,6 +49224,8 @@ async def get_inspection_pdf(inspection_number: str, request: Request):
                         logging.info(f"🚗 Got vehicle data from fleet: {vehicle_row[0]} {vehicle_row[1]}")
                 except Exception as e:
                     logging.error(f"Error fetching vehicle from fleet: {e}")
+                    if is_postgres:
+                        conn.rollback()
             
             # Get client_name, vehicle_brand, vehicle_model from extracted_data if still missing
             if extracted_data_json:
