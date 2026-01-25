@@ -30077,8 +30077,8 @@ async def save_inspection(request: Request):
                         (inspection_number, inspection_type, vehicle_plate, vehicle_brand, vehicle_model, vehicle_id, contract_number,
                          inspector_name, inspector_notes, has_damage, damage_count, damage_severity,
                          ai_analysis_complete, ai_confidence_avg, odometer_reading, fuel_level,
-                         status, photo_count, client_name, pickup_date, pickup_location, return_date, return_location, country, created_at)
-                        VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, NOW())
+                         status, photo_count, client_name, client_email, pickup_date, pickup_location, return_date, return_location, country, created_at)
+                        VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, NOW())
                         RETURNING id
                     """, (
                         inspection_number,
@@ -30100,6 +30100,7 @@ async def save_inspection(request: Request):
                         'completed',
                         len(photos),
                         ra_client_name,
+                        email,  # client_email - email inserido manualmente no check-in
                         ra_pickup_date,
                         ra_pickup_location,
                         ra_return_date,
@@ -30198,8 +30199,8 @@ async def save_inspection(request: Request):
                         (inspection_number, inspection_type, vehicle_plate, vehicle_id, contract_number,
                          inspector_name, inspector_notes, has_damage, damage_count, damage_severity,
                          ai_analysis_complete, ai_confidence_avg, odometer_reading, fuel_level,
-                         status, photo_count, client_name, pickup_date, pickup_location, return_date, return_location, country, created_at)
-                        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, datetime('now'))
+                         status, photo_count, client_name, client_email, pickup_date, pickup_location, return_date, return_location, country, created_at)
+                        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, datetime('now'))
                     """, (
                         inspection_number,
                         inspection_type,
@@ -30218,6 +30219,7 @@ async def save_inspection(request: Request):
                         'completed',
                         len(photos),
                         ra_client_name,
+                        email,  # client_email - email inserido manualmente no check-in
                         ra_pickup_date,
                         ra_pickup_location,
                         ra_return_date,

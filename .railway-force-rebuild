@@ -1,1 +1,1 @@
-2026-01-25T22:22:00Z UTC - Fix: use check-in email instead of RA email - Force Railway rebuild
+2026-01-25T22:25:00Z UTC - Fix: save client_email field in check-in INSERT - Force Railway rebuild
