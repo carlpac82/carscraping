@@ -197,6 +197,22 @@ def generate_inspection_pdf(inspection_data, extracted_data_json):
     label_x = 50
     value_x = 40 + box_width - 10
     
+    # Local de Entrega/Recolha
+    c.setFont("Helvetica", 8)
+    c.setFillColor(HexColor('#6b7280'))
+    if inspection_data['inspection_type'] == 'checkin':
+        c.drawString(label_x, content_y, "Local de Entrega:")
+    else:
+        c.drawString(label_x, content_y, "Local de Recolha:")
+    c.setFont("Helvetica-Bold", 8)
+    c.setFillColor(HexColor('#111827'))
+    location = (inspection_data.get('pickup_location') or 
+                extracted_data_json.get('pickupLocation') or 
+                extracted_data_json.get('pickup_location') or 
+                'N/A')
+    c.drawRightString(value_x, content_y, location)
+    
+    content_y -= 12
     c.setFont("Helvetica", 8)
     c.setFillColor(HexColor('#6b7280'))
     c.drawString(label_x, content_y, "Data:")
