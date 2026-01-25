@@ -925,6 +925,8 @@ def generate_inspection_pdf(inspection_data, extracted_data_json):
                     photo_data = photo['image_data']
                     photo_type = photo.get('type', f'photo_{idx}')
                     
+                    logging.info(f"🚀 PROCESSING Photo {idx} ({photo_type}) - CODE VERSION: 2026-01-25 21:07 UTC")
+                    
                     if not photo_data:
                         logging.error(f"❌ Photo {idx} ({photo_type}): No data")
                         continue

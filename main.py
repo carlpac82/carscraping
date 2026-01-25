@@ -49378,6 +49378,7 @@ async def get_inspection_pdf(inspection_number: str, request: Request):
             
             inspection_photos = []
             photo_rows = cursor.fetchall()
+            logging.info(f"🔄 BACKEND: Processing {len(photo_rows)} photos - CODE VERSION: 2026-01-25 21:07 UTC")
             for photo_row in photo_rows:
                 if photo_row[0]:
                     photo_type = photo_row[1]
