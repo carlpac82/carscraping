@@ -49181,6 +49181,31 @@ async def get_inspection_pdf(inspection_number: str, request: Request):
             
             extracted_data_json = row[11]
             
+            # Fetch inspection photos for grid
+            cursor.execute("""
+                SELECT image_data, photo_type 
+                FROM inspection_photos 
+                WHERE inspection_id = (SELECT id FROM vehicle_inspections WHERE inspection_number = %s)
+                AND photo_type != 'damage_croqui'
+                ORDER BY created_at
+            """ if is_postgres else """
+                SELECT image_data, photo_type 
+                FROM inspection_photos 
+                WHERE inspection_id = (SELECT id FROM vehicle_inspections WHERE inspection_number = ?)
+                AND photo_type != 'damage_croqui'
+                ORDER BY created_at
+            """, (inspection_number,))
+            
+            inspection_photos = []
+            for photo_row in cursor.fetchall():
+                if photo_row[0]:
+                    inspection_photos.append({
+                        'image_data': photo_row[0],
+                        'photo_type': photo_row[1]
+                    })
+            
+            inspection_data['photos'] = inspection_photos
+            
         finally:
             conn.close()
         
