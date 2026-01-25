@@ -51,22 +51,22 @@ def generate_inspection_pdf(inspection_data, extracted_data_json):
             except Exception as e:
                 logging.warning(f"Could not load logo: {e}")
     
-    # RA number on right in header (smaller)
+    # RA number on right in header (much smaller)
     c.setFillColor(HexColor('#ffffff'))
-    c.setFont("Helvetica-Bold", 14)
+    c.setFont("Helvetica-Bold", 11)
     ra_text = f"R.A.: {inspection_data['contract_number']}"
-    ra_width = c.stringWidth(ra_text, "Helvetica-Bold", 14)
+    ra_width = c.stringWidth(ra_text, "Helvetica-Bold", 11)
     
-    # Box for RA (smaller)
-    box_padding = 10
+    # Box for RA (much smaller)
+    box_padding = 8
     box_x = width - ra_width - box_padding * 2 - 20
-    box_y = height - 38
+    box_y = height - 35
     c.setFillColor(HexColor('#ffffff'))
     c.setFillColorRGB(1, 1, 1, alpha=0.2)
-    c.roundRect(box_x, box_y, ra_width + box_padding * 2, 22, 4, fill=1, stroke=0)
+    c.roundRect(box_x, box_y, ra_width + box_padding * 2, 18, 3, fill=1, stroke=0)
     
     c.setFillColor(HexColor('#ffffff'))
-    c.drawString(box_x + box_padding, box_y + 6, ra_text)
+    c.drawString(box_x + box_padding, box_y + 5, ra_text)
     
     # Start content - Title below header (without plate)
     y_pos = height - 65
@@ -229,24 +229,24 @@ def generate_inspection_pdf(inspection_data, extracted_data_json):
     c.setFillColor(HexColor('#111827'))
     c.drawRightString(value_x, content_y, "4")
     
-    # Fuel bar section
+    # Fuel bar section (INSIDE the blue box)
     fuel_level = inspection_data.get('fuel_level', 'R')
     fuel_percent = fuel_to_percent(fuel_level)
     
-    content_y -= 18
+    content_y -= 15
     c.setStrokeColor(border_color)
     c.setLineWidth(0.5)
     c.line(50, content_y, 40 + box_width - 10, content_y)
     
-    content_y -= 12
+    content_y -= 10
     c.setFont("Helvetica", 7)
     c.setFillColor(HexColor('#6b7280'))
     label_text = "Combustível na Entrega" if inspection_data['inspection_type'] == 'checkin' else "Combustível na Recolha"
     c.drawCentredString(40 + box_width / 2, content_y, label_text)
     
     # Fuel markers
-    content_y -= 10
-    c.setFont("Helvetica-Bold", 7)
+    content_y -= 8
+    c.setFont("Helvetica-Bold", 6)
     c.setFillColor(HexColor('#009cb6'))
     bar_left = 50
     bar_width_inner = box_width - 20
@@ -257,8 +257,8 @@ def generate_inspection_pdf(inspection_data, extracted_data_json):
     c.drawString(bar_left + bar_width_inner - 2, content_y, "F")
     
     # Fuel bar with rounded corners (exact canvas design)
-    content_y -= 13
-    bar_height = 14
+    content_y -= 11
+    bar_height = 12
     
     # Background bar (white with cyan border)
     c.setStrokeColor(HexColor('#009cb6'))
@@ -409,10 +409,10 @@ def generate_inspection_pdf(inspection_data, extracted_data_json):
                 img_data = base64.b64decode(photo_data)
                 img = Image.open(io.BytesIO(img_data))
                 
-                # Draw photo with border (fill rectangle - no preserveAspectRatio)
+                # Draw photo with rounded border (fill rectangle - no preserveAspectRatio)
                 c.setStrokeColor(HexColor('#d1d5db'))
                 c.setLineWidth(0.5)
-                c.rect(x, y, photo_width, photo_height, fill=0, stroke=1)
+                c.roundRect(x, y, photo_width, photo_height, 4, fill=0, stroke=1)
                 c.drawImage(ImageReader(img), x, y, width=photo_width, height=photo_height, preserveAspectRatio=False, mask='auto')
                 
                 # Draw label below photo
@@ -425,56 +425,23 @@ def generate_inspection_pdf(inspection_data, extracted_data_json):
         
         y_pos = y_start - (photo_height + spacing + 8) * 3 - 15
     
-    # "Entregue por" section after photos (ensure space for footer)
-    if y_pos < 100:
-        y_pos = 100
-    
-    c.setFont("Helvetica-Bold", 8)
-    c.setFillColor(HexColor('#1f2937'))
-    
-    # Get first and last name
-    inspector_name = inspection_data.get('inspector_name', 'N/A')
-    if inspector_name and inspector_name != 'N/A':
-        name_parts = inspector_name.split()
-        if len(name_parts) >= 2:
-            short_name = f"{name_parts[0]} {name_parts[-1]}"
-        else:
-            short_name = inspector_name
-    else:
-        short_name = 'N/A'
-    
-    date_time_str = inspection_data['created_at'].strftime('%d/%m/%Y às %H:%M') if inspection_data.get('created_at') else 'N/A'
-    
-    c.drawString(40, y_pos, f"Entregue por: {short_name}")
-    c.setFont("Helvetica", 7)
-    c.setFillColor(HexColor('#6b7280'))
-    c.drawString(40, y_pos - 10, date_time_str)
-    
-    # Footer with company info (like in image)
-    footer_height = 80
-    footer_y = footer_height
-    
+    # Footer with company info (no "Entregue por" section - it's already in the card)
     # Cyan footer bar
     c.setFillColor(HexColor('#009cb6'))
-    c.rect(0, 0, width, 35, fill=1, stroke=0)
+    c.rect(0, 0, width, 50, fill=1, stroke=0)
     
-    # Copyright text in cyan bar
-    c.setFont("Helvetica-Bold", 9)
+    # Company details in cyan footer (smaller text)
+    c.setFont("Helvetica-Bold", 7)
     c.setFillColor(HexColor('#ffffff'))
-    c.drawCentredString(width / 2, 12, "© 2026 Auto Prudente Rent a Car. Todos os direitos reservados.")
+    c.drawCentredString(width / 2, 35, "Auto Prudente Rent a Car Unipessoal, Lda. - Número Fiscal: PT 503 539 791")
     
-    # Company details above cyan bar
-    c.setFont("Helvetica-Bold", 8)
-    c.setFillColor(HexColor('#4b5563'))
-    c.drawCentredString(width / 2, 70, "Auto Prudente Rent a Car Unipessoal, Lda. - Número Fiscal: PT 503 539 791")
+    c.setFont("Helvetica", 6)
+    c.setFillColor(HexColor('#ffffff'))
+    c.drawCentredString(width / 2, 25, "Sede: Estrada de Santa Eulália, Edifício Onda do Mar Loja E, 8200-269 Albufeira")
     
-    c.setFont("Helvetica", 8)
-    c.setFillColor(HexColor('#6b7280'))
-    c.drawCentredString(width / 2, 58, "Sede: Estrada de Santa Eulália, Edifício Onda do Mar Loja E, 8200-269 Albufeira")
-    
-    c.setFont("Helvetica", 8)
+    c.setFont("Helvetica", 6)
     phone_email = "Telefone +351 289 542 160 | E-mail: info@auto-prudente.com"
-    c.drawCentredString(width / 2, 46, phone_email)
+    c.drawCentredString(width / 2, 15, phone_email)
     
     c.save()
     buffer.seek(0)
