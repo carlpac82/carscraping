@@ -264,6 +264,14 @@ def generate_inspection_pdf(inspection_data, extracted_data_json):
     # Fuel bar section (INSIDE the blue box)
     fuel_level = inspection_data.get('fuel_level') or 'R'
     print(f"⛽ Raw fuel_level: '{fuel_level}' (type: {type(fuel_level)})")
+    
+    # Convert string to number if needed
+    if isinstance(fuel_level, str) and fuel_level.strip().replace('.', '', 1).isdigit():
+        try:
+            fuel_level = float(fuel_level) if '.' in fuel_level else int(fuel_level)
+        except (ValueError, TypeError):
+            pass
+    
     # Convert numeric fuel level to fraction if needed
     if isinstance(fuel_level, (int, float)):
         if fuel_level == 0:
