@@ -1,0 +1,4 @@
+FORCE RAILWAY RESTART - 2026-01-25 20:42
+This file exists to force Railway to detect a change and restart the service.
+Railway is caching old Python bytecode and not updating the code despite multiple commits.
+Timestamp: 2026-01-25T20:42:00Z

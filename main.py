@@ -1,4 +1,4 @@
-# DEPLOY FORCE: 2026-01-25 20:18 UTC - Fix base64 padding for PDF photos
+# DEPLOY FORCE: 2026-01-25 20:43 UTC - CRITICAL: Force Railway restart to load base64 padding fix
 from __future__ import annotations
 
 # Todas as funções helper foram movidas para depois dos imports principais
@@ -16,7 +16,7 @@ import logging
 import json
 import base64
 
-from fastapi import FastAPI, Request, Form, Depends, HTTPException, UploadFile, File
+from fastapi import FastAPI, Request, Form, File, UploadFile, HTTPException, Response, status, Depends
 from fastapi.responses import RedirectResponse, JSONResponse, HTMLResponse, Response, StreamingResponse, FileResponse, PlainTextResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.middleware.cors import CORSMiddleware
