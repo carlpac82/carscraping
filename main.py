@@ -49208,6 +49208,45 @@ async def get_inspection_pdf(inspection_number: str, request: Request):
             
             extracted_data_json = row[11]
             
+            # Get vehicle brand/model from fleet API if not in inspection
+            vehicle_plate = row[2]
+            if (not inspection_data['vehicle_brand'] or not inspection_data['vehicle_model']) and vehicle_plate:
+                try:
+                    cursor2 = conn.cursor()
+                    cursor2.execute("SELECT brand, model FROM vehicles WHERE license_plate = %s" if is_postgres else "SELECT brand, model FROM vehicles WHERE license_plate = ?", (vehicle_plate,))
+                    vehicle_row = cursor2.fetchone()
+                    cursor2.close()
+                    if vehicle_row:
+                        if not inspection_data['vehicle_brand']:
+                            inspection_data['vehicle_brand'] = vehicle_row[0] or ''
+                        if not inspection_data['vehicle_model']:
+                            inspection_data['vehicle_model'] = vehicle_row[1] or ''
+                        logging.info(f"🚗 Got vehicle data from fleet: {vehicle_row[0]} {vehicle_row[1]}")
+                except Exception as e:
+                    logging.error(f"Error fetching vehicle from fleet: {e}")
+            
+            # Get client_name, vehicle_brand, vehicle_model from extracted_data if still missing
+            if extracted_data_json:
+                try:
+                    import json
+                    if isinstance(extracted_data_json, str):
+                        extracted = json.loads(extracted_data_json)
+                    else:
+                        extracted = extracted_data_json
+                    
+                    if not inspection_data['client_name']:
+                        inspection_data['client_name'] = extracted.get('clientName') or extracted.get('client_name') or ''
+                    
+                    if not inspection_data['vehicle_brand']:
+                        inspection_data['vehicle_brand'] = extracted.get('vehicleBrand') or extracted.get('vehicle_brand') or ''
+                    
+                    if not inspection_data['vehicle_model']:
+                        inspection_data['vehicle_model'] = extracted.get('vehicleModel') or extracted.get('vehicle_model') or ''
+                    
+                    logging.info(f"📦 Got data from extracted_data: client={inspection_data['client_name']}, brand={inspection_data['vehicle_brand']}, model={inspection_data['vehicle_model']}")
+                except Exception as e:
+                    logging.error(f"Error parsing extracted_data: {e}")
+            
             # Fetch inspection photos for grid
             cursor.execute("""
                 SELECT image_data, photo_type 
