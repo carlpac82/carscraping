@@ -95,7 +95,7 @@ import hashlib
 import smtplib
 from email.message import EmailMessage
 from fastapi import Query
-from pdf_generator import generate_inspection_pdf
+from pdf_generator_checkout import generate_inspection_pdf
 try:
     import httpx  # type: ignore
     _HTTPX_CLIENT = httpx.Client(timeout=httpx.Timeout(10.0, connect=4.0), headers={"Connection": "keep-alive"})
