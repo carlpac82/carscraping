@@ -624,7 +624,7 @@ def generate_inspection_pdf(inspection_data, extracted_data_json):
             content_y = y_pos - 18
             
             # Coluna esquerda - Combustível (centralizada)
-            left_col_width = (left_box_width - 40) / 2
+            left_col_width = left_box_width / 2
             left_col_center = 40 + left_col_width / 2
             
             c.setFont("Helvetica-Bold", 9)
@@ -710,7 +710,7 @@ def generate_inspection_pdf(inspection_data, extracted_data_json):
                 c.line(x, content_y_fuel + 2, x, content_y_fuel + bar_height_small - 2)
             
             # Coluna direita - Quilómetros (centralizada)
-            right_col_center = 40 + left_col_width + left_col_width / 2
+            right_col_center = 40 + left_col_width + (left_col_width / 2)
             
             c.setFont("Helvetica-Bold", 9)
             c.setFillColor(HexColor('#009cb6'))
