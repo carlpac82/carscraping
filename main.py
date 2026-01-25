@@ -52530,6 +52530,95 @@ async def fix_base64_padding_emergency(request: Request):
             "traceback": traceback.format_exc()
         }, status_code=500)
 
+@app.post("/api/admin/setup-scheduled-emails-table")
+async def setup_scheduled_emails_table(request: Request):
+    """
+    TEMPORARY: Create scheduled_checkout_emails table
+    """
+    try:
+        require_inspection_access(request)
+    except HTTPException:
+        return JSONResponse({"ok": False, "error": "Unauthorized"}, status_code=403)
+    
+    try:
+        conn = _db_connect()
+        is_postgres = _is_postgresql_connection(conn)
+        
+        if not is_postgres:
+            return JSONResponse({
+                "ok": False,
+                "error": "This endpoint only works with PostgreSQL"
+            }, status_code=400)
+        
+        cursor = conn.cursor()
+        
+        logging.info("📋 Creating scheduled_checkout_emails table...")
+        
+        # Criar tabela
+        cursor.execute("""
+            CREATE TABLE IF NOT EXISTS scheduled_checkout_emails (
+                id SERIAL PRIMARY KEY,
+                inspection_number VARCHAR(100) NOT NULL UNIQUE,
+                checkout_date DATE NOT NULL,
+                scheduled_send_date TIMESTAMP NOT NULL,
+                pickup_location VARCHAR(255) NOT NULL,
+                client_email VARCHAR(255) NOT NULL,
+                client_name VARCHAR(255),
+                vehicle_plate VARCHAR(50),
+                status VARCHAR(20) DEFAULT 'pending',
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                sent_at TIMESTAMP,
+                error_message TEXT,
+                CONSTRAINT valid_status CHECK (status IN ('pending', 'sent', 'cancelled', 'error'))
+            )
+        """)
+        
+        logging.info("📊 Creating indexes...")
+        
+        # Criar índices
+        cursor.execute("""
+            CREATE INDEX IF NOT EXISTS idx_scheduled_emails_send_date 
+            ON scheduled_checkout_emails(scheduled_send_date)
+        """)
+        
+        cursor.execute("""
+            CREATE INDEX IF NOT EXISTS idx_scheduled_emails_status 
+            ON scheduled_checkout_emails(status)
+        """)
+        
+        cursor.execute("""
+            CREATE INDEX IF NOT EXISTS idx_scheduled_emails_inspection 
+            ON scheduled_checkout_emails(inspection_number)
+        """)
+        
+        conn.commit()
+        
+        # Verificar
+        cursor.execute("SELECT COUNT(*) FROM scheduled_checkout_emails")
+        count = cursor.fetchone()[0]
+        
+        cursor.close()
+        conn.close()
+        
+        logging.info(f"✅ Table created successfully! Current records: {count}")
+        
+        return JSONResponse({
+            "ok": True,
+            "message": f"Table scheduled_checkout_emails created successfully",
+            "current_records": count
+        })
+        
+    except Exception as e:
+        logging.error(f"❌ Error creating table: {e}")
+        import traceback
+        logging.error(traceback.format_exc())
+        return JSONResponse({
+            "ok": False,
+            "error": str(e),
+            "traceback": traceback.format_exc()
+        }, status_code=500)
+
 if __name__ == "__main__":
     import uvicorn
     uvicorn.run(app, host="0.0.0.0", port=8000)
