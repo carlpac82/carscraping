@@ -52991,6 +52991,93 @@ async def test_schedule_email(request: Request):
             "traceback": traceback.format_exc()
         }, status_code=500)
 
+@app.post("/api/admin/generate-ra-token")
+async def generate_ra_token(request: Request):
+    """
+    TEMPORARY: Generate self-checkout token for existing RA
+    """
+    try:
+        require_inspection_access(request)
+    except HTTPException:
+        return JSONResponse({"ok": False, "error": "Unauthorized"}, status_code=403)
+    
+    try:
+        data = await request.json()
+        ra_number = data.get('ra_number', '06691')
+        
+        conn = _db_connect()
+        is_postgres = _is_postgresql_connection(conn)
+        
+        if not is_postgres:
+            return JSONResponse({
+                "ok": False,
+                "error": "This endpoint only works with PostgreSQL"
+            }, status_code=400)
+        
+        cursor = conn.cursor()
+        
+        # Verificar se RA existe
+        logging.info(f"🔍 Checking RA: {ra_number}")
+        cursor.execute("""
+            SELECT id, rental_agreement_number, self_checkin_token FROM rental_agreements WHERE rental_agreement_number LIKE %s LIMIT 1
+        """, (f"{ra_number}%",))
+        ra_row = cursor.fetchone()
+        
+        if not ra_row:
+            return JSONResponse({
+                "ok": False,
+                "error": f"RA {ra_number} not found"
+            }, status_code=404)
+        
+        ra_id, ra_full_number, existing_token = ra_row
+        
+        if existing_token:
+            logging.info(f"✅ RA {ra_full_number} already has token: {existing_token}")
+            cursor.close()
+            conn.close()
+            return JSONResponse({
+                "ok": True,
+                "message": "Token already exists",
+                "ra_number": ra_full_number,
+                "token": existing_token
+            })
+        
+        # Gerar novo token
+        import secrets
+        new_token = secrets.token_urlsafe(32)
+        
+        logging.info(f"🔑 Generating token for RA {ra_full_number}: {new_token}")
+        
+        # Atualizar RA com token
+        cursor.execute("""
+            UPDATE rental_agreements 
+            SET self_checkin_token = %s
+            WHERE id = %s
+        """, (new_token, ra_id))
+        
+        conn.commit()
+        cursor.close()
+        conn.close()
+        
+        logging.info(f"✅ Token generated successfully for RA {ra_full_number}")
+        
+        return JSONResponse({
+            "ok": True,
+            "message": "Token generated successfully",
+            "ra_number": ra_full_number,
+            "token": new_token
+        })
+        
+    except Exception as e:
+        logging.error(f"❌ Error generating token: {e}")
+        import traceback
+        logging.error(traceback.format_exc())
+        return JSONResponse({
+            "ok": False,
+            "error": str(e),
+            "traceback": traceback.format_exc()
+        }, status_code=500)
+
 if __name__ == "__main__":
     import uvicorn
     uvicorn.run(app, host="0.0.0.0", port=8000)
