@@ -7,7 +7,7 @@ import os
 import json
 import logging
 import base64
-from PIL import Image
+from PIL import Image, ImageDraw
 from reportlab.lib.utils import ImageReader
 
 def generate_inspection_pdf(inspection_data, extracted_data_json):
@@ -558,47 +558,55 @@ def generate_inspection_pdf(inspection_data, extracted_data_json):
                 img_data = base64.b64decode(photo_data)
                 img = Image.open(io.BytesIO(img_data))
                 
-                # Save state for clipping
-                c.saveState()
+                # Convert to RGB if needed
+                if img.mode == 'RGBA':
+                    background = Image.new('RGB', img.size, (255, 255, 255))
+                    background.paste(img, mask=img.split()[3])
+                    img = background
+                elif img.mode != 'RGB':
+                    img = img.convert('RGB')
                 
-                # Create rounded rectangle clipping path
-                p = c.beginPath()
-                radius = 6
-                p.moveTo(x + radius, y)
-                p.lineTo(x + photo_width - radius, y)
-                p.arcTo(x + photo_width - radius, y, x + photo_width, y + radius, radius)
-                p.lineTo(x + photo_width, y + photo_height - radius)
-                p.arcTo(x + photo_width, y + photo_height - radius, x + photo_width - radius, y + photo_height, radius)
-                p.lineTo(x + radius, y + photo_height)
-                p.arcTo(x + radius, y + photo_height, x, y + photo_height - radius, radius)
-                p.lineTo(x, y + radius)
-                p.arcTo(x, y + radius, x + radius, y, radius)
-                p.close()
-                c.clipPath(p, stroke=0, fill=0)
+                # Calculate target size in pixels for the photo box
+                target_width_px = int(photo_width * 2)  # 2x for better quality
+                target_height_px = int(photo_height * 2)
                 
                 # Calculate cover fit dimensions
                 img_width, img_height = img.size
                 img_aspect = img_width / img_height
-                photo_aspect = photo_width / photo_height
+                photo_aspect = target_width_px / target_height_px
                 
                 if img_aspect > photo_aspect:
-                    # Image is wider - fit to height and crop width (cover fit)
-                    draw_height = photo_height
-                    draw_width = draw_height * img_aspect
-                    draw_x = x - (draw_width - photo_width) / 2
-                    draw_y = y
+                    # Image is wider - fit to height and crop width
+                    new_height = target_height_px
+                    new_width = int(new_height * img_aspect)
+                    crop_x = (new_width - target_width_px) // 2
+                    crop_y = 0
                 else:
-                    # Image is taller - fit to width and crop height (cover fit)
-                    draw_width = photo_width
-                    draw_height = draw_width / img_aspect
-                    draw_x = x
-                    draw_y = y - (draw_height - photo_height) / 2
+                    # Image is taller - fit to width and crop height
+                    new_width = target_width_px
+                    new_height = int(new_width / img_aspect)
+                    crop_x = 0
+                    crop_y = (new_height - target_height_px) // 2
                 
-                # Draw image with cover fit
-                c.drawImage(ImageReader(img), draw_x, draw_y, width=draw_width, height=draw_height, mask='auto')
+                # Resize image
+                img_resized = img.resize((new_width, new_height), Image.Resampling.LANCZOS)
                 
-                # Restore state to remove clipping
-                c.restoreState()
+                # Crop to exact size
+                img_cropped = img_resized.crop((crop_x, crop_y, crop_x + target_width_px, crop_y + target_height_px))
+                
+                # Create rounded corners mask
+                mask = Image.new('L', (target_width_px, target_height_px), 0)
+                draw = ImageDraw.Draw(mask)
+                radius_px = int(6 * 2)  # 2x for better quality
+                draw.rounded_rectangle([(0, 0), (target_width_px, target_height_px)], radius=radius_px, fill=255)
+                
+                # Apply mask
+                output = Image.new('RGB', (target_width_px, target_height_px), (255, 255, 255))
+                output.paste(img_cropped, (0, 0))
+                output.putalpha(mask)
+                
+                # Draw image
+                c.drawImage(ImageReader(output), x, y, width=photo_width, height=photo_height, mask='auto')
                 
                 # Draw label below photo
                 c.setFont("Helvetica", 5)
