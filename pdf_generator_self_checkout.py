@@ -828,31 +828,34 @@ def generate_inspection_pdf(inspection_data, extracted_data_json):
             logging.error(f"Error adding croqui to PDF: {e}")
     
     # Photos grid - SELF-CHECKOUT: Show only photos taken by client
-    all_photos_dict = inspection_data.get('photos', {})
+    photos_raw = inspection_data.get('photos', [])
     
     # IMMEDIATE LOGGING
     logging.info(f"📸 SELF-CHECKOUT PDF GENERATOR STARTED")
-    logging.info(f"📸 Self-checkout photos dict: {type(all_photos_dict)}")
-    logging.info(f"📸 Is dict: {isinstance(all_photos_dict, dict)}")
-    if isinstance(all_photos_dict, dict):
-        logging.info(f"📸 Photo keys available: {list(all_photos_dict.keys())}")
-        for key in all_photos_dict.keys():
-            photo_data = all_photos_dict[key]
-            logging.info(f"📸   - {key}: {type(photo_data)}, length: {len(photo_data) if photo_data else 0}")
-    else:
-        logging.info(f"📸 photos is NOT a dict: {all_photos_dict}")
+    logging.info(f"📸 Raw photos type: {type(photos_raw)}")
+    logging.info(f"📸 Raw photos length: {len(photos_raw) if photos_raw else 0}")
     
-    # Convert dict to list of photo objects for rendering
-    photo_keys = ['front', 'front_left', 'left', 'back_left', 'back', 'back_right', 'right', 'front_right', 'odometer']
+    # Handle both list (from backend) and dict (legacy)
     all_photos = []
-    if isinstance(all_photos_dict, dict):
+    if isinstance(photos_raw, list):
+        # Backend sends list of objects: [{'image_data': '...', 'photo_type': 'front'}, ...]
+        logging.info(f"📸 Photos is a LIST with {len(photos_raw)} items")
+        for photo_obj in photos_raw:
+            if isinstance(photo_obj, dict) and 'image_data' in photo_obj:
+                all_photos.append(photo_obj)
+                logging.info(f"📸 Added photo from list: {photo_obj.get('photo_type', 'unknown')}")
+    elif isinstance(photos_raw, dict):
+        # Legacy: dict format {'front': 'data:image...', 'left': 'data:image...'}
+        logging.info(f"📸 Photos is a DICT with keys: {list(photos_raw.keys())}")
+        photo_keys = ['front', 'front_left', 'left', 'back_left', 'back', 'back_right', 'right', 'front_right', 'odometer']
         for key in photo_keys:
-            if key in all_photos_dict:
-                all_photos.append({'image_data': all_photos_dict[key], 'type': key})
-                logging.info(f"📸 Added photo: {key}")
+            if key in photos_raw:
+                all_photos.append({'image_data': photos_raw[key], 'photo_type': key})
+                logging.info(f"📸 Added photo from dict: {key}")
+    else:
+        logging.warning(f"📸 Photos is neither list nor dict: {type(photos_raw)}")
     
-    logging.info(f"📸 Self-checkout photos count: {len(all_photos)}")
-    logging.info(f"📸 photos_to_show will be created: {len(all_photos) > 0}")
+    logging.info(f"📸 Total photos to render: {len(all_photos)}")
     
     # For self-checkout, show all photos taken by the client (no conditional logic)
     photos_to_show = []
