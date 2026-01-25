@@ -1,14 +1,17 @@
 """Modern PDF generator for vehicle inspections"""
-from reportlab.lib.pagesizes import A4
-from reportlab.lib.colors import HexColor
-from reportlab.pdfgen import canvas as pdf_canvas
-import io
-import os
-import json
-import logging
+import base64
 import binascii
+import io
+import logging
+import re
+from datetime import datetime
+from reportlab.lib.pagesizes import A4
+from reportlab.pdfgen import canvas
+from reportlab.lib.colors import HexColor
+from reportlab.lib.utils import ImageReader
 from PIL import Image, ImageDraw
 from reportlab.lib.utils import ImageReader
+import urllib
 
 def generate_inspection_pdf(inspection_data, extracted_data_json):
     """Generate a modern, clean PDF for check-in, check-out, or self-checkout inspection"""
@@ -331,15 +334,18 @@ def generate_inspection_pdf(inspection_data, extracted_data_json):
                     c.setFillColor(HexColor('#6b7280'))
                     c.drawString(label_x_right, content_y_right, "Assinatura:")
                     
-                    # Process signature image
+                    # Process signature image - extract base64 part
                     if signature_data.startswith('data:image'):
-                        # Extract base64 part after the comma
-                        header, encoded = signature_data.split(',', 1)
-                        # Use binascii which tolerates incorrect padding
-                        sig_img_data = binascii.a2b_base64(encoded)
+                        match = re.match(r'data:image/[^;]+;base64,(.+)', signature_data)
+                        if match:
+                            encoded = match.group(1)
+                        else:
+                            encoded = signature_data.split(',', 1)[1] if ',' in signature_data else signature_data
                     else:
-                        # Raw base64 string
-                        sig_img_data = binascii.a2b_base64(signature_data)
+                        encoded = signature_data
+                    
+                    # Decode base64
+                    sig_img_data = base64.b64decode(encoded)
                     sig_img = Image.open(io.BytesIO(sig_img_data))
                     
                     # Convert to RGBA if needed and remove background
@@ -909,16 +915,20 @@ def generate_inspection_pdf(inspection_data, extracted_data_json):
                 try:
                     photo_data = photo['image_data']
                     
-                    # Handle data URI or raw base64
+                    # Handle data URI - extract base64 part
                     if photo_data.startswith('data:image'):
-                        # Extract base64 part after the comma
-                        header, encoded = photo_data.split(',', 1)
-                        # Use binascii which tolerates incorrect padding
-                        img_data = binascii.a2b_base64(encoded)
+                        # Split on first comma only
+                        match = re.match(r'data:image/[^;]+;base64,(.+)', photo_data)
+                        if match:
+                            encoded = match.group(1)
+                        else:
+                            # Fallback to simple split
+                            encoded = photo_data.split(',', 1)[1] if ',' in photo_data else photo_data
                     else:
-                        # Raw base64 string
-                        img_data = binascii.a2b_base64(photo_data)
+                        encoded = photo_data
                     
+                    # Decode base64 - Python's base64 module handles padding automatically
+                    img_data = base64.b64decode(encoded)
                     img = Image.open(io.BytesIO(img_data))
                     
                     # Convert to RGB if needed
