@@ -172,10 +172,15 @@ def generate_inspection_pdf(inspection_data, extracted_data_json):
     box_width = (width - 100) / 2
     box_height = 120
     
-    # Left box - Check-in info (BLUE like website)
-    box_color = HexColor('#eff6ff')  # bg-blue-50 (lighter)
-    border_color = HexColor('#bfdbfe')  # border-blue-200
-    title_color = HexColor('#009cb6')  # cyan title
+    # Left box - Check-in/Check-out info (colors match website)
+    if inspection_data['inspection_type'] == 'checkin':
+        box_color = HexColor('#e6f7fa')  # bg heather light blue
+        border_color = HexColor('#009cb6')  # border heather cyan
+        title_color = HexColor('#009cb6')  # heather cyan
+    else:
+        box_color = HexColor('#fffbeb')  # bg-yellow-50
+        border_color = HexColor('#fbbf24')  # border-yellow-400
+        title_color = HexColor('#d97706')  # text-yellow-600
     
     c.setFillColor(box_color)
     c.roundRect(40, y_pos - box_height, box_width, box_height, 8, fill=1, stroke=0)
@@ -496,26 +501,28 @@ def generate_inspection_pdf(inspection_data, extracted_data_json):
                 p.close()
                 c.clipPath(p, stroke=0, fill=0)
                 
-                # Calculate dimensions to cover the rectangle (like CSS object-fit: cover)
-                img_aspect = img.width / img.height
+                # Calculate cover fit dimensions
+                img_width, img_height = img.size
+                img_aspect = img_width / img_height
                 photo_aspect = photo_width / photo_height
                 
                 if img_aspect > photo_aspect:
-                    # Image is wider - fit to width and crop height
+                    # Image is wider - fit to height and crop width (cover fit)
+                    draw_height = photo_height
+                    draw_width = draw_height * img_aspect
+                    draw_x = x - (draw_width - photo_width) / 2
+                    draw_y = y
+                else:
+                    # Image is taller - fit to width and crop height (cover fit)
                     draw_width = photo_width
                     draw_height = draw_width / img_aspect
                     draw_x = x
-                    draw_y = y + (photo_height - draw_height) / 2
-                else:
-                    # Image is taller - fit to height and crop width
-                    draw_height = photo_height
-                    draw_width = draw_height * img_aspect
-                    draw_x = x + (photo_width - draw_width) / 2
-                    draw_y = y
+                    draw_y = y - (draw_height - photo_height) / 2
                 
-                # Draw image (will be clipped to rounded rect)
+                # Draw image with cover fit
                 c.drawImage(ImageReader(img), draw_x, draw_y, width=draw_width, height=draw_height, mask='auto')
                 
+                # Restore state to remove clipping
                 c.restoreState()
                 
                 # Draw rounded border
