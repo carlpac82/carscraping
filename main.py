@@ -49231,8 +49231,22 @@ async def get_inspection_pdf(inspection_number: str, request: Request):
                 'vehicle_brand': row[12] or '',
                 'vehicle_model': row[13] or '',
                 'pickup_location': row[14] or '',
-                'signature': row[15] or '',
+                'signature': '',
             }
+            
+            # Fix signature padding if present
+            signature_data = row[15] or ''
+            if signature_data and signature_data.startswith('data:image'):
+                import base64
+                parts = signature_data.split(',', 1)
+                if len(parts) == 2:
+                    header, encoded = parts
+                    encoded = encoded.strip().replace('\n', '').replace('\r', '').replace(' ', '')
+                    padding_needed = (4 - len(encoded) % 4) % 4
+                    if padding_needed:
+                        encoded += '=' * padding_needed
+                    signature_data = f"{header},{encoded}"
+            inspection_data['signature'] = signature_data
             
             extracted_data_json = row[11]
             
@@ -49369,26 +49383,28 @@ async def get_inspection_pdf(inspection_number: str, request: Request):
                     photo_type = photo_row[1]
                     image_data = photo_row[0]
                     
-                    # Debug: Check image_data format
-                    logging.info(f"📸 Photo {photo_type}: type={type(image_data)}, is_bytes={isinstance(image_data, bytes)}")
-                    if isinstance(image_data, str):
-                        has_prefix = image_data.startswith('data:image')
-                        logging.info(f"📸 Photo {photo_type}: has_prefix={has_prefix}, length={len(image_data)}")
-                        if has_prefix:
-                            # Extract base64 part to check padding
-                            base64_part = image_data.split(',', 1)[1] if ',' in image_data else image_data
-                            padding_needed = len(base64_part) % 4
-                            logging.info(f"📸 Photo {photo_type}: base64_length={len(base64_part)}, padding_needed={padding_needed}")
-                    
                     # Convert bytes to base64 string if needed (PostgreSQL stores as TEXT, SQLite as BLOB)
                     if isinstance(image_data, bytes):
                         import base64
                         image_data = f"data:image/jpeg;base64,{base64.b64encode(image_data).decode('utf-8')}"
+                    elif isinstance(image_data, str) and image_data.startswith('data:image'):
+                        # Fix padding if needed for data URI
+                        import base64
+                        parts = image_data.split(',', 1)
+                        if len(parts) == 2:
+                            header, encoded = parts
+                            # Remove whitespace and fix padding
+                            encoded = encoded.strip().replace('\n', '').replace('\r', '').replace(' ', '')
+                            padding_needed = (4 - len(encoded) % 4) % 4
+                            if padding_needed:
+                                encoded += '=' * padding_needed
+                            # Reconstruct data URI with fixed padding
+                            image_data = f"{header},{encoded}"
+                    
                     inspection_photos.append({
                         'image_data': image_data,
                         'photo_type': photo_type
                     })
-                    logging.info(f"📸 Added photo: {photo_type}, final data length: {len(str(image_data))}")
             
             logging.info(f"📸 Total inspection photos added: {len(inspection_photos)}")
             inspection_data['photos'] = inspection_photos

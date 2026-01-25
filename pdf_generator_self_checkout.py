@@ -333,25 +333,13 @@ def generate_inspection_pdf(inspection_data, extracted_data_json):
                     c.setFillColor(HexColor('#6b7280'))
                     c.drawString(label_x_right, content_y_right, "Assinatura:")
                     
-                    # Process signature image - extract base64 part
+                    # Extract base64 part from data URI
                     if signature_data.startswith('data:image'):
-                        match = re.match(r'data:image/[^;]+;base64,(.+)', signature_data)
-                        if match:
-                            encoded = match.group(1)
-                        else:
-                            encoded = signature_data.split(',', 1)[1] if ',' in signature_data else signature_data
+                        encoded = signature_data.split(',', 1)[1]
                     else:
                         encoded = signature_data
                     
-                    # Remove any whitespace
-                    encoded = encoded.strip().replace('\n', '').replace('\r', '').replace(' ', '')
-                    
-                    # Fix padding
-                    padding_needed = (4 - len(encoded) % 4) % 4
-                    if padding_needed:
-                        encoded += '=' * padding_needed
-                    
-                    # Decode base64
+                    # Decode base64 (padding already fixed in backend)
                     sig_img_data = base64.b64decode(encoded)
                     sig_img = Image.open(io.BytesIO(sig_img_data))
                     
@@ -922,28 +910,13 @@ def generate_inspection_pdf(inspection_data, extracted_data_json):
                 try:
                     photo_data = photo['image_data']
                     
-                    # Handle data URI - extract base64 part
+                    # Extract base64 part from data URI
                     if photo_data.startswith('data:image'):
-                        # Split on first comma only
-                        match = re.match(r'data:image/[^;]+;base64,(.+)', photo_data)
-                        if match:
-                            encoded = match.group(1)
-                        else:
-                            # Fallback to simple split
-                            encoded = photo_data.split(',', 1)[1] if ',' in photo_data else photo_data
+                        encoded = photo_data.split(',', 1)[1]
                     else:
                         encoded = photo_data
                     
-                    # Remove any whitespace
-                    encoded = encoded.strip().replace('\n', '').replace('\r', '').replace(' ', '')
-                    
-                    # Fix padding - base64 strings must be multiple of 4
-                    padding_needed = (4 - len(encoded) % 4) % 4
-                    if padding_needed:
-                        encoded += '=' * padding_needed
-                        logging.info(f"📸 Photo {idx}: Added {padding_needed} padding chars")
-                    
-                    # Decode base64
+                    # Decode base64 (padding already fixed in backend)
                     img_data = base64.b64decode(encoded)
                     img = Image.open(io.BytesIO(img_data))
                     
