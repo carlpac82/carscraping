@@ -482,7 +482,7 @@ def generate_inspection_pdf(inspection_data, extracted_data_json):
             c.drawCentredString(bar_left + bar_width_inner * 0.75, content_y, "3/4")
             c.drawString(bar_left + bar_width_inner + 5, content_y, "F")
             
-            content_y -= 15  # More space between markers and bar
+            content_y -= 18  # More space between markers and bar
             
             # Background bar (white with cyan border)
             c.setStrokeColor(HexColor('#009cb6'))
