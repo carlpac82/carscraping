@@ -400,7 +400,7 @@ def generate_inspection_pdf(inspection_data, extracted_data_json):
         
         c.setFont("Helvetica-Bold", 11)
         c.setFillColor(title_color)
-        c.drawString(60 + box_width, y_pos - 18, "Recolha (Check-Out) - Prevista")
+        c.drawString(60 + box_width, y_pos - 18, "Recolha (Check-Out)")
         
         content_y = y_pos - 38
         label_x = 60 + box_width
