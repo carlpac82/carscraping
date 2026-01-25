@@ -218,46 +218,51 @@ def generate_inspection_pdf(inspection_data, extracted_data_json):
     label_x = 50
     value_x = 40 + box_width - 10
     
-    # Local de Entrega/Recolha
-    c.setFont("Helvetica", 8)
-    c.setFillColor(HexColor('#6b7280'))
-    if inspection_data['inspection_type'] == 'checkin':
-        c.drawString(label_x, content_y, "Local de Entrega:")
-        location = (inspection_data.get('pickup_location') or 
-                    extracted.get('pickupLocation') or 
-                    extracted.get('pickup_location') or 
-                    'N/A')
-    else:
+    # For checkout, show Local de Recolha first, then Data de Recolha Esperada
+    if inspection_data['inspection_type'] == 'checkout':
+        # Local de Recolha
+        c.setFont("Helvetica", 8)
+        c.setFillColor(HexColor('#6b7280'))
         c.drawString(label_x, content_y, "Local de Recolha:")
         location = (inspection_data.get('return_location') or 
                     extracted.get('returnLocation') or 
                     extracted.get('return_location') or 
                     'N/A')
-    c.setFont("Helvetica-Bold", 8)
-    c.setFillColor(HexColor('#111827'))
-    c.drawRightString(value_x, content_y, location)
-    
-    content_y -= 12
-    c.setFont("Helvetica", 8)
-    c.setFillColor(HexColor('#6b7280'))
-    c.drawString(label_x, content_y, "Data:")
-    c.setFont("Helvetica-Bold", 8)
-    c.setFillColor(HexColor('#111827'))
-    date_str = inspection_data['created_at'].strftime('%d/%m/%Y %H:%M') if inspection_data.get('created_at') else 'N/A'
-    c.drawRightString(value_x, content_y, date_str)
-    
-    # Add expected return date/time for checkout inspections
-    if inspection_data['inspection_type'] == 'checkout':
+        c.setFont("Helvetica-Bold", 8)
+        c.setFillColor(HexColor('#111827'))
+        c.drawRightString(value_x, content_y, location)
+        
         content_y -= 12
         c.setFont("Helvetica", 8)
         c.setFillColor(HexColor('#6b7280'))
-        c.drawString(label_x, content_y, "Data de Recolha Esperada:")
+        c.drawString(label_x, content_y, "Data:")
         c.setFont("Helvetica-Bold", 8)
         c.setFillColor(HexColor('#111827'))
         return_date = inspection_data.get('return_date') or 'N/A'
         return_time = inspection_data.get('return_time') or ''
         return_datetime = f"{return_date} {return_time}".strip() if return_date != 'N/A' else 'N/A'
         c.drawRightString(value_x, content_y, return_datetime)
+    else:
+        # For checkin, show Local de Entrega and Data
+        c.setFont("Helvetica", 8)
+        c.setFillColor(HexColor('#6b7280'))
+        c.drawString(label_x, content_y, "Local de Entrega:")
+        location = (inspection_data.get('pickup_location') or 
+                    extracted.get('pickupLocation') or 
+                    extracted.get('pickup_location') or 
+                    'N/A')
+        c.setFont("Helvetica-Bold", 8)
+        c.setFillColor(HexColor('#111827'))
+        c.drawRightString(value_x, content_y, location)
+        
+        content_y -= 12
+        c.setFont("Helvetica", 8)
+        c.setFillColor(HexColor('#6b7280'))
+        c.drawString(label_x, content_y, "Data:")
+        c.setFont("Helvetica-Bold", 8)
+        c.setFillColor(HexColor('#111827'))
+        date_str = inspection_data['created_at'].strftime('%d/%m/%Y %H:%M') if inspection_data.get('created_at') else 'N/A'
+        c.drawRightString(value_x, content_y, date_str)
     
     content_y -= 12
     c.setFont("Helvetica", 8)
