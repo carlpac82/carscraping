@@ -333,14 +333,12 @@ def generate_inspection_pdf(inspection_data, extracted_data_json):
                     
                     # Process signature image
                     if signature_data.startswith('data:image'):
-                        signature_data = signature_data.split(',', 1)[1]
-                    
-                    # Fix base64 padding if needed
-                    missing_padding = len(signature_data) % 4
-                    if missing_padding:
-                        signature_data += '=' * (4 - missing_padding)
-                    
-                    sig_img_data = base64.b64decode(signature_data)
+                        # Extract base64 part after the comma
+                        header, encoded = signature_data.split(',', 1)
+                        sig_img_data = base64.b64decode(encoded)
+                    else:
+                        # Raw base64 string
+                        sig_img_data = base64.b64decode(signature_data)
                     sig_img = Image.open(io.BytesIO(sig_img_data))
                     
                     # Convert to RGBA if needed and remove background
@@ -909,21 +907,16 @@ def generate_inspection_pdf(inspection_data, extracted_data_json):
                 
                 try:
                     photo_data = photo['image_data']
-                    original_length = len(photo_data)
                     
+                    # Handle data URI or raw base64
                     if photo_data.startswith('data:image'):
-                        photo_data = photo_data.split(',', 1)[1]
-                    
-                    # Fix base64 padding if needed
-                    missing_padding = len(photo_data) % 4
-                    if missing_padding:
-                        logging.info(f"📸 Photo {idx}: Adding {4 - missing_padding} padding chars (length: {len(photo_data)} -> {len(photo_data) + (4 - missing_padding)})")
-                        photo_data += '=' * (4 - missing_padding)
+                        # Extract base64 part after the comma
+                        header, encoded = photo_data.split(',', 1)
+                        img_data = base64.b64decode(encoded)
                     else:
-                        logging.info(f"📸 Photo {idx}: No padding needed (length: {len(photo_data)})")
+                        # Raw base64 string
+                        img_data = base64.b64decode(photo_data)
                     
-                    img_data = base64.b64decode(photo_data)
-                    logging.info(f"📸 Photo {idx}: Successfully decoded base64")
                     img = Image.open(io.BytesIO(img_data))
                     
                     # Convert to RGB if needed
