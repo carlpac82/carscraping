@@ -102,7 +102,7 @@ def generate_inspection_pdf(inspection_data, extracted_data_json):
     c.drawString(50, row_y, "Marca")
     c.setFont("Helvetica-Bold", 9)
     c.setFillColor(HexColor('#111827'))
-    brand = extracted.get('brand') or extracted.get('vehicleBrand') or extracted.get('make') or 'N/A'
+    brand = inspection_data.get('vehicle_brand') or extracted.get('brand') or extracted.get('vehicleBrand') or extracted.get('make') or 'N/A'
     c.drawString(50, row_y - 10, brand)
     
     # Modelo
@@ -111,7 +111,7 @@ def generate_inspection_pdf(inspection_data, extracted_data_json):
     c.drawString(50 + col_width, row_y, "Modelo")
     c.setFont("Helvetica-Bold", 9)
     c.setFillColor(HexColor('#111827'))
-    model = extracted.get('model') or extracted.get('vehicleModel') or 'N/A'
+    model = inspection_data.get('vehicle_model') or extracted.get('model') or extracted.get('vehicleModel') or 'N/A'
     c.drawString(50 + col_width, row_y - 10, model)
     
     # Matrícula
@@ -139,7 +139,7 @@ def generate_inspection_pdf(inspection_data, extracted_data_json):
     c.drawString(50 + col_width, row_y, "Cliente")
     c.setFont("Helvetica-Bold", 9)
     c.setFillColor(HexColor('#111827'))
-    client_name = inspection_data.get('client_name') or extracted.get('clientName') or extracted.get('customerName') or extracted.get('name') or 'N/A'
+    client_name = inspection_data.get('ra_customer_name') or inspection_data.get('client_name') or extracted.get('clientName') or extracted.get('customerName') or extracted.get('name') or 'N/A'
     # Truncate if too long
     if len(client_name) > 20:
         client_name = client_name[:17] + '...'
