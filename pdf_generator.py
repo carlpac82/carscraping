@@ -119,10 +119,7 @@ def generate_inspection_pdf(inspection_data, extracted_data_json):
     # Extract brand - prioritize inspection_data, then extracted_data_json
     brand = inspection_data.get('vehicle_brand') or ''
     if not brand:
-        extracted = extracted_data_json or {}
         brand = extracted.get('vehicleBrand') or extracted.get('brand') or extracted.get('make') or 'N/A'
-    else:
-        extracted = extracted_data_json or {}
     c.drawString(50, row_y - 10, brand)
     
     # Modelo
