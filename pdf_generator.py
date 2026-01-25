@@ -302,7 +302,7 @@ def generate_inspection_pdf(inspection_data, extracted_data_json):
     c.setFillColor(HexColor('#111827'))
     c.drawRightString(value_x, content_y, "4")
     
-    # Fuel bar section (INSIDE the blue box)
+    # Process fuel level for later use
     fuel_level = inspection_data.get('fuel_level') or 'R'
     print(f"⛽ Raw fuel_level: '{fuel_level}' (type: {type(fuel_level)})")
     
@@ -336,54 +336,6 @@ def generate_inspection_pdf(inspection_data, extracted_data_json):
     print(f"✅ Converted fuel_level: '{fuel_level}'")
     fuel_percent = fuel_to_percent(fuel_level)
     print(f"📊 Fuel percent: {fuel_percent}%")
-    
-    content_y -= 12
-    c.setStrokeColor(border_color)
-    c.setLineWidth(0.5)
-    c.line(50, content_y, 40 + box_width - 10, content_y)
-    
-    content_y -= 8
-    c.setFont("Helvetica", 6)
-    c.setFillColor(HexColor('#6b7280'))
-    label_text = "Combustível na Entrega" if inspection_data['inspection_type'] == 'checkin' else "Combustível na Recolha"
-    c.drawCentredString(40 + box_width / 2, content_y, label_text)
-    
-    # Fuel markers
-    content_y -= 10
-    c.setFont("Helvetica-Bold", 7)
-    c.setFillColor(HexColor('#009cb6'))
-    bar_left = 50 + (box_width - 20) * 0.25
-    bar_width_inner = (box_width - 20) * 0.5
-    c.drawString(bar_left - 5, content_y, "R")
-    c.drawCentredString(bar_left + bar_width_inner * 0.25, content_y, "1/4")
-    c.drawCentredString(bar_left + bar_width_inner * 0.5, content_y, "1/2")
-    c.drawCentredString(bar_left + bar_width_inner * 0.75, content_y, "3/4")
-    c.drawString(bar_left + bar_width_inner + 2, content_y, "F")
-    
-    # Fuel bar with rounded corners (exact canvas design)
-    content_y -= 12
-    bar_height = 16
-    
-    # Background bar (white with cyan border)
-    c.setStrokeColor(HexColor('#009cb6'))
-    c.setLineWidth(2)
-    c.setFillColor(HexColor('#ffffff'))
-    c.roundRect(bar_left, content_y, bar_width_inner, bar_height, 5, fill=1, stroke=1)
-    
-    # Fuel bar fill (cyan, rounded, INSIDE the border)
-    if fuel_percent > 0:
-        c.setFillColor(HexColor('#009cb6'))
-        fill_width = max(10, (bar_width_inner - 4) * (fuel_percent / 100))  # -4 for border
-        c.roundRect(bar_left + 2, content_y + 2, fill_width, bar_height - 4, 4, fill=1, stroke=0)
-    
-    # Fuel bar markers (vertical lines) - AFTER fill
-    c.setStrokeColor(HexColor('#009cb6'))
-    c.setLineWidth(0.5)
-    for pos in [0, 0.25, 0.5, 0.75, 1.0]:
-        x = bar_left + bar_width_inner * pos
-        c.line(x, content_y + 3, x, content_y + bar_height - 3)
-    
-    # No fuel level text below bar
     
     # Right box - Return date (YELLOW/AMBER)
     if inspection_data['inspection_type'] == 'checkin':
@@ -498,16 +450,26 @@ def generate_inspection_pdf(inspection_data, extracted_data_json):
             label_x = 50
             value_x = 40 + left_box_width - 10
             
-            # Combustível label
+            # Quilómetros
             c.setFont("Helvetica", 8)
             c.setFillColor(HexColor('#6b7280'))
-            c.drawString(label_x, content_y, "Combustível:")
+            c.drawString(label_x, content_y, "Quilómetros:")
+            c.setFont("Helvetica-Bold", 8)
+            c.setFillColor(HexColor('#111827'))
+            c.drawRightString(value_x, content_y, odometer_str)
+            
+            content_y -= 20
+            
+            # Combustível label centered
+            c.setFont("Helvetica", 8)
+            c.setFillColor(HexColor('#6b7280'))
+            c.drawCentredString(40 + left_box_width / 2, content_y, "Combustível:")
             
             content_y -= 12
             
-            # Fuel bar (same as in check-in card)
-            bar_left = 50 + (left_box_width - 20) * 0.25
-            bar_width_inner = (left_box_width - 20) * 0.5
+            # Fuel bar centered in box
+            bar_width_inner = (left_box_width - 40) * 0.6
+            bar_left = 40 + (left_box_width - bar_width_inner) / 2
             bar_height = 16
             
             # Fuel markers
