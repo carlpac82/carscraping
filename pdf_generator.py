@@ -68,7 +68,7 @@ def generate_inspection_pdf(inspection_data, extracted_data_json):
     
     # Title in center of header (uppercase, vertically centered)
     c.setFillColor(HexColor('#ffffff'))
-    c.setFont("AvantGarde-Demi", 14)
+    c.setFont("Helvetica-Bold", 14)
     
     if inspection_data['inspection_type'] == 'checkin':
         title = "RELATÓRIO DE ENTREGA"
@@ -82,9 +82,9 @@ def generate_inspection_pdf(inspection_data, extracted_data_json):
     
     # RA number on right in header (much smaller)
     c.setFillColor(HexColor('#ffffff'))
-    c.setFont("AvantGarde-Demi", 11)
+    c.setFont("Helvetica-Bold", 11)
     ra_text = f"R.A.: {inspection_data['contract_number']}"
-    ra_width = c.stringWidth(ra_text, "AvantGarde-Demi", 11)
+    ra_width = c.stringWidth(ra_text, "Helvetica-Bold", 11)
     
     # Box for RA (much smaller)
     box_padding = 8
@@ -112,10 +112,10 @@ def generate_inspection_pdf(inspection_data, extracted_data_json):
     row_y = y_pos - 15
     
     # Marca
-    c.setFont("AvantGarde-Book", 8)
+    c.setFont("Helvetica", 8)
     c.setFillColor(HexColor('#6b7280'))
     c.drawString(50, row_y, "Marca")
-    c.setFont("AvantGarde-Demi", 9)
+    c.setFont("Helvetica-Bold", 9)
     # Extract brand - prioritize inspection_data, then extracted_data_json
     brand = inspection_data.get('vehicle_brand') or ''
     if not brand:
@@ -123,10 +123,10 @@ def generate_inspection_pdf(inspection_data, extracted_data_json):
     c.drawString(50, row_y - 10, brand)
     
     # Modelo
-    c.setFont("AvantGarde-Book", 8)
+    c.setFont("Helvetica", 8)
     c.setFillColor(HexColor('#6b7280'))
     c.drawString(50 + col_width, row_y, "Modelo")
-    c.setFont("AvantGarde-Demi", 9)
+    c.setFont("Helvetica-Bold", 9)
     c.setFillColor(HexColor('#111827'))
     # Extract model - prioritize inspection_data, then extracted_data_json
     model = inspection_data.get('vehicle_model') or ''
@@ -135,10 +135,10 @@ def generate_inspection_pdf(inspection_data, extracted_data_json):
     c.drawString(50 + col_width, row_y - 10, model)
     
     # Matrícula
-    c.setFont("AvantGarde-Book", 8)
+    c.setFont("Helvetica", 8)
     c.setFillColor(HexColor('#6b7280'))
     c.drawString(50 + col_width * 2, row_y, "Matrícula")
-    c.setFont("AvantGarde-Demi", 9)
+    c.setFont("Helvetica-Bold", 9)
     c.setFillColor(HexColor('#111827'))
     c.drawString(50 + col_width * 2, row_y - 10, inspection_data.get('vehicle_plate', 'N/A'))
     
@@ -146,18 +146,18 @@ def generate_inspection_pdf(inspection_data, extracted_data_json):
     row_y -= 28
     
     # Contrato (RA)
-    c.setFont("AvantGarde-Book", 8)
+    c.setFont("Helvetica", 8)
     c.setFillColor(HexColor('#6b7280'))
     c.drawString(50, row_y, "Contrato (RA)")
-    c.setFont("AvantGarde-Demi", 9)
+    c.setFont("Helvetica-Bold", 9)
     c.setFillColor(HexColor('#111827'))
     c.drawString(50, row_y - 10, inspection_data['contract_number'])
     
     # Cliente
-    c.setFont("AvantGarde-Book", 8)
+    c.setFont("Helvetica", 8)
     c.setFillColor(HexColor('#6b7280'))
     c.drawString(50 + col_width, row_y, "Cliente")
-    c.setFont("AvantGarde-Demi", 9)
+    c.setFont("Helvetica-Bold", 9)
     c.setFillColor(HexColor('#111827'))
     # Extract client name - prioritize inspection_data, then extracted_data_json
     client_name = inspection_data.get('client_name') or ''
@@ -200,7 +200,7 @@ def generate_inspection_pdf(inspection_data, extracted_data_json):
     c.roundRect(40, y_pos - box_height, box_width, box_height, 8, fill=0, stroke=1)
     
     # Title with icon space
-    c.setFont("AvantGarde-Demi", 11)
+    c.setFont("Helvetica-Bold", 11)
     c.setFillColor(title_color)
     if inspection_data['inspection_type'] == 'checkin':
         c.drawString(50, y_pos - 18, "Entrega (Check-In)")
@@ -215,22 +215,22 @@ def generate_inspection_pdf(inspection_data, extracted_data_json):
     # For checkout, show Local de Recolha first, then Data de Recolha Esperada
     if inspection_data['inspection_type'] == 'checkout':
         # Local de Recolha
-        c.setFont("AvantGarde-Book", 8)
+        c.setFont("Helvetica", 8)
         c.setFillColor(HexColor('#6b7280'))
         c.drawString(label_x, content_y, "Local de Recolha:")
         location = (inspection_data.get('return_location') or 
                     extracted.get('returnLocation') or 
                     extracted.get('return_location') or 
                     'N/A')
-        c.setFont("AvantGarde-Demi", 8)
+        c.setFont("Helvetica-Bold", 8)
         c.setFillColor(HexColor('#111827'))
         c.drawRightString(value_x, content_y, location)
         
         content_y -= 12
-        c.setFont("AvantGarde-Book", 8)
+        c.setFont("Helvetica", 8)
         c.setFillColor(HexColor('#6b7280'))
         c.drawString(label_x, content_y, "Data:")
-        c.setFont("AvantGarde-Demi", 8)
+        c.setFont("Helvetica-Bold", 8)
         c.setFillColor(HexColor('#111827'))
         # Format date as dd/mm/yyyy HH:MM
         if inspection_data.get('created_at'):
@@ -242,34 +242,34 @@ def generate_inspection_pdf(inspection_data, extracted_data_json):
         c.drawRightString(value_x, content_y, date_str)
     else:
         # For checkin, show Local de Entrega and Data
-        c.setFont("AvantGarde-Book", 8)
+        c.setFont("Helvetica", 8)
         c.setFillColor(HexColor('#6b7280'))
         c.drawString(label_x, content_y, "Local de Entrega:")
         location = (inspection_data.get('pickup_location') or 
                     extracted.get('pickupLocation') or 
                     extracted.get('pickup_location') or 
                     'N/A')
-        c.setFont("AvantGarde-Demi", 8)
+        c.setFont("Helvetica-Bold", 8)
         c.setFillColor(HexColor('#111827'))
         c.drawRightString(value_x, content_y, location)
         
         content_y -= 12
-        c.setFont("AvantGarde-Book", 8)
+        c.setFont("Helvetica", 8)
         c.setFillColor(HexColor('#6b7280'))
         c.drawString(label_x, content_y, "Data:")
-        c.setFont("AvantGarde-Demi", 8)
+        c.setFont("Helvetica-Bold", 8)
         c.setFillColor(HexColor('#111827'))
         date_str = inspection_data['created_at'].strftime('%d/%m/%Y %H:%M') if inspection_data.get('created_at') else 'N/A'
         c.drawRightString(value_x, content_y, date_str)
     
     content_y -= 12
-    c.setFont("AvantGarde-Book", 8)
+    c.setFont("Helvetica", 8)
     c.setFillColor(HexColor('#6b7280'))
     if inspection_data['inspection_type'] == 'checkin':
         c.drawString(label_x, content_y, "Entregue por:")
     else:
         c.drawString(label_x, content_y, "Recolhido por:")
-    c.setFont("AvantGarde-Demi", 8)
+    c.setFont("Helvetica-Bold", 8)
     c.setFillColor(HexColor('#111827'))
     inspector = inspection_data.get('inspector_name', 'N/A')
     if inspector and inspector != 'N/A':
@@ -279,10 +279,10 @@ def generate_inspection_pdf(inspection_data, extracted_data_json):
     c.drawRightString(value_x, content_y, inspector)
     
     content_y -= 12
-    c.setFont("AvantGarde-Book", 8)
+    c.setFont("Helvetica", 8)
     c.setFillColor(HexColor('#6b7280'))
     c.drawString(label_x, content_y, "Quilómetros:")
-    c.setFont("AvantGarde-Demi", 8)
+    c.setFont("Helvetica-Bold", 8)
     c.setFillColor(HexColor('#111827'))
     odometer = inspection_data.get('odometer_reading', 'N/A')
     if odometer and odometer != 'N/A':
@@ -295,10 +295,10 @@ def generate_inspection_pdf(inspection_data, extracted_data_json):
     c.drawRightString(value_x, content_y, odometer_str)
     
     content_y -= 12
-    c.setFont("AvantGarde-Book", 8)
+    c.setFont("Helvetica", 8)
     c.setFillColor(HexColor('#6b7280'))
     c.drawString(label_x, content_y, "Danos:")
-    c.setFont("AvantGarde-Demi", 8)
+    c.setFont("Helvetica-Bold", 8)
     c.setFillColor(HexColor('#111827'))
     c.drawRightString(value_x, content_y, "4")
     
@@ -343,14 +343,14 @@ def generate_inspection_pdf(inspection_data, extracted_data_json):
     c.line(50, content_y, 40 + box_width - 10, content_y)
     
     content_y -= 8
-    c.setFont("AvantGarde-Book", 6)
+    c.setFont("Helvetica", 6)
     c.setFillColor(HexColor('#6b7280'))
     label_text = "Combustível na Entrega" if inspection_data['inspection_type'] == 'checkin' else "Combustível na Recolha"
     c.drawCentredString(40 + box_width / 2, content_y, label_text)
     
     # Fuel markers
     content_y -= 10
-    c.setFont("AvantGarde-Demi", 7)
+    c.setFont("Helvetica-Bold", 7)
     c.setFillColor(HexColor('#009cb6'))
     bar_left = 50 + (box_width - 20) * 0.25
     bar_width_inner = (box_width - 20) * 0.5
@@ -398,7 +398,7 @@ def generate_inspection_pdf(inspection_data, extracted_data_json):
         c.setLineWidth(1)
         c.roundRect(50 + box_width, y_pos - box_height, box_width, box_height, 8, fill=0, stroke=1)
         
-        c.setFont("AvantGarde-Demi", 11)
+        c.setFont("Helvetica-Bold", 11)
         c.setFillColor(title_color)
         c.drawString(60 + box_width, y_pos - 18, "Recolha (Check-Out) - Prevista")
         
@@ -407,10 +407,10 @@ def generate_inspection_pdf(inspection_data, extracted_data_json):
         value_x = 50 + box_width * 2 - 10
         
         # Local de Recolha
-        c.setFont("AvantGarde-Book", 8)
+        c.setFont("Helvetica", 8)
         c.setFillColor(HexColor('#6b7280'))
         c.drawString(label_x, content_y, "Local de Recolha:")
-        c.setFont("AvantGarde-Demi", 8)
+        c.setFont("Helvetica-Bold", 8)
         c.setFillColor(HexColor('#111827'))
         return_location = (extracted.get('returnLocation') or 
                           extracted.get('return_location') or 
@@ -421,10 +421,10 @@ def generate_inspection_pdf(inspection_data, extracted_data_json):
         content_y -= 12
         
         # Data
-        c.setFont("AvantGarde-Book", 8)
+        c.setFont("Helvetica", 8)
         c.setFillColor(HexColor('#6b7280'))
         c.drawString(label_x, content_y, "Data:")
-        c.setFont("AvantGarde-Demi", 8)
+        c.setFont("Helvetica-Bold", 8)
         c.setFillColor(HexColor('#111827'))
         # Try to get date and time
         return_date = extracted.get('returnDate') or extracted.get('return_date', 'N/A')
@@ -443,10 +443,10 @@ def generate_inspection_pdf(inspection_data, extracted_data_json):
         c.drawRightString(value_x, content_y, return_datetime)
         
         content_y -= 12
-        c.setFont("AvantGarde-Book", 8)
+        c.setFont("Helvetica", 8)
         c.setFillColor(HexColor('#6b7280'))
         c.drawString(label_x, content_y, "Estado:")
-        c.setFont("AvantGarde-Demi", 8)
+        c.setFont("Helvetica-Bold", 8)
         c.setFillColor(HexColor('#f59e0b'))
         c.drawRightString(value_x, content_y, "Pendente")
     
@@ -454,7 +454,7 @@ def generate_inspection_pdf(inspection_data, extracted_data_json):
     
     # Croqui de Danos (smaller)
     if inspection_data.get('damage_croqui'):
-        c.setFont("AvantGarde-Demi", 10)
+        c.setFont("Helvetica-Bold", 10)
         c.setFillColor(HexColor('#1f2937'))
         c.drawString(40, y_pos, "Croqui de Danos")
         y_pos -= 10
@@ -504,7 +504,7 @@ def generate_inspection_pdf(inspection_data, extracted_data_json):
     # Photos grid (3x3 - fill rectangles)
     photos = inspection_data.get('photos', [])
     if photos:
-        c.setFont("AvantGarde-Demi", 10)
+        c.setFont("Helvetica-Bold", 10)
         c.setFillColor(HexColor('#1f2937'))
         c.drawString(40, y_pos, "Fotografias da Inspeção")
         y_pos -= 15
@@ -595,7 +595,7 @@ def generate_inspection_pdf(inspection_data, extracted_data_json):
                 c.roundRect(x, y, photo_width, photo_height, 6, fill=0, stroke=1)
                 
                 # Draw label below photo
-                c.setFont("AvantGarde-Book", 5)
+                c.setFont("Helvetica", 5)
                 c.setFillColor(HexColor('#6b7280'))
                 label = photo_labels[idx] if idx < len(photo_labels) else f"Foto {idx + 1}"
                 c.drawCentredString(x + photo_width / 2, y - 6, label)
@@ -610,15 +610,15 @@ def generate_inspection_pdf(inspection_data, extracted_data_json):
     c.rect(0, 0, width, 50, fill=1, stroke=0)
     
     # Company details in cyan footer (smaller text)
-    c.setFont("AvantGarde-Demi", 7)
+    c.setFont("Helvetica-Bold", 7)
     c.setFillColor(HexColor('#ffffff'))
     c.drawCentredString(width / 2, 35, "Auto Prudente Rent a Car Unipessoal, Lda. - Número Fiscal: PT 503 539 791")
     
-    c.setFont("AvantGarde-Book", 6)
+    c.setFont("Helvetica", 6)
     c.setFillColor(HexColor('#ffffff'))
     c.drawCentredString(width / 2, 25, "Sede: Estrada de Santa Eulália, Edifício Onda do Mar Loja E, 8200-269 Albufeira")
     
-    c.setFont("AvantGarde-Book", 6)
+    c.setFont("Helvetica", 6)
     phone_email = "Telefone +351 289 542 160 | E-mail: info@auto-prudente.com"
     c.drawCentredString(width / 2, 15, phone_email)
     
