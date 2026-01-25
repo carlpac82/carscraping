@@ -51,6 +51,19 @@ def generate_inspection_pdf(inspection_data, extracted_data_json):
             except Exception as e:
                 logging.warning(f"Could not load logo: {e}")
     
+    # Title in center of header (uppercase)
+    c.setFillColor(HexColor('#ffffff'))
+    c.setFont("Helvetica-Bold", 14)
+    
+    if inspection_data['inspection_type'] == 'checkin':
+        title = "RELATÓRIO DE ENTREGA"
+    elif inspection_data['inspection_type'] == 'self_checkout':
+        title = "RELATÓRIO DE DEVOLUÇÃO"
+    else:
+        title = "RELATÓRIO DE DEVOLUÇÃO"
+    
+    c.drawCentredString(width / 2, height - 28, title)
+    
     # RA number on right in header (much smaller)
     c.setFillColor(HexColor('#ffffff'))
     c.setFont("Helvetica-Bold", 11)
@@ -68,22 +81,8 @@ def generate_inspection_pdf(inspection_data, extracted_data_json):
     c.setFillColor(HexColor('#ffffff'))
     c.drawString(box_x + box_padding, box_y + 5, ra_text)
     
-    # Start content - Title below header (without plate)
-    y_pos = height - 65
-    
-    c.setFont("Helvetica-Bold", 14)
-    c.setFillColor(HexColor('#1f2937'))
-    
-    if inspection_data['inspection_type'] == 'checkin':
-        title = "Relatório de Entrega"
-    elif inspection_data['inspection_type'] == 'self_checkout':
-        title = "Relatório de Devolução"
-    else:
-        title = "Relatório de Devolução"
-    
-    c.drawCentredString(width / 2, y_pos, title)
-    
-    y_pos -= 20
+    # Start content below header
+    y_pos = height - 60
     
     # Gray box with vehicle info (smaller)
     box_height = 60
