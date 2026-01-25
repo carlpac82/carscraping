@@ -49250,7 +49250,7 @@ async def get_inspection_pdf(inspection_number: str, request: Request):
                     
                     if is_postgres:
                         cursor.execute("""
-                            SELECT odometer_reading, fuel_level, inspection_number, created_at
+                            SELECT odometer_reading, fuel_level, inspection_number, created_at, inspector_name
                             FROM vehicle_inspections
                             WHERE inspection_type = 'checkin'
                             AND vehicle_plate = %s
@@ -49260,7 +49260,7 @@ async def get_inspection_pdf(inspection_number: str, request: Request):
                         """, (row[2], row[3], f"{base_ra}%"))
                     else:
                         cursor.execute("""
-                            SELECT odometer_reading, fuel_level, inspection_number, created_at
+                            SELECT odometer_reading, fuel_level, inspection_number, created_at, inspector_name
                             FROM vehicle_inspections
                             WHERE inspection_type = 'checkin'
                             AND vehicle_plate = ?
@@ -49274,21 +49274,25 @@ async def get_inspection_pdf(inspection_number: str, request: Request):
                         inspection_data['checkin_odometer'] = str(checkin_row[0]) if checkin_row[0] else ''
                         inspection_data['checkin_fuel'] = checkin_row[1] or ''
                         inspection_data['checkin_created_at'] = checkin_row[3]
-                        logging.info(f"✅ Check-in data found: inspection={checkin_row[2]}, odometer={checkin_row[0]}, fuel={checkin_row[1]}, created_at={checkin_row[3]}")
+                        inspection_data['checkin_inspector_name'] = checkin_row[4] or ''
+                        logging.info(f"✅ Check-in data found: inspection={checkin_row[2]}, odometer={checkin_row[0]}, fuel={checkin_row[1]}, created_at={checkin_row[3]}, inspector={checkin_row[4]}")
                     else:
                         inspection_data['checkin_odometer'] = ''
                         inspection_data['checkin_fuel'] = ''
                         inspection_data['checkin_created_at'] = None
+                        inspection_data['checkin_inspector_name'] = ''
                         logging.warning(f"⚠️ No check-in data found for checkout {inspection_number} (plate={row[2]}, contract={row[3]})")
                 except Exception as e:
                     logging.error(f"❌ Error fetching check-in data: {e}")
                     inspection_data['checkin_odometer'] = ''
                     inspection_data['checkin_fuel'] = ''
                     inspection_data['checkin_created_at'] = None
+                    inspection_data['checkin_inspector_name'] = ''
             else:
                 inspection_data['checkin_odometer'] = ''
                 inspection_data['checkin_fuel'] = ''
                 inspection_data['checkin_created_at'] = None
+                inspection_data['checkin_inspector_name'] = ''
             
             # Get client_name, vehicle_brand, vehicle_model from extracted_data if still missing
             if extracted_data_json:

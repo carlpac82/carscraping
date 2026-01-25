@@ -243,7 +243,11 @@ def generate_inspection_pdf(inspection_data, extracted_data_json):
     c.drawString(label_x_left, content_y_left, "Entregue por:")
     c.setFont("Helvetica-Bold", 8)
     c.setFillColor(HexColor('#111827'))
-    inspector_checkin = inspection_data.get('inspector_name', 'N/A')
+    # Para checkout/self-checkout, usar o nome do inspetor do check-in
+    if is_checkout and inspection_data.get('checkin_inspector_name'):
+        inspector_checkin = inspection_data.get('checkin_inspector_name', 'N/A')
+    else:
+        inspector_checkin = inspection_data.get('inspector_name', 'N/A')
     if inspector_checkin and inspector_checkin != 'N/A':
         parts = inspector_checkin.split()
         if len(parts) >= 2:
@@ -269,7 +273,8 @@ def generate_inspection_pdf(inspection_data, extracted_data_json):
         # Title caixa amarela
         c.setFont("Helvetica-Bold", 11)
         c.setFillColor(title_color_right)
-        c.drawString(right_box_x + 10, y_pos - 18, "Recolha (Check-Out)")
+        title_text = "Self Check-Out" if inspection_data.get('inspection_type') == 'self_checkout' else "Recolha (Check-Out)"
+        c.drawString(right_box_x + 10, y_pos - 18, title_text)
         
         # Content caixa amarela
         content_y_right = y_pos - 38
@@ -785,10 +790,20 @@ def generate_inspection_pdf(inspection_data, extracted_data_json):
             logging.error(f"Error adding croqui to PDF: {e}")
     
     # Photos grid - SELF-CHECKOUT: Show only photos taken by client
-    all_photos = inspection_data.get('photos', [])
+    all_photos_dict = inspection_data.get('photos', {})
     
     # IMMEDIATE LOGGING
     logging.info(f"📸 SELF-CHECKOUT PDF GENERATOR STARTED")
+    logging.info(f"📸 Self-checkout photos dict: {type(all_photos_dict)}, keys: {list(all_photos_dict.keys()) if isinstance(all_photos_dict, dict) else 'not a dict'}")
+    
+    # Convert dict to list of photo objects for rendering
+    photo_keys = ['front', 'front_left', 'left', 'back_left', 'back', 'back_right', 'right', 'front_right', 'odometer']
+    all_photos = []
+    if isinstance(all_photos_dict, dict):
+        for key in photo_keys:
+            if key in all_photos_dict:
+                all_photos.append({'image_data': all_photos_dict[key], 'type': key})
+    
     logging.info(f"📸 Self-checkout photos count: {len(all_photos)}")
     
     # For self-checkout, show all photos taken by the client (no conditional logic)
