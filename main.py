@@ -30039,6 +30039,8 @@ async def save_inspection(request: Request):
                     ra_return_date = None
                     ra_return_location = None
                     ra_country = None
+                    ra_vehicle_brand = None
+                    ra_vehicle_model = None
                     
                     if ra:
                         try:
@@ -30057,7 +30059,9 @@ async def save_inspection(request: Request):
                                 ra_return_date = ra_data.get('returnDate', '')
                                 ra_return_location = ra_data.get('returnLocation', '')
                                 ra_country = ra_data.get('country', '')
-                                logging.info(f"📋 RA Data found for {ra} (base: {ra_base}): client={ra_client_name}, pickup={ra_pickup_date}/{ra_pickup_location}, return={ra_return_date}/{ra_return_location}, country={ra_country}")
+                                ra_vehicle_brand = ra_data.get('vehicleBrand', '')
+                                ra_vehicle_model = ra_data.get('vehicleModel', '')
+                                logging.info(f"📋 RA Data found for {ra} (base: {ra_base}): client={ra_client_name}, brand={ra_vehicle_brand}, model={ra_vehicle_model}, pickup={ra_pickup_date}/{ra_pickup_location}, return={ra_return_date}/{ra_return_location}, country={ra_country}")
                             else:
                                 logging.warning(f"⚠️ No RA data found for: {ra} (base: {ra_base})")
                         except Exception as e:
@@ -30066,16 +30070,18 @@ async def save_inspection(request: Request):
                     logging.info("💾 Inserting inspection into vehicle_inspections table...")
                     cursor.execute("""
                         INSERT INTO vehicle_inspections
-                        (inspection_number, inspection_type, vehicle_plate, vehicle_id, contract_number,
+                        (inspection_number, inspection_type, vehicle_plate, vehicle_brand, vehicle_model, vehicle_id, contract_number,
                          inspector_name, inspector_notes, has_damage, damage_count, damage_severity,
                          ai_analysis_complete, ai_confidence_avg, odometer_reading, fuel_level,
                          status, photo_count, client_name, pickup_date, pickup_location, return_date, return_location, country, created_at)
-                        VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, NOW())
+                        VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, NOW())
                         RETURNING id
                     """, (
                         inspection_number,
                         inspection_type,
                         plate,
+                        ra_vehicle_brand,
+                        ra_vehicle_model,
                         vehicle_id,
                         ra,
                         receptionist or username,
