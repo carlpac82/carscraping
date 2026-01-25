@@ -642,74 +642,12 @@ def generate_inspection_pdf(inspection_data, extracted_data_json):
                 x = bar_left + bar_width_inner * pos
                 c.line(x, content_y + 3, x, content_y + bar_height - 3)
             
-            # Right box - Caixa amarela (checkout) ou Caixa branca (check-in)
+            # Right box - SEMPRE caixa branca com croqui
             right_box_x = 40 + left_box_width + box_spacing
-            is_checkout_type = inspection_data.get('inspection_type') == 'checkout'
-            
-            if is_checkout_type:
-                # Caixa amarela com dados do checkout
-                c.setFillColor(HexColor('#fffbeb'))
-                c.roundRect(right_box_x, y_pos - box_height_croqui, right_box_width, box_height_croqui, 8, fill=1, stroke=0)
-                
-                c.setStrokeColor(HexColor('#f59e0b'))
-                c.setLineWidth(1)
-                c.roundRect(right_box_x, y_pos - box_height_croqui, right_box_width, box_height_croqui, 8, fill=0, stroke=1)
-                
-                box_center_x_right = right_box_x + right_box_width / 2
-                content_y_right = y_pos - 25
-                
-                c.setFont("Helvetica", 8)
-                c.setFillColor(HexColor('#6b7280'))
-                c.drawCentredString(box_center_x_right, content_y_right, "Quilómetros:")
-                
-                content_y_right -= 12
-                
-                c.setFont("Helvetica-Bold", 10)
-                c.setFillColor(HexColor('#111827'))
-                c.drawCentredString(box_center_x_right, content_y_right, checkout_odometer_str)
-                
-                content_y_right -= 20
-                
-                c.setFont("Helvetica", 8)
-                c.setFillColor(HexColor('#6b7280'))
-                c.drawCentredString(box_center_x_right, content_y_right, "Combustível:")
-                
-                content_y_right -= 12
-                
-                bar_width_inner_right = (right_box_width - 40) * 0.7
-                bar_left_right = right_box_x + (right_box_width - bar_width_inner_right) / 2
-                
-                c.setFont("Helvetica-Bold", 7)
-                c.setFillColor(HexColor('#f59e0b'))
-                c.drawString(bar_left_right - 8, content_y_right, "R")
-                c.drawCentredString(bar_left_right + bar_width_inner_right * 0.25, content_y_right, "1/4")
-                c.drawCentredString(bar_left_right + bar_width_inner_right * 0.5, content_y_right, "1/2")
-                c.drawCentredString(bar_left_right + bar_width_inner_right * 0.75, content_y_right, "3/4")
-                c.drawString(bar_left_right + bar_width_inner_right + 5, content_y_right, "F")
-                
-                content_y_right -= 22
-                
-                c.setStrokeColor(HexColor('#f59e0b'))
-                c.setLineWidth(2)
-                c.setFillColor(HexColor('#ffffff'))
-                c.roundRect(bar_left_right, content_y_right, bar_width_inner_right, bar_height, 5, fill=1, stroke=1)
-                
-                if checkout_fuel_percent > 0:
-                    c.setFillColor(HexColor('#f59e0b'))
-                    fill_width = max(10, (bar_width_inner_right - 4) * (checkout_fuel_percent / 100))
-                    c.roundRect(bar_left_right + 2, content_y_right + 2, fill_width, bar_height - 4, 4, fill=1, stroke=0)
-                
-                c.setStrokeColor(HexColor('#f59e0b'))
-                c.setLineWidth(0.5)
-                for pos in [0, 0.25, 0.5, 0.75, 1.0]:
-                    x = bar_left_right + bar_width_inner_right * pos
-                    c.line(x, content_y_right + 3, x, content_y_right + bar_height - 3)
-            else:
-                # Caixa branca com croqui (check-in)
-                c.setFillColor(HexColor('#ffffff'))
-                c.setStrokeColor(HexColor('#d1d5db'))
-                c.setLineWidth(1)
-                c.roundRect(right_box_x, y_pos - box_height_croqui, right_box_width, box_height_croqui, 8, fill=1, stroke=1)
+            c.setFillColor(HexColor('#ffffff'))
+            c.setStrokeColor(HexColor('#d1d5db'))
+            c.setLineWidth(1)
+            c.roundRect(right_box_x, y_pos - box_height_croqui, right_box_width, box_height_croqui, 8, fill=1, stroke=1)
             
             # Calculate croqui size to fit right box
             img_width = right_box_width - 20  # padding inside border
