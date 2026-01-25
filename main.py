@@ -49468,19 +49468,23 @@ async def update_inspection(inspection_number: str, request: Request):
             if inspection_info and inspection_info[0] == 'checkin' and inspection_info[1]:
                 inspection_type, contract_number = inspection_info
                 
+                # Remove suffix from contract_number (e.g., "06727-09" -> "06727")
+                ra_number = contract_number.split('-')[0]
+                logging.info(f"📅 UPDATE: Using RA number: {ra_number} (original: {contract_number})")
+                
                 # Get current extracted_data
                 if _USE_NEW_DB:
                     cursor.execute("""
                         SELECT extracted_data, return_date 
                         FROM rental_agreements 
                         WHERE rental_agreement_number = %s
-                    """, (contract_number,))
+                    """, (ra_number,))
                 else:
                     cursor.execute("""
                         SELECT extracted_data, return_date 
                         FROM rental_agreements 
                         WHERE rental_agreement_number = ?
-                    """, (contract_number,))
+                    """, (ra_number,))
                 
                 ra_row = cursor.fetchone()
                 if ra_row:
@@ -49520,15 +49524,15 @@ async def update_inspection(inspection_number: str, request: Request):
                             UPDATE rental_agreements 
                             SET extracted_data = %s, return_date = %s
                             WHERE rental_agreement_number = %s
-                        """, (json.dumps(extracted_data), formatted_date, contract_number))
+                        """, (json.dumps(extracted_data), formatted_date, ra_number))
                     else:
                         cursor.execute("""
                             UPDATE rental_agreements 
                             SET extracted_data = ?, return_date = ?
                             WHERE rental_agreement_number = ?
-                        """, (json.dumps(extracted_data), formatted_date, contract_number))
+                        """, (json.dumps(extracted_data), formatted_date, ra_number))
                     
-                    logging.info(f"✅ Updated return date in RA {contract_number}: {formatted_date}")
+                    logging.info(f"✅ Updated return date in RA {ra_number} (original: {contract_number}): {formatted_date}")
                     logging.info(f"✅ Updated extracted_data in database")
         
         # Update damage croqui if provided
