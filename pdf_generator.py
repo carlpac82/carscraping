@@ -407,11 +407,6 @@ def generate_inspection_pdf(inspection_data, extracted_data_json):
     
     # Croqui de Danos e Informações da Entrega (side by side)
     if inspection_data.get('damage_croqui'):
-        c.setFont("Helvetica-Bold", 10)
-        c.setFillColor(HexColor('#1f2937'))
-        c.drawString(40, y_pos, "Croqui de Danos")
-        y_pos -= 10
-        
         try:
             croqui_data = inspection_data['damage_croqui']
             if croqui_data.startswith('data:image'):
@@ -428,12 +423,12 @@ def generate_inspection_pdf(inspection_data, extracted_data_json):
             elif img.mode != 'RGB':
                 img = img.convert('RGB')
             
-            # Two boxes side by side
+            # Two boxes side by side - same dimensions as check-in/checkout boxes
             total_width = width - 80
             box_spacing = 10
             left_box_width = (total_width - box_spacing) / 2
             right_box_width = (total_width - box_spacing) / 2
-            box_height_croqui = 120
+            box_height_croqui = 120  # Same height as check-in/checkout boxes
             
             # Left box - Info box with border (like check-in card)
             box_color = HexColor('#e6f7fa')  # bg heather light blue
