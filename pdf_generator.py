@@ -179,8 +179,10 @@ def generate_inspection_pdf(inspection_data, extracted_data_json):
         fuel_map = {'R': 0, '1/8': 12.5, '1/4': 25, '3/8': 37.5, '1/2': 50, '5/8': 62.5, '3/4': 75, '7/8': 87.5, 'F': 100}
         return fuel_map.get(fuel_level, 0)
     
-    # Two boxes side by side (no title)
-    box_width = (width - 100) / 2
+    # Two boxes side by side (no title) - same width calculation as croqui boxes
+    total_width = width - 80
+    box_spacing = 10
+    box_width = (total_width - box_spacing) / 2
     box_height = 120
     
     # Left box - Check-in/Check-out info (colors match website)
