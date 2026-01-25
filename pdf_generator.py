@@ -116,8 +116,13 @@ def generate_inspection_pdf(inspection_data, extracted_data_json):
     c.setFillColor(HexColor('#6b7280'))
     c.drawString(50, row_y, "Marca")
     c.setFont("Helvetica-Bold", 9)
-    c.setFillColor(HexColor('#111827'))
-    brand = inspection_data.get('vehicle_brand') or extracted.get('brand') or extracted.get('vehicleBrand') or extracted.get('make') or 'N/A'
+    # Extract brand - prioritize inspection_data, then extracted_data_json
+    brand = inspection_data.get('vehicle_brand') or ''
+    if not brand:
+        extracted = extracted_data_json or {}
+        brand = extracted.get('brand') or extracted.get('vehicleBrand') or extracted.get('make') or 'N/A'
+    else:
+        extracted = extracted_data_json or {}
     c.drawString(50, row_y - 10, brand)
     
     # Modelo
@@ -126,7 +131,10 @@ def generate_inspection_pdf(inspection_data, extracted_data_json):
     c.drawString(50 + col_width, row_y, "Modelo")
     c.setFont("Helvetica-Bold", 9)
     c.setFillColor(HexColor('#111827'))
-    model = inspection_data.get('vehicle_model') or extracted.get('model') or extracted.get('vehicleModel') or 'N/A'
+    # Extract model - prioritize inspection_data, then extracted_data_json
+    model = inspection_data.get('vehicle_model') or ''
+    if not model:
+        model = extracted.get('model') or extracted.get('vehicleModel') or 'N/A'
     c.drawString(50 + col_width, row_y - 10, model)
     
     # Matrícula
@@ -154,7 +162,15 @@ def generate_inspection_pdf(inspection_data, extracted_data_json):
     c.drawString(50 + col_width, row_y, "Cliente")
     c.setFont("Helvetica-Bold", 9)
     c.setFillColor(HexColor('#111827'))
-    client_name = inspection_data.get('client_name') or extracted.get('client_name') or extracted.get('clientName') or extracted.get('customerName') or extracted.get('name') or 'N/A'
+    # Extract client name - prioritize inspection_data, then extracted_data_json
+    client_name = inspection_data.get('client_name') or ''
+    if not client_name:
+        client_name = (
+            extracted.get('clientName') or 
+            extracted.get('customerName') or 
+            extracted.get('client_name') or 
+            'N/A'
+        )
     print(f"✅ Final client_name used: '{client_name}'")
     # Truncate if too long
     if len(client_name) > 20:
