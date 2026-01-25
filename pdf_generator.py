@@ -100,13 +100,14 @@ def generate_inspection_pdf(inspection_data, extracted_data_json):
     # Start content below header
     y_pos = height - 60
     
-    # Gray box with vehicle info (smaller)
+    # Gray box with vehicle info (smaller) - same width as other boxes
     box_height = 60
+    total_width = width - 80  # Same width for all boxes
     c.setFillColor(HexColor('#f9fafb'))  # bg-gray-50
-    c.roundRect(40, y_pos - box_height, width - 80, box_height, 5, fill=1, stroke=0)
+    c.roundRect(40, y_pos - box_height, total_width, box_height, 5, fill=1, stroke=0)
     
     # Grid 3 columns inside gray box (smaller fonts)
-    col_width = (width - 100) / 3
+    col_width = (total_width - 20) / 3
     
     # Row 1
     row_y = y_pos - 15
