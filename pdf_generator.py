@@ -24,6 +24,17 @@ def generate_inspection_pdf(inspection_data, extracted_data_json):
         except:
             pass
     
+    # DEBUG: Log data
+    logging.info(f"DEBUG PDF - inspection_data keys: {inspection_data.keys()}")
+    logging.info(f"DEBUG PDF - fuel_level: {inspection_data.get('fuel_level')}")
+    logging.info(f"DEBUG PDF - client_name: {inspection_data.get('client_name')}")
+    logging.info(f"DEBUG PDF - ra_customer_name: {inspection_data.get('ra_customer_name')}")
+    logging.info(f"DEBUG PDF - extracted keys: {extracted.keys() if extracted else 'None'}")
+    if extracted:
+        logging.info(f"DEBUG PDF - extracted clientName: {extracted.get('clientName')}")
+        logging.info(f"DEBUG PDF - extracted customerName: {extracted.get('customerName')}")
+        logging.info(f"DEBUG PDF - extracted name: {extracted.get('name')}")
+    
     # Create PDF
     buffer = io.BytesIO()
     c = pdf_canvas.Canvas(buffer, pagesize=A4)
