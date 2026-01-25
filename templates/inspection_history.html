@@ -1833,17 +1833,16 @@
                 console.log('🖼️ Damage croqui:', inspection.damage_croqui ? `${inspection.damage_croqui.substring(0, 100)}... (${inspection.damage_croqui.length} chars)` : 'EMPTY');
                 
                 // If checkin, get return date from RA
-                if (type === 'checkin' && inspection.vehicle_plate) {
+                if (type === 'checkin' && inspection.contract_number) {
                     try {
-                        console.log('🔍 Fetching RA data for plate:', inspection.vehicle_plate);
-                        const raResponse = await fetch(`/api/rental-agreement/by-plate/${inspection.vehicle_plate}`);
+                        console.log('🔍 Fetching RA data for contract:', inspection.contract_number);
+                        const raResponse = await fetch(`/api/rental-agreement/by-number/${inspection.contract_number}`);
                         const raData = await raResponse.json();
                         console.log('📄 RA Response:', raData);
                         
-                        if (raData.success && raData.rental_agreement && raData.rental_agreement.extracted_data) {
-                            const extracted_data = JSON.parse(raData.rental_agreement.extracted_data);
-                            console.log('📄 extracted_data:', extracted_data);
-                            let returnDate = extracted_data.returnDate || extracted_data.return_date || raData.rental_agreement.return_date;
+                        if (raData.ok && raData.extracted_data) {
+                            console.log('📄 extracted_data:', raData.extracted_data);
+                            let returnDate = raData.extracted_data.returnDate || raData.extracted_data.return_date || raData.rental_agreement.return_date;
                             console.log('📅 Raw return date from RA:', returnDate);
                             
                             if (returnDate) {

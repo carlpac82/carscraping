@@ -50554,6 +50554,88 @@ async def get_latest_ra_by_plate(request: Request, plate: str):
             "error": str(e)
         }, status_code=500)
 
+@app.get("/api/rental-agreement/by-number/{ra_number}")
+async def get_ra_by_number(request: Request, ra_number: str):
+    """Get rental agreement by RA number (removes suffix if present)"""
+    require_auth(request)
+    
+    try:
+        conn = _db_connect()
+        is_postgres = _is_postgresql_connection(conn)
+        
+        # Remove suffix from RA number (e.g., "06727-09" -> "06727")
+        ra_base = ra_number.split('-')[0] if '-' in ra_number else ra_number
+        logging.info(f"🔍 Searching for RA: '{ra_number}' (base: '{ra_base}')")
+        
+        # Get RA by base number
+        if is_postgres:
+            with conn.cursor() as cur:
+                cur.execute("""
+                    SELECT id, rental_agreement_number, license_plate, 
+                           vehicle_id, odometer, fuel_level, 
+                           inspection_completed, inspection_id,
+                           created_at, updated_at, extracted_data, return_date,
+                           client_email, contract_closed
+                    FROM rental_agreements
+                    WHERE rental_agreement_number = %s
+                    LIMIT 1
+                """, (ra_base,))
+                ra_row = cur.fetchone()
+        else:
+            cursor = conn.execute("""
+                SELECT id, rental_agreement_number, license_plate, 
+                       vehicle_id, odometer, fuel_level, 
+                       inspection_completed, inspection_id,
+                       created_at, updated_at, extracted_data, return_date,
+                       client_email, contract_closed
+                FROM rental_agreements
+                WHERE rental_agreement_number = ?
+                LIMIT 1
+            """, (ra_base,))
+            ra_row = cursor.fetchone()
+        
+        if not ra_row:
+            conn.close()
+            return JSONResponse({
+                "ok": False,
+                "error": f"Rental Agreement {ra_base} não encontrado"
+            }, status_code=404)
+        
+        # Parse RA data
+        ra_data = {
+            "id": ra_row[0],
+            "rental_agreement_number": ra_row[1],
+            "license_plate": ra_row[2],
+            "vehicle_id": ra_row[3],
+            "odometer": ra_row[4],
+            "fuel_level": ra_row[5],
+            "inspection_completed": bool(ra_row[6]),
+            "inspection_id": ra_row[7],
+            "created_at": str(ra_row[8]) if ra_row[8] else None,
+            "updated_at": str(ra_row[9]) if ra_row[9] else None,
+            "extracted_data": ra_row[10],
+            "return_date": ra_row[11],
+            "client_email": ra_row[12],
+            "contract_closed": bool(ra_row[13]) if ra_row[13] is not None else False
+        }
+        
+        conn.close()
+        
+        return JSONResponse({
+            "ok": True,
+            "rental_agreement": ra_data,
+            "extracted_data": json.loads(ra_row[10]) if ra_row[10] else {}
+        })
+        
+    except Exception as e:
+        logging.error(f"Error fetching rental agreement by number: {e}")
+        import traceback
+        traceback.print_exc()
+        return JSONResponse({
+            "ok": False,
+            "error": str(e)
+        }, status_code=500)
+
 @app.get("/ra-mapper")
 async def ra_mapper_page(request: Request):
     """Página para mapear coordenadas do Rental Agreement"""
