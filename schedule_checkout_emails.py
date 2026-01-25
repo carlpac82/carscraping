@@ -55,8 +55,14 @@ def schedule_checkout_email(
                 # Formato DD/MM/YYYY
                 checkout_dt = datetime.strptime(checkout_date, '%d/%m/%Y')
             elif '-' in checkout_date:
-                # Formato YYYY-MM-DD
-                checkout_dt = datetime.strptime(checkout_date, '%Y-%m-%d')
+                # Tentar formato DD - MM - YYYY (com espaços) primeiro
+                date_clean = checkout_date.strip()
+                if ' - ' in date_clean:
+                    # Formato: "28 - 01 - 2026"
+                    checkout_dt = datetime.strptime(date_clean, '%d - %m - %Y')
+                else:
+                    # Formato YYYY-MM-DD
+                    checkout_dt = datetime.strptime(date_clean, '%Y-%m-%d')
             else:
                 logging.error(f"❌ Invalid date format: {checkout_date}")
                 return False
