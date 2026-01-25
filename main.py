@@ -1,4 +1,4 @@
-# DEPLOY FORCE: 2026-01-25 20:43 UTC - CRITICAL: Force Railway restart to load base64 padding fix
+# DEPLOY FORCE: 2026-01-25 20:45 UTC - Added fix-self-checkout-photos endpoint for IDs 178-187
 from __future__ import annotations
 
 # Todas as funções helper foram movidas para depois dos imports principais
@@ -52166,6 +52166,97 @@ async def emergency_fix_base64_endpoint(request: Request):
         
     except Exception as e:
         logging.error(f"❌ Error in emergency fix: {e}")
+        import traceback
+        return JSONResponse({
+            "ok": False,
+            "error": str(e),
+            "traceback": traceback.format_exc()
+        }, status_code=500)
+
+@app.post("/api/admin/fix-self-checkout-photos/{inspection_number}")
+async def fix_self_checkout_photos(request: Request, inspection_number: str):
+    """FIX: Correct base64 padding for self-checkout photos"""
+    require_admin(request)
+    
+    try:
+        conn = _db_connect()
+        cursor = conn.cursor()
+        is_postgres = 'psycopg' in type(conn).__name__.lower() or os.getenv('DATABASE_URL')
+        
+        # Get inspection ID
+        if is_postgres:
+            cursor.execute("SELECT id, inspection_type FROM vehicle_inspections WHERE inspection_number = %s", (inspection_number,))
+        else:
+            cursor.execute("SELECT id, inspection_type FROM vehicle_inspections WHERE inspection_number = ?", (inspection_number,))
+        
+        inspection_row = cursor.fetchone()
+        if not inspection_row:
+            return JSONResponse({"ok": False, "error": f"Inspection {inspection_number} not found"}, status_code=404)
+        
+        inspection_id, inspection_type = inspection_row
+        
+        # Get all photos for this inspection
+        if is_postgres:
+            cursor.execute("SELECT id, photo_type, image_data FROM inspection_photos WHERE inspection_id = %s ORDER BY created_at", (inspection_id,))
+        else:
+            cursor.execute("SELECT id, photo_type, image_data FROM inspection_photos WHERE inspection_id = ? ORDER BY created_at", (inspection_id,))
+        
+        photos = cursor.fetchall()
+        fixed_count = 0
+        photo_details = []
+        
+        for photo_id, photo_type, image_data in photos:
+            if not image_data:
+                continue
+            
+            original_len = len(image_data)
+            needs_fix = False
+            
+            # Check if it's a data URI
+            if isinstance(image_data, str) and image_data.startswith('data:image'):
+                parts = image_data.split(',', 1)
+                if len(parts) == 2:
+                    header, encoded = parts
+                    # Clean and check padding
+                    encoded_clean = encoded.strip().replace('\n', '').replace('\r', '').replace(' ', '')
+                    padding_needed = (4 - len(encoded_clean) % 4) % 4
+                    
+                    if padding_needed > 0:
+                        needs_fix = True
+                        encoded_fixed = encoded_clean + ('=' * padding_needed)
+                        image_data_fixed = f"{header},{encoded_fixed}"
+                        
+                        # Update in database
+                        if is_postgres:
+                            cursor.execute("UPDATE inspection_photos SET image_data = %s WHERE id = %s", (image_data_fixed, photo_id))
+                        else:
+                            cursor.execute("UPDATE inspection_photos SET image_data = ? WHERE id = ?", (image_data_fixed, photo_id))
+                        
+                        fixed_count += 1
+                        photo_details.append({
+                            "id": photo_id,
+                            "type": photo_type,
+                            "original_len": original_len,
+                            "fixed_len": len(image_data_fixed),
+                            "padding_added": padding_needed
+                        })
+        
+        conn.commit()
+        cursor.close()
+        conn.close()
+        
+        return JSONResponse({
+            "ok": True,
+            "inspection_number": inspection_number,
+            "inspection_type": inspection_type,
+            "total_photos": len(photos),
+            "fixed_photos": fixed_count,
+            "details": photo_details,
+            "message": f"Fixed {fixed_count} photos with incorrect padding"
+        })
+        
+    except Exception as e:
+        logging.error(f"❌ Error fixing self-checkout photos: {e}")
         import traceback
         return JSONResponse({
             "ok": False,
