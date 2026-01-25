@@ -318,6 +318,44 @@ def generate_inspection_pdf(inspection_data, extracted_data_json):
             if len(parts) >= 2:
                 inspector_checkout = f"{parts[0]} {parts[-1]}"
         c.drawRightString(value_x_right, content_y_right, inspector_checkout)
+        
+        content_y_right -= 15
+        
+        # Assinatura da cliente (apenas para self-checkout)
+        if inspection_data.get('inspection_type') == 'self_checkout':
+            signature_data = inspection_data.get('signature')
+            if signature_data:
+                try:
+                    # Label
+                    c.setFont("Helvetica", 8)
+                    c.setFillColor(HexColor('#6b7280'))
+                    c.drawString(label_x_right, content_y_right, "Assinatura:")
+                    
+                    # Process signature image
+                    if signature_data.startswith('data:image'):
+                        signature_data = signature_data.split(',')[1]
+                    
+                    sig_img_data = base64.b64decode(signature_data)
+                    sig_img = Image.open(io.BytesIO(sig_img_data))
+                    
+                    # Convert to RGBA if needed and remove background
+                    if sig_img.mode != 'RGBA':
+                        sig_img = sig_img.convert('RGBA')
+                    
+                    # Resize signature to fit in box (max 80px width, 30px height)
+                    sig_width = 80
+                    sig_height = 30
+                    sig_img.thumbnail((sig_width, sig_height), Image.Resampling.LANCZOS)
+                    
+                    # Position signature on the right
+                    sig_x = value_x_right - sig_img.width
+                    sig_y = content_y_right - sig_img.height + 5
+                    
+                    # Draw signature
+                    c.drawImage(ImageReader(sig_img), sig_x, sig_y, width=sig_img.width, height=sig_img.height, mask='auto')
+                    
+                except Exception as e:
+                    logging.error(f"Error adding signature to PDF: {e}")
     else:
         # Caixa amarela - Recolha Prevista (check-in)
         box_color_right = HexColor('#fffbeb')  # bg-yellow-50
@@ -794,7 +832,15 @@ def generate_inspection_pdf(inspection_data, extracted_data_json):
     
     # IMMEDIATE LOGGING
     logging.info(f"📸 SELF-CHECKOUT PDF GENERATOR STARTED")
-    logging.info(f"📸 Self-checkout photos dict: {type(all_photos_dict)}, keys: {list(all_photos_dict.keys()) if isinstance(all_photos_dict, dict) else 'not a dict'}")
+    logging.info(f"📸 Self-checkout photos dict: {type(all_photos_dict)}")
+    logging.info(f"📸 Is dict: {isinstance(all_photos_dict, dict)}")
+    if isinstance(all_photos_dict, dict):
+        logging.info(f"📸 Photo keys available: {list(all_photos_dict.keys())}")
+        for key in all_photos_dict.keys():
+            photo_data = all_photos_dict[key]
+            logging.info(f"📸   - {key}: {type(photo_data)}, length: {len(photo_data) if photo_data else 0}")
+    else:
+        logging.info(f"📸 photos is NOT a dict: {all_photos_dict}")
     
     # Convert dict to list of photo objects for rendering
     photo_keys = ['front', 'front_left', 'left', 'back_left', 'back', 'back_right', 'right', 'front_right', 'odometer']
@@ -803,14 +849,18 @@ def generate_inspection_pdf(inspection_data, extracted_data_json):
         for key in photo_keys:
             if key in all_photos_dict:
                 all_photos.append({'image_data': all_photos_dict[key], 'type': key})
+                logging.info(f"📸 Added photo: {key}")
     
     logging.info(f"📸 Self-checkout photos count: {len(all_photos)}")
+    logging.info(f"📸 photos_to_show will be created: {len(all_photos) > 0}")
     
     # For self-checkout, show all photos taken by the client (no conditional logic)
     photos_to_show = []
     if all_photos:
         photos_to_show = [{'photos': all_photos, 'title': 'Fotografias da Devolução'}]
         logging.info(f"📸 Showing {len(all_photos)} self-checkout photos")
+    else:
+        logging.warning(f"📸 NO PHOTOS TO SHOW - all_photos is empty!")
     
     # Render photos sections
     if photos_to_show:
