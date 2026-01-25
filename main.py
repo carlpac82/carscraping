@@ -49393,11 +49393,13 @@ async def get_inspection_pdf(inspection_number: str, request: Request):
                         parts = image_data.split(',', 1)
                         if len(parts) == 2:
                             header, encoded = parts
+                            original_len = len(encoded)
                             # Remove whitespace and fix padding
                             encoded = encoded.strip().replace('\n', '').replace('\r', '').replace(' ', '')
                             padding_needed = (4 - len(encoded) % 4) % 4
                             if padding_needed:
                                 encoded += '=' * padding_needed
+                                logging.info(f"🔧 FIXED padding for {photo_type}: original_len={original_len}, cleaned_len={len(encoded)-padding_needed}, added {padding_needed} padding chars")
                             # Reconstruct data URI with fixed padding
                             image_data = f"{header},{encoded}"
                     
