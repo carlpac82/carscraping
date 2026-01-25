@@ -37851,6 +37851,14 @@ async def delete_inspection(request: Request, inspection_number: str):
                         SET inspection_id = NULL
                         WHERE rental_agreement_number = %s
                     """, (contract_number,))
+                    
+                    # Cancelar agendamento de email de checkout se existir
+                    try:
+                        from schedule_checkout_emails import cancel_scheduled_email
+                        cancel_scheduled_email(inspection_number, conn=conn)
+                        logging.info(f"🗑️ Cancelled scheduled checkout email for {inspection_number}")
+                    except Exception as cancel_error:
+                        logging.warning(f"⚠️ Could not cancel scheduled email: {cancel_error}")
                 
                 logging.info(f"🔄 Updated rental_agreement flags for RA: {contract_number}")
                 
@@ -37921,6 +37929,14 @@ async def delete_inspection(request: Request, inspection_number: str):
                     SET inspection_id = NULL
                     WHERE rental_agreement_number = ?
                 """, (contract_number,))
+                
+                # Cancelar agendamento de email de checkout se existir
+                try:
+                    from schedule_checkout_emails import cancel_scheduled_email
+                    cancel_scheduled_email(inspection_number, conn=conn)
+                    logging.info(f"🗑️ Cancelled scheduled checkout email for {inspection_number}")
+                except Exception as cancel_error:
+                    logging.warning(f"⚠️ Could not cancel scheduled email: {cancel_error}")
             
             logging.info(f"🔄 Updated rental_agreement flags for RA: {contract_number}")
             
