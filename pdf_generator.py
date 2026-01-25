@@ -281,12 +281,7 @@ def generate_inspection_pdf(inspection_data, extracted_data_json):
             inspector = f"{parts[0]} {parts[-1]}"
     c.drawRightString(value_x, content_y, inspector)
     
-    content_y -= 12
-    c.setFont("Helvetica", 8)
-    c.setFillColor(HexColor('#6b7280'))
-    c.drawString(label_x, content_y, "Quilómetros:")
-    c.setFont("Helvetica-Bold", 8)
-    c.setFillColor(HexColor('#111827'))
+    # Process odometer for later use in blue box
     odometer = inspection_data.get('odometer_reading', 'N/A')
     if odometer and odometer != 'N/A':
         try:
@@ -295,15 +290,6 @@ def generate_inspection_pdf(inspection_data, extracted_data_json):
             odometer_str = f"{odometer} km"
     else:
         odometer_str = 'N/A'
-    c.drawRightString(value_x, content_y, odometer_str)
-    
-    content_y -= 12
-    c.setFont("Helvetica", 8)
-    c.setFillColor(HexColor('#6b7280'))
-    c.drawString(label_x, content_y, "Danos:")
-    c.setFont("Helvetica-Bold", 8)
-    c.setFillColor(HexColor('#111827'))
-    c.drawRightString(value_x, content_y, "4")
     
     # Process fuel level for later use
     fuel_level = inspection_data.get('fuel_level') or 'R'
