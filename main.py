@@ -52823,6 +52823,121 @@ async def setup_scheduled_emails_table(request: Request):
             "traceback": traceback.format_exc()
         }, status_code=500)
 
+@app.post("/api/admin/test-schedule-email")
+async def test_schedule_email(request: Request):
+    """
+    TEMPORARY: Test email scheduling for existing check-in
+    """
+    try:
+        require_inspection_access(request)
+    except HTTPException:
+        return JSONResponse({"ok": False, "error": "Unauthorized"}, status_code=403)
+    
+    try:
+        data = await request.json()
+        ra_number = data.get('ra_number', '06691')
+        
+        conn = _db_connect()
+        is_postgres = _is_postgresql_connection(conn)
+        
+        if not is_postgres:
+            return JSONResponse({
+                "ok": False,
+                "error": "This endpoint only works with PostgreSQL"
+            }, status_code=400)
+        
+        cursor = conn.cursor()
+        
+        # Buscar dados do RA
+        logging.info(f"🔍 Testing schedule for RA: {ra_number}")
+        cursor.execute("""
+            SELECT extracted_data FROM rental_agreements WHERE rental_agreement_number LIKE %s LIMIT 1
+        """, (f"{ra_number}%",))
+        ra_row = cursor.fetchone()
+        
+        if not ra_row or not ra_row[0]:
+            return JSONResponse({
+                "ok": False,
+                "error": f"RA {ra_number} not found"
+            }, status_code=404)
+        
+        import json
+        ra_data = json.loads(ra_row[0])
+        
+        # Tentar ambos os formatos
+        return_location = ra_data.get('return_location') or ra_data.get('returnLocation', '')
+        return_date = ra_data.get('return_date') or ra_data.get('returnDate', '')
+        client_name = ra_data.get('client_name') or ra_data.get('clientName', '')
+        client_email = ra_data.get('client_email') or ra_data.get('clientEmail', '')
+        plate = ra_data.get('license_plate') or ra_data.get('vehiclePlate', '')
+        
+        logging.info(f"📋 RA Data: return_location={return_location}, return_date={return_date}, email={client_email}")
+        
+        # Verificar se é Aeroporto de Faro
+        is_faro_airport = False
+        if return_location:
+            return_lower = return_location.lower()
+            is_faro_airport = 'aeroporto' in return_lower and 'faro' in return_lower
+        
+        logging.info(f"📍 Is Faro Airport: {is_faro_airport}")
+        
+        if not is_faro_airport:
+            return JSONResponse({
+                "ok": False,
+                "error": f"Return location is not Faro Airport: {return_location}"
+            })
+        
+        # Buscar último check-in para este RA
+        cursor.execute("""
+            SELECT inspection_number FROM vehicle_inspections 
+            WHERE contract_number LIKE %s AND inspection_type = 'checkin'
+            ORDER BY created_at DESC LIMIT 1
+        """, (f"{ra_number}%",))
+        insp_row = cursor.fetchone()
+        
+        if not insp_row:
+            return JSONResponse({
+                "ok": False,
+                "error": f"No check-in found for RA {ra_number}"
+            }, status_code=404)
+        
+        inspection_number = insp_row[0]
+        logging.info(f"📋 Found check-in: {inspection_number}")
+        
+        # Agendar email
+        from schedule_checkout_emails import schedule_checkout_email
+        schedule_success = schedule_checkout_email(
+            inspection_number=inspection_number,
+            checkout_date=return_date,
+            pickup_location=return_location,
+            client_email=client_email,
+            client_name=client_name,
+            vehicle_plate=plate,
+            conn=conn
+        )
+        
+        cursor.close()
+        conn.close()
+        
+        return JSONResponse({
+            "ok": True,
+            "scheduled": schedule_success,
+            "inspection_number": inspection_number,
+            "return_location": return_location,
+            "return_date": return_date,
+            "client_email": client_email
+        })
+        
+    except Exception as e:
+        logging.error(f"❌ Error testing schedule: {e}")
+        import traceback
+        logging.error(traceback.format_exc())
+        return JSONResponse({
+            "ok": False,
+            "error": str(e),
+            "traceback": traceback.format_exc()
+        }, status_code=500)
+
 if __name__ == "__main__":
     import uvicorn
     uvicorn.run(app, host="0.0.0.0", port=8000)
