@@ -446,41 +446,44 @@ def generate_inspection_pdf(inspection_data, extracted_data_json):
             c.setLineWidth(1)
             c.roundRect(40, y_pos - box_height_croqui, left_box_width, box_height_croqui, 8, fill=0, stroke=1)
             
-            # Content in left box
-            content_y = y_pos - 20
-            label_x = 50
-            value_x = 40 + left_box_width - 10
+            # Content in left box - centered layout
+            box_center_x = 40 + left_box_width / 2
+            content_y = y_pos - 30
             
-            # Quilómetros
+            # Quilómetros label centered
             c.setFont("Helvetica", 8)
             c.setFillColor(HexColor('#6b7280'))
-            c.drawString(label_x, content_y, "Quilómetros:")
-            c.setFont("Helvetica-Bold", 8)
+            c.drawCentredString(box_center_x, content_y, "Quilómetros:")
+            
+            content_y -= 12
+            
+            # Quilómetros value centered
+            c.setFont("Helvetica-Bold", 10)
             c.setFillColor(HexColor('#111827'))
-            c.drawRightString(value_x, content_y, odometer_str)
+            c.drawCentredString(box_center_x, content_y, odometer_str)
             
             content_y -= 20
             
             # Combustível label centered
             c.setFont("Helvetica", 8)
             c.setFillColor(HexColor('#6b7280'))
-            c.drawCentredString(40 + left_box_width / 2, content_y, "Combustível:")
+            c.drawCentredString(box_center_x, content_y, "Combustível:")
             
             content_y -= 12
             
             # Fuel bar centered in box
-            bar_width_inner = (left_box_width - 40) * 0.6
+            bar_width_inner = (left_box_width - 40) * 0.7
             bar_left = 40 + (left_box_width - bar_width_inner) / 2
             bar_height = 16
             
             # Fuel markers
             c.setFont("Helvetica-Bold", 7)
             c.setFillColor(HexColor('#009cb6'))
-            c.drawString(bar_left - 5, content_y, "R")
+            c.drawString(bar_left - 8, content_y, "R")
             c.drawCentredString(bar_left + bar_width_inner * 0.25, content_y, "1/4")
             c.drawCentredString(bar_left + bar_width_inner * 0.5, content_y, "1/2")
             c.drawCentredString(bar_left + bar_width_inner * 0.75, content_y, "3/4")
-            c.drawString(bar_left + bar_width_inner + 2, content_y, "F")
+            c.drawString(bar_left + bar_width_inner + 5, content_y, "F")
             
             content_y -= 12
             
