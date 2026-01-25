@@ -30067,7 +30067,36 @@ async def save_inspection(request: Request):
                                 ra_vehicle_model = ra_data.get('vehicle_model') or ra_data.get('vehicleModel', '')
                                 logging.info(f"📋 RA Data found for {ra} (base: {ra_base}): client={ra_client_name}, brand={ra_vehicle_brand}, model={ra_vehicle_model}, pickup={ra_pickup_date}/{ra_pickup_location}, return={ra_return_date}/{ra_return_location}, country={ra_country}")
                             else:
-                                logging.warning(f"⚠️ No RA data found for: {ra} (base: {ra_base})")
+                                logging.warning(f"⚠️ No RA data found in extracted_data for: {ra} (base: {ra_base})")
+                                
+                            # FALLBACK: Se extracted_data estiver vazio, buscar das colunas da tabela
+                            if not ra_return_location or not ra_return_date:
+                                logging.info(f"🔄 Fallback: Fetching return_location and return_date from table columns")
+                                cursor.execute("""
+                                    SELECT return_location, return_date, client_name, pickup_location, pickup_date, country
+                                    FROM rental_agreements 
+                                    WHERE rental_agreement_number LIKE %s 
+                                    LIMIT 1
+                                """, (f"{ra_base}%",))
+                                fallback_row = cursor.fetchone()
+                                if fallback_row:
+                                    if not ra_return_location and fallback_row[0]:
+                                        ra_return_location = fallback_row[0]
+                                        logging.info(f"✅ Got return_location from column: {ra_return_location}")
+                                    if not ra_return_date and fallback_row[1]:
+                                        ra_return_date = fallback_row[1]
+                                        logging.info(f"✅ Got return_date from column: {ra_return_date}")
+                                    if not ra_client_name and fallback_row[2]:
+                                        ra_client_name = fallback_row[2]
+                                        logging.info(f"✅ Got client_name from column: {ra_client_name}")
+                                    if not ra_pickup_location and fallback_row[3]:
+                                        ra_pickup_location = fallback_row[3]
+                                    if not ra_pickup_date and fallback_row[4]:
+                                        ra_pickup_date = fallback_row[4]
+                                    if not ra_country and fallback_row[5]:
+                                        ra_country = fallback_row[5]
+                                else:
+                                    logging.warning(f"⚠️ No RA found in table for: {ra} (base: {ra_base})")
                         except Exception as e:
                             logging.warning(f"⚠️ Could not fetch RA data: {e}")
                     
