@@ -1,4 +1,4 @@
-# DEPLOY FORCE: 2026-01-25 20:48 UTC - Added detailed logging to pdf_generator_self_checkout for debugging
+# DEPLOY FORCE: 2026-01-25 20:56 UTC - Removed excessive logs, clean code with padding fix only
 from __future__ import annotations
 
 # Todas as funções helper foram movidas para depois dos imports principais
@@ -49378,16 +49378,10 @@ async def get_inspection_pdf(inspection_number: str, request: Request):
             
             inspection_photos = []
             photo_rows = cursor.fetchall()
-            logging.info(f"📸 Fetched {len(photo_rows)} photo rows from database for inspection {inspection_number}")
             for photo_row in photo_rows:
                 if photo_row[0]:
                     photo_type = photo_row[1]
                     image_data = photo_row[0]
-                    
-                    # DEBUG: Log the actual type and format
-                    logging.info(f"🔍 RAW image_data for {photo_type}: type={type(image_data).__name__}, is_str={isinstance(image_data, str)}, is_bytes={isinstance(image_data, bytes)}, len={len(image_data) if hasattr(image_data, '__len__') else 'N/A'}")
-                    if isinstance(image_data, str):
-                        logging.info(f"🔍 String starts_with_data={image_data.startswith('data:image')}, first_50_chars={image_data[:50]}")
                     
                     # Convert bytes to base64 string if needed (PostgreSQL stores as TEXT, SQLite as BLOB)
                     if isinstance(image_data, bytes):
@@ -49399,13 +49393,11 @@ async def get_inspection_pdf(inspection_number: str, request: Request):
                         parts = image_data.split(',', 1)
                         if len(parts) == 2:
                             header, encoded = parts
-                            original_len = len(encoded)
                             # Remove whitespace and fix padding
                             encoded = encoded.strip().replace('\n', '').replace('\r', '').replace(' ', '')
                             padding_needed = (4 - len(encoded) % 4) % 4
                             if padding_needed:
                                 encoded += '=' * padding_needed
-                                logging.info(f"🔧 FIXED padding for {photo_type}: original_len={original_len}, cleaned_len={len(encoded)-padding_needed}, added {padding_needed} padding chars")
                             # Reconstruct data URI with fixed padding
                             image_data = f"{header},{encoded}"
                     
@@ -49414,9 +49406,7 @@ async def get_inspection_pdf(inspection_number: str, request: Request):
                         'photo_type': photo_type
                     })
             
-            logging.info(f"📸 Total inspection photos added: {len(inspection_photos)}")
             inspection_data['photos'] = inspection_photos
-            logging.info(f"📸 CHECKPOINT 1: inspection_data['photos'] has {len(inspection_data['photos'])} items")
             
             # For checkout, also fetch check-in photos (for conditional display)
             checkin_photos = []
