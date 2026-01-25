@@ -495,131 +495,164 @@ def generate_inspection_pdf(inspection_data, extracted_data_json):
             c.setLineWidth(1)
             c.roundRect(40, y_pos - box_height_croqui, left_box_width, box_height_croqui, 8, fill=0, stroke=1)
             
-            # Layout simples centralizado (sempre igual para check-in)
-            box_center_x = 40 + left_box_width / 2
-            content_y = y_pos - 25
+            # Verificar se é checkout para layout com 2 barras
+            is_checkout_type = inspection_data.get('inspection_type') == 'checkout'
             
-            c.setFont("Helvetica", 8)
-            c.setFillColor(HexColor('#6b7280'))
-            c.drawCentredString(box_center_x, content_y, "Quilómetros:")
-            
-            content_y -= 12
-            
-            c.setFont("Helvetica-Bold", 10)
-            c.setFillColor(HexColor('#111827'))
-            c.drawCentredString(box_center_x, content_y, odometer_str)
-            
-            content_y -= 18
-            
-            # Label "Entrega" acima da barra
-            c.setFont("Helvetica-Bold", 8)
-            c.setFillColor(HexColor('#009cb6'))
-            c.drawCentredString(box_center_x, content_y, "Entrega")
-            
-            content_y -= 10
-            
-            bar_width_inner = (left_box_width - 40) * 0.7
-            bar_left = 40 + (left_box_width - bar_width_inner) / 2
-            bar_height = 16
-            
-            c.setFont("Helvetica-Bold", 7)
-            c.setFillColor(HexColor('#009cb6'))
-            c.drawString(bar_left - 8, content_y, "R")
-            c.drawCentredString(bar_left + bar_width_inner * 0.25, content_y, "1/4")
-            c.drawCentredString(bar_left + bar_width_inner * 0.5, content_y, "1/2")
-            c.drawCentredString(bar_left + bar_width_inner * 0.75, content_y, "3/4")
-            c.drawString(bar_left + bar_width_inner + 5, content_y, "F")
-            
-            content_y -= 22
-            
-            c.setStrokeColor(HexColor('#009cb6'))
-            c.setLineWidth(2)
-            c.setFillColor(HexColor('#ffffff'))
-            c.roundRect(bar_left, content_y, bar_width_inner, bar_height, 5, fill=1, stroke=1)
-            
-            if fuel_percent > 0:
-                c.setFillColor(HexColor('#009cb6'))
-                fill_width = max(10, (bar_width_inner - 4) * (fuel_percent / 100))
-                c.roundRect(bar_left + 2, content_y + 2, fill_width, bar_height - 4, 4, fill=1, stroke=0)
-            
-            c.setStrokeColor(HexColor('#009cb6'))
-            c.setLineWidth(0.5)
-            for pos in [0, 0.25, 0.5, 0.75, 1.0]:
-                x = bar_left + bar_width_inner * pos
-                c.line(x, content_y + 3, x, content_y + bar_height - 3)
-            
-            # Right box - Checkout info (yellow) ou Croqui (white)
-            right_box_x = 40 + left_box_width + box_spacing
-            is_checkout = inspection_data.get('inspection_type') == 'checkout'
-            
-            if is_checkout:
-                # Caixa amarela do checkout
-                c.setFillColor(HexColor('#fffbeb'))
-                c.roundRect(right_box_x, y_pos - box_height_croqui, right_box_width, box_height_croqui, 8, fill=1, stroke=0)
+            if is_checkout_type:
+                # Layout com 2 barras lado a lado (checkout)
+                box_center_x = 40 + left_box_width / 2
+                content_y = y_pos - 20
                 
-                c.setStrokeColor(HexColor('#f59e0b'))
-                c.setLineWidth(1)
-                c.roundRect(right_box_x, y_pos - box_height_croqui, right_box_width, box_height_croqui, 8, fill=0, stroke=1)
-                
-                # Conteúdo da caixa amarela
-                box_center_x_right = right_box_x + right_box_width / 2
-                content_y_right = y_pos - 25
-                
-                # Quilómetros do checkout (já processado anteriormente)
+                # Quilómetros centralizado
                 c.setFont("Helvetica", 8)
                 c.setFillColor(HexColor('#6b7280'))
-                c.drawCentredString(box_center_x_right, content_y_right, "Quilómetros:")
+                c.drawCentredString(box_center_x, content_y, "Quilómetros:")
                 
-                content_y_right -= 12
+                content_y -= 12
                 
                 c.setFont("Helvetica-Bold", 10)
                 c.setFillColor(HexColor('#111827'))
-                c.drawCentredString(box_center_x_right, content_y_right, checkout_odometer_str)
+                c.drawCentredString(box_center_x, content_y, odometer_str)
                 
-                content_y_right -= 18
+                content_y -= 22
                 
-                # Label "Recolha" acima da barra
-                c.setFont("Helvetica-Bold", 8)
-                c.setFillColor(HexColor('#f59e0b'))
-                c.drawCentredString(box_center_x_right, content_y_right, "Recolha")
+                # Duas barras lado a lado
+                bar_width_small = (left_box_width - 120) / 2
+                bar_height = 14
+                bar_spacing = 20
+                left_margin = 50
                 
-                content_y_right -= 10
+                # Barra Entrega (esquerda)
+                bar_left_entrega = left_margin
                 
-                bar_width_inner_right = (right_box_width - 40) * 0.7
-                bar_left_right = right_box_x + (right_box_width - bar_width_inner_right) / 2
-                
+                # Label "Entrega" acima da barra
                 c.setFont("Helvetica-Bold", 7)
-                c.setFillColor(HexColor('#f59e0b'))
-                c.drawString(bar_left_right - 8, content_y_right, "R")
-                c.drawCentredString(bar_left_right + bar_width_inner_right * 0.25, content_y_right, "1/4")
-                c.drawCentredString(bar_left_right + bar_width_inner_right * 0.5, content_y_right, "1/2")
-                c.drawCentredString(bar_left_right + bar_width_inner_right * 0.75, content_y_right, "3/4")
-                c.drawString(bar_left_right + bar_width_inner_right + 5, content_y_right, "F")
+                c.setFillColor(HexColor('#009cb6'))
+                c.drawCentredString(bar_left_entrega + bar_width_small / 2, content_y, "Entrega")
                 
-                content_y_right -= 22
+                content_y_bar = content_y - 12
                 
-                c.setStrokeColor(HexColor('#f59e0b'))
-                c.setLineWidth(2)
+                # Marcadores
+                c.setFont("Helvetica-Bold", 6)
+                c.setFillColor(HexColor('#009cb6'))
+                c.drawString(bar_left_entrega - 5, content_y_bar, "R")
+                c.drawCentredString(bar_left_entrega + bar_width_small * 0.25, content_y_bar, "1/4")
+                c.drawCentredString(bar_left_entrega + bar_width_small * 0.5, content_y_bar, "1/2")
+                c.drawCentredString(bar_left_entrega + bar_width_small * 0.75, content_y_bar, "3/4")
+                c.drawString(bar_left_entrega + bar_width_small + 3, content_y_bar, "F")
+                
+                content_y_bar -= 15
+                
+                # Barra
+                c.setStrokeColor(HexColor('#009cb6'))
+                c.setLineWidth(1.5)
                 c.setFillColor(HexColor('#ffffff'))
-                c.roundRect(bar_left_right, content_y_right, bar_width_inner_right, bar_height, 5, fill=1, stroke=1)
+                c.roundRect(bar_left_entrega, content_y_bar, bar_width_small, bar_height, 4, fill=1, stroke=1)
                 
-                # Usar checkout_fuel_percent em vez de fuel_percent
-                if checkout_fuel_percent > 0:
-                    c.setFillColor(HexColor('#f59e0b'))
-                    fill_width = max(10, (bar_width_inner_right - 4) * (checkout_fuel_percent / 100))
-                    c.roundRect(bar_left_right + 2, content_y_right + 2, fill_width, bar_height - 4, 4, fill=1, stroke=0)
+                if fuel_percent > 0:
+                    c.setFillColor(HexColor('#009cb6'))
+                    fill_width = max(8, (bar_width_small - 3) * (fuel_percent / 100))
+                    c.roundRect(bar_left_entrega + 1.5, content_y_bar + 1.5, fill_width, bar_height - 3, 3, fill=1, stroke=0)
                 
-                c.setStrokeColor(HexColor('#f59e0b'))
+                c.setStrokeColor(HexColor('#009cb6'))
                 c.setLineWidth(0.5)
                 for pos in [0, 0.25, 0.5, 0.75, 1.0]:
-                    x = bar_left_right + bar_width_inner_right * pos
-                    c.line(x, content_y_right + 3, x, content_y_right + bar_height - 3)
-            else:
-                # Caixa branca do croqui (check-in)
+                    x = bar_left_entrega + bar_width_small * pos
+                    c.line(x, content_y_bar + 2, x, content_y_bar + bar_height - 2)
+                
+                # Barra Recolha (direita)
+                bar_left_recolha = bar_left_entrega + bar_width_small + bar_spacing
+                
+                # Label "Recolha" acima da barra
+                c.setFont("Helvetica-Bold", 7)
+                c.setFillColor(HexColor('#009cb6'))
+                c.drawCentredString(bar_left_recolha + bar_width_small / 2, content_y, "Recolha")
+                
+                # Marcadores
+                c.setFont("Helvetica-Bold", 6)
+                c.setFillColor(HexColor('#009cb6'))
+                c.drawString(bar_left_recolha - 5, content_y_bar + 15, "R")
+                c.drawCentredString(bar_left_recolha + bar_width_small * 0.25, content_y_bar + 15, "1/4")
+                c.drawCentredString(bar_left_recolha + bar_width_small * 0.5, content_y_bar + 15, "1/2")
+                c.drawCentredString(bar_left_recolha + bar_width_small * 0.75, content_y_bar + 15, "3/4")
+                c.drawString(bar_left_recolha + bar_width_small + 3, content_y_bar + 15, "F")
+                
+                # Barra
+                c.setStrokeColor(HexColor('#009cb6'))
+                c.setLineWidth(1.5)
                 c.setFillColor(HexColor('#ffffff'))
-                c.setStrokeColor(HexColor('#d1d5db'))
-                c.setLineWidth(1)
-                c.roundRect(right_box_x, y_pos - box_height_croqui, right_box_width, box_height_croqui, 8, fill=1, stroke=1)
+                c.roundRect(bar_left_recolha, content_y_bar, bar_width_small, bar_height, 4, fill=1, stroke=1)
+                
+                if checkout_fuel_percent > 0:
+                    c.setFillColor(HexColor('#009cb6'))
+                    fill_width = max(8, (bar_width_small - 3) * (checkout_fuel_percent / 100))
+                    c.roundRect(bar_left_recolha + 1.5, content_y_bar + 1.5, fill_width, bar_height - 3, 3, fill=1, stroke=0)
+                
+                c.setStrokeColor(HexColor('#009cb6'))
+                c.setLineWidth(0.5)
+                for pos in [0, 0.25, 0.5, 0.75, 1.0]:
+                    x = bar_left_recolha + bar_width_small * pos
+                    c.line(x, content_y_bar + 2, x, content_y_bar + bar_height - 2)
+            else:
+                # Layout simples com 1 barra (check-in)
+                box_center_x = 40 + left_box_width / 2
+                content_y = y_pos - 25
+                
+                c.setFont("Helvetica", 8)
+                c.setFillColor(HexColor('#6b7280'))
+                c.drawCentredString(box_center_x, content_y, "Quilómetros:")
+                
+                content_y -= 12
+                
+                c.setFont("Helvetica-Bold", 10)
+                c.setFillColor(HexColor('#111827'))
+                c.drawCentredString(box_center_x, content_y, odometer_str)
+                
+                content_y -= 18
+                
+                # Label "Entrega" acima da barra
+                c.setFont("Helvetica-Bold", 8)
+                c.setFillColor(HexColor('#009cb6'))
+                c.drawCentredString(box_center_x, content_y, "Entrega")
+                
+                content_y -= 10
+                
+                bar_width_inner = (left_box_width - 40) * 0.7
+                bar_left = 40 + (left_box_width - bar_width_inner) / 2
+                bar_height = 16
+                
+                c.setFont("Helvetica-Bold", 7)
+                c.setFillColor(HexColor('#009cb6'))
+                c.drawString(bar_left - 8, content_y, "R")
+                c.drawCentredString(bar_left + bar_width_inner * 0.25, content_y, "1/4")
+                c.drawCentredString(bar_left + bar_width_inner * 0.5, content_y, "1/2")
+                c.drawCentredString(bar_left + bar_width_inner * 0.75, content_y, "3/4")
+                c.drawString(bar_left + bar_width_inner + 5, content_y, "F")
+                
+                content_y -= 22
+                
+                c.setStrokeColor(HexColor('#009cb6'))
+                c.setLineWidth(2)
+                c.setFillColor(HexColor('#ffffff'))
+                c.roundRect(bar_left, content_y, bar_width_inner, bar_height, 5, fill=1, stroke=1)
+                
+                if fuel_percent > 0:
+                    c.setFillColor(HexColor('#009cb6'))
+                    fill_width = max(10, (bar_width_inner - 4) * (fuel_percent / 100))
+                    c.roundRect(bar_left + 2, content_y + 2, fill_width, bar_height - 4, 4, fill=1, stroke=0)
+                
+                c.setStrokeColor(HexColor('#009cb6'))
+                c.setLineWidth(0.5)
+                for pos in [0, 0.25, 0.5, 0.75, 1.0]:
+                    x = bar_left + bar_width_inner * pos
+                    c.line(x, content_y + 3, x, content_y + bar_height - 3)
+            
+            # Right box - Croqui (sempre branco)
+            right_box_x = 40 + left_box_width + box_spacing
+            c.setFillColor(HexColor('#ffffff'))
+            c.setStrokeColor(HexColor('#d1d5db'))
+            c.setLineWidth(1)
+            c.roundRect(right_box_x, y_pos - box_height_croqui, right_box_width, box_height_croqui, 8, fill=1, stroke=1)
             
             # Calculate croqui size to fit right box
             img_width = right_box_width - 20  # padding inside border
