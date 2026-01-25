@@ -49383,6 +49383,11 @@ async def get_inspection_pdf(inspection_number: str, request: Request):
                     photo_type = photo_row[1]
                     image_data = photo_row[0]
                     
+                    # DEBUG: Log the actual type and format
+                    logging.info(f"🔍 RAW image_data for {photo_type}: type={type(image_data).__name__}, is_str={isinstance(image_data, str)}, is_bytes={isinstance(image_data, bytes)}, len={len(image_data) if hasattr(image_data, '__len__') else 'N/A'}")
+                    if isinstance(image_data, str):
+                        logging.info(f"🔍 String starts_with_data={image_data.startswith('data:image')}, first_50_chars={image_data[:50]}")
+                    
                     # Convert bytes to base64 string if needed (PostgreSQL stores as TEXT, SQLite as BLOB)
                     if isinstance(image_data, bytes):
                         import base64
