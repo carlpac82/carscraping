@@ -3,6 +3,7 @@ import base64
 import io
 import json
 import logging
+import os
 import re
 from datetime import datetime
 from reportlab.lib.pagesizes import A4
