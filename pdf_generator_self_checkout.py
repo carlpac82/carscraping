@@ -941,9 +941,18 @@ def generate_inspection_pdf(inspection_data, extracted_data_json):
                     
                     # Fix padding: remove whitespace and add padding if needed
                     encoded = encoded.strip().replace('\n', '').replace('\r', '').replace(' ', '')
+                    
+                    # Remove any existing padding first
+                    encoded = encoded.rstrip('=')
+                    
+                    original_len = len(encoded)
                     padding_needed = (4 - len(encoded) % 4) % 4
-                    if padding_needed:
+                    
+                    logging.info(f"🔍 Photo {idx} ({photo_type}): len={original_len}, mod4={original_len % 4}, padding_needed={padding_needed}")
+                    
+                    if padding_needed > 0:
                         encoded += '=' * padding_needed
+                        logging.info(f"🔧 PDF: Fixed padding for photo {idx}: {original_len} -> {len(encoded)} (+{padding_needed})")
                     
                     # Decode base64
                     img_data = base64.b64decode(encoded)

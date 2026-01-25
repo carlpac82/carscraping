@@ -1,4 +1,4 @@
-# DEPLOY FORCE: 2026-01-25 20:59 UTC - Added minimal error logging to identify photo decode issues
+# DEPLOY FORCE: 2026-01-25 21:04 UTC - Fixed padding calculation: strip existing padding before recalculating
 from __future__ import annotations
 
 # Todas as funções helper foram movidas para depois dos imports principais
@@ -49393,11 +49393,13 @@ async def get_inspection_pdf(inspection_number: str, request: Request):
                         parts = image_data.split(',', 1)
                         if len(parts) == 2:
                             header, encoded = parts
-                            # Remove whitespace and fix padding
-                            encoded = encoded.strip().replace('\n', '').replace('\r', '').replace(' ', '')
+                            # Remove whitespace and existing padding
+                            encoded = encoded.strip().replace('\n', '').replace('\r', '').replace(' ', '').rstrip('=')
+                            original_len = len(encoded)
                             padding_needed = (4 - len(encoded) % 4) % 4
-                            if padding_needed:
+                            if padding_needed > 0:
                                 encoded += '=' * padding_needed
+                                logging.info(f"🔧 BACKEND: Fixed padding for {photo_type}: {original_len} -> {len(encoded)} (+{padding_needed})")
                             # Reconstruct data URI with fixed padding
                             image_data = f"{header},{encoded}"
                     
