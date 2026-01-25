@@ -52033,6 +52033,88 @@ async def update_inspections_from_ra(request: Request):
             "traceback": traceback.format_exc()
         }, status_code=500)
 
+@app.post("/api/admin/emergency-fix-base64")
+async def emergency_fix_base64_endpoint(request: Request):
+    """EMERGENCY: Remove 1 character from base64 to compensate for old code bug"""
+    require_admin(request)
+    
+    try:
+        conn = _db_connect()
+        cursor = conn.cursor()
+        is_postgres = 'psycopg' in type(conn).__name__.lower() or os.getenv('DATABASE_URL')
+        
+        if not is_postgres:
+            return JSONResponse({"ok": False, "error": "Only works with PostgreSQL"}, status_code=400)
+        
+        fixed_photos = 0
+        fixed_sigs = 0
+        
+        # Fix inspection_photos - remove last character from base64
+        cursor.execute("SELECT id, image_data, photo_type FROM inspection_photos WHERE image_data LIKE 'data:image%'")
+        photos = cursor.fetchall()
+        
+        for photo_id, image_data, photo_type in photos:
+            if not image_data or not image_data.startswith('data:image'):
+                continue
+            
+            parts = image_data.split(',', 1)
+            if len(parts) != 2:
+                continue
+            
+            header, encoded = parts
+            original_len = len(encoded)
+            
+            # Remove last character to compensate for old code adding 1 extra
+            if len(encoded) > 0:
+                encoded_fixed = encoded[:-1]  # Remove last char
+                fixed_data = f"{header},{encoded_fixed}"
+                cursor.execute("UPDATE inspection_photos SET image_data = %s WHERE id = %s", (fixed_data, photo_id))
+                fixed_photos += 1
+                logging.info(f"🔧 Emergency fix photo ID {photo_id} ({photo_type}): {original_len} -> {len(encoded_fixed)} chars")
+        
+        # Fix signatures
+        cursor.execute("SELECT id, signature FROM vehicle_inspections WHERE signature LIKE 'data:image%'")
+        signatures = cursor.fetchall()
+        
+        for inspection_id, signature in signatures:
+            if not signature or not signature.startswith('data:image'):
+                continue
+            
+            parts = signature.split(',', 1)
+            if len(parts) != 2:
+                continue
+            
+            header, encoded = parts
+            original_len = len(encoded)
+            
+            # Remove last character
+            if len(encoded) > 0:
+                encoded_fixed = encoded[:-1]
+                fixed_sig = f"{header},{encoded_fixed}"
+                cursor.execute("UPDATE vehicle_inspections SET signature = %s WHERE id = %s", (fixed_sig, inspection_id))
+                fixed_sigs += 1
+                logging.info(f"🔧 Emergency fix signature for inspection ID {inspection_id}: {original_len} -> {len(encoded_fixed)} chars")
+        
+        conn.commit()
+        cursor.close()
+        conn.close()
+        
+        return JSONResponse({
+            "ok": True,
+            "fixed_photos": fixed_photos,
+            "fixed_signatures": fixed_sigs,
+            "message": f"Emergency fix applied: removed last char from {fixed_photos} photos and {fixed_sigs} signatures to compensate for old code bug"
+        })
+        
+    except Exception as e:
+        logging.error(f"❌ Error in emergency fix: {e}")
+        import traceback
+        return JSONResponse({
+            "ok": False,
+            "error": str(e),
+            "traceback": traceback.format_exc()
+        }, status_code=500)
+
 @app.get("/api/admin/diagnose-photos")
 async def diagnose_photos_format(request: Request):
     """DIAGNOSTIC: Check format of photos in database"""
