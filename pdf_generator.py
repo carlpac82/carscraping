@@ -333,20 +333,20 @@ def generate_inspection_pdf(inspection_data, extracted_data_json):
     c.drawCentredString(40 + box_width / 2, content_y, label_text)
     
     # Fuel markers
-    content_y -= 7
-    c.setFont("Helvetica-Bold", 6)
+    content_y -= 10
+    c.setFont("Helvetica-Bold", 7)
     c.setFillColor(HexColor('#009cb6'))
-    bar_left = 50
-    bar_width_inner = box_width - 20
-    c.drawString(bar_left - 2, content_y, "R")
+    bar_left = 50 + (box_width - 20) * 0.25
+    bar_width_inner = (box_width - 20) * 0.5
+    c.drawString(bar_left - 5, content_y, "R")
     c.drawCentredString(bar_left + bar_width_inner * 0.25, content_y, "1/4")
     c.drawCentredString(bar_left + bar_width_inner * 0.5, content_y, "1/2")
     c.drawCentredString(bar_left + bar_width_inner * 0.75, content_y, "3/4")
-    c.drawString(bar_left + bar_width_inner - 2, content_y, "F")
+    c.drawString(bar_left + bar_width_inner + 2, content_y, "F")
     
     # Fuel bar with rounded corners (exact canvas design)
-    content_y -= 10
-    bar_height = 14
+    content_y -= 12
+    bar_height = 16
     
     # Background bar (white with cyan border)
     c.setStrokeColor(HexColor('#009cb6'))
