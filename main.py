@@ -52033,6 +52033,94 @@ async def update_inspections_from_ra(request: Request):
             "traceback": traceback.format_exc()
         }, status_code=500)
 
+@app.get("/api/admin/diagnose-photos")
+async def diagnose_photos_format(request: Request):
+    """DIAGNOSTIC: Check format of photos in database"""
+    require_admin(request)
+    
+    try:
+        conn = _db_connect()
+        cursor = conn.cursor()
+        is_postgres = 'psycopg' in type(conn).__name__.lower() or os.getenv('DATABASE_URL')
+        
+        # Get sample photos
+        cursor.execute("SELECT id, photo_type, image_data FROM inspection_photos LIMIT 5")
+        photos = cursor.fetchall()
+        
+        results = []
+        for photo_id, photo_type, image_data in photos:
+            info = {
+                "id": photo_id,
+                "type": photo_type,
+                "data_type": str(type(image_data).__name__),
+                "is_none": image_data is None,
+                "length": len(image_data) if image_data else 0,
+            }
+            
+            if image_data:
+                if isinstance(image_data, str):
+                    info["starts_with"] = image_data[:50] if len(image_data) > 50 else image_data
+                    info["has_data_uri"] = image_data.startswith('data:image')
+                    if info["has_data_uri"]:
+                        parts = image_data.split(',', 1)
+                        if len(parts) == 2:
+                            encoded = parts[1]
+                            info["base64_length"] = len(encoded)
+                            info["padding_needed"] = (4 - len(encoded) % 4) % 4
+                elif isinstance(image_data, bytes):
+                    info["starts_with"] = str(image_data[:50])
+                    info["is_bytes"] = True
+                elif isinstance(image_data, memoryview):
+                    info["is_memoryview"] = True
+                    info["starts_with"] = str(bytes(image_data[:50]))
+            
+            results.append(info)
+        
+        # Get sample signature
+        cursor.execute("SELECT id, signature FROM vehicle_inspections WHERE signature IS NOT NULL LIMIT 3")
+        sigs = cursor.fetchall()
+        
+        sig_results = []
+        for inspection_id, signature in sigs:
+            sig_info = {
+                "inspection_id": inspection_id,
+                "data_type": str(type(signature).__name__),
+                "is_none": signature is None,
+                "length": len(signature) if signature else 0,
+            }
+            
+            if signature:
+                if isinstance(signature, str):
+                    sig_info["starts_with"] = signature[:50] if len(signature) > 50 else signature
+                    sig_info["has_data_uri"] = signature.startswith('data:image')
+                    if sig_info["has_data_uri"]:
+                        parts = signature.split(',', 1)
+                        if len(parts) == 2:
+                            encoded = parts[1]
+                            sig_info["base64_length"] = len(encoded)
+                            sig_info["padding_needed"] = (4 - len(encoded) % 4) % 4
+            
+            sig_results.append(sig_info)
+        
+        cursor.close()
+        conn.close()
+        
+        return JSONResponse({
+            "ok": True,
+            "is_postgres": is_postgres,
+            "photos": results,
+            "signatures": sig_results
+        })
+        
+    except Exception as e:
+        logging.error(f"❌ Error diagnosing photos: {e}")
+        import traceback
+        return JSONResponse({
+            "ok": False,
+            "error": str(e),
+            "traceback": traceback.format_exc()
+        }, status_code=500)
+
 @app.post("/api/admin/fix-base64-padding")
 async def fix_base64_padding_emergency(request: Request):
     """EMERGENCY: Fix base64 padding in database for photos and signatures"""
