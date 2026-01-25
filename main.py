@@ -49227,6 +49227,11 @@ async def get_inspection_pdf(inspection_number: str, request: Request):
                     if is_postgres:
                         conn.rollback()
             
+            # Initialize return fields with empty defaults
+            inspection_data['return_location'] = ''
+            inspection_data['return_date'] = ''
+            inspection_data['return_time'] = ''
+            
             # Get client_name, vehicle_brand, vehicle_model from extracted_data if still missing
             if extracted_data_json:
                 try:
@@ -49245,9 +49250,20 @@ async def get_inspection_pdf(inspection_number: str, request: Request):
                     if not inspection_data['vehicle_model']:
                         inspection_data['vehicle_model'] = extracted.get('vehicleModel') or extracted.get('vehicle_model') or ''
                     
-                    logging.info(f"📦 Got data from extracted_data: client={inspection_data['client_name']}, brand={inspection_data['vehicle_brand']}, model={inspection_data['vehicle_model']}")
+                    # Add pickup_location, return_location, return_date, return_time from extracted_data
+                    if not inspection_data['pickup_location']:
+                        inspection_data['pickup_location'] = extracted.get('pickupLocation') or extracted.get('pickup_location') or ''
+                    
+                    # Add return_location, return_date, return_time (not in inspection_data by default)
+                    inspection_data['return_location'] = extracted.get('returnLocation') or extracted.get('return_location') or ''
+                    inspection_data['return_date'] = extracted.get('returnDate') or extracted.get('return_date') or ''
+                    inspection_data['return_time'] = extracted.get('returnTime') or extracted.get('return_time') or ''
+                    
+                    logging.info(f"📦 Got data from extracted_data: client={inspection_data['client_name']}, brand={inspection_data['vehicle_brand']}, model={inspection_data['vehicle_model']}, pickup={inspection_data['pickup_location']}, return={inspection_data['return_location']}")
                 except Exception as e:
                     logging.error(f"Error parsing extracted_data: {e}")
+            else:
+                logging.warning(f"⚠️ No extracted_data_json found for contract {inspection_data['contract_number']}")
             
             # Fetch inspection photos for grid
             cursor.execute("""
