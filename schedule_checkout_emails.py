@@ -68,6 +68,12 @@ def schedule_checkout_email(
         scheduled_send_dt = checkout_dt - timedelta(days=2)
         scheduled_send_dt = scheduled_send_dt.replace(hour=9, minute=0, second=0, microsecond=0)
         
+        # Se a data de envio já passou ou é muito próxima, agendar para agora
+        now = datetime.now()
+        if scheduled_send_dt <= now:
+            scheduled_send_dt = now
+            logging.warning(f"⚠️ Checkout date is very close! Scheduling email for immediate delivery")
+        
         logging.info(f"📅 Scheduling email for {inspection_number}: checkout={checkout_dt.date()}, send={scheduled_send_dt}")
         
         # Conectar à base de dados se não foi fornecida conexão
