@@ -1832,7 +1832,7 @@
                 console.log('📋 Inspection data:', inspection);
                 console.log('🖼️ Damage croqui:', inspection.damage_croqui ? `${inspection.damage_croqui.substring(0, 100)}... (${inspection.damage_croqui.length} chars)` : 'EMPTY');
                 
-                // If checkin, get return date from RA
+                // If checkin, get return date from RA BEFORE creating modal
                 if (type === 'checkin' && inspection.contract_number) {
                     try {
                         console.log('🔍 Fetching RA data for contract:', inspection.contract_number);
@@ -1875,7 +1875,9 @@
                     }
                 }
                 
-                // Create edit modal
+                console.log('🎯 About to create modal with expected_return_date:', inspection.expected_return_date);
+                
+                // Create edit modal (AFTER loading RA data)
                 const modal = document.createElement('div');
                 modal.className = 'fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50';
                 modal.innerHTML = `
