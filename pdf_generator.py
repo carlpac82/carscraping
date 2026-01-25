@@ -215,7 +215,13 @@ def generate_inspection_pdf(inspection_data, extracted_data_json):
     c.setFont("Helvetica-Bold", 8)
     c.setFillColor(HexColor('#111827'))
     odometer = inspection_data.get('odometer_reading', 'N/A')
-    odometer_str = f"{odometer:,} km".replace(',', ' ') if odometer != 'N/A' else 'N/A'
+    if odometer and odometer != 'N/A':
+        try:
+            odometer_str = f"{int(odometer):,} km".replace(',', ' ')
+        except (ValueError, TypeError):
+            odometer_str = f"{odometer} km"
+    else:
+        odometer_str = 'N/A'
     c.drawRightString(value_x, content_y, odometer_str)
     
     content_y -= 15
