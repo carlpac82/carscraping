@@ -1,4 +1,4 @@
-# DEPLOY FORCE: 2025-12-30 20:20 UTC - Fix transmission detection
+# DEPLOY FORCE: 2026-01-25 20:18 UTC - Fix base64 padding for PDF photos
 from __future__ import annotations
 
 # Todas as funções helper foram movidas para depois dos imports principais
