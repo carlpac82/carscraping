@@ -52887,9 +52887,9 @@ async def test_schedule_email(request: Request):
                 "error": f"Return location is not Faro Airport: {return_location}"
             })
         
-        # Buscar último check-in para este RA
+        # Buscar último check-in para este RA (incluindo email do check-in)
         cursor.execute("""
-            SELECT inspection_number FROM vehicle_inspections 
+            SELECT inspection_number, client_email FROM vehicle_inspections 
             WHERE contract_number LIKE %s AND inspection_type = 'checkin'
             ORDER BY created_at DESC LIMIT 1
         """, (f"{ra_number}%",))
@@ -52902,7 +52902,13 @@ async def test_schedule_email(request: Request):
             }, status_code=404)
         
         inspection_number = insp_row[0]
+        checkin_email = insp_row[1]  # Email inserido manualmente no check-in
+        
+        # IMPORTANTE: Usar email do check-in (inserido manualmente), não do RA
+        email_to_use = checkin_email if checkin_email else client_email
+        
         logging.info(f"📋 Found check-in: {inspection_number}")
+        logging.info(f"📧 Email from check-in: {checkin_email}, Email from RA: {client_email}, Using: {email_to_use}")
         
         # Agendar email
         from schedule_checkout_emails import schedule_checkout_email
@@ -52910,7 +52916,7 @@ async def test_schedule_email(request: Request):
             inspection_number=inspection_number,
             checkout_date=return_date,
             pickup_location=return_location,
-            client_email=client_email,
+            client_email=email_to_use,  # Usar email do check-in
             client_name=client_name,
             vehicle_plate=plate,
             conn=conn
