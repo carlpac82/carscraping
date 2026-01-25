@@ -377,11 +377,12 @@ def generate_inspection_pdf(inspection_data, extracted_data_json):
         c.drawString(40, y_pos, "Fotografias da Inspeção")
         y_pos -= 15
         
-        # Grid settings - smaller photos
+        # Grid settings - photos with increased vertical spacing
         cols = 3
         photo_width = (width - 100) / cols - 8
         photo_height = photo_width * 0.6  # Smaller ratio
-        spacing = 5
+        spacing_horizontal = 5
+        spacing_vertical = 15  # Increased vertical spacing
         
         # Photo labels
         photo_labels = [
@@ -395,10 +396,10 @@ def generate_inspection_pdf(inspection_data, extracted_data_json):
         
         for idx, photo in enumerate(photos[:9]):
             if idx > 0 and idx % cols == 0:
-                y_start -= photo_height + spacing + 8
+                y_start -= photo_height + spacing_vertical + 8
             
             col = idx % cols
-            x = x_start + col * (photo_width + spacing)
+            x = x_start + col * (photo_width + spacing_horizontal)
             y = y_start - photo_height
             
             try:
@@ -445,7 +446,7 @@ def generate_inspection_pdf(inspection_data, extracted_data_json):
             except Exception as e:
                 logging.error(f"Error adding photo {idx} to PDF: {e}")
         
-        y_pos = y_start - (photo_height + spacing + 8) * 3 - 15
+        y_pos = y_start - (photo_height + spacing_vertical + 8) * 3 - 15
     
     # Footer with company info (no "Entregue por" section - it's already in the card)
     # Cyan footer bar
