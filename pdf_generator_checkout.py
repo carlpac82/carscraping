@@ -709,7 +709,7 @@ def generate_inspection_pdf(inspection_data, extracted_data_json):
                     # Create rounded corners mask with anti-aliasing
                     mask = Image.new('L', (target_width_px, target_height_px), 0)
                     draw = ImageDraw.Draw(mask)
-                    radius_px = int(6 * 2)  # 2x for better quality, matches 6px radius
+                    radius_px = int(8 * 2)  # 2x for better quality, 8px radius for visible rounded corners
                     draw.rounded_rectangle([(0, 0), (target_width_px, target_height_px)], radius=radius_px, fill=255)
                     
                     # Apply mask directly to the cropped image
