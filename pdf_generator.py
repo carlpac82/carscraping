@@ -482,14 +482,73 @@ def generate_inspection_pdf(inspection_data, extracted_data_json):
             right_box_width = (total_width - box_spacing) / 2
             box_height_croqui = 120
             
-            # Left box - Croqui with border
+            # Left box - Info box with border (like check-in card)
+            box_color = HexColor('#e6f7fa')  # bg heather light blue
+            border_color = HexColor('#009cb6')  # border heather cyan
+            
+            c.setFillColor(box_color)
+            c.roundRect(40, y_pos - box_height_croqui, left_box_width, box_height_croqui, 8, fill=1, stroke=0)
+            
+            c.setStrokeColor(border_color)
+            c.setLineWidth(1)
+            c.roundRect(40, y_pos - box_height_croqui, left_box_width, box_height_croqui, 8, fill=0, stroke=1)
+            
+            # Content in left box
+            content_y = y_pos - 20
+            label_x = 50
+            value_x = 40 + left_box_width - 10
+            
+            # Combustível label
+            c.setFont("Helvetica", 8)
+            c.setFillColor(HexColor('#6b7280'))
+            c.drawString(label_x, content_y, "Combustível:")
+            
+            content_y -= 12
+            
+            # Fuel bar (same as in check-in card)
+            bar_left = 50 + (left_box_width - 20) * 0.25
+            bar_width_inner = (left_box_width - 20) * 0.5
+            bar_height = 16
+            
+            # Fuel markers
+            c.setFont("Helvetica-Bold", 7)
+            c.setFillColor(HexColor('#009cb6'))
+            c.drawString(bar_left - 5, content_y, "R")
+            c.drawCentredString(bar_left + bar_width_inner * 0.25, content_y, "1/4")
+            c.drawCentredString(bar_left + bar_width_inner * 0.5, content_y, "1/2")
+            c.drawCentredString(bar_left + bar_width_inner * 0.75, content_y, "3/4")
+            c.drawString(bar_left + bar_width_inner + 2, content_y, "F")
+            
+            content_y -= 12
+            
+            # Background bar (white with cyan border)
+            c.setStrokeColor(HexColor('#009cb6'))
+            c.setLineWidth(2)
+            c.setFillColor(HexColor('#ffffff'))
+            c.roundRect(bar_left, content_y, bar_width_inner, bar_height, 5, fill=1, stroke=1)
+            
+            # Fuel bar fill (cyan, rounded, INSIDE the border)
+            if fuel_percent > 0:
+                c.setFillColor(HexColor('#009cb6'))
+                fill_width = max(10, (bar_width_inner - 4) * (fuel_percent / 100))
+                c.roundRect(bar_left + 2, content_y + 2, fill_width, bar_height - 4, 4, fill=1, stroke=0)
+            
+            # Fuel bar markers (vertical lines)
+            c.setStrokeColor(HexColor('#009cb6'))
+            c.setLineWidth(0.5)
+            for pos in [0, 0.25, 0.5, 0.75, 1.0]:
+                x = bar_left + bar_width_inner * pos
+                c.line(x, content_y + 3, x, content_y + bar_height - 3)
+            
+            # Right box - Croqui with border
+            right_box_x = 40 + left_box_width + box_spacing
             c.setFillColor(HexColor('#ffffff'))
             c.setStrokeColor(HexColor('#d1d5db'))
             c.setLineWidth(1)
-            c.roundRect(40, y_pos - box_height_croqui, left_box_width, box_height_croqui, 8, fill=1, stroke=1)
+            c.roundRect(right_box_x, y_pos - box_height_croqui, right_box_width, box_height_croqui, 8, fill=1, stroke=1)
             
-            # Calculate croqui size to fit left box
-            img_width = left_box_width - 20  # padding inside border
+            # Calculate croqui size to fit right box
+            img_width = right_box_width - 20  # padding inside border
             img_height = img_width * img.height / img.width
             
             # Limit height
@@ -497,40 +556,12 @@ def generate_inspection_pdf(inspection_data, extracted_data_json):
                 img_height = box_height_croqui - 20
                 img_width = img_height * img.width / img.height
             
-            # Center croqui in left box
-            x_pos = 40 + (left_box_width - img_width) / 2
+            # Center croqui in right box
+            x_pos = right_box_x + (right_box_width - img_width) / 2
             y_img_pos = y_pos - box_height_croqui + (box_height_croqui - img_height) / 2
             
             # Draw croqui
             c.drawImage(ImageReader(img), x_pos, y_img_pos, width=img_width, height=img_height)
-            
-            # Right box - Blue info box (no border)
-            right_box_x = 40 + left_box_width + box_spacing
-            c.setFillColor(HexColor('#e6f7fa'))  # bg heather light blue
-            c.roundRect(right_box_x, y_pos - box_height_croqui, right_box_width, box_height_croqui, 8, fill=1, stroke=0)
-            
-            # Content in right box
-            content_y = y_pos - 20
-            label_x = right_box_x + 10
-            value_x = right_box_x + right_box_width - 10
-            
-            # Combustível
-            c.setFont("Helvetica", 8)
-            c.setFillColor(HexColor('#6b7280'))
-            c.drawString(label_x, content_y, "Combustível:")
-            c.setFont("Helvetica-Bold", 8)
-            c.setFillColor(HexColor('#111827'))
-            c.drawRightString(value_x, content_y, fuel_level)
-            
-            content_y -= 15
-            
-            # Quilómetros
-            c.setFont("Helvetica", 8)
-            c.setFillColor(HexColor('#6b7280'))
-            c.drawString(label_x, content_y, "Quilómetros:")
-            c.setFont("Helvetica-Bold", 8)
-            c.setFillColor(HexColor('#111827'))
-            c.drawRightString(value_x, content_y, odometer_str)
             
             y_pos -= box_height_croqui + 15
         except Exception as e:
