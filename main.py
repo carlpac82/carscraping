@@ -30057,14 +30057,14 @@ async def save_inspection(request: Request):
                             if ra_row and ra_row[0]:
                                 import json
                                 ra_data = json.loads(ra_row[0])
-                                ra_client_name = ra_data.get('clientName', '')
-                                ra_pickup_date = ra_data.get('pickupDate', '')
-                                ra_pickup_location = ra_data.get('pickupLocation', '')
-                                ra_return_date = ra_data.get('returnDate', '')
-                                ra_return_location = ra_data.get('returnLocation', '')
+                                ra_client_name = ra_data.get('client_name') or ra_data.get('clientName', '')
+                                ra_pickup_date = ra_data.get('pickup_date') or ra_data.get('pickupDate', '')
+                                ra_pickup_location = ra_data.get('pickup_location') or ra_data.get('pickupLocation', '')
+                                ra_return_date = ra_data.get('return_date') or ra_data.get('returnDate', '')
+                                ra_return_location = ra_data.get('return_location') or ra_data.get('returnLocation', '')
                                 ra_country = ra_data.get('country', '')
-                                ra_vehicle_brand = ra_data.get('vehicleBrand', '')
-                                ra_vehicle_model = ra_data.get('vehicleModel', '')
+                                ra_vehicle_brand = ra_data.get('vehicle_brand') or ra_data.get('vehicleBrand', '')
+                                ra_vehicle_model = ra_data.get('vehicle_model') or ra_data.get('vehicleModel', '')
                                 logging.info(f"📋 RA Data found for {ra} (base: {ra_base}): client={ra_client_name}, brand={ra_vehicle_brand}, model={ra_vehicle_model}, pickup={ra_pickup_date}/{ra_pickup_location}, return={ra_return_date}/{ra_return_location}, country={ra_country}")
                             else:
                                 logging.warning(f"⚠️ No RA data found for: {ra} (base: {ra_base})")
