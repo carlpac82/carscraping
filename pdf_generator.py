@@ -408,6 +408,21 @@ def generate_inspection_pdf(inspection_data, extracted_data_json):
         label_x = 60 + box_width
         value_x = 50 + box_width * 2 - 10
         
+        # Local de Recolha
+        c.setFont("Helvetica", 8)
+        c.setFillColor(HexColor('#6b7280'))
+        c.drawString(label_x, content_y, "Local de Recolha:")
+        c.setFont("Helvetica-Bold", 8)
+        c.setFillColor(HexColor('#111827'))
+        return_location = (extracted.get('returnLocation') or 
+                          extracted.get('return_location') or 
+                          inspection_data.get('return_location') or 
+                          'N/A')
+        c.drawRightString(value_x, content_y, return_location)
+        
+        content_y -= 12
+        
+        # Data
         c.setFont("Helvetica", 8)
         c.setFillColor(HexColor('#6b7280'))
         c.drawString(label_x, content_y, "Data:")
@@ -416,7 +431,7 @@ def generate_inspection_pdf(inspection_data, extracted_data_json):
         return_date = extracted.get('returnDate') or extracted.get('return_date', 'N/A')
         c.drawRightString(value_x, content_y, return_date)
         
-        content_y -= 15
+        content_y -= 12
         c.setFont("Helvetica", 8)
         c.setFillColor(HexColor('#6b7280'))
         c.drawString(label_x, content_y, "Estado:")
