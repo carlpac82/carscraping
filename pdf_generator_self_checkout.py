@@ -6,7 +6,7 @@ import io
 import os
 import json
 import logging
-import base64
+import binascii
 from PIL import Image, ImageDraw
 from reportlab.lib.utils import ImageReader
 
@@ -335,10 +335,11 @@ def generate_inspection_pdf(inspection_data, extracted_data_json):
                     if signature_data.startswith('data:image'):
                         # Extract base64 part after the comma
                         header, encoded = signature_data.split(',', 1)
-                        sig_img_data = base64.b64decode(encoded)
+                        # Use binascii which tolerates incorrect padding
+                        sig_img_data = binascii.a2b_base64(encoded)
                     else:
                         # Raw base64 string
-                        sig_img_data = base64.b64decode(signature_data)
+                        sig_img_data = binascii.a2b_base64(signature_data)
                     sig_img = Image.open(io.BytesIO(sig_img_data))
                     
                     # Convert to RGBA if needed and remove background
@@ -912,10 +913,11 @@ def generate_inspection_pdf(inspection_data, extracted_data_json):
                     if photo_data.startswith('data:image'):
                         # Extract base64 part after the comma
                         header, encoded = photo_data.split(',', 1)
-                        img_data = base64.b64decode(encoded)
+                        # Use binascii which tolerates incorrect padding
+                        img_data = binascii.a2b_base64(encoded)
                     else:
                         # Raw base64 string
-                        img_data = base64.b64decode(photo_data)
+                        img_data = binascii.a2b_base64(photo_data)
                     
                     img = Image.open(io.BytesIO(img_data))
                     
