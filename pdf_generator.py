@@ -29,8 +29,8 @@ def generate_inspection_pdf(inspection_data, extracted_data_json):
     c = pdf_canvas.Canvas(buffer, pagesize=A4)
     width, height = A4
     
-    # Blue header bar (teal/cyan color like in image)
-    header_color = HexColor('#0891b2')
+    # Cyan header bar
+    header_color = HexColor('#009cb6')
     c.setFillColor(header_color)
     c.rect(0, height - 70, width, 70, fill=1, stroke=0)
     
@@ -109,6 +109,11 @@ def generate_inspection_pdf(inspection_data, extracted_data_json):
     c.line(40, y_pos, width - 40, y_pos)
     y_pos -= 25
     
+    # Helper function to convert fuel level to percentage
+    def fuel_to_percent(fuel_level):
+        fuel_map = {'R': 0, '1/8': 12.5, '1/4': 25, '3/8': 37.5, '1/2': 50, '5/8': 62.5, '3/4': 75, '7/8': 87.5, 'F': 100}
+        return fuel_map.get(fuel_level, 0)
+    
     # Inspection summary section
     c.setFont("Helvetica-Bold", 13)
     c.setFillColor(HexColor('#1f2937'))
@@ -117,71 +122,135 @@ def generate_inspection_pdf(inspection_data, extracted_data_json):
     
     # Two boxes side by side
     box_width = (width - 100) / 2
-    box_height = 120
+    box_height = 180
     
-    # Left box - Check-in info
+    # Left box - Check-in info (GREEN like in history)
     if inspection_data['inspection_type'] == 'checkin':
-        box_color = HexColor('#dbeafe')
+        box_color = HexColor('#ecfdf5')  # bg-green-50
+        border_color = HexColor('#10b981')  # border-green-500
+        title_color = HexColor('#047857')  # text-green-700
     else:
-        box_color = HexColor('#fef3c7')
+        box_color = HexColor('#dbeafe')  # bg-blue-50
+        border_color = HexColor('#3b82f6')  # border-blue-500
+        title_color = HexColor('#1e40af')  # text-blue-700
     
     c.setFillColor(box_color)
     c.rect(40, y_pos - box_height, box_width, box_height, fill=1, stroke=0)
     
-    # Border
-    if inspection_data['inspection_type'] == 'checkin':
-        border_color = HexColor('#3b82f6')
-    else:
-        border_color = HexColor('#f59e0b')
     c.setStrokeColor(border_color)
-    c.setLineWidth(2)
+    c.setLineWidth(1)
     c.rect(40, y_pos - box_height, box_width, box_height, fill=0, stroke=1)
     
     # Content
     c.setFont("Helvetica-Bold", 11)
-    c.setFillColor(HexColor('#1f2937'))
+    c.setFillColor(title_color)
     if inspection_data['inspection_type'] == 'checkin':
         c.drawString(50, y_pos - 25, "Entrega (Check-In)")
     else:
-        c.drawString(50, y_pos - 25, "Recolha (Check-Out) - Prevista")
+        c.drawString(50, y_pos - 25, "Recolha (Check-Out)")
     
-    c.setFont("Helvetica", 10)
+    c.setFont("Helvetica", 9)
     c.setFillColor(HexColor('#4b5563'))
     c.drawString(50, y_pos - 45, "Data:")
+    c.setFont("Helvetica-Bold", 9)
     date_str = inspection_data['created_at'].strftime('%d/%m/%Y %H:%M') if inspection_data.get('created_at') else 'N/A'
-    c.drawString(50, y_pos - 60, date_str)
+    c.drawString(120, y_pos - 45, date_str)
     
-    c.drawString(50, y_pos - 80, "Estado:")
+    c.setFont("Helvetica", 9)
+    c.setFillColor(HexColor('#4b5563'))
     if inspection_data['inspection_type'] == 'checkin':
-        c.setFillColor(HexColor('#10b981'))
-        c.drawString(50, y_pos - 95, "Pendente")
+        c.drawString(50, y_pos - 60, "Entregue por:")
     else:
-        c.setFillColor(HexColor('#f59e0b'))
-        c.drawString(50, y_pos - 95, "Pendente")
+        c.drawString(50, y_pos - 60, "Recolhido por:")
+    c.setFont("Helvetica-Bold", 9)
+    c.drawString(120, y_pos - 60, inspection_data.get('inspector_name', 'N/A'))
     
-    # Right box - Return date
+    c.setFont("Helvetica", 9)
+    c.setFillColor(HexColor('#4b5563'))
+    c.drawString(50, y_pos - 75, "Quilómetros:")
+    c.setFont("Helvetica-Bold", 9)
+    odometer = inspection_data.get('odometer_reading', 'N/A')
+    c.drawString(120, y_pos - 75, f"{odometer} km" if odometer != 'N/A' else 'N/A')
+    
+    # Fuel bar (like in history)
+    fuel_level = inspection_data.get('fuel_level', 'R')
+    fuel_percent = fuel_to_percent(fuel_level)
+    
+    # Divider line
+    c.setStrokeColor(border_color)
+    c.setLineWidth(0.5)
+    c.line(50, y_pos - 95, 40 + box_width - 10, y_pos - 95)
+    
+    c.setFont("Helvetica", 8)
+    c.setFillColor(HexColor('#4b5563'))
+    label_text = "Combustível na Entrega" if inspection_data['inspection_type'] == 'checkin' else "Combustível na Recolha"
+    c.drawCentredString(40 + box_width / 2, y_pos - 110, label_text)
+    
+    # Fuel markers (R, 1/4, 1/2, 3/4, F)
+    marker_y = y_pos - 125
+    c.setFont("Helvetica-Bold", 7)
+    c.setFillColor(HexColor('#009cb6'))
+    bar_left = 50
+    bar_width_inner = box_width - 20
+    c.drawString(bar_left, marker_y, "R")
+    c.drawString(bar_left + bar_width_inner * 0.25 - 5, marker_y, "1/4")
+    c.drawString(bar_left + bar_width_inner * 0.5 - 5, marker_y, "1/2")
+    c.drawString(bar_left + bar_width_inner * 0.75 - 5, marker_y, "3/4")
+    c.drawString(bar_left + bar_width_inner - 5, marker_y, "F")
+    
+    # Fuel bar background
+    bar_y = y_pos - 145
+    c.setStrokeColor(HexColor('#009cb6'))
+    c.setLineWidth(2)
+    c.setFillColor(HexColor('#ffffff'))
+    c.rect(bar_left, bar_y, bar_width_inner, 15, fill=1, stroke=1)
+    
+    # Fuel bar markers (vertical lines)
+    c.setStrokeColor(HexColor('#009cb6'))
+    c.setLineWidth(0.5)
+    for pos in [0, 0.25, 0.5, 0.75, 1.0]:
+        x = bar_left + bar_width_inner * pos
+        c.line(x, bar_y + 5, x, bar_y + 10)
+    
+    # Fuel bar fill
+    c.setFillColor(HexColor('#009cb6'))
+    c.rect(bar_left, bar_y, bar_width_inner * (fuel_percent / 100), 15, fill=1, stroke=0)
+    
+    # Fuel level text
+    c.setFont("Helvetica-Bold", 9)
+    c.setFillColor(HexColor('#009cb6'))
+    c.drawCentredString(40 + box_width / 2, y_pos - 165, fuel_level)
+    
+    # Right box - Return date (YELLOW/AMBER like in history)
     if inspection_data['inspection_type'] == 'checkin':
-        box_color = HexColor('#fef3c7')
+        box_color = HexColor('#fef3c7')  # bg-amber-50
+        border_color = HexColor('#f59e0b')  # border-amber-500
+        title_color = HexColor('#b45309')  # text-amber-700
+        
         c.setFillColor(box_color)
         c.rect(50 + box_width, y_pos - box_height, box_width, box_height, fill=1, stroke=0)
         
-        c.setStrokeColor(HexColor('#f59e0b'))
-        c.setLineWidth(2)
+        c.setStrokeColor(border_color)
+        c.setLineWidth(1)
         c.rect(50 + box_width, y_pos - box_height, box_width, box_height, fill=0, stroke=1)
         
         c.setFont("Helvetica-Bold", 11)
-        c.setFillColor(HexColor('#1f2937'))
+        c.setFillColor(title_color)
         c.drawString(60 + box_width, y_pos - 25, "Recolha (Check-Out) - Prevista")
         
-        c.setFont("Helvetica", 10)
+        c.setFont("Helvetica", 9)
         c.setFillColor(HexColor('#4b5563'))
         c.drawString(60 + box_width, y_pos - 45, "Data:")
+        c.setFont("Helvetica-Bold", 9)
         return_date = extracted.get('returnDate') or extracted.get('return_date', 'N/A')
-        c.drawString(60 + box_width, y_pos - 60, return_date)
+        c.drawString(130 + box_width, y_pos - 45, return_date)
         
-        c.drawString(60 + box_width, y_pos - 80, "Estado:")
+        c.setFont("Helvetica", 9)
+        c.setFillColor(HexColor('#4b5563'))
+        c.drawString(60 + box_width, y_pos - 60, "Estado:")
+        c.setFont("Helvetica-Bold", 9)
         c.setFillColor(HexColor('#f59e0b'))
-        c.drawString(60 + box_width, y_pos - 95, "Pendente")
+        c.drawString(130 + box_width, y_pos - 60, "Pendente")
     
     y_pos -= box_height + 30
     
