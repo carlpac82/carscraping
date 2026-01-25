@@ -1,7 +1,7 @@
 """Modern PDF generator for vehicle inspections"""
 import base64
-import binascii
 import io
+import json
 import logging
 import re
 from datetime import datetime
@@ -10,8 +10,6 @@ from reportlab.pdfgen import canvas
 from reportlab.lib.colors import HexColor
 from reportlab.lib.utils import ImageReader
 from PIL import Image, ImageDraw
-from reportlab.lib.utils import ImageReader
-import urllib
 
 def generate_inspection_pdf(inspection_data, extracted_data_json):
     """Generate a modern, clean PDF for check-in, check-out, or self-checkout inspection"""
@@ -44,7 +42,7 @@ def generate_inspection_pdf(inspection_data, extracted_data_json):
     
     # Create PDF
     buffer = io.BytesIO()
-    c = pdf_canvas.Canvas(buffer, pagesize=A4)
+    c = canvas.Canvas(buffer, pagesize=A4)
     width, height = A4
     
     # Cyan header bar (smaller)
