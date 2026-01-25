@@ -30715,6 +30715,26 @@ async def save_inspection(request: Request):
                                         """, (inspection_id, self_checkin_token, email, scheduled_date, return_date, email, ra, plate))
                                 
                                 logging.info(f"✅ Self check-in configured for RA {ra} (Aeroporto de Faro): token={self_checkin_token[:16]}..., email={email}, scheduled={scheduled_date}")
+                                
+                                # Agendar email de self-checkout 2 dias antes da recolha
+                                if return_date and email:
+                                    try:
+                                        from schedule_checkout_emails import schedule_checkout_email
+                                        schedule_success = schedule_checkout_email(
+                                            inspection_number=inspection_number,
+                                            checkout_date=return_date,
+                                            pickup_location=ra_pickup_location,
+                                            client_email=email,
+                                            client_name=ra_client_name,
+                                            vehicle_plate=plate,
+                                            conn=conn
+                                        )
+                                        if schedule_success:
+                                            logging.info(f"📧 Email de self-checkout agendado para {inspection_number}")
+                                        else:
+                                            logging.warning(f"⚠️ Não foi possível agendar email para {inspection_number}")
+                                    except Exception as schedule_error:
+                                        logging.error(f"❌ Erro ao agendar email: {schedule_error}")
                             else:
                                 # Outros locais: apenas marcar inspeção como completa, sem self check-in automático
                                 # Mas ainda atualizar extracted_data com dados do check-in

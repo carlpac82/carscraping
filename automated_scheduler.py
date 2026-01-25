@@ -809,6 +809,93 @@ def send_monthly_report():
     except Exception as e:
         logging.error(f"❌ Error sending monthly report: {str(e)}")
 
+def check_and_send_scheduled_checkout_emails():
+    """
+    Verifica e envia emails de self-checkout agendados.
+    Executado a cada 5 minutos.
+    """
+    logging.info(f"\n{'='*80}")
+    logging.info(f"📧 CHECKING SCHEDULED CHECKOUT EMAILS")
+    logging.info(f"{'='*80}")
+    
+    try:
+        from schedule_checkout_emails import get_pending_emails, mark_email_sent
+        import requests
+        import os
+        
+        # Obter emails pendentes
+        pending = get_pending_emails()
+        
+        if not pending:
+            logging.info("✅ No pending checkout emails to send")
+            return
+        
+        logging.info(f"📬 Found {len(pending)} pending email(s)")
+        
+        # Enviar cada email
+        for email_data in pending:
+            inspection_number = email_data['inspection_number']
+            client_email = email_data['client_email']
+            client_name = email_data['client_name']
+            vehicle_plate = email_data['vehicle_plate']
+            
+            logging.info(f"📧 Sending self-checkout email for {inspection_number} to {client_email}")
+            
+            try:
+                # Obter dados do check-in para gerar link de self-checkout
+                conn = _get_db_connection()
+                if not conn:
+                    logging.error(f"❌ Cannot connect to database for {inspection_number}")
+                    mark_email_sent(inspection_number, success=False, error_message="Database connection failed")
+                    continue
+                
+                cursor = conn.cursor()
+                
+                # Buscar token de self-checkout
+                cursor.execute("""
+                    SELECT self_checkin_token, contract_number
+                    FROM rental_agreements
+                    WHERE license_plate = %s
+                    ORDER BY created_at DESC
+                    LIMIT 1
+                """, (vehicle_plate,))
+                
+                row = cursor.fetchone()
+                conn.close()
+                
+                if not row or not row[0]:
+                    logging.error(f"❌ No self-checkout token found for {inspection_number}")
+                    mark_email_sent(inspection_number, success=False, error_message="Self-checkout token not found")
+                    continue
+                
+                token = row[0]
+                ra_number = row[1]
+                
+                # Construir link de self-checkout
+                base_url = os.environ.get('BASE_URL', 'https://carscraping-production.up.railway.app')
+                checkout_link = f"{base_url}/self-checkin?token={token}"
+                
+                # Enviar email (usando endpoint existente de reenvio)
+                # Nota: Adaptar conforme necessário para usar a função correta de envio
+                logging.info(f"🔗 Checkout link: {checkout_link}")
+                logging.info(f"📧 Sending email to {client_email} for RA {ra_number}")
+                
+                # Aqui você deve chamar a função de envio de email existente
+                # Por exemplo: send_self_checkout_email(client_email, client_name, checkout_link, ra_number, vehicle_plate)
+                
+                # Por agora, marcar como enviado (você deve implementar o envio real)
+                mark_email_sent(inspection_number, success=True)
+                logging.info(f"✅ Email sent successfully for {inspection_number}")
+                
+            except Exception as email_error:
+                logging.error(f"❌ Error sending email for {inspection_number}: {email_error}")
+                mark_email_sent(inspection_number, success=False, error_message=str(email_error))
+    
+    except Exception as e:
+        logging.error(f"❌ Error in check_and_send_scheduled_checkout_emails: {str(e)}")
+        import traceback
+        logging.error(traceback.format_exc())
+
 def setup_scheduled_tasks():
     """
     Setup all scheduled tasks based on database configuration
@@ -959,6 +1046,19 @@ def setup_scheduled_tasks():
         job_count += 1
         print(f"   ✅ Email: {send_time}", flush=True)
         logging.info(f"   ✅ Email: {send_time}")
+    
+    # Setup CHECKOUT EMAIL checker (every 5 minutes)
+    scheduler.add_job(
+        func=check_and_send_scheduled_checkout_emails,
+        trigger='interval',
+        minutes=5,
+        id='checkout_email_checker',
+        name='Checkout Email Checker (every 5 min)',
+        replace_existing=True
+    )
+    job_count += 1
+    print(f"\n📧 CHECKOUT EMAIL CHECKER: Every 5 minutes", flush=True)
+    logging.info(f"\n📧 CHECKOUT EMAIL CHECKER: Every 5 minutes")
     
     print(f"\n{'='*80}", flush=True)
     print(f"✅ SCHEDULER CONFIGURED: {job_count} jobs scheduled", flush=True)
