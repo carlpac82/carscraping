@@ -73,7 +73,7 @@ def generate_inspection_pdf(inspection_data, extracted_data_json):
     if inspection_data['inspection_type'] == 'checkin':
         title = "RELATÓRIO DE ENTREGA"
     elif inspection_data['inspection_type'] == 'self_checkout':
-        title = "RELATÓRIO DE DEVOLUÇÃO"
+        title = "RELATÓRIO SELF CHECKOUT"
     else:
         title = "RELATÓRIO DE DEVOLUÇÃO"
     
@@ -185,7 +185,7 @@ def generate_inspection_pdf(inspection_data, extracted_data_json):
     box_width = (total_width - box_spacing) / 2
     box_height = 120
     
-    is_checkout = inspection_data['inspection_type'] == 'checkout'
+    is_checkout = inspection_data['inspection_type'] in ['checkout', 'self_checkout']
     
     # Left box - SEMPRE Entrega (Check-In) - azul
     box_color_left = HexColor('#e6f7fa')  # bg heather light blue
@@ -380,9 +380,11 @@ def generate_inspection_pdf(inspection_data, extracted_data_json):
         c.drawRightString(value_x_right, content_y_right, "Pendente")
     
     # Process odometer and fuel for check-in (blue box)
-    is_checkout = inspection_data.get('inspection_type') == 'checkout'
+    is_checkout = inspection_data.get('inspection_type') in ['checkout', 'self_checkout']
     
     print(f"🔍 DEBUG - inspection_data keys: {inspection_data.keys()}")
+    print(f"🔍 DEBUG - inspection_type: '{inspection_data.get('inspection_type')}'")
+    print(f"🔍 DEBUG - is_checkout: {is_checkout}")
     print(f"🔍 DEBUG - checkin_odometer: '{inspection_data.get('checkin_odometer')}'")
     print(f"🔍 DEBUG - checkin_fuel: '{inspection_data.get('checkin_fuel')}'")
     print(f"🔍 DEBUG - checkin_created_at: '{inspection_data.get('checkin_created_at')}'")

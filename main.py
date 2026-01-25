@@ -49242,8 +49242,8 @@ async def get_inspection_pdf(inspection_number: str, request: Request):
             inspection_data['return_date'] = ''
             inspection_data['return_time'] = ''
             
-            # For checkout, fetch check-in data (quilómetros e combustível da entrega)
-            if row[1] == 'checkout':
+            # For checkout and self-checkout, fetch check-in data (quilómetros e combustível da entrega)
+            if row[1] in ['checkout', 'self_checkout']:
                 try:
                     base_ra = row[3].split('-')[0] if '-' in row[3] else row[3]
                     logging.info(f"🔍 Searching check-in for: plate={row[2]}, contract={row[3]}, base_ra={base_ra}")
