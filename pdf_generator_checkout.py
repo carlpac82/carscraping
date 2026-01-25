@@ -569,14 +569,21 @@ def generate_inspection_pdf(inspection_data, extracted_data_json):
         has_checkin_photos = len(checkin_photos) > 0
         
         logging.info(f"📸 PDF Photos - damage: {len(damage_photos)}, normal: {len(normal_photos)}, checkin: {len(checkin_photos)}")
+        logging.info(f"📸 All photos types: {[p.get('photo_type') for p in all_photos]}")
+        logging.info(f"📸 Checkin photos types: {[p.get('photo_type') for p in checkin_photos]}")
         
         # Scenario 1: No new photos in checkout -> show checkin photos
-        if not has_normal_photos and not has_damage_photos and has_checkin_photos:
-            photos_to_show = [{'photos': checkin_photos, 'title': 'Fotografias da Entrega'}]
+        if not has_normal_photos and not has_damage_photos:
+            if has_checkin_photos:
+                photos_to_show = [{'photos': checkin_photos, 'title': 'Fotografias da Entrega'}]
+                logging.info(f"📸 Scenario 1: Showing {len(checkin_photos)} checkin photos")
+            else:
+                logging.warning("📸 No photos available for checkout PDF")
         
         # Scenario 2: Only new normal photos -> show only checkout normal photos
         elif has_normal_photos and not has_damage_photos:
             photos_to_show = [{'photos': normal_photos, 'title': 'Fotografias da Recolha'}]
+            logging.info(f"📸 Scenario 2: Showing {len(normal_photos)} normal checkout photos")
         
         # Scenario 3: New normal photos + damage photos -> show damage first, then normal
         elif has_normal_photos and has_damage_photos:
@@ -584,17 +591,19 @@ def generate_inspection_pdf(inspection_data, extracted_data_json):
                 {'photos': damage_photos, 'title': 'Fotografias dos Danos (Recolha)'},
                 {'photos': normal_photos, 'title': 'Fotografias da Recolha'}
             ]
+            logging.info(f"📸 Scenario 3: Showing {len(damage_photos)} damage + {len(normal_photos)} normal photos")
         
         # Scenario 4: Only damage photos -> show damage + checkin photos
-        elif has_damage_photos and not has_normal_photos and has_checkin_photos:
-            photos_to_show = [
-                {'photos': damage_photos, 'title': 'Fotografias dos Danos (Recolha)'},
-                {'photos': checkin_photos, 'title': 'Fotografias da Entrega'}
-            ]
-        
-        # Scenario 5: Only damage photos, no checkin -> show only damage
-        elif has_damage_photos and not has_normal_photos and not has_checkin_photos:
-            photos_to_show = [{'photos': damage_photos, 'title': 'Fotografias dos Danos (Recolha)'}]
+        elif has_damage_photos and not has_normal_photos:
+            if has_checkin_photos:
+                photos_to_show = [
+                    {'photos': damage_photos, 'title': 'Fotografias dos Danos (Recolha)'},
+                    {'photos': checkin_photos, 'title': 'Fotografias da Entrega'}
+                ]
+                logging.info(f"📸 Scenario 4: Showing {len(damage_photos)} damage + {len(checkin_photos)} checkin photos")
+            else:
+                photos_to_show = [{'photos': damage_photos, 'title': 'Fotografias dos Danos (Recolha)'}]
+                logging.info(f"📸 Scenario 5: Showing {len(damage_photos)} damage photos only")
     else:
         # CHECKIN (ENTREGA) - Show all photos normally
         if all_photos:
