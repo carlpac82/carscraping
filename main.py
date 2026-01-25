@@ -51641,7 +51641,7 @@ async def fix_ra_06716(request: Request):
         traceback.print_exc()
         return JSONResponse({"error": str(e), "traceback": traceback.format_exc()}, status_code=500)
 
-@app.post("/api/admin/update-inspections-from-ra")
+@app.api_route("/api/admin/update-inspections-from-ra", methods=["GET", "POST"])
 async def update_inspections_from_ra(request: Request):
     """Update existing inspections with data from rental agreements"""
     require_auth(request)
