@@ -853,7 +853,7 @@ def check_and_send_scheduled_checkout_emails():
                 
                 # Buscar token de self-checkout
                 cursor.execute("""
-                    SELECT self_checkin_token, contract_number
+                    SELECT self_checkin_token, rental_agreement_number
                     FROM rental_agreements
                     WHERE license_plate = %s
                     ORDER BY created_at DESC
