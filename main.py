@@ -49139,7 +49139,7 @@ async def get_inspection_pdf(inspection_number: str, request: Request):
                         vi.inspector_name, vi.inspector_notes, vi.odometer_reading, vi.fuel_level,
                         vi.created_at, vi.customer_name,
                         (SELECT image_data FROM inspection_photos WHERE inspection_id = vi.id AND photo_type = 'damage_croqui' LIMIT 1) as damage_croqui,
-                        ra.extracted_data, ra.vehicle_brand, ra.vehicle_model, ra.pickup_location
+                        ra.extracted_data, vi.vehicle_brand, vi.vehicle_model, vi.pickup_location
                     FROM vehicle_inspections vi
                     LEFT JOIN rental_agreements ra ON vi.contract_number = ra.rental_agreement_number
                     WHERE vi.inspection_number = %s
@@ -49151,7 +49151,7 @@ async def get_inspection_pdf(inspection_number: str, request: Request):
                         vi.inspector_name, vi.inspector_notes, vi.odometer_reading, vi.fuel_level,
                         vi.created_at, vi.customer_name,
                         (SELECT image_data FROM inspection_photos WHERE inspection_id = vi.id AND photo_type = 'damage_croqui' LIMIT 1) as damage_croqui,
-                        ra.extracted_data, ra.vehicle_brand, ra.vehicle_model, ra.pickup_location
+                        ra.extracted_data, vi.vehicle_brand, vi.vehicle_model, vi.pickup_location
                     FROM vehicle_inspections vi
                     LEFT JOIN rental_agreements ra ON vi.contract_number = ra.rental_agreement_number
                     WHERE vi.inspection_number = ?
