@@ -52663,6 +52663,74 @@ async def fix_inspection_padding(request: Request, inspection_number: str):
             "traceback": traceback.format_exc()
         }, status_code=500)
 
+@app.get("/api/admin/scheduled-emails")
+async def list_scheduled_emails(request: Request):
+    """
+    List all scheduled checkout emails
+    """
+    try:
+        require_inspection_access(request)
+    except HTTPException:
+        return JSONResponse({"ok": False, "error": "Unauthorized"}, status_code=403)
+    
+    try:
+        conn = _db_connect()
+        is_postgres = _is_postgresql_connection(conn)
+        
+        if not is_postgres:
+            return JSONResponse({
+                "ok": False,
+                "error": "This endpoint only works with PostgreSQL"
+            }, status_code=400)
+        
+        cursor = conn.cursor()
+        
+        cursor.execute("""
+            SELECT inspection_number, checkout_date, scheduled_send_date, 
+                   pickup_location, client_email, client_name, vehicle_plate,
+                   status, created_at, sent_at, error_message
+            FROM scheduled_checkout_emails
+            ORDER BY scheduled_send_date DESC
+            LIMIT 50
+        """)
+        
+        rows = cursor.fetchall()
+        
+        emails = []
+        for row in rows:
+            emails.append({
+                "inspection_number": row[0],
+                "checkout_date": str(row[1]) if row[1] else None,
+                "scheduled_send_date": str(row[2]) if row[2] else None,
+                "pickup_location": row[3],
+                "client_email": row[4],
+                "client_name": row[5],
+                "vehicle_plate": row[6],
+                "status": row[7],
+                "created_at": str(row[8]) if row[8] else None,
+                "sent_at": str(row[9]) if row[9] else None,
+                "error_message": row[10]
+            })
+        
+        cursor.close()
+        conn.close()
+        
+        return JSONResponse({
+            "ok": True,
+            "count": len(emails),
+            "emails": emails
+        })
+        
+    except Exception as e:
+        logging.error(f"❌ Error listing scheduled emails: {e}")
+        import traceback
+        logging.error(traceback.format_exc())
+        return JSONResponse({
+            "ok": False,
+            "error": str(e),
+            "traceback": traceback.format_exc()
+        }, status_code=500)
+
 @app.post("/api/admin/setup-scheduled-emails-table")
 async def setup_scheduled_emails_table(request: Request):
     """
