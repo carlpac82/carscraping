@@ -898,7 +898,7 @@ def check_and_send_scheduled_checkout_emails():
                 extracted_data = row[2]
                 logging.info(f"✅ Found token for RA {ra_number}")
                 
-                # Extrair país do cliente
+                # Extrair país do cliente do RA
                 country = None
                 if extracted_data:
                     import json
@@ -906,9 +906,28 @@ def check_and_send_scheduled_checkout_emails():
                         data = json.loads(extracted_data) if isinstance(extracted_data, str) else extracted_data
                         country = data.get('client_country') or data.get('country')
                         if country:
-                            logging.info(f"🌍 Client country: {country}")
+                            logging.info(f"🌍 Client country from RA: {country}")
                     except Exception as e:
-                        logging.warning(f"⚠️ Could not extract country: {e}")
+                        logging.warning(f"⚠️ Could not extract country from RA: {e}")
+                
+                # Se não encontrou país no RA, buscar do check-in
+                if not country:
+                    try:
+                        conn2 = _get_db_connection()
+                        cursor2 = conn2.cursor()
+                        cursor2.execute("""
+                            SELECT client_country
+                            FROM vehicle_inspections
+                            WHERE inspection_number = %s
+                        """, (inspection_number,))
+                        country_row = cursor2.fetchone()
+                        conn2.close()
+                        
+                        if country_row and country_row[0]:
+                            country = country_row[0]
+                            logging.info(f"🌍 Client country from check-in: {country}")
+                    except Exception as e:
+                        logging.warning(f"⚠️ Could not get country from check-in: {e}")
                 
                 # Construir link de self-checkout
                 base_url = os.environ.get('BASE_URL', 'https://rentalprices.pt')

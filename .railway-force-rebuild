@@ -1,1 +1,1 @@
-2026-01-26T01:34:00Z UTC - Add endpoint to reset scheduled email status to pending for testing - Force Railway rebuild
+2026-01-26T01:42:00Z UTC - Fix: fallback to get client country from check-in if not in RA data - Force Railway rebuild
