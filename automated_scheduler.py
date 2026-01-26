@@ -839,7 +839,11 @@ def check_and_send_scheduled_checkout_emails():
         logging.info(f"📬 Found {len(pending)} pending email(s)")
         
         # Enviar cada email
-        for email_data in pending:
+        logging.info(f"🔄 Starting loop to process {len(pending)} emails...")
+        for idx, email_data in enumerate(pending):
+            logging.info(f"🔄 Processing email {idx+1}/{len(pending)}")
+            logging.info(f"📦 Email data: {email_data}")
+            
             inspection_number = email_data['inspection_number']
             client_email = email_data['client_email']
             client_name = email_data['client_name']
@@ -907,9 +911,9 @@ def check_and_send_scheduled_checkout_emails():
                         logging.info(f"🔍 DEBUG: extracted_data keys: {list(data.keys())}")
                         logging.info(f"🔍 DEBUG: extracted_data content: {json.dumps(data, indent=2)}")
                         
-                        # Tentar vários nomes de campo possíveis
-                        country = (data.get('client_country') or 
-                                 data.get('country') or 
+                        # Tentar vários nomes de campo possíveis (country é o campo real)
+                        country = (data.get('country') or 
+                                 data.get('client_country') or 
                                  data.get('clientCountry') or
                                  data.get('Country') or
                                  data.get('pais') or

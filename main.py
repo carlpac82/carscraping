@@ -95,7 +95,6 @@ import hashlib
 import smtplib
 from email.message import EmailMessage
 from fastapi import Query
-from pdf_generator_checkout import generate_inspection_pdf
 try:
     import httpx  # type: ignore
     _HTTPX_CLIENT = httpx.Client(timeout=httpx.Timeout(10.0, connect=4.0), headers={"Connection": "keep-alive"})
@@ -49676,16 +49675,21 @@ async def get_inspection_pdf(inspection_number: str, request: Request):
         
         # Generate PDF using appropriate generator based on inspection type
         logging.info(f"📸 FINAL CHECK before PDF generation: photos={len(inspection_data.get('photos', []))}, checkin_photos={len(inspection_data.get('checkin_photos', []))}")
+        logging.info(f"🔍 Inspection type: {row[1]}")
         
         if row[1] == 'self_checkout':
             from pdf_generator_self_checkout import generate_inspection_pdf as generate_self_checkout_pdf
+            logging.info("📄 Using pdf_generator_self_checkout")
             pdf_content = generate_self_checkout_pdf(inspection_data, extracted_data_json)
         elif row[1] == 'checkout':
             from pdf_generator_checkout import generate_inspection_pdf as generate_checkout_pdf
+            logging.info("📄 Using pdf_generator_checkout")
             pdf_content = generate_checkout_pdf(inspection_data, extracted_data_json)
         else:
             # check-in (entrega)
-            pdf_content = generate_inspection_pdf(inspection_data, extracted_data_json)
+            from pdf_generator import generate_inspection_pdf as generate_checkin_pdf
+            logging.info("📄 Using pdf_generator (check-in)")
+            pdf_content = generate_checkin_pdf(inspection_data, extracted_data_json)
         
         logging.info(f"✅ PDF generated: {len(pdf_content)} bytes")
         
