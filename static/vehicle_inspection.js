@@ -1385,69 +1385,77 @@ function enlargePhoto(imageData, photoType) {
     // Previous arrow (only if more than 1 photo)
     if (allPhotos.length > 1) {
         const prevBtn = document.createElement('button');
-        prevBtn.innerHTML = '<svg width="24" height="24" fill="none" stroke="white" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"></path></svg>';
+        prevBtn.innerHTML = '<svg width="20" height="20" fill="none" stroke="white" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M15 19l-7-7 7-7"></path></svg>';
+        prevBtn.className = 'lightbox-nav-btn';
         prevBtn.style.cssText = `
             position: absolute;
-            left: 20px;
+            left: 10px;
             top: 50%;
             transform: translateY(-50%);
-            background: rgba(255, 255, 255, 0.2);
-            border: 2px solid white;
+            background: rgba(0, 0, 0, 0.5);
+            border: 2px solid rgba(255, 255, 255, 0.8);
             border-radius: 50%;
-            width: 50px;
-            height: 50px;
+            width: 44px;
+            height: 44px;
             display: flex;
             align-items: center;
             justify-content: center;
             cursor: pointer;
             transition: all 0.2s;
             backdrop-filter: blur(10px);
+            -webkit-backdrop-filter: blur(10px);
+            z-index: 10001;
         `;
         prevBtn.addEventListener('click', (e) => {
             e.stopPropagation();
             navigatePhoto(-1);
         });
-        prevBtn.addEventListener('mouseenter', () => {
-            prevBtn.style.background = 'rgba(255, 255, 255, 0.3)';
-            prevBtn.style.transform = 'translateY(-50%) scale(1.1)';
+        prevBtn.addEventListener('touchstart', (e) => {
+            e.stopPropagation();
+            prevBtn.style.background = 'rgba(0, 0, 0, 0.7)';
         });
-        prevBtn.addEventListener('mouseleave', () => {
-            prevBtn.style.background = 'rgba(255, 255, 255, 0.2)';
-            prevBtn.style.transform = 'translateY(-50%)';
+        prevBtn.addEventListener('touchend', (e) => {
+            e.stopPropagation();
+            prevBtn.style.background = 'rgba(0, 0, 0, 0.5)';
+            navigatePhoto(-1);
         });
         modal.appendChild(prevBtn);
         
         // Next arrow
         const nextBtn = document.createElement('button');
-        nextBtn.innerHTML = '<svg width="24" height="24" fill="none" stroke="white" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path></svg>';
+        nextBtn.innerHTML = '<svg width="20" height="20" fill="none" stroke="white" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M9 5l7 7-7 7"></path></svg>';
+        nextBtn.className = 'lightbox-nav-btn';
         nextBtn.style.cssText = `
             position: absolute;
-            right: 20px;
+            right: 10px;
             top: 50%;
             transform: translateY(-50%);
-            background: rgba(255, 255, 255, 0.2);
-            border: 2px solid white;
+            background: rgba(0, 0, 0, 0.5);
+            border: 2px solid rgba(255, 255, 255, 0.8);
             border-radius: 50%;
-            width: 50px;
-            height: 50px;
+            width: 44px;
+            height: 44px;
             display: flex;
             align-items: center;
             justify-content: center;
             cursor: pointer;
             transition: all 0.2s;
             backdrop-filter: blur(10px);
+            -webkit-backdrop-filter: blur(10px);
+            z-index: 10001;
         `;
         nextBtn.addEventListener('click', (e) => {
             e.stopPropagation();
             navigatePhoto(1);
         });
-        nextBtn.addEventListener('mouseenter', () => {
-            nextBtn.style.background = 'rgba(255, 255, 255, 0.3)';
-            nextBtn.style.transform = 'translateY(-50%) scale(1.1)';
+        nextBtn.addEventListener('touchstart', (e) => {
+            e.stopPropagation();
+            nextBtn.style.background = 'rgba(0, 0, 0, 0.7)';
         });
-        nextBtn.addEventListener('mouseleave', () => {
-            nextBtn.style.background = 'rgba(255, 255, 255, 0.2)';
-            nextBtn.style.transform = 'translateY(-50%)';
+        nextBtn.addEventListener('touchend', (e) => {
+            e.stopPropagation();
+            nextBtn.style.background = 'rgba(0, 0, 0, 0.5)';
+            navigatePhoto(1);
         });
         modal.appendChild(nextBtn);
         
@@ -1465,33 +1473,35 @@ function enlargePhoto(imageData, photoType) {
     
     // Close button
     const closeBtn = document.createElement('button');
-    closeBtn.innerHTML = '<svg width="24" height="24" fill="none" stroke="white" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>';
+    closeBtn.innerHTML = '<svg width="20" height="20" fill="none" stroke="white" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M6 18L18 6M6 6l12 12"></path></svg>';
     closeBtn.style.cssText = `
         position: absolute;
-        top: 20px;
-        right: 20px;
-        background: rgba(255, 255, 255, 0.2);
-        border: 2px solid white;
+        top: 10px;
+        right: 10px;
+        background: rgba(220, 53, 69, 0.8);
+        border: 2px solid rgba(255, 255, 255, 0.8);
         border-radius: 50%;
-        width: 50px;
-        height: 50px;
+        width: 44px;
+        height: 44px;
         display: flex;
         align-items: center;
         justify-content: center;
         cursor: pointer;
         transition: all 0.2s;
         backdrop-filter: blur(10px);
+        -webkit-backdrop-filter: blur(10px);
+        z-index: 10001;
     `;
     closeBtn.addEventListener('click', () => {
         modal.remove();
     });
-    closeBtn.addEventListener('mouseenter', () => {
-        closeBtn.style.background = 'rgba(255, 255, 255, 0.3)';
-        closeBtn.style.transform = 'scale(1.1)';
+    closeBtn.addEventListener('touchstart', (e) => {
+        e.stopPropagation();
+        closeBtn.style.background = 'rgba(220, 53, 69, 1)';
     });
-    closeBtn.addEventListener('mouseleave', () => {
-        closeBtn.style.background = 'rgba(255, 255, 255, 0.2)';
-        closeBtn.style.transform = 'scale(1)';
+    closeBtn.addEventListener('touchend', (e) => {
+        e.stopPropagation();
+        closeBtn.style.background = 'rgba(220, 53, 69, 0.8)';
     });
     
     container.appendChild(img);
