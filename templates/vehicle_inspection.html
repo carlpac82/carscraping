@@ -4078,15 +4078,16 @@
                         return;
                     }
                     
-                    console.log('✅ Matrícula existe no Gestor de Frota, buscando RA...');
+                    console.log('✅ Matrícula existe no Gestor de Frota, buscando RA mais recente...');
                     
                     try {
                         const response = await fetch(`/api/rental-agreement/by-plate/${encodeURIComponent(plate)}`);
-                        console.log('📡 Response status:', response.status);
+                        console.log('📡 RA Response status:', response.status);
                         const data = await response.json();
-                        console.log('📦 Response data:', data);
+                        console.log('📦 RA Response data:', data);
                         
                         if (data.success && data.found) {
+                            console.log('✅ RA encontrado para esta matrícula');
                             const ra = data.rental_agreement;
                             const vehicleInfo = data.vehicle_info;
                             
