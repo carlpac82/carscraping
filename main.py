@@ -53251,9 +53251,9 @@ async def test_direct_email(request: Request):
         contract_number, client_email, client_name, vehicle_plate = row
         ra_base = contract_number.split('-')[0] if '-' in contract_number else contract_number
         
-        # Buscar token
+        # Buscar token e país do cliente
         cursor.execute("""
-            SELECT self_checkin_token, rental_agreement_number
+            SELECT self_checkin_token, rental_agreement_number, extracted_data
             FROM rental_agreements
             WHERE rental_agreement_number LIKE %s
             LIMIT 1
@@ -53267,6 +53267,17 @@ async def test_direct_email(request: Request):
         
         token = token_row[0]
         ra_number = token_row[1]
+        extracted_data = token_row[2]
+        
+        # Extrair país do cliente
+        country = None
+        if extracted_data:
+            import json
+            try:
+                data = json.loads(extracted_data) if isinstance(extracted_data, str) else extracted_data
+                country = data.get('client_country') or data.get('country')
+            except:
+                pass
         
         # Enviar email
         _send_self_checkin_invitation_email(
@@ -53276,7 +53287,7 @@ async def test_direct_email(request: Request):
             plate=vehicle_plate,
             return_date='2026-01-28',
             token=token,
-            country=None
+            country=country
         )
         
         return JSONResponse({

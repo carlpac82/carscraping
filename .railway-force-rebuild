@@ -1,1 +1,1 @@
-2026-01-26T01:29:00Z UTC - Add test endpoint to send email directly bypassing scheduler - Force Railway rebuild
+2026-01-26T01:32:00Z UTC - Fix: send emails in correct language based on client country from RA data - Force Railway rebuild

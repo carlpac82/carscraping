@@ -876,9 +876,9 @@ def check_and_send_scheduled_checkout_emails():
                 ra_base = contract_number.split('-')[0] if '-' in contract_number else contract_number
                 logging.info(f"🔍 Looking for RA token using contract: {contract_number} (base: {ra_base})")
                 
-                # Buscar token de self-checkout usando o RA number
+                # Buscar token de self-checkout e país do cliente usando o RA number
                 cursor.execute("""
-                    SELECT self_checkin_token, rental_agreement_number
+                    SELECT self_checkin_token, rental_agreement_number, extracted_data
                     FROM rental_agreements
                     WHERE rental_agreement_number LIKE %s
                     ORDER BY created_at DESC
@@ -895,7 +895,20 @@ def check_and_send_scheduled_checkout_emails():
                 
                 token = row[0]
                 ra_number = row[1]
+                extracted_data = row[2]
                 logging.info(f"✅ Found token for RA {ra_number}")
+                
+                # Extrair país do cliente
+                country = None
+                if extracted_data:
+                    import json
+                    try:
+                        data = json.loads(extracted_data) if isinstance(extracted_data, str) else extracted_data
+                        country = data.get('client_country') or data.get('country')
+                        if country:
+                            logging.info(f"🌍 Client country: {country}")
+                    except Exception as e:
+                        logging.warning(f"⚠️ Could not extract country: {e}")
                 
                 # Construir link de self-checkout
                 base_url = os.environ.get('BASE_URL', 'https://rentalprices.pt')
@@ -913,7 +926,8 @@ def check_and_send_scheduled_checkout_emails():
                         "ra_number": ra_number,
                         "plate": vehicle_plate,
                         "token": token,
-                        "return_date": str(email_data.get('checkout_date', ''))
+                        "return_date": str(email_data.get('checkout_date', '')),
+                        "country": country
                     }
                     
                     response = requests.post(api_url, json=payload, timeout=30)
