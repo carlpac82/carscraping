@@ -3701,30 +3701,39 @@
         let currentLightboxIndex = 0;
         let lightboxPhotos = [];
         
-        // Make photo clickable to open lightbox
-        function makePhotoClickable(photoType) {
+        // Make ALL photos clickable after they are loaded
+        function makeAllPhotosClickable() {
+            console.log('🖱️ Making all photos clickable...');
             const photoTypes = ['front', 'front_left', 'left', 'back_left', 'back', 'back_right', 'right', 'front_right', 'odometer'];
-            const photoIndex = photoTypes.indexOf(photoType);
             
-            // Find the photo slot by looking for elements with the photo data
-            setTimeout(() => {
-                // Try to find the photo element - it might be in different places depending on the page structure
-                const photoElements = document.querySelectorAll('.photo-slot img, img[src*="data:image"]');
-                photoElements.forEach((img) => {
-                    if (img.src && img.src.startsWith('data:image')) {
-                        // Check if this image matches our photo
-                        const photoData = window.inspectionData?.photos?.[photoType];
-                        if (photoData && (photoData.dataURL === img.src || photoData === img.src)) {
-                            // Add click event to open lightbox
+            photoTypes.forEach((type, index) => {
+                const photoData = window.inspectionData?.photos?.[type];
+                if (photoData) {
+                    // Find all images and check if they match this photo
+                    const allImages = document.querySelectorAll('img');
+                    allImages.forEach((img) => {
+                        const imgSrc = img.src;
+                        const dataSrc = typeof photoData === 'string' ? photoData : photoData.dataURL;
+                        
+                        if (imgSrc && dataSrc && imgSrc === dataSrc) {
                             img.style.cursor = 'pointer';
                             img.onclick = function(e) {
                                 e.stopPropagation();
-                                openLightbox(photoIndex);
+                                console.log(`📸 Opening lightbox for ${type} (index ${index})`);
+                                openLightbox(index);
                             };
-                            console.log(`✅ Made photo ${photoType} clickable`);
+                            console.log(`✅ Made photo ${type} clickable`);
                         }
-                    }
-                });
+                    });
+                }
+            });
+        }
+        
+        // Make photo clickable to open lightbox
+        function makePhotoClickable(photoType) {
+            // Call the function to make all photos clickable
+            setTimeout(() => {
+                makeAllPhotosClickable();
             }, 500);
         }
         
