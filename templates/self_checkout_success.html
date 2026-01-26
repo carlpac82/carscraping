@@ -16,26 +16,81 @@
                     </svg>
                 </div>
                 
-                <h1 class="text-3xl font-bold text-gray-800 mb-4">Check-out Submetido!</h1>
+                <h1 id="successTitle" class="text-3xl font-bold text-gray-800 mb-4">Check-out Submetido!</h1>
                 
-                <p class="text-gray-600 mb-6">
+                <p id="successMessage" class="text-gray-600 mb-6">
                     O seu self check-out foi submetido com sucesso. A nossa equipa irá validar as informações e entraremos em contacto em breve.
                 </p>
                 
                 <div class="bg-blue-50 border-l-4 border-blue-500 p-4 mb-6 text-left">
                     <p class="text-blue-800 text-sm">
-                        <strong>Próximos passos:</strong><br>
-                        • Aguarde a validação da nossa equipa<br>
-                        • Receberá um email de confirmação<br>
-                        • Em caso de incidências, entraremos em contacto
+                        <strong id="nextStepsTitle">Próximos passos:</strong><br>
+                        <span id="nextStepsContent">
+                            • Aguarde a validação da nossa equipa<br>
+                            • Receberá um email de confirmação<br>
+                            • Em caso de incidências, entraremos em contacto
+                        </span>
                     </p>
                 </div>
                 
-                <p class="text-gray-500 text-sm">
+                <p id="thankYouMessage" class="text-gray-500 text-sm">
                     Obrigado por utilizar o nosso serviço de self check-out!
                 </p>
             </div>
         </div>
     </div>
+    
+    <script>
+        // Get language from URL parameter
+        const urlParams = new URLSearchParams(window.location.search);
+        const lang = urlParams.get('lang') || 'pt';
+        
+        const translations = {
+            pt: {
+                title: 'Check-out Submetido!',
+                message: 'O seu self check-out foi submetido com sucesso. A nossa equipa irá validar as informações e entraremos em contacto em breve.',
+                nextStepsTitle: 'Próximos passos:',
+                nextSteps: [
+                    'Aguarde a validação da nossa equipa',
+                    'Receberá um email de confirmação',
+                    'Em caso de incidências, entraremos em contacto'
+                ],
+                thankYou: 'Obrigado por utilizar o nosso serviço de self check-out!'
+            },
+            en: {
+                title: 'Check-out Submitted!',
+                message: 'Your self check-out has been submitted successfully. Our team will validate the information and we will contact you shortly.',
+                nextStepsTitle: 'Next steps:',
+                nextSteps: [
+                    'Wait for validation from our team',
+                    'You will receive a confirmation email',
+                    'In case of incidents, we will contact you'
+                ],
+                thankYou: 'Thank you for using our self check-out service!'
+            },
+            fr: {
+                title: 'Check-out Soumis!',
+                message: 'Votre self check-out a été soumis avec succès. Notre équipe validera les informations et nous vous contacterons sous peu.',
+                nextStepsTitle: 'Prochaines étapes:',
+                nextSteps: [
+                    'Attendez la validation de notre équipe',
+                    'Vous recevrez un email de confirmation',
+                    'En cas d\'incidents, nous vous contacterons'
+                ],
+                thankYou: 'Merci d\'avoir utilisé notre service de self check-out!'
+            }
+        };
+        
+        const t = translations[lang] || translations['pt'];
+        
+        // Update page content
+        document.getElementById('successTitle').textContent = t.title;
+        document.getElementById('successMessage').textContent = t.message;
+        document.getElementById('nextStepsTitle').textContent = t.nextStepsTitle;
+        document.getElementById('nextStepsContent').innerHTML = t.nextSteps.map(step => `• ${step}`).join('<br>');
+        document.getElementById('thankYouMessage').textContent = t.thankYou;
+        document.documentElement.lang = lang;
+        document.title = t.title + ' - Rentify';
+    </script>
 </body>
 </html>
