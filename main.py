@@ -53391,6 +53391,108 @@ async def force_send_checkout_emails(request: Request):
             "traceback": traceback.format_exc()
         }, status_code=500)
 
+@app.get("/api/admin/check-ra-country/{ra_number}")
+async def check_ra_country(request: Request, ra_number: str):
+    """
+    TEMPORARY: Check country extracted from RA
+    """
+    try:
+        require_inspection_access(request)
+    except HTTPException:
+        return JSONResponse({"ok": False, "error": "Unauthorized"}, status_code=403)
+    
+    try:
+        conn = _db_connect()
+        is_postgres = _is_postgresql_connection(conn)
+        
+        if not is_postgres:
+            return JSONResponse({
+                "ok": False,
+                "error": "This endpoint only works with PostgreSQL"
+            }, status_code=400)
+        
+        cursor = conn.cursor()
+        
+        # Buscar RA
+        cursor.execute("""
+            SELECT rental_agreement_number, extracted_data
+            FROM rental_agreements
+            WHERE rental_agreement_number LIKE %s
+            ORDER BY created_at DESC
+            LIMIT 1
+        """, (f"{ra_number}%",))
+        
+        row = cursor.fetchone()
+        cursor.close()
+        conn.close()
+        
+        if not row:
+            return JSONResponse({
+                "ok": False,
+                "error": f"RA {ra_number} not found"
+            }, status_code=404)
+        
+        ra_num = row[0]
+        extracted_data = row[1]
+        
+        if not extracted_data:
+            return JSONResponse({
+                "ok": False,
+                "error": "No extracted_data found"
+            }, status_code=404)
+        
+        import json
+        data = json.loads(extracted_data) if isinstance(extracted_data, str) else extracted_data
+        
+        # Tentar múltiplos campos para o país
+        country_fields = {
+            'country': data.get('country'),
+            'pais': data.get('pais'),
+            'Country': data.get('Country'),
+            'COUNTRY': data.get('COUNTRY'),
+            'clientCountry': data.get('clientCountry'),
+            'client_country': data.get('client_country')
+        }
+        
+        # Determinar qual campo será usado
+        detected_country = None
+        detected_field = None
+        for field, value in country_fields.items():
+            if value:
+                detected_country = value
+                detected_field = field
+                break
+        
+        # Detectar idioma
+        language = 'pt'
+        if detected_country:
+            country_lower = detected_country.lower()
+            if any(x in country_lower for x in ['france', 'frança', 'french', 'belgique', 'belgium', 'suisse', 'switzerland']):
+                language = 'fr'
+            elif any(x in country_lower for x in ['united kingdom', 'uk', 'england', 'ireland', 'usa', 'canada', 'australia', 'reino unido', 'irlanda']):
+                language = 'en'
+        
+        return JSONResponse({
+            "ok": True,
+            "ra_number": ra_num,
+            "available_keys": list(data.keys()),
+            "country_fields": country_fields,
+            "detected_country": detected_country,
+            "detected_field": detected_field,
+            "detected_language": language,
+            "full_extracted_data": data
+        })
+        
+    except Exception as e:
+        logging.error(f"❌ Error checking RA country: {e}")
+        import traceback
+        logging.error(traceback.format_exc())
+        return JSONResponse({
+            "ok": False,
+            "error": str(e),
+            "traceback": traceback.format_exc()
+        }, status_code=500)
+
 if __name__ == "__main__":
     import uvicorn
     uvicorn.run(app, host="0.0.0.0", port=8000)
