@@ -1053,6 +1053,11 @@
                 if (!data.success) {
                     // Check if already completed
                     if (data.completed) {
+                        // Definir idioma a partir da resposta da API antes de mostrar a mensagem
+                        if (data.language && ['pt', 'en', 'fr'].includes(data.language)) {
+                            currentLang = data.language;
+                            console.log('🌍 Idioma definido pela API (completed):', currentLang);
+                        }
                         showCompletedMessage(data.rental_agreement_number, data.license_plate);
                         return;
                     }

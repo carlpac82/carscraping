@@ -31709,12 +31709,23 @@ async def get_self_checkout_data(token: str):
         
         # Verificar se este token específico já foi usado
         if row[7]:  # self_checkin_completed
+            # Determinar idioma baseado no país do cliente
+            client_country = row[14] if len(row) > 14 else 'PT'
+            language = 'pt'
+            if client_country:
+                country_upper = client_country.upper()
+                if country_upper in ['GB', 'UK', 'US', 'IE', 'CA', 'AU', 'NZ']:
+                    language = 'en'
+                elif country_upper in ['FR', 'FRANCE', 'FRANÇA', 'FRANCA', 'BE', 'BELGIUM', 'BÉLGICA', 'BELGICA', 'CH', 'SWITZERLAND', 'SUÍÇA', 'SUICA', 'LU', 'LUXEMBOURG', 'LUXEMBURGO', 'MC', 'MONACO', 'MÓNACO', 'MONACO']:
+                    language = 'fr'
+            
             return JSONResponse({
                 "success": False,
                 "error": "Este link de Self Check-Out já foi utilizado. Solicite um novo link se necessário.",
                 "completed": True,
                 "rental_agreement_number": row[1],
-                "license_plate": row[2]
+                "license_plate": row[2],
+                "language": language
             }, status_code=200)
         
         # Preparar dados para retornar
