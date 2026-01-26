@@ -51385,6 +51385,10 @@ async def get_vehicle_by_plate(plate: str, request: Request):
     require_auth(request)
     
     try:
+        # Normalize plate: remove spaces and hyphens, convert to uppercase
+        normalized_plate = plate.replace(" ", "").replace("-", "").upper()
+        logging.info(f"🔍 Searching vehicle for plate: '{plate}' (normalized: '{normalized_plate}')")
+        
         with _db_lock:
             con = _db_connect()
             is_postgres = _is_postgresql_connection(con)
@@ -51392,18 +51396,21 @@ async def get_vehicle_by_plate(plate: str, request: Request):
                 if is_postgres:
                     with con.cursor() as cur:
                         cur.execute("""
-                            SELECT marca, modelo, grupo, tipo_combustivel, km_atual
-                            FROM vehicles WHERE matricula = %s
-                        """, (plate,))
+                            SELECT marca, modelo, grupo, tipo_combustivel, km_atual, matricula
+                            FROM vehicles 
+                            WHERE REPLACE(REPLACE(UPPER(matricula), ' ', ''), '-', '') = %s
+                        """, (normalized_plate,))
                         row = cur.fetchone()
                 else:
                     cur = con.execute("""
-                        SELECT marca, modelo, grupo, tipo_combustivel, km_atual
-                        FROM vehicles WHERE matricula = ?
-                    """, (plate,))
+                        SELECT marca, modelo, grupo, tipo_combustivel, km_atual, matricula
+                        FROM vehicles 
+                        WHERE REPLACE(REPLACE(UPPER(matricula), ' ', ''), '-', '') = ?
+                    """, (normalized_plate,))
                     row = cur.fetchone()
                 
                 if row:
+                    logging.info(f"✅ Vehicle found: {row[0]} {row[1]} (plate in DB: '{row[5]}')")
                     return JSONResponse({
                         "ok": True,
                         "vehicle": {
@@ -51411,10 +51418,12 @@ async def get_vehicle_by_plate(plate: str, request: Request):
                             "model": row[1] or 'N/A',
                             "group": row[2] or 'N/A',
                             "fuel_type": row[3] or 'N/A',
-                            "km": row[4] or 0
+                            "km": row[4] or 0,
+                            "plate": row[5] or plate
                         }
                     })
                 else:
+                    logging.warning(f"❌ Vehicle not found for normalized plate: '{normalized_plate}'")
                     return JSONResponse({
                         "ok": False,
                         "error": "Veículo não encontrado na frota"
