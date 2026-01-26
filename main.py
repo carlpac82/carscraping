@@ -31709,13 +31709,22 @@ async def get_self_checkout_data(token: str):
         
         # Verificar se este token específico já foi usado
         if row[7]:  # self_checkin_completed
-            # Determinar idioma baseado no país do cliente
-            client_country = row[14] if len(row) > 14 else 'PT'
-            language = 'pt'
+            # Determinar idioma baseado no país do cliente do extracted_data
+            client_country = 'PT'
+            if row[10]:  # extracted_data
+                try:
+                    import json
+                    ext_data = json.loads(row[10]) if isinstance(row[10], str) else row[10]
+                    client_country = ext_data.get('country') or ext_data.get('pais') or 'PT'
+                except:
+                    pass
+            
+            # Fallback para inglês se não for PT ou FR
+            language = 'en'
             if client_country:
                 country_upper = client_country.upper()
-                if country_upper in ['GB', 'UK', 'US', 'IE', 'CA', 'AU', 'NZ']:
-                    language = 'en'
+                if country_upper in ['PT', 'PORTUGAL', 'PORTUGUES', 'PORTUGUESE']:
+                    language = 'pt'
                 elif country_upper in ['FR', 'FRANCE', 'FRANÇA', 'FRANCA', 'BE', 'BELGIUM', 'BÉLGICA', 'BELGICA', 'CH', 'SWITZERLAND', 'SUÍÇA', 'SUICA', 'LU', 'LUXEMBOURG', 'LUXEMBURGO', 'MC', 'MONACO', 'MÓNACO', 'MONACO']:
                     language = 'fr'
             
