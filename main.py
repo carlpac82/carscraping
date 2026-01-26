@@ -32185,12 +32185,7 @@ async def submit_self_checkout(token: str, request: Request):
                 except Exception as e:
                     logging.warning(f"Could not fetch checkin odometer: {e}")
                 
-                # Determinar idioma baseado no país do extracted_data
-                client_country = 'PT'
-                if extracted_data:
-                    client_country = extracted_data.get('country') or extracted_data.get('pais') or 'PT'
-                
-                # Fallback para inglês se não for PT ou FR
+                # Determinar idioma baseado no país do cliente (já extraído anteriormente)
                 language = 'en'
                 if client_country:
                     country_upper = client_country.upper()
