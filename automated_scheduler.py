@@ -496,17 +496,18 @@ def execute_search_for_schedule(schedule, schedule_index):
 
 async def _do_carjet_search(locations, days, pickup_date):
     """
-    Execute CarJet search using HTTP request to own API (same as manual search)
-    This ensures IDENTICAL behavior to manual searches
+    Execute CarJet search using HTTP request to own API in ASYNC mode
+    This prevents blocking the server during scraping
     """
     import aiohttp
     import os
     
-    print(f"\n🛡️ Using HTTP API call (same as manual search)", flush=True)
+    print(f"\n🛡️ Using HTTP API call in ASYNC mode (non-blocking)", flush=True)
     
     # Get the service URL (Render provides RENDER_EXTERNAL_URL)
     service_url = os.getenv('RENDER_EXTERNAL_URL', 'http://localhost:10000')
     api_url = f"{service_url}/api/track-by-params"
+    jobs_api_url = f"{service_url}/api/jobs"
     
     print(f"   API URL: {api_url}", flush=True)
     
@@ -533,28 +534,78 @@ async def _do_carjet_search(locations, days, pickup_date):
                         'start_time': '15:00',
                         'days': day,
                         'lang': 'pt',
-                        'currency': 'EUR'
+                        'currency': 'EUR',
+                        'async': 1  # ← MODO ASSÍNCRONO - Não bloqueia servidor
                     }
                     
-                    print(f"      [HTTP POST] Calling API...", flush=True)
+                    print(f"      [HTTP POST] Submitting async job...", flush=True)
                     
                     # Add authentication header for internal scheduler requests
                     headers = {'X-Internal-Request': 'scheduler'}
                     
-                    # Timeout reduzido de 600s para 180s (3min) para economizar memória
-                    async with session.post(api_url, json=payload, headers=headers, timeout=aiohttp.ClientTimeout(total=180)) as response:
+                    # Submit job (retorna imediatamente com job_id)
+                    async with session.post(api_url, json=payload, headers=headers, timeout=aiohttp.ClientTimeout(total=30)) as response:
                         print(f"      [HTTP] Status: {response.status}", flush=True)
                         
                         if response.status == 200:
                             data = await response.json()
-                            items = data.get('items', [])
                             
-                            print(f"      ✅ {len(items)} cars found", flush=True)
-                            
-                            if len(items) > 0:
-                                print(f"      [EXAMPLE] First car: {items[0].get('car', 'N/A')}, {items[0].get('supplier', 'N/A')}, {items[0].get('price', 'N/A')}", flush=True)
-                            
-                            location_results[day] = items
+                            # Verificar se é resposta assíncrona
+                            if data.get('async') and data.get('job_id'):
+                                job_id = data['job_id']
+                                print(f"      🔄 Job submitted: {job_id}", flush=True)
+                                print(f"      ⏳ Polling for results...", flush=True)
+                                
+                                # Polling do job até completar (max 3 minutos)
+                                max_attempts = 90  # 90 * 2s = 3 minutos
+                                attempt = 0
+                                items = []
+                                
+                                while attempt < max_attempts:
+                                    await asyncio.sleep(2)  # Check a cada 2 segundos
+                                    attempt += 1
+                                    
+                                    try:
+                                        job_status_url = f"{jobs_api_url}/{job_id}"
+                                        async with session.get(job_status_url, headers=headers, timeout=aiohttp.ClientTimeout(total=10)) as status_response:
+                                            if status_response.status == 200:
+                                                status_data = await status_response.json()
+                                                job_status = status_data.get('status')
+                                                
+                                                if job_status == 'completed':
+                                                    # Job completado - obter resultado
+                                                    result_url = f"{jobs_api_url}/{job_id}/result"
+                                                    async with session.get(result_url, headers=headers, timeout=aiohttp.ClientTimeout(total=10)) as result_response:
+                                                        if result_response.status == 200:
+                                                            result_data = await result_response.json()
+                                                            items = result_data.get('items', [])
+                                                            print(f"      ✅ {len(items)} cars found (async)", flush=True)
+                                                            if len(items) > 0:
+                                                                print(f"      [EXAMPLE] First car: {items[0].get('car', 'N/A')}, {items[0].get('supplier', 'N/A')}, {items[0].get('price', 'N/A')}", flush=True)
+                                                            break
+                                                elif job_status == 'failed':
+                                                    error = status_data.get('error', 'Unknown error')
+                                                    print(f"      ❌ Job failed: {error}", flush=True)
+                                                    break
+                                                else:
+                                                    # Job ainda em execução
+                                                    if attempt % 10 == 0:  # Log a cada 20 segundos
+                                                        print(f"      ⏳ Still running... ({attempt * 2}s elapsed)", flush=True)
+                                    except Exception as poll_error:
+                                        print(f"      ⚠️ Polling error: {poll_error}", flush=True)
+                                        continue
+                                
+                                if attempt >= max_attempts:
+                                    print(f"      ⏱️ Timeout waiting for job {job_id}", flush=True)
+                                
+                                location_results[day] = items
+                            else:
+                                # Resposta síncrona (fallback)
+                                items = data.get('items', [])
+                                print(f"      ✅ {len(items)} cars found (sync fallback)", flush=True)
+                                if len(items) > 0:
+                                    print(f"      [EXAMPLE] First car: {items[0].get('car', 'N/A')}, {items[0].get('supplier', 'N/A')}, {items[0].get('price', 'N/A')}", flush=True)
+                                location_results[day] = items
                         else:
                             error_text = await response.text()
                             print(f"      ❌ HTTP Error {response.status}: {error_text[:200]}", flush=True)

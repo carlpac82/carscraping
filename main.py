@@ -12111,23 +12111,43 @@ async def track_by_params(request: Request):
         try:
             # Criar wrapper síncrono para executar scraping em background
             def _run_track_by_params_sync(**params):
+                """
+                Wrapper síncrono que chama a própria API internamente
+                Isto executa todo o scraping em background sem bloquear o servidor
+                """
                 import asyncio
+                import aiohttp
+                import os
+                
                 loop = asyncio.new_event_loop()
                 asyncio.set_event_loop(loop)
                 try:
-                    # Remover async=1 para evitar loop infinito
-                    params_copy = params.copy()
-                    params_copy.pop('async', None)
+                    async def _internal_call():
+                        # Chamar a própria API sem async=1 para executar scraping real
+                        service_url = os.getenv('RENDER_EXTERNAL_URL', 'http://localhost:10000')
+                        api_url = f"{service_url}/api/track-by-params"
+                        
+                        # Remover async para evitar loop infinito
+                        payload = params.copy()
+                        payload.pop('async', None)
+                        
+                        async with aiohttp.ClientSession() as session:
+                            async with session.post(
+                                api_url, 
+                                json=payload,
+                                headers={'X-Internal-Request': 'background-job'},
+                                timeout=aiohttp.ClientTimeout(total=180)
+                            ) as response:
+                                if response.status == 200:
+                                    return await response.json()
+                                else:
+                                    error_text = await response.text()
+                                    return {
+                                        "ok": False,
+                                        "error": f"HTTP {response.status}: {error_text[:200]}"
+                                    }
                     
-                    # Executar a lógica de scraping (será implementado abaixo)
-                    # Por agora, criar mock result
-                    result = {
-                        "ok": True,
-                        "items": [],
-                        "location": params.get("location"),
-                        "start_date": params.get("start_date"),
-                        "days": params.get("days", 0)
-                    }
+                    result = loop.run_until_complete(_internal_call())
                     return result
                 finally:
                     loop.close()
