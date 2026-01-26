@@ -53413,14 +53413,16 @@ async def check_ra_country(request: Request, ra_number: str):
         
         cursor = conn.cursor()
         
-        # Buscar RA
+        # Buscar RA (tentar múltiplas variações)
         cursor.execute("""
             SELECT rental_agreement_number, extracted_data
             FROM rental_agreements
             WHERE rental_agreement_number LIKE %s
+               OR rental_agreement_number LIKE %s
+               OR rental_agreement_number = %s
             ORDER BY created_at DESC
             LIMIT 1
-        """, (f"{ra_number}%",))
+        """, (f"{ra_number}%", f"{ra_number}-09%", ra_number))
         
         row = cursor.fetchone()
         cursor.close()
