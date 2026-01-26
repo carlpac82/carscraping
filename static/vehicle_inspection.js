@@ -1289,90 +1289,215 @@ function formatPhotoType(type) {
     return labels[type] || type;
 }
 
-// Enlarge photo in modal
+// Enlarge photo in modal WITH NAVIGATION ARROWS
 function enlargePhoto(imageData, photoType) {
+    // Get all available photos
+    const allPhotos = [];
+    if (window.deliveryPhotos && window.deliveryPhotos.length > 0) {
+        window.deliveryPhotos.forEach(photo => {
+            if (photo.photo_type !== 'damage_croqui') {
+                allPhotos.push({
+                    imageData: photo.image_data,
+                    photoType: photo.photo_type
+                });
+            }
+        });
+    }
+    
+    // Find current photo index
+    let currentIndex = allPhotos.findIndex(p => p.photoType === photoType);
+    if (currentIndex === -1) currentIndex = 0;
+    
     // Create modal
     const modal = document.createElement('div');
+    modal.id = 'photoEnlargeModal';
     modal.style.cssText = `
         position: fixed;
         top: 0;
         left: 0;
         right: 0;
         bottom: 0;
-        background: rgba(0, 0, 0, 0.9);
+        background: rgba(0, 0, 0, 0.95);
         z-index: 10000;
         display: flex;
         align-items: center;
         justify-content: center;
-        padding: 20px;
+        padding: 0;
     `;
     
-    // Close on click
-    modal.addEventListener('click', () => {
-        modal.remove();
+    // Close on click outside
+    modal.addEventListener('click', (e) => {
+        if (e.target === modal) {
+            modal.remove();
+        }
     });
     
     // Image container
     const container = document.createElement('div');
     container.style.cssText = `
-        max-width: 90%;
-        max-height: 90%;
+        max-width: 90vw;
+        max-height: 90vh;
         position: relative;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
     `;
-    container.addEventListener('click', (e) => {
-        e.stopPropagation();
-    });
     
     // Image
     const img = document.createElement('img');
-    img.src = imageData;
-    img.alt = photoType;
+    img.id = 'enlargedImage';
+    img.src = allPhotos[currentIndex].imageData;
+    img.alt = allPhotos[currentIndex].photoType;
     img.style.cssText = `
         max-width: 100%;
         max-height: 80vh;
         border-radius: 8px;
-        box-shadow: 0 10px 40px rgba(0, 0, 0, 0.5);
+        object-fit: contain;
     `;
     
     // Label
     const label = document.createElement('div');
-    label.textContent = formatPhotoType(photoType);
+    label.id = 'enlargedLabel';
+    label.textContent = `${formatPhotoType(allPhotos[currentIndex].photoType)} (${currentIndex + 1}/${allPhotos.length})`;
     label.style.cssText = `
-        background: #009cb6;
+        background: rgba(0, 0, 0, 0.7);
         color: white;
-        padding: 10px 20px;
+        padding: 8px 16px;
         text-align: center;
-        font-size: 18px;
+        font-size: 14px;
         font-weight: bold;
-        border-radius: 8px;
+        border-radius: 20px;
         margin-top: 10px;
+        backdrop-filter: blur(10px);
     `;
+    
+    // Navigation function
+    function navigatePhoto(direction) {
+        currentIndex += direction;
+        if (currentIndex < 0) currentIndex = allPhotos.length - 1;
+        if (currentIndex >= allPhotos.length) currentIndex = 0;
+        
+        img.src = allPhotos[currentIndex].imageData;
+        img.alt = allPhotos[currentIndex].photoType;
+        label.textContent = `${formatPhotoType(allPhotos[currentIndex].photoType)} (${currentIndex + 1}/${allPhotos.length})`;
+    }
+    
+    // Previous arrow (only if more than 1 photo)
+    if (allPhotos.length > 1) {
+        const prevBtn = document.createElement('button');
+        prevBtn.innerHTML = '<svg width="24" height="24" fill="none" stroke="white" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"></path></svg>';
+        prevBtn.style.cssText = `
+            position: absolute;
+            left: 20px;
+            top: 50%;
+            transform: translateY(-50%);
+            background: rgba(255, 255, 255, 0.2);
+            border: 2px solid white;
+            border-radius: 50%;
+            width: 50px;
+            height: 50px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: all 0.2s;
+            backdrop-filter: blur(10px);
+        `;
+        prevBtn.addEventListener('click', (e) => {
+            e.stopPropagation();
+            navigatePhoto(-1);
+        });
+        prevBtn.addEventListener('mouseenter', () => {
+            prevBtn.style.background = 'rgba(255, 255, 255, 0.3)';
+            prevBtn.style.transform = 'translateY(-50%) scale(1.1)';
+        });
+        prevBtn.addEventListener('mouseleave', () => {
+            prevBtn.style.background = 'rgba(255, 255, 255, 0.2)';
+            prevBtn.style.transform = 'translateY(-50%)';
+        });
+        modal.appendChild(prevBtn);
+        
+        // Next arrow
+        const nextBtn = document.createElement('button');
+        nextBtn.innerHTML = '<svg width="24" height="24" fill="none" stroke="white" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path></svg>';
+        nextBtn.style.cssText = `
+            position: absolute;
+            right: 20px;
+            top: 50%;
+            transform: translateY(-50%);
+            background: rgba(255, 255, 255, 0.2);
+            border: 2px solid white;
+            border-radius: 50%;
+            width: 50px;
+            height: 50px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: all 0.2s;
+            backdrop-filter: blur(10px);
+        `;
+        nextBtn.addEventListener('click', (e) => {
+            e.stopPropagation();
+            navigatePhoto(1);
+        });
+        nextBtn.addEventListener('mouseenter', () => {
+            nextBtn.style.background = 'rgba(255, 255, 255, 0.3)';
+            nextBtn.style.transform = 'translateY(-50%) scale(1.1)';
+        });
+        nextBtn.addEventListener('mouseleave', () => {
+            nextBtn.style.background = 'rgba(255, 255, 255, 0.2)';
+            nextBtn.style.transform = 'translateY(-50%)';
+        });
+        modal.appendChild(nextBtn);
+        
+        // Keyboard navigation
+        const keyHandler = (e) => {
+            if (e.key === 'ArrowLeft') navigatePhoto(-1);
+            if (e.key === 'ArrowRight') navigatePhoto(1);
+            if (e.key === 'Escape') {
+                modal.remove();
+                document.removeEventListener('keydown', keyHandler);
+            }
+        };
+        document.addEventListener('keydown', keyHandler);
+    }
     
     // Close button
     const closeBtn = document.createElement('button');
-    closeBtn.textContent = '✕';
+    closeBtn.innerHTML = '<svg width="24" height="24" fill="none" stroke="white" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>';
     closeBtn.style.cssText = `
         position: absolute;
-        top: -10px;
-        right: -10px;
-        background: #dc3545;
-        color: white;
-        border: none;
+        top: 20px;
+        right: 20px;
+        background: rgba(255, 255, 255, 0.2);
+        border: 2px solid white;
         border-radius: 50%;
-        width: 40px;
-        height: 40px;
-        font-size: 24px;
+        width: 50px;
+        height: 50px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
         cursor: pointer;
-        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+        transition: all 0.2s;
+        backdrop-filter: blur(10px);
     `;
     closeBtn.addEventListener('click', () => {
         modal.remove();
     });
+    closeBtn.addEventListener('mouseenter', () => {
+        closeBtn.style.background = 'rgba(255, 255, 255, 0.3)';
+        closeBtn.style.transform = 'scale(1.1)';
+    });
+    closeBtn.addEventListener('mouseleave', () => {
+        closeBtn.style.background = 'rgba(255, 255, 255, 0.2)';
+        closeBtn.style.transform = 'scale(1)';
+    });
     
     container.appendChild(img);
     container.appendChild(label);
-    container.appendChild(closeBtn);
     modal.appendChild(container);
+    modal.appendChild(closeBtn);
     document.body.appendChild(modal);
 }
 
