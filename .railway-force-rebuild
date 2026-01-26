@@ -1,1 +1,1 @@
-2026-01-26T02:01:00Z UTC - Fix: correct country field priority and fix check-in PDF using wrong generator - Force Railway rebuild
+2026-01-26T02:07:00Z UTC - Simplify country extraction to match working manual send logic - Force Railway rebuild

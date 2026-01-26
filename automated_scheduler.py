@@ -902,50 +902,17 @@ def check_and_send_scheduled_checkout_emails():
                 extracted_data = row[2]
                 logging.info(f"✅ Found token for RA {ra_number}")
                 
-                # Extrair país do cliente do RA
+                # Extrair país do cliente (mesma lógica do envio manual que funciona)
                 country = None
                 if extracted_data:
                     import json
                     try:
                         data = json.loads(extracted_data) if isinstance(extracted_data, str) else extracted_data
-                        logging.info(f"🔍 DEBUG: extracted_data keys: {list(data.keys())}")
-                        logging.info(f"🔍 DEBUG: extracted_data content: {json.dumps(data, indent=2)}")
-                        
-                        # Tentar vários nomes de campo possíveis (country é o campo real)
-                        country = (data.get('country') or 
-                                 data.get('client_country') or 
-                                 data.get('clientCountry') or
-                                 data.get('Country') or
-                                 data.get('pais') or
-                                 data.get('cliente_pais'))
-                        
+                        country = data.get('country') or data.get('pais')
                         if country:
                             logging.info(f"🌍 Client country from RA: {country}")
-                        else:
-                            logging.warning(f"⚠️ No country field found in extracted_data")
                     except Exception as e:
                         logging.warning(f"⚠️ Could not extract country from RA: {e}")
-                        import traceback
-                        logging.warning(traceback.format_exc())
-                
-                # Se não encontrou país no RA, buscar do check-in
-                if not country:
-                    try:
-                        conn2 = _get_db_connection()
-                        cursor2 = conn2.cursor()
-                        cursor2.execute("""
-                            SELECT client_country
-                            FROM vehicle_inspections
-                            WHERE inspection_number = %s
-                        """, (inspection_number,))
-                        country_row = cursor2.fetchone()
-                        conn2.close()
-                        
-                        if country_row and country_row[0]:
-                            country = country_row[0]
-                            logging.info(f"🌍 Client country from check-in: {country}")
-                    except Exception as e:
-                        logging.warning(f"⚠️ Could not get country from check-in: {e}")
                 
                 # Construir link de self-checkout
                 base_url = os.environ.get('BASE_URL', 'https://rentalprices.pt')
