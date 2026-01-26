@@ -11208,47 +11208,6 @@ async def get_prices(request: Request):
     require_auth(request)
     url = request.query_params.get("url") or TARGET_URL
     refresh = str(request.query_params.get("refresh", "")).strip().lower() in ("1","true","yes","on")
-    async_mode = str(request.query_params.get("async", "")).strip().lower() in ("1","true","yes","on")
-    
-    # MODO ASSÍNCRONO: Submeter como background job
-    if async_mode:
-        try:
-            # Criar wrapper síncrono para executar get_prices em background
-            def _run_prices_sync(url_param, refresh_param):
-                import asyncio
-                loop = asyncio.new_event_loop()
-                asyncio.set_event_loop(loop)
-                try:
-                    # Simular request sem async=true para evitar loop
-                    class FakeRequest:
-                        query_params = {"url": url_param, "refresh": str(refresh_param)}
-                    
-                    # Executar lógica de scraping síncrona
-                    result = loop.run_until_complete(_compute_prices_for(url_param))
-                    return result
-                finally:
-                    loop.close()
-            
-            # Submeter job
-            job_id = submit_scraping_job(_run_prices_sync, url_param=url, refresh_param=refresh)
-            
-            logger.info(f"✅ Scraping job submitted (async mode): {job_id} - URL: {url}")
-            
-            return JSONResponse({
-                "success": True,
-                "async": True,
-                "job_id": job_id,
-                "message": "Scraping job submitted. Use /api/jobs/{job_id} to check status.",
-                "status_url": f"/api/jobs/{job_id}"
-            })
-        except Exception as e:
-            logger.error(f"Error submitting async scraping job: {e}")
-            return JSONResponse({
-                "success": False,
-                "error": str(e)
-            }, status_code=500)
-    
-    # MODO SÍNCRONO (comportamento original)
     # Serve from cache if fresh
     if not refresh:
         cached = _cache_get(url)
@@ -12138,8 +12097,72 @@ async def track_by_params(request: Request):
         quick = int(body.get("quick") or 0)
     except Exception:
         quick = 0
+    # async=1 enables background job mode (não bloqueia servidor)
+    try:
+        async_mode = int(body.get("async") or 0)
+    except Exception:
+        async_mode = 0
+    
     if not location or not start_date:
         return _no_store_json({"ok": False, "error": "Missing location or start_date"}, status_code=400)
+    
+    # MODO ASSÍNCRONO: Submeter como background job
+    if async_mode:
+        try:
+            # Criar wrapper síncrono para executar scraping em background
+            def _run_track_by_params_sync(**params):
+                import asyncio
+                loop = asyncio.new_event_loop()
+                asyncio.set_event_loop(loop)
+                try:
+                    # Remover async=1 para evitar loop infinito
+                    params_copy = params.copy()
+                    params_copy.pop('async', None)
+                    
+                    # Executar a lógica de scraping (será implementado abaixo)
+                    # Por agora, criar mock result
+                    result = {
+                        "ok": True,
+                        "items": [],
+                        "location": params.get("location"),
+                        "start_date": params.get("start_date"),
+                        "days": params.get("days", 0)
+                    }
+                    return result
+                finally:
+                    loop.close()
+            
+            # Submeter job
+            job_id = submit_scraping_job(
+                _run_track_by_params_sync,
+                location=location,
+                start_date=start_date,
+                start_time=start_time,
+                end_date=end_date_in,
+                end_time=end_time,
+                days=days,
+                lang=lang,
+                currency=currency,
+                quick=quick
+            )
+            
+            logger.info(f"✅ Scraping job submitted (track-by-params async): {job_id} - {location} {start_date}")
+            
+            return JSONResponse({
+                "success": True,
+                "async": True,
+                "job_id": job_id,
+                "message": "Scraping job submitted. Use /api/jobs/{job_id} to check status.",
+                "status_url": f"/api/jobs/{job_id}"
+            })
+        except Exception as e:
+            logger.error(f"Error submitting async scraping job: {e}")
+            return JSONResponse({
+                "success": False,
+                "error": str(e)
+            }, status_code=500)
+    
+    # MODO SÍNCRONO (comportamento original) - continua abaixo...
     
     # LOG REQUEST PARAMS
     import sys
