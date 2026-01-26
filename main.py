@@ -32939,7 +32939,7 @@ async def validate_self_checkout(request: Request):
                     ra.self_checkin_email, ra.extracted_data, ra.id as ra_id,
                     vi.fuel_level, vi.odometer_reading, vi.observations,
                     vi.inspector_name, vi.created_at,
-                    v.marca, v.modelo
+                    v.marca, v.modelo, ra.client_country, ra.return_location
                 FROM vehicle_inspections vi
                 LEFT JOIN rental_agreements ra ON vi.contract_number = ra.rental_agreement_number
                 LEFT JOIN vehicles v ON ra.vehicle_id = v.id
@@ -32952,7 +32952,7 @@ async def validate_self_checkout(request: Request):
                     ra.self_checkin_email, ra.extracted_data, ra.id as ra_id,
                     vi.fuel_level, vi.odometer_reading, vi.observations,
                     vi.inspector_name, vi.created_at,
-                    v.marca, v.modelo
+                    v.marca, v.modelo, ra.client_country, ra.return_location
                 FROM vehicle_inspections vi
                 LEFT JOIN rental_agreements ra ON vi.contract_number = ra.rental_agreement_number
                 LEFT JOIN vehicles v ON ra.vehicle_id = v.id
@@ -32967,7 +32967,7 @@ async def validate_self_checkout(request: Request):
                 "error": "Inspeção não encontrada"
             }, status_code=404)
         
-        inspection_id, plate, ra_number, inspection_type, status, client_email, extracted_data, ra_id, fuel_level, odometer_reading, observations, inspector_name, selfcheckout_created_at, db_vehicle_brand, db_vehicle_model = row
+        inspection_id, plate, ra_number, inspection_type, status, client_email, extracted_data, ra_id, fuel_level, odometer_reading, observations, inspector_name, selfcheckout_created_at, db_vehicle_brand, db_vehicle_model, db_client_country, db_return_location = row
         
         if inspection_type != 'self_checkout':
             return JSONResponse({
@@ -33141,9 +33141,21 @@ async def validate_self_checkout(request: Request):
                 # Usar marca/modelo da base de dados (já buscados no JOIN)
                 vehicle_brand = db_vehicle_brand or ""
                 vehicle_model = db_vehicle_model or ""
-                return_location = "Auto Prudente"
-                language = 'pt'
+                # Usar return_location da base de dados (já buscado no JOIN)
+                return_location = db_return_location or "Auto Prudente"
                 pickup_km = 0
+                
+                # Determinar idioma baseado no país da coluna DB (igual ao checkin)
+                client_country = db_client_country or 'PT'
+                language = 'pt'
+                if client_country:
+                    country_upper = client_country.upper()
+                    if country_upper in ['GB', 'UK', 'US', 'IE', 'CA', 'AU', 'NZ']:
+                        language = 'en'
+                    elif country_upper in ['FR', 'BE', 'CH', 'LU', 'MC']:
+                        language = 'fr'
+                
+                logging.info(f"🌍 Validate email - Client country from DB: {client_country}, Language: {language}")
                 
                 if extracted_data:
                     try:
@@ -33156,13 +33168,6 @@ async def validate_self_checkout(request: Request):
                             vehicle_brand = data_dict.get('vehicle_brand') or data_dict.get('marca') or ''
                         if not vehicle_model:
                             vehicle_model = data_dict.get('vehicle_model') or data_dict.get('modelo') or ''
-                        return_location = data_dict.get('return_location') or data_dict.get('returnLocation') or data_dict.get('local_devolucao') or 'Auto Prudente'
-                        # Determinar idioma baseado no país
-                        client_country = data_dict.get('country') or data_dict.get('pais') or 'PT'
-                        if client_country.upper() in ['GB', 'UK', 'US', 'IE', 'CA', 'AU', 'NZ']:
-                            language = 'en'
-                        elif client_country.upper() in ['FR', 'BE', 'CH', 'LU', 'MC']:
-                            language = 'fr'
                     except:
                         pass
                 
@@ -33398,7 +33403,7 @@ async def edit_and_validate_self_checkout(request: Request):
                     vi.id, vi.vehicle_plate, vi.contract_number, vi.inspection_type, vi.status,
                     ra.self_checkin_email, ra.extracted_data, ra.id as ra_id,
                     vi.observations, vi.inspector_name, vi.created_at,
-                    v.marca, v.modelo
+                    v.marca, v.modelo, ra.client_country, ra.return_location
                 FROM vehicle_inspections vi
                 LEFT JOIN rental_agreements ra ON vi.contract_number = ra.rental_agreement_number
                 LEFT JOIN vehicles v ON ra.vehicle_id = v.id
@@ -33410,7 +33415,7 @@ async def edit_and_validate_self_checkout(request: Request):
                     vi.id, vi.vehicle_plate, vi.contract_number, vi.inspection_type, vi.status,
                     ra.self_checkin_email, ra.extracted_data, ra.id as ra_id,
                     vi.observations, vi.inspector_name, vi.created_at,
-                    v.marca, v.modelo
+                    v.marca, v.modelo, ra.client_country, ra.return_location
                 FROM vehicle_inspections vi
                 LEFT JOIN rental_agreements ra ON vi.contract_number = ra.rental_agreement_number
                 LEFT JOIN vehicles v ON ra.vehicle_id = v.id
@@ -33421,7 +33426,7 @@ async def edit_and_validate_self_checkout(request: Request):
         if not row:
             return JSONResponse({"success": False, "error": "Inspeção não encontrada"}, status_code=404)
         
-        inspection_id, plate, ra_number, inspection_type, status, client_email, extracted_data, ra_id, observations, inspector_name, selfcheckout_created_at, db_vehicle_brand, db_vehicle_model = row
+        inspection_id, plate, ra_number, inspection_type, status, client_email, extracted_data, ra_id, observations, inspector_name, selfcheckout_created_at, db_vehicle_brand, db_vehicle_model, db_client_country, db_return_location = row
         
         if inspection_type != 'self_checkout':
             return JSONResponse({"success": False, "error": "Esta não é uma inspeção de self-checkout"}, status_code=400)
@@ -33571,9 +33576,21 @@ async def edit_and_validate_self_checkout(request: Request):
                 client_name = "Cliente"
                 vehicle_brand = db_vehicle_brand or ""
                 vehicle_model = db_vehicle_model or ""
-                return_location = "Auto Prudente"
-                language = 'pt'
+                # Usar return_location da base de dados (já buscado no JOIN)
+                return_location = db_return_location or "Auto Prudente"
                 pickup_km = 0
+                
+                # Determinar idioma baseado no país da coluna DB (igual ao checkin)
+                client_country = db_client_country or 'PT'
+                language = 'pt'
+                if client_country:
+                    country_upper = client_country.upper()
+                    if country_upper in ['GB', 'UK', 'US', 'IE', 'CA', 'AU', 'NZ']:
+                        language = 'en'
+                    elif country_upper in ['FR', 'BE', 'CH', 'LU', 'MC']:
+                        language = 'fr'
+                
+                logging.info(f"🌍 Edit email - Client country from DB: {client_country}, Language: {language}")
                 
                 if extracted_data:
                     try:
@@ -33583,12 +33600,6 @@ async def edit_and_validate_self_checkout(request: Request):
                             vehicle_brand = data_dict.get('vehicle_brand') or ''
                         if not vehicle_model:
                             vehicle_model = data_dict.get('vehicle_model') or ''
-                        return_location = data_dict.get('return_location') or 'Auto Prudente'
-                        client_country = data_dict.get('country') or 'PT'
-                        if client_country.upper() in ['GB', 'UK', 'US', 'IE', 'CA', 'AU', 'NZ']:
-                            language = 'en'
-                        elif client_country.upper() in ['FR', 'BE', 'CH', 'LU', 'MC']:
-                            language = 'fr'
                     except:
                         pass
                 
