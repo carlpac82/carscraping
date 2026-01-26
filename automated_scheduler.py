@@ -934,34 +934,30 @@ def check_and_send_scheduled_checkout_emails():
                 checkout_link = f"{base_url}/self-checkout/{token}"
                 
                 logging.info(f"🔗 Checkout link: {checkout_link}")
-                logging.info(f"📧 Sending email to {client_email} for RA {ra_number}")
+                logging.info(f"📧 Sending email to {client_email} for RA {ra_number} (country: {country})")
                 
-                # Enviar email usando a API interna
+                # Enviar email diretamente usando a função
                 try:
-                    api_url = f"{base_url}/api/send-self-checkout-email"
-                    payload = {
-                        "email": client_email,
-                        "client_name": client_name,
-                        "ra_number": ra_number,
-                        "plate": vehicle_plate,
-                        "token": token,
-                        "return_date": str(email_data.get('checkout_date', '')),
-                        "country": country
-                    }
+                    from main import _send_self_checkin_invitation_email
                     
-                    response = requests.post(api_url, json=payload, timeout=30)
+                    _send_self_checkin_invitation_email(
+                        to_email=client_email,
+                        client_name=client_name,
+                        ra_number=ra_number,
+                        plate=vehicle_plate,
+                        return_date=str(email_data.get('checkout_date', '')),
+                        token=token,
+                        country=country
+                    )
                     
-                    if response.status_code == 200:
-                        mark_email_sent(inspection_number, success=True)
-                        logging.info(f"✅ Email sent successfully for {inspection_number}")
-                    else:
-                        error_msg = f"API returned {response.status_code}: {response.text}"
-                        logging.error(f"❌ Failed to send email: {error_msg}")
-                        mark_email_sent(inspection_number, success=False, error_message=error_msg)
+                    mark_email_sent(inspection_number, success=True)
+                    logging.info(f"✅ Email sent successfully for {inspection_number}")
                         
-                except requests.exceptions.RequestException as req_error:
-                    error_msg = f"Request failed: {str(req_error)}"
+                except Exception as send_error:
+                    error_msg = f"Failed to send email: {str(send_error)}"
                     logging.error(f"❌ {error_msg}")
+                    import traceback
+                    logging.error(traceback.format_exc())
                     mark_email_sent(inspection_number, success=False, error_message=error_msg)
                 
             except Exception as email_error:

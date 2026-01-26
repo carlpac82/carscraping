@@ -1,1 +1,1 @@
-2026-01-26T01:42:00Z UTC - Fix: fallback to get client country from check-in if not in RA data - Force Railway rebuild
+2026-01-26T01:51:00Z UTC - Fix: call email function directly instead of HTTP request to avoid timeout - Force Railway rebuild
