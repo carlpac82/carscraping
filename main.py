@@ -31813,15 +31813,15 @@ async def get_self_checkout_data(token: str):
         
         # Determinar idioma baseado no país do cliente do extracted_data
         client_country = extracted_data.get('country') or extracted_data.get('pais') or 'PT'
-        language = 'pt'
+        
+        # Fallback para inglês se não for PT ou FR
+        language = 'en'
         if client_country:
             country_upper = client_country.upper()
-            if country_upper in ['GB', 'UK', 'US', 'IE', 'CA', 'AU', 'NZ', 'UNITED KINGDOM', 'UNITED STATES', 'IRELAND', 'CANADA', 'AUSTRALIA']:
-                language = 'en'
-            elif country_upper in ['FR', 'BE', 'CH', 'LU', 'MC', 'FRANCE', 'BELGIUM', 'SWITZERLAND', 'LUXEMBOURG', 'MONACO']:
+            if country_upper in ['PT', 'PORTUGAL', 'PORTUGUES', 'PORTUGUESE']:
+                language = 'pt'
+            elif country_upper in ['FR', 'FRANCE', 'FRANÇA', 'FRANCA', 'BE', 'BELGIUM', 'BÉLGICA', 'BELGICA', 'CH', 'SWITZERLAND', 'SUÍÇA', 'SUICA', 'LU', 'LUXEMBOURG', 'LUXEMBURGO', 'MC', 'MONACO', 'MÓNACO', 'MONACO']:
                 language = 'fr'
-            elif 'GERMAN' in country_upper or 'DEUTS' in country_upper:
-                language = 'en'  # Alemães recebem em inglês
         
         logging.info(f"🌍 Self-checkout data - Client country: {client_country}, Language: {language}")
         
@@ -32178,17 +32178,16 @@ async def submit_self_checkout(token: str, request: Request):
                 if extracted_data:
                     client_country = extracted_data.get('country') or extracted_data.get('pais') or 'PT'
                 
-                language = 'pt'
+                # Fallback para inglês se não for PT ou FR
+                language = 'en'
                 if client_country:
                     country_upper = client_country.upper()
-                    if country_upper in ['GB', 'UK', 'US', 'IE', 'CA', 'AU', 'NZ', 'UNITED KINGDOM', 'UNITED STATES', 'IRELAND', 'CANADA', 'AUSTRALIA']:
-                        language = 'en'
-                    elif country_upper in ['FR', 'BE', 'CH', 'LU', 'MC', 'FRANCE', 'BELGIUM', 'SWITZERLAND', 'LUXEMBOURG', 'MONACO']:
+                    if country_upper in ['PT', 'PORTUGAL', 'PORTUGUES', 'PORTUGUESE']:
+                        language = 'pt'
+                    elif country_upper in ['FR', 'FRANCE', 'FRANÇA', 'FRANCA', 'BE', 'BELGIUM', 'BÉLGICA', 'BELGICA', 'CH', 'SWITZERLAND', 'SUÍÇA', 'SUICA', 'LU', 'LUXEMBOURG', 'LUXEMBURGO', 'MC', 'MONACO', 'MÓNACO', 'MONACO']:
                         language = 'fr'
-                    elif 'GERMAN' in country_upper or 'DEUTS' in country_upper:
-                        language = 'en'
                 
-                logging.info(f"🌍 Self-checkout data - Client country from extracted_data: {client_country}, Language: {language}") 
+                logging.info(f"🌍 Self-checkout submit - Client country from extracted_data: {client_country}, Language: {language}") 
                 
                 # Separar nome e apelido
                 name_parts = client_name.split(' ', 1)
@@ -33186,15 +33185,14 @@ async def validate_self_checkout(request: Request):
                     except:
                         pass
                 
-                # Determinar idioma baseado no país do extracted_data
+                # Determinar idioma baseado no país do extracted_data - fallback para inglês
+                language = 'en'
                 if client_country:
                     country_upper = client_country.upper()
-                    if country_upper in ['GB', 'UK', 'US', 'IE', 'CA', 'AU', 'NZ', 'UNITED KINGDOM', 'UNITED STATES', 'IRELAND', 'CANADA', 'AUSTRALIA']:
-                        language = 'en'
-                    elif country_upper in ['FR', 'BE', 'CH', 'LU', 'MC', 'FRANCE', 'BELGIUM', 'SWITZERLAND', 'LUXEMBOURG', 'MONACO']:
+                    if country_upper in ['PT', 'PORTUGAL', 'PORTUGUES', 'PORTUGUESE']:
+                        language = 'pt'
+                    elif country_upper in ['FR', 'FRANCE', 'FRANÇA', 'FRANCA', 'BE', 'BELGIUM', 'BÉLGICA', 'BELGICA', 'CH', 'SWITZERLAND', 'SUÍÇA', 'SUICA', 'LU', 'LUXEMBOURG', 'LUXEMBURGO', 'MC', 'MONACO', 'MÓNACO', 'MONACO']:
                         language = 'fr'
-                    elif 'GERMAN' in country_upper or 'DEUTS' in country_upper:
-                        language = 'en'
                 
                 logging.info(f"🌍 Validate email - Client country from extracted_data: {client_country}, Language: {language}")
                 
@@ -33621,15 +33619,14 @@ async def edit_and_validate_self_checkout(request: Request):
                     except:
                         pass
                 
-                # Determinar idioma baseado no país do extracted_data
+                # Determinar idioma baseado no país do extracted_data - fallback para inglês
+                language = 'en'
                 if client_country:
                     country_upper = client_country.upper()
-                    if country_upper in ['GB', 'UK', 'US', 'IE', 'CA', 'AU', 'NZ', 'UNITED KINGDOM', 'UNITED STATES', 'IRELAND', 'CANADA', 'AUSTRALIA']:
-                        language = 'en'
-                    elif country_upper in ['FR', 'BE', 'CH', 'LU', 'MC', 'FRANCE', 'BELGIUM', 'SWITZERLAND', 'LUXEMBOURG', 'MONACO']:
+                    if country_upper in ['PT', 'PORTUGAL', 'PORTUGUES', 'PORTUGUESE']:
+                        language = 'pt'
+                    elif country_upper in ['FR', 'FRANCE', 'FRANÇA', 'FRANCA', 'BE', 'BELGIUM', 'BÉLGICA', 'BELGICA', 'CH', 'SWITZERLAND', 'SUÍÇA', 'SUICA', 'LU', 'LUXEMBOURG', 'LUXEMBURGO', 'MC', 'MONACO', 'MÓNACO', 'MONACO']:
                         language = 'fr'
-                    elif 'GERMAN' in country_upper or 'DEUTS' in country_upper:
-                        language = 'en'
                 
                 logging.info(f"🌍 Edit email - Client country from extracted_data: {client_country}, Language: {language}")
                 
