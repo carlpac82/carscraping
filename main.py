@@ -31672,8 +31672,7 @@ async def get_self_checkout_data(token: str):
                     ra.extracted_data,
                     v.marca,
                     v.modelo,
-                    v.grupo,
-                    ra.client_country
+                    v.grupo
                 FROM rental_agreements ra
                 LEFT JOIN vehicles v ON ra.vehicle_id = v.id
                 WHERE ra.self_checkin_token = %s
@@ -31694,8 +31693,7 @@ async def get_self_checkout_data(token: str):
                     ra.extracted_data,
                     v.marca,
                     v.modelo,
-                    v.grupo,
-                    ra.client_country
+                    v.grupo
                 FROM rental_agreements ra
                 LEFT JOIN vehicles v ON ra.vehicle_id = v.id
                 WHERE ra.self_checkin_token = ?
@@ -31813,15 +31811,17 @@ async def get_self_checkout_data(token: str):
             import traceback
             traceback.print_exc()
         
-        # Determinar idioma baseado no país do cliente (igual aos emails)
-        client_country = row[14] if len(row) > 14 else 'PT'
+        # Determinar idioma baseado no país do cliente do extracted_data
+        client_country = extracted_data.get('country') or extracted_data.get('pais') or 'PT'
         language = 'pt'
         if client_country:
             country_upper = client_country.upper()
-            if country_upper in ['GB', 'UK', 'US', 'IE', 'CA', 'AU', 'NZ']:
+            if country_upper in ['GB', 'UK', 'US', 'IE', 'CA', 'AU', 'NZ', 'UNITED KINGDOM', 'UNITED STATES', 'IRELAND', 'CANADA', 'AUSTRALIA']:
                 language = 'en'
-            elif country_upper in ['FR', 'BE', 'CH', 'LU', 'MC']:
+            elif country_upper in ['FR', 'BE', 'CH', 'LU', 'MC', 'FRANCE', 'BELGIUM', 'SWITZERLAND', 'LUXEMBOURG', 'MONACO']:
                 language = 'fr'
+            elif 'GERMAN' in country_upper or 'DEUTS' in country_upper:
+                language = 'en'  # Alemães recebem em inglês
         
         logging.info(f"🌍 Self-checkout data - Client country: {client_country}, Language: {language}")
         
@@ -32092,7 +32092,7 @@ async def submit_self_checkout(token: str, request: Request):
                 cursor.execute("""
                     SELECT 
                         ra.extracted_data, ra.client_email, ra.self_checkin_email,
-                        v.marca, v.modelo, ra.client_country, ra.return_location
+                        v.marca, v.modelo, ra.return_location
                     FROM rental_agreements ra
                     LEFT JOIN vehicles v ON ra.vehicle_id = v.id
                     WHERE ra.id = %s
@@ -32101,7 +32101,7 @@ async def submit_self_checkout(token: str, request: Request):
                 cursor.execute("""
                     SELECT 
                         ra.extracted_data, ra.client_email, ra.self_checkin_email,
-                        v.marca, v.modelo, ra.client_country, ra.return_location
+                        v.marca, v.modelo, ra.return_location
                     FROM rental_agreements ra
                     LEFT JOIN vehicles v ON ra.vehicle_id = v.id
                     WHERE ra.id = ?
@@ -32114,24 +32114,25 @@ async def submit_self_checkout(token: str, request: Request):
                 self_checkin_email = ra_row[2] or ''
                 vehicle_brand = ra_row[3] or ''
                 vehicle_model = ra_row[4] or ''
-                client_country = ra_row[5] or 'PT'  # LER DIRETAMENTE DA COLUNA (igual ao checkin)
-                return_location = ra_row[6] or 'Auto Prudente'  # LER DIRETAMENTE DA COLUNA
+                return_location = ra_row[5] or 'Auto Prudente'
                 client_name = ''
-                
-                logging.info(f"🌍 Client country from DB column: {client_country}")
+                client_country = 'PT'  # Default
                 
                 # Prioridade: self_checkin_email (email do reenvio) > client_email do RA > extracted_data
                 client_email = self_checkin_email or ra_client_email
                 
-                # Extrair client_name e client_email do extracted_data se disponível
+                # Extrair client_name, client_email e country do extracted_data
                 if ra_extracted:
                     try:
                         ext_data = json.loads(ra_extracted) if isinstance(ra_extracted, str) else ra_extracted
                         client_name = ext_data.get('clientName') or ext_data.get('client_name') or ''
+                        client_country = ext_data.get('country') or ext_data.get('pais') or 'PT'
                         if not client_email:
                             client_email = ext_data.get('clientEmail') or ext_data.get('email') or ''
                     except:
                         pass
+                
+                logging.info(f"🌍 Client country from extracted_data: {client_country}")
                 
                 # Extrair pickup_km do extracted_data se necessário
                 pickup_km = 0
@@ -32172,15 +32173,22 @@ async def submit_self_checkout(token: str, request: Request):
                 except Exception as e:
                     logging.warning(f"Could not fetch checkin odometer: {e}")
                 
-                # Determinar idioma baseado no país
+                # Determinar idioma baseado no país do extracted_data
+                client_country = 'PT'
+                if extracted_data:
+                    client_country = extracted_data.get('country') or extracted_data.get('pais') or 'PT'
+                
                 language = 'pt'
                 if client_country:
                     country_upper = client_country.upper()
-                    if country_upper in ['GB', 'UK', 'US', 'IE', 'CA', 'AU', 'NZ']:
+                    if country_upper in ['GB', 'UK', 'US', 'IE', 'CA', 'AU', 'NZ', 'UNITED KINGDOM', 'UNITED STATES', 'IRELAND', 'CANADA', 'AUSTRALIA']:
                         language = 'en'
-                    elif country_upper in ['FR', 'BE', 'CH', 'LU', 'MC']:
+                    elif country_upper in ['FR', 'BE', 'CH', 'LU', 'MC', 'FRANCE', 'BELGIUM', 'SWITZERLAND', 'LUXEMBOURG', 'MONACO']:
                         language = 'fr'
-                logging.info(f"🌐 Language determined: {language} (based on country: {client_country})")
+                    elif 'GERMAN' in country_upper or 'DEUTS' in country_upper:
+                        language = 'en'
+                
+                logging.info(f"🌍 Self-checkout data - Client country from extracted_data: {client_country}, Language: {language}") 
                 
                 # Separar nome e apelido
                 name_parts = client_name.split(' ', 1)
@@ -32954,7 +32962,7 @@ async def validate_self_checkout(request: Request):
                     ra.self_checkin_email, ra.extracted_data, ra.id as ra_id,
                     vi.fuel_level, vi.odometer_reading, vi.observations,
                     vi.inspector_name, vi.created_at,
-                    v.marca, v.modelo, ra.client_country, ra.return_location
+                    v.marca, v.modelo
                 FROM vehicle_inspections vi
                 LEFT JOIN rental_agreements ra ON vi.contract_number = ra.rental_agreement_number
                 LEFT JOIN vehicles v ON ra.vehicle_id = v.id
@@ -32967,7 +32975,7 @@ async def validate_self_checkout(request: Request):
                     ra.self_checkin_email, ra.extracted_data, ra.id as ra_id,
                     vi.fuel_level, vi.odometer_reading, vi.observations,
                     vi.inspector_name, vi.created_at,
-                    v.marca, v.modelo, ra.client_country, ra.return_location
+                    v.marca, v.modelo
                 FROM vehicle_inspections vi
                 LEFT JOIN rental_agreements ra ON vi.contract_number = ra.rental_agreement_number
                 LEFT JOIN vehicles v ON ra.vehicle_id = v.id
@@ -32982,7 +32990,7 @@ async def validate_self_checkout(request: Request):
                 "error": "Inspeção não encontrada"
             }, status_code=404)
         
-        inspection_id, plate, ra_number, inspection_type, status, client_email, extracted_data, ra_id, fuel_level, odometer_reading, observations, inspector_name, selfcheckout_created_at, db_vehicle_brand, db_vehicle_model, db_client_country, db_return_location = row
+        inspection_id, plate, ra_number, inspection_type, status, client_email, extracted_data, ra_id, fuel_level, odometer_reading, observations, inspector_name, selfcheckout_created_at, db_vehicle_brand, db_vehicle_model = row
         
         if inspection_type != 'self_checkout':
             return JSONResponse({
@@ -33156,21 +33164,10 @@ async def validate_self_checkout(request: Request):
                 # Usar marca/modelo da base de dados (já buscados no JOIN)
                 vehicle_brand = db_vehicle_brand or ""
                 vehicle_model = db_vehicle_model or ""
-                # Usar return_location da base de dados (já buscado no JOIN)
-                return_location = db_return_location or "Auto Prudente"
+                return_location = "Auto Prudente"
                 pickup_km = 0
-                
-                # Determinar idioma baseado no país da coluna DB (igual ao checkin)
-                client_country = db_client_country or 'PT'
+                client_country = 'PT'
                 language = 'pt'
-                if client_country:
-                    country_upper = client_country.upper()
-                    if country_upper in ['GB', 'UK', 'US', 'IE', 'CA', 'AU', 'NZ']:
-                        language = 'en'
-                    elif country_upper in ['FR', 'BE', 'CH', 'LU', 'MC']:
-                        language = 'fr'
-                
-                logging.info(f"🌍 Validate email - Client country from DB: {client_country}, Language: {language}")
                 
                 if extracted_data:
                     try:
@@ -33178,6 +33175,9 @@ async def validate_self_checkout(request: Request):
                         client_name = data_dict.get('client_name') or data_dict.get('clientName') or data_dict.get('nome_cliente') or "Cliente"
                         client_first_name = data_dict.get('client_first_name', client_name.split()[0] if client_name else '')
                         client_last_name = data_dict.get('client_last_name', ' '.join(client_name.split()[1:]) if client_name and len(client_name.split()) > 1 else '')
+                        # Extrair país do extracted_data
+                        client_country = data_dict.get('country') or data_dict.get('pais') or 'PT'
+                        return_location = data_dict.get('return_location') or data_dict.get('returnLocation') or data_dict.get('local_devolucao') or 'Auto Prudente'
                         # Fallback para marca/modelo do extracted_data se não existir na DB
                         if not vehicle_brand:
                             vehicle_brand = data_dict.get('vehicle_brand') or data_dict.get('marca') or ''
@@ -33185,6 +33185,18 @@ async def validate_self_checkout(request: Request):
                             vehicle_model = data_dict.get('vehicle_model') or data_dict.get('modelo') or ''
                     except:
                         pass
+                
+                # Determinar idioma baseado no país do extracted_data
+                if client_country:
+                    country_upper = client_country.upper()
+                    if country_upper in ['GB', 'UK', 'US', 'IE', 'CA', 'AU', 'NZ', 'UNITED KINGDOM', 'UNITED STATES', 'IRELAND', 'CANADA', 'AUSTRALIA']:
+                        language = 'en'
+                    elif country_upper in ['FR', 'BE', 'CH', 'LU', 'MC', 'FRANCE', 'BELGIUM', 'SWITZERLAND', 'LUXEMBOURG', 'MONACO']:
+                        language = 'fr'
+                    elif 'GERMAN' in country_upper or 'DEUTS' in country_upper:
+                        language = 'en'
+                
+                logging.info(f"🌍 Validate email - Client country from extracted_data: {client_country}, Language: {language}")
                 
                 # BUSCAR pickup_km da inspeção de checkin (entrega) - mesmo método do submit_self_checkout
                 try:
@@ -33418,7 +33430,7 @@ async def edit_and_validate_self_checkout(request: Request):
                     vi.id, vi.vehicle_plate, vi.contract_number, vi.inspection_type, vi.status,
                     ra.self_checkin_email, ra.extracted_data, ra.id as ra_id,
                     vi.observations, vi.inspector_name, vi.created_at,
-                    v.marca, v.modelo, ra.client_country, ra.return_location
+                    v.marca, v.modelo
                 FROM vehicle_inspections vi
                 LEFT JOIN rental_agreements ra ON vi.contract_number = ra.rental_agreement_number
                 LEFT JOIN vehicles v ON ra.vehicle_id = v.id
@@ -33430,7 +33442,7 @@ async def edit_and_validate_self_checkout(request: Request):
                     vi.id, vi.vehicle_plate, vi.contract_number, vi.inspection_type, vi.status,
                     ra.self_checkin_email, ra.extracted_data, ra.id as ra_id,
                     vi.observations, vi.inspector_name, vi.created_at,
-                    v.marca, v.modelo, ra.client_country, ra.return_location
+                    v.marca, v.modelo
                 FROM vehicle_inspections vi
                 LEFT JOIN rental_agreements ra ON vi.contract_number = ra.rental_agreement_number
                 LEFT JOIN vehicles v ON ra.vehicle_id = v.id
@@ -33441,7 +33453,7 @@ async def edit_and_validate_self_checkout(request: Request):
         if not row:
             return JSONResponse({"success": False, "error": "Inspeção não encontrada"}, status_code=404)
         
-        inspection_id, plate, ra_number, inspection_type, status, client_email, extracted_data, ra_id, observations, inspector_name, selfcheckout_created_at, db_vehicle_brand, db_vehicle_model, db_client_country, db_return_location = row
+        inspection_id, plate, ra_number, inspection_type, status, client_email, extracted_data, ra_id, observations, inspector_name, selfcheckout_created_at, db_vehicle_brand, db_vehicle_model = row
         
         if inspection_type != 'self_checkout':
             return JSONResponse({"success": False, "error": "Esta não é uma inspeção de self-checkout"}, status_code=400)
@@ -33591,32 +33603,35 @@ async def edit_and_validate_self_checkout(request: Request):
                 client_name = "Cliente"
                 vehicle_brand = db_vehicle_brand or ""
                 vehicle_model = db_vehicle_model or ""
-                # Usar return_location da base de dados (já buscado no JOIN)
-                return_location = db_return_location or "Auto Prudente"
+                return_location = "Auto Prudente"
                 pickup_km = 0
-                
-                # Determinar idioma baseado no país da coluna DB (igual ao checkin)
-                client_country = db_client_country or 'PT'
+                client_country = 'PT'
                 language = 'pt'
-                if client_country:
-                    country_upper = client_country.upper()
-                    if country_upper in ['GB', 'UK', 'US', 'IE', 'CA', 'AU', 'NZ']:
-                        language = 'en'
-                    elif country_upper in ['FR', 'BE', 'CH', 'LU', 'MC']:
-                        language = 'fr'
-                
-                logging.info(f"🌍 Edit email - Client country from DB: {client_country}, Language: {language}")
                 
                 if extracted_data:
                     try:
                         data_dict = json.loads(extracted_data)
                         client_name = data_dict.get('client_name') or data_dict.get('clientName') or "Cliente"
+                        client_country = data_dict.get('country') or data_dict.get('pais') or 'PT'
+                        return_location = data_dict.get('return_location') or data_dict.get('returnLocation') or data_dict.get('local_devolucao') or 'Auto Prudente'
                         if not vehicle_brand:
                             vehicle_brand = data_dict.get('vehicle_brand') or ''
                         if not vehicle_model:
                             vehicle_model = data_dict.get('vehicle_model') or ''
                     except:
                         pass
+                
+                # Determinar idioma baseado no país do extracted_data
+                if client_country:
+                    country_upper = client_country.upper()
+                    if country_upper in ['GB', 'UK', 'US', 'IE', 'CA', 'AU', 'NZ', 'UNITED KINGDOM', 'UNITED STATES', 'IRELAND', 'CANADA', 'AUSTRALIA']:
+                        language = 'en'
+                    elif country_upper in ['FR', 'BE', 'CH', 'LU', 'MC', 'FRANCE', 'BELGIUM', 'SWITZERLAND', 'LUXEMBOURG', 'MONACO']:
+                        language = 'fr'
+                    elif 'GERMAN' in country_upper or 'DEUTS' in country_upper:
+                        language = 'en'
+                
+                logging.info(f"🌍 Edit email - Client country from extracted_data: {client_country}, Language: {language}")
                 
                 # Buscar pickup_km do checkin
                 try:
