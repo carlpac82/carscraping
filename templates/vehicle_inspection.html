@@ -1728,6 +1728,9 @@
                 
                 console.log('✅ Photo saved successfully:', photoType, 'Total photos:', Object.keys(window.inspectionData.photos).length);
                 
+                // Make photo clickable to open lightbox
+                makePhotoClickable(photoType);
+                
                 // Continue with normal flow - call the original continuePhotoProcessing if it exists
                 if (typeof continuePhotoProcessing === 'function') {
                     setTimeout(() => {
@@ -3696,6 +3699,33 @@
         // Photo Lightbox Functions
         let currentLightboxIndex = 0;
         let lightboxPhotos = [];
+        
+        // Make photo clickable to open lightbox
+        function makePhotoClickable(photoType) {
+            const photoTypes = ['front', 'front_left', 'left', 'back_left', 'back', 'back_right', 'right', 'front_right', 'odometer'];
+            const photoIndex = photoTypes.indexOf(photoType);
+            
+            // Find the photo slot by looking for elements with the photo data
+            setTimeout(() => {
+                // Try to find the photo element - it might be in different places depending on the page structure
+                const photoElements = document.querySelectorAll('.photo-slot img, img[src*="data:image"]');
+                photoElements.forEach((img) => {
+                    if (img.src && img.src.startsWith('data:image')) {
+                        // Check if this image matches our photo
+                        const photoData = window.inspectionData?.photos?.[photoType];
+                        if (photoData && (photoData.dataURL === img.src || photoData === img.src)) {
+                            // Add click event to open lightbox
+                            img.style.cursor = 'pointer';
+                            img.onclick = function(e) {
+                                e.stopPropagation();
+                                openLightbox(photoIndex);
+                            };
+                            console.log(`✅ Made photo ${photoType} clickable`);
+                        }
+                    }
+                });
+            }, 500);
+        }
         
         function openLightbox(photoIndex) {
             // Get all captured photos
