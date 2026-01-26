@@ -1079,8 +1079,8 @@
         </div>
 
         <!-- STEP 4: Review & Save -->
-        <div id="stepReview" class="step-content hidden overflow-y-auto max-h-screen pb-24">
-            <div class="bg-white rounded-lg shadow-sm p-4 md:p-6 mb-6">
+        <div id="stepReview" class="step-content hidden overflow-y-auto max-h-screen pb-24 px-2">
+            <div class="bg-white rounded-lg shadow-sm p-3 md:p-4 lg:p-6 mb-6 max-w-full">
                 <h2 class="text-lg font-semibold mb-4">Review Inspection</h2>
                 
                 <div id="reviewSummary">
@@ -2575,7 +2575,7 @@
             const reviewContainer = document.querySelector('#stepReview .bg-white');
             if (reviewContainer) {
                 reviewContainer.innerHTML = `
-                    <div class="max-w-2xl mx-auto px-2">
+                    <div class="max-w-2xl mx-auto px-4 md:px-6">
                         <div class="text-center mb-4 md:mb-6">
                             <div class="w-16 h-16 md:w-20 md:h-20 bg-[#009cb6] bg-opacity-10 rounded-full flex items-center justify-center mx-auto mb-3">
                                 <svg class="w-8 h-8 md:w-10 md:h-10 text-[#009cb6]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
