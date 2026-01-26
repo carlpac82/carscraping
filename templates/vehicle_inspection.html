@@ -558,6 +558,102 @@
             background: white;
             border: 1px solid #009cb6;
         }
+        
+        /* Photo Lightbox */
+        .photo-lightbox {
+            position: fixed;
+            inset: 0;
+            background: rgba(0, 0, 0, 0.95);
+            display: none;
+            z-index: 99999;
+            align-items: center;
+            justify-content: center;
+        }
+        
+        .photo-lightbox.active {
+            display: flex;
+        }
+        
+        .lightbox-content {
+            position: relative;
+            max-width: 90vw;
+            max-height: 90vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        
+        .lightbox-image {
+            max-width: 100%;
+            max-height: 90vh;
+            object-fit: contain;
+            border-radius: 8px;
+        }
+        
+        .lightbox-nav {
+            position: absolute;
+            top: 50%;
+            transform: translateY(-50%);
+            background: rgba(255, 255, 255, 0.2);
+            border: 2px solid white;
+            border-radius: 50%;
+            width: 50px;
+            height: 50px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: all 0.2s;
+            backdrop-filter: blur(10px);
+        }
+        
+        .lightbox-nav:hover {
+            background: rgba(255, 255, 255, 0.3);
+            transform: translateY(-50%) scale(1.1);
+        }
+        
+        .lightbox-nav.prev {
+            left: 20px;
+        }
+        
+        .lightbox-nav.next {
+            right: 20px;
+        }
+        
+        .lightbox-close {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            background: rgba(255, 255, 255, 0.2);
+            border: 2px solid white;
+            border-radius: 50%;
+            width: 50px;
+            height: 50px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: all 0.2s;
+            backdrop-filter: blur(10px);
+        }
+        
+        .lightbox-close:hover {
+            background: rgba(255, 255, 255, 0.3);
+            transform: scale(1.1);
+        }
+        
+        .lightbox-label {
+            position: absolute;
+            bottom: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: rgba(0, 0, 0, 0.7);
+            color: white;
+            padding: 8px 16px;
+            border-radius: 20px;
+            font-size: 14px;
+            backdrop-filter: blur(10px);
+        }
     </style>
 </head>
 <body class="bg-[#009cb6] min-h-screen">
@@ -1101,6 +1197,33 @@
             </div>
         </div>
     </main>
+
+    <!-- Photo Lightbox -->
+    <div id="photoLightbox" class="photo-lightbox">
+        <div class="lightbox-content">
+            <img id="lightboxImage" class="lightbox-image" src="" alt="">
+            <div class="lightbox-label" id="lightboxLabel"></div>
+            
+            <!-- Navigation Arrows -->
+            <button class="lightbox-nav prev" id="lightboxPrev" onclick="navigateLightbox(-1)">
+                <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"></path>
+                </svg>
+            </button>
+            <button class="lightbox-nav next" id="lightboxNext" onclick="navigateLightbox(1)">
+                <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path>
+                </svg>
+            </button>
+            
+            <!-- Close Button -->
+            <button class="lightbox-close" onclick="closeLightbox()">
+                <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                </svg>
+            </button>
+        </div>
+    </div>
 
     <!-- Camera Modal -->
     <div id="cameraModal" class="camera-modal">
@@ -3569,6 +3692,98 @@
                 }, 1000);
             });
         }
+        
+        // Photo Lightbox Functions
+        let currentLightboxIndex = 0;
+        let lightboxPhotos = [];
+        
+        function openLightbox(photoIndex) {
+            // Get all captured photos
+            lightboxPhotos = [];
+            const photoTypes = ['front', 'front_left', 'left', 'back_left', 'back', 'back_right', 'right', 'front_right', 'odometer'];
+            const photoLabels = {
+                'front': 'Frente',
+                'front_left': 'Frente Esq.',
+                'left': 'Esquerda',
+                'back_left': 'Trás Esq.',
+                'back': 'Trás',
+                'back_right': 'Trás Dir.',
+                'right': 'Direita',
+                'front_right': 'Frente Dir.',
+                'odometer': 'Conta-Km'
+            };
+            
+            // Build array of captured photos
+            photoTypes.forEach((type, index) => {
+                const photoData = window.inspectionData?.photos?.[type];
+                if (photoData && (photoData.dataURL || photoData)) {
+                    const dataURL = typeof photoData === 'string' ? photoData : photoData.dataURL;
+                    if (dataURL) {
+                        lightboxPhotos.push({
+                            src: dataURL,
+                            label: photoLabels[type],
+                            originalIndex: index
+                        });
+                    }
+                }
+            });
+            
+            if (lightboxPhotos.length === 0) {
+                console.log('No photos to display in lightbox');
+                return;
+            }
+            
+            // Find the index in the filtered array
+            currentLightboxIndex = lightboxPhotos.findIndex(p => p.originalIndex === photoIndex);
+            if (currentLightboxIndex === -1) currentLightboxIndex = 0;
+            
+            // Show lightbox
+            updateLightboxImage();
+            document.getElementById('photoLightbox').classList.add('active');
+            document.body.style.overflow = 'hidden'; // Prevent scrolling
+        }
+        
+        function closeLightbox() {
+            document.getElementById('photoLightbox').classList.remove('active');
+            document.body.style.overflow = ''; // Restore scrolling
+        }
+        
+        function navigateLightbox(direction) {
+            currentLightboxIndex += direction;
+            
+            // Loop around
+            if (currentLightboxIndex < 0) {
+                currentLightboxIndex = lightboxPhotos.length - 1;
+            } else if (currentLightboxIndex >= lightboxPhotos.length) {
+                currentLightboxIndex = 0;
+            }
+            
+            updateLightboxImage();
+        }
+        
+        function updateLightboxImage() {
+            const photo = lightboxPhotos[currentLightboxIndex];
+            document.getElementById('lightboxImage').src = photo.src;
+            document.getElementById('lightboxLabel').textContent = `${photo.label} (${currentLightboxIndex + 1}/${lightboxPhotos.length})`;
+        }
+        
+        // Close lightbox on ESC key
+        document.addEventListener('keydown', function(e) {
+            if (e.key === 'Escape') {
+                closeLightbox();
+            } else if (e.key === 'ArrowLeft') {
+                navigateLightbox(-1);
+            } else if (e.key === 'ArrowRight') {
+                navigateLightbox(1);
+            }
+        });
+        
+        // Close lightbox when clicking outside the image
+        document.getElementById('photoLightbox')?.addEventListener('click', function(e) {
+            if (e.target === this) {
+                closeLightbox();
+            }
+        });
     </script>
 </body>
 </html>
