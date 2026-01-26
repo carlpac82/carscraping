@@ -1450,9 +1450,19 @@
             }
             
             try {
+                console.log('🔍 Validating plate in Fleet Management:', plate);
                 const response = await fetch(`/api/vehicles/by-plate/${encodeURIComponent(plate)}`);
+                console.log('📡 Fleet validation response status:', response.status);
                 const data = await response.json();
-                return data.success && data.vehicle;
+                console.log('📦 Fleet validation data:', data);
+                
+                if (data.ok && data.vehicle) {
+                    console.log('✅ Plate found in Fleet Management:', data.vehicle);
+                    return true;
+                } else {
+                    console.log('❌ Plate NOT found in Fleet Management');
+                    return false;
+                }
             } catch (error) {
                 console.error('Error validating plate:', error);
                 return false;
