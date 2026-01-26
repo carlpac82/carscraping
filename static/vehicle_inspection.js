@@ -1786,91 +1786,91 @@ function showPickupSummaryModal() {
     const clientEmail = window.currentRAData?.client_email || '';
     
     const modalHTML = `
-        <div id="pickupSummaryModal" style="position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.9); z-index: 10000; display: flex; align-items: center; justify-content: center; padding: 20px; overflow-y: auto;">
-            <div style="background: white; padding: 40px; border-radius: 12px; max-width: 800px; width: 100%; box-shadow: 0 10px 40px rgba(0,0,0,0.5);">
+        <div id="pickupSummaryModal" style="position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.9); z-index: 10000; display: flex; align-items: center; justify-content: center; padding: 0; overflow-y: auto; overflow-x: hidden;">
+            <div style="background: white; padding: 12px; border-radius: 12px; max-width: 400px; width: 100%; box-sizing: border-box; overflow-x: hidden; margin: 0 auto;">
                 <!-- Header -->
-                <div style="text-center; margin-bottom: 32px;">
-                    <div style="width: 80px; height: 80px; background: rgba(0, 156, 182, 0.1); border-radius: 50%; display: flex; align-items: center; justify-content: center; margin: 0 auto 16px;">
-                        <svg style="width: 40px; height: 40px; color: #009cb6;" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <div style="text-align: center; margin-bottom: 12px;">
+                    <div style="width: 48px; height: 48px; background: rgba(0, 156, 182, 0.1); border-radius: 50%; display: flex; align-items: center; justify-content: center; margin: 0 auto 8px;">
+                        <svg style="width: 24px; height: 24px; color: #009cb6;" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
                         </svg>
                     </div>
-                    <h2 style="font-size: 28px; font-weight: bold; color: #009cb6; margin-bottom: 8px;">Inspeção Concluída!</h2>
-                    <p style="font-size: 18px; color: #666;">Todas as etapas foram completadas com sucesso</p>
+                    <h2 style="font-size: 18px; font-weight: bold; color: #009cb6; margin-bottom: 4px;">Inspeção Concluída!</h2>
+                    <p style="font-size: 12px; color: #666;">Todas as etapas foram completadas com sucesso</p>
                 </div>
                 
                 <!-- Summary Grid -->
-                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 24px; margin-bottom: 32px;">
+                <div style="display: flex; flex-direction: column; gap: 12px; margin-bottom: 12px;">
                     <!-- Summary Card -->
-                    <div style="background: #f8f9fa; border-radius: 12px; padding: 24px;">
-                        <h3 style="font-size: 18px; font-weight: 600; margin-bottom: 16px; color: #009cb6;">Resumo da Inspeção</h3>
-                        <div style="display: flex; flex-direction: column; gap: 12px;">
+                    <div style="background: #f8f9fa; border-radius: 8px; padding: 12px;">
+                        <h3 style="font-size: 14px; font-weight: 600; margin-bottom: 8px; color: #009cb6;">Resumo da Inspeção</h3>
+                        <div style="display: flex; flex-direction: column; gap: 6px;">
                             <div style="display: flex; justify-content: space-between;">
-                                <span style="color: #666;">Fotos capturadas:</span>
-                                <span style="font-weight: 600; color: #009cb6;">${deliveryPhotosCount}/9</span>
+                                <span style="color: #666; font-size: 12px;">Fotos capturadas:</span>
+                                <span style="font-weight: 600; color: #009cb6; font-size: 12px;">${deliveryPhotosCount}/9</span>
                             </div>
                             <div style="display: flex; justify-content: space-between;">
-                                <span style="color: #666;">Danos marcados:</span>
-                                <span style="font-weight: 600; color: #009cb6;">${hasDamages}</span>
+                                <span style="color: #666; font-size: 12px;">Danos marcados:</span>
+                                <span style="font-weight: 600; color: #009cb6; font-size: 12px;">${hasDamages}</span>
                             </div>
                             <div style="display: flex; justify-content: space-between;">
-                                <span style="color: #666;">Combustível:</span>
-                                <span style="font-weight: 600; color: #009cb6;">${fuel}%</span>
+                                <span style="color: #666; font-size: 12px;">Combustível:</span>
+                                <span style="font-weight: 600; color: #009cb6; font-size: 12px;">${fuel}%</span>
                             </div>
                             <div style="display: flex; justify-content: space-between;">
-                                <span style="color: #666;">Quilómetros:</span>
-                                <span style="font-weight: 600; color: #009cb6;">${odometer} km</span>
+                                <span style="color: #666; font-size: 12px;">Quilómetros:</span>
+                                <span style="font-weight: 600; color: #009cb6; font-size: 12px;">${odometer} km</span>
                             </div>
                         </div>
                     </div>
                     
                     <!-- Actions Card -->
-                    <div style="background: rgba(0, 156, 182, 0.1); border-radius: 12px; padding: 24px;">
-                        <h3 style="font-size: 18px; font-weight: 600; margin-bottom: 16px; color: #009cb6;">Próximos Passos</h3>
-                        <div style="display: flex; flex-direction: column; gap: 16px;">
-                            <div style="display: flex; align-items: center; gap: 12px;">
-                                <div style="width: 32px; height: 32px; background: rgba(0, 156, 182, 0.2); border-radius: 50%; display: flex; align-items: center; justify-content: center;">
-                                    <span style="color: #009cb6; font-weight: 600; font-size: 14px;">1</span>
+                    <div style="background: rgba(0, 156, 182, 0.1); border-radius: 8px; padding: 12px;">
+                        <h3 style="font-size: 14px; font-weight: 600; margin-bottom: 8px; color: #009cb6;">Próximos Passos</h3>
+                        <div style="display: flex; flex-direction: column; gap: 8px;">
+                            <div style="display: flex; align-items: center; gap: 8px;">
+                                <div style="width: 20px; height: 20px; background: rgba(0, 156, 182, 0.2); border-radius: 50%; display: flex; align-items: center; justify-content: center; flex-shrink: 0;">
+                                    <span style="color: #009cb6; font-weight: 600; font-size: 10px;">1</span>
                                 </div>
-                                <span style="color: #333;">Enviar relatório por email</span>
+                                <span style="color: #333; font-size: 12px;">Enviar relatório por email</span>
                             </div>
-                            <div style="display: flex; align-items: center; gap: 12px;">
-                                <div style="width: 32px; height: 32px; background: rgba(0, 156, 182, 0.2); border-radius: 50%; display: flex; align-items: center; justify-content: center;">
-                                    <span style="color: #009cb6; font-weight: 600; font-size: 14px;">2</span>
+                            <div style="display: flex; align-items: center; gap: 8px;">
+                                <div style="width: 20px; height: 20px; background: rgba(0, 156, 182, 0.2); border-radius: 50%; display: flex; align-items: center; justify-content: center; flex-shrink: 0;">
+                                    <span style="color: #009cb6; font-weight: 600; font-size: 10px;">2</span>
                                 </div>
-                                <span style="color: #333;">Guardar no histórico</span>
+                                <span style="color: #333; font-size: 12px;">Guardar no histórico</span>
                             </div>
-                            <div style="display: flex; align-items: center; gap: 12px;">
-                                <div style="width: 32px; height: 32px; background: rgba(0, 156, 182, 0.2); border-radius: 50%; display: flex; align-items: center; justify-content: center;">
-                                    <span style="color: #009cb6; font-weight: 600; font-size: 14px;">3</span>
+                            <div style="display: flex; align-items: center; gap: 8px;">
+                                <div style="width: 20px; height: 20px; background: rgba(0, 156, 182, 0.2); border-radius: 50%; display: flex; align-items: center; justify-content: center; flex-shrink: 0;">
+                                    <span style="color: #009cb6; font-weight: 600; font-size: 10px;">3</span>
                                 </div>
-                                <span style="color: #333;">Finalizar inspeção</span>
+                                <span style="color: #333; font-size: 12px;">Finalizar inspeção</span>
                             </div>
                         </div>
                     </div>
                 </div>
                 
                 <!-- Email Input -->
-                <div style="margin-bottom: 24px;">
-                    <label style="display: block; font-size: 14px; font-weight: 500; color: #333; margin-bottom: 8px;">
-                        Email para envio do relatório (opcional):
+                <div style="margin-bottom: 12px;">
+                    <label style="display: block; font-size: 12px; font-weight: 500; color: #333; margin-bottom: 4px;">
+                        Email (opcional):
                     </label>
-                    <input type="email" id="pickupReportEmail" value="${clientEmail}" style="width: 100%; padding: 12px 16px; border: 1px solid #ddd; border-radius: 8px; font-size: 16px;" placeholder="exemplo@email.com">
+                    <input type="email" id="pickupReportEmail" value="${clientEmail}" style="width: 100%; padding: 8px 12px; border: 1px solid #ddd; border-radius: 8px; font-size: 14px; box-sizing: border-box;" placeholder="exemplo@email.com">
                 </div>
                 
                 <!-- Action Buttons -->
-                <div style="display: flex; gap: 16px;">
-                    <button onclick="saveAndEmailPickup()" style="flex: 1; background: #f6b511; color: white; padding: 16px 24px; border: none; border-radius: 8px; font-size: 18px; font-weight: 600; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 8px; transition: background 0.2s;" onmouseover="this.style.background='#e6a500'" onmouseout="this.style.background='#f6b511'">
-                        <svg style="width: 24px; height: 24px;" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <div style="display: flex; flex-direction: column; gap: 8px;">
+                    <button onclick="saveAndEmailPickup()" style="width: 100%; background: #f6b511; color: white; padding: 10px 12px; border: none; border-radius: 8px; font-size: 12px; font-weight: 600; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 6px; transition: background 0.2s;" onmouseover="this.style.background='#e6a500'" onmouseout="this.style.background='#f6b511'">
+                        <svg style="width: 16px; height: 16px; flex-shrink: 0;" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 8l7.89 4.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"></path>
                         </svg>
-                        Guardar e Enviar por Email
+                        <span>Guardar e Enviar</span>
                     </button>
-                    <button onclick="savePickupOnly()" style="flex: 1; background: #009cb6; color: white; padding: 16px 24px; border: none; border-radius: 8px; font-size: 18px; font-weight: 600; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 8px; transition: background 0.2s;" onmouseover="this.style.background='#0086a1'" onmouseout="this.style.background='#009cb6'">
-                        <svg style="width: 24px; height: 24px;" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <button onclick="savePickupOnly()" style="width: 100%; background: #009cb6; color: white; padding: 10px 12px; border: none; border-radius: 8px; font-size: 12px; font-weight: 600; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 6px; transition: background 0.2s;" onmouseover="this.style.background='#0086a1'" onmouseout="this.style.background='#009cb6'">
+                        <svg style="width: 16px; height: 16px; flex-shrink: 0;" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-3m-1 4l-3 3m0 0l-3-3m3 3V4"></path>
                         </svg>
-                        Apenas Guardar
+                        <span>Apenas Guardar</span>
                     </button>
                 </div>
             </div>
