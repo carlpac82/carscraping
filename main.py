@@ -174,10 +174,10 @@ def _detect_language_from_country(country: str) -> str:
     """
     Detect language based on country field from rental agreement
     Returns: 'pt' (Portuguese), 'en' (English), or 'fr' (French)
-    Default: 'pt'
+    Default: 'en'
     """
     if not country:
-        return 'pt'
+        return 'en'
     
     country_lower = country.lower().strip()
     
@@ -200,8 +200,13 @@ def _detect_language_from_country(country: str) -> str:
     if any(ec in country_lower for ec in english_countries):
         return 'en'
     
-    # Default to Portuguese (for Portugal, Brazil, and others)
-    return 'pt'
+    # Portuguese-speaking countries
+    portuguese_countries = ['portugal', 'brazil', 'brasil', 'angola', 'mozambique', 'moçambique']
+    if any(pc in country_lower for pc in portuguese_countries):
+        return 'pt'
+    
+    # Default to English for all other countries
+    return 'en'
 
 def _get_photo_labels(lang: str) -> dict:
     """
@@ -4943,14 +4948,8 @@ def _send_notification_email_smtp(to_email: str, subject: str, message: str, att
 def _send_self_checkin_invitation_email(to_email: str, client_name: str, ra_number: str, plate: str, return_date: str, token: str, country: str = None):
     """Enviar email de convite para self check-in com suporte multi-idioma"""
     try:
-        # Determinar idioma baseado no país
-        language = 'pt'  # Default
-        if country:
-            country_lower = country.lower()
-            if any(x in country_lower for x in ['france', 'frança', 'french', 'belgique', 'belgium', 'suisse', 'switzerland']):
-                language = 'fr'
-            elif any(x in country_lower for x in ['united kingdom', 'uk', 'england', 'ireland', 'usa', 'canada', 'australia', 'reino unido', 'irlanda', 'germany', 'alemanha', 'netherlands', 'holanda', 'denmark', 'dinamarca', 'sweden', 'suécia', 'norway', 'noruega', 'finland', 'finlândia']):
-                language = 'en'
+        # Determinar idioma baseado no país usando função centralizada
+        language = _detect_language_from_country(country) if country else 'en'
         
         # Extrair primeiro nome
         first_name = client_name.split()[0] if client_name and ' ' in client_name else (client_name if client_name else 'Cliente')
