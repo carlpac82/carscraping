@@ -32123,8 +32123,10 @@ async def submit_self_checkout(token: str, request: Request):
                         ext_data = json.loads(ra_extracted) if isinstance(ra_extracted, str) else ra_extracted
                         client_country = ext_data.get('country') or ext_data.get('pais') or 'PT'
                         return_location = ext_data.get('returnLocation') or ext_data.get('return_location') or 'Auto Prudente'
-                    except:
-                        pass
+                        logging.info(f"🌍 Client country from extracted_data: {client_country}")
+                        logging.info(f"📦 Extracted data keys: {list(ext_data.keys())}")
+                    except Exception as e:
+                        logging.warning(f"⚠️ Error parsing extracted_data for country: {e}")
                 
                 # SEMPRE buscar pickup_km da inspeção de checkin (entrega ao cliente = início do aluguer)
                 # Não usar extracted_data porque já foi atualizado com o odometer do self-checkout
@@ -32170,6 +32172,7 @@ async def submit_self_checkout(token: str, request: Request):
                         language = 'en'
                     elif country_upper in ['FR', 'BE', 'CH', 'LU', 'MC']:
                         language = 'fr'
+                logging.info(f"🌐 Language determined: {language} (based on country: {client_country})")
                 
                 # Separar nome e apelido
                 name_parts = client_name.split(' ', 1)
