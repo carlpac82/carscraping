@@ -11208,6 +11208,47 @@ async def get_prices(request: Request):
     require_auth(request)
     url = request.query_params.get("url") or TARGET_URL
     refresh = str(request.query_params.get("refresh", "")).strip().lower() in ("1","true","yes","on")
+    async_mode = str(request.query_params.get("async", "")).strip().lower() in ("1","true","yes","on")
+    
+    # MODO ASSÍNCRONO: Submeter como background job
+    if async_mode:
+        try:
+            # Criar wrapper síncrono para executar get_prices em background
+            def _run_prices_sync(url_param, refresh_param):
+                import asyncio
+                loop = asyncio.new_event_loop()
+                asyncio.set_event_loop(loop)
+                try:
+                    # Simular request sem async=true para evitar loop
+                    class FakeRequest:
+                        query_params = {"url": url_param, "refresh": str(refresh_param)}
+                    
+                    # Executar lógica de scraping síncrona
+                    result = loop.run_until_complete(_compute_prices_for(url_param))
+                    return result
+                finally:
+                    loop.close()
+            
+            # Submeter job
+            job_id = submit_scraping_job(_run_prices_sync, url_param=url, refresh_param=refresh)
+            
+            logger.info(f"✅ Scraping job submitted (async mode): {job_id} - URL: {url}")
+            
+            return JSONResponse({
+                "success": True,
+                "async": True,
+                "job_id": job_id,
+                "message": "Scraping job submitted. Use /api/jobs/{job_id} to check status.",
+                "status_url": f"/api/jobs/{job_id}"
+            })
+        except Exception as e:
+            logger.error(f"Error submitting async scraping job: {e}")
+            return JSONResponse({
+                "success": False,
+                "error": str(e)
+            }, status_code=500)
+    
+    # MODO SÍNCRONO (comportamento original)
     # Serve from cache if fresh
     if not refresh:
         cached = _cache_get(url)
@@ -18200,32 +18241,11 @@ async def fetch_carjet_results(page, location_name, start_dt, end_dt, lang: str,
         pass
 
 
-def _run_discovercars_scraper_sync(**kwargs):
-    """
-    Wrapper síncrono para executar scraper em background thread
-    """
-    import discovercars_scraper
-    import asyncio
-    
-    # Criar novo event loop para esta thread
-    loop = asyncio.new_event_loop()
-    asyncio.set_event_loop(loop)
-    
-    try:
-        result = loop.run_until_complete(
-            discovercars_scraper.scrape_discovercars(**kwargs)
-        )
-        return result
-    finally:
-        loop.close()
-
-
 @app.post("/api/discovercars-search")
 async def discovercars_search(request: Request):
     """
-    DiscoverCars AI Price Comparison Endpoint - ASYNC VERSION
-    Submete scraping como background job para não bloquear servidor
-    Retorna job_id para monitorização
+    DiscoverCars AI Price Comparison Endpoint
+    Scrapes prices from discovercars.com for competitive analysis
     """
     require_auth(request)
     
@@ -18246,9 +18266,11 @@ async def discovercars_search(request: Request):
                 "error": "Missing required parameters: pickup_location, pickup_date, dropoff_date"
             }, status_code=400)
         
-        # Submeter como background job
-        job_id = submit_scraping_job(
-            _run_discovercars_scraper_sync,
+        # Import scraper
+        import discovercars_scraper
+        
+        # Run scraper
+        result = await discovercars_scraper.scrape_discovercars(
             pickup_location=pickup_location,
             dropoff_location=dropoff_location,
             pickup_date=pickup_date,
@@ -18258,17 +18280,10 @@ async def discovercars_search(request: Request):
             headless=headless
         )
         
-        logger.info(f"✅ Scraping job submitted: {job_id} ({pickup_location} {pickup_date}-{dropoff_date})")
-        
-        return JSONResponse({
-            "success": True,
-            "job_id": job_id,
-            "message": "Scraping job submitted successfully. Use /api/jobs/{job_id} to check status.",
-            "status_url": f"/api/jobs/{job_id}"
-        })
+        return JSONResponse(result)
     
     except Exception as e:
-        logger.error(f"Error submitting scraping job: {e}")
+        logger.error(f"Error in discovercars_search: {e}")
         import traceback
         traceback.print_exc()
         return JSONResponse({
