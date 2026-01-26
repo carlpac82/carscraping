@@ -187,11 +187,16 @@ def _detect_language_from_country(country: str) -> str:
     if any(fc in country_lower for fc in french_countries):
         return 'fr'
     
-    # English-speaking countries
+    # English-speaking countries (including European countries that typically prefer English over Portuguese)
     english_countries = ['united kingdom', 'reino unido', 'uk', 'england', 'inglaterra',
                         'ireland', 'irlanda', 'usa', 'united states', 'estados unidos',
                         'canada', 'canadá', 'australia', 'austrália', 'new zealand',
-                        'nova zelândia', 'south africa', 'áfrica do sul']
+                        'nova zelândia', 'south africa', 'áfrica do sul',
+                        'germany', 'alemanha', 'netherlands', 'holanda', 'países baixos',
+                        'denmark', 'dinamarca', 'sweden', 'suécia', 'norway', 'noruega',
+                        'finland', 'finlândia', 'austria', 'áustria', 'poland', 'polónia',
+                        'czech', 'checa', 'hungary', 'hungria', 'romania', 'roménia',
+                        'italy', 'itália', 'spain', 'espanha']
     if any(ec in country_lower for ec in english_countries):
         return 'en'
     
@@ -4944,7 +4949,7 @@ def _send_self_checkin_invitation_email(to_email: str, client_name: str, ra_numb
             country_lower = country.lower()
             if any(x in country_lower for x in ['france', 'frança', 'french', 'belgique', 'belgium', 'suisse', 'switzerland']):
                 language = 'fr'
-            elif any(x in country_lower for x in ['united kingdom', 'uk', 'england', 'ireland', 'usa', 'canada', 'australia', 'reino unido', 'irlanda']):
+            elif any(x in country_lower for x in ['united kingdom', 'uk', 'england', 'ireland', 'usa', 'canada', 'australia', 'reino unido', 'irlanda', 'germany', 'alemanha', 'netherlands', 'holanda', 'denmark', 'dinamarca', 'sweden', 'suécia', 'norway', 'noruega', 'finland', 'finlândia']):
                 language = 'en'
         
         # Extrair primeiro nome
@@ -53383,110 +53388,6 @@ async def force_send_checkout_emails(request: Request):
     except Exception as e:
         print(f"❌ Error forcing scheduler: {e}", flush=True)
         logging.error(f"❌ Error forcing scheduler: {e}")
-        import traceback
-        logging.error(traceback.format_exc())
-        return JSONResponse({
-            "ok": False,
-            "error": str(e),
-            "traceback": traceback.format_exc()
-        }, status_code=500)
-
-@app.get("/api/admin/check-ra-country/{ra_number}")
-async def check_ra_country(request: Request, ra_number: str):
-    """
-    TEMPORARY: Check country extracted from RA
-    """
-    try:
-        require_inspection_access(request)
-    except HTTPException:
-        return JSONResponse({"ok": False, "error": "Unauthorized"}, status_code=403)
-    
-    try:
-        conn = _db_connect()
-        is_postgres = _is_postgresql_connection(conn)
-        
-        if not is_postgres:
-            return JSONResponse({
-                "ok": False,
-                "error": "This endpoint only works with PostgreSQL"
-            }, status_code=400)
-        
-        cursor = conn.cursor()
-        
-        # Buscar RA (tentar múltiplas variações)
-        cursor.execute("""
-            SELECT rental_agreement_number, extracted_data
-            FROM rental_agreements
-            WHERE rental_agreement_number LIKE %s
-               OR rental_agreement_number LIKE %s
-               OR rental_agreement_number = %s
-            ORDER BY created_at DESC
-            LIMIT 1
-        """, (f"{ra_number}%", f"{ra_number}-09%", ra_number))
-        
-        row = cursor.fetchone()
-        cursor.close()
-        conn.close()
-        
-        if not row:
-            return JSONResponse({
-                "ok": False,
-                "error": f"RA {ra_number} not found"
-            }, status_code=404)
-        
-        ra_num = row[0]
-        extracted_data = row[1]
-        
-        if not extracted_data:
-            return JSONResponse({
-                "ok": False,
-                "error": "No extracted_data found"
-            }, status_code=404)
-        
-        import json
-        data = json.loads(extracted_data) if isinstance(extracted_data, str) else extracted_data
-        
-        # Tentar múltiplos campos para o país
-        country_fields = {
-            'country': data.get('country'),
-            'pais': data.get('pais'),
-            'Country': data.get('Country'),
-            'COUNTRY': data.get('COUNTRY'),
-            'clientCountry': data.get('clientCountry'),
-            'client_country': data.get('client_country')
-        }
-        
-        # Determinar qual campo será usado
-        detected_country = None
-        detected_field = None
-        for field, value in country_fields.items():
-            if value:
-                detected_country = value
-                detected_field = field
-                break
-        
-        # Detectar idioma
-        language = 'pt'
-        if detected_country:
-            country_lower = detected_country.lower()
-            if any(x in country_lower for x in ['france', 'frança', 'french', 'belgique', 'belgium', 'suisse', 'switzerland']):
-                language = 'fr'
-            elif any(x in country_lower for x in ['united kingdom', 'uk', 'england', 'ireland', 'usa', 'canada', 'australia', 'reino unido', 'irlanda']):
-                language = 'en'
-        
-        return JSONResponse({
-            "ok": True,
-            "ra_number": ra_num,
-            "available_keys": list(data.keys()),
-            "country_fields": country_fields,
-            "detected_country": detected_country,
-            "detected_field": detected_field,
-            "detected_language": language,
-            "full_extracted_data": data
-        })
-        
-    except Exception as e:
-        logging.error(f"❌ Error checking RA country: {e}")
         import traceback
         logging.error(traceback.format_exc())
         return JSONResponse({
