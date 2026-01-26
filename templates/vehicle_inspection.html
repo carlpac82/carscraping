@@ -1508,6 +1508,195 @@
             document.getElementById('stepPhotos').classList.remove('hidden');
             console.log('✅ Starting pickup (check-out) process');
         }
+        
+        // Show contract status popup
+        function showContractStatusPopup(plate, raNumber, status) {
+            // Remove existing popup if any
+            const existingPopup = document.getElementById('contractStatusPopup');
+            if (existingPopup) {
+                existingPopup.remove();
+            }
+            
+            const isClosed = status === 'closed';
+            const title = isClosed ? 'Contrato Encerrado' : 'Contrato Ativo';
+            const message = isClosed 
+                ? `A matrícula <strong>${plate}</strong> está no contrato <strong>${raNumber}</strong> que já foi encerrado (tem check-in e check-out completos).`
+                : `A matrícula <strong>${plate}</strong> está no contrato <strong>${raNumber}</strong> que ainda não foi encerrado.`;
+            const iconColor = isClosed ? '#10b981' : '#f59e0b';
+            const iconBg = isClosed ? '#d1fae5' : '#fef3c7';
+            
+            // Create popup
+            const popup = document.createElement('div');
+            popup.id = 'contractStatusPopup';
+            popup.style.cssText = `
+                position: fixed;
+                top: 0;
+                left: 0;
+                right: 0;
+                bottom: 0;
+                background: rgba(0, 0, 0, 0.5);
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                z-index: 99999;
+                backdrop-filter: blur(4px);
+            `;
+            
+            popup.innerHTML = `
+                <div style="
+                    background: white;
+                    border-radius: 16px;
+                    padding: 32px;
+                    max-width: 450px;
+                    width: 90%;
+                    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+                    text-align: center;
+                    animation: popupSlideIn 0.3s ease-out;
+                ">
+                    <div style="
+                        width: 64px;
+                        height: 64px;
+                        background: ${iconBg};
+                        border-radius: 50%;
+                        display: flex;
+                        align-items: center;
+                        justify-content: center;
+                        margin: 0 auto 20px;
+                    ">
+                        <svg style="width: 32px; height: 32px; color: ${iconColor};" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                        </svg>
+                    </div>
+                    <h3 style="
+                        font-size: 20px;
+                        font-weight: 700;
+                        color: #111827;
+                        margin-bottom: 12px;
+                        font-family: 'Outfit', sans-serif;
+                    ">${title}</h3>
+                    <p style="
+                        font-size: 15px;
+                        color: #374151;
+                        margin-bottom: 24px;
+                        line-height: 1.6;
+                        font-family: 'Outfit', sans-serif;
+                    ">${message}</p>
+                    <button onclick="document.getElementById('contractStatusPopup').remove()" style="
+                        background: #009cb6;
+                        color: white;
+                        border: none;
+                        border-radius: 8px;
+                        padding: 12px 32px;
+                        font-size: 16px;
+                        font-weight: 600;
+                        cursor: pointer;
+                        transition: all 0.2s;
+                        font-family: 'Outfit', sans-serif;
+                    " onmouseover="this.style.background='#007a94'" onmouseout="this.style.background='#009cb6'">
+                        OK
+                    </button>
+                </div>
+            `;
+            
+            document.body.appendChild(popup);
+            
+            // Close on background click
+            popup.addEventListener('click', function(e) {
+                if (e.target === popup) {
+                    popup.remove();
+                }
+            });
+        }
+        
+        // Disable both buttons
+        function disableBothButtons() {
+            const deliveryButton = document.getElementById('deliveryButton');
+            const pickupButton = document.getElementById('pickupButton');
+            
+            if (deliveryButton) {
+                deliveryButton.disabled = true;
+                deliveryButton.style.pointerEvents = 'none';
+                deliveryButton.classList.add('opacity-50', 'cursor-not-allowed');
+                
+                const deliveryIcon = document.getElementById('deliveryIcon');
+                if (deliveryIcon) {
+                    deliveryIcon.setAttribute('fill', '#6c757d');
+                }
+                
+                const deliveryText = document.getElementById('deliveryText');
+                if (deliveryText) {
+                    deliveryText.classList.remove('group-hover:text-red-500');
+                    deliveryText.classList.add('text-gray-400');
+                }
+            }
+            
+            if (pickupButton) {
+                pickupButton.disabled = true;
+                pickupButton.style.pointerEvents = 'none';
+                pickupButton.classList.add('opacity-50', 'cursor-not-allowed');
+                
+                const pickupIcon = document.getElementById('pickupIcon');
+                if (pickupIcon) {
+                    pickupIcon.setAttribute('fill', '#6c757d');
+                }
+                
+                const pickupText = document.getElementById('pickupText');
+                if (pickupText) {
+                    pickupText.classList.remove('group-hover:text-green-500');
+                    pickupText.classList.add('text-gray-400');
+                }
+                
+                const pickupAnimation = document.getElementById('pickupAnimation');
+                if (pickupAnimation) {
+                    pickupAnimation.classList.add('hidden');
+                }
+            }
+        }
+        
+        // Enable both buttons
+        function enableBothButtons() {
+            const deliveryButton = document.getElementById('deliveryButton');
+            const pickupButton = document.getElementById('pickupButton');
+            
+            if (deliveryButton) {
+                deliveryButton.disabled = false;
+                deliveryButton.style.pointerEvents = 'auto';
+                deliveryButton.classList.remove('opacity-50', 'cursor-not-allowed');
+                
+                const deliveryIcon = document.getElementById('deliveryIcon');
+                if (deliveryIcon) {
+                    deliveryIcon.setAttribute('fill', '#dc3545'); // RED
+                }
+                
+                const deliveryText = document.getElementById('deliveryText');
+                if (deliveryText) {
+                    deliveryText.classList.add('group-hover:text-red-500');
+                    deliveryText.classList.remove('text-gray-400');
+                }
+            }
+            
+            if (pickupButton) {
+                pickupButton.disabled = false;
+                pickupButton.style.pointerEvents = 'auto';
+                pickupButton.classList.remove('opacity-50', 'cursor-not-allowed');
+                
+                const pickupIcon = document.getElementById('pickupIcon');
+                if (pickupIcon) {
+                    pickupIcon.setAttribute('fill', '#10b981'); // GREEN
+                }
+                
+                const pickupText = document.getElementById('pickupText');
+                if (pickupText) {
+                    pickupText.classList.add('group-hover:text-green-500');
+                    pickupText.classList.remove('text-gray-400');
+                }
+                
+                const pickupAnimation = document.getElementById('pickupAnimation');
+                if (pickupAnimation) {
+                    pickupAnimation.classList.remove('hidden');
+                }
+            }
+        }
     </script>
     <script src="/static/vehicle_inspection.js?v=20260120121900"></script>
     
@@ -3800,69 +3989,19 @@
                             
                             // Check if contract is closed (both checkout and check-in completed)
                             if (ra.contract_closed === true) {
-                                // Show popup warning
-                                showNotification('⚠️ Contrato Encerrado! Este contrato já tem check-out e check-in completos. Não é possível fazer mais inspeções.', 'error');
-                                
-                                // Disable both buttons
-                                const deliveryButton = document.getElementById('deliveryButton');
-                                const pickupButton = document.getElementById('pickupButton');
-                                
-                                if (deliveryButton) {
-                                    deliveryButton.disabled = true;
-                                    deliveryButton.style.pointerEvents = 'none';
-                                    deliveryButton.classList.add('opacity-50', 'cursor-not-allowed');
-                                    
-                                    // Change icon color to gray
-                                    const deliveryIcon = document.getElementById('deliveryIcon');
-                                    if (deliveryIcon) {
-                                        deliveryIcon.setAttribute('fill', '#6c757d');
-                                    }
-                                    
-                                    // Change text color to gray
-                                    const deliveryText = document.getElementById('deliveryText');
-                                    if (deliveryText) {
-                                        deliveryText.classList.remove('group-hover:text-red-500');
-                                        deliveryText.classList.add('text-gray-400');
-                                    }
-                                    
-                                    console.log('🚫 Delivery button disabled');
-                                }
-                                
-                                if (pickupButton) {
-                                    pickupButton.disabled = true;
-                                    pickupButton.style.pointerEvents = 'none';
-                                    pickupButton.classList.add('opacity-50', 'cursor-not-allowed');
-                                    
-                                    // Change icon color to gray (keep it gray, don't turn green)
-                                    const pickupIcon = document.getElementById('pickupIcon');
-                                    if (pickupIcon) {
-                                        pickupIcon.setAttribute('fill', '#6c757d');
-                                    }
-                                    
-                                    // Change text color to gray
-                                    const pickupText = document.getElementById('pickupText');
-                                    if (pickupText) {
-                                        pickupText.classList.remove('group-hover:text-green-500');
-                                        pickupText.classList.add('text-gray-400');
-                                    }
-                                    
-                                    console.log('🚫 Pickup button disabled');
-                                }
-                                
+                                // Contract CLOSED - show clean popup
+                                showContractStatusPopup(plate, ra.rental_agreement_number, 'closed');
+                                disableBothButtons();
                                 console.log('🚫 Contract closed: both buttons disabled');
+                            } else if (ra.has_checkout === true || ra.has_checkin === true) {
+                                // Contract OPEN but has at least one inspection - show clean popup
+                                showContractStatusPopup(plate, ra.rental_agreement_number, 'open');
+                                disableBothButtons();
+                                console.log('🚫 Contract open with inspections: both buttons disabled');
                             } else {
-                                // Contract is NOT closed - enable delivery button with RED color
-                                const deliveryIcon = document.getElementById('deliveryIcon');
-                                if (deliveryIcon) {
-                                    deliveryIcon.setAttribute('fill', '#dc3545'); // RED
-                                    console.log('✅ Delivery icon set to RED (contract active)');
-                                }
-                                
-                                // Only update pickup button state if contract is NOT closed
-                                // Update pickup button state after setting inspection status
-                                if (typeof updatePickupButtonState === 'function') {
-                                    updatePickupButtonState();
-                                }
+                                // Contract exists but NO inspections yet - allow both buttons
+                                enableBothButtons();
+                                console.log('✅ Contract exists but no inspections: both buttons enabled');
                             }
                         }
                     } catch (error) {
