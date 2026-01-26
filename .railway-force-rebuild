@@ -1,1 +1,1 @@
-2026-01-26T00:17:00Z UTC - Debug: add logs to identify why check-in block is not executing - Force Railway rebuild
+2026-01-26T00:15:00Z UTC - Fix: fetch extracted_data inside check-in block using ra_base and extract return_location before fallback - Force Railway rebuild

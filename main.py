@@ -30603,19 +30603,29 @@ async def save_inspection(request: Request):
                         logging.info(f"🔍 DEBUG: Checking inspection_type == 'checkin': {inspection_type == 'checkin'}")
                         if inspection_type == 'checkin':
                             logging.info(f"✅ DEBUG: Entered CHECK-IN block!")
-                            # PRIMEIRO: Atualizar extracted_data com dados do check-in (para TODOS os check-ins)
+                            
+                            # Inicializar variáveis de RA dentro do bloco de check-in
+                            ra_return_location = None
+                            ra_return_date = None
+                            ra_client_name = None
+                            ra_base = ra.split('-')[0] if '-' in ra else ra
+                            logging.info(f"🔍 CHECK-IN: RA full='{ra}', RA base='{ra_base}'")
+                            
+                            # PRIMEIRO: Buscar dados do RA (extracted_data) usando ra_base
                             updated_extracted_json = None
                             try:
                                 if is_postgres:
                                     cursor.execute("""
                                         SELECT extracted_data FROM rental_agreements 
-                                        WHERE rental_agreement_number = %s
-                                    """, (ra,))
+                                        WHERE rental_agreement_number LIKE %s
+                                        LIMIT 1
+                                    """, (f"{ra_base}%",))
                                 else:
                                     cursor.execute("""
                                         SELECT extracted_data FROM rental_agreements 
-                                        WHERE rental_agreement_number = ?
-                                    """, (ra,))
+                                        WHERE rental_agreement_number LIKE ?
+                                        LIMIT 1
+                                    """, (f"{ra_base}%",))
                                 
                                 existing_row = cursor.fetchone()
                                 existing_data = {}
@@ -30641,6 +30651,12 @@ async def save_inspection(request: Request):
                                 
                                 updated_extracted_json = json.dumps(existing_data)
                                 logging.info(f"📦 Updated extracted_data with check-in data: kms={odometer_reading}, fuel={fuel_level}, date={existing_data['delivery_date']}, time={existing_data['delivery_time']}")
+                                
+                                # Extrair return_location do existing_data
+                                ra_return_location = existing_data.get('return_location') or existing_data.get('returnLocation') or existing_data.get('local_devolucao')
+                                ra_return_date = existing_data.get('return_date') or existing_data.get('returnDate') or existing_data.get('data_devolucao')
+                                ra_client_name = existing_data.get('client_name') or existing_data.get('clientName') or existing_data.get('nome_cliente')
+                                logging.info(f"📦 Extracted from existing_data: return_location='{ra_return_location}', return_date='{ra_return_date}', client_name='{ra_client_name}'")
                             except Exception as extract_error:
                                 logging.error(f"❌ Error updating extracted_data: {extract_error}")
                                 updated_extracted_json = None
@@ -30648,9 +30664,8 @@ async def save_inspection(request: Request):
                             # SEGUNDO: Buscar return_location se ainda não tiver (fallback)
                             logging.info(f"🔍 CHECK-IN: ra_return_location value before fallback: '{ra_return_location}' (type: {type(ra_return_location).__name__})")
                             if not ra_return_location or ra_return_location == '':
-                                logging.info(f"🔄 CHECK-IN FALLBACK: Fetching return_location from table columns for RA {ra}")
+                                logging.info(f"🔄 CHECK-IN FALLBACK: Fetching return_location from table columns for RA {ra} (base: {ra_base})")
                                 try:
-                                    ra_base = ra.split('-')[0] if '-' in ra else ra
                                     if is_postgres:
                                         cursor.execute("""
                                             SELECT return_location, return_date, client_name
