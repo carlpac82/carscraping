@@ -908,11 +908,28 @@ def check_and_send_scheduled_checkout_emails():
                     import json
                     try:
                         data = json.loads(extracted_data) if isinstance(extracted_data, str) else extracted_data
-                        country = data.get('country') or data.get('pais')
+                        logging.info(f"🔍 DEBUG extracted_data keys: {list(data.keys())}")
+                        
+                        # Tentar múltiplos campos para o país
+                        country = (data.get('country') or 
+                                  data.get('pais') or 
+                                  data.get('Country') or 
+                                  data.get('COUNTRY') or
+                                  data.get('clientCountry') or
+                                  data.get('client_country'))
+                        
                         if country:
-                            logging.info(f"🌍 Client country from RA: {country}")
+                            logging.info(f"🌍 Client country from RA: '{country}'")
+                        else:
+                            logging.warning(f"⚠️ No country field found in extracted_data. Available keys: {list(data.keys())}")
+                            logging.warning(f"⚠️ Full extracted_data: {json.dumps(data, indent=2, ensure_ascii=False)}")
                     except Exception as e:
-                        logging.warning(f"⚠️ Could not extract country from RA: {e}")
+                        logging.error(f"❌ Could not extract country from RA: {e}")
+                        import traceback
+                        logging.error(traceback.format_exc())
+                
+                if not country:
+                    logging.warning(f"⚠️ Country not found for RA {ra_number}, will use default language (pt)")
                 
                 # Construir link de self-checkout
                 base_url = os.environ.get('BASE_URL', 'https://rentalprices.pt')
