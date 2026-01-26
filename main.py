@@ -32077,7 +32077,7 @@ async def submit_self_checkout(token: str, request: Request):
                 cursor.execute("""
                     SELECT 
                         ra.extracted_data, ra.client_email, ra.self_checkin_email,
-                        v.marca, v.modelo
+                        v.marca, v.modelo, ra.client_country, ra.return_location
                     FROM rental_agreements ra
                     LEFT JOIN vehicles v ON ra.vehicle_id = v.id
                     WHERE ra.id = %s
@@ -32086,7 +32086,7 @@ async def submit_self_checkout(token: str, request: Request):
                 cursor.execute("""
                     SELECT 
                         ra.extracted_data, ra.client_email, ra.self_checkin_email,
-                        v.marca, v.modelo
+                        v.marca, v.modelo, ra.client_country, ra.return_location
                     FROM rental_agreements ra
                     LEFT JOIN vehicles v ON ra.vehicle_id = v.id
                     WHERE ra.id = ?
@@ -32099,7 +32099,11 @@ async def submit_self_checkout(token: str, request: Request):
                 self_checkin_email = ra_row[2] or ''
                 vehicle_brand = ra_row[3] or ''
                 vehicle_model = ra_row[4] or ''
+                client_country = ra_row[5] or 'PT'  # LER DIRETAMENTE DA COLUNA (igual ao checkin)
+                return_location = ra_row[6] or 'Auto Prudente'  # LER DIRETAMENTE DA COLUNA
                 client_name = ''
+                
+                logging.info(f"🌍 Client country from DB column: {client_country}")
                 
                 # Prioridade: self_checkin_email (email do reenvio) > client_email do RA > extracted_data
                 client_email = self_checkin_email or ra_client_email
@@ -32114,19 +32118,8 @@ async def submit_self_checkout(token: str, request: Request):
                     except:
                         pass
                 
-                # Extrair dados do extracted_data JSON
-                client_country = 'PT'
-                return_location = 'Auto Prudente'
+                # Extrair pickup_km do extracted_data se necessário
                 pickup_km = 0
-                if ra_extracted:
-                    try:
-                        ext_data = json.loads(ra_extracted) if isinstance(ra_extracted, str) else ra_extracted
-                        client_country = ext_data.get('country') or ext_data.get('pais') or 'PT'
-                        return_location = ext_data.get('returnLocation') or ext_data.get('return_location') or 'Auto Prudente'
-                        logging.info(f"🌍 Client country from extracted_data: {client_country}")
-                        logging.info(f"📦 Extracted data keys: {list(ext_data.keys())}")
-                    except Exception as e:
-                        logging.warning(f"⚠️ Error parsing extracted_data for country: {e}")
                 
                 # SEMPRE buscar pickup_km da inspeção de checkin (entrega ao cliente = início do aluguer)
                 # Não usar extracted_data porque já foi atualizado com o odometer do self-checkout
