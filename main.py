@@ -20,6 +20,7 @@ from fastapi import FastAPI, Request, Form, File, UploadFile, HTTPException, Res
 from fastapi.responses import RedirectResponse, JSONResponse, HTMLResponse, Response, StreamingResponse, FileResponse, PlainTextResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.middleware.gzip import GZipMiddleware
 from pathlib import Path
 
 # Background Jobs System - Para scraping não bloquear inspeções

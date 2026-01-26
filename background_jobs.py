@@ -70,7 +70,7 @@ class BackgroundJobManager:
     Thread-safe, permite múltiplos jobs simultâneos
     """
     
-    def __init__(self, max_workers: int = 3):
+    def __init__(self, max_workers: int = 2):
         self.jobs: Dict[str, Job] = {}
         self.max_workers = max_workers
         self.active_workers = 0
