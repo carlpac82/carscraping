@@ -29980,17 +29980,26 @@ async def save_inspection(request: Request):
                 # Detect database type - ROBUST METHOD
                 is_postgres = False
                 conn_type = type(conn).__name__
+                database_url = os.getenv('DATABASE_URL')
+                
+                logging.info(f"🔍 DB DETECTION: conn_type='{conn_type}', DATABASE_URL={'SET' if database_url else 'NOT SET'}")
                 
                 if 'psycopg' in conn_type.lower() or conn_type == 'connection':
                     is_postgres = True
-                elif os.getenv('DATABASE_URL'):
+                    logging.info(f"✅ DB DETECTION: PostgreSQL detected via conn_type")
+                elif database_url:
                     is_postgres = True
+                    logging.info(f"✅ DB DETECTION: PostgreSQL detected via DATABASE_URL")
                 else:
                     try:
                         import psycopg2
                         is_postgres = isinstance(conn, psycopg2.extensions.connection)
+                        if is_postgres:
+                            logging.info(f"✅ DB DETECTION: PostgreSQL detected via psycopg2 isinstance")
                     except:
                         pass
+                
+                logging.info(f"🎯 DB DETECTION RESULT: is_postgres={is_postgres}")
                 
                 if is_postgres:
                     # PostgreSQL
