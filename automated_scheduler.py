@@ -892,20 +892,38 @@ def check_and_send_scheduled_checkout_emails():
                 logging.info(f"✅ Found token for RA {ra_number}")
                 
                 # Construir link de self-checkout
-                base_url = os.environ.get('BASE_URL', 'https://carscraping-production.up.railway.app')
-                checkout_link = f"{base_url}/self-checkin?token={token}"
+                base_url = os.environ.get('BASE_URL', 'https://rentalprices.pt')
+                checkout_link = f"{base_url}/self-checkout/{token}"
                 
-                # Enviar email (usando endpoint existente de reenvio)
-                # Nota: Adaptar conforme necessário para usar a função correta de envio
                 logging.info(f"🔗 Checkout link: {checkout_link}")
                 logging.info(f"📧 Sending email to {client_email} for RA {ra_number}")
                 
-                # Aqui você deve chamar a função de envio de email existente
-                # Por exemplo: send_self_checkout_email(client_email, client_name, checkout_link, ra_number, vehicle_plate)
-                
-                # Por agora, marcar como enviado (você deve implementar o envio real)
-                mark_email_sent(inspection_number, success=True)
-                logging.info(f"✅ Email sent successfully for {inspection_number}")
+                # Enviar email usando a API interna
+                try:
+                    api_url = f"{base_url}/api/send-self-checkout-email"
+                    payload = {
+                        "email": client_email,
+                        "client_name": client_name,
+                        "ra_number": ra_number,
+                        "plate": vehicle_plate,
+                        "token": token,
+                        "return_date": str(email_data.get('checkout_date', ''))
+                    }
+                    
+                    response = requests.post(api_url, json=payload, timeout=30)
+                    
+                    if response.status_code == 200:
+                        mark_email_sent(inspection_number, success=True)
+                        logging.info(f"✅ Email sent successfully for {inspection_number}")
+                    else:
+                        error_msg = f"API returned {response.status_code}: {response.text}"
+                        logging.error(f"❌ Failed to send email: {error_msg}")
+                        mark_email_sent(inspection_number, success=False, error_message=error_msg)
+                        
+                except requests.exceptions.RequestException as req_error:
+                    error_msg = f"Request failed: {str(req_error)}"
+                    logging.error(f"❌ {error_msg}")
+                    mark_email_sent(inspection_number, success=False, error_message=error_msg)
                 
             except Exception as email_error:
                 logging.error(f"❌ Error sending email for {inspection_number}: {email_error}")

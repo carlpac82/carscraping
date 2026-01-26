@@ -53177,6 +53177,52 @@ async def generate_ra_token(request: Request):
             "traceback": traceback.format_exc()
         }, status_code=500)
 
+@app.post("/api/send-self-checkout-email")
+async def send_self_checkout_email(request: Request):
+    """
+    Send self-checkout email using Google OAuth
+    """
+    try:
+        data = await request.json()
+        email = data.get('email')
+        client_name = data.get('client_name')
+        ra_number = data.get('ra_number')
+        plate = data.get('plate')
+        token = data.get('token')
+        return_date = data.get('return_date', '')
+        country = data.get('country')
+        
+        if not all([email, client_name, ra_number, plate, token]):
+            return JSONResponse({
+                "ok": False,
+                "error": "Missing required fields"
+            }, status_code=400)
+        
+        # Enviar email usando a função existente
+        _send_self_checkin_invitation_email(
+            to_email=email,
+            client_name=client_name,
+            ra_number=ra_number,
+            plate=plate,
+            return_date=return_date,
+            token=token,
+            country=country
+        )
+        
+        return JSONResponse({
+            "ok": True,
+            "message": f"Email sent successfully to {email}"
+        })
+        
+    except Exception as e:
+        logging.error(f"❌ Error sending self-checkout email: {e}")
+        import traceback
+        logging.error(traceback.format_exc())
+        return JSONResponse({
+            "ok": False,
+            "error": str(e)
+        }, status_code=500)
+
 @app.post("/api/admin/force-send-checkout-emails")
 async def force_send_checkout_emails(request: Request):
     """
