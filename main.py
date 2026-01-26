@@ -32103,7 +32103,7 @@ async def submit_self_checkout(token: str, request: Request):
                 cursor.execute("""
                     SELECT 
                         ra.extracted_data, ra.client_email, ra.self_checkin_email,
-                        v.marca, v.modelo, ra.return_location
+                        v.marca, v.modelo
                     FROM rental_agreements ra
                     LEFT JOIN vehicles v ON ra.vehicle_id = v.id
                     WHERE ra.id = %s
@@ -32112,7 +32112,7 @@ async def submit_self_checkout(token: str, request: Request):
                 cursor.execute("""
                     SELECT 
                         ra.extracted_data, ra.client_email, ra.self_checkin_email,
-                        v.marca, v.modelo, ra.return_location
+                        v.marca, v.modelo
                     FROM rental_agreements ra
                     LEFT JOIN vehicles v ON ra.vehicle_id = v.id
                     WHERE ra.id = ?
@@ -32125,7 +32125,7 @@ async def submit_self_checkout(token: str, request: Request):
                 self_checkin_email = ra_row[2] or ''
                 vehicle_brand = ra_row[3] or ''
                 vehicle_model = ra_row[4] or ''
-                return_location = ra_row[5] or 'Auto Prudente'
+                return_location = 'Auto Prudente'
                 client_name = ''
                 client_country = 'PT'  # Default
                 
