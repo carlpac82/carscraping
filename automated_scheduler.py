@@ -904,11 +904,25 @@ def check_and_send_scheduled_checkout_emails():
                     import json
                     try:
                         data = json.loads(extracted_data) if isinstance(extracted_data, str) else extracted_data
-                        country = data.get('client_country') or data.get('country')
+                        logging.info(f"🔍 DEBUG: extracted_data keys: {list(data.keys())}")
+                        logging.info(f"🔍 DEBUG: extracted_data content: {json.dumps(data, indent=2)}")
+                        
+                        # Tentar vários nomes de campo possíveis
+                        country = (data.get('client_country') or 
+                                 data.get('country') or 
+                                 data.get('clientCountry') or
+                                 data.get('Country') or
+                                 data.get('pais') or
+                                 data.get('cliente_pais'))
+                        
                         if country:
                             logging.info(f"🌍 Client country from RA: {country}")
+                        else:
+                            logging.warning(f"⚠️ No country field found in extracted_data")
                     except Exception as e:
                         logging.warning(f"⚠️ Could not extract country from RA: {e}")
+                        import traceback
+                        logging.warning(traceback.format_exc())
                 
                 # Se não encontrou país no RA, buscar do check-in
                 if not country:

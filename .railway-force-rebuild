@@ -1,1 +1,1 @@
-2026-01-26T01:54:00Z UTC - Fix: use correct PDF generator for check-in vs check-out layouts - Force Railway rebuild
+2026-01-26T01:56:00Z UTC - Add detailed debug logs for extracted_data country field detection - Force Railway rebuild
