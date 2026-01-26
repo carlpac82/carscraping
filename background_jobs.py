@@ -184,8 +184,8 @@ class BackgroundJobManager:
                 if job_to_run:
                     self._execute_job(job_to_run)
                 else:
-                    # Sem jobs pendentes, aguardar
-                    time.sleep(1)
+                    # Sem jobs pendentes, aguardar (reduzido para melhor responsividade)
+                    time.sleep(0.5)
                 
                 # Cleanup periódico (a cada 100 iterações)
                 if int(time.time()) % 100 == 0:

@@ -847,6 +847,11 @@ IMAGE_CACHE_DAYS = int(os.getenv("IMAGE_CACHE_DAYS", "365") or 365)
 PRICES_CACHE_TTL_SECONDS = int(os.getenv("PRICES_CACHE_TTL_SECONDS", "300") or 300)
 BULK_CONCURRENCY = int(os.getenv("BULK_CONCURRENCY", "6") or 6)
 
+# Cache global para admin_vehicles (reduzir queries à BD durante scraping)
+ADMIN_VEHICLES_CACHE_TTL = 600  # 10 minutos (aumentado de 5min para reduzir queries)
+_admin_vehicles_cache = None
+_admin_vehicles_cache_time = 0
+
 # ============================================================
 # SELF CHECK-IN HELPER FUNCTIONS
 # ============================================================
