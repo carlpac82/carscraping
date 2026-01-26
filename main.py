@@ -30641,7 +30641,43 @@ async def save_inspection(request: Request):
                                 logging.error(f"❌ Error updating extracted_data: {extract_error}")
                                 updated_extracted_json = None
                             
-                            # SEGUNDO: Verificar se o local de DEVOLUÇÃO é "Aeroporto de Faro"
+                            # SEGUNDO: Buscar return_location se ainda não tiver (fallback)
+                            if not ra_return_location:
+                                logging.info(f"🔄 CHECK-IN FALLBACK: Fetching return_location from table columns for RA {ra}")
+                                try:
+                                    ra_base = ra.split('-')[0] if '-' in ra else ra
+                                    if is_postgres:
+                                        cursor.execute("""
+                                            SELECT return_location, return_date, client_name
+                                            FROM rental_agreements 
+                                            WHERE rental_agreement_number LIKE %s 
+                                            LIMIT 1
+                                        """, (f"{ra_base}%",))
+                                    else:
+                                        cursor.execute("""
+                                            SELECT return_location, return_date, client_name
+                                            FROM rental_agreements 
+                                            WHERE rental_agreement_number LIKE ?
+                                            LIMIT 1
+                                        """, (f"{ra_base}%",))
+                                    
+                                    fallback_row = cursor.fetchone()
+                                    if fallback_row:
+                                        if fallback_row[0]:
+                                            ra_return_location = fallback_row[0]
+                                            logging.info(f"✅ CHECK-IN: Got return_location from column: {ra_return_location}")
+                                        if fallback_row[1]:
+                                            ra_return_date = fallback_row[1]
+                                            logging.info(f"✅ CHECK-IN: Got return_date from column: {ra_return_date}")
+                                        if fallback_row[2] and not ra_client_name:
+                                            ra_client_name = fallback_row[2]
+                                            logging.info(f"✅ CHECK-IN: Got client_name from column: {ra_client_name}")
+                                    else:
+                                        logging.warning(f"⚠️ CHECK-IN: No RA found in table for: {ra}")
+                                except Exception as fallback_error:
+                                    logging.error(f"❌ CHECK-IN FALLBACK error: {fallback_error}")
+                            
+                            # TERCEIRO: Verificar se o local de DEVOLUÇÃO é "Aeroporto de Faro"
                             # Self check-in só é configurado automaticamente para este local
                             is_faro_airport = False
                             if ra_return_location:
