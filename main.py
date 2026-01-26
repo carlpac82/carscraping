@@ -864,10 +864,13 @@ def calculate_scheduled_date(return_date_str: str, days_before: int = 2) -> str:
     import datetime
     
     try:
-        # Parse return date (formato esperado: YYYY-MM-DD ou DD/MM/YYYY)
+        # Parse return date (formato esperado: YYYY-MM-DD, DD/MM/YYYY, ou DD - MM - YYYY)
         if '/' in return_date_str:
             # Formato DD/MM/YYYY
             return_date = datetime.datetime.strptime(return_date_str, '%d/%m/%Y')
+        elif ' - ' in return_date_str:
+            # Formato DD - MM - YYYY (com espaços)
+            return_date = datetime.datetime.strptime(return_date_str, '%d - %m - %Y')
         else:
             # Formato YYYY-MM-DD
             return_date = datetime.datetime.strptime(return_date_str, '%Y-%m-%d')
