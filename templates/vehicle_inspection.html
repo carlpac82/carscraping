@@ -4077,6 +4077,96 @@
             });
         }
         
+        // Check for specific RA when RA number is entered manually
+        let raCheckTimeout;
+        document.getElementById('inputRA').addEventListener('input', function(e) {
+            const raNumber = e.target.value.trim();
+            
+            console.log('📋 RA input event:', raNumber);
+            
+            // Clear previous timeout
+            clearTimeout(raCheckTimeout);
+            
+            // Only check if RA has valid format (at least 5 digits)
+            if (raNumber.length >= 5) {
+                console.log('✅ RA válido, buscando contrato em 800ms...');
+                raCheckTimeout = setTimeout(async () => {
+                    console.log('🔍 Buscando contrato para RA:', raNumber);
+                    try {
+                        const response = await fetch(`/api/rental-agreement/by-number/${encodeURIComponent(raNumber)}`);
+                        console.log('📡 Response status:', response.status);
+                        const data = await response.json();
+                        console.log('📦 Response data:', data);
+                        
+                        if (data.success && data.found) {
+                            const ra = data.rental_agreement;
+                            const vehicleInfo = data.vehicle_info;
+                            
+                            // Auto-fill plate
+                            if (ra.license_plate) {
+                                document.getElementById('inputPlate').value = ra.license_plate;
+                                console.log('✅ Matrícula preenchida:', ra.license_plate);
+                            }
+                            
+                            // Auto-fill email if available
+                            const emailInput = document.getElementById('reportEmail');
+                            if (emailInput && ra.client_email) {
+                                emailInput.value = ra.client_email;
+                                console.log('✅ Email preenchido:', ra.client_email);
+                            }
+                            
+                            // Store vehicle_id globally
+                            if (vehicleInfo) {
+                                window.currentVehicleId = vehicleInfo.id;
+                                console.log('✅ Vehicle ID:', vehicleInfo.id);
+                            } else if (ra.vehicle_id) {
+                                window.currentVehicleId = ra.vehicle_id;
+                            } else {
+                                window.currentVehicleId = null;
+                            }
+                            
+                            // Store RA data globally
+                            window.currentRAData = {
+                                ...ra,
+                                odometerValue: vehicleInfo?.km_atual || ra.odometer,
+                                fuelValue: vehicleInfo?.nivel_combustivel || ra.fuel_level
+                            };
+                            
+                            // Store inspection status
+                            window.inspectionCompleted = ra.inspection_completed;
+                            window.hasCheckout = ra.has_checkout;
+                            window.hasCheckin = ra.has_checkin;
+                            window.contractClosed = ra.contract_closed;
+                            
+                            console.log('🔍 Contract status:');
+                            console.log('  - has_checkout:', ra.has_checkout);
+                            console.log('  - has_checkin:', ra.has_checkin);
+                            console.log('  - contract_closed:', ra.contract_closed);
+                            
+                            // Check contract status and update buttons
+                            if (ra.has_checkin === true && ra.has_checkout === false) {
+                                showContractStatusPopup(ra.license_plate, ra.rental_agreement_number, 'open');
+                                disableBothButtons();
+                                console.log('🚫 Contract open with check-in: both buttons disabled');
+                            } else if (ra.contract_closed === true) {
+                                enableCheckInOnly();
+                                console.log('✅ Contract closed: allowing new check-in for new contract');
+                            } else {
+                                enableCheckInOnly();
+                                console.log('✅ Contract exists but no inspections: only check-in enabled');
+                            }
+                            
+                            showMinimalistAlert(`RA ${raNumber} encontrado`, 'success');
+                        } else {
+                            console.log('❌ RA não encontrado');
+                        }
+                    } catch (error) {
+                        console.error('Error checking RA by number:', error);
+                    }
+                }, 800);
+            }
+        });
+        
         // Photo Lightbox Functions
         let currentLightboxIndex = 0;
         let lightboxPhotos = [];

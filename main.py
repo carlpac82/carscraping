@@ -50772,7 +50772,16 @@ async def get_latest_ra_by_plate(request: Request, plate: str):
                            ra.created_at, ra.updated_at, ra.extracted_data
                     FROM rental_agreements ra
                     WHERE REPLACE(REPLACE(UPPER(ra.license_plate), ' ', ''), '-', '') = %s
-                    ORDER BY ra.rental_agreement_number DESC
+                    ORDER BY 
+                        CASE 
+                            WHEN ra.extracted_data::jsonb ? 'pickup_date' THEN 
+                                TO_DATE(
+                                    REPLACE(ra.extracted_data::jsonb->>'pickup_date', ' ', ''),
+                                    'DD-MM-YYYY'
+                                )
+                            ELSE ra.created_at::date
+                        END DESC,
+                        ra.rental_agreement_number DESC
                     LIMIT 1
                 """, (normalized_plate,))
                 ra_row = cur.fetchone()
@@ -50784,7 +50793,17 @@ async def get_latest_ra_by_plate(request: Request, plate: str):
                        ra.created_at, ra.updated_at, ra.extracted_data
                 FROM rental_agreements ra
                 WHERE REPLACE(REPLACE(UPPER(ra.license_plate), ' ', ''), '-', '') = ?
-                ORDER BY ra.rental_agreement_number DESC
+                ORDER BY 
+                    CASE 
+                        WHEN json_extract(ra.extracted_data, '$.pickup_date') IS NOT NULL THEN 
+                            date(
+                                substr(replace(json_extract(ra.extracted_data, '$.pickup_date'), ' ', ''), 7, 4) || '-' ||
+                                substr(replace(json_extract(ra.extracted_data, '$.pickup_date'), ' ', ''), 4, 2) || '-' ||
+                                substr(replace(json_extract(ra.extracted_data, '$.pickup_date'), ' ', ''), 1, 2)
+                            )
+                        ELSE date(ra.created_at)
+                    END DESC,
+                    ra.rental_agreement_number DESC
                 LIMIT 1
             """, (normalized_plate,))
             ra_row = cursor.fetchone()
