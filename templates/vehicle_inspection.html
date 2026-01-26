@@ -3921,6 +3921,19 @@
                 console.log('✅ Matrícula válida, buscando RA em 800ms...');
                 plateCheckTimeout = setTimeout(async () => {
                     console.log('🔍 Buscando RA para matrícula:', plate);
+                    
+                    // First, validate if plate exists in Fleet Management
+                    const plateExists = await validatePlateExists(plate);
+                    
+                    if (!plateExists) {
+                        console.log('❌ Matrícula não existe no Gestor de Frota');
+                        showCleanErrorPopup('Matrícula inválida ou inexistente');
+                        disableBothButtons();
+                        return;
+                    }
+                    
+                    console.log('✅ Matrícula existe no Gestor de Frota, buscando RA...');
+                    
                     try {
                         const response = await fetch(`/api/rental-agreement/by-plate/${encodeURIComponent(plate)}`);
                         console.log('📡 Response status:', response.status);
