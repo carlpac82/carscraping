@@ -49680,7 +49680,11 @@ async def get_inspection_pdf(inspection_number: str, request: Request):
         if row[1] == 'self_checkout':
             from pdf_generator_self_checkout import generate_inspection_pdf as generate_self_checkout_pdf
             pdf_content = generate_self_checkout_pdf(inspection_data, extracted_data_json)
+        elif row[1] == 'checkout':
+            from pdf_generator_checkout import generate_inspection_pdf as generate_checkout_pdf
+            pdf_content = generate_checkout_pdf(inspection_data, extracted_data_json)
         else:
+            # check-in (entrega)
             pdf_content = generate_inspection_pdf(inspection_data, extracted_data_json)
         
         logging.info(f"✅ PDF generated: {len(pdf_content)} bytes")

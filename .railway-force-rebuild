@@ -1,1 +1,1 @@
-2026-01-26T01:51:00Z UTC - Fix: call email function directly instead of HTTP request to avoid timeout - Force Railway rebuild
+2026-01-26T01:54:00Z UTC - Fix: use correct PDF generator for check-in vs check-out layouts - Force Railway rebuild
