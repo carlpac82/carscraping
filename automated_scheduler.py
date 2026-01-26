@@ -814,6 +814,9 @@ def check_and_send_scheduled_checkout_emails():
     Verifica e envia emails de self-checkout agendados.
     Executado a cada 5 minutos.
     """
+    print("\n" + "="*80, flush=True)
+    print("📧 CHECKING SCHEDULED CHECKOUT EMAILS", flush=True)
+    print("="*80, flush=True)
     logging.info(f"\n{'='*80}")
     logging.info(f"📧 CHECKING SCHEDULED CHECKOUT EMAILS")
     logging.info(f"{'='*80}")
@@ -823,13 +826,16 @@ def check_and_send_scheduled_checkout_emails():
         import requests
         import os
         
+        print("🔍 Getting pending emails...", flush=True)
         # Obter emails pendentes
         pending = get_pending_emails()
         
         if not pending:
+            print("✅ No pending checkout emails to send", flush=True)
             logging.info("✅ No pending checkout emails to send")
             return
         
+        print(f"📬 Found {len(pending)} pending email(s)", flush=True)
         logging.info(f"📬 Found {len(pending)} pending email(s)")
         
         # Enviar cada email
