@@ -30948,9 +30948,9 @@ async def save_inspection(request: Request):
                                                 return_date = %s,
                                                 client_email = %s,
                                                 extracted_data = %s
-                                            WHERE rental_agreement_number = %s
+                                            WHERE rental_agreement_number LIKE %s
                                               AND UPPER(license_plate) = UPPER(%s)
-                                        """, (inspection_id, self_checkin_token, email, scheduled_date, return_date, email, updated_extracted_json, ra, plate))
+                                        """, (inspection_id, self_checkin_token, email, scheduled_date, return_date, email, updated_extracted_json, f"{ra_base}%", plate))
                                     else:
                                         cursor.execute("""
                                             UPDATE rental_agreements
@@ -30964,9 +30964,9 @@ async def save_inspection(request: Request):
                                                 self_checkin_completed = FALSE,
                                                 return_date = %s,
                                                 client_email = %s
-                                            WHERE rental_agreement_number = %s
+                                            WHERE rental_agreement_number LIKE %s
                                               AND UPPER(license_plate) = UPPER(%s)
-                                        """, (inspection_id, self_checkin_token, email, scheduled_date, return_date, email, ra, plate))
+                                        """, (inspection_id, self_checkin_token, email, scheduled_date, return_date, email, f"{ra_base}%", plate))
                                 else:
                                     if updated_extracted_json:
                                         cursor.execute("""
@@ -30982,9 +30982,9 @@ async def save_inspection(request: Request):
                                                 return_date = ?,
                                                 client_email = ?,
                                                 extracted_data = ?
-                                            WHERE rental_agreement_number = ?
+                                            WHERE rental_agreement_number LIKE ?
                                               AND UPPER(license_plate) = UPPER(?)
-                                        """, (inspection_id, self_checkin_token, email, scheduled_date, return_date, email, updated_extracted_json, ra, plate))
+                                        """, (inspection_id, self_checkin_token, email, scheduled_date, return_date, email, updated_extracted_json, f"{ra_base}%", plate))
                                     else:
                                         cursor.execute("""
                                             UPDATE rental_agreements
@@ -30998,9 +30998,9 @@ async def save_inspection(request: Request):
                                                 self_checkin_completed = 0,
                                                 return_date = ?,
                                                 client_email = ?
-                                            WHERE rental_agreement_number = ?
+                                            WHERE rental_agreement_number LIKE ?
                                               AND UPPER(license_plate) = UPPER(?)
-                                        """, (inspection_id, self_checkin_token, email, scheduled_date, return_date, email, ra, plate))
+                                        """, (inspection_id, self_checkin_token, email, scheduled_date, return_date, email, f"{ra_base}%", plate))
                                 
                                 logging.info(f"✅ Self check-in configured for RA {ra} (Aeroporto de Faro): token={self_checkin_token[:16]}..., email={email}, scheduled={scheduled_date}")
                                 
