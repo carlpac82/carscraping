@@ -1336,6 +1336,178 @@
             email: ""
         };
         {% endif %}
+        
+        // Show clean error popup
+        function showCleanErrorPopup(message) {
+            // Remove existing popup if any
+            const existingPopup = document.getElementById('cleanErrorPopup');
+            if (existingPopup) {
+                existingPopup.remove();
+            }
+            
+            // Create popup
+            const popup = document.createElement('div');
+            popup.id = 'cleanErrorPopup';
+            popup.style.cssText = `
+                position: fixed;
+                top: 0;
+                left: 0;
+                right: 0;
+                bottom: 0;
+                background: rgba(0, 0, 0, 0.5);
+                display: flex;
+                align-items: center;
+                justify-center;
+                z-index: 99999;
+                backdrop-filter: blur(4px);
+            `;
+            
+            popup.innerHTML = `
+                <div style="
+                    background: white;
+                    border-radius: 16px;
+                    padding: 32px;
+                    max-width: 400px;
+                    width: 90%;
+                    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+                    text-align: center;
+                    animation: popupSlideIn 0.3s ease-out;
+                ">
+                    <div style="
+                        width: 64px;
+                        height: 64px;
+                        background: #fee2e2;
+                        border-radius: 50%;
+                        display: flex;
+                        align-items: center;
+                        justify-content: center;
+                        margin: 0 auto 20px;
+                    ">
+                        <svg style="width: 32px; height: 32px; color: #dc2626;" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/>
+                        </svg>
+                    </div>
+                    <h3 style="
+                        font-size: 20px;
+                        font-weight: 700;
+                        color: #111827;
+                        margin-bottom: 12px;
+                        font-family: 'Outfit', sans-serif;
+                    ">${message}</h3>
+                    <p style="
+                        font-size: 14px;
+                        color: #6b7280;
+                        margin-bottom: 24px;
+                        font-family: 'Outfit', sans-serif;
+                    ">Por favor, adicione a matrícula no Gestor de Frota antes de continuar.</p>
+                    <button onclick="document.getElementById('cleanErrorPopup').remove()" style="
+                        background: #009cb6;
+                        color: white;
+                        border: none;
+                        border-radius: 8px;
+                        padding: 12px 32px;
+                        font-size: 16px;
+                        font-weight: 600;
+                        cursor: pointer;
+                        transition: all 0.2s;
+                        font-family: 'Outfit', sans-serif;
+                    " onmouseover="this.style.background='#007a94'" onmouseout="this.style.background='#009cb6'">
+                        OK
+                    </button>
+                </div>
+            `;
+            
+            // Add animation
+            const style = document.createElement('style');
+            style.textContent = `
+                @keyframes popupSlideIn {
+                    from {
+                        opacity: 0;
+                        transform: translateY(-20px) scale(0.95);
+                    }
+                    to {
+                        opacity: 1;
+                        transform: translateY(0) scale(1);
+                    }
+                }
+            `;
+            document.head.appendChild(style);
+            
+            document.body.appendChild(popup);
+            
+            // Close on background click
+            popup.addEventListener('click', function(e) {
+                if (e.target === popup) {
+                    popup.remove();
+                }
+            });
+        }
+        
+        // Validate plate exists in database
+        async function validatePlateExists(plate) {
+            if (!plate || plate.trim() === '') {
+                return false;
+            }
+            
+            try {
+                const response = await fetch(`/api/vehicles/by-plate/${encodeURIComponent(plate)}`);
+                const data = await response.json();
+                return data.success && data.vehicle;
+            } catch (error) {
+                console.error('Error validating plate:', error);
+                return false;
+            }
+        }
+        
+        // Start Delivery (Check-in) with validation
+        async function startDelivery() {
+            const plate = document.getElementById('inputPlate')?.value?.trim();
+            
+            if (!plate) {
+                showCleanErrorPopup('Por favor, insira a matrícula');
+                return;
+            }
+            
+            // Validate plate exists in database
+            const plateExists = await validatePlateExists(plate);
+            
+            if (!plateExists) {
+                showCleanErrorPopup('Matrícula inválida ou inexistente');
+                return;
+            }
+            
+            // Proceed with delivery
+            localStorage.setItem('processType', 'delivery');
+            window.isPickupMode = false;
+            document.getElementById('stepSelection').classList.add('hidden');
+            document.getElementById('stepPhotos').classList.remove('hidden');
+            console.log('✅ Starting delivery (check-in) process');
+        }
+        
+        // Start Pickup (Check-out) with validation
+        async function startPickup() {
+            const plate = document.getElementById('inputPlate')?.value?.trim();
+            
+            if (!plate) {
+                showCleanErrorPopup('Por favor, insira a matrícula');
+                return;
+            }
+            
+            // Validate plate exists in database
+            const plateExists = await validatePlateExists(plate);
+            
+            if (!plateExists) {
+                showCleanErrorPopup('Matrícula inválida ou inexistente');
+                return;
+            }
+            
+            // Proceed with pickup
+            localStorage.setItem('processType', 'pickup');
+            window.isPickupMode = true;
+            document.getElementById('stepSelection').classList.add('hidden');
+            document.getElementById('stepPhotos').classList.remove('hidden');
+            console.log('✅ Starting pickup (check-out) process');
+        }
     </script>
     <script src="/static/vehicle_inspection.js?v=20260120121900"></script>
     
