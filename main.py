@@ -2563,7 +2563,7 @@ def map_category_to_group(category: str, car_name: str = "", transmission: str =
         Código do grupo ex. "B1", "D", "L1", "Others"
     """
     # CRITICAL LOGGING: Track ALL cars entering mapping
-    logging.info(f" [MAP-IN] car='{car_name}' | category='{category}' | transmission='{transmission}'")
+    logging.debug(f" [MAP-IN] car='{car_name}' | category='{category}' | transmission='{transmission}'")
     
     cat = category.strip().lower() if category else ""
     car_lower = car_name.lower() if car_name else ""
@@ -2590,7 +2590,7 @@ def map_category_to_group(category: str, car_name: str = "", transmission: str =
     
     # Fallback para lógica original
     final_group = _map_category_fallback(category, car_name, transmission)
-    logging.info(f"📤 [MAP-OUT] car='{car_name}' → grupo '{final_group}' | original category='{category}'")
+    logging.debug(f"📤 [MAP-OUT] car='{car_name}' → grupo '{final_group}' | original category='{category}'")
     return final_group
 
 def _adjust_group_for_transmission(grupo_base: str, is_auto: bool) -> str:
@@ -2746,7 +2746,7 @@ def _map_category_fallback(category: str, car_name: str = "", transmission: str 
     # 4. Caso contrário → manual
     is_auto = _trans_is_auto or _has_auto_in_name or _has_auto_in_category
     
-    logging.info(f"📋 [MAP] ENTRADA: car='{car_name}', category='{category}', transmission='{transmission}' | is_auto_by_name={is_auto}")
+    logging.debug(f"📋 [MAP] ENTRADA: car='{car_name}', category='{category}', transmission='{transmission}' | is_auto_by_name={is_auto}")
     
     # PRIORIDADE -1: CABRIO/CABRIOLET no NOME → SEMPRE Grupo G
     # Independente da categoria (Luxury, Mini, SUV, etc), se tem "cabrio" no nome = G
@@ -2792,7 +2792,7 @@ def _map_category_fallback(category: str, car_name: str = "", transmission: str 
     # 🔍 is_auto já foi definido no início da função baseado no NOME do carro
     
     # DEBUG: Log da decisão M1/M2
-    logging.info(f"🔍 [7-SEATER-CHECK] car='{car_name}' | transmission='{transmission}' | is_auto_by_name={is_auto}")
+    logging.debug(f"🔍 [7-SEATER-CHECK] car='{car_name}' | transmission='{transmission}' | is_auto_by_name={is_auto}")
     
     seven_seater_patterns = [
         r'\bpeugeot\s*5008\b',
@@ -15396,7 +15396,7 @@ def parse_prices(html: str, base_url: str) -> List[Dict[str, Any]]:
             # 🔧 DETECTAR TRANSMISSÃO - PRIORIDADE: <li value> é a fonte MAIS CONFIÁVEL!
             # O HTML do CarJet tem: <li value="A"> para Automático, <li value="M"> para Manual
             # Esta é a fonte mais confiável porque vem diretamente do ícone de transmissão
-            logging.info(f"🔍 [TRANS-DETECT-START] Analisando carro: '{car_name}' | ALT pré-definiu: '{card_transmission}'")
+            logging.debug(f"🔍 [TRANS-DETECT-START] Analisando carro: '{car_name}' | ALT pré-definiu: '{card_transmission}'")
             
             # RESET card_transmission - vamos detectar de novo com prioridade correta
             # O ALT pode ter definido incorretamente (ex: "Pequeno" não é transmissão)
@@ -16248,8 +16248,8 @@ def parse_prices(html: str, base_url: str) -> List[Dict[str, Any]]:
             except Exception as e:
                 pass  # VEHICLES pode não existir
             
-            logging.info(f"📦 [PRE-MAP] car='{car_name}' | category='{category}' | transmission='{final_transmission}'")
-            logging.info(f"      card_icon={card_transmission} | global={transmission_label} | VEHICLES={vehicles_transmission or 'N/A'}")
+            logging.debug(f"📦 [PRE-MAP] car='{car_name}' | category='{category}' | transmission='{final_transmission}'")
+            logging.debug(f"      card_icon={card_transmission} | global={transmission_label} | VEHICLES={vehicles_transmission or 'N/A'}")
             
             group_code = map_category_to_group(category, car_name, final_transmission)
             print(f"   📍 [PRE-CHECK] car='{car_name[:30]}' | group='{group_code}'", file=sys.stderr, flush=True)
@@ -16262,9 +16262,9 @@ def parse_prices(html: str, base_url: str) -> List[Dict[str, Any]]:
                 group_code = "Others"
                 print(f"   ⚠️ [FALLBACK-GROUP] Grupo não encontrado, usando: 'Others'", file=sys.stderr, flush=True)
             
-            logging.info(f"✅ [FINAL-RESULT] {car_name} → GRUPO '{group_code}' | {final_transmission} | {supplier} | {price_text}")
+            logging.debug(f"✅ [FINAL-RESULT] {car_name} → GRUPO '{group_code}' | {final_transmission} | {supplier} | {price_text}")
             if vehicles_match:
-                logging.info(f"      VEHICLES: '{vehicles_match}' → categoria {vehicles_category} → grupo {vehicles_group} | {vehicles_transmission}")
+                logging.debug(f"      VEHICLES: '{vehicles_match}' → categoria {vehicles_category} → grupo {vehicles_group} | {vehicles_transmission}")
             # Capitalizar nome para display (Peugeot 2008 Auto, Renault Megane SW Auto)
             car_name_display = capitalize_car_name(car_name)
             items.append({
@@ -16282,57 +16282,23 @@ def parse_prices(html: str, base_url: str) -> List[Dict[str, Any]]:
             idx += 1
         print(f"[PARSE] Stats: price={cards_with_price}, name={cards_with_name}, blocked={cards_blocked}, items={len(items)}")
         
-        # 📊 ESTATÍSTICAS DETALHADAS DE TRANSMISSÃO E GRUPOS
+        # 📊 RESUMO SIMPLIFICADO DE SCRAPING
         if items:
-            logging.info("=" * 80)
-            logging.info("📊 ESTATÍSTICAS DE TRANSMISSÃO E DISTRIBUIÇÃO DE GRUPOS")
-            logging.info("=" * 80)
-            
             # Contar por transmissão
             auto_count = sum(1 for it in items if it.get('transmission') == 'Automatic')
             manual_count = sum(1 for it in items if it.get('transmission') == 'Manual')
-            unknown_count = sum(1 for it in items if it.get('transmission') not in ['Automatic', 'Manual'])
-            
-            logging.info(f"🔵 AUTOMÁTICOS: {auto_count}/{len(items)} ({auto_count*100//len(items)}%)")
-            logging.info(f"🔴 MANUAIS: {manual_count}/{len(items)} ({manual_count*100//len(items)}%)")
-            if unknown_count:
-                logging.info(f"⚪ DESCONHECIDOS: {unknown_count}/{len(items)} ({unknown_count*100//len(items)}%)")
             
             # Contar por grupo
             from collections import defaultdict
-            groups = defaultdict(lambda: {'auto': 0, 'manual': 0, 'unknown': 0})
+            groups = defaultdict(int)
             for it in items:
                 group = it.get('group', 'N/A')
-                trans = it.get('transmission', '')
-                if trans == 'Automatic':
-                    groups[group]['auto'] += 1
-                elif trans == 'Manual':
-                    groups[group]['manual'] += 1
-                else:
-                    groups[group]['unknown'] += 1
+                groups[group] += 1
             
-            logging.info("")
-            logging.info("📋 DISTRIBUIÇÃO POR GRUPO:")
-            for group in sorted(groups.keys()):
-                g_data = groups[group]
-                total = g_data['auto'] + g_data['manual'] + g_data['unknown']
-                logging.info(f"   Grupo {group}: {total} carros (Auto:{g_data['auto']} | Manual:{g_data['manual']} | Unknown:{g_data['unknown']})")
+            # Log resumido
+            logging.info(f"✅ Scraping concluído: {len(items)} veículos encontrados (Auto: {auto_count} | Manual: {manual_count})")
+            logging.info(f"📋 Grupos: {dict(sorted(groups.items()))}")
             
-            # Listar TODOS os automáticos
-            logging.info("")
-            logging.info("🔵 LISTA COMPLETA DE AUTOMÁTICOS:")
-            auto_cars = [it for it in items if it.get('transmission') == 'Automatic']
-            for it in sorted(auto_cars, key=lambda x: (x.get('group', 'ZZZ'), x.get('car', ''))):
-                logging.info(f"   [{it.get('group', 'N/A')}] {it.get('car', 'N/A'):40} | {it.get('supplier', 'N/A'):20}")
-            
-            # Listar TODOS os manuais
-            logging.info("")
-            logging.info("🔴 LISTA COMPLETA DE MANUAIS:")
-            manual_cars = [it for it in items if it.get('transmission') == 'Manual']
-            for it in sorted(manual_cars, key=lambda x: (x.get('group', 'ZZZ'), x.get('car', ''))):
-                logging.info(f"   [{it.get('group', 'N/A')}] {it.get('car', 'N/A'):40} | {it.get('supplier', 'N/A'):20}")
-            
-            logging.info("=" * 80)
             print(f"[PARSE] Returning {len(items)} items from card parsing")
             return items
     except Exception as parse_err:
