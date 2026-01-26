@@ -1385,26 +1385,25 @@ function enlargePhoto(imageData, photoType) {
     // Previous arrow (only if more than 1 photo)
     if (allPhotos.length > 1) {
         const prevBtn = document.createElement('button');
-        prevBtn.innerHTML = '<svg width="20" height="20" fill="none" stroke="white" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M15 19l-7-7 7-7"></path></svg>';
+        prevBtn.innerHTML = '<svg width="40" height="40" fill="white" stroke="white" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"></path></svg>';
         prevBtn.className = 'lightbox-nav-btn';
         prevBtn.style.cssText = `
             position: absolute;
             left: 10px;
             top: 50%;
             transform: translateY(-50%);
-            background: rgba(0, 0, 0, 0.5);
-            border: 2px solid rgba(255, 255, 255, 0.8);
-            border-radius: 50%;
-            width: 44px;
-            height: 44px;
+            background: transparent;
+            border: none;
+            width: 50px;
+            height: 50px;
             display: flex;
             align-items: center;
             justify-content: center;
             cursor: pointer;
             transition: all 0.2s;
-            backdrop-filter: blur(10px);
-            -webkit-backdrop-filter: blur(10px);
             z-index: 10001;
+            padding: 0;
+            filter: drop-shadow(0 2px 4px rgba(0,0,0,0.5));
         `;
         prevBtn.addEventListener('click', (e) => {
             e.stopPropagation();
@@ -1412,37 +1411,36 @@ function enlargePhoto(imageData, photoType) {
         });
         prevBtn.addEventListener('touchstart', (e) => {
             e.stopPropagation();
-            prevBtn.style.background = 'rgba(0, 0, 0, 0.7)';
+            prevBtn.style.opacity = '0.7';
         });
         prevBtn.addEventListener('touchend', (e) => {
             e.stopPropagation();
-            prevBtn.style.background = 'rgba(0, 0, 0, 0.5)';
+            prevBtn.style.opacity = '1';
             navigatePhoto(-1);
         });
         modal.appendChild(prevBtn);
         
         // Next arrow
         const nextBtn = document.createElement('button');
-        nextBtn.innerHTML = '<svg width="20" height="20" fill="none" stroke="white" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M9 5l7 7-7 7"></path></svg>';
+        nextBtn.innerHTML = '<svg width="40" height="40" fill="white" stroke="white" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path></svg>';
         nextBtn.className = 'lightbox-nav-btn';
         nextBtn.style.cssText = `
             position: absolute;
             right: 10px;
             top: 50%;
             transform: translateY(-50%);
-            background: rgba(0, 0, 0, 0.5);
-            border: 2px solid rgba(255, 255, 255, 0.8);
-            border-radius: 50%;
-            width: 44px;
-            height: 44px;
+            background: transparent;
+            border: none;
+            width: 50px;
+            height: 50px;
             display: flex;
             align-items: center;
             justify-content: center;
             cursor: pointer;
             transition: all 0.2s;
-            backdrop-filter: blur(10px);
-            -webkit-backdrop-filter: blur(10px);
             z-index: 10001;
+            padding: 0;
+            filter: drop-shadow(0 2px 4px rgba(0,0,0,0.5));
         `;
         nextBtn.addEventListener('click', (e) => {
             e.stopPropagation();
@@ -1450,11 +1448,11 @@ function enlargePhoto(imageData, photoType) {
         });
         nextBtn.addEventListener('touchstart', (e) => {
             e.stopPropagation();
-            nextBtn.style.background = 'rgba(0, 0, 0, 0.7)';
+            nextBtn.style.opacity = '0.7';
         });
         nextBtn.addEventListener('touchend', (e) => {
             e.stopPropagation();
-            nextBtn.style.background = 'rgba(0, 0, 0, 0.5)';
+            nextBtn.style.opacity = '1';
             navigatePhoto(1);
         });
         modal.appendChild(nextBtn);
