@@ -31672,7 +31672,8 @@ async def get_self_checkout_data(token: str):
                     ra.extracted_data,
                     v.marca,
                     v.modelo,
-                    v.grupo
+                    v.grupo,
+                    ra.client_country
                 FROM rental_agreements ra
                 LEFT JOIN vehicles v ON ra.vehicle_id = v.id
                 WHERE ra.self_checkin_token = %s
@@ -31693,7 +31694,8 @@ async def get_self_checkout_data(token: str):
                     ra.extracted_data,
                     v.marca,
                     v.modelo,
-                    v.grupo
+                    v.grupo,
+                    ra.client_country
                 FROM rental_agreements ra
                 LEFT JOIN vehicles v ON ra.vehicle_id = v.id
                 WHERE ra.self_checkin_token = ?
@@ -31811,6 +31813,18 @@ async def get_self_checkout_data(token: str):
             import traceback
             traceback.print_exc()
         
+        # Determinar idioma baseado no país do cliente (igual aos emails)
+        client_country = row[14] if len(row) > 14 else 'PT'
+        language = 'pt'
+        if client_country:
+            country_upper = client_country.upper()
+            if country_upper in ['GB', 'UK', 'US', 'IE', 'CA', 'AU', 'NZ']:
+                language = 'en'
+            elif country_upper in ['FR', 'BE', 'CH', 'LU', 'MC']:
+                language = 'fr'
+        
+        logging.info(f"🌍 Self-checkout data - Client country: {client_country}, Language: {language}")
+        
         return JSONResponse({
             "success": True,
             "data": {
@@ -31829,7 +31843,8 @@ async def get_self_checkout_data(token: str):
                 "client_name": extracted_data.get('client_name') or extracted_data.get('clientName') or extracted_data.get('nome_cliente'),
                 "completed": row[7],
                 "validated": row[8],
-                "extracted_data": extracted_data
+                "extracted_data": extracted_data,
+                "language": language
             }
         })
         

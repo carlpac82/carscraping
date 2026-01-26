@@ -971,7 +971,10 @@
 
         // Apply translations
         function applyTranslations() {
-            currentLang = getLanguageFromURL();
+            // currentLang já deve estar definido pela API ou fallback para URL
+            if (!currentLang || !['pt', 'en', 'fr'].includes(currentLang)) {
+                currentLang = getLanguageFromURL();
+            }
             const t = translations[currentLang];
             
             document.getElementById('pageTitle').textContent = t.pageTitle;
@@ -1058,6 +1061,16 @@
                 }
 
                 raData = data.data;
+                
+                // Definir idioma a partir da resposta da API
+                if (raData.language && ['pt', 'en', 'fr'].includes(raData.language)) {
+                    currentLang = raData.language;
+                    console.log('🌍 Idioma definido pela API:', currentLang);
+                    // Reaplicar traduções com o idioma correto
+                    applyTranslations();
+                    // Atualizar photoTypes para o idioma correto
+                    updatePhotoTypesForLanguage();
+                }
                 
                 // DEBUG: Log completo dos dados recebidos
                 console.log('=== DEBUG: Dados recebidos do backend ===');
@@ -1276,8 +1289,27 @@
             }
         };
         
-        // Get current language photo types
-        const photoTypes = photoTypesTranslations[currentLang] || photoTypesTranslations['pt'];
+        // Get current language photo types (mutável para permitir atualização)
+        let photoTypes = photoTypesTranslations[currentLang] || photoTypesTranslations['pt'];
+        
+        // Função para atualizar photoTypes quando o idioma muda
+        function updatePhotoTypesForLanguage() {
+            photoTypes = photoTypesTranslations[currentLang] || photoTypesTranslations['pt'];
+            console.log('📸 PhotoTypes atualizados para idioma:', currentLang);
+            
+            // Atualizar labels das fotos no HTML
+            const photoLabels = document.querySelectorAll('.photo-label');
+            const photoSlots = document.querySelectorAll('.photo-slot');
+            const t = translations[currentLang];
+            
+            photoSlots.forEach(slot => {
+                const photoType = slot.getAttribute('data-photo');
+                const labelElement = slot.parentElement.querySelector('.photo-label');
+                if (labelElement && t.photoLabels[photoType]) {
+                    labelElement.textContent = t.photoLabels[photoType];
+                }
+            });
+        }
 
         async function triggerPhotoUpload(photoType) {
             currentPhotoType = photoType;
