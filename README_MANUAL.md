@@ -187,7 +187,7 @@ python3 generate_manual.py
 ## 📞 Suporte
 
 Para questões sobre o manual ou sistema de inspeções:
-- **Email:** suporte@autoprudente.pt
+- **Email:** comercial@auto-prudente.com
 - **Sistema:** https://rentalprices.pt
 
 ---

@@ -23,16 +23,18 @@
             position: relative;
             display: flex;
             align-items: center;
-            justify-content: center;
+            justify-content: flex-start;
         }
         .header img {
             position: absolute;
             left: 40px;
             height: 70px;
         }
-        .header-content { text-align: center; }
-        .header h1 { font-size: 42px; font-weight: 700; margin-bottom: 10px; }
-        .header p { font-size: 20px; opacity: 0.95; }
+        .header-content { 
+            margin-left: 180px;
+            text-align: left;
+        }
+        .header h1 { font-size: 42px; font-weight: 700; margin: 0; }
         .content { padding: 40px; max-width: 1200px; margin: 0 auto; }
         .section { margin-bottom: 40px; }
         h2 {
@@ -119,7 +121,6 @@
         <img src="static/ap-heather.png" alt="Auto Prudente">
         <div class="header-content">
             <h1>Manual de Inspeções de Veículos</h1>
-            <p>Sistema Completo de Check-in e Check-out</p>
         </div>
     </div>
     
@@ -198,10 +199,6 @@
                     <td>Número do contrato (ex: 06700)</td>
                 </tr>
             </table>
-            
-            <div class="warning">
-                <strong>⚠️ Atenção:</strong> A terminologia CHECK-IN/CHECK-OUT foi invertida após desenvolvimento inicial. CHECK-IN = ENTREGA (delivery antigo), CHECK-OUT = RECOLHA (pickup antigo).
-            </div>
         </div>
         
         <div class="page-break"></div>
@@ -850,7 +847,7 @@
         <div class="footer">
             <p><strong>Auto Prudente</strong> - Sistema de Gestão de Frotas e Inspeções</p>
             <p>Manual de Utilizador - Versão 1.0 - Janeiro 2026</p>
-            <p>Para suporte técnico ou questões, contactar: <strong>suporte@autoprudente.pt</strong></p>
+            <p>Para suporte técnico ou questões, contactar: <strong>comercial@auto-prudente.com</strong></p>
             <p style="margin-top: 15px; font-size: 13px;">
                 Este manual foi gerado automaticamente. Para converter para PDF:<br>
                 <strong>Ctrl+P (Windows/Linux)</strong> ou <strong>Cmd+P (Mac)</strong> → Selecionar "Save as PDF"
