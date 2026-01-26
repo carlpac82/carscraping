@@ -53223,6 +53223,49 @@ async def send_self_checkout_email(request: Request):
             "error": str(e)
         }, status_code=500)
 
+@app.post("/api/admin/reset-scheduled-email")
+async def reset_scheduled_email(request: Request):
+    """
+    Reset scheduled email status to pending for testing
+    """
+    try:
+        require_inspection_access(request)
+    except HTTPException:
+        return JSONResponse({"ok": False, "error": "Unauthorized"}, status_code=403)
+    
+    try:
+        data = await request.json()
+        inspection_number = data.get('inspection_number', 'VI-20260126-004247-466-545')
+        
+        conn = _db_connect()
+        cursor = conn.cursor()
+        
+        cursor.execute("""
+            UPDATE scheduled_checkout_emails
+            SET status = 'pending',
+                sent_at = NULL,
+                error_message = NULL,
+                updated_at = CURRENT_TIMESTAMP
+            WHERE inspection_number = %s
+        """, (inspection_number,))
+        
+        conn.commit()
+        conn.close()
+        
+        return JSONResponse({
+            "ok": True,
+            "message": f"Email {inspection_number} reset to pending"
+        })
+        
+    except Exception as e:
+        logging.error(f"❌ Error: {e}")
+        import traceback
+        logging.error(traceback.format_exc())
+        return JSONResponse({
+            "ok": False,
+            "error": str(e)
+        }, status_code=500)
+
 @app.post("/api/admin/test-direct-email")
 async def test_direct_email(request: Request):
     """
