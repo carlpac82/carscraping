@@ -1,1 +1,1 @@
-2026-01-26T00:47:00Z UTC - Debug: add logs to detect which database is being used (PostgreSQL vs SQLite) - Force Railway rebuild
+2026-01-26T01:05:00Z UTC - Add endpoint to force immediate execution of checkout email scheduler - Force Railway rebuild

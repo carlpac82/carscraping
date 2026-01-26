@@ -53177,6 +53177,37 @@ async def generate_ra_token(request: Request):
             "traceback": traceback.format_exc()
         }, status_code=500)
 
+@app.post("/api/admin/force-send-checkout-emails")
+async def force_send_checkout_emails(request: Request):
+    """
+    Force immediate execution of checkout email scheduler
+    """
+    try:
+        require_inspection_access(request)
+    except HTTPException:
+        return JSONResponse({"ok": False, "error": "Unauthorized"}, status_code=403)
+    
+    try:
+        from automated_scheduler import check_and_send_scheduled_checkout_emails
+        
+        logging.info("🚀 FORCE SEND: Manually triggering checkout email scheduler...")
+        check_and_send_scheduled_checkout_emails()
+        
+        return JSONResponse({
+            "ok": True,
+            "message": "Scheduler executed successfully. Check logs for details."
+        })
+        
+    except Exception as e:
+        logging.error(f"❌ Error forcing scheduler: {e}")
+        import traceback
+        logging.error(traceback.format_exc())
+        return JSONResponse({
+            "ok": False,
+            "error": str(e),
+            "traceback": traceback.format_exc()
+        }, status_code=500)
+
 if __name__ == "__main__":
     import uvicorn
     uvicorn.run(app, host="0.0.0.0", port=8000)
