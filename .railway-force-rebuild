@@ -1,1 +1,1 @@
-2026-01-26T01:05:00Z UTC - Add endpoint to force immediate execution of checkout email scheduler - Force Railway rebuild
+2026-01-26T01:12:00Z UTC - Add debug logs to investigate why get_pending_emails returns empty list - Force Railway rebuild

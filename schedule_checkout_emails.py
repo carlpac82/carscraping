@@ -223,17 +223,39 @@ def get_pending_emails() -> list:
         try:
             cursor = conn.cursor()
             
-            # Buscar emails agendados para envio (até 5 minutos no futuro para evitar perder)
+            # DEBUG: Verificar quantos emails existem na tabela
+            cursor.execute("SELECT COUNT(*) FROM scheduled_checkout_emails")
+            total_count = cursor.fetchone()[0]
+            logging.info(f"🔍 DEBUG: Total emails in table: {total_count}")
+            
+            # DEBUG: Verificar quantos têm status = 'pending'
+            cursor.execute("SELECT COUNT(*) FROM scheduled_checkout_emails WHERE status = 'pending'")
+            pending_count = cursor.fetchone()[0]
+            logging.info(f"🔍 DEBUG: Emails with status='pending': {pending_count}")
+            
+            # DEBUG: Verificar se a coluna 'status' existe
             cursor.execute("""
+                SELECT column_name 
+                FROM information_schema.columns 
+                WHERE table_name = 'scheduled_checkout_emails'
+            """)
+            columns = [row[0] for row in cursor.fetchall()]
+            logging.info(f"🔍 DEBUG: Table columns: {columns}")
+            
+            # Buscar emails agendados para envio (até 5 minutos no futuro para evitar perder)
+            query = """
                 SELECT inspection_number, checkout_date, scheduled_send_date,
                        pickup_location, client_email, client_name, vehicle_plate
                 FROM scheduled_checkout_emails
                 WHERE status = 'pending'
                   AND scheduled_send_date <= NOW() + INTERVAL '5 minutes'
                 ORDER BY scheduled_send_date ASC
-            """)
+            """
+            logging.info(f"🔍 DEBUG: Executing query: {query}")
+            cursor.execute(query)
             
             rows = cursor.fetchall()
+            logging.info(f"🔍 DEBUG: Query returned {len(rows)} row(s)")
             
             pending = []
             for row in rows:
