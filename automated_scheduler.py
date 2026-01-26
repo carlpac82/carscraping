@@ -538,7 +538,8 @@ async def _do_carjet_search(locations, days, pickup_date):
                         'async': 1  # ← MODO ASSÍNCRONO - Não bloqueia servidor
                     }
                     
-                    print(f"      [HTTP POST] Submitting async job...", flush=True)
+                    print(f"      [HTTP POST] Submitting async job... (async={payload.get('async')})", flush=True)
+                    print(f"      [PAYLOAD] {payload}", flush=True)
                     
                     # Add authentication header for internal scheduler requests
                     headers = {'X-Internal-Request': 'scheduler'}

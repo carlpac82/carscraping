@@ -12108,6 +12108,8 @@ async def track_by_params(request: Request):
     
     # MODO ASSÍNCRONO: Submeter como background job
     if async_mode:
+        logger.info(f"🔄 ASYNC MODE DETECTED - async_mode={async_mode}")
+        print(f"🔄 ASYNC MODE ACTIVATED - Submitting background job", flush=True)
         try:
             # Criar wrapper síncrono para executar scraping em background
             def _run_track_by_params_sync(**params):
