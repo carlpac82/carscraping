@@ -32125,19 +32125,20 @@ async def submit_self_checkout(token: str, request: Request):
                 self_checkin_email = ra_row[2] or ''
                 vehicle_brand = ra_row[3] or ''
                 vehicle_model = ra_row[4] or ''
-                return_location = 'Auto Prudente'
+                return_location = 'Auto Prudente'  # Default
                 client_name = ''
                 client_country = 'PT'  # Default
                 
                 # Prioridade: self_checkin_email (email do reenvio) > client_email do RA > extracted_data
                 client_email = self_checkin_email or ra_client_email
                 
-                # Extrair client_name, client_email e country do extracted_data
+                # Extrair client_name, client_email, country e return_location do extracted_data
                 if ra_extracted:
                     try:
                         ext_data = json.loads(ra_extracted) if isinstance(ra_extracted, str) else ra_extracted
                         client_name = ext_data.get('clientName') or ext_data.get('client_name') or ''
                         client_country = ext_data.get('country') or ext_data.get('pais') or 'PT'
+                        return_location = ext_data.get('return_location') or ext_data.get('returnLocation') or 'Auto Prudente'
                         if not client_email:
                             client_email = ext_data.get('clientEmail') or ext_data.get('email') or ''
                     except:
