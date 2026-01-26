@@ -3987,17 +3987,17 @@
                             console.log('  - has_checkin:', ra.has_checkin);
                             console.log('  - contract_closed:', ra.contract_closed);
                             
-                            // Check if contract is closed (both checkout and check-in completed)
+                            // Check contract status
                             if (ra.contract_closed === true) {
-                                // Contract CLOSED - show clean popup
+                                // Contract CLOSED (has check-in AND check-out) - show clean popup
                                 showContractStatusPopup(plate, ra.rental_agreement_number, 'closed');
                                 disableBothButtons();
                                 console.log('🚫 Contract closed: both buttons disabled');
-                            } else if (ra.has_checkout === true || ra.has_checkin === true) {
-                                // Contract OPEN but has at least one inspection - show clean popup
+                            } else if (ra.has_checkin === true && ra.has_checkout === false) {
+                                // Contract OPEN (has check-in but NO check-out yet) - show clean popup
                                 showContractStatusPopup(plate, ra.rental_agreement_number, 'open');
                                 disableBothButtons();
-                                console.log('🚫 Contract open with inspections: both buttons disabled');
+                                console.log('🚫 Contract open with check-in: both buttons disabled');
                             } else {
                                 // Contract exists but NO inspections yet - allow both buttons
                                 enableBothButtons();
