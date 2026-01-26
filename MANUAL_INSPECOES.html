@@ -32,9 +32,11 @@
         }
         .header-content { 
             margin-left: 180px;
-            text-align: left;
+            text-align: right;
+            flex: 1;
+            padding-right: 40px;
         }
-        .header h1 { font-size: 42px; font-weight: 700; margin: 0; }
+        .header h1 { font-size: 28px; font-weight: 700; margin: 0; }
         .content { padding: 40px; max-width: 1200px; margin: 0 auto; }
         .section { margin-bottom: 40px; }
         h2 {
@@ -551,13 +553,46 @@
                 </ul>
             </div>
             
+            <h3>5.2. Envio Automático (Aeroporto de Faro)</h3>
+            
+            <div class="success">
+                <strong>✅ Funcionalidade Automática:</strong><br>
+                Quando o <strong>local de recolha</strong> é o <strong>Aeroporto de Faro</strong>, o sistema agenda automaticamente o envio do email de self-checkout <strong>48 horas antes</strong> da data de devolução do veículo.
+            </div>
+            
+            <div class="step">
+                <span class="step-number">📅</span>
+                <strong>Reajuste Automático de Data</strong><br>
+                <ul style="margin-top: 10px;">
+                    <li>Se a <strong>data de check-out</strong> for editada no sistema, o agendamento do email é <strong>automaticamente reajustado</strong></li>
+                    <li>O email será sempre enviado <strong>48 horas antes</strong> da nova data de devolução</li>
+                    <li>Não é necessário reenviar manualmente o link de self-checkout</li>
+                    <li>Cliente recebe o link no momento ideal para fazer a inspeção</li>
+                </ul>
+            </div>
+            
             <div class="info">
-                <strong>💡 Vantagens do Self-Checkout:</strong>
+                <strong>💡 Exemplo Prático:</strong><br>
+                <ul style="margin-top: 10px;">
+                    <li><strong>Check-in:</strong> 10 de Janeiro às 10:00</li>
+                    <li><strong>Check-out previsto:</strong> 20 de Janeiro às 14:00</li>
+                    <li><strong>Local de recolha:</strong> Aeroporto de Faro</li>
+                    <li><strong>Email self-checkout enviado:</strong> 18 de Janeiro às 14:00 (48h antes)</li>
+                    <li><strong>Se data alterada para:</strong> 22 de Janeiro às 14:00</li>
+                    <li><strong>Novo envio agendado:</strong> 20 de Janeiro às 14:00 (48h antes da nova data)</li>
+                </ul>
+            </div>
+            
+            <h3>5.3. Vantagens do Self-Checkout</h3>
+            
+            <div class="info">
+                <strong>💡 Benefícios:</strong>
                 <ul style="margin-top: 10px;">
                     <li>Permite devoluções fora do horário de expediente</li>
                     <li>Reduz tempo de espera do cliente</li>
                     <li>Cliente faz inspeção ao seu ritmo</li>
                     <li>Menos carga de trabalho para colaboradores</li>
+                    <li>Ideal para devoluções no aeroporto (cliente com pressa)</li>
                 </ul>
             </div>
         </div>
