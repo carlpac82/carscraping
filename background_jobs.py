@@ -169,20 +169,16 @@ class BackgroundJobManager:
         
         while self.running:
             try:
-                # Procurar job pendente
                 job_to_run = None
                 
+                # Procurar próximo job pendente
                 with self.lock:
-                    # Verificar se há espaço para mais workers
-                    if self.active_workers < self.max_workers:
-                        # Procurar primeiro job pendente
-                        for job in self.jobs.values():
-                            if job.status == JobStatus.PENDING:
-                                job_to_run = job
-                                job.status = JobStatus.RUNNING
-                                job.started_at = datetime.now(timezone.utc)
-                                self.active_workers += 1
-                                break
+                    for job in self.jobs.values():
+                        if job.status == JobStatus.PENDING:
+                            job_to_run = job
+                            job.status = JobStatus.RUNNING
+                            job.started_at = datetime.now(timezone.utc)
+                            break
                 
                 # Executar job fora do lock
                 if job_to_run:
