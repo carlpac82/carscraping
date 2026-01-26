@@ -22,6 +22,10 @@ from fastapi.staticfiles import StaticFiles
 from fastapi.middleware.cors import CORSMiddleware
 from pathlib import Path
 
+# Background Jobs System - Para scraping não bloquear inspeções
+import background_jobs
+from background_jobs import submit_scraping_job, get_job_status, get_job_result
+
 # ============================================================
 # MONITORING & ERROR TRACKING (Sentry)
 # ============================================================
@@ -18196,11 +18200,32 @@ async def fetch_carjet_results(page, location_name, start_dt, end_dt, lang: str,
         pass
 
 
+def _run_discovercars_scraper_sync(**kwargs):
+    """
+    Wrapper síncrono para executar scraper em background thread
+    """
+    import discovercars_scraper
+    import asyncio
+    
+    # Criar novo event loop para esta thread
+    loop = asyncio.new_event_loop()
+    asyncio.set_event_loop(loop)
+    
+    try:
+        result = loop.run_until_complete(
+            discovercars_scraper.scrape_discovercars(**kwargs)
+        )
+        return result
+    finally:
+        loop.close()
+
+
 @app.post("/api/discovercars-search")
 async def discovercars_search(request: Request):
     """
-    DiscoverCars AI Price Comparison Endpoint
-    Scrapes prices from discovercars.com for competitive analysis
+    DiscoverCars AI Price Comparison Endpoint - ASYNC VERSION
+    Submete scraping como background job para não bloquear servidor
+    Retorna job_id para monitorização
     """
     require_auth(request)
     
@@ -18221,11 +18246,9 @@ async def discovercars_search(request: Request):
                 "error": "Missing required parameters: pickup_location, pickup_date, dropoff_date"
             }, status_code=400)
         
-        # Import scraper
-        import discovercars_scraper
-        
-        # Run scraper
-        result = await discovercars_scraper.scrape_discovercars(
+        # Submeter como background job
+        job_id = submit_scraping_job(
+            _run_discovercars_scraper_sync,
             pickup_location=pickup_location,
             dropoff_location=dropoff_location,
             pickup_date=pickup_date,
@@ -18235,16 +18258,112 @@ async def discovercars_search(request: Request):
             headless=headless
         )
         
-        return JSONResponse(result)
+        logger.info(f"✅ Scraping job submitted: {job_id} ({pickup_location} {pickup_date}-{dropoff_date})")
+        
+        return JSONResponse({
+            "success": True,
+            "job_id": job_id,
+            "message": "Scraping job submitted successfully. Use /api/jobs/{job_id} to check status.",
+            "status_url": f"/api/jobs/{job_id}"
+        })
     
     except Exception as e:
-        logger.error(f"Error in discovercars_search: {e}")
+        logger.error(f"Error submitting scraping job: {e}")
         import traceback
         traceback.print_exc()
         return JSONResponse({
             "success": False,
             "error": str(e),
             "traceback": traceback.format_exc()
+        }, status_code=500)
+
+
+@app.get("/api/jobs/{job_id}")
+async def get_job_status(job_id: str, request: Request):
+    """
+    Obter status de um job de scraping
+    Retorna: pending, running, completed, failed
+    """
+    require_auth(request)
+    
+    try:
+        status = get_job_status_info(job_id)
+        
+        if status is None:
+            return JSONResponse({
+                "success": False,
+                "error": f"Job {job_id} not found"
+            }, status_code=404)
+        
+        return JSONResponse({
+            "success": True,
+            "job_id": job_id,
+            "status": status["status"],
+            "created_at": status["created_at"],
+            "started_at": status.get("started_at"),
+            "completed_at": status.get("completed_at"),
+            "error": status.get("error")
+        })
+    
+    except Exception as e:
+        logger.error(f"Error getting job status: {e}")
+        return JSONResponse({
+            "success": False,
+            "error": str(e)
+        }, status_code=500)
+
+
+@app.get("/api/jobs/{job_id}/result")
+async def get_job_result(job_id: str, request: Request):
+    """
+    Obter resultado de um job de scraping completado
+    """
+    require_auth(request)
+    
+    try:
+        result = get_job_result_data(job_id)
+        
+        if result is None:
+            return JSONResponse({
+                "success": False,
+                "error": f"Job {job_id} not found or not completed yet"
+            }, status_code=404)
+        
+        return JSONResponse({
+            "success": True,
+            "job_id": job_id,
+            "result": result
+        })
+    
+    except Exception as e:
+        logger.error(f"Error getting job result: {e}")
+        return JSONResponse({
+            "success": False,
+            "error": str(e)
+        }, status_code=500)
+
+
+@app.get("/api/jobs")
+async def list_jobs(request: Request):
+    """
+    Listar todos os jobs ativos e recentes
+    """
+    require_auth(request)
+    
+    try:
+        jobs = list_all_jobs()
+        
+        return JSONResponse({
+            "success": True,
+            "jobs": jobs,
+            "count": len(jobs)
+        })
+    
+    except Exception as e:
+        logger.error(f"Error listing jobs: {e}")
+        return JSONResponse({
+            "success": False,
+            "error": str(e)
         }, status_code=500)
 
 
@@ -20952,6 +21071,18 @@ async def startup_migrate_automated_reports():
 #     pass
 
 @app.on_event("startup")
+async def startup_background_jobs():
+    """🔄 Iniciar sistema de background jobs para scraping assíncrono"""
+    try:
+        print("🔄 Starting Background Jobs Manager...", flush=True)
+        background_jobs.start_job_manager()
+        print("✅ Background Jobs Manager started successfully", flush=True)
+        logging.info("✅ Background Jobs Manager initialized - scraping won't block inspections")
+    except Exception as e:
+        print(f"❌ Failed to start Background Jobs Manager: {e}", flush=True)
+        logging.error(f"❌ Background Jobs Manager initialization failed: {e}")
+
+@app.on_event("startup")
 async def startup_automated_scheduler():
     """🤖 Iniciar sistema de agendamento automático de relatórios"""
     print("="*80, flush=True)
@@ -20984,6 +21115,16 @@ async def startup_automated_scheduler():
         traceback_str = traceback.format_exc()
         print(traceback_str, flush=True)
         logging.error(traceback_str)
+
+@app.on_event("shutdown")
+async def shutdown_background_jobs():
+    """🛑 Desligar sistema de background jobs"""
+    try:
+        logging.info("🛑 Shutting down Background Jobs Manager...")
+        background_jobs.stop_job_manager()
+        logging.info("✅ Background Jobs Manager stopped")
+    except Exception as e:
+        logging.error(f"❌ Error stopping Background Jobs Manager: {e}")
 
 @app.on_event("shutdown")
 async def shutdown_automated_scheduler():
