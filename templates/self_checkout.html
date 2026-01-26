@@ -1237,17 +1237,45 @@
         let flashEnabled = false;
         let currentTrack = null;
         
-        const photoTypes = {
-            'front': { label: 'Vista Frontal', instruction: 'Centre a frente do veículo', image: 'Vista Frontal.png' },
-            'front_left': { label: 'Vista Frontal Esquerda', instruction: 'Centre a frente esquerda do veículo', image: 'Vista Frontal Esquerda.png' },
-            'left': { label: 'Vista Lateral Esquerda', instruction: 'Centre o lado esquerdo do veículo', image: 'Vista Lateral Esquerda.png' },
-            'back_left': { label: 'Vista Traseira Esquerda', instruction: 'Centre a traseira esquerda do veículo', image: 'Vista Traseira Esquerda.png' },
-            'back': { label: 'Vista Traseira', instruction: 'Centre a traseira do veículo', image: 'Vista Traseira.png' },
-            'back_right': { label: 'Vista Traseira Direita', instruction: 'Centre a traseira direita do veículo', image: 'Vista Traseira direita.png' },
-            'right': { label: 'Vista Lateral Direita', instruction: 'Centre o lado direito do veículo', image: 'Vista Lateral Direita.png' },
-            'front_right': { label: 'Vista Frontal Direita', instruction: 'Centre a frente direita do veículo', image: 'Vista Frontal Direita.png' },
-            'odometer': { label: 'Conta-Quilómetros', instruction: 'Fotografe o odómetro do veículo', image: 'Odometro.png' }
+        // Camera photo types with translations
+        const photoTypesTranslations = {
+            pt: {
+                'front': { label: 'VISTA FRONTAL', instruction: 'Centre a frente do veículo', image: 'Vista Frontal.png' },
+                'front_left': { label: 'VISTA FRONTAL ESQUERDA', instruction: 'Centre a frente esquerda do veículo', image: 'Vista Frontal Esquerda.png' },
+                'left': { label: 'VISTA LATERAL ESQUERDA', instruction: 'Centre o lado esquerdo do veículo', image: 'Vista Lateral Esquerda.png' },
+                'back_left': { label: 'VISTA TRASEIRA ESQUERDA', instruction: 'Centre a traseira esquerda do veículo', image: 'Vista Traseira Esquerda.png' },
+                'back': { label: 'VISTA TRASEIRA', instruction: 'Centre a traseira do veículo', image: 'Vista Traseira.png' },
+                'back_right': { label: 'VISTA TRASEIRA DIREITA', instruction: 'Centre a traseira direita do veículo', image: 'Vista Traseira direita.png' },
+                'right': { label: 'VISTA LATERAL DIREITA', instruction: 'Centre o lado direito do veículo', image: 'Vista Lateral Direita.png' },
+                'front_right': { label: 'VISTA FRONTAL DIREITA', instruction: 'Centre a frente direita do veículo', image: 'Vista Frontal Direita.png' },
+                'odometer': { label: 'CONTA-QUILÓMETROS', instruction: 'Fotografe o odómetro do veículo', image: 'Odometro.png' }
+            },
+            en: {
+                'front': { label: 'FRONT VIEW', instruction: 'Center the front of the vehicle', image: 'Vista Frontal.png' },
+                'front_left': { label: 'FRONT LEFT VIEW', instruction: 'Center the front left of the vehicle', image: 'Vista Frontal Esquerda.png' },
+                'left': { label: 'LEFT SIDE VIEW', instruction: 'Center the left side of the vehicle', image: 'Vista Lateral Esquerda.png' },
+                'back_left': { label: 'REAR LEFT VIEW', instruction: 'Center the rear left of the vehicle', image: 'Vista Traseira Esquerda.png' },
+                'back': { label: 'REAR VIEW', instruction: 'Center the rear of the vehicle', image: 'Vista Traseira.png' },
+                'back_right': { label: 'REAR RIGHT VIEW', instruction: 'Center the rear right of the vehicle', image: 'Vista Traseira direita.png' },
+                'right': { label: 'RIGHT SIDE VIEW', instruction: 'Center the right side of the vehicle', image: 'Vista Lateral Direita.png' },
+                'front_right': { label: 'FRONT RIGHT VIEW', instruction: 'Center the front right of the vehicle', image: 'Vista Frontal Direita.png' },
+                'odometer': { label: 'ODOMETER', instruction: 'Photograph the vehicle odometer', image: 'Odometro.png' }
+            },
+            fr: {
+                'front': { label: 'VUE AVANT', instruction: 'Centrez l\'avant du véhicule', image: 'Vista Frontal.png' },
+                'front_left': { label: 'VUE AVANT GAUCHE', instruction: 'Centrez l\'avant gauche du véhicule', image: 'Vista Frontal Esquerda.png' },
+                'left': { label: 'VUE CÔTÉ GAUCHE', instruction: 'Centrez le côté gauche du véhicule', image: 'Vista Lateral Esquerda.png' },
+                'back_left': { label: 'VUE ARRIÈRE GAUCHE', instruction: 'Centrez l\'arrière gauche du véhicule', image: 'Vista Traseira Esquerda.png' },
+                'back': { label: 'VUE ARRIÈRE', instruction: 'Centrez l\'arrière du véhicule', image: 'Vista Traseira.png' },
+                'back_right': { label: 'VUE ARRIÈRE DROIT', instruction: 'Centrez l\'arrière droit du véhicule', image: 'Vista Traseira direita.png' },
+                'right': { label: 'VUE CÔTÉ DROIT', instruction: 'Centrez le côté droit du véhicule', image: 'Vista Lateral Direita.png' },
+                'front_right': { label: 'VUE AVANT DROIT', instruction: 'Centrez l\'avant droit du véhicule', image: 'Vista Frontal Direita.png' },
+                'odometer': { label: 'COMPTEUR KILOMÉTRIQUE', instruction: 'Photographiez le compteur du véhicule', image: 'Odometro.png' }
+            }
         };
+        
+        // Get current language photo types
+        const photoTypes = photoTypesTranslations[currentLang] || photoTypesTranslations['pt'];
 
         async function triggerPhotoUpload(photoType) {
             currentPhotoType = photoType;
