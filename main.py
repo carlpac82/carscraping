@@ -53223,6 +53223,79 @@ async def send_self_checkout_email(request: Request):
             "error": str(e)
         }, status_code=500)
 
+@app.post("/api/admin/test-direct-email")
+async def test_direct_email(request: Request):
+    """
+    Test sending email directly for inspection VI-20260126-004247-466-545
+    """
+    try:
+        require_inspection_access(request)
+    except HTTPException:
+        return JSONResponse({"ok": False, "error": "Unauthorized"}, status_code=403)
+    
+    try:
+        # Buscar dados do check-in
+        conn = _db_connect()
+        cursor = conn.cursor()
+        
+        cursor.execute("""
+            SELECT contract_number, client_email, client_name, vehicle_plate
+            FROM vehicle_inspections
+            WHERE inspection_number = %s
+        """, ('VI-20260126-004247-466-545',))
+        
+        row = cursor.fetchone()
+        if not row:
+            return JSONResponse({"ok": False, "error": "Inspection not found"}, status_code=404)
+        
+        contract_number, client_email, client_name, vehicle_plate = row
+        ra_base = contract_number.split('-')[0] if '-' in contract_number else contract_number
+        
+        # Buscar token
+        cursor.execute("""
+            SELECT self_checkin_token, rental_agreement_number
+            FROM rental_agreements
+            WHERE rental_agreement_number LIKE %s
+            LIMIT 1
+        """, (f"{ra_base}%",))
+        
+        token_row = cursor.fetchone()
+        conn.close()
+        
+        if not token_row or not token_row[0]:
+            return JSONResponse({"ok": False, "error": f"No token found for RA {ra_base}"}, status_code=404)
+        
+        token = token_row[0]
+        ra_number = token_row[1]
+        
+        # Enviar email
+        _send_self_checkin_invitation_email(
+            to_email=client_email,
+            client_name=client_name,
+            ra_number=ra_number,
+            plate=vehicle_plate,
+            return_date='2026-01-28',
+            token=token,
+            country=None
+        )
+        
+        return JSONResponse({
+            "ok": True,
+            "message": f"Email sent to {client_email}",
+            "ra": ra_number,
+            "token": token
+        })
+        
+    except Exception as e:
+        logging.error(f"❌ Error: {e}")
+        import traceback
+        logging.error(traceback.format_exc())
+        return JSONResponse({
+            "ok": False,
+            "error": str(e),
+            "traceback": traceback.format_exc()
+        }, status_code=500)
+
 @app.post("/api/admin/force-send-checkout-emails")
 async def force_send_checkout_emails(request: Request):
     """
@@ -53236,6 +53309,7 @@ async def force_send_checkout_emails(request: Request):
     try:
         from automated_scheduler import check_and_send_scheduled_checkout_emails
         
+        print("🚀 FORCE SEND: Manually triggering checkout email scheduler...", flush=True)
         logging.info("🚀 FORCE SEND: Manually triggering checkout email scheduler...")
         check_and_send_scheduled_checkout_emails()
         
@@ -53245,6 +53319,7 @@ async def force_send_checkout_emails(request: Request):
         })
         
     except Exception as e:
+        print(f"❌ Error forcing scheduler: {e}", flush=True)
         logging.error(f"❌ Error forcing scheduler: {e}")
         import traceback
         logging.error(traceback.format_exc())
