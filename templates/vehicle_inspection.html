@@ -1509,6 +1509,100 @@
             console.log('✅ Starting pickup (check-out) process');
         }
         
+        // Show popup when plate exists but has no RA
+        function showNoRentalAgreementPopup(plate) {
+            // Remove existing popup if any
+            const existingPopup = document.getElementById('noRaPopup');
+            if (existingPopup) {
+                existingPopup.remove();
+            }
+            
+            const title = 'Sem Rental Agreement';
+            const message = `A matrícula <strong>${plate}</strong> não tem nenhum Rental Agreement associado.<br><br>Por favor, faça o upload do RA antes de continuar.`;
+            
+            // Create popup
+            const popup = document.createElement('div');
+            popup.id = 'noRaPopup';
+            popup.style.cssText = `
+                position: fixed;
+                top: 0;
+                left: 0;
+                right: 0;
+                bottom: 0;
+                background: rgba(0, 0, 0, 0.5);
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                z-index: 99999;
+                backdrop-filter: blur(4px);
+            `;
+            
+            popup.innerHTML = `
+                <div style="
+                    background: white;
+                    border-radius: 16px;
+                    padding: 32px;
+                    max-width: 450px;
+                    width: 90%;
+                    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+                    text-align: center;
+                    animation: popupSlideIn 0.3s ease-out;
+                ">
+                    <div style="
+                        width: 64px;
+                        height: 64px;
+                        background: #f3f4f6;
+                        border-radius: 50%;
+                        display: flex;
+                        align-items: center;
+                        justify-content: center;
+                        margin: 0 auto 20px;
+                    ">
+                        <svg style="width: 32px; height: 32px; color: #6b7280;" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+                        </svg>
+                    </div>
+                    <h3 style="
+                        font-size: 20px;
+                        font-weight: 700;
+                        color: #111827;
+                        margin-bottom: 12px;
+                        font-family: 'Outfit', sans-serif;
+                    ">${title}</h3>
+                    <p style="
+                        font-size: 15px;
+                        color: #374151;
+                        margin-bottom: 24px;
+                        line-height: 1.6;
+                        font-family: 'Outfit', sans-serif;
+                    ">${message}</p>
+                    <button onclick="document.getElementById('noRaPopup').remove()" style="
+                        background: #009cb6;
+                        color: white;
+                        border: none;
+                        border-radius: 8px;
+                        padding: 12px 32px;
+                        font-size: 16px;
+                        font-weight: 600;
+                        cursor: pointer;
+                        transition: all 0.2s;
+                        font-family: 'Outfit', sans-serif;
+                    " onmouseover="this.style.background='#007a94'" onmouseout="this.style.background='#009cb6'">
+                        OK
+                    </button>
+                </div>
+            `;
+            
+            document.body.appendChild(popup);
+            
+            // Close on background click
+            popup.addEventListener('click', function(e) {
+                if (e.target === popup) {
+                    popup.remove();
+                }
+            });
+        }
+        
         // Show contract status popup
         function showContractStatusPopup(plate, raNumber, status) {
             // Remove existing popup if any
@@ -4057,6 +4151,11 @@
                                 enableCheckInOnly();
                                 console.log('✅ Contract exists but no inspections: only check-in enabled');
                             }
+                        } else if (!data.found) {
+                            // Plate exists in Fleet Management but NO RA found
+                            console.log('⚠️ Matrícula existe no Gestor de Frota mas não tem RA associado');
+                            showNoRentalAgreementPopup(plate);
+                            disableBothButtons();
                         }
                     } catch (error) {
                         console.error('Error checking RA by plate:', error);
