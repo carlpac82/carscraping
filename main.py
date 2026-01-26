@@ -30595,10 +30595,14 @@ async def save_inspection(request: Request):
                     delivery_location = "Não especificado"
                     
                 # Update rental agreement as inspection completed
+                logging.info(f"🔍 DEBUG: About to check RA update block - ra='{ra}', plate='{plate}', inspection_type='{inspection_type}'")
                 if ra and plate:
+                    logging.info(f"✅ DEBUG: Entered RA update block (ra and plate are truthy)")
                     try:
                         # Se é checkin (entrega), gerar token de self check-out e agendar email
+                        logging.info(f"🔍 DEBUG: Checking inspection_type == 'checkin': {inspection_type == 'checkin'}")
                         if inspection_type == 'checkin':
+                            logging.info(f"✅ DEBUG: Entered CHECK-IN block!")
                             # PRIMEIRO: Atualizar extracted_data com dados do check-in (para TODOS os check-ins)
                             updated_extracted_json = None
                             try:

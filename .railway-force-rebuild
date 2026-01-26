@@ -1,1 +1,1 @@
-2026-01-26T00:05:00Z UTC - Fix: improve fallback condition to include empty strings - Force Railway rebuild
+2026-01-26T00:17:00Z UTC - Debug: add logs to identify why check-in block is not executing - Force Railway rebuild
