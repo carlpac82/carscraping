@@ -35110,6 +35110,45 @@ async def delete_all_inspections(request: Request):
         logging.error(f"Error deleting all inspections: {e}")
         return JSONResponse({"ok": False, "error": str(e)}, status_code=500)
 
+@app.delete("/api/rental-agreements/delete-all")
+async def delete_all_rental_agreements(request: Request):
+    """Delete all rental agreements from database"""
+    try:
+        require_inspection_access(request)
+    except HTTPException:
+        return JSONResponse({"ok": False, "error": "Unauthorized"}, status_code=403)
+    
+    try:
+        conn = _db_connect()
+        is_postgres = _is_postgresql_connection(conn)
+        
+        if is_postgres:
+            with conn.cursor() as cur:
+                # Delete all rental agreements
+                cur.execute("DELETE FROM rental_agreements")
+                ras_deleted = cur.rowcount
+                logging.info(f"🗑️ Deleted {ras_deleted} rental agreements")
+                
+            conn.commit()
+        else:
+            # Delete all rental agreements
+            conn.execute("DELETE FROM rental_agreements")
+            ras_deleted = conn.rowcount
+            
+            conn.commit()
+            logging.info(f"🗑️ Deleted {ras_deleted} rental agreements")
+        
+        conn.close()
+        
+        return JSONResponse({
+            "ok": True,
+            "message": f"Deleted {ras_deleted} rental agreements"
+        })
+    
+    except Exception as e:
+        logging.error(f"Error deleting all rental agreements: {e}")
+        return JSONResponse({"ok": False, "error": str(e)}, status_code=500)
+
 @app.get("/api/debug-ra/{ra_number}")
 async def debug_ra(ra_number: str):
     """Debug endpoint to check RA data in database"""
