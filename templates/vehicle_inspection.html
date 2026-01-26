@@ -1203,26 +1203,26 @@
         <div class="lightbox-content">
             <img id="lightboxImage" class="lightbox-image" src="" alt="">
             <div class="lightbox-label" id="lightboxLabel"></div>
-            
-            <!-- Navigation Arrows -->
-            <button class="lightbox-nav prev" id="lightboxPrev" onclick="navigateLightbox(-1)">
-                <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"></path>
-                </svg>
-            </button>
-            <button class="lightbox-nav next" id="lightboxNext" onclick="navigateLightbox(1)">
-                <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path>
-                </svg>
-            </button>
-            
-            <!-- Close Button -->
-            <button class="lightbox-close" onclick="closeLightbox()">
-                <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
-                </svg>
-            </button>
         </div>
+        
+        <!-- Navigation Arrows (outside content to avoid being cut off) -->
+        <button class="lightbox-nav prev" id="lightboxPrev" onclick="navigateLightbox(-1)">
+            <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"></path>
+            </svg>
+        </button>
+        <button class="lightbox-nav next" id="lightboxNext" onclick="navigateLightbox(1)">
+            <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path>
+            </svg>
+        </button>
+        
+        <!-- Close Button -->
+        <button class="lightbox-close" onclick="closeLightbox()">
+            <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+            </svg>
+        </button>
     </div>
 
     <!-- Camera Modal -->
