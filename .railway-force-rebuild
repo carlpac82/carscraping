@@ -1,1 +1,1 @@
-2026-01-26T00:25:00Z UTC - Fix: remove variable reinitialization in check-in block to preserve RA data fetched earlier - Force Railway rebuild
+2026-01-26T00:35:00Z UTC - Fix: all SELECT queries now use LIKE with ra_base instead of = with full RA number - Force Railway rebuild

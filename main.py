@@ -29834,18 +29834,24 @@ async def save_inspection(request: Request):
                     is_postgres_temp = 'psycopg' in type(conn_temp).__name__.lower() or os.getenv('DATABASE_URL')
                     cursor_temp = conn_temp.cursor()
                     
+                    # Remove suffix from RA (e.g., "06691-09" -> "06691")
+                    ra_base = ra.split('-')[0] if '-' in ra else ra
+                    logging.info(f"🔍 DELIVERY LOCATION: Searching for RA '{ra}' (base: '{ra_base}')")
+                    
                     if is_postgres_temp:
                         cursor_temp.execute("""
                             SELECT extracted_data 
                             FROM rental_agreements 
-                            WHERE rental_agreement_number = %s
-                        """, (ra,))
+                            WHERE rental_agreement_number LIKE %s
+                            LIMIT 1
+                        """, (f"{ra_base}%",))
                     else:
                         cursor_temp.execute("""
                             SELECT extracted_data 
                             FROM rental_agreements 
-                            WHERE rental_agreement_number = ?
-                        """, (ra,))
+                            WHERE rental_agreement_number LIKE ?
+                            LIMIT 1
+                        """, (f"{ra_base}%",))
                     
                     location_row = cursor_temp.fetchone()
                     if location_row and location_row[0]:
@@ -30704,13 +30710,15 @@ async def save_inspection(request: Request):
                                     if is_postgres:
                                         cursor.execute("""
                                             SELECT extracted_data FROM rental_agreements 
-                                            WHERE rental_agreement_number = %s
-                                        """, (ra,))
+                                            WHERE rental_agreement_number LIKE %s
+                                            LIMIT 1
+                                        """, (f"{ra_base}%",))
                                     else:
                                         cursor.execute("""
                                             SELECT extracted_data FROM rental_agreements 
-                                            WHERE rental_agreement_number = ?
-                                        """, (ra,))
+                                            WHERE rental_agreement_number LIKE ?
+                                            LIMIT 1
+                                        """, (f"{ra_base}%",))
                                     
                                     ra_row = cursor.fetchone()
                                     if ra_row and ra_row[0]:
@@ -49105,11 +49113,13 @@ async def get_inspection_details(inspection_number: str, request: Request):
             expected_return_date = None
             
             if inspection_type == 'self_checkout' and (not inspector_name or inspector_name == 'Cliente'):
+                # Remove suffix from contract_number (e.g., "06727-09" -> "06727")
+                ra_base_self = contract_number.split('-')[0] if '-' in contract_number else contract_number
                 cursor.execute("""
-                    SELECT extracted_data FROM rental_agreements WHERE rental_agreement_number = %s
+                    SELECT extracted_data FROM rental_agreements WHERE rental_agreement_number LIKE %s LIMIT 1
                 """ if is_postgres else """
-                    SELECT extracted_data FROM rental_agreements WHERE rental_agreement_number = ?
-                """, (contract_number,))
+                    SELECT extracted_data FROM rental_agreements WHERE rental_agreement_number LIKE ? LIMIT 1
+                """, (f"{ra_base_self}%",))
                 client_row = cursor.fetchone()
                 if client_row and client_row[0]:
                     try:
@@ -49126,10 +49136,10 @@ async def get_inspection_details(inspection_number: str, request: Request):
                 logging.info(f"📅 Fetching return date for RA: {ra_number} (original: {contract_number})")
                 
                 cursor.execute("""
-                    SELECT return_date, extracted_data FROM rental_agreements WHERE rental_agreement_number = %s
+                    SELECT return_date, extracted_data FROM rental_agreements WHERE rental_agreement_number LIKE %s LIMIT 1
                 """ if is_postgres else """
-                    SELECT return_date, extracted_data FROM rental_agreements WHERE rental_agreement_number = ?
-                """, (ra_number,))
+                    SELECT return_date, extracted_data FROM rental_agreements WHERE rental_agreement_number LIKE ? LIMIT 1
+                """, (f"{ra_number}%",))
                 ra_row = cursor.fetchone()
                 if ra_row:
                     # Try return_date column first (this is the edited/updated date)
