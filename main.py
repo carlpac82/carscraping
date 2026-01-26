@@ -30642,7 +30642,8 @@ async def save_inspection(request: Request):
                                 updated_extracted_json = None
                             
                             # SEGUNDO: Buscar return_location se ainda não tiver (fallback)
-                            if not ra_return_location:
+                            logging.info(f"🔍 CHECK-IN: ra_return_location value before fallback: '{ra_return_location}' (type: {type(ra_return_location).__name__})")
+                            if not ra_return_location or ra_return_location == '':
                                 logging.info(f"🔄 CHECK-IN FALLBACK: Fetching return_location from table columns for RA {ra}")
                                 try:
                                     ra_base = ra.split('-')[0] if '-' in ra else ra
