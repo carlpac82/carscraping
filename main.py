@@ -12104,15 +12104,14 @@ async def track_by_params(request: Request):
         async_mode = 0
     
     # DEBUG: Log completo do body recebido
-    print(f"\n{'='*80}", flush=True)
-    print(f"[DEBUG] /api/track-by-params REQUEST BODY:", flush=True)
-    print(f"  location: {location}", flush=True)
-    print(f"  start_date: {start_date}", flush=True)
-    print(f"  days: {days}", flush=True)
-    print(f"  async: {body.get('async')} (type: {type(body.get('async'))})", flush=True)
-    print(f"  async_mode (parsed): {async_mode}", flush=True)
-    print(f"  Full body keys: {list(body.keys())}", flush=True)
-    print(f"{'='*80}\n", flush=True)
+    print(f"\n🔍 ASYNC DEBUG START {'='*60}", flush=True)
+    print(f"🔍 Location: {location}", flush=True)
+    print(f"🔍 Start Date: {start_date}", flush=True)
+    print(f"🔍 Days: {days}", flush=True)
+    print(f"🔍 ASYNC PARAM: {body.get('async')} (type: {type(body.get('async'))})", flush=True)
+    print(f"🔍 ASYNC MODE PARSED: {async_mode}", flush=True)
+    print(f"🔍 All keys: {list(body.keys())}", flush=True)
+    print(f"🔍 ASYNC DEBUG END {'='*60}\n", flush=True)
     
     if not location or not start_date:
         return _no_store_json({"ok": False, "error": "Missing location or start_date"}, status_code=400)
