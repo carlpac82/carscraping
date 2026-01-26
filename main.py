@@ -32185,23 +32185,29 @@ async def submit_self_checkout(token: str, request: Request):
                     kms_driven = 0
                 logging.info(f"📊 KMs driven calculated: {kms_driven} km")
                 
-                # Buscar fotos da inspeção
+                # Buscar fotos da inspeção (APENAS fotos da grid, excluir damage e signature)
+                logging.info(f"📸 Buscando fotos para inspection_id={inspection_id}, RA={ra_number}")
                 if is_postgres:
                     cursor.execute("""
                         SELECT photo_type, image_data
                         FROM inspection_photos
-                        WHERE inspection_id = %s
+                        WHERE inspection_id = %s 
+                        AND photo_type NOT LIKE 'damage%%'
+                        AND photo_type != 'signature'
                         ORDER BY created_at
                     """, (inspection_id,))
                 else:
                     cursor.execute("""
                         SELECT photo_type, image_data
                         FROM inspection_photos
-                        WHERE inspection_id = ?
+                        WHERE inspection_id = ? 
+                        AND photo_type NOT LIKE 'damage%'
+                        AND photo_type != 'signature'
                         ORDER BY created_at
                     """, (inspection_id,))
                 
                 photo_rows = cursor.fetchall()
+                logging.info(f"📸 Encontradas {len(photo_rows)} fotos para inspection_id={inspection_id}")
                 
                 # Labels das fotos por idioma
                 photo_labels = {
@@ -32230,15 +32236,11 @@ async def submit_self_checkout(token: str, request: Request):
                 labels = photo_labels.get(language, photo_labels['pt'])
                 
                 # Gerar URLs públicas das fotos (não usar base64 - emails bloqueiam)
-                base_url = "https://carscraping.up.railway.app"
+                base_url = os.environ.get('BASE_URL', 'https://rentalprices.pt')
                 photos_list = []
                 for photo_row in photo_rows:
                     photo_type = photo_row[0]
                     photo_data = photo_row[1]
-                    
-                    # Excluir assinatura e damage_croqui do email
-                    if photo_type in ('signature', 'damage_croqui'):
-                        continue
                     
                     if photo_data:
                         # Usar URL pública em vez de base64
@@ -32249,6 +32251,9 @@ async def submit_self_checkout(token: str, request: Request):
                             'url': photo_url,
                             'label': photo_label
                         })
+                        logging.info(f"📸 Adicionada foto: {photo_type} -> {photo_url}")
+                
+                logging.info(f"📸 Total de fotos no email: {len(photos_list)}")
                 
                 # Preparar dados para o email
                 ra_data = {
@@ -50112,6 +50117,7 @@ async def serve_email_photo(inspection_id: int, photo_type: str):
     """Serve inspection photo via HTTP for email compatibility (kept for backward compatibility)"""
     import base64
     try:
+        logging.info(f"📸 Servindo foto: inspection_id={inspection_id}, photo_type={photo_type}")
         conn = _db_connect()
         cursor = conn.cursor()
         
@@ -50132,7 +50138,10 @@ async def serve_email_photo(inspection_id: int, photo_type: str):
         conn.close()
         
         if not row or not row[0]:
+            logging.warning(f"⚠️ Foto não encontrada: inspection_id={inspection_id}, photo_type={photo_type}")
             return Response(content=b"", media_type="image/png", status_code=404)
+        
+        logging.info(f"✅ Foto encontrada: inspection_id={inspection_id}, photo_type={photo_type}, size={len(row[0]) if row[0] else 0} bytes")
         
         image_data = row[0]
         image_bytes = None
