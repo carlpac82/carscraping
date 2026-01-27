@@ -515,27 +515,21 @@
                     </div>
                     <div class="photo-slot-wrapper">
                         <div class="photo-slot" data-photo="front_left" onclick="triggerPhotoUpload('front_left')">
-                            <img src="/static/inspection_photos/Vista Frontal Esquerda.png" alt="Vista Frontal Esquerda" style="opacity: 0.7;">
+                            <img src="/static/inspection_photos/Vista Frontal Esquerda.png" alt="Vista Frontal Direita" style="opacity: 0.7;">
+                        </div>
+                        <span class="photo-label">Frente Direita</span>
+                    </div>
+                    <div class="photo-slot-wrapper">
+                        <div class="photo-slot" data-photo="front_right" onclick="triggerPhotoUpload('front_right')">
+                            <img src="/static/inspection_photos/Vista Frontal Direita.png" alt="Vista Frontal Esquerda" style="opacity: 0.7;">
                         </div>
                         <span class="photo-label">Frente Esquerda</span>
                     </div>
                     <div class="photo-slot-wrapper">
-                        <div class="photo-slot" data-photo="left" onclick="triggerPhotoUpload('left')">
-                            <img src="/static/inspection_photos/Vista Lateral Esquerda.png" alt="Vista Lateral Esquerda" style="opacity: 0.7;">
+                        <div class="photo-slot" data-photo="right" onclick="triggerPhotoUpload('right')">
+                            <img src="/static/inspection_photos/Vista Lateral Direita.png" alt="Vista Lateral Esquerda" style="opacity: 0.7;">
                         </div>
                         <span class="photo-label">Lateral Esquerda</span>
-                    </div>
-                    <div class="photo-slot-wrapper">
-                        <div class="photo-slot" data-photo="back_left" onclick="triggerPhotoUpload('back_left')">
-                            <img src="/static/inspection_photos/Vista Traseira Esquerda.png" alt="Vista Traseira Esquerda" style="opacity: 0.7;">
-                        </div>
-                        <span class="photo-label">Traseira Esquerda</span>
-                    </div>
-                    <div class="photo-slot-wrapper">
-                        <div class="photo-slot" data-photo="back" onclick="triggerPhotoUpload('back')">
-                            <img src="/static/inspection_photos/Vista Traseira.png" alt="Vista Traseira" style="opacity: 0.7;">
-                        </div>
-                        <span class="photo-label">Traseira</span>
                     </div>
                     <div class="photo-slot-wrapper">
                         <div class="photo-slot" data-photo="back_right" onclick="triggerPhotoUpload('back_right')">
@@ -544,16 +538,22 @@
                         <span class="photo-label">Traseira Direita</span>
                     </div>
                     <div class="photo-slot-wrapper">
-                        <div class="photo-slot" data-photo="right" onclick="triggerPhotoUpload('right')">
-                            <img src="/static/inspection_photos/Vista Lateral Direita.png" alt="Vista Lateral Direita" style="opacity: 0.7;">
+                        <div class="photo-slot" data-photo="back" onclick="triggerPhotoUpload('back')">
+                            <img src="/static/inspection_photos/Vista Traseira.png" alt="Vista Traseira" style="opacity: 0.7;">
                         </div>
-                        <span class="photo-label">Lateral Direita</span>
+                        <span class="photo-label">Traseira</span>
                     </div>
                     <div class="photo-slot-wrapper">
-                        <div class="photo-slot" data-photo="front_right" onclick="triggerPhotoUpload('front_right')">
-                            <img src="/static/inspection_photos/Vista Frontal Direita.png" alt="Vista Frontal Direita" style="opacity: 0.7;">
+                        <div class="photo-slot" data-photo="back_left" onclick="triggerPhotoUpload('back_left')">
+                            <img src="/static/inspection_photos/Vista Traseira Esquerda.png" alt="Vista Traseira Esquerda" style="opacity: 0.7;">
                         </div>
-                        <span class="photo-label">Frente Direita</span>
+                        <span class="photo-label">Traseira Esquerda</span>
+                    </div>
+                    <div class="photo-slot-wrapper">
+                        <div class="photo-slot" data-photo="left" onclick="triggerPhotoUpload('left')">
+                            <img src="/static/inspection_photos/Vista Lateral Esquerda.png" alt="Vista Lateral Direita" style="opacity: 0.7;">
+                        </div>
+                        <span class="photo-label">Lateral Direita</span>
                     </div>
                     <div class="photo-slot-wrapper">
                         <div class="photo-slot" data-photo="odometer" onclick="triggerPhotoUpload('odometer')">
@@ -1261,35 +1261,35 @@
         const photoTypesTranslations = {
             pt: {
                 'front': { label: 'VISTA FRONTAL', instruction: 'Centre a frente do veículo', image: 'Vista Frontal.png' },
-                'front_left': { label: 'VISTA FRONTAL ESQUERDA', instruction: 'Centre a frente esquerda do veículo', image: 'Vista Frontal Esquerda.png' },
-                'left': { label: 'VISTA LATERAL ESQUERDA', instruction: 'Centre o lado esquerdo do veículo', image: 'Vista Lateral Esquerda.png' },
+                'front_left': { label: 'VISTA FRONTAL DIREITA', instruction: 'Centre a frente direita do veículo', image: 'Vista Frontal Esquerda.png' },
+                'left': { label: 'VISTA LATERAL DIREITA', instruction: 'Centre o lado direito do veículo', image: 'Vista Lateral Esquerda.png' },
                 'back_left': { label: 'VISTA TRASEIRA ESQUERDA', instruction: 'Centre a traseira esquerda do veículo', image: 'Vista Traseira Esquerda.png' },
                 'back': { label: 'VISTA TRASEIRA', instruction: 'Centre a traseira do veículo', image: 'Vista Traseira.png' },
                 'back_right': { label: 'VISTA TRASEIRA DIREITA', instruction: 'Centre a traseira direita do veículo', image: 'Vista Traseira direita.png' },
-                'right': { label: 'VISTA LATERAL DIREITA', instruction: 'Centre o lado direito do veículo', image: 'Vista Lateral Direita.png' },
-                'front_right': { label: 'VISTA FRONTAL DIREITA', instruction: 'Centre a frente direita do veículo', image: 'Vista Frontal Direita.png' },
+                'right': { label: 'VISTA LATERAL ESQUERDA', instruction: 'Centre o lado esquerdo do veículo', image: 'Vista Lateral Direita.png' },
+                'front_right': { label: 'VISTA FRONTAL ESQUERDA', instruction: 'Centre a frente esquerda do veículo', image: 'Vista Frontal Direita.png' },
                 'odometer': { label: 'CONTA-QUILÓMETROS', instruction: 'Fotografe o odómetro do veículo', image: 'Odometro.png' }
             },
             en: {
                 'front': { label: 'FRONT VIEW', instruction: 'Center the front of the vehicle', image: 'Vista Frontal.png' },
-                'front_left': { label: 'FRONT LEFT VIEW', instruction: 'Center the front left of the vehicle', image: 'Vista Frontal Esquerda.png' },
-                'left': { label: 'LEFT SIDE VIEW', instruction: 'Center the left side of the vehicle', image: 'Vista Lateral Esquerda.png' },
+                'front_left': { label: 'FRONT RIGHT VIEW', instruction: 'Center the front right of the vehicle', image: 'Vista Frontal Esquerda.png' },
+                'left': { label: 'RIGHT SIDE VIEW', instruction: 'Center the right side of the vehicle', image: 'Vista Lateral Esquerda.png' },
                 'back_left': { label: 'REAR LEFT VIEW', instruction: 'Center the rear left of the vehicle', image: 'Vista Traseira Esquerda.png' },
                 'back': { label: 'REAR VIEW', instruction: 'Center the rear of the vehicle', image: 'Vista Traseira.png' },
                 'back_right': { label: 'REAR RIGHT VIEW', instruction: 'Center the rear right of the vehicle', image: 'Vista Traseira direita.png' },
-                'right': { label: 'RIGHT SIDE VIEW', instruction: 'Center the right side of the vehicle', image: 'Vista Lateral Direita.png' },
-                'front_right': { label: 'FRONT RIGHT VIEW', instruction: 'Center the front right of the vehicle', image: 'Vista Frontal Direita.png' },
+                'right': { label: 'LEFT SIDE VIEW', instruction: 'Center the left side of the vehicle', image: 'Vista Lateral Direita.png' },
+                'front_right': { label: 'FRONT LEFT VIEW', instruction: 'Center the front left of the vehicle', image: 'Vista Frontal Direita.png' },
                 'odometer': { label: 'ODOMETER', instruction: 'Photograph the vehicle odometer', image: 'Odometro.png' }
             },
             fr: {
                 'front': { label: 'VUE AVANT', instruction: 'Centrez l\'avant du véhicule', image: 'Vista Frontal.png' },
-                'front_left': { label: 'VUE AVANT GAUCHE', instruction: 'Centrez l\'avant gauche du véhicule', image: 'Vista Frontal Esquerda.png' },
-                'left': { label: 'VUE CÔTÉ GAUCHE', instruction: 'Centrez le côté gauche du véhicule', image: 'Vista Lateral Esquerda.png' },
+                'front_left': { label: 'VUE AVANT DROIT', instruction: 'Centrez l\'avant droit du véhicule', image: 'Vista Frontal Esquerda.png' },
+                'left': { label: 'VUE CÔTÉ DROIT', instruction: 'Centrez le côté droit du véhicule', image: 'Vista Lateral Esquerda.png' },
                 'back_left': { label: 'VUE ARRIÈRE GAUCHE', instruction: 'Centrez l\'arrière gauche du véhicule', image: 'Vista Traseira Esquerda.png' },
                 'back': { label: 'VUE ARRIÈRE', instruction: 'Centrez l\'arrière du véhicule', image: 'Vista Traseira.png' },
                 'back_right': { label: 'VUE ARRIÈRE DROIT', instruction: 'Centrez l\'arrière droit du véhicule', image: 'Vista Traseira direita.png' },
-                'right': { label: 'VUE CÔTÉ DROIT', instruction: 'Centrez le côté droit du véhicule', image: 'Vista Lateral Direita.png' },
-                'front_right': { label: 'VUE AVANT DROIT', instruction: 'Centrez l\'avant droit du véhicule', image: 'Vista Frontal Direita.png' },
+                'right': { label: 'VUE CÔTÉ GAUCHE', instruction: 'Centrez le côté gauche du véhicule', image: 'Vista Lateral Direita.png' },
+                'front_right': { label: 'VUE AVANT GAUCHE', instruction: 'Centrez l\'avant gauche du véhicule', image: 'Vista Frontal Direita.png' },
                 'odometer': { label: 'COMPTEUR KILOMÉTRIQUE', instruction: 'Photographiez le compteur du véhicule', image: 'Odometro.png' }
             }
         };
