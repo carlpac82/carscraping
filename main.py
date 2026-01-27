@@ -33384,14 +33384,8 @@ async def validate_self_checkout(request: Request):
                     except:
                         pass
                 
-                # Determinar idioma baseado no país do extracted_data - fallback para inglês
-                language = 'en'
-                if client_country:
-                    country_upper = client_country.upper()
-                    if country_upper in ['PT', 'PORTUGAL', 'PORTUGUES', 'PORTUGUESE']:
-                        language = 'pt'
-                    elif country_upper in ['FR', 'FRANCE', 'FRANÇA', 'FRANCA', 'BE', 'BELGIUM', 'BÉLGICA', 'BELGICA', 'CH', 'SWITZERLAND', 'SUÍÇA', 'SUICA', 'LU', 'LUXEMBOURG', 'LUXEMBURGO', 'MC', 'MONACO', 'MÓNACO', 'MONACO']:
-                        language = 'fr'
+                # Determinar idioma baseado no país usando função existente
+                language = _detect_language_from_country(client_country)
                 
                 logging.info(f"🌍 Validate email - Client country from extracted_data: {client_country}, Language: {language}")
                 
@@ -33818,14 +33812,8 @@ async def edit_and_validate_self_checkout(request: Request):
                     except:
                         pass
                 
-                # Determinar idioma baseado no país do extracted_data - fallback para inglês
-                language = 'en'
-                if client_country:
-                    country_upper = client_country.upper()
-                    if country_upper in ['PT', 'PORTUGAL', 'PORTUGUES', 'PORTUGUESE']:
-                        language = 'pt'
-                    elif country_upper in ['FR', 'FRANCE', 'FRANÇA', 'FRANCA', 'BE', 'BELGIUM', 'BÉLGICA', 'BELGICA', 'CH', 'SWITZERLAND', 'SUÍÇA', 'SUICA', 'LU', 'LUXEMBOURG', 'LUXEMBURGO', 'MC', 'MONACO', 'MÓNACO', 'MONACO']:
-                        language = 'fr'
+                # Determinar idioma baseado no país usando função existente
+                language = _detect_language_from_country(client_country)
                 
                 logging.info(f"🌍 Edit email - Client country from extracted_data: {client_country}, Language: {language}")
                 
@@ -34344,12 +34332,18 @@ async def invalidate_self_checkout(request: Request):
             try:
                 import json
                 client_name = "Cliente"
+                client_country = None
                 if extracted_data:
                     try:
                         data_dict = json.loads(extracted_data)
                         client_name = data_dict.get('client_name') or data_dict.get('nome_cliente') or "Cliente"
+                        client_country = data_dict.get('country') or data_dict.get('pais')
                     except:
                         pass
+                
+                # Determinar idioma baseado no país
+                language = _detect_language_from_country(client_country)
+                logging.info(f"🌍 Invalidate email - Client country: {client_country}, Language: {language}")
                 
                 # Send invalidation email
                 email_sent = _send_invalidation_email(
@@ -34366,7 +34360,8 @@ async def invalidate_self_checkout(request: Request):
                     damage_description=damage_description,
                     observations=observations,
                     damage_photos=damage_photos,
-                    damage_croqui=damage_croqui
+                    damage_croqui=damage_croqui,
+                    lang=language
                 )
                 
             except Exception as email_err:
