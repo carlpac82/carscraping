@@ -32491,9 +32491,9 @@ async def submit_self_checkout(token: str, request: Request):
                 # Labels das fotos por idioma
                 photo_labels = {
                     'pt': {
-                        'front': 'Frente', 'front_left': 'Frente Esquerda', 'left': 'Esquerda',
+                        'front': 'Frente', 'front_left': 'Frente Direita', 'left': 'Direita',
                         'back_left': 'Traseira Esquerda', 'back': 'Traseira', 'back_right': 'Traseira Direita',
-                        'right': 'Direita', 'front_right': 'Frente Direita', 'odometer': 'Conta-Km',
+                        'right': 'Esquerda', 'front_right': 'Frente Esquerda', 'odometer': 'Conta-Km',
                         'rear': 'Traseira', 'dashboard': 'Painel', 'interior': 'Interior',
                         'trunk': 'Bagageira', 'roof': 'Tejadilho', 'other': 'Outra'
                     },
@@ -32777,8 +32777,8 @@ async def validate_self_checkin(request: Request):
                     # Labels das fotos por idioma
                     photo_labels = {
                         'pt': {
-                            'front': 'Frente', 'rear': 'Traseira', 'left': 'Esquerda',
-                            'right': 'Direita', 'dashboard': 'Painel', 'interior': 'Interior',
+                            'front': 'Frente', 'rear': 'Traseira', 'left': 'Direita',
+                            'right': 'Esquerda', 'dashboard': 'Painel', 'interior': 'Interior',
                             'trunk': 'Bagageira', 'roof': 'Tejadilho', 'other': 'Outra'
                         },
                         'en': {
@@ -37859,9 +37859,9 @@ async def send_inspection_email(request: Request, inspection_number: str):
         photos_html = ""
         if photos_rows:
             photo_labels = {
-                'pt': {'front': 'Frente', 'front_left': 'Frente Esquerda', 'left': 'Lado Esquerdo',
+                'pt': {'front': 'Frente', 'front_left': 'Frente Direita', 'left': 'Lado Direito',
                        'back_left': 'Traseira Esquerda', 'back': 'Traseira', 'back_right': 'Traseira Direita',
-                       'right': 'Lado Direito', 'front_right': 'Frente Direita', 'odometer': 'Quilómetros'},
+                       'right': 'Lado Esquerdo', 'front_right': 'Frente Esquerda', 'odometer': 'Quilómetros'},
                 'fr': {'front': 'Avant', 'front_left': 'Avant Gauche', 'left': 'Côté Gauche',
                        'back_left': 'Arrière Gauche', 'back': 'Arrière', 'back_right': 'Arrière Droit',
                        'right': 'Côté Droit', 'front_right': 'Avant Droit', 'odometer': 'Kilométrage'},
