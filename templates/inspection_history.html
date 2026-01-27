@@ -1299,13 +1299,13 @@
                 if (inspection.photos && Object.keys(inspection.photos).length > 0) {
                     const photoLabels = {
                         'front': 'Frente',
-                        'front_left': 'Frente Esquerda',
+                        'front_left': 'Frente Direita',
                         'left': 'Lado Esquerdo',
                         'back_left': 'Traseira Esquerda',
                         'back': 'Traseira',
                         'back_right': 'Traseira Direita',
                         'right': 'Lado Direito',
-                        'front_right': 'Frente Direita',
+                        'front_right': 'Frente Esquerda',
                         'odometer': 'Conta-Quilómetros'
                     };
                     
@@ -1622,13 +1622,13 @@
                                         ${Object.entries(inspection.damage_photos).map(([key, url]) => {
                                             const photoLabels = {
                                                 'damage_front': 'Frente',
-                                                'damage_front_left': 'Frente Esquerda',
+                                                'damage_front_left': 'Frente Direita',
                                                 'damage_left': 'Lado Esquerdo',
                                                 'damage_back_left': 'Traseira Esquerda',
                                                 'damage_back': 'Traseira',
                                                 'damage_back_right': 'Traseira Direita',
                                                 'damage_right': 'Lado Direito',
-                                                'damage_front_right': 'Frente Direita',
+                                                'damage_front_right': 'Frente Esquerda',
                                                 'damage_odometer': 'Conta-Quilómetros'
                                             };
                                             // Handle formats: damage_1, damage_photo_1, damage_front, etc.
@@ -1668,13 +1668,13 @@
                                     ${Object.entries(checkinInspectionData.photos).map(([photoType, photoUrl]) => {
                                         const photoLabels = {
                                             'front': 'Frente',
-                                            'front_left': 'Frente Esquerda',
+                                            'front_left': 'Frente Direita',
                                             'left': 'Lado Esquerdo',
                                             'back_left': 'Traseira Esquerda',
                                             'back': 'Traseira',
                                             'back_right': 'Traseira Direita',
                                             'right': 'Lado Direito',
-                                            'front_right': 'Frente Direita',
+                                            'front_right': 'Frente Esquerda',
                                             'odometer': 'Conta-Quilómetros',
                                             'interior': 'Interior'
                                         };
@@ -1709,13 +1709,13 @@
                                     ${Object.entries(checkinInspectionData.photos).map(([photoType, photoUrl]) => {
                                         const photoLabels = {
                                             'front': 'Frente',
-                                            'front_left': 'Frente Esquerda',
+                                            'front_left': 'Frente Direita',
                                             'left': 'Lado Esquerdo',
                                             'back_left': 'Traseira Esquerda',
                                             'back': 'Traseira',
                                             'back_right': 'Traseira Direita',
                                             'right': 'Lado Direito',
-                                            'front_right': 'Frente Direita',
+                                            'front_right': 'Frente Esquerda',
                                             'odometer': 'Conta-Quilómetros',
                                             'interior': 'Interior'
                                         };
@@ -2566,13 +2566,13 @@
         
         const photoLabelsMap = {
             'front': 'Frente',
-            'front_left': 'Frente Esquerda',
+            'front_left': 'Frente Direita',
             'left': 'Lado Esquerdo',
             'back_left': 'Traseira Esquerda',
             'back': 'Traseira',
             'back_right': 'Traseira Direita',
             'right': 'Lado Direito',
-            'front_right': 'Frente Direita',
+            'front_right': 'Frente Esquerda',
             'odometer': 'Conta-Quilómetros',
             'signature': 'Assinatura',
             'damage_croqui': 'Croqui de Danos'
@@ -2895,9 +2895,9 @@
                     let entregaPhotosHtml = '';
                     if (checkinPhotos && Object.keys(checkinPhotos).length > 0) {
                         const photoLabels = {
-                            'front': 'Frente', 'front_left': 'Frente Esquerda', 'left': 'Lado Esquerdo',
+                            'front': 'Frente', 'front_left': 'Frente Direita', 'left': 'Lado Esquerdo',
                             'back_left': 'Traseira Esquerda', 'back': 'Traseira', 'back_right': 'Traseira Direita',
-                            'right': 'Lado Direito', 'front_right': 'Frente Direita', 'odometer': 'Conta-Quilómetros'
+                            'right': 'Lado Direito', 'front_right': 'Frente Esquerda', 'odometer': 'Conta-Quilómetros'
                         };
                         
                         entregaPhotosHtml = '<div class="grid grid-cols-2 md:grid-cols-3 gap-3 mb-6">';
