@@ -4149,10 +4149,16 @@
                             
                             // Check contract status
                             if (ra.has_checkin === true && ra.has_checkout === false) {
-                                // Contract OPEN (has check-in but NO check-out yet) - show clean popup and block
-                                showContractStatusPopup(plate, ra.rental_agreement_number, 'open');
-                                disableBothButtons();
-                                console.log('🚫 Contract open with check-in: both buttons disabled');
+                                // Se tem self-checkout pendente, permitir fazer checkout normal
+                                if (ra.inspection_completed === true) {
+                                    enableCheckOutOnly();
+                                    console.log('✅ Self-checkout pendente: checkout habilitado para validação');
+                                } else {
+                                    // Contract OPEN (has check-in but NO check-out yet) - show clean popup and block
+                                    showContractStatusPopup(plate, ra.rental_agreement_number, 'open');
+                                    disableBothButtons();
+                                    console.log('🚫 Contract open with check-in: both buttons disabled');
+                                }
                             } else if (ra.contract_closed === true) {
                                 // Contract CLOSED (has check-in AND check-out) - allow new check-in for new contract
                                 enableCheckInOnly();

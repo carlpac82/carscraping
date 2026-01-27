@@ -31151,6 +31151,68 @@ async def save_inspection(request: Request):
                         logging.error(f"❌ Error validating incidents: {incident_error}")
                         import traceback
                         logging.error(f"❌ Traceback: {traceback.format_exc()}")
+                    
+                    # AUTO-VALIDATE/INVALIDATE SELF-CHECKOUT if exists
+                    if ra:
+                        try:
+                            logging.info(f"🔍 Checking for pending self-checkout for RA {ra}...")
+                            if is_postgres:
+                                cursor.execute("""
+                                    SELECT id, inspection_number, status
+                                    FROM vehicle_inspections
+                                    WHERE contract_number LIKE %s AND inspection_type = 'self_checkout'
+                                    ORDER BY created_at DESC LIMIT 1
+                                """, (f"%{ra}%",))
+                            else:
+                                cursor.execute("""
+                                    SELECT id, inspection_number, status
+                                    FROM vehicle_inspections
+                                    WHERE contract_number LIKE ? AND inspection_type = 'self_checkout'
+                                    ORDER BY created_at DESC LIMIT 1
+                                """, (f"%{ra}%",))
+                            
+                            sc_row = cursor.fetchone()
+                            if sc_row and sc_row[2] in ['pending', 'submitted']:
+                                sc_id, sc_number, sc_status = sc_row
+                                logging.info(f"✅ Found pending self-checkout {sc_number} (status: {sc_status})")
+                                
+                                # Determinar se valida ou invalida baseado nos incidentes
+                                has_incidents = incidents.get('has_fuel_incident', False) or incidents.get('has_damage_incident', False)
+                                new_status = 'invalidated' if has_incidents else 'validated'
+                                
+                                # Atualizar status do self-checkout
+                                if is_postgres:
+                                    cursor.execute("""
+                                        UPDATE vehicle_inspections
+                                        SET status = %s
+                                        WHERE id = %s
+                                    """, (new_status, sc_id))
+                                    cursor.execute("""
+                                        UPDATE rental_agreements
+                                        SET self_checkout_pending = FALSE, status = 'closed'
+                                        WHERE rental_agreement_number LIKE %s
+                                    """, (f"%{ra}%",))
+                                else:
+                                    cursor.execute("""
+                                        UPDATE vehicle_inspections
+                                        SET status = ?
+                                        WHERE id = ?
+                                    """, (new_status, sc_id))
+                                    cursor.execute("""
+                                        UPDATE rental_agreements
+                                        SET self_checkout_pending = 0, status = 'closed'
+                                        WHERE rental_agreement_number LIKE ?
+                                    """, (f"%{ra}%",))
+                                
+                                conn.commit()
+                                logging.info(f"✅ Self-checkout {sc_number} automatically {new_status} based on manual checkout (incidents: {has_incidents})")
+                            else:
+                                logging.info(f"ℹ️ No pending self-checkout found for RA {ra}")
+                        except Exception as sc_error:
+                            logging.error(f"❌ Error auto-validating self-checkout: {sc_error}")
+                            import traceback
+                            logging.error(traceback.format_exc())
+                
                 else:
                     logging.info("🔍 CHECK-IN (entrega) DETECTED - No incident validation (damages are expected)")
                 
