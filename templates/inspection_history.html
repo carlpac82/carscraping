@@ -641,9 +641,9 @@
                         }
                     }
                     
-                    // Badge de danos para checkout normal (não self-checkout)
+                    // Badge de danos para checkout normal
                     let damagesBadge = '';
-                    if (hasCheckout && !hasSelfCheckout) {
+                    if (hasCheckout) {
                         const checkoutHasDamages = contract.checkout.has_damages || (contract.checkout.damage_count && contract.checkout.damage_count > 0);
                         if (checkoutHasDamages) {
                             damagesBadge = `<span class="px-2 py-1 rounded-full text-xs font-semibold bg-red-600 text-white flex items-center gap-1">
