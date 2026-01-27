@@ -167,11 +167,11 @@ const photoTypes = [
     {type: 'front', label: 'Vista Frontal', instruction: 'Centre a frente do veículo, inclua a matrícula', position: 1, image: 'Vista Frontal.png'},
     {type: 'front_left', label: 'Vista Frontal Lateral Direita', instruction: 'Mostre a frente e o lado direito do veículo (lado do condutor)', position: 2, image: 'Vista Frontal Esquerda.png'},
     {type: 'front_right', label: 'Vista Frontal Lateral Esquerda', instruction: 'Mostre a frente e o lado esquerdo do veículo (lado do passageiro)', position: 3, image: 'Vista Frontal Direita.png'},
-    {type: 'right', label: 'Vista Lateral Esquerda', instruction: 'Mostre todo o lado esquerdo (passageiro), inclua todas as portas e rodas', position: 4, image: 'Vista Lateral Direita.png'},
+    {type: 'right', label: 'Vista Lateral Direita', instruction: 'Mostre todo o lado direito do veículo, inclua todas as portas e rodas', position: 4, image: 'Vista Lateral Direita.png'},
     {type: 'back_right', label: 'Vista Traseira Lateral Direita', instruction: 'Mostre a traseira e o lado direito do veículo', position: 5, image: 'Vista Traseira direita.png'},
     {type: 'back', label: 'Vista Traseira', instruction: 'Centre a traseira do veículo, inclua a matrícula', position: 6, image: 'Vista Traseira.png'},
     {type: 'back_left', label: 'Vista Traseira Lateral Esquerda', instruction: 'Mostre a traseira e o lado esquerdo do veículo', position: 7, image: 'Vista Traseira Esquerda.png'},
-    {type: 'left', label: 'Vista Lateral Direita', instruction: 'Mostre todo o lado direito (condutor), inclua todas as portas e rodas', position: 8, image: 'Vista Lateral Esquerda.png'},
+    {type: 'left', label: 'Vista Lateral Esquerda', instruction: 'Mostre todo o lado esquerdo do veículo, inclua todas as portas e rodas', position: 8, image: 'Vista Lateral Esquerda.png'},
     {type: 'odometer', label: 'Odómetro / Painel de Instrumentos', instruction: 'Foto clara do conta-quilómetros/display da quilometragem', position: 9, image: 'Odometro.png'}
 ];
 
