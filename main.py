@@ -221,34 +221,34 @@ def _get_photo_labels(lang: str) -> dict:
     labels = {
         'pt': {
             'front': 'Vista Frontal',
-            'front_left': 'Vista Frontal Lateral Esquerda',
-            'left': 'Vista Lateral Esquerda',
+            'front_left': 'Vista Frontal Lateral Direita',
+            'left': 'Vista Lateral Direita',
             'back_left': 'Vista Traseira Lateral Esquerda',
             'back': 'Vista Traseira',
             'back_right': 'Vista Traseira Lateral Direita',
-            'right': 'Vista Lateral Direita',
-            'front_right': 'Vista Frontal Lateral Direita',
+            'right': 'Vista Lateral Esquerda',
+            'front_right': 'Vista Frontal Lateral Esquerda',
             'odometer': 'Odómetro / Painel de Instrumentos',
             'damage_croqui_title': 'Croqui de Danos',
             'damage_croqui_alt': 'Croqui de Danos'
         },
         'en': {
             'front': 'Front View',
-            'front_left': 'Front Left View',
-            'left': 'Left Side View',
+            'front_left': 'Front Right View',
+            'left': 'Right Side View',
             'back_left': 'Rear Left View',
             'back': 'Rear View',
             'back_right': 'Rear Right View',
-            'right': 'Right Side View',
-            'front_right': 'Front Right View',
+            'right': 'Left Side View',
+            'front_right': 'Front Left View',
             'odometer': 'Odometer / Dashboard',
             'damage_croqui_title': 'Damage Diagram',
             'damage_croqui_alt': 'Damage Diagram'
         },
         'fr': {
             'front': 'Vue de Face',
-            'front_left': 'Vue Avant Gauche',
-            'left': 'Vue Latérale Gauche',
+            'front_left': 'Vue Avant Droit',
+            'left': 'Vue Latérale Droit',
             'back_left': 'Vue Arrière Gauche',
             'back': 'Vue Arrière',
             'back_right': 'Vue Arrière Droite',
@@ -31396,23 +31396,23 @@ async def save_inspection(request: Request):
                         photos_html = ""
                         if photos_rows:
                             photo_labels = {
-                                'pt': {'front': 'Frente', 'front_left': 'Frente Esquerda', 'left': 'Lado Esquerdo',
+                                'pt': {'front': 'Frente', 'front_left': 'Frente Direita', 'left': 'Lado Direito',
                                        'back_left': 'Traseira Esquerda', 'back': 'Traseira', 'back_right': 'Traseira Direita',
-                                       'right': 'Lado Direito', 'front_right': 'Frente Direita', 'odometer': 'Quilómetros',
+                                       'right': 'Lado Esquerdo', 'front_right': 'Frente Esquerda', 'odometer': 'Quilómetros',
                                        # Damage photo translations
                                        'photo_1': 'Dano 1', 'photo_2': 'Dano 2', 'photo_3': 'Dano 3',
                                        'photo_4': 'Dano 4', 'photo_5': 'Dano 5', 'photo_6': 'Dano 6',
                                        'photo_7': 'Dano 7', 'photo_8': 'Dano 8', 'photo_9': 'Dano 9'},
-                                'fr': {'front': 'Avant', 'front_left': 'Avant Gauche', 'left': 'Côté Gauche',
+                                'fr': {'front': 'Avant', 'front_left': 'Avant Droit', 'left': 'Côté Droit',
                                        'back_left': 'Arrière Gauche', 'back': 'Arrière', 'back_right': 'Arrière Droit',
-                                       'right': 'Côté Droit', 'front_right': 'Avant Droit', 'odometer': 'Kilométrage',
+                                       'right': 'Côté Gauche', 'front_right': 'Avant Gauche', 'odometer': 'Kilométrage',
                                        # Damage photo translations
                                        'photo_1': 'Dommage 1', 'photo_2': 'Dommage 2', 'photo_3': 'Dommage 3',
                                        'photo_4': 'Dommage 4', 'photo_5': 'Dommage 5', 'photo_6': 'Dommage 6',
                                        'photo_7': 'Dommage 7', 'photo_8': 'Dommage 8', 'photo_9': 'Dommage 9'},
-                                'en': {'front': 'Front', 'front_left': 'Front Left', 'left': 'Left Side',
+                                'en': {'front': 'Front', 'front_left': 'Front Right', 'left': 'Right Side',
                                        'back_left': 'Back Left', 'back': 'Back', 'back_right': 'Back Right',
-                                       'right': 'Right Side', 'front_right': 'Front Right', 'odometer': 'Odometer',
+                                       'right': 'Left Side', 'front_right': 'Front Left', 'odometer': 'Odometer',
                                        # Damage photo translations
                                        'photo_1': 'Damage 1', 'photo_2': 'Damage 2', 'photo_3': 'Damage 3',
                                        'photo_4': 'Damage 4', 'photo_5': 'Damage 5', 'photo_6': 'Damage 6',
@@ -32498,14 +32498,14 @@ async def submit_self_checkout(token: str, request: Request):
                         'trunk': 'Bagageira', 'roof': 'Tejadilho', 'other': 'Outra'
                     },
                     'en': {
-                        'front': 'Front', 'front_left': 'Front Left', 'left': 'Left',
+                        'front': 'Front', 'front_left': 'Front Right', 'left': 'Right',
                         'back_left': 'Back Left', 'back': 'Back', 'back_right': 'Back Right',
-                        'right': 'Right', 'front_right': 'Front Right', 'odometer': 'Odometer',
+                        'right': 'Left', 'front_right': 'Front Left', 'odometer': 'Odometer',
                         'rear': 'Rear', 'dashboard': 'Dashboard', 'interior': 'Interior',
                         'trunk': 'Trunk', 'roof': 'Roof', 'other': 'Other'
                     },
                     'fr': {
-                        'front': 'Avant', 'front_left': 'Avant Gauche', 'left': 'Gauche',
+                        'front': 'Avant', 'front_left': 'Avant Droit', 'left': 'Droit',
                         'back_left': 'Arrière Gauche', 'back': 'Arrière', 'back_right': 'Arrière Droite',
                         'right': 'Droite', 'front_right': 'Avant Droite', 'odometer': 'Compteur',
                         'rear': 'Arrière', 'dashboard': 'Tableau de bord', 'interior': 'Intérieur',
@@ -33491,14 +33491,14 @@ async def validate_self_checkout(request: Request):
                 photos_list = []
                 base_url = os.environ.get('BASE_URL', 'https://rentalprices.pt')
                 photo_labels = {
-                    'pt': {'front': 'Frontal', 'rear': 'Traseira', 'left': 'Lado Esquerdo', 'right': 'Lado Direito', 
-                           'front_left': 'Frente Esquerda', 'front_right': 'Frente Direita', 
+                    'pt': {'front': 'Frontal', 'rear': 'Traseira', 'left': 'Lado Direito', 'right': 'Lado Esquerdo', 
+                           'front_left': 'Frente Direita', 'front_right': 'Frente Esquerda', 
                            'rear_left': 'Traseira Esquerda', 'rear_right': 'Traseira Direita', 'odometer': 'Conta-KMs'},
-                    'en': {'front': 'Front', 'rear': 'Rear', 'left': 'Left Side', 'right': 'Right Side',
-                           'front_left': 'Front Left', 'front_right': 'Front Right',
+                    'en': {'front': 'Front', 'rear': 'Rear', 'left': 'Right Side', 'right': 'Left Side',
+                           'front_left': 'Front Right', 'front_right': 'Front Left',
                            'rear_left': 'Rear Left', 'rear_right': 'Rear Right', 'odometer': 'Odometer'},
-                    'fr': {'front': 'Avant', 'rear': 'Arrière', 'left': 'Côté Gauche', 'right': 'Côté Droit',
-                           'front_left': 'Avant Gauche', 'front_right': 'Avant Droit',
+                    'fr': {'front': 'Avant', 'rear': 'Arrière', 'left': 'Côté Droit', 'right': 'Côté Gauche',
+                           'front_left': 'Avant Droit', 'front_right': 'Avant Gauche',
                            'rear_left': 'Arrière Gauche', 'rear_right': 'Arrière Droit', 'odometer': 'Compteur'}
                 }
                 labels = photo_labels.get(language, photo_labels['pt'])
@@ -36341,9 +36341,9 @@ async def email_preview(request: Request, ra: str = "06716-09"):
             
             if photos_rows:
                 photo_labels_map = {
-                    'front': 'Front', 'front_left': 'Front Left', 'left': 'Left Side',
+                    'front': 'Front', 'front_left': 'Front Right', 'left': 'Right Side',
                     'back_left': 'Back Left', 'back': 'Back', 'back_right': 'Back Right',
-                    'right': 'Right Side', 'front_right': 'Front Right', 'odometer': 'Odometer',
+                    'right': 'Left Side', 'front_right': 'Front Left', 'odometer': 'Odometer',
                     'damage_front': 'Damage Front', 'damage_back': 'Damage Back',
                     'damage_left': 'Damage Left', 'damage_right': 'Damage Right'
                 }
