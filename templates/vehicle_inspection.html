@@ -1843,6 +1843,53 @@
                 }
             }
         }
+        
+        // Enable only check-out button (pickup), disable check-in (delivery)
+        function enableCheckOutOnly() {
+            const deliveryButton = document.getElementById('deliveryButton');
+            const pickupButton = document.getElementById('pickupButton');
+            
+            // Disable check-in (delivery) button
+            if (deliveryButton) {
+                deliveryButton.disabled = true;
+                deliveryButton.style.pointerEvents = 'none';
+                deliveryButton.classList.add('opacity-50', 'cursor-not-allowed');
+                
+                const deliveryIcon = document.getElementById('deliveryIcon');
+                if (deliveryIcon) {
+                    deliveryIcon.setAttribute('fill', '#6c757d'); // GRAY
+                }
+                
+                const deliveryText = document.getElementById('deliveryText');
+                if (deliveryText) {
+                    deliveryText.classList.remove('group-hover:text-red-500');
+                    deliveryText.classList.add('text-gray-400');
+                }
+            }
+            
+            // Enable check-out (pickup) button
+            if (pickupButton) {
+                pickupButton.disabled = false;
+                pickupButton.style.pointerEvents = 'auto';
+                pickupButton.classList.remove('opacity-50', 'cursor-not-allowed');
+                
+                const pickupIcon = document.getElementById('pickupIcon');
+                if (pickupIcon) {
+                    pickupIcon.setAttribute('fill', '#10b981'); // GREEN
+                }
+                
+                const pickupText = document.getElementById('pickupText');
+                if (pickupText) {
+                    pickupText.classList.add('group-hover:text-green-500');
+                    pickupText.classList.remove('text-gray-400');
+                }
+                
+                const pickupAnimation = document.getElementById('pickupAnimation');
+                if (pickupAnimation) {
+                    pickupAnimation.classList.remove('hidden');
+                }
+            }
+        }
     </script>
     <script src="/static/vehicle_inspection.js?v=20260120121900"></script>
     
