@@ -1277,13 +1277,13 @@ function updateDeliveryPhotosGridWithDamages() {
 function formatPhotoType(type) {
     const labels = {
         'front': 'Frente',
-        'front_left': 'Frente Esq.',
-        'left': 'Esquerda',
+        'front_left': 'Frente Dir.',
+        'left': 'Direita',
         'back_left': 'Trás Esq.',
         'back': 'Trás',
         'back_right': 'Trás Dir.',
-        'right': 'Direita',
-        'front_right': 'Frente Dir.',
+        'right': 'Esquerda',
+        'front_right': 'Frente Esq.',
         'odometer': 'Odómetro'
     };
     return labels[type] || type;
