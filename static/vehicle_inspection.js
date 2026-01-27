@@ -1742,13 +1742,13 @@ function startRegisterNewDamages() {
 function showDamageSideSelectionModal() {
     const sides = [
         { id: 'front', label: 'Vista Frontal', image: 'Vista Frontal.png' },
-        { id: 'front_left', label: 'Vista Frontal Esquerda', image: 'Vista Frontal Esquerda.png' },
-        { id: 'left', label: 'Vista Lateral Esquerda', image: 'Vista Lateral Esquerda.png' },
+        { id: 'front_left', label: 'Vista Frontal Direita', image: 'Vista Frontal Esquerda.png' },
+        { id: 'left', label: 'Vista Lateral Direita', image: 'Vista Lateral Esquerda.png' },
         { id: 'back_left', label: 'Vista Traseira Esquerda', image: 'Vista Traseira Esquerda.png' },
         { id: 'back', label: 'Vista Traseira', image: 'Vista Traseira.png' },
         { id: 'back_right', label: 'Vista Traseira Direita', image: 'Vista Traseira direita.png' },
-        { id: 'right', label: 'Vista Lateral Direita', image: 'Vista Lateral Direita.png' },
-        { id: 'front_right', label: 'Vista Frontal Direita', image: 'Vista Frontal Direita.png' },
+        { id: 'right', label: 'Vista Lateral Esquerda', image: 'Vista Lateral Direita.png' },
+        { id: 'front_right', label: 'Vista Frontal Esquerda', image: 'Vista Frontal Direita.png' },
         { id: 'odometer', label: 'Odómetro', image: 'Odometro.png' }
     ];
     
