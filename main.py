@@ -11125,25 +11125,49 @@ async def admin_users_new_post(
         
         with _db_lock:
             con = _db_connect()
+            is_postgres = os.environ.get('DATABASE_URL', '').startswith('postgresql')
             try:
                 # Convert to integer (0/1) for PostgreSQL compatibility
                 is_admin_int = 1 if (is_admin in ("1","true","on")) else 0
                 enabled_int = 1
-                con.execute(
-                    "INSERT INTO users (username, password_hash, first_name, last_name, mobile, email, profile_picture_path, profile_picture_data, is_admin, enabled, created_at) VALUES (?,?,?,?,?,?,?,?,?,?,?)",
-                    (u, pw_hash, first_name, last_name, mobile, email, pic_path or "", pic_data, is_admin_int, enabled_int, time.strftime('%Y-%m-%dT%H:%M:%SZ', time.gmtime()))
-                )
+                
+                # Reset sequence if PostgreSQL and there's a conflict
+                if is_postgres:
+                    try:
+                        # Try to fix sequence before insert
+                        con.execute("SELECT setval('users_id_seq', (SELECT COALESCE(MAX(id), 0) + 1 FROM users), false)")
+                    except:
+                        pass
+                
+                if is_postgres:
+                    con.execute(
+                        "INSERT INTO users (username, password_hash, first_name, last_name, mobile, email, profile_picture_path, profile_picture_data, is_admin, enabled, created_at) VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)",
+                        (u, pw_hash, first_name, last_name, mobile, email, pic_path or "", pic_data, is_admin_int, enabled_int, time.strftime('%Y-%m-%dT%H:%M:%SZ', time.gmtime()))
+                    )
+                else:
+                    con.execute(
+                        "INSERT INTO users (username, password_hash, first_name, last_name, mobile, email, profile_picture_path, profile_picture_data, is_admin, enabled, created_at) VALUES (?,?,?,?,?,?,?,?,?,?,?)",
+                        (u, pw_hash, first_name, last_name, mobile, email, pic_path or "", pic_data, is_admin_int, enabled_int, time.strftime('%Y-%m-%dT%H:%M:%SZ', time.gmtime()))
+                    )
                 
                 # Se tem foto, atualizar path com o ID do user
                 if pic_data:
-                    cur = con.execute("SELECT id FROM users WHERE username=?", (u,))
+                    if is_postgres:
+                        cur = con.execute("SELECT id FROM users WHERE username=%s", (u,))
+                    else:
+                        cur = con.execute("SELECT id FROM users WHERE username=?", (u,))
                     user_id = cur.fetchone()[0]
                     print(f"[NEW_USER] 💾 Updating path for user {user_id}", file=sys.stderr, flush=True)
-                    con.execute("UPDATE users SET profile_picture_path=? WHERE id=?", (f"/api/profile-picture/{user_id}", user_id))
+                    if is_postgres:
+                        con.execute("UPDATE users SET profile_picture_path=%s WHERE id=%s", (f"/api/profile-picture/{user_id}", user_id))
+                    else:
+                        con.execute("UPDATE users SET profile_picture_path=? WHERE id=?", (f"/api/profile-picture/{user_id}", user_id))
                 con.commit()
                 print(f"[NEW_USER] ✅ User '{u}' created successfully", file=sys.stderr, flush=True)
-            except sqlite3.IntegrityError:
-                return templates.TemplateResponse("admin_new_user.html", {"request": request, "error": "Username already exists"})
+            except (sqlite3.IntegrityError, Exception) as e:
+                if "already exists" in str(e).lower() or "unique" in str(e).lower():
+                    return templates.TemplateResponse("admin_new_user.html", {"request": request, "error": "Username already exists"})
+                raise
             finally:
                 con.close()
     except Exception as e:
