@@ -70,8 +70,22 @@ try:
     else:
         print("   ❌ Nenhum registo encontrado para RA 06761")
     
-    # 4. Verificar todos os RAs com QR codes
-    print("\n4️⃣ Verificando todos os RAs com QR codes...")
+    # 4. Verificar colunas da tabela rental_agreements
+    print("\n4️⃣ Verificando colunas da tabela rental_agreements...")
+    cursor.execute("""
+        SELECT column_name, data_type 
+        FROM information_schema.columns 
+        WHERE table_name = 'rental_agreements'
+        ORDER BY ordinal_position
+    """)
+    
+    ra_columns = cursor.fetchall()
+    print(f"   Colunas encontradas ({len(ra_columns)}):")
+    for col_name, col_type in ra_columns[:15]:  # Mostrar apenas as primeiras 15
+        print(f"   - {col_name} ({col_type})")
+    
+    # 5. Verificar todos os RAs com QR codes
+    print("\n5️⃣ Verificando todos os RAs com QR codes...")
     cursor.execute("""
         SELECT ra_number, COUNT(*) as total,
                SUM(CASE WHEN pdf_data IS NOT NULL THEN 1 ELSE 0 END) as with_pdf

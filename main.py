@@ -35328,6 +35328,12 @@ async def send_parking_qr_email(request: Request):
         no_reservation = data.get('no_reservation', False)  # Modo sem reserva
         pdf_data = data.get('pdf_data')  # PDF completo em base64
         
+        # DEBUG: Log do pdf_data
+        if pdf_data:
+            logging.info(f"✅ PDF data received, size: {len(pdf_data)} bytes")
+        else:
+            logging.warning(f"⚠️ NO PDF DATA received! pdf_data is: {pdf_data}")
+        
         if not ra_number or not parking_number:
             return JSONResponse({
                 "success": False,
@@ -35754,29 +35760,31 @@ async def send_parking_qr_email(request: Request):
             if is_postgres:
                 cursor.execute("""
                     INSERT INTO parking_qr_codes 
-                    (ra_number, parking_number, qr_code_image, no_reservation, pdf_data, extracted_date, extracted_time, extracted_reference, uploaded_at)
-                    VALUES (%s, %s, %s, %s, %s, %s, %s, %s, NOW())
+                    (ra_number, parking_number, qr_code_image, pdf_data, extracted_date, extracted_time, extracted_reference, uploaded_at)
+                    VALUES (%s, %s, %s, %s, %s, %s, %s, NOW())
                     ON CONFLICT (ra_number, parking_number) 
                     DO UPDATE SET 
                         qr_code_image = EXCLUDED.qr_code_image,
-                        no_reservation = EXCLUDED.no_reservation,
                         pdf_data = EXCLUDED.pdf_data,
                         extracted_date = EXCLUDED.extracted_date,
                         extracted_time = EXCLUDED.extracted_time,
                         extracted_reference = EXCLUDED.extracted_reference,
                         uploaded_at = NOW()
-                """, (ra_num, parking_number, qr_code_image, no_reservation, pdf_data, qr_pickup_date, qr_pickup_time, qr_reservation_number))
+                """, (ra_num, parking_number, qr_code_image, pdf_data, qr_pickup_date, qr_pickup_time, qr_reservation_number))
             else:
                 cursor.execute("""
                     INSERT INTO parking_qr_codes 
-                    (ra_number, parking_number, qr_code_image, no_reservation)
-                    VALUES (?, ?, ?, ?)
+                    (ra_number, parking_number, qr_code_image, pdf_data, extracted_date, extracted_time, extracted_reference)
+                    VALUES (?, ?, ?, ?, ?, ?, ?)
                     ON CONFLICT(ra_number, parking_number) 
                     DO UPDATE SET 
                         qr_code_image = excluded.qr_code_image,
-                        no_reservation = excluded.no_reservation,
+                        pdf_data = excluded.pdf_data,
+                        extracted_date = excluded.extracted_date,
+                        extracted_time = excluded.extracted_time,
+                        extracted_reference = excluded.extracted_reference,
                         uploaded_at = CURRENT_TIMESTAMP
-                """, (ra_num, parking_number, qr_code_image, 1 if no_reservation else 0))
+                """, (ra_num, parking_number, qr_code_image, pdf_data, qr_pickup_date, qr_pickup_time, qr_reservation_number))
             conn.commit()
             
             mode_text = "sem reserva" if no_reservation else "com QR code"
@@ -36132,11 +36140,10 @@ async def get_parking_qr_preview(ra_number: str):
         ra_num = ra_number.replace('-09', '')
         logging.info(f"🔍 Searching for RA: {ra_num}")
         
+        # Buscar sempre extracted_data (tanto PostgreSQL como SQLite)
         if _USE_NEW_DB:
             cursor.execute("""
-                SELECT client_name, client_email, client_country, 
-                       vehicle_plate, vehicle_brand, vehicle_model,
-                       pickup_date, pickup_time
+                SELECT extracted_data 
                 FROM rental_agreements 
                 WHERE rental_agreement_number = %s
             """, (ra_num,))
@@ -36154,26 +36161,16 @@ async def get_parking_qr_preview(ra_number: str):
                 "error": f"RA {ra_number} não encontrado"
             }, status_code=404)
         
-        # Extrair dados do RA
-        if _USE_NEW_DB:
-            client_name = ra_row[0] or "Cliente"
-            client_email = ra_row[1]
-            country = ra_row[2]
-            plate = ra_row[3]
-            vehicle_brand = ra_row[4]
-            vehicle_model = ra_row[5]
-            pickup_date = ra_row[6]
-            pickup_time = ra_row[7]
-        else:
-            extracted_data = json.loads(ra_row[0]) if ra_row[0] else {}
-            client_name = extracted_data.get('client_name', 'Cliente')
-            client_email = extracted_data.get('client_email')
-            country = extracted_data.get('client_country')
-            plate = extracted_data.get('vehicle_plate')
-            vehicle_brand = extracted_data.get('vehicle_brand')
-            vehicle_model = extracted_data.get('vehicle_model')
-            pickup_date = extracted_data.get('pickup_date')
-            pickup_time = extracted_data.get('pickup_time')
+        # Extrair dados do RA do JSON extracted_data
+        extracted_data = json.loads(ra_row[0]) if ra_row[0] else {}
+        client_name = extracted_data.get('client_name', 'Cliente')
+        client_email = extracted_data.get('client_email')
+        country = extracted_data.get('client_country')
+        plate = extracted_data.get('vehicle_plate')
+        vehicle_brand = extracted_data.get('vehicle_brand')
+        vehicle_model = extracted_data.get('vehicle_model')
+        pickup_date = extracted_data.get('pickup_date')
+        pickup_time = extracted_data.get('pickup_time')
         
         # Se não tiver email no RA, buscar do checkin ou checkout
         if not client_email:
