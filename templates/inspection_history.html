@@ -5377,30 +5377,8 @@
                     window.detectedPickupTime = firstParkingWithPdf.extracted_time;
                     window.detectedReservationNumber = firstParkingWithPdf.extracted_reference;
                     
-                    // Mostrar as informações detectadas
-                    const statusDiv = document.getElementById('parkingDetectionStatus');
-                    const messageEl = document.getElementById('detectionMessage');
-                    const uploadBtn = document.getElementById('uploadParkingBtn');
-                    
-                    if (statusDiv && messageEl && uploadBtn) {
-                        statusDiv.classList.remove('hidden');
-                        statusDiv.querySelector('div').className = 'bg-green-50 border border-green-200 rounded-lg p-3';
-                        messageEl.className = 'text-sm text-green-700 font-medium';
-                        
-                        let detectionMsg = `✅ Parque ${firstParkingWithPdf.parking_number} detectado`;
-                        if (firstParkingWithPdf.extracted_reference) {
-                            detectionMsg += ` | Reserva: ${firstParkingWithPdf.extracted_reference}`;
-                        }
-                        if (firstParkingWithPdf.extracted_date) {
-                            detectionMsg += ` | Data: ${firstParkingWithPdf.extracted_date}`;
-                        }
-                        if (firstParkingWithPdf.extracted_time) {
-                            detectionMsg += ` | Hora: ${firstParkingWithPdf.extracted_time}`;
-                        }
-                        
-                        messageEl.textContent = detectionMsg;
-                        uploadBtn.disabled = false;
-                    }
+                    // NÃO mostrar a secção de detecção - só aparece após novo upload
+                    // A informação já está visível na secção verde em cima
                 }
             }
             
