@@ -35688,11 +35688,23 @@ async def send_parking_qr_email(request: Request):
                         extracted_date TEXT,
                         extracted_time TEXT,
                         extracted_reference TEXT,
+                        pdf_data TEXT,
                         no_reservation BOOLEAN DEFAULT FALSE,
                         uploaded_at TIMESTAMP DEFAULT NOW(),
                         UNIQUE(ra_number, parking_number)
                     )
                 """)
+                
+                # Adicionar coluna pdf_data se não existir (para tabelas já criadas)
+                try:
+                    cursor.execute("""
+                        ALTER TABLE parking_qr_codes 
+                        ADD COLUMN IF NOT EXISTS pdf_data TEXT
+                    """)
+                    conn.commit()
+                except Exception as e:
+                    logging.warning(f"Could not add pdf_data column (may already exist): {e}")
+                    conn.rollback()
             else:
                 cursor.execute("""
                     CREATE TABLE IF NOT EXISTS parking_qr_codes (
@@ -35705,11 +35717,20 @@ async def send_parking_qr_email(request: Request):
                         extracted_date TEXT,
                         extracted_time TEXT,
                         extracted_reference TEXT,
+                        pdf_data TEXT,
                         no_reservation INTEGER DEFAULT 0,
                         uploaded_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
                         UNIQUE(ra_number, parking_number)
                     )
                 """)
+                
+                # Adicionar coluna pdf_data se não existir (para tabelas já criadas)
+                try:
+                    cursor.execute("ALTER TABLE parking_qr_codes ADD COLUMN pdf_data TEXT")
+                    conn.commit()
+                except Exception as e:
+                    logging.warning(f"Could not add pdf_data column (may already exist): {e}")
+                    conn.rollback()
             conn.commit()
             
             if is_postgres:
