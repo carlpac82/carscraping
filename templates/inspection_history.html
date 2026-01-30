@@ -895,12 +895,13 @@
                                         </svg>
                                         <span class="hidden sm:inline text-sm font-medium text-[#f59e0b]">Email</span>
                                     </button>
-                                    <button onclick="showParkingQRModal('${contract.contract_number}', ${contract.client_name ? `'${contract.client_name}'` : `''`}, ${contract.client_email ? `'${contract.client_email}'` : `''`})" class="flex items-center gap-2 px-3 py-2 bg-blue-50 hover:bg-blue-100 rounded-lg transition-colors" title="Enviar QR Code de Parque">
+                                    <button onclick="showParkingQRModal('${contract.contract_number}', ${contract.client_name ? `'${contract.client_name}'` : `''`}, ${contract.client_email ? `'${contract.client_email}'` : `''`})" class="relative flex items-center gap-2 px-3 py-2 bg-blue-50 hover:bg-blue-100 rounded-lg transition-colors" title="Enviar QR Code de Parque">
                                         <svg class="w-6 h-6 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"/>
                                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"/>
                                         </svg>
                                         <span class="hidden sm:inline text-sm font-medium text-blue-600">Parque</span>
+                                        ${contract.has_parking_qr ? '<span class="absolute -top-1 -right-1 w-3 h-3 bg-green-500 rounded-full border-2 border-white"></span>' : ''}
                                     </button>
                                     ${isAdmin && (hasCheckout || hasCheckin || hasSelfCheckout) ? `
                                     <button onclick="deleteContractInspection('${contract.contract_number}', ${hasCheckout ? `'${contract.checkout.inspection_number}'` : 'null'}, ${hasCheckin ? `'${contract.checkin.inspection_number}'` : 'null'}, ${hasSelfCheckout ? `'${contract.self_checkout.inspection_number}'` : 'null'})" class="flex items-center gap-2 px-3 py-2 bg-red-50 hover:bg-red-100 rounded-lg transition-colors" title="Eliminar">
@@ -5243,6 +5244,19 @@
             
             console.log('🎫 Opening parking modal:', { raNumber, clientName, clientEmail });
             
+            // Buscar dados existentes do parque
+            let existingParkingData = null;
+            try {
+                const parkingResponse = await fetch(`/api/parking-qr-preview/${raNumber}`);
+                const parkingData = await parkingResponse.json();
+                if (parkingData.success && parkingData.data.qr_codes && parkingData.data.qr_codes.length > 0) {
+                    existingParkingData = parkingData.data.qr_codes;
+                    console.log('🅿️ Existing parking data found:', existingParkingData);
+                }
+            } catch (e) {
+                console.log('ℹ️ No existing parking data found for this RA');
+            }
+            
             const modal = document.createElement('div');
             modal.id = 'parkingQRModal';
             modal.className = 'fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50';
@@ -5255,6 +5269,28 @@
                         <p class="text-sm text-gray-600 mb-2">Cliente: <strong>${clientName || 'N/A'}</strong></p>
                         <p class="text-sm text-gray-600 mb-4">RA: <strong>${raNumber}</strong></p>
                     </div>
+                    
+                    ${existingParkingData && existingParkingData.length > 0 ? `
+                    <div class="mb-4">
+                        <div class="bg-green-50 border border-green-200 rounded-lg p-3">
+                            <p class="text-sm text-green-700 font-semibold mb-2">✅ PDF(s) de Parque Existente(s):</p>
+                            ${existingParkingData.map(qr => `
+                                <div class="flex items-center justify-between mb-2 p-2 bg-white rounded">
+                                    <div class="text-left flex-1">
+                                        <p class="text-xs font-semibold text-gray-900">Parque ${qr.parking_number}</p>
+                                        ${qr.extracted_reference ? `<p class="text-xs text-gray-600">Reserva: ${qr.extracted_reference}</p>` : ''}
+                                        ${qr.extracted_date ? `<p class="text-xs text-gray-600">Data: ${qr.extracted_date}</p>` : ''}
+                                        ${qr.extracted_time ? `<p class="text-xs text-gray-600">Hora: ${qr.extracted_time}</p>` : ''}
+                                    </div>
+                                    <button onclick="viewExistingParkingPDF(${qr.parking_number})" class="ml-2 px-3 py-1 bg-blue-500 text-white text-xs rounded hover:bg-blue-600 transition-colors">
+                                        Ver PDF
+                                    </button>
+                                </div>
+                            `).join('')}
+                            <p class="text-xs text-gray-600 mt-2">Pode fazer novo upload para substituir</p>
+                        </div>
+                    </div>
+                    ` : ''}
                     
                     <div class="mb-4">
                         <label class="block text-sm font-medium text-gray-700 mb-2">Email do Cliente</label>
@@ -5272,7 +5308,7 @@
                     </div>
                     
                     <div id="withReservationSection" class="mb-4">
-                        <label class="block text-sm font-medium text-gray-700 mb-2">Selecione o PDF com QR Code</label>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">${existingParkingData ? 'Substituir PDF com QR Code' : 'Selecione o PDF com QR Code'}</label>
                         <p class="text-xs text-gray-500 mb-3">O sistema irá detectar automaticamente o número do parque (1-4)</p>
                         <input type="file" id="parkingQRFile" accept=".pdf" class="block w-full text-sm text-gray-500
                             file:mr-4 file:py-2 file:px-4
@@ -5317,6 +5353,7 @@
             window.currentParkingEmail = clientEmail;
             window.detectedParkingNumber = null;
             window.qrCodeImageBase64 = null;
+            window.existingParkingQRData = existingParkingData;
             
             // Add file change listener
             document.getElementById('parkingQRFile').addEventListener('change', handleParkingQRFileSelect);
@@ -5329,6 +5366,34 @@
             }
             window.currentParkingRA = null;
             window.currentParkingClient = null;
+        }
+        
+        function viewExistingParkingPDF(parkingNumber) {
+            if (!window.existingParkingQRData) {
+                showNotification('PDF não disponível', 'error');
+                return;
+            }
+            
+            const qrData = window.existingParkingQRData.find(qr => qr.parking_number === parkingNumber);
+            if (qrData && qrData.pdf_data) {
+                const pdfWindow = window.open('', '_blank');
+                pdfWindow.document.write(`
+                    <html>
+                    <head>
+                        <title>PDF Parque ${parkingNumber}</title>
+                        <style>
+                            body { margin: 0; padding: 0; }
+                            iframe { width: 100vw; height: 100vh; border: none; }
+                        </style>
+                    </head>
+                    <body>
+                        <iframe src="${qrData.pdf_data}"></iframe>
+                    </body>
+                    </html>
+                `);
+            } else {
+                showNotification('PDF não disponível', 'error');
+            }
         }
         
         function toggleNoReservationMode() {

@@ -48979,6 +48979,27 @@ async def get_inspections_history(request: Request):
                     if not grouped[key]["checkin"]:
                         grouped[key]["checkin"] = inspection_data
             
+            # Check for parking QR for each contract
+            for contract in grouped.values():
+                ra_number = contract["contract_number"]
+                try:
+                    if is_postgres:
+                        cursor.execute("""
+                            SELECT COUNT(*) FROM parking_qr_codes 
+                            WHERE rental_agreement_number = %s
+                        """, (ra_number,))
+                    else:
+                        cursor.execute("""
+                            SELECT COUNT(*) FROM parking_qr_codes 
+                            WHERE rental_agreement_number = ?
+                        """, (ra_number,))
+                    
+                    count_row = cursor.fetchone()
+                    contract["has_parking_qr"] = count_row[0] > 0 if count_row else False
+                except Exception as e:
+                    logging.error(f"Error checking parking QR for RA {ra_number}: {e}")
+                    contract["has_parking_qr"] = False
+            
             # Convert to list and sort by latest date
             contracts = list(grouped.values())
             contracts.sort(key=lambda x: x["latest_date"] if x["latest_date"] else "", reverse=True)
