@@ -48780,7 +48780,8 @@ async def get_inspections_history(request: Request):
                            vi.is_self_checkin,
                            ra.extracted_data, ra.self_checkin_email,
                            vi.has_damage,
-                           ra.status, ra.inspection_completed
+                           ra.status, ra.inspection_completed,
+                           ra.return_date
                     FROM vehicle_inspections vi
                     LEFT JOIN rental_agreements ra ON (
                         ra.rental_agreement_number = vi.contract_number 
@@ -48798,7 +48799,8 @@ async def get_inspections_history(request: Request):
                            vi.is_self_checkin,
                            ra.extracted_data, ra.self_checkin_email,
                            vi.has_damage,
-                           ra.status, ra.inspection_completed
+                           ra.status, ra.inspection_completed,
+                           ra.return_date
                     FROM vehicle_inspections vi
                     LEFT JOIN rental_agreements ra ON (
                         ra.rental_agreement_number = vi.contract_number 
@@ -48831,6 +48833,7 @@ async def get_inspections_history(request: Request):
                 self_checkin_email = row[13] if len(row) > 13 else None
                 ra_status = row[15] if len(row) > 15 else None
                 inspection_completed = row[16] if len(row) > 16 else None
+                return_date = row[17] if len(row) > 17 else None
                 
                 # DEBUG: Log row data for RA 06727
                 if ra_base == "06727":
@@ -48949,7 +48952,8 @@ async def get_inspections_history(request: Request):
                         "self_checkout": None,  # Self-checkout pendente de validação
                         "latest_date": str(row[5]) if row[5] else None,
                         "ra_status": ra_status,
-                        "inspection_completed": inspection_completed
+                        "inspection_completed": inspection_completed,
+                        "expected_return_date": return_date
                     }
                 else:
                     # Update client info if not already set
