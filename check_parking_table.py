@@ -2,7 +2,7 @@ import psycopg2
 import os
 
 # Credenciais do Railway
-DATABASE_URL = "postgresql://postgres:EYXxkqjVPUwpMOTDXmhYDaZbzKLVDIqp@autorack.proxy.rlwy.net:47689/railway"
+DATABASE_URL = "postgresql://postgres:OMxLodDbSGnDJUQGVIkXSXYxfiRwQqFo@shortline.proxy.rlwy.net:45408/railway"
 
 try:
     print("🔌 Conectando à base de dados do Railway...")

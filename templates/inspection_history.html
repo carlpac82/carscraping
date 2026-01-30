@@ -5495,12 +5495,14 @@
                 
                 const arrayBuffer = await file.arrayBuffer();
                 
-                // Store PDF as base64 for later upload
-                const reader = new FileReader();
-                reader.onload = function(e) {
-                    window.currentPdfBase64 = e.target.result;
-                };
-                reader.readAsDataURL(file);
+                // Store PDF as base64 for later upload - AGUARDAR que termine!
+                window.currentPdfBase64 = await new Promise((resolve, reject) => {
+                    const reader = new FileReader();
+                    reader.onload = (e) => resolve(e.target.result);
+                    reader.onerror = reject;
+                    reader.readAsDataURL(file);
+                });
+                console.log('✅ PDF guardado em base64, tamanho:', window.currentPdfBase64.length);
                 
                 const pdf = await pdfjsLib.getDocument({data: arrayBuffer}).promise;
                 const page = await pdf.getPage(1);
