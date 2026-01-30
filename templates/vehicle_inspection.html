@@ -1620,8 +1620,14 @@
                 existingPopup.remove();
             }
             
-            const title = 'Contrato Ativo';
-            const message = `A matrícula <strong>${plate}</strong> está no contrato <strong>${raNumber}</strong> que ainda não foi encerrado.`;
+            let title, message;
+            if (status === 'closed') {
+                title = 'Contrato Encerrado';
+                message = `O contrato <strong>${raNumber}</strong> da matrícula <strong>${plate}</strong> está encerrado. Para iniciar um novo contrato, faça upload de um novo Rental Agreement.`;
+            } else {
+                title = 'Contrato Ativo';
+                message = `A matrícula <strong>${plate}</strong> está no contrato <strong>${raNumber}</strong> que ainda não foi encerrado.`;
+            }
             
             // Create popup
             const popup = document.createElement('div');
@@ -3904,6 +3910,10 @@
                             console.log('✅ RA data stored in window.currentRAData:', window.currentRAData);
                             
                             showMinimalistAlert(`RA ${extractedData.rental_agreement} substituído`, 'success');
+                            
+                            // Enable check-in button after successful replacement
+                            enableCheckInOnly();
+                            console.log('✅ RA replaced: check-in enabled');
                         } else {
                             showMinimalistAlert('Erro ao substituir RA: ' + (result.error || 'Erro desconhecido'), 'error');
                         }
@@ -4087,6 +4097,10 @@
                         
                         const raNumber = data.data.rental_agreement || 'N/A';
                         showMinimalistAlert(`RA ${raNumber} carregado`, 'success');
+                        
+                        // Enable check-in button for new RA
+                        enableCheckInOnly();
+                        console.log('✅ New RA uploaded: check-in enabled');
                     }
                 } else {
                     showMinimalistAlert('Erro ao processar PDF: ' + (data.error || 'Erro desconhecido'), 'error');
@@ -4206,9 +4220,10 @@
                                     console.log('🚫 Contract open with check-in: both buttons disabled');
                                 }
                             } else if (ra.contract_closed === true) {
-                                // Contract CLOSED (has check-in AND check-out) - allow new check-in for new contract
-                                enableCheckInOnly();
-                                console.log('✅ Contract closed: allowing new check-in for new contract');
+                                // Contract CLOSED (has check-in AND check-out) - block until new RA is uploaded
+                                showContractStatusPopup(plate, ra.rental_agreement_number, 'closed');
+                                disableBothButtons();
+                                console.log('🚫 Contract closed: both buttons disabled until new RA is uploaded');
                             } else {
                                 // Contract exists but NO inspections yet - only allow check-in
                                 enableCheckInOnly();
@@ -4311,8 +4326,9 @@
                                 disableBothButtons();
                                 console.log('🚫 Contract open with check-in: both buttons disabled');
                             } else if (ra.contract_closed === true) {
-                                enableCheckInOnly();
-                                console.log('✅ Contract closed: allowing new check-in for new contract');
+                                showContractStatusPopup(plate, ra.rental_agreement_number, 'closed');
+                                disableBothButtons();
+                                console.log('🚫 Contract closed: both buttons disabled until new RA is uploaded');
                             } else {
                                 enableCheckInOnly();
                                 console.log('✅ Contract exists but no inspections: only check-in enabled');
