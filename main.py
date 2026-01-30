@@ -35308,6 +35308,7 @@ async def send_parking_qr_email(request: Request):
         qr_pickup_time = data.get('pickup_time')  # Hora extraída do QR code
         qr_reservation_number = data.get('reservation_number')  # Número de reserva do aeroporto (ANA-XXXXXXXX)
         no_reservation = data.get('no_reservation', False)  # Modo sem reserva
+        pdf_data = data.get('pdf_data')  # PDF completo em base64
         
         if not ra_number or not parking_number:
             return JSONResponse({
@@ -35714,14 +35715,18 @@ async def send_parking_qr_email(request: Request):
             if is_postgres:
                 cursor.execute("""
                     INSERT INTO parking_qr_codes 
-                    (ra_number, parking_number, qr_code_image, no_reservation, uploaded_at)
-                    VALUES (%s, %s, %s, %s, NOW())
+                    (ra_number, parking_number, qr_code_image, no_reservation, pdf_data, extracted_date, extracted_time, extracted_reference, uploaded_at)
+                    VALUES (%s, %s, %s, %s, %s, %s, %s, %s, NOW())
                     ON CONFLICT (ra_number, parking_number) 
                     DO UPDATE SET 
                         qr_code_image = EXCLUDED.qr_code_image,
                         no_reservation = EXCLUDED.no_reservation,
+                        pdf_data = EXCLUDED.pdf_data,
+                        extracted_date = EXCLUDED.extracted_date,
+                        extracted_time = EXCLUDED.extracted_time,
+                        extracted_reference = EXCLUDED.extracted_reference,
                         uploaded_at = NOW()
-                """, (ra_num, parking_number, qr_code_image, no_reservation))
+                """, (ra_num, parking_number, qr_code_image, no_reservation, pdf_data, qr_pickup_date, qr_pickup_time, qr_reservation_number))
             else:
                 cursor.execute("""
                     INSERT INTO parking_qr_codes 

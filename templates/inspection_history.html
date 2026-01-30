@@ -5442,6 +5442,14 @@
                 pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
                 
                 const arrayBuffer = await file.arrayBuffer();
+                
+                // Store PDF as base64 for later upload
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    window.currentPdfBase64 = e.target.result;
+                };
+                reader.readAsDataURL(file);
+                
                 const pdf = await pdfjsLib.getDocument({data: arrayBuffer}).promise;
                 const page = await pdf.getPage(1);
                 
@@ -5685,7 +5693,8 @@
                     pickup_date: pickupDate || null,
                     pickup_time: pickupTime || null,
                     reservation_number: reservationNumber || null,
-                    no_reservation: noReservationMode
+                    no_reservation: noReservationMode,
+                    pdf_data: window.currentPdfBase64 || null
                 };
                 
                 console.log('📤 Sending parking email:', {
