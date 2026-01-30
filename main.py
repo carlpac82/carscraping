@@ -35964,6 +35964,50 @@ async def upload_parking_qr(
         if conn:
             conn.close()
 
+@app.post("/api/admin/add-pdf-data-column")
+async def add_pdf_data_column(request: Request):
+    """ENDPOINT TEMPORÁRIO: Adicionar coluna pdf_data à tabela parking_qr_codes"""
+    require_auth(request)
+    
+    conn = None
+    try:
+        logging.info("🔧 Adding pdf_data column to parking_qr_codes table...")
+        conn = _db_connect()
+        cursor = conn.cursor()
+        
+        if _USE_NEW_DB:
+            # PostgreSQL
+            cursor.execute("""
+                ALTER TABLE parking_qr_codes 
+                ADD COLUMN IF NOT EXISTS pdf_data TEXT
+            """)
+        else:
+            # SQLite
+            cursor.execute("""
+                ALTER TABLE parking_qr_codes 
+                ADD COLUMN pdf_data TEXT
+            """)
+        
+        conn.commit()
+        logging.info("✅ Column pdf_data added successfully!")
+        
+        return JSONResponse({
+            "success": True,
+            "message": "Column pdf_data added to parking_qr_codes table"
+        })
+        
+    except Exception as e:
+        logging.error(f"❌ Error adding column: {e}")
+        if conn:
+            conn.rollback()
+        return JSONResponse({
+            "success": False,
+            "error": str(e)
+        }, status_code=500)
+    finally:
+        if conn:
+            conn.close()
+
 @app.get("/api/parking-qr-preview/{ra_number}")
 async def get_parking_qr_preview(ra_number: str):
     """Obter preview do email de parque com dados do QR code e permitir edição do email do cliente"""
