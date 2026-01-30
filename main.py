@@ -35881,16 +35881,22 @@ async def upload_parking_qr(
                 extracted_date TEXT,
                 extracted_time TEXT,
                 extracted_reference TEXT,
+                pdf_data TEXT,
                 uploaded_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
                 UNIQUE(ra_number, parking_number)
             )
         """)
         
+        # Converter PDF para base64 para guardar na BD
+        import base64
+        pdf_base64 = base64.b64encode(pdf_bytes).decode('utf-8')
+        pdf_data_uri = f"data:application/pdf;base64,{pdf_base64}"
+        
         # Inserir ou atualizar QR code
         cursor.execute("""
             INSERT INTO parking_qr_codes 
-            (ra_number, parking_number, qr_image_path, qr_code_data, extracted_date, extracted_time, extracted_reference)
-            VALUES (?, ?, ?, ?, ?, ?, ?)
+            (ra_number, parking_number, qr_image_path, qr_code_data, extracted_date, extracted_time, extracted_reference, pdf_data)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?)
             ON CONFLICT(ra_number, parking_number) 
             DO UPDATE SET 
                 qr_image_path = excluded.qr_image_path,
@@ -35898,8 +35904,9 @@ async def upload_parking_qr(
                 extracted_date = excluded.extracted_date,
                 extracted_time = excluded.extracted_time,
                 extracted_reference = excluded.extracted_reference,
+                pdf_data = excluded.pdf_data,
                 uploaded_at = CURRENT_TIMESTAMP
-        """, (ra_number, parking_number, qr_image_path, qr_code_data, extracted_date, extracted_time, extracted_reference))
+        """, (ra_number, parking_number, qr_image_path, qr_code_data, extracted_date, extracted_time, extracted_reference, pdf_data_uri))
         
         conn.commit()
         
@@ -35998,7 +36005,7 @@ async def get_parking_qr_preview(ra_number: str):
         
         # Buscar QR codes disponíveis para este RA
         cursor.execute("""
-            SELECT parking_number, qr_image_path, extracted_date, extracted_time, extracted_reference
+            SELECT parking_number, qr_image_path, extracted_date, extracted_time, extracted_reference, pdf_data
             FROM parking_qr_codes
             WHERE ra_number = ?
             ORDER BY parking_number
@@ -36011,7 +36018,8 @@ async def get_parking_qr_preview(ra_number: str):
                 "qr_image_path": row[1],
                 "extracted_date": row[2],
                 "extracted_time": row[3],
-                "extracted_reference": row[4]
+                "extracted_reference": row[4],
+                "pdf_data": row[5]
             })
         
         return JSONResponse({

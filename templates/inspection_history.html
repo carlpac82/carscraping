@@ -1260,6 +1260,21 @@
             }
             console.log('🚗 Vehicle brand/model:', vehicleBrand, vehicleModel);
             
+            // Buscar dados do parking QR se existir RA
+            let parkingQRData = null;
+            if (contract && contract.contract_number) {
+                try {
+                    const parkingResponse = await fetch(`/api/parking-qr-preview/${contract.contract_number}`);
+                    const parkingData = await parkingResponse.json();
+                    if (parkingData.success && parkingData.data.qr_codes && parkingData.data.qr_codes.length > 0) {
+                        parkingQRData = parkingData.data.qr_codes;
+                        console.log('🅿️ Parking QR data found:', parkingQRData);
+                    }
+                } catch (e) {
+                    console.log('ℹ️ No parking QR data found for this RA');
+                }
+            }
+            
             try {
                 // First, get inspection data
                 const response = await fetch(`/api/inspections/${inspectionNumber}`);
@@ -1371,11 +1386,21 @@
                     <div class="bg-white rounded-lg max-w-4xl w-full max-h-[90vh] overflow-auto">
                         <div class="sticky top-0 bg-white border-b px-3 py-3 md:px-6 md:py-4 flex justify-between items-center">
                             <h2 class="text-lg md:text-xl font-bold text-[#009cb6] truncate">${title} - ${data.inspection.vehicle_plate}</h2>
-                            <button onclick="closePreviewModal()" class="text-gray-500 hover:text-gray-700">
-                                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
-                                </svg>
-                            </button>
+                            <div class="flex items-center gap-2">
+                                ${parkingQRData && parkingQRData.length > 0 ? `
+                                <button onclick="viewParkingQRPDF(${parkingQRData.length})" class="flex items-center gap-1 px-3 py-2 bg-blue-50 hover:bg-blue-100 rounded-lg transition-colors" title="Ver PDF do Parque">
+                                    <svg class="w-5 h-5 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z"/>
+                                    </svg>
+                                    <span class="text-sm font-medium text-blue-600">PDF Parque</span>
+                                </button>
+                                ` : ''}
+                                <button onclick="closePreviewModal()" class="text-gray-500 hover:text-gray-700">
+                                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+                                    </svg>
+                                </button>
+                            </div>
                         </div>
                         
                         <div class="p-3 md:p-6">
@@ -1949,6 +1974,9 @@
                 document.body.appendChild(modal);
                 window.currentPreviewModal = modal;
                 
+                // Guardar dados do parking QR globalmente
+                window.currentParkingQRData = parkingQRData;
+                
                 // Add click handlers for photos (open in lightbox)
                 modal.querySelectorAll('.photo-clickable').forEach(img => {
                     img.addEventListener('click', function() {
@@ -1967,6 +1995,101 @@
             if (window.currentPreviewModal) {
                 document.body.removeChild(window.currentPreviewModal);
                 window.currentPreviewModal = null;
+            }
+        }
+        
+        // View parking QR PDF
+        function viewParkingQRPDF(count) {
+            if (!window.currentParkingQRData || window.currentParkingQRData.length === 0) {
+                showNotification('Nenhum PDF de parque disponível', 'error');
+                return;
+            }
+            
+            // Se houver apenas um PDF, abrir diretamente
+            if (window.currentParkingQRData.length === 1) {
+                const pdfData = window.currentParkingQRData[0].pdf_data;
+                if (pdfData) {
+                    // Abrir PDF em nova janela
+                    const pdfWindow = window.open('', '_blank');
+                    pdfWindow.document.write(`
+                        <html>
+                        <head>
+                            <title>PDF Parque ${window.currentParkingQRData[0].parking_number}</title>
+                            <style>
+                                body { margin: 0; padding: 0; }
+                                iframe { width: 100vw; height: 100vh; border: none; }
+                            </style>
+                        </head>
+                        <body>
+                            <iframe src="${pdfData}"></iframe>
+                        </body>
+                        </html>
+                    `);
+                } else {
+                    showNotification('PDF não disponível', 'error');
+                }
+                return;
+            }
+            
+            // Se houver múltiplos PDFs, mostrar modal de seleção
+            const modal = document.createElement('div');
+            modal.className = 'fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-[60] p-4';
+            modal.innerHTML = `
+                <div class="bg-white rounded-lg max-w-md w-full p-6">
+                    <h3 class="text-xl font-bold text-[#009cb6] mb-4">Selecione o Parque</h3>
+                    <div class="space-y-2">
+                        ${window.currentParkingQRData.map(qr => `
+                            <button onclick="openParkingPDF(${qr.parking_number})" 
+                                class="w-full flex items-center justify-between p-3 bg-blue-50 hover:bg-blue-100 rounded-lg transition-colors">
+                                <div class="text-left">
+                                    <p class="font-semibold text-gray-900">Parque ${qr.parking_number}</p>
+                                    <p class="text-xs text-gray-600">Ref: ${qr.extracted_reference || 'N/A'}</p>
+                                </div>
+                                <svg class="w-5 h-5 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/>
+                                </svg>
+                            </button>
+                        `).join('')}
+                    </div>
+                    <button onclick="closeParkingPDFModal()" 
+                        class="w-full mt-4 px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors">
+                        Cancelar
+                    </button>
+                </div>
+            `;
+            
+            document.body.appendChild(modal);
+            window.currentParkingPDFModal = modal;
+        }
+        
+        function openParkingPDF(parkingNumber) {
+            const qrData = window.currentParkingQRData.find(qr => qr.parking_number === parkingNumber);
+            if (qrData && qrData.pdf_data) {
+                const pdfWindow = window.open('', '_blank');
+                pdfWindow.document.write(`
+                    <html>
+                    <head>
+                        <title>PDF Parque ${parkingNumber}</title>
+                        <style>
+                            body { margin: 0; padding: 0; }
+                            iframe { width: 100vw; height: 100vh; border: none; }
+                        </style>
+                    </head>
+                    <body>
+                        <iframe src="${qrData.pdf_data}"></iframe>
+                    </body>
+                    </html>
+                `);
+                closeParkingPDFModal();
+            } else {
+                showNotification('PDF não disponível', 'error');
+            }
+        }
+        
+        function closeParkingPDFModal() {
+            if (window.currentParkingPDFModal) {
+                document.body.removeChild(window.currentParkingPDFModal);
+                window.currentParkingPDFModal = null;
             }
         }
         
