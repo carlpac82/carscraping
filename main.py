@@ -35994,11 +35994,18 @@ async def get_parking_qr_preview(ra_number: str):
         
         # Se não tiver email no RA, buscar do checkin ou checkout
         if not client_email:
-            cursor.execute("""
-                SELECT email FROM inspections 
-                WHERE ra_number = ? AND email IS NOT NULL 
-                ORDER BY created_at DESC LIMIT 1
-            """, (ra_num,))
+            if _USE_NEW_DB:
+                cursor.execute("""
+                    SELECT email FROM inspections 
+                    WHERE ra_number = %s AND email IS NOT NULL 
+                    ORDER BY created_at DESC LIMIT 1
+                """, (ra_num,))
+            else:
+                cursor.execute("""
+                    SELECT email FROM inspections 
+                    WHERE ra_number = ? AND email IS NOT NULL 
+                    ORDER BY created_at DESC LIMIT 1
+                """, (ra_num,))
             email_row = cursor.fetchone()
             if email_row:
                 client_email = email_row[0]
