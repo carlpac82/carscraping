@@ -35996,14 +35996,14 @@ async def get_parking_qr_preview(ra_number: str):
         if not client_email:
             if _USE_NEW_DB:
                 cursor.execute("""
-                    SELECT email FROM inspections 
-                    WHERE ra_number = %s AND email IS NOT NULL 
+                    SELECT client_email FROM vehicle_inspections 
+                    WHERE contract_number = %s AND client_email IS NOT NULL 
                     ORDER BY created_at DESC LIMIT 1
                 """, (ra_num,))
             else:
                 cursor.execute("""
-                    SELECT email FROM inspections 
-                    WHERE ra_number = ? AND email IS NOT NULL 
+                    SELECT client_email FROM vehicle_inspections 
+                    WHERE contract_number = ? AND client_email IS NOT NULL 
                     ORDER BY created_at DESC LIMIT 1
                 """, (ra_num,))
             email_row = cursor.fetchone()
