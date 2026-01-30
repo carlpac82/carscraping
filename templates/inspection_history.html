@@ -5568,6 +5568,8 @@
                 if (result.success) {
                     showNotification(`Email com QR code do Parque ${parkingNumber} enviado com sucesso!`, 'success');
                     closeParkingQRModal();
+                    // Recarregar histórico para atualizar o ícone do parque
+                    await loadHistory(true);
                 } else {
                     showNotification('Erro ao enviar email: ' + (result.error || 'Erro desconhecido'), 'error');
                 }
