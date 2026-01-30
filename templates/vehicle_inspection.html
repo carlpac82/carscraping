@@ -2390,6 +2390,18 @@
                 if (checkinCanvas) {
                     checkinCanvas.width = img.offsetWidth;
                     checkinCanvas.height = img.offsetHeight;
+                    
+                    // CRITICAL: Redraw check-in damages after resize (canvas content is lost on resize)
+                    if (window.deliveryInspection && window.deliveryInspection.damage_croqui) {
+                        const checkinCtx = checkinCanvas.getContext('2d');
+                        const checkinImg = new Image();
+                        checkinImg.onload = function() {
+                            checkinCtx.clearRect(0, 0, checkinCanvas.width, checkinCanvas.height);
+                            checkinCtx.drawImage(checkinImg, 0, 0, checkinCanvas.width, checkinCanvas.height);
+                            console.log('✅ Check-in damages redrawn after resize');
+                        };
+                        checkinImg.src = window.deliveryInspection.damage_croqui;
+                    }
                 }
                 
                 // Save dimensions for later use in capture (before canvas might be resized to 0x0)
