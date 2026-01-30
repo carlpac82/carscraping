@@ -1596,15 +1596,19 @@
                             </div>
                             ` : ''}
                             
-                            <!-- Damage Croqui (BEFORE photos) -->
-                            ${inspection.damage_croqui ? `
+                            <!-- Damage Croqui (BEFORE photos) - SEMPRE mostrar para checkout -->
+                            ${type === 'checkout' || inspection.damage_croqui ? `
                                 <div class="mb-6">
                                     <h4 class="text-lg font-bold text-gray-900 mb-4">Croqui de Danos</h4>
                                     <div class="bg-white border border-gray-200 rounded-lg p-4">
-                                        <img src="${inspection.damage_croqui.startsWith('data:') ? inspection.damage_croqui : 'data:image/png;base64,' + inspection.damage_croqui}" 
-                                             alt="Croqui de Danos" 
-                                             class="w-full max-w-2xl mx-auto rounded-lg"
-                                             onerror="this.style.display='none'; this.parentElement.innerHTML='<p class=text-red-500>Erro ao carregar croqui</p>'">
+                                        ${inspection.damage_croqui ? `
+                                            <img src="${inspection.damage_croqui.startsWith('data:') ? inspection.damage_croqui : 'data:image/png;base64,' + inspection.damage_croqui}" 
+                                                 alt="Croqui de Danos" 
+                                                 class="w-full max-w-2xl mx-auto rounded-lg"
+                                                 onerror="this.style.display='none'; this.parentElement.innerHTML='<p class=text-red-500>Erro ao carregar croqui</p>'">
+                                        ` : `
+                                            <p class="text-gray-500 text-center py-8">Croqui não disponível</p>
+                                        `}
                                     </div>
                                     <p class="text-sm text-gray-600 mt-2 text-center">
                                         ${type === 'checkin' && checkoutInspectionData ? `
