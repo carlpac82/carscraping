@@ -21073,6 +21073,24 @@ async def startup_vehicle_inspections():
                 )
             """)
         
+        # Migração: Adicionar coluna pdf_data à tabela parking_qr_codes se não existir
+        try:
+            if is_postgres:
+                conn.execute("""
+                    ALTER TABLE parking_qr_codes 
+                    ADD COLUMN IF NOT EXISTS pdf_data TEXT
+                """)
+            else:
+                # SQLite não suporta IF NOT EXISTS no ALTER TABLE
+                try:
+                    conn.execute("ALTER TABLE parking_qr_codes ADD COLUMN pdf_data TEXT")
+                except:
+                    pass  # Coluna já existe
+            conn.commit()
+            logging.info("✅ Parking QR codes table migration complete (pdf_data column)")
+        except Exception as migration_error:
+            logging.warning(f"⚠️ Could not migrate parking_qr_codes table: {migration_error}")
+        
         conn.commit()
         conn.close()
         logging.info("✅ Vehicle inspection tables ready")
