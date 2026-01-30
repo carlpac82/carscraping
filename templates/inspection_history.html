@@ -5804,7 +5804,9 @@
                     parking: payload.parking_number,
                     email: payload.client_email,
                     noReservation: payload.no_reservation,
-                    hasQR: !!payload.qr_code_image
+                    hasQR: !!payload.qr_code_image,
+                    hasPDF: !!payload.pdf_data,
+                    pdfSize: payload.pdf_data ? payload.pdf_data.length : 0
                 });
                 
                 const response = await fetch('/api/send-parking-qr', {
