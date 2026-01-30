@@ -464,6 +464,73 @@
                 });
             }
             
+            // Se filtrar por checkout, incluir também contratos overdue (abertos com data de recolha passada)
+            if (type === 'checkout') {
+                const todayDate = new Date();
+                todayDate.setHours(0, 0, 0, 0);
+                
+                // Adicionar contratos overdue (abertos com data esperada passada)
+                const overdueContracts = contracts.filter(c => {
+                    // Contrato aberto (tem checkin, não tem checkout)
+                    if (!c.checkin || c.checkout) return false;
+                    
+                    // Tem data de recolha esperada
+                    if (!c.expected_return_date) return false;
+                    
+                    // Parse expected return date
+                    let expectedDate;
+                    if (c.expected_return_date.includes('/')) {
+                        const parts = c.expected_return_date.split('/');
+                        expectedDate = new Date(parts[2], parts[1] - 1, parts[0]);
+                    } else {
+                        expectedDate = new Date(c.expected_return_date);
+                    }
+                    expectedDate.setHours(0, 0, 0, 0);
+                    
+                    // Data esperada já passou
+                    return expectedDate < todayDate;
+                });
+                
+                // Combinar checkouts de hoje com contratos overdue
+                filtered = [...overdueContracts, ...filtered];
+                
+                // Remover duplicados (caso um checkout de hoje também seja overdue)
+                const seen = new Set();
+                filtered = filtered.filter(c => {
+                    const key = c.contract_number;
+                    if (seen.has(key)) return false;
+                    seen.add(key);
+                    return true;
+                });
+                
+                // Ordenar: overdue primeiro (por dias de atraso descendente), depois checkouts de hoje
+                filtered.sort((a, b) => {
+                    const aIsOverdue = a.checkin && !a.checkout && a.expected_return_date;
+                    const bIsOverdue = b.checkin && !b.checkout && b.expected_return_date;
+                    
+                    if (aIsOverdue && !bIsOverdue) return -1;
+                    if (!aIsOverdue && bIsOverdue) return 1;
+                    
+                    if (aIsOverdue && bIsOverdue) {
+                        // Ambos overdue - ordenar por dias de atraso (mais atrasado primeiro)
+                        const parseDate = (dateStr) => {
+                            if (dateStr.includes('/')) {
+                                const parts = dateStr.split('/');
+                                return new Date(parts[2], parts[1] - 1, parts[0]);
+                            }
+                            return new Date(dateStr);
+                        };
+                        
+                        const aDate = parseDate(a.expected_return_date);
+                        const bDate = parseDate(b.expected_return_date);
+                        return aDate - bDate; // Mais antigo (mais atrasado) primeiro
+                    }
+                    
+                    // Ambos são checkouts de hoje - manter ordem original
+                    return 0;
+                });
+            }
+            
             renderHistory(filtered);
         }
 
@@ -641,6 +708,33 @@
                         }
                     }
                     
+                    // Badge de checkout overdue (atrasado)
+                    let checkoutOverdueBadge = '';
+                    if (isOpen && contract.expected_return_date) {
+                        // Contrato aberto com data de recolha esperada
+                        const today = new Date();
+                        today.setHours(0, 0, 0, 0);
+                        
+                        // Parse expected return date (formato: DD/MM/YYYY ou YYYY-MM-DD)
+                        let expectedDate;
+                        if (contract.expected_return_date.includes('/')) {
+                            const parts = contract.expected_return_date.split('/');
+                            expectedDate = new Date(parts[2], parts[1] - 1, parts[0]);
+                        } else {
+                            expectedDate = new Date(contract.expected_return_date);
+                        }
+                        expectedDate.setHours(0, 0, 0, 0);
+                        
+                        // Se a data esperada já passou, marcar como overdue
+                        if (expectedDate < today) {
+                            const daysOverdue = Math.floor((today - expectedDate) / (1000 * 60 * 60 * 24));
+                            checkoutOverdueBadge = `<span class="px-2 py-1 rounded-full text-xs font-semibold bg-orange-500 text-white flex items-center gap-1">
+                                <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                                CHECKOUT OVERDUE (${daysOverdue}d)
+                            </span>`;
+                        }
+                    }
+                    
                     // Badge de danos para checkout normal
                     let damagesBadge = '';
                     if (hasCheckout) {
@@ -727,6 +821,7 @@
                                     </div>
                                     <div class="flex items-center gap-2 flex-wrap">
                                         ${statusBadge}
+                                        ${checkoutOverdueBadge}
                                         ${selfCheckoutBadge}
                                         ${damagesBadge}
                                         ${fuelWarningBadge}
