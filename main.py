@@ -35248,6 +35248,177 @@ async def delete_all_rental_agreements(request: Request):
         logging.error(f"Error deleting all rental agreements: {e}")
         return JSONResponse({"ok": False, "error": str(e)}, status_code=500)
 
+@app.delete("/api/rental-agreements/{ra_number}/inspections")
+async def delete_ra_inspections(ra_number: str, request: Request):
+    """Delete all inspections and photos for a specific rental agreement"""
+    try:
+        require_inspection_access(request)
+    except HTTPException:
+        return JSONResponse({"ok": False, "error": "Unauthorized"}, status_code=403)
+    
+    try:
+        ra_num = ra_number.replace('-09', '')
+        conn = _db_connect()
+        is_postgres = _is_postgresql_connection(conn)
+        
+        deleted_inspections = 0
+        deleted_photos = 0
+        
+        if is_postgres:
+            with conn.cursor() as cur:
+                # Get inspection IDs first
+                cur.execute("""
+                    SELECT id FROM vehicle_inspections 
+                    WHERE contract_number = %s
+                """, (ra_num,))
+                inspection_ids = [row[0] for row in cur.fetchall()]
+                
+                if inspection_ids:
+                    # Delete photos
+                    placeholders = ','.join(['%s'] * len(inspection_ids))
+                    cur.execute(f"""
+                        DELETE FROM inspection_photos 
+                        WHERE inspection_id IN ({placeholders})
+                    """, inspection_ids)
+                    deleted_photos = cur.rowcount
+                    
+                    # Delete inspections
+                    cur.execute("""
+                        DELETE FROM vehicle_inspections 
+                        WHERE contract_number = %s
+                    """, (ra_num,))
+                    deleted_inspections = cur.rowcount
+                
+            conn.commit()
+        else:
+            # SQLite
+            cursor = conn.cursor()
+            cursor.execute("""
+                SELECT id FROM vehicle_inspections 
+                WHERE contract_number = ?
+            """, (ra_num,))
+            inspection_ids = [row[0] for row in cursor.fetchall()]
+            
+            if inspection_ids:
+                placeholders = ','.join(['?'] * len(inspection_ids))
+                cursor.execute(f"""
+                    DELETE FROM inspection_photos 
+                    WHERE inspection_id IN ({placeholders})
+                """, inspection_ids)
+                deleted_photos = cursor.rowcount
+                
+                cursor.execute("""
+                    DELETE FROM vehicle_inspections 
+                    WHERE contract_number = ?
+                """, (ra_num,))
+                deleted_inspections = cursor.rowcount
+            
+            conn.commit()
+        
+        conn.close()
+        logging.info(f"🗑️ Deleted {deleted_inspections} inspections and {deleted_photos} photos for RA {ra_num}")
+        
+        return JSONResponse({
+            "ok": True,
+            "message": f"Deleted {deleted_inspections} inspections and {deleted_photos} photos",
+            "deleted_inspections": deleted_inspections,
+            "deleted_photos": deleted_photos
+        })
+    
+    except Exception as e:
+        logging.error(f"Error deleting inspections for RA {ra_number}: {e}")
+        return JSONResponse({"ok": False, "error": str(e)}, status_code=500)
+
+@app.delete("/api/rental-agreements/{ra_number}/parking-qr")
+async def delete_ra_parking_qr(ra_number: str, request: Request):
+    """Delete all parking QR codes for a specific rental agreement"""
+    try:
+        require_inspection_access(request)
+    except HTTPException:
+        return JSONResponse({"ok": False, "error": "Unauthorized"}, status_code=403)
+    
+    try:
+        ra_num = ra_number.replace('-09', '')
+        conn = _db_connect()
+        is_postgres = _is_postgresql_connection(conn)
+        
+        deleted_qrs = 0
+        
+        if is_postgres:
+            with conn.cursor() as cur:
+                cur.execute("""
+                    DELETE FROM parking_qr_codes 
+                    WHERE ra_number = %s
+                """, (ra_num,))
+                deleted_qrs = cur.rowcount
+            conn.commit()
+        else:
+            cursor = conn.cursor()
+            cursor.execute("""
+                DELETE FROM parking_qr_codes 
+                WHERE ra_number = ?
+            """, (ra_num,))
+            deleted_qrs = cursor.rowcount
+            conn.commit()
+        
+        conn.close()
+        logging.info(f"🗑️ Deleted {deleted_qrs} parking QR codes for RA {ra_num}")
+        
+        return JSONResponse({
+            "ok": True,
+            "message": f"Deleted {deleted_qrs} parking QR codes",
+            "deleted_qrs": deleted_qrs
+        })
+    
+    except Exception as e:
+        logging.error(f"Error deleting parking QR codes for RA {ra_number}: {e}")
+        return JSONResponse({"ok": False, "error": str(e)}, status_code=500)
+
+@app.delete("/api/rental-agreements/{ra_number}")
+async def delete_rental_agreement(ra_number: str, request: Request):
+    """Delete a specific rental agreement"""
+    try:
+        require_inspection_access(request)
+    except HTTPException:
+        return JSONResponse({"ok": False, "error": "Unauthorized"}, status_code=403)
+    
+    try:
+        ra_num = ra_number.replace('-09', '')
+        conn = _db_connect()
+        is_postgres = _is_postgresql_connection(conn)
+        
+        deleted = 0
+        
+        if is_postgres:
+            with conn.cursor() as cur:
+                cur.execute("""
+                    DELETE FROM rental_agreements 
+                    WHERE rental_agreement_number = %s
+                """, (ra_num,))
+                deleted = cur.rowcount
+            conn.commit()
+        else:
+            cursor = conn.cursor()
+            cursor.execute("""
+                DELETE FROM rental_agreements 
+                WHERE rental_agreement_number = ?
+            """, (ra_num,))
+            deleted = cursor.rowcount
+            conn.commit()
+        
+        conn.close()
+        logging.info(f"🗑️ Deleted rental agreement {ra_num}")
+        
+        return JSONResponse({
+            "ok": True,
+            "success": True,
+            "message": f"Rental agreement {ra_num} deleted successfully"
+        })
+    
+    except Exception as e:
+        logging.error(f"Error deleting rental agreement {ra_number}: {e}")
+        return JSONResponse({"ok": False, "error": str(e)}, status_code=500)
+
 @app.get("/api/debug-ra/{ra_number}")
 async def debug_ra(ra_number: str):
     """Debug endpoint to check RA data in database"""
