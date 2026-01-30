@@ -1685,7 +1685,7 @@
                         line-height: 1.6;
                         font-family: 'Outfit', sans-serif;
                     ">${message}</p>
-                    <button onclick="document.getElementById('contractStatusPopup').remove()" style="
+                    <button onclick="closeContractStatusPopup('${status}')" style="
                         background: #009cb6;
                         color: white;
                         border: none;
@@ -1707,9 +1707,26 @@
             // Close on background click
             popup.addEventListener('click', function(e) {
                 if (e.target === popup) {
-                    popup.remove();
+                    closeContractStatusPopup(status);
                 }
             });
+        }
+        
+        // Close contract status popup and ensure buttons remain in correct state
+        function closeContractStatusPopup(status) {
+            const popup = document.getElementById('contractStatusPopup');
+            if (popup) {
+                popup.remove();
+            }
+            
+            // Ensure buttons remain disabled for closed contracts
+            if (status === 'closed') {
+                disableBothButtons();
+                console.log('🚫 Popup closed: buttons remain disabled (contract closed)');
+            } else if (status === 'open') {
+                disableBothButtons();
+                console.log('🚫 Popup closed: buttons remain disabled (contract open)');
+            }
         }
         
         // Disable both buttons
