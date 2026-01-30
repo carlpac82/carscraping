@@ -1522,12 +1522,130 @@
                                     </div>
                                 </div>
                             </div>
+                            ` : isSelfCheckout ? `
+                            <!-- Para self_checkout - mostrar resumo Entrega vs Self-Checkout -->
+                            <div class="mb-6">
+                                <h4 class="text-lg font-bold text-gray-900 mb-4">Resumo da Inspeção</h4>
+                                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                    <!-- Entrega (Check-in) - AZUL -->
+                                    <div class="bg-[#e6f7fa] border border-[#009cb6] rounded-lg p-4">
+                                        <h5 class="font-bold text-[#009cb6] mb-3 flex items-center gap-2">
+                                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>
+                                            </svg>
+                                            Entrega (Check-In)
+                                        </h5>
+                                        <div class="space-y-2 text-sm">
+                                            <div class="flex justify-between">
+                                                <span class="text-gray-600">Data:</span>
+                                                <span class="font-semibold">${checkinInspectionData ? new Date(checkinInspectionData.created_at).toLocaleDateString('pt-PT') + ' ' + new Date(checkinInspectionData.created_at).toLocaleTimeString('pt-PT', {hour: '2-digit', minute: '2-digit'}) : 'N/A'}</span>
+                                            </div>
+                                            <div class="flex justify-between">
+                                                <span class="text-gray-600">Entregue por:</span>
+                                                <span class="font-semibold">${checkinInspectionData && checkinInspectionData.inspector_name ? getFirstLastName(checkinInspectionData.inspector_name) : 'N/A'}</span>
+                                            </div>
+                                            <div class="flex justify-between">
+                                                <span class="text-gray-600">Quilómetros:</span>
+                                                <span class="font-semibold">${checkinInspectionData && checkinInspectionData.odometer_reading ? checkinInspectionData.odometer_reading.toLocaleString() + ' km' : 'N/A'}</span>
+                                            </div>
+                                            <div class="flex justify-between">
+                                                <span class="text-gray-600">Danos:</span>
+                                                <span class="font-semibold">${checkinInspectionData ? checkinInspectionData.damage_count || 0 : 0}</span>
+                                            </div>
+                                        </div>
+                                        <!-- Fuel bar Entrega -->
+                                        <div class="mt-4 pt-3 border-t border-[#009cb6]">
+                                            <p class="text-xs text-gray-600 mb-2 text-center">Combustível na Entrega</p>
+                                            <div class="relative mb-1" style="height: 14px;">
+                                                <div class="relative flex justify-between text-[10px] md:text-xs font-semibold text-[#009cb6]">
+                                                    <span>R</span><span>1/4</span><span>1/2</span><span>3/4</span><span>F</span>
+                                                </div>
+                                            </div>
+                                            <div class="relative bg-white border-2 border-[#009cb6] rounded-lg h-6">
+                                                <div class="absolute inset-0 flex items-center">
+                                                    <div class="w-0.5 h-3 bg-[#009cb6]" style="position: absolute; left: 0%;"></div>
+                                                    <div class="w-0.5 h-3 bg-[#009cb6]" style="position: absolute; left: 25%;"></div>
+                                                    <div class="w-0.5 h-3 bg-[#009cb6]" style="position: absolute; left: 50%;"></div>
+                                                    <div class="w-0.5 h-3 bg-[#009cb6]" style="position: absolute; left: 75%;"></div>
+                                                    <div class="w-0.5 h-3 bg-[#009cb6]" style="position: absolute; right: 0%;"></div>
+                                                </div>
+                                                <div class="h-full bg-[#009cb6] rounded-lg" style="width: ${fuelToPercent(checkinInspectionData ? checkinInspectionData.fuel_level : 0)}%;"></div>
+                                            </div>
+                                            <p class="text-center text-sm font-bold text-[#009cb6] mt-1">${fuelToFraction(checkinInspectionData ? checkinInspectionData.fuel_level : 0)}</p>
+                                        </div>
+                                    </div>
+                                    
+                                    <!-- Self-Checkout - AMARELO -->
+                                    <div class="bg-yellow-50 border border-yellow-400 rounded-lg p-4">
+                                        <h5 class="font-bold text-yellow-600 mb-3 flex items-center gap-2">
+                                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                                            </svg>
+                                            Self-Checkout
+                                        </h5>
+                                        <div class="space-y-2 text-sm">
+                                            <div class="flex justify-between">
+                                                <span class="text-gray-600">Data:</span>
+                                                <span class="font-semibold">${new Date(inspection.created_at).toLocaleDateString('pt-PT')} ${new Date(inspection.created_at).toLocaleTimeString('pt-PT', {hour: '2-digit', minute: '2-digit'})}</span>
+                                            </div>
+                                            <div class="flex justify-between">
+                                                <span class="text-gray-600">Recolhido por:</span>
+                                                <span class="font-semibold">${inspection.inspector_name ? getFirstLastName(inspection.inspector_name) : 'N/A'}</span>
+                                            </div>
+                                            <div class="flex justify-between">
+                                                <span class="text-gray-600">Quilómetros:</span>
+                                                <span class="font-semibold">${inspection.odometer_reading ? inspection.odometer_reading.toLocaleString() + ' km' : 'N/A'}</span>
+                                            </div>
+                                            <div class="flex justify-between">
+                                                <span class="text-gray-600">Danos:</span>
+                                                <span class="font-semibold">${inspection.damage_count || 0}</span>
+                                            </div>
+                                        </div>
+                                        <!-- Fuel bar Self-Checkout -->
+                                        <div class="mt-4 pt-3 border-t border-yellow-400">
+                                            <p class="text-xs text-gray-600 mb-2 text-center">Combustível no Self-Checkout</p>
+                                            <div class="relative mb-1" style="height: 14px;">
+                                                <div class="relative flex justify-between text-[10px] md:text-xs font-semibold text-[#009cb6]">
+                                                    <span>R</span><span>1/4</span><span>1/2</span><span>3/4</span><span>F</span>
+                                                </div>
+                                            </div>
+                                            <div class="relative bg-white border-2 border-[#009cb6] rounded-lg h-6">
+                                                <div class="absolute inset-0 flex items-center">
+                                                    <div class="w-0.5 h-3 bg-[#009cb6]" style="position: absolute; left: 0%;"></div>
+                                                    <div class="w-0.5 h-3 bg-[#009cb6]" style="position: absolute; left: 25%;"></div>
+                                                    <div class="w-0.5 h-3 bg-[#009cb6]" style="position: absolute; left: 50%;"></div>
+                                                    <div class="w-0.5 h-3 bg-[#009cb6]" style="position: absolute; left: 75%;"></div>
+                                                    <div class="w-0.5 h-3 bg-[#009cb6]" style="position: absolute; right: 0%;"></div>
+                                                </div>
+                                                <div class="h-full bg-[#009cb6] rounded-lg" style="width: ${fuelToPercent(inspection.fuel_level)}%;"></div>
+                                            </div>
+                                            <p class="text-center text-sm font-bold text-[#009cb6] mt-1">${fuelToFraction(inspection.fuel_level)}</p>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <!-- Croqui de Danos do Check-In (para self-checkout) -->
+                            ${checkinInspectionData && checkinInspectionData.damage_croqui ? `
+                                <div class="mb-6">
+                                    <h4 class="text-lg font-bold text-gray-900 mb-4">Croqui de Danos da Entrega</h4>
+                                    <div class="bg-white border border-gray-200 rounded-lg p-4">
+                                        <img src="${checkinInspectionData.damage_croqui.startsWith('data:') ? checkinInspectionData.damage_croqui : 'data:image/png;base64,' + checkinInspectionData.damage_croqui}" 
+                                             alt="Croqui de Danos da Entrega" 
+                                             class="w-full max-w-2xl mx-auto rounded-lg"
+                                             onerror="this.style.display='none'; this.parentElement.innerHTML='<p class=text-red-500>Erro ao carregar croqui</p>'">
+                                    </div>
+                                    <p class="text-sm text-gray-600 mt-2 text-center">
+                                        <span class="font-semibold">Total de Danos na Entrega:</span> ${checkinInspectionData.damage_count || 0}
+                                    </p>
+                                </div>
+                            ` : ''}
                             ` : `
-                            <!-- Para checkin e self_checkout - mostrar detalhes simples -->
+                            <!-- Para checkin - mostrar detalhes simples -->
                             <div class="bg-gray-50 rounded-lg p-4 mb-6">
                                 <div class="grid grid-cols-2 md:grid-cols-3 gap-4">
                                     <div>
-                                        <p class="text-sm text-gray-600">${isSelfCheckout ? 'Recolhido por' : 'Entregue por'}</p>
+                                        <p class="text-sm text-gray-600">Entregue por</p>
                                         <p class="font-bold text-gray-900">${inspection.inspector_name ? getFirstLastName(inspection.inspector_name) : 'N/A'}</p>
                                     </div>
                                     <div>
@@ -1546,7 +1664,7 @@
                                         <p class="text-sm text-gray-600">Data e Hora</p>
                                         <p class="font-bold text-gray-900">${new Date(inspection.created_at).toLocaleDateString('pt-PT')} ${new Date(inspection.created_at).toLocaleTimeString('pt-PT', {hour: '2-digit', minute: '2-digit'})}</p>
                                     </div>
-                                    ${isSelfCheckout ? `
+                                    ${false ? `
                                     <div>
                                         <p class="text-sm text-gray-600">Estado</p>
                                         <p class="font-bold ${selfCheckoutStatus === 'validated' ? 'text-green-600' : selfCheckoutStatus === 'validated_with_incidence' ? 'text-orange-600' : selfCheckoutStatus === 'warned' ? 'text-yellow-600' : selfCheckoutStatus === 'invalidated' ? 'text-red-600' : 'text-orange-600'}">${selfCheckoutStatus === 'validated' ? 'Validado' : selfCheckoutStatus === 'validated_with_incidence' ? 'Validado com Incidências' : selfCheckoutStatus === 'warned' ? 'Com Divergências' : selfCheckoutStatus === 'invalidated' ? 'Invalidado' : 'Pendente'}</p>
