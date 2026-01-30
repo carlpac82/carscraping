@@ -35955,13 +35955,13 @@ async def get_parking_qr_preview(ra_number: str):
                        vehicle_plate, vehicle_brand, vehicle_model,
                        pickup_date, pickup_time
                 FROM rental_agreements 
-                WHERE ra_number = ?
+                WHERE rental_agreement_number = %s
             """, (ra_num,))
         else:
             cursor.execute("""
                 SELECT extracted_data 
                 FROM rental_agreements 
-                WHERE ra_number = ?
+                WHERE rental_agreement_number = ?
             """, (ra_num,))
         
         ra_row = cursor.fetchone()
@@ -36004,12 +36004,20 @@ async def get_parking_qr_preview(ra_number: str):
                 client_email = email_row[0]
         
         # Buscar QR codes disponíveis para este RA
-        cursor.execute("""
-            SELECT parking_number, qr_image_path, extracted_date, extracted_time, extracted_reference, pdf_data
-            FROM parking_qr_codes
-            WHERE ra_number = ?
-            ORDER BY parking_number
-        """, (ra_num,))
+        if _USE_NEW_DB:
+            cursor.execute("""
+                SELECT parking_number, qr_image_path, extracted_date, extracted_time, extracted_reference, pdf_data
+                FROM parking_qr_codes
+                WHERE ra_number = %s
+                ORDER BY parking_number
+            """, (ra_num,))
+        else:
+            cursor.execute("""
+                SELECT parking_number, qr_image_path, extracted_date, extracted_time, extracted_reference, pdf_data
+                FROM parking_qr_codes
+                WHERE ra_number = ?
+                ORDER BY parking_number
+            """, (ra_num,))
         
         qr_codes = []
         for row in cursor.fetchall():
