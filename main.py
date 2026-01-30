@@ -35982,45 +35982,138 @@ async def upload_parking_qr(
         if conn:
             conn.close()
 
-@app.post("/api/admin/add-pdf-data-column")
-async def add_pdf_data_column(request: Request):
-    """ENDPOINT TEMPORÁRIO: Adicionar coluna pdf_data à tabela parking_qr_codes"""
+@app.get("/api/admin/diagnose-parking-table")
+async def diagnose_parking_table(request: Request):
+    """ENDPOINT DE DIAGNÓSTICO: Verificar e corrigir tabela parking_qr_codes"""
     require_auth(request)
     
     conn = None
     try:
-        logging.info("🔧 Adding pdf_data column to parking_qr_codes table...")
         conn = _db_connect()
         cursor = conn.cursor()
         
+        diagnostics = {
+            "database_type": "PostgreSQL" if _USE_NEW_DB else "SQLite",
+            "table_exists": False,
+            "columns": [],
+            "has_pdf_data_column": False,
+            "total_qr_codes": 0,
+            "qr_codes_with_pdf": 0,
+            "migration_attempted": False,
+            "migration_success": False,
+            "sample_data": []
+        }
+        
+        # 1. Verificar se a tabela existe
         if _USE_NEW_DB:
-            # PostgreSQL
             cursor.execute("""
-                ALTER TABLE parking_qr_codes 
-                ADD COLUMN IF NOT EXISTS pdf_data TEXT
+                SELECT EXISTS (
+                    SELECT FROM information_schema.tables 
+                    WHERE table_name = 'parking_qr_codes'
+                )
+            """)
+            diagnostics["table_exists"] = cursor.fetchone()[0]
+        else:
+            cursor.execute("""
+                SELECT name FROM sqlite_master 
+                WHERE type='table' AND name='parking_qr_codes'
+            """)
+            diagnostics["table_exists"] = cursor.fetchone() is not None
+        
+        if not diagnostics["table_exists"]:
+            return JSONResponse({
+                "success": False,
+                "diagnostics": diagnostics,
+                "error": "Tabela parking_qr_codes não existe!"
+            })
+        
+        # 2. Verificar colunas
+        if _USE_NEW_DB:
+            cursor.execute("""
+                SELECT column_name, data_type 
+                FROM information_schema.columns 
+                WHERE table_name = 'parking_qr_codes'
+                ORDER BY ordinal_position
+            """)
+            for col_name, col_type in cursor.fetchall():
+                diagnostics["columns"].append(f"{col_name} ({col_type})")
+                if col_name == 'pdf_data':
+                    diagnostics["has_pdf_data_column"] = True
+        else:
+            cursor.execute("PRAGMA table_info(parking_qr_codes)")
+            for row in cursor.fetchall():
+                col_name = row[1]
+                col_type = row[2]
+                diagnostics["columns"].append(f"{col_name} ({col_type})")
+                if col_name == 'pdf_data':
+                    diagnostics["has_pdf_data_column"] = True
+        
+        # 3. Se não tiver a coluna, adicionar
+        if not diagnostics["has_pdf_data_column"]:
+            diagnostics["migration_attempted"] = True
+            try:
+                if _USE_NEW_DB:
+                    cursor.execute("ALTER TABLE parking_qr_codes ADD COLUMN pdf_data TEXT")
+                else:
+                    cursor.execute("ALTER TABLE parking_qr_codes ADD COLUMN pdf_data TEXT")
+                conn.commit()
+                diagnostics["migration_success"] = True
+                diagnostics["has_pdf_data_column"] = True
+                diagnostics["columns"].append("pdf_data (TEXT) - ADICIONADA AGORA")
+            except Exception as migration_error:
+                diagnostics["migration_error"] = str(migration_error)
+                conn.rollback()
+        
+        # 4. Contar QR codes
+        cursor.execute("SELECT COUNT(*) FROM parking_qr_codes")
+        diagnostics["total_qr_codes"] = cursor.fetchone()[0]
+        
+        if diagnostics["has_pdf_data_column"]:
+            if _USE_NEW_DB:
+                cursor.execute("SELECT COUNT(*) FROM parking_qr_codes WHERE pdf_data IS NOT NULL")
+            else:
+                cursor.execute("SELECT COUNT(*) FROM parking_qr_codes WHERE pdf_data IS NOT NULL")
+            diagnostics["qr_codes_with_pdf"] = cursor.fetchone()[0]
+        
+        # 5. Buscar dados de exemplo
+        if _USE_NEW_DB:
+            cursor.execute("""
+                SELECT ra_number, parking_number, extracted_reference, 
+                       CASE WHEN pdf_data IS NULL THEN 'NULL' ELSE 'EXISTS' END as pdf_status
+                FROM parking_qr_codes
+                ORDER BY uploaded_at DESC
+                LIMIT 5
             """)
         else:
-            # SQLite
             cursor.execute("""
-                ALTER TABLE parking_qr_codes 
-                ADD COLUMN pdf_data TEXT
+                SELECT ra_number, parking_number, extracted_reference, 
+                       CASE WHEN pdf_data IS NULL THEN 'NULL' ELSE 'EXISTS' END as pdf_status
+                FROM parking_qr_codes
+                ORDER BY uploaded_at DESC
+                LIMIT 5
             """)
         
-        conn.commit()
-        logging.info("✅ Column pdf_data added successfully!")
+        for row in cursor.fetchall():
+            diagnostics["sample_data"].append({
+                "ra": row[0],
+                "parking": row[1],
+                "reference": row[2],
+                "pdf_status": row[3]
+            })
         
         return JSONResponse({
             "success": True,
-            "message": "Column pdf_data added to parking_qr_codes table"
+            "diagnostics": diagnostics
         })
         
     except Exception as e:
-        logging.error(f"❌ Error adding column: {e}")
-        if conn:
-            conn.rollback()
+        logging.error(f"❌ Error in diagnostics: {e}")
+        import traceback
+        traceback.print_exc()
         return JSONResponse({
             "success": False,
-            "error": str(e)
+            "error": str(e),
+            "diagnostics": diagnostics if 'diagnostics' in locals() else {}
         }, status_code=500)
     finally:
         if conn:
