@@ -5310,12 +5310,17 @@
                     <div id="withReservationSection" class="mb-4">
                         <label class="block text-sm font-medium text-gray-700 mb-2">${existingParkingData ? 'Substituir PDF com QR Code' : 'Selecione o PDF com QR Code'}</label>
                         <p class="text-xs text-gray-500 mb-3">O sistema irá detectar automaticamente o número do parque (1-4)</p>
-                        <input type="file" id="parkingQRFile" accept=".pdf" class="block w-full text-sm text-gray-500
-                            file:mr-4 file:py-2 file:px-4
-                            file:rounded-lg file:border-0
-                            file:text-sm file:font-semibold
-                            file:bg-blue-50 file:text-blue-700
-                            hover:file:bg-blue-100 cursor-pointer"/>
+                        <div class="flex items-center gap-2">
+                            <input type="file" id="parkingQRFile" accept=".pdf" class="block w-full text-sm text-gray-500
+                                file:mr-4 file:py-2 file:px-4
+                                file:rounded-lg file:border-0
+                                file:text-sm file:font-semibold
+                                file:bg-blue-50 file:text-blue-700
+                                hover:file:bg-blue-100 cursor-pointer"/>
+                            <button id="previewCurrentPDFBtn" onclick="previewCurrentUploadedPDF()" class="hidden px-3 py-2 bg-blue-500 text-white text-sm rounded-lg hover:bg-blue-600 transition-colors whitespace-nowrap" title="Ver PDF">
+                                📄 Ver
+                            </button>
+                        </div>
                     </div>
                     
                     <div id="noReservationSection" class="mb-4 hidden">
@@ -5620,6 +5625,12 @@
                     statusDiv.querySelector('div').className = 'bg-green-50 border border-green-200 rounded-lg p-3';
                     messageEl.className = 'text-sm text-green-700 font-medium';
                     uploadBtn.disabled = false;
+                    
+                    // Mostrar botão de preview
+                    const previewBtn = document.getElementById('previewCurrentPDFBtn');
+                    if (previewBtn) {
+                        previewBtn.classList.remove('hidden');
+                    }
                 } else {
                     messageEl.textContent = '⚠️ Não foi possível detectar o número do parque. Verifique o PDF.';
                     statusDiv.querySelector('div').className = 'bg-yellow-50 border border-yellow-200 rounded-lg p-3';
@@ -5632,6 +5643,30 @@
                 statusDiv.querySelector('div').className = 'bg-red-50 border border-red-200 rounded-lg p-3';
                 messageEl.className = 'text-sm text-red-700 font-medium';
             }
+        }
+        
+        // Preview do PDF que acabou de ser carregado
+        function previewCurrentUploadedPDF() {
+            if (!window.currentPdfBase64) {
+                showNotification('PDF não disponível', 'error');
+                return;
+            }
+            
+            const pdfWindow = window.open('', '_blank');
+            pdfWindow.document.write(`
+                <html>
+                <head>
+                    <title>Preview PDF Parque</title>
+                    <style>
+                        body { margin: 0; padding: 0; }
+                        iframe { width: 100vw; height: 100vh; border: none; }
+                    </style>
+                </head>
+                <body>
+                    <iframe src="${window.currentPdfBase64}"></iframe>
+                </body>
+                </html>
+            `);
         }
         
         // Process upload and send email with detected parking
