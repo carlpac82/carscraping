@@ -35969,11 +35969,13 @@ async def get_parking_qr_preview(ra_number: str):
     """Obter preview do email de parque com dados do QR code e permitir edição do email do cliente"""
     conn = None
     try:
+        logging.info(f"🅿️ Parking QR preview request for RA: {ra_number}")
         conn = _db_connect()
         cursor = conn.cursor()
         
         # Buscar dados do RA
         ra_num = ra_number.replace('-09', '')
+        logging.info(f"🔍 Searching for RA: {ra_num}")
         
         if _USE_NEW_DB:
             cursor.execute("""
@@ -36038,58 +36040,76 @@ async def get_parking_qr_preview(ra_number: str):
         
         # Buscar QR codes disponíveis para este RA
         qr_codes = []
+        
+        # Primeiro tentar sem pdf_data (para compatibilidade com DBs antigas)
         try:
+            logging.info(f"🔍 Fetching parking QR codes for RA: {ra_num}")
             if _USE_NEW_DB:
                 cursor.execute("""
-                    SELECT parking_number, qr_image_path, extracted_date, extracted_time, extracted_reference, pdf_data
+                    SELECT parking_number, qr_image_path, extracted_date, extracted_time, extracted_reference
                     FROM parking_qr_codes
                     WHERE ra_number = %s
                     ORDER BY parking_number
                 """, (ra_num,))
             else:
                 cursor.execute("""
-                    SELECT parking_number, qr_image_path, extracted_date, extracted_time, extracted_reference, pdf_data
+                    SELECT parking_number, qr_image_path, extracted_date, extracted_time, extracted_reference
                     FROM parking_qr_codes
                     WHERE ra_number = ?
                     ORDER BY parking_number
                 """, (ra_num,))
             
-            for row in cursor.fetchall():
+            rows = cursor.fetchall()
+            logging.info(f"✅ Found {len(rows)} parking QR codes")
+            
+            for row in rows:
                 qr_codes.append({
                     "parking_number": row[0],
                     "qr_image_path": row[1],
                     "extracted_date": row[2],
                     "extracted_time": row[3],
                     "extracted_reference": row[4],
-                    "pdf_data": row[5] if len(row) > 5 else None
+                    "pdf_data": None  # Por defeito None, será preenchido abaixo se a coluna existir
                 })
+            
+            # Agora tentar buscar pdf_data se a coluna existir
+            if len(qr_codes) > 0:
+                try:
+                    logging.info("🔍 Trying to fetch pdf_data...")
+                    if _USE_NEW_DB:
+                        cursor.execute("""
+                            SELECT parking_number, pdf_data
+                            FROM parking_qr_codes
+                            WHERE ra_number = %s AND pdf_data IS NOT NULL
+                            ORDER BY parking_number
+                        """, (ra_num,))
+                    else:
+                        cursor.execute("""
+                            SELECT parking_number, pdf_data
+                            FROM parking_qr_codes
+                            WHERE ra_number = ? AND pdf_data IS NOT NULL
+                            ORDER BY parking_number
+                        """, (ra_num,))
+                    
+                    pdf_rows = cursor.fetchall()
+                    logging.info(f"✅ Found {len(pdf_rows)} QR codes with pdf_data")
+                    
+                    # Atualizar os qr_codes com pdf_data
+                    for pdf_row in pdf_rows:
+                        parking_num = pdf_row[0]
+                        pdf_data = pdf_row[1]
+                        for qr in qr_codes:
+                            if qr["parking_number"] == parking_num:
+                                qr["pdf_data"] = pdf_data
+                                break
+                except Exception as pdf_error:
+                    logging.warning(f"⚠️ Column pdf_data does not exist yet: {pdf_error}")
+                    # Continuar sem pdf_data
+                    
         except Exception as e:
-            # Se a coluna pdf_data não existir, buscar sem ela
-            logging.warning(f"Could not fetch pdf_data, trying without it: {e}")
-            if _USE_NEW_DB:
-                cursor.execute("""
-                    SELECT parking_number, qr_image_path, extracted_date, extracted_time, extracted_reference
-                    FROM parking_qr_codes
-                    WHERE ra_number = %s
-                    ORDER BY parking_number
-                """, (ra_num,))
-            else:
-                cursor.execute("""
-                    SELECT parking_number, qr_image_path, extracted_date, extracted_time, extracted_reference
-                    FROM parking_qr_codes
-                    WHERE ra_number = ?
-                    ORDER BY parking_number
-                """, (ra_num,))
-            
-            for row in cursor.fetchall():
-                qr_codes.append({
-                    "parking_number": row[0],
-                    "qr_image_path": row[1],
-                    "extracted_date": row[2],
-                    "extracted_time": row[3],
-                    "extracted_reference": row[4],
-                    "pdf_data": None
-                })
+            logging.error(f"❌ Error fetching parking QR codes: {e}")
+            import traceback
+            traceback.print_exc()
         
         return JSONResponse({
             "success": True,
