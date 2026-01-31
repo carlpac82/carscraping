@@ -2569,17 +2569,13 @@
             }
             
             // Update canvas pointer events and ensure it's ready
+            // Canvas ALWAYS active (pins are drawn on canvas now, same as self-checkout)
             if (canvas) {
-                if (tool === 'draw' || tool === 'eraser') {
-                    canvas.style.pointerEvents = 'auto';
-                    canvas.style.zIndex = '15';
-                    console.log('✅ Canvas activated for', tool, 'pointer-events:', canvas.style.pointerEvents, 'z-index:', canvas.style.zIndex);
-                    console.log('✅ Canvas size:', canvas.width + 'x' + canvas.height);
-                    console.log('✅ Canvas context:', !!ctx);
-                } else {
-                    canvas.style.pointerEvents = 'none';
-                    console.log('🚫 Canvas deactivated for', tool);
-                }
+                canvas.style.pointerEvents = 'auto';
+                canvas.style.zIndex = '15';
+                console.log('✅ Canvas activated for', tool, 'pointer-events:', canvas.style.pointerEvents, 'z-index:', canvas.style.zIndex);
+                console.log('✅ Canvas size:', canvas.width + 'x' + canvas.height);
+                console.log('✅ Canvas context:', !!ctx);
             } else {
                 console.error('❌ Canvas not found when selecting tool:', tool);
             }
