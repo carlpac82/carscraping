@@ -2684,9 +2684,12 @@
         function addPin(event) {
             const container = document.getElementById('carDiagram');
             const rect = container.getBoundingClientRect();
+            console.log('🔍 addPin rect:', {left: rect.left, top: rect.top, width: rect.width, height: rect.height});
+            console.log('🔍 addPin event:', {clientX: event.clientX, clientY: event.clientY});
             // Use clientX/Y (viewport coordinates) and subtract container position
             const x = event.clientX - rect.left;
             const y = event.clientY - rect.top;
+            console.log('🔍 addPin calculated:', {x, y});
             
             pinCounter++;
             const pinId = `pin-${pinCounter}`;
@@ -2695,14 +2698,10 @@
             pin.className = `damage-pin size-${currentSize}`;
             pin.id = pinId;
             // No text content - pins are just black dots
-            // Position pin with top-left corner at click position
-            // Then offset by half the pin size to center it
-            const pinSize = currentSize === 'tiny' ? 8 : currentSize === 'small' ? 12 : currentSize === 'large' ? 24 : 16;
-            const finalX = x - pinSize/2;
-            const finalY = y - pinSize/2;
-            console.log(`📍 Pin position: currentSize=${currentSize}, pinSize=${pinSize}, x=${x}, y=${y}, finalX=${finalX}, finalY=${finalY}`);
-            pin.style.left = finalX + 'px';
-            pin.style.top = finalY + 'px';
+            // Position pin at click position (center) using transform translate
+            pin.style.left = x + 'px';
+            pin.style.top = y + 'px';
+            pin.style.transform = 'translate(-50%, -50%)';
             
             // If in pickup mode, use RED color for new damages
             const isNewDamage = window.isPickupMode === true;
@@ -3653,23 +3652,22 @@
                     
                     if (left === 0 && top === 0) return;
                     
-                    // Get pin size from CSS (width/height, not radius)
-                    let pinWidth = 16;
-                    if (pin.classList.contains('size-tiny')) pinWidth = 8;
-                    else if (pin.classList.contains('size-small')) pinWidth = 12;
-                    else if (pin.classList.contains('size-large')) pinWidth = 24;
+                    // Pin has transform: translate(-50%, -50%), so left/top represent CENTER
+                    // Same as check-in - multiply coordinates directly by scale
+                    const pinX = left * scaleX;
+                    const pinY = top * scaleY;
                     
-                    const r = pinWidth / 2;  // Radius is half the width
-                    
-                    // Pin is positioned with top-left corner, so add radius to get center
-                    const centerX = (left + r) * scaleX;
-                    const centerY = (top + r) * scaleY;
+                    // Get pin radius for drawing
+                    let r = 8;
+                    if (pin.classList.contains('size-tiny')) r = 4;
+                    else if (pin.classList.contains('size-small')) r = 6;
+                    else if (pin.classList.contains('size-large')) r = 12;
                     
                     const scaledRadius = r * Math.min(scaleX, scaleY);
                     
                     // Draw WITHOUT ctx.scale() - coordinates already scaled
                     tempCtx.beginPath();
-                    tempCtx.arc(centerX, centerY, scaledRadius, 0, Math.PI * 2);
+                    tempCtx.arc(pinX, pinY, scaledRadius, 0, Math.PI * 2);
                     tempCtx.fillStyle = '#000000';
                     tempCtx.fill();
                     tempCtx.strokeStyle = '#ffffff';
