@@ -590,11 +590,21 @@
                         
                         // Se ainda não foi feita, verificar data prevista de recolha
                         if (!c.checkout && !c.self_checkout && c.expected_return_date) {
+                            console.log('🔍 Checking expected return date for:', c.vehicle_plate);
+                            console.log('   expected_return_date:', c.expected_return_date);
+                            console.log('   searchDate:', searchDate);
+                            
                             // Normalizar formato da data (pode vir como "DD/MM/YYYY" ou "DD - MM - YYYY")
                             const dateStr = c.expected_return_date.replace(/\s+/g, '').replace(/-/g, '/');
+                            console.log('   dateStr after normalization:', dateStr);
+                            
                             const parts = dateStr.split('/');
+                            console.log('   parts:', parts);
+                            
                             if (parts.length === 3) {
                                 const expectedDate = `${parts[2]}-${parts[1].padStart(2, '0')}-${parts[0].padStart(2, '0')}`;
+                                console.log('   expectedDate formatted:', expectedDate);
+                                console.log('   Match?', expectedDate === searchDate);
                                 return expectedDate === searchDate;
                             }
                         }
