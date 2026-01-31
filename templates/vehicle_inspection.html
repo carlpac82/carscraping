@@ -3512,9 +3512,43 @@
         // Capture croqui while diagram is visible (before modal/overlay hides it)
         async function captureCroquiBeforeSave() {
             try {
-                const canvas = document.getElementById('drawingCanvas');
                 const container = document.getElementById('carDiagram');
+                const canvas = document.getElementById('drawingCanvas');
                 const croquiImg = container ? container.querySelector('img') : null;
+                
+                // PERSISTENT DEBUG LOGS
+                const debugInfo = {
+                    savedCanvasWidth: savedCanvasWidth,
+                    savedCanvasHeight: savedCanvasHeight,
+                    canvasWidth: canvas?.width,
+                    canvasHeight: canvas?.height,
+                    croquiOffsetWidth: croquiImg?.offsetWidth,
+                    croquiOffsetHeight: croquiImg?.offsetHeight,
+                    croquiNaturalWidth: croquiImg?.naturalWidth,
+                    croquiNaturalHeight: croquiImg?.naturalHeight,
+                    containerOffsetWidth: container?.offsetWidth,
+                    containerOffsetHeight: container?.offsetHeight,
+                    pins: []
+                };
+                
+                const pins = container?.querySelectorAll('.damage-pin:not(#pinPreview)');
+                pins?.forEach((pin, i) => {
+                    debugInfo.pins.push({
+                        index: i,
+                        left: pin.style.left,
+                        top: pin.style.top,
+                        offsetLeft: pin.offsetLeft,
+                        offsetTop: pin.offsetTop
+                    });
+                });
+                
+                console.log('🔍🔍🔍 CAPTURE DEBUG INFO:', JSON.stringify(debugInfo, null, 2));
+                window.lastCaptureDebug = debugInfo;
+                
+                if (!container || !croquiImg || !croquiImg.complete || croquiImg.naturalWidth === 0) {
+                    console.error('❌ Cannot capture: missing elements or image not loaded');
+                    return '';
+                }
                 
                 console.log('🎨 Capture check - Canvas:', !!canvas, canvas?.width, 'x', canvas?.height);
                 console.log('🎨 Capture check - Container:', !!container);
