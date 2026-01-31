@@ -1166,60 +1166,41 @@ def combine_croqui_with_damages(delivery_croqui_base64=None, pickup_damages=None
         img_data = base64.b64decode(delivery_croqui_base64)
         img = Image.open(io.BytesIO(img_data))
         
-        # Criar canvas para desenhar pins
+        # Criar imagem com fundo branco para evitar fundo preto no email
+        if img.mode == 'RGBA':
+            # Criar fundo branco
+            white_bg = Image.new('RGB', img.size, (255, 255, 255))
+            # Colar a imagem com transparência sobre o fundo branco
+            white_bg.paste(img, mask=img.split()[3])  # Use alpha channel as mask
+            img = white_bg
+        elif img.mode != 'RGB':
+            # Converter para RGB com fundo branco
+            white_bg = Image.new('RGB', img.size, (255, 255, 255))
+            white_bg.paste(img)
+            img = white_bg
+        
+        # Criar canvas para desenhar
         draw = ImageDraw.Draw(img)
         
-        # Desenhar danos extra
+        # Desenhar danos extra em vermelho
         for damage in pickup_damages:
+            x = damage.get('x', 0)
+            y = damage.get('y', 0)
             damage_type = damage.get('type', 'pin')
             
             if damage_type == 'pin':
                 # Desenhar pin vermelho (círculo)
-                x = damage.get('x', 0)
-                y = damage.get('y', 0)
                 radius = 8
                 draw.ellipse(
                     [(x - radius, y - radius), (x + radius, y + radius)],
                     fill='#dc3545',  # Vermelho
                     outline='#dc3545'
                 )
-            elif damage_type == 'drawing':
-                # Desenhar traços/riscos (vêm como dataURL do canvas)
-                dataURL = damage.get('dataURL', '')
-                if dataURL:
-                    try:
-                        # Extrair base64 do dataURL
-                        if dataURL.startswith('data:image'):
-                            drawing_base64 = dataURL.split(',')[1]
-                        else:
-                            drawing_base64 = dataURL
-                        
-                        # Decodificar e abrir imagem do drawing
-                        drawing_data = base64.b64decode(drawing_base64)
-                        drawing_img = Image.open(io.BytesIO(drawing_data))
-                        
-                        logging.info(f"📐 Drawing size: {drawing_img.size}, Croqui base size: {img.size}")
-                        
-                        # Converter ambos para RGBA para permitir alpha blending
-                        if img.mode != 'RGBA':
-                            img = img.convert('RGBA')
-                        if drawing_img.mode != 'RGBA':
-                            drawing_img = drawing_img.convert('RGBA')
-                        
-                        # Sobrepor o drawing no croqui
-                        img = Image.alpha_composite(img, drawing_img)
-                        logging.info(f"✅ Drawing overlay applied using alpha_composite")
-                        
-                        # Recriar draw object após composite
-                        draw = ImageDraw.Draw(img)
-                    except Exception as e:
-                        logging.error(f"❌ Error applying drawing overlay: {e}")
-        
-        # Converter para RGB com fundo branco antes de salvar
-        if img.mode == 'RGBA':
-            white_bg = Image.new('RGB', img.size, (255, 255, 255))
-            white_bg.paste(img, mask=img.split()[3])
-            img = white_bg
+            elif damage_type == 'scratch':
+                # Desenhar risco vermelho (linha)
+                x2 = damage.get('x2', x + 20)
+                y2 = damage.get('y2', y + 20)
+                draw.line([(x, y), (x2, y2)], fill='#dc3545', width=3)
         
         # Converter de volta para base64
         buffer = io.BytesIO()
