@@ -590,10 +590,11 @@
                         
                         // Se ainda não foi feita, verificar data prevista de recolha
                         if (!c.checkout && !c.self_checkout && c.expected_return_date) {
-                            // Converter expected_return_date (formato "DD/MM/YYYY") para "YYYY-MM-DD"
-                            const parts = c.expected_return_date.split('/');
+                            // Normalizar formato da data (pode vir como "DD/MM/YYYY" ou "DD - MM - YYYY")
+                            const dateStr = c.expected_return_date.replace(/\s+/g, '').replace(/-/g, '/');
+                            const parts = dateStr.split('/');
                             if (parts.length === 3) {
-                                const expectedDate = `${parts[2]}-${parts[1]}-${parts[0]}`;
+                                const expectedDate = `${parts[2]}-${parts[1].padStart(2, '0')}-${parts[0].padStart(2, '0')}`;
                                 return expectedDate === searchDate;
                             }
                         }
@@ -611,9 +612,11 @@
                         
                         // Também verificar data prevista de recolha
                         if (!c.checkout && !c.self_checkout && c.expected_return_date) {
-                            const parts = c.expected_return_date.split('/');
+                            // Normalizar formato da data (pode vir como "DD/MM/YYYY" ou "DD - MM - YYYY")
+                            const dateStr = c.expected_return_date.replace(/\s+/g, '').replace(/-/g, '/');
+                            const parts = dateStr.split('/');
                             if (parts.length === 3) {
-                                const expectedDate = `${parts[2]}-${parts[1]}-${parts[0]}`;
+                                const expectedDate = `${parts[2]}-${parts[1].padStart(2, '0')}-${parts[0].padStart(2, '0')}`;
                                 return expectedDate === searchDate;
                             }
                         }
