@@ -564,7 +564,10 @@
                     if (filterInspectionType === 'checkin') {
                         return c.checkin !== null;
                     } else if (filterInspectionType === 'checkout') {
-                        return c.checkout !== null || c.self_checkout !== null;
+                        // Mostrar contratos com checkout/self-checkout OU contratos abertos (com recolha pendente)
+                        const hasCheckout = c.checkout !== null || c.self_checkout !== null;
+                        const isOpen = c.checkin !== null && !c.checkout && (!c.self_checkout || c.self_checkout.status === 'pending');
+                        return hasCheckout || isOpen;
                     }
                     return true;
                 });
