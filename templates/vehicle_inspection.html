@@ -3820,7 +3820,7 @@
                 date: document.getElementById('inputDate')?.value || '',
                 time: document.getElementById('inputTime')?.value || '',
                 client_email: email,
-                send_email: true, // ALWAYS true - this function only called when sending email
+                send_email: email ? true : false, // Only send email if email is provided
                 vehicle_id: window.currentVehicleId || null, // Add vehicle_id from fleet
                 damageCroqui: damageCroquiBase64 // Add damage croqui image
             };

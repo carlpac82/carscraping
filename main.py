@@ -30053,8 +30053,8 @@ async def save_inspection(request: Request):
         time = data.get('time', '')
         email = data.get('client_email', data.get('email', ''))
         send_email_raw = data.get('send_email', False)
-        # FORCE: If email is present and valid, ALWAYS send email regardless of send_email flag
-        send_email = bool(email and email.strip())  # True if email exists and is not empty
+        # Respect send_email flag from frontend - only send if explicitly requested
+        send_email = bool(send_email_raw)  # True only if frontend explicitly requests email
         vehicle_id = data.get('vehicle_id', None)
         damage_croqui = data.get('damage_croqui', data.get('damageCroqui', ''))  # Base64 image of damage croqui
         
