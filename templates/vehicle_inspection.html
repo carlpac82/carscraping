@@ -3590,42 +3590,40 @@
                     console.log('⚠️ No saved drawings found in damages array');
                 }
                 
-                // Draw pins
+                // Draw pins - use same scaling approach as drawings
                 const pins = container.querySelectorAll('.damage-pin:not(#pinPreview)');
-                console.log('📍 Drawing', pins.length, 'pins');
-                console.log('📍 Scale factors: scaleX=' + scaleX.toFixed(3) + ', scaleY=' + scaleY.toFixed(3));
                 
-                pins.forEach((pin, i) => {
-                    const left = parseFloat(pin.style.left) || 0;
-                    const top = parseFloat(pin.style.top) || 0;
+                if (pins.length > 0) {
+                    // Apply scale to context (same as drawings)
+                    tempCtx.save();
+                    tempCtx.scale(scaleX, scaleY);
                     
-                    console.log(`  Pin ${i + 1}: CSS left=${left}, top=${top}`);
+                    pins.forEach((pin, i) => {
+                        const left = parseFloat(pin.style.left) || 0;
+                        const top = parseFloat(pin.style.top) || 0;
+                        
+                        if (left === 0 && top === 0) return;
+                        
+                        // Use original coordinates - scale is applied to context
+                        const x = left;
+                        const y = top;
+                        
+                        let r = 8;
+                        if (pin.classList.contains('size-tiny')) r = 4;
+                        else if (pin.classList.contains('size-small')) r = 6;
+                        else if (pin.classList.contains('size-large')) r = 12;
+                        
+                        tempCtx.beginPath();
+                        tempCtx.arc(x, y, r, 0, Math.PI * 2);
+                        tempCtx.fillStyle = '#000000';
+                        tempCtx.fill();
+                        tempCtx.strokeStyle = '#ffffff';
+                        tempCtx.lineWidth = 2;
+                        tempCtx.stroke();
+                    });
                     
-                    if (left === 0 && top === 0) {
-                        console.log(`  ⚠️ Pin ${i + 1} skipped (0,0)`);
-                        return;
-                    }
-                    
-                    const x = left * scaleX;
-                    const y = top * scaleY;
-                    
-                    let r = 8;
-                    if (pin.classList.contains('size-tiny')) r = 4;
-                    else if (pin.classList.contains('size-small')) r = 6;
-                    else if (pin.classList.contains('size-large')) r = 12;
-                    
-                    const sr = r * Math.min(scaleX, scaleY);
-                    
-                    console.log(`  Pin ${i + 1}: scaled x=${x.toFixed(1)}, y=${y.toFixed(1)}, radius=${sr.toFixed(1)}`);
-                    
-                    tempCtx.beginPath();
-                    tempCtx.arc(x, y, sr, 0, Math.PI * 2);
-                    tempCtx.fillStyle = '#000000';
-                    tempCtx.fill();
-                    tempCtx.strokeStyle = '#ffffff';
-                    tempCtx.lineWidth = 2;
-                    tempCtx.stroke();
-                });
+                    tempCtx.restore();
+                }
                 
                 const result = tempCanvas.toDataURL('image/png');
                 console.log('✅ Croqui captured:', pins.length, 'pins,', result.length, 'chars');
