@@ -2854,11 +2854,19 @@
             if (!carImg || !drawingCanvas) return null;
             
             try {
+                // Log sizes for debugging
+                console.log('📐 Capture sizes:');
+                console.log('  carImg.naturalWidth x naturalHeight:', carImg.naturalWidth, 'x', carImg.naturalHeight);
+                console.log('  carImg.width x height (CSS):', carImg.width, 'x', carImg.height);
+                console.log('  drawingCanvas.width x height:', drawingCanvas.width, 'x', drawingCanvas.height);
+                
                 // Create temporary canvas
                 const tempCanvas = document.createElement('canvas');
                 tempCanvas.width = carImg.naturalWidth;
                 tempCanvas.height = carImg.naturalHeight;
                 const tempCtx = tempCanvas.getContext('2d');
+                
+                console.log('  tempCanvas.width x height:', tempCanvas.width, 'x', tempCanvas.height);
                 
                 // Step 1: Draw base car image
                 tempCtx.drawImage(carImg, 0, 0);
@@ -2879,8 +2887,8 @@
                     }
                 }
                 
-                // Step 3: Draw canvas with new damages
-                tempCtx.drawImage(drawingCanvas, 0, 0);
+                // Step 3: Draw canvas with new damages (scale to match tempCanvas size)
+                tempCtx.drawImage(drawingCanvas, 0, 0, tempCanvas.width, tempCanvas.height);
                 
                 return tempCanvas.toDataURL('image/png');
             } catch (error) {
