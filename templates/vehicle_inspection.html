@@ -2682,15 +2682,40 @@
         }
         
         function addPin(event) {
-            if (!canvas || !ctx) return;
+            if (!canvas || !ctx) {
+                console.error('❌ Canvas or context not available');
+                return;
+            }
             
             const rect = canvas.getBoundingClientRect();
+            
+            console.log('📍 addPin - canvas rect:', {
+                left: rect.left,
+                top: rect.top,
+                width: rect.width,
+                height: rect.height
+            });
+            console.log('📍 addPin - canvas size:', {
+                width: canvas.width,
+                height: canvas.height
+            });
+            console.log('📍 addPin - event:', {
+                clientX: event.clientX,
+                clientY: event.clientY
+            });
             
             // Calculate scale to natural canvas size (SAME as self-checkout)
             const scaleX = canvas.width / rect.width;
             const scaleY = canvas.height / rect.height;
             const x = (event.clientX - rect.left) * scaleX;
             const y = (event.clientY - rect.top) * scaleY;
+            
+            console.log('📍 addPin - calculated:', {
+                scaleX,
+                scaleY,
+                x,
+                y
+            });
             
             // Get radius based on size (SAME as self-checkout)
             const sizeMap = { tiny: 8, small: 12, medium: 16, large: 20 };
@@ -2704,6 +2729,8 @@
                 radius: radius
             });
             
+            console.log('📍 Pin added to damages array, total:', damages.length);
+            
             // If pickup mode, also store in pickupNewDamages
             const isNewDamage = window.isPickupMode === true;
             if (isNewDamage && window.pickupNewDamages) {
@@ -2715,6 +2742,7 @@
             }
             
             // Redraw canvas immediately (SAME as self-checkout)
+            console.log('📍 Calling redrawCanvas...');
             redrawCanvas();
             window.damages = damages;
         }
