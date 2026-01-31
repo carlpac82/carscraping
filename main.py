@@ -30762,19 +30762,25 @@ async def save_inspection(request: Request):
                                                     logging.info(f"✅ Croquis overlayed successfully!")
                                             else:
                                                 # Sizes match - proceed with overlay
-                                                # Convert checkin to RGB if needed
-                                                if checkin_img.mode == 'RGBA':
-                                                    white_bg = Image.new('RGB', checkin_img.size, (255, 255, 255))
-                                                    white_bg.paste(checkin_img, mask=checkin_img.split()[3])
-                                                    checkin_img = white_bg
-                                                elif checkin_img.mode != 'RGB':
-                                                    checkin_img = checkin_img.convert('RGB')
+                                                # Keep both images in RGBA mode to preserve transparency
+                                                if checkin_img.mode != 'RGBA':
+                                                    checkin_img = checkin_img.convert('RGBA')
+                                                if checkout_img.mode != 'RGBA':
+                                                    checkout_img = checkout_img.convert('RGBA')
                                                 
-                                                # Overlay checkout on checkin
-                                                if checkout_img.mode == 'RGBA':
-                                                    checkin_img.paste(checkout_img, (0, 0), checkout_img)
-                                                else:
-                                                    checkin_img.paste(checkout_img, (0, 0))
+                                                # Create a new image to avoid modifying original
+                                                result_img = Image.new('RGBA', checkin_img.size, (255, 255, 255, 255))
+                                                
+                                                # Paste checkin first
+                                                result_img.paste(checkin_img, (0, 0), checkin_img)
+                                                
+                                                # Paste checkout on top with alpha blending
+                                                result_img.paste(checkout_img, (0, 0), checkout_img)
+                                                
+                                                # Convert to RGB for final save
+                                                final_img = Image.new('RGB', result_img.size, (255, 255, 255))
+                                                final_img.paste(result_img, mask=result_img.split()[3])
+                                                checkin_img = final_img
                                                 
                                                 # Convert to base64
                                                 buffer = io.BytesIO()
