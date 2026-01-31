@@ -577,16 +577,47 @@
                         const checkinDate = c.checkin ? new Date(c.checkin.created_at).toISOString().split('T')[0] : null;
                         return checkinDate === searchDate;
                     } else if (filterInspectionType === 'checkout') {
-                        // Apenas filtrar por data de check-out/self-checkout (Recolha)
+                        // Filtrar por data de check-out/self-checkout (Recolha)
+                        // Incluir data real de recolha OU data prevista (se ainda não foi feita)
                         const checkoutDate = c.checkout ? new Date(c.checkout.created_at).toISOString().split('T')[0] : null;
                         const selfCheckoutDate = c.self_checkout ? new Date(c.self_checkout.created_at).toISOString().split('T')[0] : null;
-                        return checkoutDate === searchDate || selfCheckoutDate === searchDate;
+                        
+                        // Se já foi feita a recolha, usar a data real
+                        if (checkoutDate === searchDate || selfCheckoutDate === searchDate) {
+                            return true;
+                        }
+                        
+                        // Se ainda não foi feita, verificar data prevista de recolha
+                        if (!c.checkout && !c.self_checkout && c.expected_return_date) {
+                            // Converter expected_return_date (formato "DD/MM/YYYY") para "YYYY-MM-DD"
+                            const parts = c.expected_return_date.split('/');
+                            if (parts.length === 3) {
+                                const expectedDate = `${parts[2]}-${parts[1]}-${parts[0]}`;
+                                return expectedDate === searchDate;
+                            }
+                        }
+                        
+                        return false;
                     } else {
                         // Se "Todos" selecionado, filtrar por qualquer data
                         const checkoutDate = c.checkout ? new Date(c.checkout.created_at).toISOString().split('T')[0] : null;
                         const checkinDate = c.checkin ? new Date(c.checkin.created_at).toISOString().split('T')[0] : null;
                         const selfCheckoutDate = c.self_checkout ? new Date(c.self_checkout.created_at).toISOString().split('T')[0] : null;
-                        return checkoutDate === searchDate || checkinDate === searchDate || selfCheckoutDate === searchDate;
+                        
+                        if (checkoutDate === searchDate || checkinDate === searchDate || selfCheckoutDate === searchDate) {
+                            return true;
+                        }
+                        
+                        // Também verificar data prevista de recolha
+                        if (!c.checkout && !c.self_checkout && c.expected_return_date) {
+                            const parts = c.expected_return_date.split('/');
+                            if (parts.length === 3) {
+                                const expectedDate = `${parts[2]}-${parts[1]}-${parts[0]}`;
+                                return expectedDate === searchDate;
+                            }
+                        }
+                        
+                        return false;
                     }
                 });
             }
