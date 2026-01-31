@@ -1166,14 +1166,10 @@ def combine_croqui_with_damages(delivery_croqui_base64=None, pickup_damages=None
         img_data = base64.b64decode(delivery_croqui_base64)
         img = Image.open(io.BytesIO(img_data))
         
-        # Manter RGBA para permitir sobreposição de drawings
-        if img.mode != 'RGBA':
-            img = img.convert('RGBA')
-        
-        # Criar canvas para desenhar
+        # Criar canvas para desenhar pins
         draw = ImageDraw.Draw(img)
         
-        # Desenhar danos extra em vermelho
+        # Desenhar danos extra
         for damage in pickup_damages:
             damage_type = damage.get('type', 'pin')
             
@@ -1204,25 +1200,25 @@ def combine_croqui_with_damages(delivery_croqui_base64=None, pickup_damages=None
                         
                         logging.info(f"📐 Drawing size: {drawing_img.size}, Croqui base size: {img.size}")
                         
-                        # Converter para RGBA se necessário
+                        # Converter ambos para RGBA para permitir alpha blending
+                        if img.mode != 'RGBA':
+                            img = img.convert('RGBA')
                         if drawing_img.mode != 'RGBA':
                             drawing_img = drawing_img.convert('RGBA')
                         
-                        # Redimensionar drawing se necessário para corresponder ao croqui base
-                        if drawing_img.size != img.size:
-                            logging.warning(f"⚠️ Drawing size mismatch! Resizing from {drawing_img.size} to {img.size}")
-                            drawing_img = drawing_img.resize(img.size, Image.Resampling.LANCZOS)
+                        # Sobrepor o drawing no croqui
+                        img = Image.alpha_composite(img, drawing_img)
+                        logging.info(f"✅ Drawing overlay applied using alpha_composite")
                         
-                        # Sobrepor o drawing no croqui (usando alpha blending)
-                        img.paste(drawing_img, (0, 0), drawing_img)
-                        logging.info(f"✅ Drawing overlay applied")
+                        # Recriar draw object após composite
+                        draw = ImageDraw.Draw(img)
                     except Exception as e:
                         logging.error(f"❌ Error applying drawing overlay: {e}")
         
-        # Converter para RGB com fundo branco antes de salvar (evita fundo preto no email)
+        # Converter para RGB com fundo branco antes de salvar
         if img.mode == 'RGBA':
             white_bg = Image.new('RGB', img.size, (255, 255, 255))
-            white_bg.paste(img, mask=img.split()[3])  # Use alpha channel as mask
+            white_bg.paste(img, mask=img.split()[3])
             img = white_bg
         
         # Converter de volta para base64
