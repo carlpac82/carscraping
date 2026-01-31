@@ -542,6 +542,15 @@
             const filterInspectionType = document.getElementById('filterInspectionType')?.value || 'all';
             const filterStatus = document.getElementById('filterStatus')?.value || 'all';
 
+            console.log('🔍 FILTER DEBUG - Starting filter with:', {
+                searchPlate,
+                searchRA,
+                searchDate,
+                filterInspectionType,
+                filterStatus,
+                totalContracts: contracts.length
+            });
+
             let filtered = contracts;
 
             // Filter by plate
@@ -597,15 +606,24 @@
                             console.log('   expected_return_date:', c.expected_return_date);
                             console.log('   searchDate:', searchDate);
                             
-                            // Normalizar formato da data (pode vir como "DD/MM/YYYY" ou "DD - MM - YYYY")
-                            const dateStr = c.expected_return_date.replace(/\s+/g, '').replace(/-/g, '/');
+                            let expectedDate = c.expected_return_date;
+                            
+                            // Se já está no formato YYYY-MM-DD, usar diretamente
+                            if (/^\d{4}-\d{2}-\d{2}$/.test(expectedDate)) {
+                                console.log('   Already in YYYY-MM-DD format');
+                                console.log('   Match?', expectedDate === searchDate);
+                                return expectedDate === searchDate;
+                            }
+                            
+                            // Caso contrário, converter de DD/MM/YYYY ou DD - MM - YYYY
+                            const dateStr = expectedDate.replace(/\s+/g, '').replace(/-/g, '/');
                             console.log('   dateStr after normalization:', dateStr);
                             
                             const parts = dateStr.split('/');
                             console.log('   parts:', parts);
                             
                             if (parts.length === 3) {
-                                const expectedDate = `${parts[2]}-${parts[1].padStart(2, '0')}-${parts[0].padStart(2, '0')}`;
+                                expectedDate = `${parts[2]}-${parts[1].padStart(2, '0')}-${parts[0].padStart(2, '0')}`;
                                 console.log('   expectedDate formatted:', expectedDate);
                                 console.log('   Match?', expectedDate === searchDate);
                                 return expectedDate === searchDate;
@@ -625,11 +643,18 @@
                         
                         // Também verificar data prevista de recolha
                         if (!c.checkout && !c.self_checkout && c.expected_return_date) {
-                            // Normalizar formato da data (pode vir como "DD/MM/YYYY" ou "DD - MM - YYYY")
-                            const dateStr = c.expected_return_date.replace(/\s+/g, '').replace(/-/g, '/');
+                            let expectedDate = c.expected_return_date;
+                            
+                            // Se já está no formato YYYY-MM-DD, usar diretamente
+                            if (/^\d{4}-\d{2}-\d{2}$/.test(expectedDate)) {
+                                return expectedDate === searchDate;
+                            }
+                            
+                            // Caso contrário, converter de DD/MM/YYYY ou DD - MM - YYYY
+                            const dateStr = expectedDate.replace(/\s+/g, '').replace(/-/g, '/');
                             const parts = dateStr.split('/');
                             if (parts.length === 3) {
-                                const expectedDate = `${parts[2]}-${parts[1].padStart(2, '0')}-${parts[0].padStart(2, '0')}`;
+                                expectedDate = `${parts[2]}-${parts[1].padStart(2, '0')}-${parts[0].padStart(2, '0')}`;
                                 return expectedDate === searchDate;
                             }
                         }
