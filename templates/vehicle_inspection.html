@@ -2897,19 +2897,6 @@
             }
         }
         
-        function redrawCanvas() {
-            // Find last drawing in damages
-            const lastDrawing = damages.filter(d => d.type === 'drawing').pop();
-            if (lastDrawing) {
-                const img = new Image();
-                img.onload = () => {
-                    ctx.clearRect(0, 0, canvas.width, canvas.height);
-                    ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
-                };
-                img.src = lastDrawing.dataURL;
-            }
-        }
-        
         function clearAll() {
             if (!confirm('Apagar tudo (pins e desenhos)?')) return;
             
