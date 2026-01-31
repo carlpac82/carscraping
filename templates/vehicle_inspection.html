@@ -3553,15 +3553,10 @@
                     tempCtx.drawImage(checkinCanvas, 0, 0);
                 }
                 
-                // Calculate scale based on container dimensions (where pins are positioned)
-                // Pins use container.getBoundingClientRect() for positioning, so we need container size
-                const containerRect = container.getBoundingClientRect();
-                const containerWidth = containerRect.width;
-                const containerHeight = containerRect.height;
-                const scaleX = tempCanvas.width / containerWidth;
-                const scaleY = tempCanvas.height / containerHeight;
-                
-                console.log('✅ Scale:', scaleX.toFixed(3), 'x', scaleY.toFixed(3), '(container:', containerWidth, 'x', containerHeight, ')');
+                // Calculate scale using image offset dimensions (same as drawings use)
+                // Both pins and drawings are positioned relative to the image
+                const scaleX = tempCanvas.width / croquiImg.offsetWidth;
+                const scaleY = tempCanvas.height / croquiImg.offsetHeight;
                 
                 // Draw canvas overlay - use saved drawings from damages array
                 // This works even if canvas is 0x0 because we saved the drawings as dataURL
