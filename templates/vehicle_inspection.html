@@ -3572,25 +3572,9 @@
                 
                 console.log('✅ Temp canvas:', tempCanvas.width, 'x', tempCanvas.height);
                 
-                // Draw background
+                // Draw background (croqui base image only - NO check-in damages)
+                // Backend will overlay check-in croqui + checkout croqui
                 tempCtx.drawImage(croquiImg, 0, 0);
-                
-                // Draw check-in damages canvas (protected layer) if it exists and has content
-                const checkinCanvas = document.getElementById('checkinDamagesCanvas');
-                if (checkinCanvas && checkinCanvas.width > 0 && checkinCanvas.height > 0) {
-                    console.log('🎨 Adding check-in damages layer to final croqui');
-                    console.log('  checkinCanvas size:', checkinCanvas.width, 'x', checkinCanvas.height);
-                    console.log('  tempCanvas size:', tempCanvas.width, 'x', tempCanvas.height);
-                    
-                    // Check if sizes match
-                    if (checkinCanvas.width !== tempCanvas.width || checkinCanvas.height !== tempCanvas.height) {
-                        console.warn('⚠️ SIZE MISMATCH between checkinCanvas and tempCanvas!');
-                        console.warn('  This may cause pin position distortion!');
-                    }
-                    
-                    // Draw without forced scaling - use natural size
-                    tempCtx.drawImage(checkinCanvas, 0, 0);
-                }
                 
                 // Calculate scale using canvas dimensions (same as check-in)
                 console.log('🔍 SCALE DEBUG:');
