@@ -2684,12 +2684,25 @@
         function addPin(event) {
             const container = document.getElementById('carDiagram');
             const rect = container.getBoundingClientRect();
-            console.log('🔍 addPin rect:', {left: rect.left, top: rect.top, width: rect.width, height: rect.height});
-            console.log('🔍 addPin event:', {clientX: event.clientX, clientY: event.clientY});
-            // Use clientX/Y (viewport coordinates) and subtract container position
-            const x = event.clientX - rect.left;
-            const y = event.clientY - rect.top;
-            console.log('🔍 addPin calculated:', {x, y});
+            const croquiImg = container.querySelector('img');
+            
+            // Calculate position in container space
+            const xContainer = event.clientX - rect.left;
+            const yContainer = event.clientY - rect.top;
+            
+            // Calculate scale to natural canvas size (same as self-checkout)
+            const scaleX = croquiImg.naturalWidth / rect.width;
+            const scaleY = croquiImg.naturalHeight / rect.height;
+            
+            // Save coordinates in NATURAL canvas space (scaled)
+            const xScaled = xContainer * scaleX;
+            const yScaled = yContainer * scaleY;
+            
+            console.log('📍 Pin coordinates:', {
+                container: {x: xContainer, y: yContainer},
+                scaled: {x: xScaled, y: yScaled},
+                scale: {x: scaleX, y: scaleY}
+            });
             
             pinCounter++;
             const pinId = `pin-${pinCounter}`;
@@ -2697,10 +2710,9 @@
             const pin = document.createElement('div');
             pin.className = `damage-pin size-${currentSize}`;
             pin.id = pinId;
-            // No text content - pins are just black dots
             // Position pin at click position (center) using transform translate
-            pin.style.left = x + 'px';
-            pin.style.top = y + 'px';
+            pin.style.left = xContainer + 'px';
+            pin.style.top = yContainer + 'px';
             pin.style.transform = 'translate(-50%, -50%)';
             
             // If in pickup mode, use RED color for new damages
@@ -2725,23 +2737,23 @@
             
             container.appendChild(pin);
             
-            // Save coordinates
+            // Save coordinates in NATURAL canvas space (already scaled)
             damages.push({
                 id: pinId,
                 type: 'pin',
                 number: pinCounter,
-                x: x,
-                y: y,
+                x: xScaled,
+                y: yScaled,
                 size: currentSize,
-                isNewDamage: isNewDamage // Mark if this is a new damage (pickup mode)
+                isNewDamage: isNewDamage
             });
             
             // If pickup mode, also store in pickupNewDamages
             if (isNewDamage && window.pickupNewDamages) {
                 window.pickupNewDamages.push({
                     id: pinId,
-                    x: x,
-                    y: y,
+                    x: xScaled,
+                    y: yScaled,
                     size: currentSize
                 });
             }
@@ -3627,14 +3639,14 @@
                     console.log('⚠️ No saved drawings found in damages array');
                 }
                 
-                // Draw pins from damages array (not DOM) to ensure all are captured
+                // Draw pins from damages array (coordinates already in natural canvas space)
                 const pins = window.damages ? window.damages.filter(d => d.type === 'pin') : [];
                 console.log('📍 Found', pins.length, 'pins in damages array');
                 
                 pins.forEach((pin, i) => {
-                    // Pin coordinates are already in container space
-                    const pinX = pin.x * scaleX;
-                    const pinY = pin.y * scaleY;
+                    // Pin coordinates are ALREADY in natural canvas space (scaled when saved)
+                    const pinX = pin.x;
+                    const pinY = pin.y;
                     
                     // Get pin radius based on size
                     let r = 8;
@@ -3642,13 +3654,11 @@
                     else if (pin.size === 'small') r = 6;
                     else if (pin.size === 'large') r = 12;
                     
-                    const scaledRadius = r * Math.min(scaleX, scaleY);
+                    console.log(`  Drawing pin ${i + 1}: x=${pinX}, y=${pinY}, radius: ${r}`);
                     
-                    console.log(`  Drawing pin ${i + 1}: x=${pin.x}, y=${pin.y} -> scaled: ${pinX}, ${pinY}, radius: ${scaledRadius}`);
-                    
-                    // Draw pin
+                    // Draw pin (no scaling needed - coordinates already in natural space)
                     tempCtx.beginPath();
-                    tempCtx.arc(pinX, pinY, scaledRadius, 0, Math.PI * 2);
+                    tempCtx.arc(pinX, pinY, r, 0, Math.PI * 2);
                     tempCtx.fillStyle = '#000000';
                     tempCtx.fill();
                     tempCtx.strokeStyle = '#ffffff';
