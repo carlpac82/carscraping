@@ -2379,16 +2379,16 @@
                 return false;
             }
             
-            // Set canvas size to match image
+            // Set canvas size to NATURAL size (same as self-checkout)
             const resizeCanvas = () => {
-                canvas.width = img.offsetWidth;
-                canvas.height = img.offsetHeight;
+                canvas.width = img.naturalWidth;
+                canvas.height = img.naturalHeight;
                 
                 // Also resize the check-in damages canvas to match
                 const checkinCanvas = document.getElementById('checkinDamagesCanvas');
                 if (checkinCanvas) {
-                    checkinCanvas.width = img.offsetWidth;
-                    checkinCanvas.height = img.offsetHeight;
+                    checkinCanvas.width = img.naturalWidth;
+                    checkinCanvas.height = img.naturalHeight;
                     
                     // CRITICAL: Redraw check-in damages after resize (canvas content is lost on resize)
                     if (window.deliveryInspection && window.deliveryInspection.damage_croqui) {
