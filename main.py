@@ -49377,6 +49377,9 @@ async def get_inspections_history(request: Request):
                         grouped[key]["vehicle_brand"] = vehicle_brand
                     if not grouped[key].get("vehicle_model") and vehicle_model:
                         grouped[key]["vehicle_model"] = vehicle_model
+                    # Update expected_return_date if not already set
+                    if not grouped[key].get("expected_return_date") and return_date:
+                        grouped[key]["expected_return_date"] = return_date
                 
                 if row[3] == 'checkout':
                     if not grouped[key]["checkout"]:
