@@ -2397,8 +2397,8 @@
                         const checkinImg = new Image();
                         checkinImg.onload = function() {
                             checkinCtx.clearRect(0, 0, checkinCanvas.width, checkinCanvas.height);
-                            // Draw at natural size - no forced scaling
-                            checkinCtx.drawImage(checkinImg, 0, 0);
+                            // Draw at canvas size to match the container
+                            checkinCtx.drawImage(checkinImg, 0, 0, checkinCanvas.width, checkinCanvas.height);
                             console.log('✅ Check-in damages redrawn after resize');
                         };
                         checkinImg.src = window.deliveryInspection.damage_croqui;
