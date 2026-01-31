@@ -30716,33 +30716,74 @@ async def save_inspection(request: Request):
                                             logging.info(f"📐 Checkin croqui size: {checkin_img.size}")
                                             logging.info(f"📐 Checkout croqui size: {checkout_img.size}")
                                             
-                                            # Resize checkout to match checkin if needed
+                                            # Check if sizes match
                                             if checkout_img.size != checkin_img.size:
-                                                logging.warning(f"⚠️ Size mismatch! Resizing checkout from {checkout_img.size} to {checkin_img.size}")
-                                                checkout_img = checkout_img.resize(checkin_img.size, Image.Resampling.LANCZOS)
-                                            
-                                            # Convert checkin to RGB if needed
-                                            if checkin_img.mode == 'RGBA':
-                                                white_bg = Image.new('RGB', checkin_img.size, (255, 255, 255))
-                                                white_bg.paste(checkin_img, mask=checkin_img.split()[3])
-                                                checkin_img = white_bg
-                                            elif checkin_img.mode != 'RGB':
-                                                checkin_img = checkin_img.convert('RGB')
-                                            
-                                            # Overlay checkout on checkin
-                                            if checkout_img.mode == 'RGBA':
-                                                checkin_img.paste(checkout_img, (0, 0), checkout_img)
+                                                logging.warning(f"⚠️ Size mismatch detected!")
+                                                
+                                                # Calculate aspect ratios
+                                                checkin_aspect = checkin_img.width / checkin_img.height
+                                                checkout_aspect = checkout_img.width / checkout_img.height
+                                                
+                                                logging.info(f"   Checkin aspect ratio: {checkin_aspect:.4f}")
+                                                logging.info(f"   Checkout aspect ratio: {checkout_aspect:.4f}")
+                                                
+                                                # If aspect ratios are different, this will cause distortion!
+                                                if abs(checkin_aspect - checkout_aspect) > 0.01:
+                                                    logging.error(f"❌ ASPECT RATIO MISMATCH! This will cause pin position distortion!")
+                                                    logging.error(f"   Checkin: {checkin_img.size} (ratio: {checkin_aspect:.4f})")
+                                                    logging.error(f"   Checkout: {checkout_img.size} (ratio: {checkout_aspect:.4f})")
+                                                    logging.error(f"   Using checkout croqui only to avoid distortion")
+                                                    # Don't combine - use checkout only
+                                                else:
+                                                    logging.warning(f"⚠️ Resizing checkout from {checkout_img.size} to {checkin_img.size}")
+                                                    checkout_img = checkout_img.resize(checkin_img.size, Image.Resampling.LANCZOS)
+                                                    
+                                                    # Convert checkin to RGB if needed
+                                                    if checkin_img.mode == 'RGBA':
+                                                        white_bg = Image.new('RGB', checkin_img.size, (255, 255, 255))
+                                                        white_bg.paste(checkin_img, mask=checkin_img.split()[3])
+                                                        checkin_img = white_bg
+                                                    elif checkin_img.mode != 'RGB':
+                                                        checkin_img = checkin_img.convert('RGB')
+                                                    
+                                                    # Overlay checkout on checkin
+                                                    if checkout_img.mode == 'RGBA':
+                                                        checkin_img.paste(checkout_img, (0, 0), checkout_img)
+                                                    else:
+                                                        checkin_img.paste(checkout_img, (0, 0))
+                                                    
+                                                    # Convert to base64
+                                                    buffer = io.BytesIO()
+                                                    checkin_img.save(buffer, format='PNG')
+                                                    combined_data = buffer.getvalue()
+                                                    combined_croqui = f"data:image/png;base64,{base64.b64encode(combined_data).decode('utf-8')}"
+                                                    
+                                                    final_croqui_to_save = combined_croqui
+                                                    logging.info(f"✅ Croquis overlayed successfully!")
                                             else:
-                                                checkin_img.paste(checkout_img, (0, 0))
-                                            
-                                            # Convert to base64
-                                            buffer = io.BytesIO()
-                                            checkin_img.save(buffer, format='PNG')
-                                            combined_data = buffer.getvalue()
-                                            combined_croqui = f"data:image/png;base64,{base64.b64encode(combined_data).decode('utf-8')}"
-                                            
-                                            final_croqui_to_save = combined_croqui
-                                            logging.info(f"✅ Croquis overlayed successfully!")
+                                                # Sizes match - proceed with overlay
+                                                # Convert checkin to RGB if needed
+                                                if checkin_img.mode == 'RGBA':
+                                                    white_bg = Image.new('RGB', checkin_img.size, (255, 255, 255))
+                                                    white_bg.paste(checkin_img, mask=checkin_img.split()[3])
+                                                    checkin_img = white_bg
+                                                elif checkin_img.mode != 'RGB':
+                                                    checkin_img = checkin_img.convert('RGB')
+                                                
+                                                # Overlay checkout on checkin
+                                                if checkout_img.mode == 'RGBA':
+                                                    checkin_img.paste(checkout_img, (0, 0), checkout_img)
+                                                else:
+                                                    checkin_img.paste(checkout_img, (0, 0))
+                                                
+                                                # Convert to base64
+                                                buffer = io.BytesIO()
+                                                checkin_img.save(buffer, format='PNG')
+                                                combined_data = buffer.getvalue()
+                                                combined_croqui = f"data:image/png;base64,{base64.b64encode(combined_data).decode('utf-8')}"
+                                                
+                                                final_croqui_to_save = combined_croqui
+                                                logging.info(f"✅ Croquis overlayed successfully!")
                                         except Exception as e:
                                             logging.error(f"❌ Error overlaying croquis: {e}")
                                             import traceback
