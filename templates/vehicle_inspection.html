@@ -3653,10 +3653,13 @@
                     
                     if (left === 0 && top === 0) return;
                     
-                    let r = 8;
-                    if (pin.classList.contains('size-tiny')) r = 4;
-                    else if (pin.classList.contains('size-small')) r = 6;
-                    else if (pin.classList.contains('size-large')) r = 12;
+                    // Get pin size from CSS (width/height, not radius)
+                    let pinWidth = 16;
+                    if (pin.classList.contains('size-tiny')) pinWidth = 8;
+                    else if (pin.classList.contains('size-small')) pinWidth = 12;
+                    else if (pin.classList.contains('size-large')) pinWidth = 24;
+                    
+                    const r = pinWidth / 2;  // Radius is half the width
                     
                     // Pin is positioned with top-left corner, so add radius to get center
                     const centerX = (left + r) * scaleX;
