@@ -2682,81 +2682,66 @@
         }
         
         function addPin(event) {
-            const container = document.getElementById('carDiagram');
-            const rect = container.getBoundingClientRect();
-            const croquiImg = container.querySelector('img');
+            if (!canvas || !ctx) return;
             
-            // Calculate position in container space
-            const xContainer = event.clientX - rect.left;
-            const yContainer = event.clientY - rect.top;
+            const rect = canvas.getBoundingClientRect();
             
-            // Calculate scale to natural canvas size (same as self-checkout)
-            const scaleX = croquiImg.naturalWidth / rect.width;
-            const scaleY = croquiImg.naturalHeight / rect.height;
+            // Calculate scale to natural canvas size (SAME as self-checkout)
+            const scaleX = canvas.width / rect.width;
+            const scaleY = canvas.height / rect.height;
+            const x = (event.clientX - rect.left) * scaleX;
+            const y = (event.clientY - rect.top) * scaleY;
             
-            // Save coordinates in NATURAL canvas space (scaled)
-            const xScaled = xContainer * scaleX;
-            const yScaled = yContainer * scaleY;
+            // Get radius based on size (SAME as self-checkout)
+            const sizeMap = { tiny: 8, small: 12, medium: 16, large: 20 };
+            const radius = sizeMap[currentSize] || 12;
             
-            console.log('📍 Pin coordinates:', {
-                container: {x: xContainer, y: yContainer},
-                scaled: {x: xScaled, y: yScaled},
-                scale: {x: scaleX, y: scaleY}
-            });
-            
-            pinCounter++;
-            const pinId = `pin-${pinCounter}`;
-            
-            const pin = document.createElement('div');
-            pin.className = `damage-pin size-${currentSize}`;
-            pin.id = pinId;
-            // Position pin at click position (center) using transform translate
-            pin.style.left = xContainer + 'px';
-            pin.style.top = yContainer + 'px';
-            pin.style.transform = 'translate(-50%, -50%)';
-            
-            // If in pickup mode, use RED color for new damages
-            const isNewDamage = window.isPickupMode === true;
-            if (isNewDamage) {
-                pin.style.background = '#dc3545'; // Red color for new damages
-                pin.style.border = 'none'; // No border for pickup damages
-            }
-            
-            // Double click/tap to remove
-            pin.ondblclick = () => removePin(pinId);
-            let tapCount = 0;
-            pin.ontouchend = (e) => {
-                e.preventDefault();
-                tapCount++;
-                if (tapCount === 2) {
-                    removePin(pinId);
-                    tapCount = 0;
-                }
-                setTimeout(() => tapCount = 0, 300);
-            };
-            
-            container.appendChild(pin);
-            
-            // Save coordinates in NATURAL canvas space (already scaled)
+            // Save to damages array
             damages.push({
-                id: pinId,
                 type: 'pin',
-                number: pinCounter,
-                x: xScaled,
-                y: yScaled,
-                size: currentSize,
-                isNewDamage: isNewDamage
+                x: x,
+                y: y,
+                radius: radius
             });
             
             // If pickup mode, also store in pickupNewDamages
+            const isNewDamage = window.isPickupMode === true;
             if (isNewDamage && window.pickupNewDamages) {
                 window.pickupNewDamages.push({
-                    id: pinId,
-                    x: xScaled,
-                    y: yScaled,
-                    size: currentSize
+                    x: x,
+                    y: y,
+                    radius: radius
                 });
             }
+            
+            // Redraw canvas immediately (SAME as self-checkout)
+            redrawCanvas();
+            window.damages = damages;
+        }
+        
+        function redrawCanvas() {
+            if (!ctx) return;
+            
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            
+            // Determine color based on mode
+            const damageColor = window.isPickupMode ? '#dc3545' : '#000000';
+            
+            // Draw all damages
+            damages.forEach((damage) => {
+                if (damage.type === 'pin') {
+                    // Draw pin
+                    ctx.beginPath();
+                    ctx.arc(damage.x, damage.y, damage.radius, 0, 2 * Math.PI);
+                    ctx.fillStyle = damageColor;
+                    ctx.fill();
+                    ctx.strokeStyle = '#fff';
+                    ctx.lineWidth = 2;
+                    ctx.stroke();
+                } else if (damage.type === 'drawing' && damage.dataURL) {
+                    // Drawing already saved as image - will be drawn in capture
+                }
+            });
         }
         
         function removePin(pinId) {
@@ -3584,90 +3569,19 @@
                 
                 console.log('✅ Temp canvas:', tempCanvas.width, 'x', tempCanvas.height);
                 
-                // Draw background (croqui base image only - NO check-in damages)
-                // Backend will overlay check-in croqui + checkout croqui
+                // Draw background (croqui base image only)
                 tempCtx.drawImage(croquiImg, 0, 0);
                 
-                // Calculate scale using canvas dimensions (same as check-in)
-                console.log('🔍 SCALE DEBUG:');
-                console.log('  savedCanvasWidth:', window.savedCanvasWidth);
-                console.log('  savedCanvasHeight:', window.savedCanvasHeight);
-                console.log('  canvas?.width:', canvas?.width);
-                console.log('  canvas?.height:', canvas?.height);
-                console.log('  croquiImg.offsetWidth:', croquiImg.offsetWidth);
-                console.log('  croquiImg.offsetHeight:', croquiImg.offsetHeight);
-                console.log('  tempCanvas.width:', tempCanvas.width);
-                console.log('  tempCanvas.height:', tempCanvas.height);
-                
-                const canvasWidth = window.savedCanvasWidth > 0 ? window.savedCanvasWidth : (canvas && canvas.width > 0 ? canvas.width : croquiImg.offsetWidth);
-                const canvasHeight = window.savedCanvasHeight > 0 ? window.savedCanvasHeight : (canvas && canvas.height > 0 ? canvas.height : croquiImg.offsetHeight);
-                const scaleX = tempCanvas.width / canvasWidth;
-                const scaleY = tempCanvas.height / canvasHeight;
-                
-                console.log('  FINAL canvasWidth:', canvasWidth);
-                console.log('  FINAL canvasHeight:', canvasHeight);
-                console.log('  FINAL scaleX:', scaleX);
-                console.log('  FINAL scaleY:', scaleY);
-                
-                // Draw canvas overlay - use saved drawings from damages array
-                // This works even if canvas is 0x0 because we saved the drawings as dataURL
-                const drawings = window.damages ? window.damages.filter(d => d.type === 'drawing') : [];
-                console.log('🎨 Found', drawings.length, 'saved drawings to render');
-                
-                if (drawings.length > 0) {
-                    // Get the last drawing (which contains all accumulated drawings)
-                    const lastDrawing = drawings[drawings.length - 1];
-                    const drawingImg = new Image();
-                    
-                    // Wait for image to load before continuing
-                    await new Promise((resolve) => {
-                        drawingImg.onload = () => {
-                            tempCtx.save();
-                            tempCtx.scale(scaleX, scaleY);
-                            tempCtx.drawImage(drawingImg, 0, 0);
-                            tempCtx.restore();
-                            console.log('✅ Drawings rendered on croqui');
-                            resolve();
-                        };
-                        drawingImg.onerror = () => {
-                            console.error('❌ Failed to load drawing image');
-                            resolve();
-                        };
-                        drawingImg.src = lastDrawing.dataURL;
-                    });
+                // Draw canvas with pins and drawings (SAME as self-checkout)
+                if (canvas && canvas.width > 0 && canvas.height > 0) {
+                    console.log('🎨 Drawing canvas overlay:', canvas.width, 'x', canvas.height);
+                    tempCtx.drawImage(canvas, 0, 0);
                 } else {
-                    console.log('⚠️ No saved drawings found in damages array');
+                    console.warn('⚠️ Canvas not available or has zero size');
                 }
                 
-                // Draw pins from damages array (coordinates already in natural canvas space)
-                const pins = window.damages ? window.damages.filter(d => d.type === 'pin') : [];
-                console.log('📍 Found', pins.length, 'pins in damages array');
-                
-                pins.forEach((pin, i) => {
-                    // Pin coordinates are ALREADY in natural canvas space (scaled when saved)
-                    const pinX = pin.x;
-                    const pinY = pin.y;
-                    
-                    // Get pin radius based on size (SAME as self-checkout)
-                    let r = 16;
-                    if (pin.size === 'tiny') r = 8;
-                    else if (pin.size === 'small') r = 12;
-                    else if (pin.size === 'large') r = 20;
-                    
-                    console.log(`  Drawing pin ${i + 1}: x=${pinX}, y=${pinY}, radius: ${r}`);
-                    
-                    // Draw pin (no scaling needed - coordinates already in natural space)
-                    tempCtx.beginPath();
-                    tempCtx.arc(pinX, pinY, r, 0, Math.PI * 2);
-                    tempCtx.fillStyle = '#000000';
-                    tempCtx.fill();
-                    tempCtx.strokeStyle = '#ffffff';
-                    tempCtx.lineWidth = 2;
-                    tempCtx.stroke();
-                });
-                
                 const result = tempCanvas.toDataURL('image/png');
-                console.log('✅ Croqui captured:', pins.length, 'pins,', result.length, 'chars');
+                console.log('✅ Croqui captured:', result.length, 'chars');
                 return result;
                 
             } catch (error) {
