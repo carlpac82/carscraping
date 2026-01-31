@@ -2743,16 +2743,28 @@
         }
         
         function redrawCanvas() {
-            if (!ctx) return;
+            console.log('🎨 redrawCanvas called');
+            console.log('  ctx:', !!ctx);
+            console.log('  canvas:', canvas?.width, 'x', canvas?.height);
+            console.log('  damages:', damages.length);
             
+            if (!ctx) {
+                console.error('  ❌ No context!');
+                return;
+            }
+            
+            console.log('  ✅ Clearing canvas...');
             ctx.clearRect(0, 0, canvas.width, canvas.height);
             
             // Determine color based on mode
             const damageColor = window.isPickupMode ? '#dc3545' : '#000000';
+            console.log('  Color:', damageColor);
             
             // Draw all damages
-            damages.forEach((damage) => {
+            damages.forEach((damage, i) => {
+                console.log('  Damage', i, ':', damage);
                 if (damage.type === 'pin') {
+                    console.log('    Drawing pin at (', damage.x, ',', damage.y, ') radius', damage.radius);
                     // Draw pin
                     ctx.beginPath();
                     ctx.arc(damage.x, damage.y, damage.radius, 0, 2 * Math.PI);
@@ -2761,10 +2773,13 @@
                     ctx.strokeStyle = '#fff';
                     ctx.lineWidth = 2;
                     ctx.stroke();
+                    console.log('    ✅ Pin drawn');
                 } else if (damage.type === 'drawing' && damage.dataURL) {
                     // Drawing already saved as image - will be drawn in capture
                 }
             });
+            
+            console.log('  ✅ redrawCanvas complete');
         }
         
         function removePin(pinId) {
