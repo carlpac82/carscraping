@@ -3371,9 +3371,11 @@
                     const inspection = selfCheckoutData.inspection;
                     console.log('📋 Self-checkout data for Recolha:', inspection);
                     
+                    // Usar croqui do SELF-CHECKOUT (já tem overlay de checkin + checkout)
+                    let checkinCroqui = inspection.damage_croqui;
+                    
                     // Buscar dados completos do CHECK-IN (ENTREGA)
                     let checkinData = null;
-                    let checkinCroqui = null;
                     let checkinDamageCount = 0;
                     let checkinFuel = 0;
                     let checkinOdometer = 0;
@@ -3387,7 +3389,7 @@
                             const checkinResult = await checkinResponse.json();
                             if (checkinResult.ok && checkinResult.inspection) {
                                 checkinData = checkinResult.inspection;
-                                checkinCroqui = checkinData.damage_croqui;
+                                // NÃO usar checkinData.damage_croqui - já temos o croqui com overlay do self-checkout
                                 checkinDamageCount = checkinData.damage_count || 0;
                                 checkinFuel = checkinData.fuel_level || 0;
                                 checkinOdometer = checkinData.odometer_reading || 0;
@@ -3650,9 +3652,11 @@
                 const inspection = selfCheckoutData.inspection;
                 console.log('📋 Self-checkout invalidated data:', inspection);
                 
+                // Usar croqui do SELF-CHECKOUT invalidado (já tem overlay de checkin + checkout)
+                let checkinCroqui = inspection.damage_croqui;
+                
                 // Buscar dados completos do CHECK-IN (ENTREGA)
                 let checkinData = null;
-                let checkinCroqui = null;
                 let checkinDamageCount = 0;
                 let checkinFuel = 0;
                 let checkinOdometer = 0;
@@ -3666,7 +3670,7 @@
                         const checkinResult = await checkinResponse.json();
                         if (checkinResult.ok && checkinResult.inspection) {
                             checkinData = checkinResult.inspection;
-                            checkinCroqui = checkinData.damage_croqui;
+                            // NÃO usar checkinData.damage_croqui - já temos o croqui com overlay do self-checkout
                             checkinDamageCount = checkinData.damage_count || 0;
                             checkinFuel = checkinData.fuel_level || 0;
                             checkinOdometer = checkinData.odometer_reading || 0;
