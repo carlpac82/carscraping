@@ -3648,11 +3648,11 @@
                     const pinX = pin.x;
                     const pinY = pin.y;
                     
-                    // Get pin radius based on size
-                    let r = 8;
-                    if (pin.size === 'tiny') r = 4;
-                    else if (pin.size === 'small') r = 6;
-                    else if (pin.size === 'large') r = 12;
+                    // Get pin radius based on size (SAME as self-checkout)
+                    let r = 16;
+                    if (pin.size === 'tiny') r = 8;
+                    else if (pin.size === 'small') r = 12;
+                    else if (pin.size === 'large') r = 20;
                     
                     console.log(`  Drawing pin ${i + 1}: x=${pinX}, y=${pinY}, radius: ${r}`);
                     
