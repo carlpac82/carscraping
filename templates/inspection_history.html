@@ -234,10 +234,11 @@
                             class="custom-select w-full h-[36px] md:h-[42px] px-2 md:px-4 py-1 md:py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#009cb6] appearance-none bg-white" 
                             onchange="filterInspections()">
                         <option value="all">Todos</option>
-                        <option value="pending">Pendente</option>
-                        <option value="validated">Validado</option>
-                        <option value="warned">Com Divergências</option>
-                        <option value="invalidated">Invalidado</option>
+                        <option value="open">Contrato Aberto</option>
+                        <option value="closed">Contrato Fechado</option>
+                        <option value="damages">Com Danos</option>
+                        <option value="fuel_low">Combustível Baixo</option>
+                        <option value="self_pending">Self-Checkout Pendente</option>
                     </select>
                 </div>
             </div>
@@ -625,9 +626,31 @@
             // Filter by status
             if (filterStatus !== 'all') {
                 filtered = filtered.filter(c => {
-                    if (c.self_checkout) {
-                        const status = c.self_checkout.status || 'pending';
-                        return status === filterStatus;
+                    const hasCheckin = c.checkin !== null;
+                    const hasCheckout = c.checkout !== null;
+                    const hasSelfCheckout = c.self_checkout !== null;
+                    const isOpen = hasCheckin && !hasCheckout && (!hasSelfCheckout || (hasSelfCheckout && c.self_checkout.status === 'pending'));
+                    const isClosed = hasCheckin && (hasCheckout || (hasSelfCheckout && c.self_checkout.status === 'validated'));
+                    
+                    if (filterStatus === 'open') {
+                        // Contrato Aberto: tem entrega mas não tem recolha validada
+                        return isOpen;
+                    } else if (filterStatus === 'closed') {
+                        // Contrato Fechado: tem entrega e recolha validada
+                        return isClosed;
+                    } else if (filterStatus === 'damages') {
+                        // Com Danos: checkout ou self-checkout tem danos
+                        const checkoutHasDamages = hasCheckout && (c.checkout.has_damages || (c.checkout.damage_count && c.checkout.damage_count > 0));
+                        const selfCheckoutHasDamages = hasSelfCheckout && (c.self_checkout.has_damages || (c.self_checkout.damage_count && c.self_checkout.damage_count > 0));
+                        return checkoutHasDamages || selfCheckoutHasDamages;
+                    } else if (filterStatus === 'fuel_low') {
+                        // Combustível Baixo: diferença de combustível negativa
+                        const checkoutHasFuelIssue = hasCheckout && c.checkout.fuel_difference && parseFloat(c.checkout.fuel_difference) < 0;
+                        const selfCheckoutHasFuelIssue = hasSelfCheckout && c.self_checkout.fuel_difference && parseFloat(c.self_checkout.fuel_difference) < 0;
+                        return checkoutHasFuelIssue || selfCheckoutHasFuelIssue;
+                    } else if (filterStatus === 'self_pending') {
+                        // Self-Checkout Pendente: tem self-checkout com status pending
+                        return hasSelfCheckout && c.self_checkout.status === 'pending';
                     }
                     return false;
                 });
