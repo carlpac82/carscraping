@@ -2695,9 +2695,11 @@
             pin.className = `damage-pin size-${currentSize}`;
             pin.id = pinId;
             // No text content - pins are just black dots
-            pin.style.left = x + 'px';
-            pin.style.top = y + 'px';
-            pin.style.transform = 'translate(-50%, -50%)';
+            // Position pin with top-left corner at click position
+            // Then offset by half the pin size to center it
+            const pinSize = currentSize === 'tiny' ? 8 : currentSize === 'small' ? 12 : currentSize === 'large' ? 24 : 16;
+            pin.style.left = (x - pinSize/2) + 'px';
+            pin.style.top = (y - pinSize/2) + 'px';
             
             // If in pickup mode, use RED color for new damages
             const isNewDamage = window.isPickupMode === true;
@@ -3648,20 +3650,20 @@
                     
                     if (left === 0 && top === 0) return;
                     
-                    // Multiply coordinates by scale (same as check-in)
-                    const x = left * scaleX;
-                    const y = top * scaleY;
-                    
                     let r = 8;
                     if (pin.classList.contains('size-tiny')) r = 4;
                     else if (pin.classList.contains('size-small')) r = 6;
                     else if (pin.classList.contains('size-large')) r = 12;
                     
+                    // Pin is positioned with top-left corner, so add radius to get center
+                    const centerX = (left + r) * scaleX;
+                    const centerY = (top + r) * scaleY;
+                    
                     const scaledRadius = r * Math.min(scaleX, scaleY);
                     
                     // Draw WITHOUT ctx.scale() - coordinates already scaled
                     tempCtx.beginPath();
-                    tempCtx.arc(x, y, scaledRadius, 0, Math.PI * 2);
+                    tempCtx.arc(centerX, centerY, scaledRadius, 0, Math.PI * 2);
                     tempCtx.fillStyle = '#000000';
                     tempCtx.fill();
                     tempCtx.strokeStyle = '#ffffff';
