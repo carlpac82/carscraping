@@ -2348,8 +2348,8 @@
         window.damages = damages; // Expose to global scope for counting
         let drawing = false;
         let canvas, ctx;
-        let savedCanvasWidth = 0;  // Store canvas dimensions for capture
-        let savedCanvasHeight = 0;
+        window.savedCanvasWidth = 0;  // Store canvas dimensions for capture (GLOBAL)
+        window.savedCanvasHeight = 0;
         let savedCanvasDataURL = null;  // Store canvas content as data URL before it's resized to 0x0
         
         // Initialize canvas
@@ -2407,10 +2407,10 @@
                 
                 // Save dimensions for later use in capture (before canvas might be resized to 0x0)
                 if (canvas.width > 0 && canvas.height > 0) {
-                    savedCanvasWidth = canvas.width;
-                    savedCanvasHeight = canvas.height;
+                    window.savedCanvasWidth = canvas.width;
+                    window.savedCanvasHeight = canvas.height;
                 }
-                console.log(`Canvas resized to ${canvas.width}x${canvas.height} (saved: ${savedCanvasWidth}x${savedCanvasHeight})`);
+                console.log(`Canvas resized to ${canvas.width}x${canvas.height} (saved: ${window.savedCanvasWidth}x${window.savedCanvasHeight})`);
                 redrawCanvas();
             };
             
@@ -3518,8 +3518,8 @@
                 
                 // PERSISTENT DEBUG LOGS
                 const debugInfo = {
-                    savedCanvasWidth: savedCanvasWidth,
-                    savedCanvasHeight: savedCanvasHeight,
+                    savedCanvasWidth: window.savedCanvasWidth,
+                    savedCanvasHeight: window.savedCanvasHeight,
                     canvasWidth: canvas?.width,
                     canvasHeight: canvas?.height,
                     croquiOffsetWidth: croquiImg?.offsetWidth,
@@ -3589,8 +3589,8 @@
                 
                 // Calculate scale using canvas dimensions (same as check-in)
                 console.log('🔍 SCALE DEBUG:');
-                console.log('  savedCanvasWidth:', savedCanvasWidth);
-                console.log('  savedCanvasHeight:', savedCanvasHeight);
+                console.log('  savedCanvasWidth:', window.savedCanvasWidth);
+                console.log('  savedCanvasHeight:', window.savedCanvasHeight);
                 console.log('  canvas?.width:', canvas?.width);
                 console.log('  canvas?.height:', canvas?.height);
                 console.log('  croquiImg.offsetWidth:', croquiImg.offsetWidth);
@@ -3598,8 +3598,8 @@
                 console.log('  tempCanvas.width:', tempCanvas.width);
                 console.log('  tempCanvas.height:', tempCanvas.height);
                 
-                const canvasWidth = savedCanvasWidth > 0 ? savedCanvasWidth : (canvas && canvas.width > 0 ? canvas.width : croquiImg.offsetWidth);
-                const canvasHeight = savedCanvasHeight > 0 ? savedCanvasHeight : (canvas && canvas.height > 0 ? canvas.height : croquiImg.offsetHeight);
+                const canvasWidth = window.savedCanvasWidth > 0 ? window.savedCanvasWidth : (canvas && canvas.width > 0 ? canvas.width : croquiImg.offsetWidth);
+                const canvasHeight = window.savedCanvasHeight > 0 ? window.savedCanvasHeight : (canvas && canvas.height > 0 ? canvas.height : croquiImg.offsetHeight);
                 const scaleX = tempCanvas.width / canvasWidth;
                 const scaleY = tempCanvas.height / canvasHeight;
                 
