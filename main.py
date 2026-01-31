@@ -1184,20 +1184,58 @@ def combine_croqui_with_damages(delivery_croqui_base64=None, pickup_damages=None
         
         # Desenhar danos extra em vermelho
         for damage in pickup_damages:
-            x = damage.get('x', 0)
-            y = damage.get('y', 0)
             damage_type = damage.get('type', 'pin')
             
             if damage_type == 'pin':
                 # Desenhar pin vermelho (círculo)
+                x = damage.get('x', 0)
+                y = damage.get('y', 0)
                 radius = 8
                 draw.ellipse(
                     [(x - radius, y - radius), (x + radius, y + radius)],
                     fill='#dc3545',  # Vermelho
                     outline='#dc3545'
                 )
+            elif damage_type == 'drawing':
+                # Desenhar traços/riscos do canvas (vêm como dataURL)
+                dataURL = damage.get('dataURL', '')
+                if dataURL:
+                    try:
+                        # Extrair base64 do dataURL
+                        if dataURL.startswith('data:image'):
+                            drawing_base64 = dataURL.split(',')[1]
+                        else:
+                            drawing_base64 = dataURL
+                        
+                        # Decodificar e abrir imagem do drawing
+                        drawing_data = base64.b64decode(drawing_base64)
+                        drawing_img = Image.open(io.BytesIO(drawing_data))
+                        
+                        logging.info(f"📐 Drawing size: {drawing_img.size}, Croqui base size: {img.size}")
+                        
+                        # Se os tamanhos forem diferentes, redimensionar o drawing
+                        if drawing_img.size != img.size:
+                            logging.warning(f"⚠️ Drawing size mismatch! Resizing from {drawing_img.size} to {img.size}")
+                            drawing_img = drawing_img.resize(img.size, Image.Resampling.LANCZOS)
+                        
+                        # Sobrepor o drawing no croqui usando paste com máscara de transparência
+                        if drawing_img.mode == 'RGBA':
+                            img.paste(drawing_img, (0, 0), drawing_img)
+                        else:
+                            img.paste(drawing_img, (0, 0))
+                        
+                        logging.info(f"✅ Drawing overlay applied")
+                        
+                        # Recriar draw object após paste
+                        draw = ImageDraw.Draw(img)
+                    except Exception as e:
+                        logging.error(f"❌ Error applying drawing overlay: {e}")
+                        import traceback
+                        logging.error(traceback.format_exc())
             elif damage_type == 'scratch':
                 # Desenhar risco vermelho (linha)
+                x = damage.get('x', 0)
+                y = damage.get('y', 0)
                 x2 = damage.get('x2', x + 20)
                 y2 = damage.get('y2', y + 20)
                 draw.line([(x, y), (x2, y2)], fill='#dc3545', width=3)
@@ -30653,6 +30691,13 @@ async def save_inspection(request: Request):
                                     checkout_damages = damages if damages else []
                                     
                                     logging.info(f"🎨 Combining checkin croqui with {len(checkout_damages)} checkout damages...")
+                                    
+                                    # Log cada dano recebido
+                                    for idx, dmg in enumerate(checkout_damages, 1):
+                                        logging.info(f"🔍 Damage {idx}: type={dmg.get('type')}, x={dmg.get('x')}, y={dmg.get('y')}, has_dataURL={bool(dmg.get('dataURL'))}")
+                                        if dmg.get('dataURL'):
+                                            dataURL = dmg.get('dataURL', '')
+                                            logging.info(f"   📏 dataURL length: {len(dataURL)} chars")
                                     
                                     # Use combine_croqui_with_damages to merge
                                     combined_croqui = combine_croqui_with_damages(
