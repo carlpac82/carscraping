@@ -9,6 +9,8 @@
     <script src="/static/notifications.js"></script>
     <!-- Tesseract.js for OCR -->
     <script src='https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js'></script>
+    <!-- html2canvas for screenshot capture -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
     <style>
         * { 
             font-family: 'Outfit', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
@@ -3517,154 +3519,29 @@
         // Capture croqui while diagram is visible (before modal/overlay hides it)
         async function captureCroquiBeforeSave() {
             try {
+                console.log('📸 Starting screenshot capture with html2canvas...');
                 const container = document.getElementById('carDiagram');
-                const canvas = document.getElementById('drawingCanvas');
-                const croquiImg = container ? container.querySelector('img') : null;
                 
-                // PERSISTENT DEBUG LOGS
-                const debugInfo = {
-                    savedCanvasWidth: window.savedCanvasWidth,
-                    savedCanvasHeight: window.savedCanvasHeight,
-                    canvasWidth: canvas?.width,
-                    canvasHeight: canvas?.height,
-                    croquiOffsetWidth: croquiImg?.offsetWidth,
-                    croquiOffsetHeight: croquiImg?.offsetHeight,
-                    croquiNaturalWidth: croquiImg?.naturalWidth,
-                    croquiNaturalHeight: croquiImg?.naturalHeight,
-                    containerOffsetWidth: container?.offsetWidth,
-                    containerOffsetHeight: container?.offsetHeight,
-                    pins: []
-                };
-                
-                const debugPins = container?.querySelectorAll('.damage-pin:not(#pinPreview)');
-                debugPins?.forEach((pin, i) => {
-                    debugInfo.pins.push({
-                        index: i,
-                        left: pin.style.left,
-                        top: pin.style.top,
-                        offsetLeft: pin.offsetLeft,
-                        offsetTop: pin.offsetTop
-                    });
-                });
-                
-                console.log('🔍🔍🔍 CAPTURE DEBUG INFO:', JSON.stringify(debugInfo, null, 2));
-                window.lastCaptureDebug = debugInfo;
-                
-                if (!container || !croquiImg || !croquiImg.complete || croquiImg.naturalWidth === 0) {
-                    console.error('❌ Cannot capture: missing elements or image not loaded');
+                if (!container) {
+                    console.error('❌ Container not found');
                     return '';
                 }
                 
-                console.log('🎨 Capture check - Canvas:', !!canvas, canvas?.width, 'x', canvas?.height);
-                console.log('🎨 Capture check - Container:', !!container);
-                console.log('🎨 Capture check - Image:', !!croquiImg, croquiImg?.naturalWidth, 'x', croquiImg?.naturalHeight);
-                
-                if (!croquiImg || !croquiImg.complete || croquiImg.naturalWidth === 0) {
-                    console.error('❌ Croqui image not ready');
-                    return '';
-                }
-                
-                // Create temp canvas using NATURAL size (not offset which may be 0)
-                const tempCanvas = document.createElement('canvas');
-                const tempCtx = tempCanvas.getContext('2d');
-                tempCanvas.width = croquiImg.naturalWidth;
-                tempCanvas.height = croquiImg.naturalHeight;
-                
-                console.log('✅ Temp canvas:', tempCanvas.width, 'x', tempCanvas.height);
-                
-                // Draw background (croqui base image only - NO check-in damages)
-                // Backend will overlay check-in croqui + checkout croqui
-                tempCtx.drawImage(croquiImg, 0, 0);
-                
-                // Calculate scale using canvas dimensions (same as check-in)
-                console.log('🔍 SCALE DEBUG:');
-                console.log('  savedCanvasWidth:', window.savedCanvasWidth);
-                console.log('  savedCanvasHeight:', window.savedCanvasHeight);
-                console.log('  canvas?.width:', canvas?.width);
-                console.log('  canvas?.height:', canvas?.height);
-                console.log('  croquiImg.offsetWidth:', croquiImg.offsetWidth);
-                console.log('  croquiImg.offsetHeight:', croquiImg.offsetHeight);
-                console.log('  tempCanvas.width:', tempCanvas.width);
-                console.log('  tempCanvas.height:', tempCanvas.height);
-                
-                const canvasWidth = window.savedCanvasWidth > 0 ? window.savedCanvasWidth : (canvas && canvas.width > 0 ? canvas.width : croquiImg.offsetWidth);
-                const canvasHeight = window.savedCanvasHeight > 0 ? window.savedCanvasHeight : (canvas && canvas.height > 0 ? canvas.height : croquiImg.offsetHeight);
-                const scaleX = tempCanvas.width / canvasWidth;
-                const scaleY = tempCanvas.height / canvasHeight;
-                
-                console.log('  FINAL canvasWidth:', canvasWidth);
-                console.log('  FINAL canvasHeight:', canvasHeight);
-                console.log('  FINAL scaleX:', scaleX);
-                console.log('  FINAL scaleY:', scaleY);
-                
-                // Draw canvas overlay - use saved drawings from damages array
-                // This works even if canvas is 0x0 because we saved the drawings as dataURL
-                const drawings = window.damages ? window.damages.filter(d => d.type === 'drawing') : [];
-                console.log('🎨 Found', drawings.length, 'saved drawings to render');
-                
-                if (drawings.length > 0) {
-                    // Get the last drawing (which contains all accumulated drawings)
-                    const lastDrawing = drawings[drawings.length - 1];
-                    const drawingImg = new Image();
-                    
-                    // Wait for image to load before continuing
-                    await new Promise((resolve) => {
-                        drawingImg.onload = () => {
-                            tempCtx.save();
-                            tempCtx.scale(scaleX, scaleY);
-                            tempCtx.drawImage(drawingImg, 0, 0);
-                            tempCtx.restore();
-                            console.log('✅ Drawings rendered on croqui');
-                            resolve();
-                        };
-                        drawingImg.onerror = () => {
-                            console.error('❌ Failed to load drawing image');
-                            resolve();
-                        };
-                        drawingImg.src = lastDrawing.dataURL;
-                    });
-                } else {
-                    console.log('⚠️ No saved drawings found in damages array');
-                }
-                
-                // Draw pins - same approach as check-in (multiply coordinates, no ctx.scale)
-                const pins = container.querySelectorAll('.damage-pin:not(#pinPreview)');
-                
-                pins.forEach((pin, i) => {
-                    const left = parseFloat(pin.style.left) || 0;
-                    const top = parseFloat(pin.style.top) || 0;
-                    
-                    if (left === 0 && top === 0) return;
-                    
-                    // Pin has transform: translate(-50%, -50%), so left/top represent CENTER
-                    // Same as check-in - multiply coordinates directly by scale
-                    const pinX = left * scaleX;
-                    const pinY = top * scaleY;
-                    
-                    // Get pin radius for drawing
-                    let r = 8;
-                    if (pin.classList.contains('size-tiny')) r = 4;
-                    else if (pin.classList.contains('size-small')) r = 6;
-                    else if (pin.classList.contains('size-large')) r = 12;
-                    
-                    const scaledRadius = r * Math.min(scaleX, scaleY);
-                    
-                    // Draw WITHOUT ctx.scale() - coordinates already scaled
-                    tempCtx.beginPath();
-                    tempCtx.arc(pinX, pinY, scaledRadius, 0, Math.PI * 2);
-                    tempCtx.fillStyle = '#000000';
-                    tempCtx.fill();
-                    tempCtx.strokeStyle = '#ffffff';
-                    tempCtx.lineWidth = 2;
-                    tempCtx.stroke();
+                // Use html2canvas to capture the EXACT visual representation
+                const canvas = await html2canvas(container, {
+                    backgroundColor: '#ffffff',
+                    scale: 2, // Higher quality
+                    logging: false,
+                    useCORS: true,
+                    allowTaint: true
                 });
                 
-                const result = tempCanvas.toDataURL('image/png');
-                console.log('✅ Croqui captured:', pins.length, 'pins,', result.length, 'chars');
+                const result = canvas.toDataURL('image/png');
+                console.log('✅ Screenshot captured:', result.length, 'chars');
                 return result;
                 
             } catch (error) {
-                console.error('❌ Capture error:', error);
+                console.error('❌ Screenshot capture error:', error);
                 return '';
             }
         }
