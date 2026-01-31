@@ -2397,7 +2397,8 @@
                         const checkinImg = new Image();
                         checkinImg.onload = function() {
                             checkinCtx.clearRect(0, 0, checkinCanvas.width, checkinCanvas.height);
-                            checkinCtx.drawImage(checkinImg, 0, 0, checkinCanvas.width, checkinCanvas.height);
+                            // Draw at natural size - no forced scaling
+                            checkinCtx.drawImage(checkinImg, 0, 0);
                             console.log('✅ Check-in damages redrawn after resize');
                         };
                         checkinImg.src = window.deliveryInspection.damage_croqui;
