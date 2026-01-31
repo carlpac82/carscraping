@@ -2384,9 +2384,12 @@
                 canvas.width = img.offsetWidth;
                 canvas.height = img.offsetHeight;
                 
-                // Store natural dimensions for scaling during capture
-                window.savedCanvasWidth = img.naturalWidth;
-                window.savedCanvasHeight = img.naturalHeight;
+                // Store NATURAL dimensions for scaling during capture (NOT canvas dimensions)
+                // Use naturalWidth/naturalHeight which are the actual image dimensions (986x700)
+                window.savedCanvasWidth = img.naturalWidth || 986;
+                window.savedCanvasHeight = img.naturalHeight || 700;
+                
+                console.log(`Canvas resized to ${canvas.width}x${canvas.height} (natural: ${window.savedCanvasWidth}x${window.savedCanvasHeight})`);
                 
                 // Also resize the check-in damages canvas to match
                 const checkinCanvas = document.getElementById('checkinDamagesCanvas');
@@ -2408,12 +2411,6 @@
                     }
                 }
                 
-                // Save dimensions for later use in capture (before canvas might be resized to 0x0)
-                if (canvas.width > 0 && canvas.height > 0) {
-                    window.savedCanvasWidth = canvas.width;
-                    window.savedCanvasHeight = canvas.height;
-                }
-                console.log(`Canvas resized to ${canvas.width}x${canvas.height} (saved: ${window.savedCanvasWidth}x${window.savedCanvasHeight})`);
                 redrawCanvas();
             };
             
