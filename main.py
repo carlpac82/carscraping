@@ -1202,9 +1202,16 @@ def combine_croqui_with_damages(delivery_croqui_base64=None, pickup_damages=None
                         drawing_data = base64.b64decode(drawing_base64)
                         drawing_img = Image.open(io.BytesIO(drawing_data))
                         
+                        logging.info(f"📐 Drawing size: {drawing_img.size}, Croqui base size: {img.size}")
+                        
                         # Converter para RGBA se necessário
                         if drawing_img.mode != 'RGBA':
                             drawing_img = drawing_img.convert('RGBA')
+                        
+                        # Redimensionar drawing se necessário para corresponder ao croqui base
+                        if drawing_img.size != img.size:
+                            logging.warning(f"⚠️ Drawing size mismatch! Resizing from {drawing_img.size} to {img.size}")
+                            drawing_img = drawing_img.resize(img.size, Image.Resampling.LANCZOS)
                         
                         # Sobrepor o drawing no croqui (usando alpha blending)
                         img.paste(drawing_img, (0, 0), drawing_img)
