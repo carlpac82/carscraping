@@ -1483,14 +1483,6 @@
                         <div class="sticky top-0 bg-white border-b px-3 py-3 md:px-6 md:py-4 flex justify-between items-center">
                             <h2 class="text-lg md:text-xl font-bold text-[#009cb6] truncate">${title} - ${data.inspection.vehicle_plate}</h2>
                             <div class="flex items-center gap-2">
-                                ${parkingQRData && parkingQRData.length > 0 ? `
-                                <button onclick="viewParkingQRPDF(${parkingQRData.length})" class="flex items-center gap-1 px-3 py-2 bg-blue-50 hover:bg-blue-100 rounded-lg transition-colors" title="Ver PDF do Parque">
-                                    <svg class="w-5 h-5 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z"/>
-                                    </svg>
-                                    <span class="text-sm font-medium text-blue-600">PDF Parque</span>
-                                </button>
-                                ` : ''}
                                 <button onclick="closePreviewModal()" class="text-gray-500 hover:text-gray-700">
                                     <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
