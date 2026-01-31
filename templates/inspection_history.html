@@ -2879,7 +2879,18 @@
                         bgImg.src = bgUrl[1];
                         await new Promise(resolve => {
                             bgImg.onload = () => {
-                                tempCtx.drawImage(bgImg, 0, 0, tempCanvas.width, tempCanvas.height);
+                                console.log('  bgImg.naturalWidth x naturalHeight:', bgImg.naturalWidth, 'x', bgImg.naturalHeight);
+                                
+                                // Check if sizes match
+                                if (bgImg.naturalWidth !== tempCanvas.width || bgImg.naturalHeight !== tempCanvas.height) {
+                                    console.warn('⚠️ SIZE MISMATCH between bgImg and tempCanvas!');
+                                    console.warn('  This will cause pin position distortion!');
+                                    console.warn('  bgImg:', bgImg.naturalWidth, 'x', bgImg.naturalHeight);
+                                    console.warn('  tempCanvas:', tempCanvas.width, 'x', tempCanvas.height);
+                                }
+                                
+                                // Draw without forced scaling - use natural size
+                                tempCtx.drawImage(bgImg, 0, 0);
                                 resolve();
                             };
                             bgImg.onerror = resolve;
@@ -2887,8 +2898,9 @@
                     }
                 }
                 
-                // Step 3: Draw canvas with new damages (scale to match tempCanvas size)
-                tempCtx.drawImage(drawingCanvas, 0, 0, tempCanvas.width, tempCanvas.height);
+                // Step 3: Draw canvas with new damages (use natural size - no scaling)
+                console.log('  About to draw drawingCanvas...');
+                tempCtx.drawImage(drawingCanvas, 0, 0);
                 
                 return tempCanvas.toDataURL('image/png');
             } catch (error) {
