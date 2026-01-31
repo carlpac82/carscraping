@@ -215,15 +215,15 @@
                            onchange="filterInspections()">
                 </div>
                 
-                <!-- Filter by Self-Checkout -->
+                <!-- Filter by Inspection Type -->
                 <div>
                     <label class="block text-xs md:text-sm font-medium text-gray-700 mb-1">Tipo</label>
-                    <select id="filterSelfCheckout" 
+                    <select id="filterInspectionType" 
                             class="custom-select w-full h-[36px] md:h-[42px] px-2 md:px-4 py-1 md:py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#009cb6] appearance-none bg-white" 
                             onchange="filterInspections()">
                         <option value="all">Todos</option>
-                        <option value="self">Apenas Self-Checkout</option>
-                        <option value="manual">Apenas Manual</option>
+                        <option value="checkin">Entrega</option>
+                        <option value="checkout">Recolha</option>
                     </select>
                 </div>
                 
@@ -538,7 +538,7 @@
             const searchPlate = document.getElementById('searchPlate')?.value?.trim().toUpperCase() || '';
             const searchRA = document.getElementById('searchRA')?.value?.trim().toUpperCase() || '';
             const searchDate = document.getElementById('searchDate')?.value || '';
-            const filterSelfCheckout = document.getElementById('filterSelfCheckout')?.value || 'all';
+            const filterInspectionType = document.getElementById('filterInspectionType')?.value || 'all';
             const filterStatus = document.getElementById('filterStatus')?.value || 'all';
 
             let filtered = contracts;
@@ -557,25 +557,37 @@
                 );
             }
 
-            // Filter by date
-            if (searchDate) {
+            // Filter by inspection type (Entrega/Recolha)
+            if (filterInspectionType !== 'all') {
                 filtered = filtered.filter(c => {
-                    const checkoutDate = c.checkout ? new Date(c.checkout.created_at).toISOString().split('T')[0] : null;
-                    const checkinDate = c.checkin ? new Date(c.checkin.created_at).toISOString().split('T')[0] : null;
-                    return checkoutDate === searchDate || checkinDate === searchDate;
-                });
-            }
-            
-            // Filter by self-checkout type
-            if (filterSelfCheckout !== 'all') {
-                filtered = filtered.filter(c => {
-                    const hasSelfCheckout = c.self_checkout !== null;
-                    if (filterSelfCheckout === 'self') {
-                        return hasSelfCheckout;
-                    } else if (filterSelfCheckout === 'manual') {
-                        return !hasSelfCheckout;
+                    if (filterInspectionType === 'checkin') {
+                        return c.checkin !== null;
+                    } else if (filterInspectionType === 'checkout') {
+                        return c.checkout !== null || c.self_checkout !== null;
                     }
                     return true;
+                });
+            }
+
+            // Filter by date (depends on inspection type selected)
+            if (searchDate) {
+                filtered = filtered.filter(c => {
+                    if (filterInspectionType === 'checkin') {
+                        // Apenas filtrar por data de check-in (Entrega)
+                        const checkinDate = c.checkin ? new Date(c.checkin.created_at).toISOString().split('T')[0] : null;
+                        return checkinDate === searchDate;
+                    } else if (filterInspectionType === 'checkout') {
+                        // Apenas filtrar por data de check-out/self-checkout (Recolha)
+                        const checkoutDate = c.checkout ? new Date(c.checkout.created_at).toISOString().split('T')[0] : null;
+                        const selfCheckoutDate = c.self_checkout ? new Date(c.self_checkout.created_at).toISOString().split('T')[0] : null;
+                        return checkoutDate === searchDate || selfCheckoutDate === searchDate;
+                    } else {
+                        // Se "Todos" selecionado, filtrar por qualquer data
+                        const checkoutDate = c.checkout ? new Date(c.checkout.created_at).toISOString().split('T')[0] : null;
+                        const checkinDate = c.checkin ? new Date(c.checkin.created_at).toISOString().split('T')[0] : null;
+                        const selfCheckoutDate = c.self_checkout ? new Date(c.self_checkout.created_at).toISOString().split('T')[0] : null;
+                        return checkoutDate === searchDate || checkinDate === searchDate || selfCheckoutDate === searchDate;
+                    }
                 });
             }
             
@@ -597,7 +609,7 @@
             document.getElementById('searchPlate').value = '';
             document.getElementById('searchRA').value = '';
             document.getElementById('searchDate').value = '';
-            document.getElementById('filterSelfCheckout').value = 'all';
+            document.getElementById('filterInspectionType').value = 'all';
             document.getElementById('filterStatus').value = 'all';
             filterInspections();
         }
