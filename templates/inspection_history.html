@@ -550,6 +550,19 @@
                 filterStatus,
                 totalContracts: contracts.length
             });
+            
+            // Debug: mostrar todos os contratos e seus campos relevantes
+            console.log('📋 All contracts data:');
+            contracts.forEach((c, idx) => {
+                console.log(`  Contract ${idx + 1}:`, {
+                    vehicle_plate: c.vehicle_plate,
+                    ra: c.contract_number,
+                    has_checkin: !!c.checkin,
+                    has_checkout: !!c.checkout,
+                    has_self_checkout: !!c.self_checkout,
+                    expected_return_date: c.expected_return_date
+                });
+            });
 
             let filtered = contracts;
 
