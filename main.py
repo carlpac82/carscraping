@@ -30687,29 +30687,70 @@ async def save_inspection(request: Request):
                                     checkin_croqui_base64 = None
                                 
                                 if checkin_croqui_base64:
-                                    # Extract damages from checkout croqui (current damages list)
-                                    checkout_damages = damages if damages else []
+                                    # Use the RENDERED checkout croqui from frontend (damage_croqui)
+                                    # This already has all pins and drawings rendered correctly
+                                    logging.info(f"🎨 Combining checkin croqui with checkout croqui (rendered from frontend)...")
                                     
-                                    logging.info(f"🎨 Combining checkin croqui with {len(checkout_damages)} checkout damages...")
-                                    
-                                    # Log cada dano recebido
-                                    for idx, dmg in enumerate(checkout_damages, 1):
-                                        logging.info(f"🔍 Damage {idx}: type={dmg.get('type')}, x={dmg.get('x')}, y={dmg.get('y')}, has_dataURL={bool(dmg.get('dataURL'))}")
-                                        if dmg.get('dataURL'):
-                                            dataURL = dmg.get('dataURL', '')
-                                            logging.info(f"   📏 dataURL length: {len(dataURL)} chars")
-                                    
-                                    # Use combine_croqui_with_damages to merge
-                                    combined_croqui = combine_croqui_with_damages(
-                                        delivery_croqui_base64=checkin_croqui_base64,
-                                        pickup_damages=checkout_damages
-                                    )
-                                    
-                                    if combined_croqui:
-                                        final_croqui_to_save = combined_croqui
-                                        logging.info(f"✅ Croqui combined successfully!")
+                                    if damage_croqui and len(damage_croqui) > 100:
+                                        try:
+                                            # Both croquis are already rendered - just overlay them
+                                            from PIL import Image
+                                            import io
+                                            
+                                            # Decode checkin croqui
+                                            if checkin_croqui_base64.startswith('data:image'):
+                                                checkin_base64 = checkin_croqui_base64.split(',')[1]
+                                            else:
+                                                checkin_base64 = checkin_croqui_base64
+                                            checkin_data = base64.b64decode(checkin_base64)
+                                            checkin_img = Image.open(io.BytesIO(checkin_data))
+                                            
+                                            # Decode checkout croqui
+                                            if damage_croqui.startswith('data:image'):
+                                                checkout_base64 = damage_croqui.split(',')[1]
+                                            else:
+                                                checkout_base64 = damage_croqui
+                                            checkout_data = base64.b64decode(checkout_base64)
+                                            checkout_img = Image.open(io.BytesIO(checkout_data))
+                                            
+                                            logging.info(f"📐 Checkin croqui size: {checkin_img.size}")
+                                            logging.info(f"📐 Checkout croqui size: {checkout_img.size}")
+                                            
+                                            # Resize checkout to match checkin if needed
+                                            if checkout_img.size != checkin_img.size:
+                                                logging.warning(f"⚠️ Size mismatch! Resizing checkout from {checkout_img.size} to {checkin_img.size}")
+                                                checkout_img = checkout_img.resize(checkin_img.size, Image.Resampling.LANCZOS)
+                                            
+                                            # Convert checkin to RGB if needed
+                                            if checkin_img.mode == 'RGBA':
+                                                white_bg = Image.new('RGB', checkin_img.size, (255, 255, 255))
+                                                white_bg.paste(checkin_img, mask=checkin_img.split()[3])
+                                                checkin_img = white_bg
+                                            elif checkin_img.mode != 'RGB':
+                                                checkin_img = checkin_img.convert('RGB')
+                                            
+                                            # Overlay checkout on checkin
+                                            if checkout_img.mode == 'RGBA':
+                                                checkin_img.paste(checkout_img, (0, 0), checkout_img)
+                                            else:
+                                                checkin_img.paste(checkout_img, (0, 0))
+                                            
+                                            # Convert to base64
+                                            buffer = io.BytesIO()
+                                            checkin_img.save(buffer, format='PNG')
+                                            combined_data = buffer.getvalue()
+                                            combined_croqui = f"data:image/png;base64,{base64.b64encode(combined_data).decode('utf-8')}"
+                                            
+                                            final_croqui_to_save = combined_croqui
+                                            logging.info(f"✅ Croquis overlayed successfully!")
+                                        except Exception as e:
+                                            logging.error(f"❌ Error overlaying croquis: {e}")
+                                            import traceback
+                                            logging.error(traceback.format_exc())
+                                            logging.info(f"⚠️ Using checkout croqui only")
                                     else:
-                                        logging.warning(f"⚠️ combine_croqui_with_damages returned None, using original")
+                                        logging.info(f"ℹ️ No checkout croqui to overlay, using checkin croqui only")
+                                        final_croqui_to_save = checkin_croqui_base64
                                 else:
                                     logging.warning(f"⚠️ Could not convert checkin croqui to base64")
                             else:
