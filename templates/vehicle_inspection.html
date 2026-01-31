@@ -3531,8 +3531,8 @@
                     pins: []
                 };
                 
-                const pins = container?.querySelectorAll('.damage-pin:not(#pinPreview)');
-                pins?.forEach((pin, i) => {
+                const debugPins = container?.querySelectorAll('.damage-pin:not(#pinPreview)');
+                debugPins?.forEach((pin, i) => {
                     debugInfo.pins.push({
                         index: i,
                         left: pin.style.left,
