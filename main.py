@@ -49282,6 +49282,10 @@ async def get_inspections_history(request: Request):
                         client_email = data.get('clientEmail') or data.get('client_email') or data.get('email')
                         vehicle_brand = data.get('vehicleBrand') or data.get('vehicle_brand') or ''
                         vehicle_model = data.get('vehicleModel') or data.get('vehicle_model') or ''
+                        
+                        # Extract return_date from extracted_data if not in column
+                        if not return_date:
+                            return_date = data.get('returnDate') or data.get('return_date')
                     except Exception as e:
                         logging.error(f"Error parsing extracted_data for RA {ra}: {e}")
                 
