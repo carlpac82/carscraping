@@ -30070,6 +30070,19 @@ async def save_inspection(request: Request):
                 logging.info(f"📸 Photo '{photo_key}': EMPTY or None")
         logging.info(f"⚠️ Damages count: {len(damages)}")
         logging.info(f"⚠️ Damages array content: {damages}")
+        
+        # Log detalhado de cada dano
+        for idx, damage in enumerate(damages):
+            damage_type = damage.get('type', 'unknown')
+            logging.info(f"🔍 Damage {idx + 1}: type={damage_type}")
+            if damage_type == 'pin':
+                logging.info(f"   📍 Pin coordinates: x={damage.get('x')}, y={damage.get('y')}")
+            elif damage_type == 'drawing':
+                dataURL = damage.get('dataURL', '')
+                logging.info(f"   ✏️ Drawing dataURL length: {len(dataURL)}")
+                if dataURL:
+                    logging.info(f"   ✏️ Drawing dataURL prefix: {dataURL[:100]}")
+        
         logging.info(f"🖼️ Damage croqui received: {len(damage_croqui) if damage_croqui else 0} chars")
         
         # Get current user (colaborador que fez a entrega)
