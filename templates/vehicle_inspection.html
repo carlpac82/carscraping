@@ -3627,29 +3627,26 @@
                     console.log('⚠️ No saved drawings found in damages array');
                 }
                 
-                // Draw pins - same approach as check-in (multiply coordinates, no ctx.scale)
-                const pins = container.querySelectorAll('.damage-pin:not(#pinPreview)');
+                // Draw pins from damages array (not DOM) to ensure all are captured
+                const pins = window.damages ? window.damages.filter(d => d.type === 'pin') : [];
+                console.log('📍 Found', pins.length, 'pins in damages array');
                 
                 pins.forEach((pin, i) => {
-                    const left = parseFloat(pin.style.left) || 0;
-                    const top = parseFloat(pin.style.top) || 0;
+                    // Pin coordinates are already in container space
+                    const pinX = pin.x * scaleX;
+                    const pinY = pin.y * scaleY;
                     
-                    if (left === 0 && top === 0) return;
-                    
-                    // Pin has transform: translate(-50%, -50%), so left/top represent CENTER
-                    // Same as check-in - multiply coordinates directly by scale
-                    const pinX = left * scaleX;
-                    const pinY = top * scaleY;
-                    
-                    // Get pin radius for drawing
+                    // Get pin radius based on size
                     let r = 8;
-                    if (pin.classList.contains('size-tiny')) r = 4;
-                    else if (pin.classList.contains('size-small')) r = 6;
-                    else if (pin.classList.contains('size-large')) r = 12;
+                    if (pin.size === 'tiny') r = 4;
+                    else if (pin.size === 'small') r = 6;
+                    else if (pin.size === 'large') r = 12;
                     
                     const scaledRadius = r * Math.min(scaleX, scaleY);
                     
-                    // Draw WITHOUT ctx.scale() - coordinates already scaled
+                    console.log(`  Drawing pin ${i + 1}: x=${pin.x}, y=${pin.y} -> scaled: ${pinX}, ${pinY}, radius: ${scaledRadius}`);
+                    
+                    // Draw pin
                     tempCtx.beginPath();
                     tempCtx.arc(pinX, pinY, scaledRadius, 0, Math.PI * 2);
                     tempCtx.fillStyle = '#000000';
