@@ -2698,8 +2698,11 @@
             // Position pin with top-left corner at click position
             // Then offset by half the pin size to center it
             const pinSize = currentSize === 'tiny' ? 8 : currentSize === 'small' ? 12 : currentSize === 'large' ? 24 : 16;
-            pin.style.left = (x - pinSize/2) + 'px';
-            pin.style.top = (y - pinSize/2) + 'px';
+            const finalX = x - pinSize/2;
+            const finalY = y - pinSize/2;
+            console.log(`📍 Pin position: currentSize=${currentSize}, pinSize=${pinSize}, x=${x}, y=${y}, finalX=${finalX}, finalY=${finalY}`);
+            pin.style.left = finalX + 'px';
+            pin.style.top = finalY + 'px';
             
             // If in pickup mode, use RED color for new damages
             const isNewDamage = window.isPickupMode === true;
