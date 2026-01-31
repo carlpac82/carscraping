@@ -2684,8 +2684,9 @@
         function addPin(event) {
             const container = document.getElementById('carDiagram');
             const rect = container.getBoundingClientRect();
-            const x = (event.clientX || event.pageX) - rect.left;
-            const y = (event.clientY || event.pageY) - rect.top;
+            // Use clientX/Y (viewport coordinates) and subtract container position
+            const x = event.clientX - rect.left;
+            const y = event.clientY - rect.top;
             
             pinCounter++;
             const pinId = `pin-${pinCounter}`;
