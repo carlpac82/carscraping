@@ -2741,9 +2741,12 @@
             // Checkout (recolha) = red, Checkin (entrega) = black
             const damageColor = currentInspectionType === 'checkout' ? '#dc3545' : 'rgba(0, 0, 0, 0.8)';
             
+            console.log('🎨 redrawCanvas called - damages:', damages.length, 'pins:', damages.filter(d => d.type === 'pin').length);
+            
             // Draw all damages
-            damages.forEach(damage => {
+            damages.forEach((damage, index) => {
                 if (damage.type === 'pin') {
+                    console.log(`  Drawing pin ${index}: x=${damage.x}, y=${damage.y}, radius=${damage.radius}, color=${damageColor}`);
                     // Draw pin with color based on inspection type
                     drawingCtx.beginPath();
                     drawingCtx.arc(damage.x, damage.y, damage.radius, 0, 2 * Math.PI);
@@ -2900,6 +2903,16 @@
                 
                 // Step 3: Draw canvas with new damages (use natural size - no scaling)
                 console.log('  About to draw drawingCanvas...');
+                console.log('  🔍 DEBUG DAMAGES ARRAY:', damages);
+                console.log('  📊 Total damages:', damages.length);
+                console.log('  📍 Pins:', damages.filter(d => d.type === 'pin').length);
+                console.log('  ✏️ Strokes:', damages.filter(d => d.type === 'drawing').length);
+                
+                // Log each pin position
+                damages.filter(d => d.type === 'pin').forEach((pin, i) => {
+                    console.log(`  Pin ${i + 1}: x=${pin.x}, y=${pin.y}, radius=${pin.radius}`);
+                });
+                
                 tempCtx.drawImage(drawingCanvas, 0, 0);
                 
                 return tempCanvas.toDataURL('image/png');
