@@ -16,6 +16,23 @@ import logging
 import json
 import base64
 
+# Configure logging level based on environment
+# WARNING in production (Railway), INFO in development
+IS_PRODUCTION = os.getenv("RAILWAY_ENVIRONMENT") or os.getenv("ENVIRONMENT") == "production"
+logging.basicConfig(
+    level=logging.WARNING if IS_PRODUCTION else logging.INFO,
+    format='%(levelname)s: %(message)s'
+)
+
+# Silence noisy loggers in production
+if IS_PRODUCTION:
+    logging.getLogger("uvicorn.access").setLevel(logging.ERROR)
+    logging.getLogger("uvicorn.error").setLevel(logging.WARNING)
+    logging.getLogger("apscheduler").setLevel(logging.ERROR)
+    logging.getLogger("urllib3").setLevel(logging.ERROR)
+    logging.getLogger("selenium").setLevel(logging.ERROR)
+    logging.getLogger("requests").setLevel(logging.ERROR)
+
 from fastapi import FastAPI, Request, Form, File, UploadFile, HTTPException, Response, status, Depends
 from fastapi.responses import RedirectResponse, JSONResponse, HTMLResponse, Response, StreamingResponse, FileResponse, PlainTextResponse
 from fastapi.staticfiles import StaticFiles
@@ -48,9 +65,9 @@ try:
             environment=os.getenv("ENVIRONMENT", "production"),
             release=os.getenv("RENDER_GIT_COMMIT", "unknown"),
         )
-        logging.info("✅ Sentry monitoring enabled")
+        logging.info("Sentry monitoring enabled")
     else:
-        logging.info("ℹ️  Sentry DSN not configured - monitoring disabled")
+        logging.info("Sentry DSN not configured - monitoring disabled")
 except ImportError:
     logging.warning("⚠️  Sentry SDK not installed - monitoring disabled")
 except Exception as e:
@@ -535,7 +552,6 @@ def scrape_with_playwright(url: str) -> List[Dict[str, Any]]:
             try:
                 # Aguardar filtros carregarem
                 page.wait_for_selector('#chkAUP', timeout=5000)
-                print("[PLAYWRIGHT] Checkbox AUTOPRUDENTE encontrado", file=sys.stderr, flush=True)
                 
                 # IMPORTANTE: Aceitar cookies primeiro se aparecer
                 try:
@@ -556,14 +572,11 @@ def scrape_with_playwright(url: str) -> List[Dict[str, Any]]:
                         });
                         document.body.style.overflow = 'auto';
                     """)
-                    print("[PLAYWRIGHT] Cookies aceites via JavaScript", file=sys.stderr, flush=True)
                     page.wait_for_timeout(1000)
                 except Exception as e:
-                    print(f"[PLAYWRIGHT] Erro ao aceitar cookies: {e}", file=sys.stderr, flush=True)
                     pass
                 
                 # Desmarcar todos os checkboxes de suppliers primeiro
-                print("[PLAYWRIGHT] Desmarcando todos os suppliers...", file=sys.stderr, flush=True)
                 page.evaluate("""
                     const checkboxes = document.querySelectorAll('input[name="frmPrv"]:checked');
                     checkboxes.forEach(cb => cb.click());
@@ -589,15 +602,12 @@ def scrape_with_playwright(url: str) -> List[Dict[str, Any]]:
                     pass
                 
                 # Marcar apenas AUTOPRUDENTE
-                print("[PLAYWRIGHT] Marcando apenas AUTOPRUDENTE...", file=sys.stderr, flush=True)
                 page.evaluate("""
                     const aupCheckbox = document.querySelector('#chkAUP');
                     if (aupCheckbox && !aupCheckbox.checked) {
                         aupCheckbox.click();
                     }
                 """)
-                
-                print("[PLAYWRIGHT] Filtro AUTOPRUDENTE ativado", file=sys.stderr, flush=True)
                 
                 # Aguardar página recarregar com filtro
                 page.wait_for_load_state("networkidle", timeout=15000)
@@ -620,7 +630,6 @@ def scrape_with_playwright(url: str) -> List[Dict[str, Any]]:
                     pass
                     
             except Exception as e:
-                print(f"[PLAYWRIGHT] Erro ao filtrar AUTOPRUDENTE: {e}", file=sys.stderr, flush=True)
                 # Continuar mesmo se falhar o filtro
                 pass
             # ===== FIM FILTRO AUTOPRUDENTE =====
@@ -667,7 +676,6 @@ def scrape_with_playwright(url: str) -> List[Dict[str, Any]]:
             # Query all cards - SELETORES ESPECÍFICOS CARJET
             handles = page.query_selector_all("section.newcarlist article")
             idx = 0
-            print(f"[PLAYWRIGHT] Encontrados {len(handles)} artigos", file=sys.stderr, flush=True)
             
             for h in handles:
                 try:
@@ -704,7 +712,6 @@ def scrape_with_playwright(url: str) -> List[Dict[str, Any]]:
                             price_text += ' €'
                         
                 except Exception as e:
-                    print(f"[PLAYWRIGHT] Erro ao extrair preço: {e}", file=sys.stderr, flush=True)
                     price_text = ""
                 
                 # === NOME DO CARRO (CARJET ESPECÍFICO) ===
@@ -775,14 +782,6 @@ def scrape_with_playwright(url: str) -> List[Dict[str, Any]]:
                     # Mapear categoria para código de grupo
                     group_code = map_category_to_group(category, car)
                     
-                    # Log detalhado
-                    print(f"[PLAYWRIGHT] Carro #{idx+1}:", file=sys.stderr, flush=True)
-                    print(f"  Nome: {car}", file=sys.stderr, flush=True)
-                    print(f"  Supplier: {supplier}", file=sys.stderr, flush=True)
-                    print(f"  Preço: {price_text}", file=sys.stderr, flush=True)
-                    print(f"  Categoria: {category}", file=sys.stderr, flush=True)
-                    print(f"  Grupo: {group_code}", file=sys.stderr, flush=True)
-                    
                     items.append({
                         "id": idx,
                         "car": car,
@@ -796,8 +795,6 @@ def scrape_with_playwright(url: str) -> List[Dict[str, Any]]:
                         "link": link or url,
                     })
                     idx += 1
-                else:
-                    print(f"[PLAYWRIGHT] ⚠️  Carro sem preço ignorado: {car}", file=sys.stderr, flush=True)
             # If no items collected via card scanning, try parsing the full rendered HTML
             try:
                 if not items:
@@ -934,16 +931,12 @@ def _preload_promotional_images():
     # Get base directory (works in both localhost and Railway)
     base_dir = Path(__file__).parent
     static_dir = base_dir / 'static'
-    logging.info(f"🔍 Base directory: {base_dir}")
-    logging.info(f"🔍 Static directory: {static_dir}")
-    logging.info(f"🔍 Static directory exists: {static_dir.exists()}")
     
     # Load logo
     try:
         logo_path = static_dir / 'ap-heather.png'
         with open(logo_path, 'rb') as f:
             LOGO_CACHE = f"data:image/png;base64,{base64.b64encode(f.read()).decode('utf-8')}"
-        logging.info(f"✅ Logo cached from {logo_path}")
     except Exception as e:
         logging.error(f"❌ Could not cache logo: {e}")
         LOGO_CACHE = "/static/ap-heather.png"
@@ -951,14 +944,10 @@ def _preload_promotional_images():
     # Load empty croqui template (car without damages)
     try:
         croqui_path = static_dir / 'images' / 'Croqui.png'
-        logging.info(f"🔍 Attempting to load empty croqui from: {croqui_path}")
-        logging.info(f"🔍 File exists: {croqui_path.exists()}")
         if croqui_path.exists():
             with open(croqui_path, 'rb') as f:
                 croqui_data = f.read()
-                logging.info(f"🔍 Croqui file size: {len(croqui_data)} bytes")
                 EMPTY_CROQUI_CACHE = f"data:image/png;base64,{base64.b64encode(croqui_data).decode('utf-8')}"
-                logging.info(f"✅ Empty croqui template cached (base64 length: {len(EMPTY_CROQUI_CACHE)})")
         else:
             logging.error(f"❌ Croqui file not found at {croqui_path}")
             EMPTY_CROQUI_CACHE = None
@@ -1004,12 +993,10 @@ def _preload_promotional_images():
                 img.save(buffer, format='JPEG', quality=70, optimize=True)
                 compressed_data = buffer.getvalue()
                 PROMO_IMAGES_CACHE[key] = f"data:image/jpeg;base64,{base64.b64encode(compressed_data).decode('utf-8')}"
-                logging.info(f"✅ {key} cached ({len(compressed_data)} bytes)")
         except Exception as e:
             logging.error(f"❌ Could not cache {key}: {e}")
             PROMO_IMAGES_CACHE[key] = ""
     
-    logging.info(f"✅ Promotional images cache ready: {len(PROMO_IMAGES_CACHE)} images")
 
 def generate_fuel_bars_image(entrega_pct, recolha_pct, entrega_label, recolha_label, delivery_text, pickup_text, lang='pt'):
     """
@@ -1224,7 +1211,6 @@ def combine_croqui_with_damages(delivery_croqui_base64=None, pickup_damages=None
                         else:
                             img.paste(drawing_img, (0, 0))
                         
-                        logging.info(f"✅ Drawing overlay applied")
                         
                         # Recriar draw object após paste
                         draw = ImageDraw.Draw(img)
@@ -1246,7 +1232,6 @@ def combine_croqui_with_damages(delivery_croqui_base64=None, pickup_damages=None
         combined_data = buffer.getvalue()
         combined_base64 = f"data:image/png;base64,{base64.b64encode(combined_data).decode('utf-8')}"
         
-        logging.info(f"✅ Croqui combinado criado com {len(pickup_damages)} danos extra")
         return combined_base64
         
     except Exception as e:
@@ -1306,10 +1291,7 @@ def _ensure_damage_reports_tables():
                 is_postgres = conn.__class__.__module__ == 'psycopg2.extensions'
                 
                 if not is_postgres:
-                    print("   ⚠️  SQLite detected, skipping DR tables", flush=True)
                     return
-                
-                print("   🔧 Creating PostgreSQL DR tables...", flush=True)
                 with conn.cursor() as cur:
                     cur.execute("""
                         CREATE TABLE IF NOT EXISTS damage_reports (
@@ -1469,20 +1451,12 @@ def _ensure_damage_reports_tables():
                     cur.execute("CREATE INDEX IF NOT EXISTS idx_dr_number ON damage_reports(dr_number)")
                     cur.execute("CREATE INDEX IF NOT EXISTS idx_dr_created_at ON damage_reports(created_at DESC)")
                     
-                    print("   ✅ damage_reports", flush=True)
-                    print("   ✅ damage_report_coordinates", flush=True)
-                    print("   ✅ damage_report_mapping_history", flush=True)
-                    print("   ✅ damage_report_templates", flush=True)
-                    print("   ✅ damage_report_numbering", flush=True)
-                    print("   ✅ dr_email_templates (PT, EN, FR, DE)", flush=True)
                     
                 conn.commit()
             finally:
                 conn.close()
     except Exception as e:
-        print(f"   ❌ Error creating DR tables: {e}", flush=True)
-        import traceback
-        traceback.print_exc()
+        logging.error(f"Error creating DR tables: {e}")
 
 def _ensure_rental_agreement_tables():
     """Criar tabelas de Rental Agreement no PostgreSQL"""
@@ -1493,10 +1467,7 @@ def _ensure_rental_agreement_tables():
                 is_postgres = conn.__class__.__module__ == 'psycopg2.extensions'
                 
                 if not is_postgres:
-                    print("   ⚠️  SQLite detected, skipping RA tables", flush=True)
                     return
-                
-                print("   🔧 Creating PostgreSQL RA tables...", flush=True)
                 cur = conn.cursor()
                 # Tabela de templates do RA
                 cur.execute("""
@@ -1549,96 +1520,87 @@ def _ensure_rental_agreement_tables():
                 cur.execute("CREATE INDEX IF NOT EXISTS idx_ra_field ON rental_agreement_coordinates(field_id)")
                 cur.close()
                 
-                print("   ✅ rental_agreement_templates", flush=True)
-                print("   ✅ rental_agreement_coordinates", flush=True)
-                print("   ✅ rental_agreement_mapping_history", flush=True)
                 
                 conn.commit()
             finally:
                 conn.close()
     except Exception as e:
-        print(f"   ❌ Error creating RA tables: {e}", flush=True)
-        import traceback
-        traceback.print_exc()
+        logging.error(f"Error creating RA tables: {e}")
 
 @app.on_event("startup")
 async def startup_event():
     """Initialize database and create default users on startup"""
     import datetime
-    logging.info(f"🚀 APPLICATION STARTED - VERSION 3.0 - {datetime.datetime.now().isoformat()}")
-    print(f"========================================", flush=True)
-    print(f"🚀 APP STARTUP - Rental Price Tracker", flush=True)
-    print(f"🔍 Testing data persistence after deploy", flush=True)
-    print(f"========================================", flush=True)
+    logging.info(f"APPLICATION STARTED - VERSION 3.0 - {datetime.datetime.now().isoformat()}")
     
     # Initialize database tables FIRST
     try:
-        print(f"📊 Initializing database tables...", flush=True)
+        logging.info("Initializing database tables...")
         _ensure_users_table()
-        print(f"   ✅ users table created/exists", flush=True)
+        logging.info("users table created/exists")
         
         # Initialize ALL other tables (price_snapshots, ai_learning_data, etc.)
         init_db()
-        print(f"   ✅ All tables created/verified (19 tables total)", flush=True)
+        logging.info("All tables created/verified (19 tables total)")
     except Exception as e:
-        print(f"⚠️  Database initialization error: {e}", flush=True)
+        logging.error(f"Database initialization error: {e}")
         import traceback
         traceback.print_exc()
     
     # Pre-load promotional images cache
     try:
-        print(f"🖼️ Pre-loading promotional images cache...", flush=True)
+        logging.info("Pre-loading promotional images cache...")
         _preload_promotional_images()
-        print(f"   ✅ Promotional images cached", flush=True)
+        logging.info("Promotional images cached")
     except Exception as e:
-        print(f"⚠️  Promotional images cache error: {e}", flush=True)
+        logging.warning(f"Promotional images cache error: {e}")
         import traceback
         traceback.print_exc()
     
     # Fix PostgreSQL schema AFTER tables exist
     if _USE_NEW_DB and USE_POSTGRES:
         try:
-            print(f"🔧 Fixing PostgreSQL schema...", flush=True)
+            logging.info("Fixing PostgreSQL schema...")
             # Run inline instead of subprocess for better error handling
             from fix_postgres_schema import fix_users_table, fix_system_logs_table
             
             if fix_users_table():
-                print(f"   ✅ users schema fixed", flush=True)
+                logging.info("users schema fixed")
             else:
-                print(f"   ⚠️  users schema warnings", flush=True)
+                logging.warning("users schema warnings")
             
             if fix_system_logs_table():
-                print(f"   ✅ system_logs schema fixed", flush=True)
+                logging.info("system_logs schema fixed")
             else:
-                print(f"   ⚠️  system_logs schema warnings", flush=True)
+                logging.warning("system_logs schema warnings")
         except Exception as e:
-            print(f"⚠️  Schema fix error: {e}", flush=True)
+            logging.warning(f"Schema fix error: {e}")
             import traceback
             traceback.print_exc()
     
     # Create default users AFTER schema is fixed
     try:
-        print(f"👥 Creating default users...", flush=True)
+        logging.info("Creating default users...")
         _ensure_default_users()
-        print(f"✅ Default users ready (admin/admin)", flush=True)
+        logging.info("Default users ready (admin/admin)")
     except Exception as e:
-        print(f"⚠️  Default users error: {e}", flush=True)
+        logging.warning(f"Default users error: {e}")
     
     # Create Damage Reports tables
     try:
-        print(f"📋 Creating Damage Reports tables...", flush=True)
+        logging.info("Creating Damage Reports tables...")
         _ensure_damage_reports_tables()
-        print(f"✅ Damage Reports tables ready", flush=True)
+        logging.info("Damage Reports tables ready")
     except Exception as e:
-        print(f"   ❌ Error with DR tables: {e}", flush=True)
+        logging.error(f"Error with DR tables: {e}")
     
     # Create Rental Agreement tables
     try:
-        print(f"📋 Creating Rental Agreement tables...", flush=True)
+        logging.info("Creating Rental Agreement tables...")
         _ensure_rental_agreement_tables()
-        print(f"✅ Rental Agreement tables ready", flush=True)
+        logging.info("Rental Agreement tables ready")
     except Exception as e:
-        print(f"   ❌ Error with RA tables: {e}", flush=True)
+        logging.error(f"Error with RA tables: {e}")
     
     # Migrations
     try:
@@ -1649,21 +1611,19 @@ async def startup_event():
                 import os
                 database_url = os.getenv("DATABASE_URL")
                 if not database_url:
-                    print(f"   ⚠️  DATABASE_URL not found, skipping PostgreSQL migration", flush=True)
+                    logging.warning("DATABASE_URL not found, skipping PostgreSQL migration")
                 else:
                     conn = psycopg2.connect(database_url)
                     try:
                         with conn.cursor() as cur:
                             cur.execute("ALTER TABLE damage_reports ADD COLUMN vehicle_damage_image BYTEA")
                             conn.commit()
-                        print(f"   ✅ Added vehicle_damage_image column (PostgreSQL)", flush=True)
+                        logging.info("Added vehicle_damage_image column (PostgreSQL)")
                     except Exception as e:
                         conn.rollback()  # CRITICAL for PostgreSQL
                         error_msg = str(e).lower()
-                        if 'already exists' in error_msg or 'duplicate column' in error_msg:
-                            print(f"   ℹ️  vehicle_damage_image column already exists", flush=True)
-                        else:
-                            print(f"   ⚠️  Could not add vehicle_damage_image: {e}", flush=True)
+                        if 'already exists' not in error_msg and 'duplicate column' not in error_msg:
+                            logging.warning(f"Could not add vehicle_damage_image: {e}")
                     finally:
                         conn.close()
             else:
@@ -1671,38 +1631,34 @@ async def startup_event():
                 try:
                     conn.execute("ALTER TABLE damage_reports ADD COLUMN vehicle_damage_image BYTEA")
                     conn.commit()
-                    print(f"   ✅ Added vehicle_damage_image column (SQLite)", flush=True)
+                    logging.info("Added vehicle_damage_image column (SQLite)")
                 except Exception as e:
                     conn.rollback()  # CRITICAL for SQLite
                     error_msg = str(e).lower()
-                    if 'already exists' in error_msg or 'duplicate column' in error_msg:
-                        print(f"   ℹ️  vehicle_damage_image column already exists", flush=True)
-                    else:
-                        print(f"   ⚠️  Could not add vehicle_damage_image: {e}", flush=True)
+                    if 'already exists' not in error_msg and 'duplicate column' not in error_msg:
+                        logging.warning(f"Could not add vehicle_damage_image: {e}")
                 finally:
                     conn.close()
         except Exception as e:
-            print(f"   ⚠️  Migration error: {e}", flush=True)
+            logging.warning(f"Migration error: {e}")
     except Exception as e:
-        print(f"⚠️  Damage Reports tables error: {e}", flush=True)
+        logging.error(f"Damage Reports tables error: {e}")
     
     # Create Recent Searches table
     try:
-        print(f"🔍 Creating Recent Searches table...", flush=True)
+        logging.info("Creating Recent Searches table...")
         _ensure_recent_searches_table()
-        print(f"✅ Recent Searches table ready", flush=True)
+        logging.info("Recent Searches table ready")
     except Exception as e:
-        print(f"⚠️  Recent Searches table error: {e}", flush=True)
+        logging.warning(f"Recent Searches table error: {e}")
     
     # Ensure all missing tables/columns
     try:
-        print(f"🔧 Ensuring missing tables/columns...", flush=True)
+        logging.info("Ensuring missing tables/columns...")
         _ensure_missing_tables()
-        print(f"✅ All missing tables/columns ready", flush=True)
+        logging.info("All missing tables/columns ready")
     except Exception as e:
-        print(f"⚠️  Missing tables error: {e}", flush=True)
-    
-    print(f"========================================", flush=True)
+        logging.warning(f"Missing tables error: {e}")
 
 @app.exception_handler(HTTPException)
 async def http_exception_handler(request: Request, exc: HTTPException):
@@ -2043,8 +1999,6 @@ def acquire_lock_with_timeout(lock, timeout=5.0, operation_name="DB operation"):
     """Context manager para adquirir lock com timeout"""
     acquired = lock.acquire(timeout=timeout)
     if not acquired:
-        import sys
-        print(f"[LOCK TIMEOUT] Failed to acquire lock for {operation_name} after {timeout}s", file=sys.stderr, flush=True)
         raise TimeoutError(f"Could not acquire lock for {operation_name}")
     try:
         yield
@@ -2234,7 +2188,6 @@ def _ensure_users_table():
             try:
                 con.execute("ALTER TABLE users ADD COLUMN google_id TEXT UNIQUE")
                 con.commit()
-                logging.info("✅ Added google_id column to users table")
             except Exception as e:
                 con.rollback()  # CRITICAL for PostgreSQL - must rollback on error
                 # Column already exists, ignore
@@ -2244,7 +2197,6 @@ def _ensure_users_table():
             try:
                 con.execute("ALTER TABLE users ADD COLUMN role TEXT DEFAULT 'user'")
                 con.commit()
-                logging.info("✅ Added role column to users table")
             except Exception as e:
                 con.rollback()
                 pass
@@ -2252,7 +2204,6 @@ def _ensure_users_table():
             try:
                 con.execute("ALTER TABLE users ADD COLUMN can_access_inspection INTEGER DEFAULT 0")
                 con.commit()
-                logging.info("✅ Added can_access_inspection column to users table")
             except Exception as e:
                 con.rollback()
                 pass
@@ -2261,7 +2212,6 @@ def _ensure_users_table():
             try:
                 con.execute("ALTER TABLE users ADD COLUMN profile_picture_data BYTEA")
                 con.commit()
-                logging.info("✅ Added profile_picture_data column to users table")
             except Exception as e:
                 con.rollback()  # CRITICAL for PostgreSQL - must rollback on error
                 # Column already exists, ignore
@@ -2795,7 +2745,7 @@ def _map_category_fallback(category: str, car_name: str = "", transmission: str 
     # PRIORIDADE -1: CABRIO/CABRIOLET no NOME → SEMPRE Grupo G
     # Independente da categoria (Luxury, Mini, SUV, etc), se tem "cabrio" no nome = G
     if any(word in car_lower for word in ['cabrio', 'cabriolet', 'convertible', 'conversível']):
-        logging.info(f"✅ [MAP] SUCESSO (cabrio no nome): car='{car_name}' → grupo 'G' (Cabrio)")
+        pass
         return "G"
     
     # PRIORIDADE -0.5: VEÍCULOS 9 LUGARES → SEMPRE N (9 Seater)
@@ -2827,7 +2777,7 @@ def _map_category_fallback(category: str, car_name: str = "", transmission: str 
     
     for pattern in nine_seater_patterns:
         if re.search(pattern, car_lower, re.IGNORECASE):
-            logging.info(f"✅ [MAP] SUCESSO (9 lugares pattern): car='{car_name}' → grupo 'N' (9 Seater)")
+            pass
             return "N"  # 9 Seater - PRIORIDADE MÁXIMA!
     
     # PRIORIDADE -0.4: VEÍCULOS 7 LUGARES → SEMPRE M1/M2
@@ -2865,7 +2815,7 @@ def _map_category_fallback(category: str, car_name: str = "", transmission: str 
     for pattern in seven_seater_patterns:
         if re.search(pattern, car_lower, re.IGNORECASE):
             grupo = "M2" if is_auto else "M1"
-            logging.info(f"✅ [MAP] SUCESSO (7 lugares pattern): car='{car_name}' → grupo '{grupo}' (7 Seater)")
+            pass
             return grupo  # 7 Seater - PRIORIDADE MÁXIMA!
     
     # PRIORIDADE 0: Consultar dicionário VEHICLES de carjet_direct.py
@@ -2919,7 +2869,7 @@ def _map_category_fallback(category: str, car_name: str = "", transmission: str 
                         if grupo_code:
                             # ✅ AJUSTAR grupo baseado em is_auto
                             grupo_ajustado = _adjust_group_for_transmission(grupo_code, is_auto)
-                            logging.info(f"✅ [SW-PRIORITY] {car_name} → {sw_key} → {category_from_vehicles} → {grupo_ajustado} (is_auto={is_auto})")
+                            pass
                             return grupo_ajustado
             
             # ✅ PRIORIDADE MÁXIMA 2: Carros ELECTRIC ANTES de AUTO (mais específico)
@@ -2934,7 +2884,7 @@ def _map_category_fallback(category: str, car_name: str = "", transmission: str 
                         if grupo_code:
                             # ✅ AJUSTAR grupo baseado em is_auto
                             grupo_ajustado = _adjust_group_for_transmission(grupo_code, is_auto)
-                            logging.info(f"✅ [ELECTRIC-PRIORITY] {car_name} → {electric_key} → {category_from_vehicles} → {grupo_ajustado} (is_auto={is_auto})")
+                            pass
                             return grupo_ajustado
             
             # ✅ PRIORIDADE MÁXIMA 3: Usar is_auto (transmissão detectada pelo ícone) para escolher versão AUTO ou MANUAL
@@ -2949,7 +2899,7 @@ def _map_category_fallback(category: str, car_name: str = "", transmission: str 
                         grupo_code = _map_category_to_group_code(category_from_vehicles)
                         if grupo_code:
                             # Já é versão AUTO, não precisa ajustar
-                            logging.info(f"✅ [AUTO-MATCH] {car_name} (trans={transmission}) → {auto_key} → {category_from_vehicles} → {grupo_code}")
+                            pass
                             return grupo_code
             
             # Remover sufixos comuns que impedem match
@@ -2965,7 +2915,7 @@ def _map_category_fallback(category: str, car_name: str = "", transmission: str 
                 if grupo_code:
                     # ✅ AJUSTAR grupo baseado em is_auto (transmissão detectada pelo ícone)
                     grupo_ajustado = _adjust_group_for_transmission(grupo_code, is_auto)
-                    logging.info(f"✅ [VEHICLES-DIRECT] {car_name} → {category_from_vehicles} → {grupo_code} → {grupo_ajustado} (is_auto={is_auto})")
+                    pass
                     return grupo_ajustado
             
             # Se não encontrar, remover sufixos para tentar match parcial
@@ -2985,7 +2935,7 @@ def _map_category_fallback(category: str, car_name: str = "", transmission: str 
                 if grupo_code:
                     # ✅ AJUSTAR grupo baseado em is_auto (transmissão detectada pelo ícone)
                     grupo_ajustado = _adjust_group_for_transmission(grupo_code, is_auto)
-                    logging.info(f"✅ [VEHICLES-DIRECT] {car_name} → {category_from_vehicles} → {grupo_code} → {grupo_ajustado} (is_auto={is_auto})")
+                    pass
                     return grupo_ajustado
                 else:
                     # Se não conseguir mapear direto, usar fallback
@@ -3018,7 +2968,7 @@ def _map_category_fallback(category: str, car_name: str = "", transmission: str 
                     if grupo_code:
                         # ✅ AJUSTAR grupo baseado em is_auto (transmissão detectada pelo ícone)
                         grupo_ajustado = _adjust_group_for_transmission(grupo_code, is_auto)
-                        logging.info(f"✅ [VEHICLES-PARTIAL-DIRECT] {car_name} (matched: {vehicle_key}) → {category_from_vehicles} → {grupo_ajustado} (is_auto={is_auto})")
+                        pass
                         return grupo_ajustado
                     else:
                         # Se não conseguir mapear direto, usar fallback
@@ -3182,7 +3132,7 @@ def _map_category_fallback(category: str, car_name: str = "", transmission: str 
     # Luxury / Premium → X
     if cat in ['luxury', 'premium', 'luxo']:
         trans_info = f"[{transmission if transmission else 'N/A'}]"
-        logging.info(f"✅ [MAP] Luxury: car='{car_name}' {trans_info}, category='{category}' → grupo 'X'")
+        pass
         return "X"
     
     # 7 Seater / 7 Seats → M1 ou M2 (se automático)
@@ -3453,7 +3403,7 @@ def _map_category_fallback(category: str, car_name: str = "", transmission: str 
             grupo = grupo_base
         
         trans_info = f"[{transmission if transmission else 'N/A'}]"
-        logging.info(f"✅ [MAP] SUCESSO (direto): car='{car_name}' {trans_info} → grupo '{grupo}' (base: {grupo_base})")
+        pass
         return grupo
     
     # FALLBACK: Análise inteligente por palavras-chave
@@ -3464,51 +3414,51 @@ def _map_category_fallback(category: str, car_name: str = "", transmission: str 
     
     # Verificar tipo de veículo por palavras-chave
     if '9' in cat or 'minivan' in cat or 'van' in cat:
-        logging.info(f"✅ [MAP] SUCESSO (fallback): car='{car_name}' → grupo 'N' (9 Seater)")
+        pass
         return "N"  # 9 Seater
     
     if '7' in cat or 'mpv' in cat or 'people carrier' in cat:
         grupo = "M2" if is_auto else "M1"
-        logging.info(f"✅ [MAP] SUCESSO (fallback): car='{car_name}' → grupo '{grupo}' (7 Seater)")
+        pass
         return grupo  # 7 Seater
     
     if any(word in cat for word in ['sw', 'station', 'wagon', 'estate', 'carrinha', 'touring']):
         grupo = "L2" if is_auto else "J2"
-        logging.info(f"✅ [MAP] SUCESSO (fallback): car='{car_name}' → grupo '{grupo}' (Station Wagon)")
+        pass
         return grupo  # Station Wagon
     
     if 'crossover' in cat:
         grupo = "L1" if is_auto else "J1"
-        logging.info(f"✅ [MAP] SUCESSO (fallback): car='{car_name}' → grupo '{grupo}' (Crossover)")
+        pass
         return grupo  # Crossover → L1 se Auto, J1 se Manual
     
     if any(word in cat for word in ['suv', 'jeep', '4x4', '4wd']):
         grupo = "L1" if is_auto else "F"
-        logging.info(f"✅ [MAP] SUCESSO (fallback): car='{car_name}' → grupo '{grupo}' (SUV)")
+        pass
         return grupo  # SUV
     
     if any(word in cat for word in ['cabrio', 'cabriolet', 'convertible']):
-        logging.info(f"✅ [MAP] SUCESSO (fallback): car='{car_name}' → grupo 'G' (Cabrio)")
+        pass
         return "G"  # Cabrio apenas
     
     if any(word in cat for word in ['premium', 'luxury', 'luxo']):
         trans_tipo = "AUTOMÁTICO" if is_auto else "MANUAL"
-        logging.info(f"✅ [MAP] Luxury (fallback): car='{car_name}' [{trans_tipo}], category='{category}' → grupo 'X'")
+        pass
         return "X"
     
     if any(word in cat for word in ['mini', 'small', 'pequeno']):
         # Verificar se é 4 ou 5 lugares pelo nome do carro
         if any(model in car_lower for model in ['fiat 500', 'fiat500', 'peugeot 108', 'c1', 'vw up', 'picanto', 'aygo']):
             grupo = "E1" if is_auto else "B1"
-            logging.info(f"✅ [MAP] SUCESSO (fallback): car='{car_name}' → grupo '{grupo}' (Mini 4 lugares)")
+            pass
             return grupo  # Mini 4 lugares
         grupo = "E1" if is_auto else "B2"
-        logging.info(f"✅ [MAP] SUCESSO (fallback): car='{car_name}' → grupo '{grupo}' (Mini 5 lugares)")
+        pass
         return grupo  # Mini 5 lugares (default)
     
     if any(word in cat for word in ['economy', 'econom', 'compact', 'compacto']):
         grupo = "E2" if is_auto else "D"
-        logging.info(f"✅ [MAP] SUCESSO (fallback): car='{car_name}' → grupo '{grupo}' (Economy)")
+        pass
         return grupo  # Economy
     
     # Se chegou aqui, não conseguiu mapear - LOG CRÍTICO
@@ -4489,8 +4439,7 @@ def log_to_db(level: str, message: str, module: str = None, function: str = None
             finally:
                 conn.close()
     except Exception as e:
-        # Fallback para print se DB falhar
-        print(f"[{level}] {message}", file=sys.stderr, flush=True)
+        pass
 
 def save_to_cache(key: str, value: str, expires_in_seconds: int = None):
     """Salvar dados em cache na DB em vez de filesystem"""
@@ -5958,8 +5907,6 @@ async def login_action(request: Request, username: str = Form(...), password: st
                     pass
                 return RedirectResponse(url="/", status_code=HTTP_303_SEE_OTHER)
             except Exception as e:
-                import sys
-                print(f"[LOGIN ERROR] Session error: {e}", file=sys.stderr, flush=True)
                 return templates.TemplateResponse("login.html", {"request": request, "error": f"Login session error: {str(e)}"})
         try:
             with (DEBUG_DIR / "login_trace.txt").open("a", encoding="utf-8") as f:
@@ -20335,7 +20282,7 @@ async def load_downloads_history(request: Request):
     try:
         location = request.query_params.get("location")  # Filtro opcional
         
-        logging.info(f"📥 [DOWNLOADS-FILTER] Requested location filter: '{location}'")
+        pass
         
         with _db_lock:
             conn = _db_connect()
@@ -23822,7 +23769,6 @@ async def _extract_ra_fields_internal(request: Request, file: UploadFile):
                         dr_fields['raNumber'] = dr_fields['contractNumber']
                         logging.info(f"   ✅ RA Number = Contract Number: {dr_fields['raNumber']}")
                     
-                    logging.info(f"✅ SUCESSO: {len(dr_fields)} campos mapeados para Damage Report")
                     logging.info("   ⚡ Retornando campos prontos para inserir no DR")
                     return {"ok": True, "fields": dr_fields, "method": "mapped_coordinates"}
         
@@ -24875,7 +24821,6 @@ async def create_damage_report(request: Request):
                             """, update_values)
                             conn.commit()
                         
-                        logging.info(f"✅ DR {dr_number} reciclado com sucesso - número reutilizado")
                         return {"ok": True, "dr_number": dr_number, "message": "Damage Report created successfully (recycled number)"}
                     else:
                         # INSERT - Criar novo registo
@@ -24970,7 +24915,6 @@ async def create_damage_report(request: Request):
                             conn.commit()
                         
                         logging.error(f"💾 DR {dr_number} criado! Retornando sucesso...")
-                        logging.info(f"✅ DR {dr_number} criado com sucesso - novo número")
                         return {"ok": True, "dr_number": dr_number, "message": "Damage Report created successfully"}
             finally:
                 conn.close()
@@ -25105,7 +25049,7 @@ async def get_dr_numbering(request: Request):
         from datetime import datetime
         import psycopg2
         
-        logging.info(f"📖 [DR-NUMBERING] GET Request received")
+        pass
         
         with _db_lock:
             conn = _db_connect()
@@ -27450,7 +27394,7 @@ async def update_dr_numbering(request: Request):
         prefix = data.get('prefix', 'DR')
         username = request.session.get('username', 'admin')
         
-        logging.info(f"🔄 [DR-NUMBERING] UPDATE Request: current_number={current_number}, prefix={prefix}, user={username}")
+        pass
         
         with _db_lock:
             conn = _db_connect()
@@ -29106,9 +29050,7 @@ async def download_original_pdf(request: Request, dr_number: str, preview: bool 
     require_auth(request)
     
     try:
-        logging.info(f"🔍 Procurando PDF para DR: [{dr_number}] (len={len(dr_number)}, repr={repr(dr_number)})")
-        logging.info(f"📍 URL path: {request.url.path}")
-        logging.info(f"📍 Raw path: {request.scope.get('path', '')}")
+        pass
         
         with _db_lock:
             conn = _db_connect()
@@ -30073,10 +30015,7 @@ async def save_inspection(request: Request):
         
         logging.info(f"📦 Check-in specific data - Colaborador: {colaborador}, Local: {local}, Delivery KMs: {delivery_kms}, Total KMs: {total_kms}, New damages: {new_damage_photos_count}")
         
-        logging.info(f"🔍 [FLOW-0] RECEIVED REQUEST - inspection_type='{inspection_type}'")
-        logging.info(f"📋 Inspection Type: {inspection_type}")
-        logging.info(f"🚗 Plate: {plate}")
-        logging.info(f"📄 RA: {ra}")
+        pass
         logging.info(f"📧 Email: {email}")
         logging.info(f"📊 Odometer: {odometer_reading}, Fuel: {fuel_level}")
         logging.info(f"📸 Photos count: {len(photos)}")
@@ -34396,7 +34335,7 @@ async def invalidate_self_checkout(request: Request):
         # Se não encontrou email no RA, tentar usar o email do request
         if not client_email:
             client_email = data.get('client_email')
-            logging.info(f"📧 Invalidate - using email from request: {client_email}")
+            pass
         
         if inspection_type != 'self_checkout':
             return JSONResponse({
@@ -35624,9 +35563,7 @@ async def send_parking_qr_email(request: Request):
     Enviar email com QR code de acesso ao parque do aeroporto
     Aceita QR code em base64 com número de parque detectado automaticamente via OCR
     """
-    logging.info("🎫 Parking QR email request received")
-    logging.info(f"🔐 Session data: {dict(request.session)}")
-    logging.info(f"🔑 Auth status: {request.session.get('auth', False)}")
+    pass
     
     require_auth(request)
     
@@ -35634,7 +35571,7 @@ async def send_parking_qr_email(request: Request):
     conn = None
     try:
         data = await request.json()
-        logging.info(f"📦 Request data: ra={data.get('rental_agreement_number')}, parking={data.get('parking_number')}, email={data.get('client_email')}, no_reservation={data.get('no_reservation')}")
+        pass
         ra_number = data.get('rental_agreement_number')
         parking_number = data.get('parking_number')
         qr_code_image = data.get('qr_code_image')  # Base64 do QR code (None se no_reservation=True)
@@ -36449,7 +36386,7 @@ async def get_parking_qr_preview(ra_number: str):
     """Obter preview do email de parque com dados do QR code e permitir edição do email do cliente"""
     conn = None
     try:
-        logging.info(f"🅿️ Parking QR preview request for RA: {ra_number}")
+        pass
         conn = _db_connect()
         cursor = conn.cursor()
         
@@ -42731,7 +42668,7 @@ async def test_daily_report(request: Request):
         report_recipients = [_get_setting("report_email", "carlpac82@hotmail.com")]
         
         username = request.session.get('username')
-        logging.info(f"Test daily report requested by {username} for {len(report_recipients)} recipient(s)")
+        pass
         
         # Load search data - try today first, then last 7 days
         search_data = {'results': []}
@@ -42963,7 +42900,7 @@ async def run_report_now(request: Request):
     
     try:
         username = request.session.get('username')
-        logging.info(f"⚡ IMMEDIATE REPORT RUN requested by {username}")
+        pass
         
         # Step 1: Run search
         logging.info("🔍 Step 1: Running search...")
@@ -43192,7 +43129,7 @@ async def create_backup(request: Request):
         from datetime import datetime
         
         data = await request.json()
-        logging.info(f"Backup requested with options: {data}")
+        pass
         
         # Create backup directory if not exists
         backup_dir = Path("backups")
@@ -46163,15 +46100,12 @@ async def load_current_prices(request: Request, location: str, month: int, year:
     try:
         from current_prices_module import load_prices_from_db
         
-        logging.info(f"Loading prices: location={location}, month={month}, year={year}, day_start={day_start}, day_end={day_end}")
-        
         with _db_lock:
             conn = _db_connect()
             try:
                 # Carregar preços e data da última alteração
                 try:
                     prices, updated_at = load_prices_from_db(conn, location, month, year, day_start, day_end)
-                    logging.info(f"🔍 Load result: type={type(prices).__name__}, isinstance(list)={isinstance(prices, list)}, len={len(prices) if isinstance(prices, list) else 'N/A'}, updated_at={updated_at}")
                 except (ValueError, TypeError) as ve:
                     logging.warning(f"ValueError/TypeError in load_prices_from_db: {ve}")
                     # Se a função retornar apenas um valor (compatibilidade com código antigo)
@@ -46189,9 +46123,7 @@ async def load_current_prices(request: Request, location: str, month: int, year:
                 
                 # Se retornou lista de períodos
                 if isinstance(prices, list):
-                    logging.info(f"✅ Returning {len(prices)} periods as list")
                     response_data = {"ok": True, "periods": prices}
-                    logging.info(f"📤 Response: {response_data}")
                     return JSONResponse(response_data)
                 elif prices:
                     # Converter datetime para string se necessário
@@ -46207,14 +46139,11 @@ async def load_current_prices(request: Request, location: str, month: int, year:
                             'day_start': 1,
                             'day_end': 31
                         }]
-                        logging.info(f"Returning 1 period (converted from single)")
                         return JSONResponse({"ok": True, "periods": periods})
                     else:
                         # Período específico solicitado
-                        logging.info(f"Returning single period with {len(prices)} groups")
                         return JSONResponse({"ok": True, "prices": prices, "updated_at": updated_at})
                 else:
-                    logging.info("No prices found - returning empty periods list")
                     return JSONResponse({"ok": True, "periods": []})
             finally:
                 conn.close()
@@ -46632,7 +46561,6 @@ async def add_period_columns_safe(request: Request):
                         """, (row[1], row[2], row[3], row[4] or 1, row[5] or 31, row[6], row[7]))
                     
                     conn.commit()
-                    logging.info("✅ Tabela SQLite recriada com sucesso!")
                     return JSONResponse({"ok": True, "message": "SQLite table recreated with correct constraint"})
             finally:
                 conn.close()
@@ -47059,9 +46987,7 @@ async def save_automated_search_history(request: Request):
         supplier_data = data.get('supplierData', {})  # allCarsByDay - dados individuais dos suppliers
         pickup_date = data.get('pickupDate', '')  # Date of search (not current date)
         
-        logging.info(f"📥 Received save request: Location={location}, Type={search_type}, PickupDate={pickup_date}, Dias={dias}, PriceCount={price_count}, Groups={list(prices_data.keys())}")
-        logging.info(f"🔍 [SAVE-DEBUG] supplierData type: {type(supplier_data)}, keys: {list(supplier_data.keys())[:10] if isinstance(supplier_data, dict) else 'N/A'}")
-        logging.info(f"🔍 [SAVE-DEBUG] supplierData size: {len(supplier_data) if supplier_data else 0} keys")
+        pass
         
         if supplier_data and isinstance(supplier_data, dict) and len(supplier_data) > 0:
             # Sample first group/day
@@ -47514,7 +47440,7 @@ async def get_automated_search_history_light(request: Request, months: int = 24,
     try:
         from datetime import datetime
         
-        logging.info(f"📊 [HISTORY-LIGHT] Requested {months} months, location filter: '{location}'")
+        pass
         
         # Generate month keys for FUTURE months
         month_keys = []
@@ -47763,7 +47689,7 @@ async def get_automated_search_history(request: Request, months: int = 6, locati
     try:
         from datetime import datetime, timedelta
         
-        logging.info(f"📊 [HISTORY-FILTER] Requested location filter: '{location}'")
+        pass
         
         # Generate month keys for FUTURE months (searches are made for future dates)
         month_keys = []
