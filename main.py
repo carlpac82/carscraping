@@ -30930,6 +30930,9 @@ async def save_inspection(request: Request):
                 if ra and plate:
                     logging.info(f"✅ DEBUG: Entered RA update block (ra and plate are truthy)")
                     try:
+                        # Initialize updated_extracted_json to avoid UnboundLocalError
+                        updated_extracted_json = None
+                        
                         # Se é checkin (entrega), gerar token de self check-out e agendar email
                         logging.info(f"🔍 DEBUG: Checking inspection_type == 'checkin': {inspection_type == 'checkin'}")
                         if inspection_type == 'checkin':
