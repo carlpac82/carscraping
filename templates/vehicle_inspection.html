@@ -2761,26 +2761,47 @@
             const damageColor = window.isPickupMode ? '#dc3545' : '#000000';
             console.log('  Color:', damageColor);
             
-            // Draw all damages
+            // First, draw all drawings (they need to be drawn first, then pins on top)
+            const drawingPromises = [];
             damages.forEach((damage, i) => {
-                console.log('  Damage', i, ':', damage);
-                if (damage.type === 'pin') {
-                    console.log('    Drawing pin at (', damage.x, ',', damage.y, ') radius', damage.radius);
-                    // Draw pin
-                    ctx.beginPath();
-                    ctx.arc(damage.x, damage.y, damage.radius, 0, 2 * Math.PI);
-                    ctx.fillStyle = damageColor;
-                    ctx.fill();
-                    ctx.strokeStyle = '#fff';
-                    ctx.lineWidth = 2;
-                    ctx.stroke();
-                    console.log('    ✅ Pin drawn');
-                } else if (damage.type === 'drawing' && damage.dataURL) {
-                    // Drawing already saved as image - will be drawn in capture
+                if (damage.type === 'drawing' && damage.dataURL) {
+                    console.log('  Drawing', i, ': loading from dataURL');
+                    const img = new Image();
+                    const promise = new Promise((resolve) => {
+                        img.onload = () => {
+                            ctx.drawImage(img, 0, 0);
+                            console.log('    ✅ Drawing redrawn');
+                            resolve();
+                        };
+                        img.onerror = () => {
+                            console.error('    ❌ Failed to load drawing');
+                            resolve();
+                        };
+                    });
+                    img.src = damage.dataURL;
+                    drawingPromises.push(promise);
                 }
             });
             
-            console.log('  ✅ redrawCanvas complete');
+            // Wait for all drawings to load, then draw pins on top
+            Promise.all(drawingPromises).then(() => {
+                damages.forEach((damage, i) => {
+                    if (damage.type === 'pin') {
+                        console.log('  Damage', i, ':', damage);
+                        console.log('    Drawing pin at (', damage.x, ',', damage.y, ') radius', damage.radius);
+                        // Draw pin
+                        ctx.beginPath();
+                        ctx.arc(damage.x, damage.y, damage.radius, 0, 2 * Math.PI);
+                        ctx.fillStyle = damageColor;
+                        ctx.fill();
+                        ctx.strokeStyle = '#fff';
+                        ctx.lineWidth = 2;
+                        ctx.stroke();
+                        console.log('    ✅ Pin drawn');
+                    }
+                });
+                console.log('  ✅ redrawCanvas complete');
+            });
         }
         
         function removePin(pinId) {
