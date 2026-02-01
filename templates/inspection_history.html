@@ -487,8 +487,8 @@
                     }
                     expectedDate.setHours(0, 0, 0, 0);
                     
-                    // Data esperada já passou
-                    return expectedDate < todayDate;
+                    // Data esperada já passou OU é hoje
+                    return expectedDate <= todayDate;
                 });
                 
                 // Combinar checkouts de hoje com contratos overdue
