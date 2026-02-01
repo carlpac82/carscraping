@@ -482,6 +482,10 @@
                     if (c.expected_return_date.includes('/')) {
                         const parts = c.expected_return_date.split('/');
                         expectedDate = new Date(parts[2], parts[1] - 1, parts[0]);
+                    } else if (c.expected_return_date.includes(' - ')) {
+                        // Formato "DD - MM - YYYY" com espaços
+                        const parts = c.expected_return_date.split(' - ');
+                        expectedDate = new Date(parts[2], parts[1] - 1, parts[0]);
                     } else {
                         expectedDate = new Date(c.expected_return_date);
                     }
@@ -516,6 +520,9 @@
                         const parseDate = (dateStr) => {
                             if (dateStr.includes('/')) {
                                 const parts = dateStr.split('/');
+                                return new Date(parts[2], parts[1] - 1, parts[0]);
+                            } else if (dateStr.includes(' - ')) {
+                                const parts = dateStr.split(' - ');
                                 return new Date(parts[2], parts[1] - 1, parts[0]);
                             }
                             return new Date(dateStr);
