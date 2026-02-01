@@ -2026,7 +2026,7 @@ async function saveAndEmailPickup() {
     // Show loading overlay
     showLoadingOverlay('A guardar e enviar email...');
     
-    const success = await savePickupInspection();
+    const success = await savePickupInspection(true);  // Pass true to send email
     
     // Hide loading overlay
     hideLoadingOverlay();
@@ -2035,8 +2035,7 @@ async function saveAndEmailPickup() {
         // Close summary modal
         closePickupSummary();
         
-        // TODO: Send email
-        showNotification('Recolha guardada com sucesso! Email será enviado...', 'success');
+        showNotification('Recolha guardada com sucesso! Email enviado.', 'success');
         
         // Redirect after delay
         setTimeout(() => {
@@ -2069,7 +2068,7 @@ async function savePickupOnly() {
 }
 
 // Save pickup inspection to backend
-async function savePickupInspection() {
+async function savePickupInspection(sendEmail = false) {
     try {
         // Prepare inspection data
         const plate = document.getElementById('inputPlate')?.value?.trim();
@@ -2173,7 +2172,8 @@ async function savePickupInspection() {
             damages: window.damages || [],  // CRITICAL: Send damages array to backend for proper counting
             photos: photos,
             damage_croqui: damageCroqui,
-            client_email: clientEmail
+            client_email: clientEmail,
+            send_email: sendEmail  // Only send email if explicitly requested
         };
         
         // Calculate payload size
