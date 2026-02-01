@@ -3598,10 +3598,11 @@
                 // Draw background (croqui base image only)
                 tempCtx.drawImage(croquiImg, 0, 0);
                 
-                // Draw canvas with pins and drawings (SAME as self-checkout)
+                // Draw canvas with pins and drawings - SCALE to natural size
                 if (canvas && canvas.width > 0 && canvas.height > 0) {
-                    console.log('🎨 Drawing canvas overlay:', canvas.width, 'x', canvas.height);
-                    tempCtx.drawImage(canvas, 0, 0);
+                    console.log('🎨 Drawing canvas overlay:', canvas.width, 'x', canvas.height, '-> scaling to', tempCanvas.width, 'x', tempCanvas.height);
+                    // Scale canvas from visual size to natural size
+                    tempCtx.drawImage(canvas, 0, 0, canvas.width, canvas.height, 0, 0, tempCanvas.width, tempCanvas.height);
                 } else {
                     console.warn('⚠️ Canvas not available or has zero size');
                 }
