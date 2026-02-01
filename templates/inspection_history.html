@@ -401,6 +401,9 @@
 
         function updateStats() {
             const today = new Date().toISOString().split('T')[0];
+            const todayDate = new Date();
+            todayDate.setHours(0, 0, 0, 0);
+            
             let checkinCount = 0;
             let checkoutCount = 0;
             let pendingCount = 0;
@@ -411,11 +414,34 @@
                     const checkinDate = new Date(contract.checkin.created_at).toISOString().split('T')[0];
                     if (checkinDate === today) checkinCount++;
                 }
-                // Count check-outs do dia
+                
+                // Count check-outs: checkouts feitos hoje OU contratos com data esperada <= hoje
+                let shouldCountCheckout = false;
+                
+                // 1. Checkouts já feitos hoje
                 if (contract.checkout) {
                     const checkoutDate = new Date(contract.checkout.created_at).toISOString().split('T')[0];
-                    if (checkoutDate === today) checkoutCount++;
+                    if (checkoutDate === today) shouldCountCheckout = true;
                 }
+                // 2. Contratos abertos com data esperada <= hoje (overdue ou hoje)
+                else if (contract.checkin && !contract.checkout && contract.expected_return_date) {
+                    let expectedDate;
+                    if (contract.expected_return_date.includes('/')) {
+                        const parts = contract.expected_return_date.split('/');
+                        expectedDate = new Date(parts[2], parts[1] - 1, parts[0]);
+                    } else if (contract.expected_return_date.includes(' - ')) {
+                        const parts = contract.expected_return_date.split(' - ');
+                        expectedDate = new Date(parts[2], parts[1] - 1, parts[0]);
+                    } else {
+                        expectedDate = new Date(contract.expected_return_date);
+                    }
+                    expectedDate.setHours(0, 0, 0, 0);
+                    
+                    if (expectedDate <= todayDate) shouldCountCheckout = true;
+                }
+                
+                if (shouldCountCheckout) checkoutCount++;
+                
                 // Count self-checkouts pendentes de validação (tem self_checkout mas não tem checkout E não está invalidado)
                 if (contract.self_checkout && !contract.checkout) {
                     const status = contract.self_checkout.status || 'pending';
