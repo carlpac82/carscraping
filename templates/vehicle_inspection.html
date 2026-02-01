@@ -3619,13 +3619,18 @@
         
         let isSaving = false;
         
-        function saveInspectionOnly() {
+        async function saveInspectionOnly() {
             if (isSaving) {
                 console.log('⚠️ Already saving, ignoring duplicate click');
                 return;
             }
             
             isSaving = true;
+            
+            // CRITICAL: Capture croqui NOW while diagram is still visible
+            console.log('🎨 [PRE-CAPTURE] Capturing croqui before hiding diagram...');
+            window.preCapturedCroqui = await captureCroquiBeforeSave();
+            console.log('🎨 [PRE-CAPTURE] Captured length:', window.preCapturedCroqui?.length || 0);
             
             // Show saving overlay
             showSavingOverlay('Guardando inspeção no histórico...');
