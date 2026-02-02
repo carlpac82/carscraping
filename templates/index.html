@@ -1739,22 +1739,25 @@
         async function downloadAbbycar() {
             try {
                 console.log('Iniciando download Abbycar...');
-                const abbycarCommission = parseFloat(document.getElementById('commissionAbbycar').value) || 5;
-                console.log('Comissão Abbycar:', abbycarCommission);
-            const location = document.querySelector('#locationSelect').value;
-            const month = document.querySelector('#monthSelect').value;
-            const year = document.querySelector('#yearSelect').value;
-            
-            // Calculate start and end dates for the month (MM/DD/YYYY format)
-            const lastDay = new Date(year, month, 0).getDate(); // Last day of the month
-            const startDate = `${month}/01/${year}`;
-            const endDate = `${month}/${lastDay}/${year}`;
-            
-            // Fetch Low Deposit percentage from Admin Settings
-            const lowDepositResponse = await fetch('/api/admin-settings/low-deposit');
-            const lowDepositData = await lowDepositResponse.json();
-            const lowDepositPct = lowDepositData.ok ? lowDepositData.low_deposit_pct : 0;
-            console.log('Low Deposit %:', lowDepositPct);
+                
+                // Fetch Abbycar commission from Admin Settings (default 3%)
+                const abbycarCommission = 3.00; // Default value, will be replaced by backend
+                console.log('Comissão Abbycar (será carregada do admin):', abbycarCommission);
+                
+                const location = document.querySelector('#locationSelect').value;
+                const month = document.querySelector('#monthSelect').value;
+                const year = document.querySelector('#yearSelect').value;
+                
+                // Calculate start and end dates for the month (MM/DD/YYYY format)
+                const lastDay = new Date(year, month, 0).getDate(); // Last day of the month
+                const startDate = `${month}/01/${year}`;
+                const endDate = `${month}/${lastDay}/${year}`;
+                
+                // Fetch Low Deposit percentage from Admin Settings
+                const lowDepositResponse = await fetch('/api/admin-settings/low-deposit');
+                const lowDepositData = await lowDepositResponse.json();
+                const lowDepositPct = lowDepositData.ok ? lowDepositData.low_deposit_pct : 0;
+                console.log('Low Deposit %:', lowDepositPct);
             
             // Check if "Grupo K" checkbox is checked
             const showGroupsK = document.getElementById('showGroupsK')?.checked || false;
