@@ -4886,37 +4886,30 @@
                 redrawInvalidateCroqui();
                 updateInvalidateDamageCount();
             } else if (invalidateCurrentTool === 'draw') {
-                invalidateIsDrawing = true;
-                invalidateCurrentStroke = [{x, y}];
+                // Criar traço de tamanho predefinido
+                const lengthMap = { tiny: 15, small: 25, medium: 35, large: 45 };
+                const lineWidth = 2;
+                const length = lengthMap[invalidateCurrentSize] || 15;
+                invalidateDamages.push({ 
+                    type: 'line', 
+                    x, 
+                    y, 
+                    length: length,
+                    lineWidth: lineWidth
+                });
+                redrawInvalidateCroqui();
+                updateInvalidateDamageCount();
             }
         }
         
         function handleInvalidateCanvasMouseMove(e) {
-            if (!invalidateIsDrawing || invalidateCurrentTool !== 'draw') return;
-            
-            const rect = invalidateCroquiCanvas.getBoundingClientRect();
-            const scaleX = invalidateCroquiCanvas.width / rect.width;
-            const scaleY = invalidateCroquiCanvas.height / rect.height;
-            const x = (e.clientX - rect.left) * scaleX;
-            const y = (e.clientY - rect.top) * scaleY;
-            
-            invalidateCurrentStroke.push({x, y});
-            redrawInvalidateCroqui();
+            // Não é mais necessário para traços predefinidos
+            return;
         }
         
         function handleInvalidateCanvasMouseUp() {
-            if (invalidateIsDrawing && invalidateCurrentStroke.length > 0) {
-                const sizeMap = { tiny: 1, small: 2, medium: 3, large: 4 };
-                invalidateDamages.push({
-                    type: 'drawing',
-                    points: [...invalidateCurrentStroke],
-                    lineWidth: sizeMap[invalidateCurrentSize] || 1
-                });
-                invalidateCurrentStroke = [];
-                redrawInvalidateCroqui();
-                updateInvalidateDamageCount();
-            }
-            invalidateIsDrawing = false;
+            // Não é mais necessário para traços predefinidos
+            return;
         }
         
         function redrawInvalidateCroqui() {
@@ -4935,34 +4928,19 @@
                     invalidateCroquiCtx.strokeStyle = '#fff';
                     invalidateCroquiCtx.lineWidth = 2;
                     invalidateCroquiCtx.stroke();
-                } else if (damage.type === 'drawing' && damage.points.length > 1) {
+                } else if (damage.type === 'line') {
+                    // Desenhar traço horizontal de tamanho predefinido
                     invalidateCroquiCtx.beginPath();
-                    invalidateCroquiCtx.moveTo(damage.points[0].x, damage.points[0].y);
-                    for (let i = 1; i < damage.points.length; i++) {
-                        invalidateCroquiCtx.lineTo(damage.points[i].x, damage.points[i].y);
-                    }
+                    invalidateCroquiCtx.moveTo(damage.x - damage.length / 2, damage.y);
+                    invalidateCroquiCtx.lineTo(damage.x + damage.length / 2, damage.y);
                     invalidateCroquiCtx.strokeStyle = damageColor;
                     invalidateCroquiCtx.lineWidth = damage.lineWidth;
                     invalidateCroquiCtx.lineCap = 'round';
-                    invalidateCroquiCtx.lineJoin = 'round';
                     invalidateCroquiCtx.stroke();
                 }
             });
             
-            // Draw current stroke
-            if (invalidateCurrentStroke.length > 1) {
-                invalidateCroquiCtx.beginPath();
-                invalidateCroquiCtx.moveTo(invalidateCurrentStroke[0].x, invalidateCurrentStroke[0].y);
-                for (let i = 1; i < invalidateCurrentStroke.length; i++) {
-                    invalidateCroquiCtx.lineTo(invalidateCurrentStroke[i].x, invalidateCurrentStroke[i].y);
-                }
-                invalidateCroquiCtx.strokeStyle = damageColor;
-                const sizeMap = { tiny: 2, small: 4, medium: 6, large: 8 };
-                invalidateCroquiCtx.lineWidth = sizeMap[invalidateCurrentSize] || 4;
-                invalidateCroquiCtx.lineCap = 'round';
-                invalidateCroquiCtx.lineJoin = 'round';
-                invalidateCroquiCtx.stroke();
-            }
+            // Não é mais necessário desenhar traço atual (traços são instantâneos)
         }
         
         function selectInvalidateTool(tool) {
