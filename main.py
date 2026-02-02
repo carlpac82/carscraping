@@ -19848,6 +19848,93 @@ async def get_low_deposit_settings(request: Request):
         logging.error(f"Error getting Low Deposit settings: {e}")
         return JSONResponse({"ok": False, "error": str(e)}, status_code=500)
 
+@app.get("/api/debug/ra/{ra_number}")
+async def debug_ra(ra_number: str, request: Request):
+    """Debug RA data to diagnose self-checkout scheduling issues"""
+    require_auth(request)
+    
+    try:
+        with _db_lock:
+            conn = _db_connect()
+            try:
+                is_postgres = 'psycopg' in type(conn).__name__.lower() or os.getenv('DATABASE_URL')
+                
+                if is_postgres:
+                    cursor = conn.cursor()
+                    cursor.execute("""
+                        SELECT 
+                            rental_agreement_number,
+                            license_plate,
+                            client_name,
+                            client_email,
+                            return_location,
+                            return_date,
+                            self_checkin_token,
+                            self_checkin_scheduled_date,
+                            extracted_data
+                        FROM rental_agreements
+                        WHERE rental_agreement_number LIKE %s
+                        LIMIT 1
+                    """, (f"{ra_number}%",))
+                    row = cursor.fetchone()
+                else:
+                    cursor = conn.execute("""
+                        SELECT 
+                            rental_agreement_number,
+                            license_plate,
+                            client_name,
+                            client_email,
+                            return_location,
+                            return_date,
+                            self_checkin_token,
+                            self_checkin_scheduled_date,
+                            extracted_data
+                        FROM rental_agreements
+                        WHERE rental_agreement_number LIKE ?
+                        LIMIT 1
+                    """, (f"{ra_number}%",))
+                    row = cursor.fetchone()
+                
+                if not row:
+                    return JSONResponse({"ok": False, "error": f"RA {ra_number} not found in database"})
+                
+                import json
+                extracted = {}
+                if row[8]:
+                    try:
+                        extracted = json.loads(row[8])
+                    except:
+                        extracted = {"error": "Failed to parse JSON"}
+                
+                return_location = row[4] or ''
+                is_faro = 'aeroporto' in return_location.lower() and 'faro' in return_location.lower()
+                
+                return JSONResponse({
+                    "ok": True,
+                    "ra_number": row[0],
+                    "plate": row[1],
+                    "client_name": row[2],
+                    "client_email": row[3],
+                    "return_location": row[4],
+                    "return_date": row[5],
+                    "self_checkin_token": row[6],
+                    "self_checkin_scheduled_date": row[7],
+                    "extracted_data": extracted,
+                    "diagnosis": {
+                        "has_return_location": bool(row[4]),
+                        "is_faro_airport": is_faro,
+                        "has_email": bool(row[3]),
+                        "has_return_date": bool(row[5]),
+                        "has_self_checkin": bool(row[6]),
+                        "should_have_self_checkin": is_faro and bool(row[3]) and bool(row[5])
+                    }
+                })
+            finally:
+                conn.close()
+    except Exception as e:
+        logging.error(f"Error in debug_ra: {e}")
+        return JSONResponse({"ok": False, "error": str(e)}, status_code=500)
+
 @app.get("/api/price-automation/rules/debug")
 async def debug_automated_price_rules(request: Request):
     """Debug endpoint to check if automated_price_rules table exists and has data"""
