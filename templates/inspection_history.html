@@ -4881,15 +4881,28 @@
             const y = (e.clientY - rect.top) * scaleY;
             
             if (invalidateCurrentTool === 'pin') {
-                const sizeMap = { tiny: 3, small: 5, medium: 7, large: 9 };
-                invalidateDamages.push({ type: 'pin', x, y, radius: sizeMap[invalidateCurrentSize] || 3 });
+                // Tamanhos proporcionais à largura do canvas (0.3% a 0.9%)
+                const canvasWidth = invalidateCroquiCanvas.width;
+                const sizeMap = { 
+                    tiny: canvasWidth * 0.003, 
+                    small: canvasWidth * 0.005, 
+                    medium: canvasWidth * 0.007, 
+                    large: canvasWidth * 0.009 
+                };
+                invalidateDamages.push({ type: 'pin', x, y, radius: sizeMap[invalidateCurrentSize] || canvasWidth * 0.003 });
                 redrawInvalidateCroqui();
                 updateInvalidateDamageCount();
             } else if (invalidateCurrentTool === 'draw') {
-                // Criar traço de tamanho predefinido
-                const lengthMap = { tiny: 15, small: 25, medium: 35, large: 45 };
-                const lineWidth = 2;
-                const length = lengthMap[invalidateCurrentSize] || 15;
+                // Traços proporcionais à largura do canvas (1.5% a 4.5%)
+                const canvasWidth = invalidateCroquiCanvas.width;
+                const lengthMap = { 
+                    tiny: canvasWidth * 0.015, 
+                    small: canvasWidth * 0.025, 
+                    medium: canvasWidth * 0.035, 
+                    large: canvasWidth * 0.045 
+                };
+                const lineWidth = canvasWidth * 0.002; // 0.2% da largura
+                const length = lengthMap[invalidateCurrentSize] || canvasWidth * 0.015;
                 invalidateDamages.push({ 
                     type: 'line', 
                     x, 
@@ -4926,7 +4939,7 @@
                     invalidateCroquiCtx.fillStyle = damageColor;
                     invalidateCroquiCtx.fill();
                     invalidateCroquiCtx.strokeStyle = '#fff';
-                    invalidateCroquiCtx.lineWidth = 2;
+                    invalidateCroquiCtx.lineWidth = invalidateCroquiCanvas.width * 0.002; // Borda proporcional
                     invalidateCroquiCtx.stroke();
                 } else if (damage.type === 'line') {
                     // Desenhar traço horizontal de tamanho predefinido
