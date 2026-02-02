@@ -4711,6 +4711,14 @@
                                             <p class="text-xs text-gray-600 mt-1 font-medium">Traços</p>
                                         </div>
                                         <div class="text-center">
+                                            <button type="button" class="w-11 h-11 rounded-full bg-gray-300 text-gray-600 hover:bg-orange-500 hover:text-white flex items-center justify-center shadow-md transition-all" onclick="undoInvalidateLast()" title="Desfazer">
+                                                <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
+                                                    <path d="M12.5 8c-2.65 0-5.05.99-6.9 2.6L2 7v9h9l-3.62-3.62c1.39-1.16 3.16-1.88 5.12-1.88 3.54 0 6.55 2.31 7.6 5.5l2.37-.78C21.08 11.03 17.15 8 12.5 8z"/>
+                                                </svg>
+                                            </button>
+                                            <p class="text-xs text-gray-600 mt-1 font-medium">Desfazer</p>
+                                        </div>
+                                        <div class="text-center">
                                             <button type="button" class="w-11 h-11 rounded-full bg-gray-300 text-gray-600 hover:bg-red-500 hover:text-white flex items-center justify-center shadow-md transition-all" onclick="clearInvalidateDamages()" title="Limpar">
                                                 <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
                                                     <path d="M6 19c0 1.1.9 2 2 2h8c1.1 0 2-.9 2-2V7H6v12zM19 4h-3.5l-1-1h-5l-1 1H5v2h14V4z"/>
@@ -4981,6 +4989,22 @@
                     if (dot) dot.className = dot.className.replace(/bg-\w+-\d+/g, s === size ? 'bg-cyan-600' : 'bg-gray-500');
                 }
             });
+        }
+        
+        function undoInvalidateLast() {
+            if (invalidateDamages.length === 0) {
+                console.log('Nada para desfazer');
+                return;
+            }
+            
+            // Remove último dano
+            invalidateDamages.pop();
+            
+            // Redesenha canvas com danos restantes
+            redrawInvalidateCroqui();
+            updateInvalidateDamageCount();
+            
+            console.log('Último dano removido, total restante:', invalidateDamages.length);
         }
         
         function clearInvalidateDamages() {
