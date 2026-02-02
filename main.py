@@ -19865,12 +19865,11 @@ async def debug_ra(ra_number: str, request: Request):
                         SELECT 
                             rental_agreement_number,
                             license_plate,
-                            client_name,
-                            client_email,
                             return_location,
                             return_date,
                             self_checkin_token,
                             self_checkin_scheduled_date,
+                            self_checkin_email,
                             extracted_data
                         FROM rental_agreements
                         WHERE rental_agreement_number LIKE %s
@@ -19882,12 +19881,11 @@ async def debug_ra(ra_number: str, request: Request):
                         SELECT 
                             rental_agreement_number,
                             license_plate,
-                            client_name,
-                            client_email,
                             return_location,
                             return_date,
                             self_checkin_token,
                             self_checkin_scheduled_date,
+                            self_checkin_email,
                             extracted_data
                         FROM rental_agreements
                         WHERE rental_agreement_number LIKE ?
@@ -19900,33 +19898,38 @@ async def debug_ra(ra_number: str, request: Request):
                 
                 import json
                 extracted = {}
-                if row[8]:
+                if row[7]:
                     try:
-                        extracted = json.loads(row[8])
+                        extracted = json.loads(row[7])
                     except:
                         extracted = {"error": "Failed to parse JSON"}
                 
-                return_location = row[4] or ''
+                # Extrair dados do extracted_data JSON
+                client_name = extracted.get('client_name', '')
+                client_email = extracted.get('client_email', '') or row[6]  # self_checkin_email como fallback
+                
+                return_location = row[2] or ''
                 is_faro = 'aeroporto' in return_location.lower() and 'faro' in return_location.lower()
                 
                 return JSONResponse({
                     "ok": True,
                     "ra_number": row[0],
                     "plate": row[1],
-                    "client_name": row[2],
-                    "client_email": row[3],
-                    "return_location": row[4],
-                    "return_date": row[5],
-                    "self_checkin_token": row[6],
-                    "self_checkin_scheduled_date": row[7],
+                    "client_name": client_name,
+                    "client_email": client_email,
+                    "return_location": row[2],
+                    "return_date": row[3],
+                    "self_checkin_token": row[4],
+                    "self_checkin_scheduled_date": row[5],
+                    "self_checkin_email": row[6],
                     "extracted_data": extracted,
                     "diagnosis": {
-                        "has_return_location": bool(row[4]),
+                        "has_return_location": bool(row[2]),
                         "is_faro_airport": is_faro,
-                        "has_email": bool(row[3]),
-                        "has_return_date": bool(row[5]),
-                        "has_self_checkin": bool(row[6]),
-                        "should_have_self_checkin": is_faro and bool(row[3]) and bool(row[5])
+                        "has_email": bool(client_email),
+                        "has_return_date": bool(row[3]),
+                        "has_self_checkin": bool(row[4]),
+                        "should_have_self_checkin": is_faro and bool(client_email) and bool(row[3])
                     }
                 })
             finally:
