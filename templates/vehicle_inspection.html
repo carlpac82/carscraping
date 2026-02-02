@@ -2713,9 +2713,15 @@
                 y
             });
             
-            // Get radius based on size (small pins for small damages)
-            const sizeMap = { tiny: 4, small: 6, medium: 8, large: 10 };
-            const radius = sizeMap[currentSize] || 6;
+            // Get radius based on size (proporcional ao canvas para consistência mobile/desktop)
+            const canvasWidth = canvas.width;
+            const sizeMap = { 
+                tiny: canvasWidth * 0.003, 
+                small: canvasWidth * 0.005, 
+                medium: canvasWidth * 0.007, 
+                large: canvasWidth * 0.009 
+            };
+            const radius = sizeMap[currentSize] || canvasWidth * 0.003;
             
             // Save to damages array
             damages.push({
@@ -2848,75 +2854,54 @@
             
             e.preventDefault();
             e.stopPropagation();
-            drawing = true;
-            
-            console.log('✏️ Starting drawing, tool:', currentTool, 'canvas size:', canvas.width + 'x' + canvas.height);
             
             const rect = canvas.getBoundingClientRect();
             const clientX = e.clientX !== undefined ? e.clientX : (e.touches && e.touches[0] ? e.touches[0].clientX : 0);
             const clientY = e.clientY !== undefined ? e.clientY : (e.touches && e.touches[0] ? e.touches[0].clientY : 0);
-            const x = clientX - rect.left;
-            const y = clientY - rect.top;
+            const x = (clientX - rect.left) * (canvas.width / rect.width);
+            const y = (clientY - rect.top) * (canvas.height / rect.height);
             
-            console.log('Start position:', {x, y});
+            console.log('Click position:', {x, y});
             
-            // Set stroke properties before beginning path
             if (currentTool === 'draw') {
-                // Red for pickup mode, black for checkout mode
-                ctx.strokeStyle = window.isPickupMode ? '#dc3545' : '#000000';
-                ctx.lineWidth = currentSize === 'tiny' ? 2 : currentSize === 'small' ? 3 : currentSize === 'medium' ? 5 : 8;
-                ctx.globalCompositeOperation = 'source-over';
-                ctx.lineCap = 'round';
-                ctx.lineJoin = 'round';
-                console.log('Drawing with width:', ctx.lineWidth);
-            } else if (currentTool === 'eraser') {
-                ctx.globalCompositeOperation = 'destination-out';
-                ctx.lineWidth = currentSize === 'tiny' ? 10 : currentSize === 'small' ? 15 : currentSize === 'medium' ? 25 : 35;
-                ctx.lineCap = 'round';
-                ctx.lineJoin = 'round';
-                console.log('Erasing with width:', ctx.lineWidth);
-            }
-            
-            ctx.beginPath();
-            ctx.moveTo(x, y);
-        }
-        
-        function draw(e) {
-            if (!drawing) return;
-            
-            if (!canvas || !ctx) {
-                console.error('❌ Canvas or context lost during drawing');
-                return;
-            }
-            
-            e.preventDefault();
-            e.stopPropagation();
-            
-            const rect = canvas.getBoundingClientRect();
-            const clientX = e.clientX !== undefined ? e.clientX : (e.touches && e.touches[0] ? e.touches[0].clientX : 0);
-            const clientY = e.clientY !== undefined ? e.clientY : (e.touches && e.touches[0] ? e.touches[0].clientY : 0);
-            const x = clientX - rect.left;
-            const y = clientY - rect.top;
-            
-            ctx.lineTo(x, y);
-            ctx.stroke();
-            // Don't begin new path - continue the line
-        }
-        
-        function stopDrawing(e) {
-            if (drawing) {
-                console.log('✅ Stopping drawing');
-                drawing = false;
-                ctx.closePath();
+                // Criar traço horizontal de tamanho predefinido (proporcional ao canvas)
+                const canvasWidth = canvas.width;
+                const lengthMap = { 
+                    tiny: canvasWidth * 0.015, 
+                    small: canvasWidth * 0.025, 
+                    medium: canvasWidth * 0.035, 
+                    large: canvasWidth * 0.045 
+                };
+                const lineWidth = canvasWidth * 0.002;
+                const length = lengthMap[currentSize] || canvasWidth * 0.015;
                 
-                // Save drawing as image data
+                // Desenhar traço horizontal
+                ctx.beginPath();
+                ctx.moveTo(x - length / 2, y);
+                ctx.lineTo(x + length / 2, y);
+                ctx.strokeStyle = window.isPickupMode ? '#dc3545' : '#000000';
+                ctx.lineWidth = lineWidth;
+                ctx.lineCap = 'round';
+                ctx.stroke();
+                
+                // Salvar como dano
                 damages.push({
                     type: 'drawing',
                     dataURL: canvas.toDataURL()
                 });
-                window.damages = damages; // Update global reference
-                console.log('Drawing saved, total damages:', damages.length);
+                window.damages = damages;
+                console.log('Traço criado, total damages:', damages.length);
             }
+        }
+        
+        function draw(e) {
+            // Não é mais necessário para traços predefinidos
+            return;
+        }
+        
+        function stopDrawing(e) {
+            // Não é mais necessário para traços predefinidos
+            return;
         }
         
         function clearAll() {
