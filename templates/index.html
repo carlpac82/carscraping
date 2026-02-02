@@ -1900,6 +1900,11 @@
                 const sippInfoArray = groupToSipp[grupo];
                 if (!sippInfoArray) return;
                 
+                // Se é grupo K e checkbox não está marcada, SKIP (não adicionar ao ficheiro)
+                if (kGroupMapping[grupo] && !showGroupsK) {
+                    return; // Não adicionar grupos K ao ficheiro
+                }
+                
                 // Alguns grupos têm múltiplos SIPP codes (L1, M1) - gerar linha para cada um
                 sippInfoArray.forEach(sippInfo => {
                     const row = {
@@ -1918,18 +1923,14 @@
                         let netPrice = 0;
                         let finalPrice = 0;
                         
-                        // Se é grupo K
+                        // Se é grupo K (já verificado que checkbox está marcada)
                         if (kGroupMapping[grupo]) {
-                            // Grupos K só têm preços se checkbox estiver marcado
-                            if (showGroupsK) {
-                                const baseGroup = kGroupMapping[grupo];
-                                netPrice = cardPrices[baseGroup]?.[day] || 0;
-                                // Aplicar comissão Abbycar
-                                finalPrice = parseFloat(calculateWithCommission(netPrice, commission));
-                                // Aplicar Low Deposit adicional
-                                finalPrice = finalPrice * (1 + lowDepositPct / 100);
-                            }
-                            // Se checkbox não marcado, finalPrice fica 0 (sem preços)
+                            const baseGroup = kGroupMapping[grupo];
+                            netPrice = cardPrices[baseGroup]?.[day] || 0;
+                            // Aplicar comissão Abbycar
+                            finalPrice = parseFloat(calculateWithCommission(netPrice, commission));
+                            // Aplicar Low Deposit adicional
+                            finalPrice = finalPrice * (1 + lowDepositPct / 100);
                         } else {
                             // Grupos normais sempre têm preços
                             netPrice = cardPrices[grupo]?.[day] || 0;
