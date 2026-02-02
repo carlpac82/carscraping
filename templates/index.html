@@ -1740,10 +1740,6 @@
             try {
                 console.log('Iniciando download Abbycar...');
                 
-                // Fetch Abbycar commission from Admin Settings (default 3%)
-                const abbycarCommission = 3.00; // Default value, will be replaced by backend
-                console.log('Comissão Abbycar (será carregada do admin):', abbycarCommission);
-                
                 const location = document.querySelector('#locationSelect').value;
                 const month = document.querySelector('#monthSelect').value;
                 const year = document.querySelector('#yearSelect').value;
@@ -1758,6 +1754,11 @@
                 const lowDepositData = await lowDepositResponse.json();
                 const lowDepositPct = lowDepositData.ok ? lowDepositData.low_deposit_pct : 0;
                 console.log('Low Deposit %:', lowDepositPct);
+                
+                // Fetch Abbycar commission from Admin Settings (via backend)
+                // O backend vai aplicar o valor correto do admin settings
+                const abbycarCommission = 0; // Placeholder - backend vai usar o valor real
+                console.log('Comissão Abbycar (será aplicada pelo backend):', abbycarCommission);
             
             // Check if "Grupo K" checkbox is checked
             const showGroupsK = document.getElementById('showGroupsK')?.checked || false;
