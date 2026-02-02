@@ -1755,10 +1755,11 @@
                 const lowDepositPct = lowDepositData.ok ? lowDepositData.low_deposit_pct : 0;
                 console.log('Low Deposit %:', lowDepositPct);
                 
-                // Fetch Abbycar commission from Admin Settings (via backend)
-                // O backend vai aplicar o valor correto do admin settings
-                const abbycarCommission = 0; // Placeholder - backend vai usar o valor real
-                console.log('Comissão Abbycar (será aplicada pelo backend):', abbycarCommission);
+                // Fetch Abbycar commission from Admin Settings
+                const abbycarCommissionResponse = await fetch('/api/admin-settings/abbycar-commission');
+                const abbycarCommissionData = await abbycarCommissionResponse.json();
+                const abbycarCommission = abbycarCommissionData.ok ? abbycarCommissionData.abbycar_commission_pct : 0;
+                console.log('Comissão Abbycar:', abbycarCommission);
             
             // Check if "Grupo K" checkbox is checked
             const showGroupsK = document.getElementById('showGroupsK')?.checked || false;

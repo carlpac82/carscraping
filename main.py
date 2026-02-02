@@ -19820,6 +19820,34 @@ async def save_automated_price_rules(request: Request):
         logging.error(f"❌ Error saving automated price rules: {str(e)}")
         return JSONResponse({"ok": False, "error": str(e)}, status_code=500)
 
+@app.get("/api/admin-settings/abbycar-commission")
+async def get_abbycar_commission(request: Request):
+    """Get Abbycar commission percentage from Admin Settings"""
+    try:
+        require_auth(request)
+        abbycar_commission_pct = _get_abbycar_adjustment()
+        return JSONResponse({
+            "ok": True,
+            "abbycar_commission_pct": abbycar_commission_pct
+        })
+    except Exception as e:
+        logging.error(f"Error getting Abbycar commission: {e}")
+        return JSONResponse({"ok": False, "error": str(e)}, status_code=500)
+
+@app.get("/api/admin-settings/low-deposit")
+async def get_low_deposit_settings(request: Request):
+    """Get Low Deposit settings from Admin Settings"""
+    try:
+        require_auth(request)
+        low_deposit_pct = _get_abbycar_low_deposit_adjustment()
+        return JSONResponse({
+            "ok": True,
+            "low_deposit_pct": low_deposit_pct
+        })
+    except Exception as e:
+        logging.error(f"Error getting Low Deposit settings: {e}")
+        return JSONResponse({"ok": False, "error": str(e)}, status_code=500)
+
 @app.get("/api/price-automation/rules/debug")
 async def debug_automated_price_rules(request: Request):
     """Debug endpoint to check if automated_price_rules table exists and has data"""
