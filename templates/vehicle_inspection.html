@@ -2714,14 +2714,15 @@
             });
             
             // Get radius based on size (proporcional ao canvas para consistência mobile/desktop)
+            // Aumentados para serem visíveis no mobile
             const canvasWidth = canvas.width;
             const sizeMap = { 
-                tiny: canvasWidth * 0.003, 
-                small: canvasWidth * 0.005, 
-                medium: canvasWidth * 0.007, 
-                large: canvasWidth * 0.009 
+                tiny: canvasWidth * 0.006, 
+                small: canvasWidth * 0.008, 
+                medium: canvasWidth * 0.010, 
+                large: canvasWidth * 0.012 
             };
-            const radius = sizeMap[currentSize] || canvasWidth * 0.003;
+            const radius = sizeMap[currentSize] || canvasWidth * 0.006;
             
             // Save to damages array
             damages.push({
@@ -2872,8 +2873,11 @@
                     medium: canvasWidth * 0.035, 
                     large: canvasWidth * 0.045 
                 };
-                const lineWidth = canvasWidth * 0.002;
+                const lineWidth = canvasWidth * 0.003; // Aumentado de 0.002 para 0.003
                 const length = lengthMap[currentSize] || canvasWidth * 0.015;
+                
+                // Redesenhar canvas limpo antes de adicionar novo traço
+                redrawCanvas();
                 
                 // Desenhar traço horizontal
                 ctx.beginPath();

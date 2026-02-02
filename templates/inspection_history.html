@@ -4890,15 +4890,15 @@
             const y = (e.clientY - rect.top) * scaleY;
             
             if (invalidateCurrentTool === 'pin') {
-                // Tamanhos proporcionais à largura do canvas (0.3% a 0.9%)
+                // Tamanhos proporcionais à largura do canvas (aumentados para serem visíveis no mobile)
                 const canvasWidth = invalidateCroquiCanvas.width;
                 const sizeMap = { 
-                    tiny: canvasWidth * 0.003, 
-                    small: canvasWidth * 0.005, 
-                    medium: canvasWidth * 0.007, 
-                    large: canvasWidth * 0.009 
+                    tiny: canvasWidth * 0.006, 
+                    small: canvasWidth * 0.008, 
+                    medium: canvasWidth * 0.010, 
+                    large: canvasWidth * 0.012 
                 };
-                invalidateDamages.push({ type: 'pin', x, y, radius: sizeMap[invalidateCurrentSize] || canvasWidth * 0.003 });
+                invalidateDamages.push({ type: 'pin', x, y, radius: sizeMap[invalidateCurrentSize] || canvasWidth * 0.006 });
                 redrawInvalidateCroqui();
                 updateInvalidateDamageCount();
             } else if (invalidateCurrentTool === 'draw') {
@@ -4910,7 +4910,7 @@
                     medium: canvasWidth * 0.035, 
                     large: canvasWidth * 0.045 
                 };
-                const lineWidth = canvasWidth * 0.002; // 0.2% da largura
+                const lineWidth = canvasWidth * 0.003; // Aumentado de 0.002 para 0.003
                 const length = lengthMap[invalidateCurrentSize] || canvasWidth * 0.015;
                 invalidateDamages.push({ 
                     type: 'line', 
