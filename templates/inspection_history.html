@@ -5548,24 +5548,18 @@
             window.currentParkingRA = raNumber;
             window.currentParkingClient = clientName;
             window.currentParkingEmail = clientEmail;
-            window.detectedParkingNumber = null;
-            window.qrCodeImageBase64 = null;
             window.existingParkingQRData = existingParkingData;
             
-            // Se existir PDF já enviado, carregar no window.currentPdfBase64 para permitir preview inline
-            if (existingParkingData && existingParkingData.length > 0) {
-                const firstParkingWithPdf = existingParkingData.find(qr => qr.pdf_data);
-                if (firstParkingWithPdf) {
-                    window.currentPdfBase64 = firstParkingWithPdf.pdf_data;
-                    window.detectedParkingNumber = firstParkingWithPdf.parking_number;
-                    window.detectedPickupDate = firstParkingWithPdf.extracted_date;
-                    window.detectedPickupTime = firstParkingWithPdf.extracted_time;
-                    window.detectedReservationNumber = firstParkingWithPdf.extracted_reference;
-                    
-                    // NÃO mostrar a secção de detecção - só aparece após novo upload
-                    // A informação já está visível na secção verde em cima
-                }
-            }
+            // SEMPRE limpar estas variáveis para permitir novo upload
+            window.detectedParkingNumber = null;
+            window.qrCodeImageBase64 = null;
+            window.currentPdfBase64 = null;
+            window.detectedPickupDate = null;
+            window.detectedPickupTime = null;
+            window.detectedReservationNumber = null;
+            
+            // Nota: Os dados existentes são mostrados na secção verde em cima
+            // mas NÃO pré-carregamos nas variáveis para permitir sempre novo upload
             
             // Add file change listener
             document.getElementById('parkingQRFile').addEventListener('change', handleParkingQRFileSelect);
