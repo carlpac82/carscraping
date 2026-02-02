@@ -4551,7 +4551,7 @@
                 invalidateCurrentStroke = [];
                 invalidateIsDrawing = false;
                 invalidateCurrentTool = 'pin';
-                invalidateCurrentSize = 'small';
+                invalidateCurrentSize = 'tiny';
                 
                 const checkinFuel = parseInt(checkin.fuel_level) || 0;
                 // Self-checkout fuel pode vir como fuel_level ou fuel_level_percent
@@ -4713,11 +4713,11 @@
                                     
                                     <!-- Tamanhos -->
                                     <div class="flex justify-center gap-2 mb-3">
-                                        <button type="button" class="w-8 h-8 rounded-full bg-gray-100 hover:bg-gray-200 flex items-center justify-center border-2 border-transparent" onclick="selectInvalidateSize('tiny')" id="invSizeTiny">
-                                            <div class="w-1.5 h-1.5 bg-gray-500 rounded-full"></div>
+                                        <button type="button" class="w-8 h-8 rounded-full bg-cyan-100 flex items-center justify-center border-2 border-cyan-500" onclick="selectInvalidateSize('tiny')" id="invSizeTiny">
+                                            <div class="w-1.5 h-1.5 bg-cyan-600 rounded-full"></div>
                                         </button>
-                                        <button type="button" class="w-8 h-8 rounded-full bg-cyan-100 flex items-center justify-center border-2 border-cyan-500" onclick="selectInvalidateSize('small')" id="invSizeSmall">
-                                            <div class="w-2.5 h-2.5 bg-cyan-600 rounded-full"></div>
+                                        <button type="button" class="w-8 h-8 rounded-full bg-gray-100 hover:bg-gray-200 flex items-center justify-center border-2 border-transparent" onclick="selectInvalidateSize('small')" id="invSizeSmall">
+                                            <div class="w-2.5 h-2.5 bg-gray-500 rounded-full"></div>
                                         </button>
                                         <button type="button" class="w-8 h-8 rounded-full bg-gray-100 hover:bg-gray-200 flex items-center justify-center border-2 border-transparent" onclick="selectInvalidateSize('medium')" id="invSizeMedium">
                                             <div class="w-3.5 h-3.5 bg-gray-500 rounded-full"></div>
@@ -4881,8 +4881,8 @@
             const y = (e.clientY - rect.top) * scaleY;
             
             if (invalidateCurrentTool === 'pin') {
-                const sizeMap = { tiny: 8, small: 12, medium: 16, large: 20 };
-                invalidateDamages.push({ type: 'pin', x, y, radius: sizeMap[invalidateCurrentSize] || 12 });
+                const sizeMap = { tiny: 3, small: 5, medium: 7, large: 9 };
+                invalidateDamages.push({ type: 'pin', x, y, radius: sizeMap[invalidateCurrentSize] || 3 });
                 redrawInvalidateCroqui();
                 updateInvalidateDamageCount();
             } else if (invalidateCurrentTool === 'draw') {
@@ -4906,11 +4906,11 @@
         
         function handleInvalidateCanvasMouseUp() {
             if (invalidateIsDrawing && invalidateCurrentStroke.length > 0) {
-                const sizeMap = { tiny: 2, small: 4, medium: 6, large: 8 };
+                const sizeMap = { tiny: 1, small: 2, medium: 3, large: 4 };
                 invalidateDamages.push({
                     type: 'drawing',
                     points: [...invalidateCurrentStroke],
-                    lineWidth: sizeMap[invalidateCurrentSize] || 4
+                    lineWidth: sizeMap[invalidateCurrentSize] || 1
                 });
                 invalidateCurrentStroke = [];
                 redrawInvalidateCroqui();
