@@ -19865,11 +19865,6 @@ async def debug_ra(ra_number: str, request: Request):
                         SELECT 
                             rental_agreement_number,
                             license_plate,
-                            return_location,
-                            return_date,
-                            self_checkin_token,
-                            self_checkin_scheduled_date,
-                            self_checkin_email,
                             extracted_data
                         FROM rental_agreements
                         WHERE rental_agreement_number LIKE %s
@@ -19881,11 +19876,6 @@ async def debug_ra(ra_number: str, request: Request):
                         SELECT 
                             rental_agreement_number,
                             license_plate,
-                            return_location,
-                            return_date,
-                            self_checkin_token,
-                            self_checkin_scheduled_date,
-                            self_checkin_email,
                             extracted_data
                         FROM rental_agreements
                         WHERE rental_agreement_number LIKE ?
@@ -19898,18 +19888,48 @@ async def debug_ra(ra_number: str, request: Request):
                 
                 import json
                 extracted = {}
-                if row[7]:
+                if row[2]:
                     try:
-                        extracted = json.loads(row[7])
+                        extracted = json.loads(row[2])
                     except:
                         extracted = {"error": "Failed to parse JSON"}
                 
                 # Extrair dados do extracted_data JSON
                 client_name = extracted.get('client_name', '')
-                client_email = extracted.get('client_email', '') or row[6]  # self_checkin_email como fallback
+                client_email = extracted.get('client_email', '')
+                return_location = extracted.get('return_location', '')
+                return_date = extracted.get('return_date', '')
                 
-                return_location = row[2] or ''
                 is_faro = 'aeroporto' in return_location.lower() and 'faro' in return_location.lower()
+                
+                # Buscar self_checkin info (pode não existir ainda)
+                self_checkin_token = None
+                self_checkin_scheduled_date = None
+                self_checkin_email = None
+                
+                try:
+                    if is_postgres:
+                        cursor.execute("""
+                            SELECT self_checkin_token, self_checkin_scheduled_date, self_checkin_email
+                            FROM rental_agreements
+                            WHERE rental_agreement_number LIKE %s
+                            LIMIT 1
+                        """, (f"{ra_number}%",))
+                    else:
+                        cursor = conn.execute("""
+                            SELECT self_checkin_token, self_checkin_scheduled_date, self_checkin_email
+                            FROM rental_agreements
+                            WHERE rental_agreement_number LIKE ?
+                            LIMIT 1
+                        """, (f"{ra_number}%",))
+                    
+                    checkin_row = cursor.fetchone()
+                    if checkin_row:
+                        self_checkin_token = checkin_row[0]
+                        self_checkin_scheduled_date = checkin_row[1]
+                        self_checkin_email = checkin_row[2]
+                except Exception as e:
+                    logging.warning(f"Could not fetch self_checkin columns: {e}")
                 
                 return JSONResponse({
                     "ok": True,
@@ -19917,19 +19937,19 @@ async def debug_ra(ra_number: str, request: Request):
                     "plate": row[1],
                     "client_name": client_name,
                     "client_email": client_email,
-                    "return_location": row[2],
-                    "return_date": row[3],
-                    "self_checkin_token": row[4],
-                    "self_checkin_scheduled_date": row[5],
-                    "self_checkin_email": row[6],
+                    "return_location": return_location,
+                    "return_date": return_date,
+                    "self_checkin_token": self_checkin_token,
+                    "self_checkin_scheduled_date": self_checkin_scheduled_date,
+                    "self_checkin_email": self_checkin_email,
                     "extracted_data": extracted,
                     "diagnosis": {
-                        "has_return_location": bool(row[2]),
+                        "has_return_location": bool(return_location),
                         "is_faro_airport": is_faro,
                         "has_email": bool(client_email),
-                        "has_return_date": bool(row[3]),
-                        "has_self_checkin": bool(row[4]),
-                        "should_have_self_checkin": is_faro and bool(client_email) and bool(row[3])
+                        "has_return_date": bool(return_date),
+                        "has_self_checkin": bool(self_checkin_token),
+                        "should_have_self_checkin": is_faro and bool(client_email) and bool(return_date)
                     }
                 })
             finally:
