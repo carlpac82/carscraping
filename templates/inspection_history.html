@@ -2953,7 +2953,7 @@
                 // SKIP drawing from canvas - draw directly from damages array
                 console.log('  ⚠️ SKIPPING canvas.drawImage - drawing directly from array instead');
                 
-                // First, load and draw all drawings (async)
+                // First, load and draw legacy drawings (async) - for backwards compatibility
                 const drawingPromises = [];
                 damages.forEach((damage, i) => {
                     if (damage.type === 'drawing' && damage.dataURL) {
@@ -2961,11 +2961,11 @@
                             const img = new Image();
                             img.onload = () => {
                                 tempCtx.drawImage(img, 0, 0, tempCanvas.width, tempCanvas.height);
-                                console.log(`  ✅ Drawing ${i} loaded and drawn`);
+                                console.log(`  ✅ Legacy drawing ${i} loaded and drawn`);
                                 resolve();
                             };
                             img.onerror = () => {
-                                console.error(`  ❌ Drawing ${i} failed to load`);
+                                console.error(`  ❌ Legacy drawing ${i} failed to load`);
                                 resolve();
                             };
                             img.src = damage.dataURL;
@@ -2974,13 +2974,38 @@
                     }
                 });
                 
-                // Wait for all drawings to load, then draw pins on top
                 await Promise.all(drawingPromises);
                 
-                // Now draw pins on top of drawings
+                // Draw lines (new format)
+                damages.forEach((damage, i) => {
+                    if (damage.type === 'line') {
+                        const damageCanvasWidth = damage.canvasWidth || drawingCanvas.width;
+                        const damageCanvasHeight = damage.canvasHeight || drawingCanvas.height;
+                        
+                        const scaleX = tempCanvas.width / damageCanvasWidth;
+                        const scaleY = tempCanvas.height / damageCanvasHeight;
+                        
+                        const scaledX1 = damage.x1 * scaleX;
+                        const scaledY1 = damage.y1 * scaleY;
+                        const scaledX2 = damage.x2 * scaleX;
+                        const scaledY2 = damage.y2 * scaleY;
+                        const scaledLineWidth = damage.lineWidth * Math.min(scaleX, scaleY) * 0.5;
+                        
+                        tempCtx.beginPath();
+                        tempCtx.moveTo(scaledX1, scaledY1);
+                        tempCtx.lineTo(scaledX2, scaledY2);
+                        tempCtx.strokeStyle = '#000000';
+                        tempCtx.lineWidth = scaledLineWidth;
+                        tempCtx.lineCap = 'round';
+                        tempCtx.stroke();
+                        
+                        console.log(`  ✅ Line ${i + 1} drawn`);
+                    }
+                });
+                
+                // Draw pins on top
                 damages.forEach((damage, i) => {
                     if (damage.type === 'pin') {
-                        // Use canvas dimensions stored with this specific damage
                         const damageCanvasWidth = damage.canvasWidth || drawingCanvas.width;
                         const damageCanvasHeight = damage.canvasHeight || drawingCanvas.height;
                         
@@ -2989,7 +3014,6 @@
                         
                         const scaledX = damage.x * scaleX;
                         const scaledY = damage.y * scaleY;
-                        // Reduce radius scaling to keep pins smaller and more proportional
                         const scaledRadius = damage.radius * Math.min(scaleX, scaleY) * 0.5;
                         
                         tempCtx.beginPath();
@@ -5315,7 +5339,7 @@
                 // 3. SKIP drawing from canvas - draw directly from invalidateDamages array
                 console.log('  ⚠️ SKIPPING canvas.drawImage - drawing directly from array instead');
                 
-                // First, load and draw all drawings (async)
+                // First, load and draw legacy drawings (async) - for backwards compatibility
                 const drawingPromises = [];
                 invalidateDamages.forEach((damage, i) => {
                     if (damage.type === 'drawing' && damage.dataURL) {
@@ -5323,11 +5347,11 @@
                             const img = new Image();
                             img.onload = () => {
                                 ctx.drawImage(img, 0, 0, combinedCanvas.width, combinedCanvas.height);
-                                console.log(`  ✅ Drawing ${i} loaded and drawn`);
+                                console.log(`  ✅ Legacy drawing ${i} loaded and drawn`);
                                 resolve();
                             };
                             img.onerror = () => {
-                                console.error(`  ❌ Drawing ${i} failed to load`);
+                                console.error(`  ❌ Legacy drawing ${i} failed to load`);
                                 resolve();
                             };
                             img.src = damage.dataURL;
@@ -5336,13 +5360,38 @@
                     }
                 });
                 
-                // Wait for all drawings to load, then draw pins on top
                 await Promise.all(drawingPromises);
                 
-                // Now draw pins on top of drawings
+                // Draw lines (new format)
+                invalidateDamages.forEach((damage, i) => {
+                    if (damage.type === 'line') {
+                        const damageCanvasWidth = damage.canvasWidth || invalidateCroquiCanvas.width;
+                        const damageCanvasHeight = damage.canvasHeight || invalidateCroquiCanvas.height;
+                        
+                        const scaleX = combinedCanvas.width / damageCanvasWidth;
+                        const scaleY = combinedCanvas.height / damageCanvasHeight;
+                        
+                        const scaledX1 = damage.x1 * scaleX;
+                        const scaledY1 = damage.y1 * scaleY;
+                        const scaledX2 = damage.x2 * scaleX;
+                        const scaledY2 = damage.y2 * scaleY;
+                        const scaledLineWidth = damage.lineWidth * Math.min(scaleX, scaleY) * 0.5;
+                        
+                        ctx.beginPath();
+                        ctx.moveTo(scaledX1, scaledY1);
+                        ctx.lineTo(scaledX2, scaledY2);
+                        ctx.strokeStyle = '#dc3545'; // RED for new damages
+                        ctx.lineWidth = scaledLineWidth;
+                        ctx.lineCap = 'round';
+                        ctx.stroke();
+                        
+                        console.log(`  ✅ Line ${i + 1} drawn`);
+                    }
+                });
+                
+                // Draw pins on top
                 invalidateDamages.forEach((damage, i) => {
                     if (damage.type === 'pin') {
-                        // Use canvas dimensions stored with this specific damage
                         const damageCanvasWidth = damage.canvasWidth || invalidateCroquiCanvas.width;
                         const damageCanvasHeight = damage.canvasHeight || invalidateCroquiCanvas.height;
                         
@@ -5351,7 +5400,6 @@
                         
                         const scaledX = damage.x * scaleX;
                         const scaledY = damage.y * scaleY;
-                        // Reduce radius scaling to keep pins smaller and more proportional
                         const scaledRadius = damage.radius * Math.min(scaleX, scaleY) * 0.5;
                         
                         // Draw pin in RED (new damage)
