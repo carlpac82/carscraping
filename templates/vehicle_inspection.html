@@ -2017,20 +2017,58 @@
                         damagesArray: window.damages ? window.damages.length : 0
                     });
                     
-                    // Draw canvas content (drawings/lines) - this already contains all damages drawn by redrawCanvas()
-                    debugInfo.step = 'drawing canvas overlay with damages';
+                    // Draw canvas content (drawings/lines) if it has content
+                    debugInfo.step = 'drawing canvas overlay';
                     debugInfo.canvasHasContent = hasContent;
-                    tempCtx.save();
-                    tempCtx.scale(scaleX, scaleY);
-                    tempCtx.drawImage(canvas, 0, 0);
-                    tempCtx.restore();
+                    if (hasContent) {
+                        tempCtx.save();
+                        tempCtx.scale(scaleX, scaleY);
+                        tempCtx.drawImage(canvas, 0, 0);
+                        tempCtx.restore();
+                    }
                     
-                    // Count damages from the damages array (not DOM elements)
-                    debugInfo.step = 'counting damages';
-                    debugInfo.pinsDrawn = window.damages ? window.damages.length : 0;
+                    // CRITICAL: Draw damages directly from window.damages array
+                    // This ensures damages are rendered even if canvas is empty (Android issue)
+                    debugInfo.step = 'drawing damages from array';
+                    debugInfo.pinsDrawn = 0;
                     
-                    console.log('✅ Canvas with damages drawn:', {
-                        damagesInArray: debugInfo.pinsDrawn,
+                    if (window.damages && window.damages.length > 0) {
+                        console.log('🎨 Drawing', window.damages.length, 'damages directly on tempCanvas');
+                        
+                        window.damages.forEach((damage, i) => {
+                            if (damage.type === 'pin') {
+                                // Scale coordinates from canvas space to image space
+                                const scaledX = damage.x * scaleX;
+                                const scaledY = damage.y * scaleY;
+                                const scaledRadius = damage.radius * Math.min(scaleX, scaleY);
+                                
+                                // Determine color based on mode
+                                const damageColor = window.isPickupMode ? '#dc3545' : '#000000';
+                                
+                                // Draw pin
+                                tempCtx.beginPath();
+                                tempCtx.arc(scaledX, scaledY, scaledRadius, 0, 2 * Math.PI);
+                                tempCtx.fillStyle = damageColor;
+                                tempCtx.fill();
+                                tempCtx.strokeStyle = '#ffffff';
+                                tempCtx.lineWidth = 2;
+                                tempCtx.stroke();
+                                
+                                debugInfo.pinsDrawn++;
+                                console.log(`  ✅ Damage ${i} drawn at (${scaledX.toFixed(1)}, ${scaledY.toFixed(1)})`);
+                            } else if (damage.type === 'drawing' && damage.dataURL) {
+                                // Draw line/drawing from dataURL
+                                const img = new Image();
+                                img.src = damage.dataURL;
+                                // Note: This is async, may not be captured in time
+                                console.log(`  ⚠️ Drawing ${i} (async, may not be captured)`);
+                            }
+                        });
+                    }
+                    
+                    console.log('✅ Damages drawn on tempCanvas:', {
+                        damagesInArray: window.damages ? window.damages.length : 0,
+                        pinsDrawn: debugInfo.pinsDrawn,
                         canvasHasContent: hasContent
                     });
                     
@@ -3712,15 +3750,58 @@
                         const scaleY = tempCanvas.height / canvas.height;
                         console.log('🔍 Scale factors:', scaleX, scaleY);
                         
-                        // Draw the damage canvas (lines/drawings) on top - this already contains all damages drawn by redrawCanvas()
-                        tempCtx.save();
-                        tempCtx.scale(scaleX, scaleY);
-                        tempCtx.drawImage(canvas, 0, 0);
-                        tempCtx.restore();
+                        // Check if canvas has content
+                        const canvasCtx = canvas.getContext('2d');
+                        const imageData = canvasCtx.getImageData(0, 0, canvas.width, canvas.height);
+                        let hasContent = false;
+                        for (let i = 0; i < imageData.data.length; i += 4) {
+                            if (imageData.data[i + 3] > 0) {
+                                hasContent = true;
+                                break;
+                            }
+                        }
                         
-                        // Count damages from the damages array (not DOM elements)
-                        const damagesCount = window.damages ? window.damages.length : 0;
-                        console.log(`✅ Canvas with damages drawn: ${damagesCount} damages in array`);
+                        // Draw the damage canvas (lines/drawings) if it has content
+                        if (hasContent) {
+                            tempCtx.save();
+                            tempCtx.scale(scaleX, scaleY);
+                            tempCtx.drawImage(canvas, 0, 0);
+                            tempCtx.restore();
+                        }
+                        
+                        // CRITICAL: Draw damages directly from window.damages array
+                        // This ensures damages are rendered even if canvas is empty (Android issue)
+                        let damagesCount = 0;
+                        
+                        if (window.damages && window.damages.length > 0) {
+                            console.log('🎨 Drawing', window.damages.length, 'damages directly on tempCanvas');
+                            
+                            window.damages.forEach((damage, i) => {
+                                if (damage.type === 'pin') {
+                                    // Scale coordinates from canvas space to image space
+                                    const scaledX = damage.x * scaleX;
+                                    const scaledY = damage.y * scaleY;
+                                    const scaledRadius = damage.radius * Math.min(scaleX, scaleY);
+                                    
+                                    // Determine color based on mode
+                                    const damageColor = window.isPickupMode ? '#dc3545' : '#000000';
+                                    
+                                    // Draw pin
+                                    tempCtx.beginPath();
+                                    tempCtx.arc(scaledX, scaledY, scaledRadius, 0, 2 * Math.PI);
+                                    tempCtx.fillStyle = damageColor;
+                                    tempCtx.fill();
+                                    tempCtx.strokeStyle = '#ffffff';
+                                    tempCtx.lineWidth = 2;
+                                    tempCtx.stroke();
+                                    
+                                    damagesCount++;
+                                    console.log(`  ✅ Damage ${i} drawn at (${scaledX.toFixed(1)}, ${scaledY.toFixed(1)})`);
+                                }
+                            });
+                        }
+                        
+                        console.log(`✅ Damages drawn on tempCanvas: ${damagesCount} damages`);
                         
                         // Convert to base64
                         damageCroquiBase64 = tempCanvas.toDataURL('image/png');
