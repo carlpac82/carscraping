@@ -2803,47 +2803,50 @@
             const damageColor = window.isPickupMode ? '#dc3545' : '#000000';
             console.log('  Color:', damageColor);
             
-            // First, draw all drawings (they need to be drawn first, then pins on top)
-            const drawingPromises = [];
+            // Draw all damages (lines first, then pins on top)
             damages.forEach((damage, i) => {
-                if (damage.type === 'drawing' && damage.dataURL) {
-                    console.log('  Drawing', i, ': loading from dataURL');
+                if (damage.type === 'line') {
+                    console.log('  Line', i, ': drawing from coordinates');
+                    ctx.beginPath();
+                    ctx.moveTo(damage.x1, damage.y1);
+                    ctx.lineTo(damage.x2, damage.y2);
+                    ctx.strokeStyle = damageColor;
+                    ctx.lineWidth = damage.lineWidth;
+                    ctx.lineCap = 'round';
+                    ctx.stroke();
+                    console.log('    ✅ Line drawn');
+                } else if (damage.type === 'drawing' && damage.dataURL) {
+                    // Legacy support for old drawings saved as dataURL
+                    console.log('  Drawing', i, ': loading from dataURL (legacy)');
                     const img = new Image();
-                    const promise = new Promise((resolve) => {
-                        img.onload = () => {
-                            ctx.drawImage(img, 0, 0);
-                            console.log('    ✅ Drawing redrawn');
-                            resolve();
-                        };
-                        img.onerror = () => {
-                            console.error('    ❌ Failed to load drawing');
-                            resolve();
-                        };
-                    });
+                    img.onload = () => {
+                        ctx.drawImage(img, 0, 0);
+                        console.log('    ✅ Drawing redrawn');
+                    };
+                    img.onerror = () => {
+                        console.error('    ❌ Failed to load drawing');
+                    };
                     img.src = damage.dataURL;
-                    drawingPromises.push(promise);
                 }
             });
             
-            // Wait for all drawings to load, then draw pins on top
-            Promise.all(drawingPromises).then(() => {
-                damages.forEach((damage, i) => {
-                    if (damage.type === 'pin') {
-                        console.log('  Damage', i, ':', damage);
-                        console.log('    Drawing pin at (', damage.x, ',', damage.y, ') radius', damage.radius);
-                        // Draw pin
-                        ctx.beginPath();
-                        ctx.arc(damage.x, damage.y, damage.radius, 0, 2 * Math.PI);
-                        ctx.fillStyle = damageColor;
-                        ctx.fill();
-                        ctx.strokeStyle = '#fff';
-                        ctx.lineWidth = 2;
-                        ctx.stroke();
-                        console.log('    ✅ Pin drawn');
-                    }
-                });
-                console.log('  ✅ redrawCanvas complete');
+            // Draw pins on top
+            damages.forEach((damage, i) => {
+                if (damage.type === 'pin') {
+                    console.log('  Damage', i, ':', damage);
+                    console.log('    Drawing pin at (', damage.x, ',', damage.y, ') radius', damage.radius);
+                    ctx.beginPath();
+                    ctx.arc(damage.x, damage.y, damage.radius, 0, 2 * Math.PI);
+                    ctx.fillStyle = damageColor;
+                    ctx.fill();
+                    ctx.strokeStyle = '#fff';
+                    ctx.lineWidth = 2;
+                    ctx.stroke();
+                    console.log('    ✅ Pin drawn');
+                }
             });
+            
+            console.log('  ✅ redrawCanvas complete');
         }
         
         function removePin(pinId) {
@@ -2908,28 +2911,32 @@
                     medium: canvasWidth * 0.035, 
                     large: canvasWidth * 0.045 
                 };
-                const lineWidth = canvasWidth * 0.003; // Aumentado de 0.002 para 0.003
+                const lineWidth = canvasWidth * 0.003;
                 const length = lengthMap[currentSize] || canvasWidth * 0.015;
                 
-                // Redesenhar canvas limpo antes de adicionar novo traço
-                redrawCanvas();
+                // Calculate line endpoints
+                const x1 = x - length / 2;
+                const y1 = y;
+                const x2 = x + length / 2;
+                const y2 = y;
                 
-                // Desenhar traço horizontal
-                ctx.beginPath();
-                ctx.moveTo(x - length / 2, y);
-                ctx.lineTo(x + length / 2, y);
-                ctx.strokeStyle = window.isPickupMode ? '#dc3545' : '#000000';
-                ctx.lineWidth = lineWidth;
-                ctx.lineCap = 'round';
-                ctx.stroke();
-                
-                // Salvar como dano
+                // Save as damage with coordinates (like pins)
                 damages.push({
-                    type: 'drawing',
-                    dataURL: canvas.toDataURL()
+                    type: 'line',
+                    x1: x1,
+                    y1: y1,
+                    x2: x2,
+                    y2: y2,
+                    lineWidth: lineWidth,
+                    canvasWidth: canvas.width,
+                    canvasHeight: canvas.height
                 });
                 window.damages = damages;
+                
                 console.log('Traço criado, total damages:', damages.length);
+                
+                // Redraw canvas with new damage
+                redrawCanvas();
             }
         }
         
@@ -3668,24 +3675,23 @@
                     console.log('🎨 Temp canvas dimensions:', tempCanvas.width, 'x', tempCanvas.height);
                     
                     let pinsDrawn = 0;
-                    let drawingsDrawn = 0;
-                    let avgScaleX = 0, avgScaleY = 0;
+                    let linesDrawn = 0;
+                    let legacyDrawingsDrawn = 0;
                     
-                    // First, load and draw all drawings (async)
+                    // First, load and draw legacy drawings (async) - for backwards compatibility
                     const drawingPromises = [];
                     window.damages.forEach((damage, i) => {
                         if (damage.type === 'drawing' && damage.dataURL) {
                             const promise = new Promise((resolve) => {
                                 const img = new Image();
                                 img.onload = () => {
-                                    // Draw the drawing image scaled to tempCanvas size
                                     tempCtx.drawImage(img, 0, 0, tempCanvas.width, tempCanvas.height);
-                                    drawingsDrawn++;
-                                    console.log(`  ✅ Drawing ${i} loaded and drawn`);
+                                    legacyDrawingsDrawn++;
+                                    console.log(`  ✅ Legacy drawing ${i} loaded and drawn`);
                                     resolve();
                                 };
                                 img.onerror = () => {
-                                    console.error(`  ❌ Drawing ${i} failed to load`);
+                                    console.error(`  ❌ Legacy drawing ${i} failed to load`);
                                     resolve();
                                 };
                                 img.src = damage.dataURL;
@@ -3694,25 +3700,49 @@
                         }
                     });
                     
-                    // Wait for all drawings to load, then draw pins on top
                     await Promise.all(drawingPromises);
                     
-                    // Now draw pins on top of drawings
+                    // Draw lines (new format)
                     window.damages.forEach((damage, i) => {
-                        if (damage.type === 'pin') {
-                            // Use canvas dimensions stored with this specific damage
+                        if (damage.type === 'line') {
                             const damageCanvasWidth = damage.canvasWidth || window.savedCanvasWidth || tempCanvas.width;
                             const damageCanvasHeight = damage.canvasHeight || window.savedCanvasHeight || tempCanvas.height;
                             
                             const scaleX = tempCanvas.width / damageCanvasWidth;
                             const scaleY = tempCanvas.height / damageCanvasHeight;
                             
-                            avgScaleX += scaleX;
-                            avgScaleY += scaleY;
+                            const scaledX1 = damage.x1 * scaleX;
+                            const scaledY1 = damage.y1 * scaleY;
+                            const scaledX2 = damage.x2 * scaleX;
+                            const scaledY2 = damage.y2 * scaleY;
+                            const scaledLineWidth = damage.lineWidth * Math.min(scaleX, scaleY) * 0.5;
+                            
+                            const damageColor = window.isPickupMode ? '#dc3545' : '#000000';
+                            
+                            tempCtx.beginPath();
+                            tempCtx.moveTo(scaledX1, scaledY1);
+                            tempCtx.lineTo(scaledX2, scaledY2);
+                            tempCtx.strokeStyle = damageColor;
+                            tempCtx.lineWidth = scaledLineWidth;
+                            tempCtx.lineCap = 'round';
+                            tempCtx.stroke();
+                            
+                            linesDrawn++;
+                            console.log(`  ✅ Line ${i}: scale ${scaleX.toFixed(2)}x${scaleY.toFixed(2)}`);
+                        }
+                    });
+                    
+                    // Draw pins on top
+                    window.damages.forEach((damage, i) => {
+                        if (damage.type === 'pin') {
+                            const damageCanvasWidth = damage.canvasWidth || window.savedCanvasWidth || tempCanvas.width;
+                            const damageCanvasHeight = damage.canvasHeight || window.savedCanvasHeight || tempCanvas.height;
+                            
+                            const scaleX = tempCanvas.width / damageCanvasWidth;
+                            const scaleY = tempCanvas.height / damageCanvasHeight;
                             
                             const scaledX = damage.x * scaleX;
                             const scaledY = damage.y * scaleY;
-                            // Reduce radius scaling to keep pins smaller and more proportional
                             const scaledRadius = damage.radius * Math.min(scaleX, scaleY) * 0.5;
                             
                             const damageColor = window.isPickupMode ? '#dc3545' : '#000000';
@@ -3726,14 +3756,11 @@
                             tempCtx.stroke();
                             
                             pinsDrawn++;
-                            console.log(`  ✅ Pin ${i}: canvas ${damageCanvasWidth}x${damageCanvasHeight}, scale ${scaleX.toFixed(2)}x${scaleY.toFixed(2)}, pos (${scaledX.toFixed(1)}, ${scaledY.toFixed(1)})`);
+                            console.log(`  ✅ Pin ${i}: scale ${scaleX.toFixed(2)}x${scaleY.toFixed(2)}, pos (${scaledX.toFixed(1)}, ${scaledY.toFixed(1)})`);
                         }
                     });
                     
-                    avgScaleX = pinsDrawn > 0 ? avgScaleX / pinsDrawn : 0;
-                    avgScaleY = pinsDrawn > 0 ? avgScaleY / pinsDrawn : 0;
-                    
-                    console.log('✅ Total damages drawn:', pinsDrawn, 'pins +', drawingsDrawn, 'drawings');
+                    console.log('✅ Total damages drawn:', pinsDrawn, 'pins +', linesDrawn, 'lines +', legacyDrawingsDrawn, 'legacy drawings');
                 } else {
                     console.warn('⚠️ No damages to draw');
                 }
