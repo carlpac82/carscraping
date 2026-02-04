@@ -2756,15 +2756,18 @@
             };
             const radius = sizeMap[currentSize] || canvasWidth * 0.006;
             
-            // Save to damages array
+            // Save to damages array with canvas dimensions at time of creation
             damages.push({
                 type: 'pin',
                 x: x,
                 y: y,
-                radius: radius
+                radius: radius,
+                canvasWidth: canvas.width,
+                canvasHeight: canvas.height
             });
             
             console.log('📍 Pin added to damages array, total:', damages.length);
+            console.log('📍 Pin canvas dimensions:', canvas.width, 'x', canvas.height);
             
             // If pickup mode, also store in pickupNewDamages
             const isNewDamage = window.isPickupMode === true;
@@ -3661,21 +3664,24 @@
                 console.log('⚠️ SKIPPING canvas.drawImage - drawing directly from array instead');
                 
                 if (window.damages && window.damages.length > 0) {
-                    // Use saved canvas dimensions or current canvas dimensions
-                    const canvasWidth = window.savedCanvasWidth || canvas?.width || tempCanvas.width;
-                    const canvasHeight = window.savedCanvasHeight || canvas?.height || tempCanvas.height;
-                    
-                    const scaleX = tempCanvas.width / canvasWidth;
-                    const scaleY = tempCanvas.height / canvasHeight;
-                    
                     console.log('🎨 Drawing', window.damages.length, 'damages directly on tempCanvas');
-                    console.log('🎨 Canvas dimensions:', canvasWidth, 'x', canvasHeight);
                     console.log('🎨 Temp canvas dimensions:', tempCanvas.width, 'x', tempCanvas.height);
-                    console.log('🎨 Scale factors:', scaleX, scaleY);
                     
                     let pinsDrawn = 0;
+                    let avgScaleX = 0, avgScaleY = 0;
+                    
                     window.damages.forEach((damage, i) => {
                         if (damage.type === 'pin') {
+                            // Use canvas dimensions stored with this specific damage
+                            const damageCanvasWidth = damage.canvasWidth || window.savedCanvasWidth || tempCanvas.width;
+                            const damageCanvasHeight = damage.canvasHeight || window.savedCanvasHeight || tempCanvas.height;
+                            
+                            const scaleX = tempCanvas.width / damageCanvasWidth;
+                            const scaleY = tempCanvas.height / damageCanvasHeight;
+                            
+                            avgScaleX += scaleX;
+                            avgScaleY += scaleY;
+                            
                             const scaledX = damage.x * scaleX;
                             const scaledY = damage.y * scaleY;
                             const scaledRadius = damage.radius * Math.min(scaleX, scaleY);
@@ -3691,14 +3697,17 @@
                             tempCtx.stroke();
                             
                             pinsDrawn++;
-                            console.log(`  ✅ Pin ${i} drawn at (${scaledX.toFixed(1)}, ${scaledY.toFixed(1)})`);
+                            console.log(`  ✅ Pin ${i}: canvas ${damageCanvasWidth}x${damageCanvasHeight}, scale ${scaleX.toFixed(2)}x${scaleY.toFixed(2)}, pos (${scaledX.toFixed(1)}, ${scaledY.toFixed(1)})`);
                         }
                     });
+                    
+                    avgScaleX = pinsDrawn > 0 ? avgScaleX / pinsDrawn : 0;
+                    avgScaleY = pinsDrawn > 0 ? avgScaleY / pinsDrawn : 0;
                     
                     console.log('✅ Total pins drawn:', pinsDrawn);
                     
                     // Show alert with capture info for debugging
-                    alert(`✅ CROQUI CAPTURADO!\n\nDanos no array: ${window.damages.length}\nDanos desenhados: ${pinsDrawn}\nCanvas: ${canvasWidth}x${canvasHeight}\nScale: ${scaleX.toFixed(2)}x${scaleY.toFixed(2)}\n\nSe não aparecerem no email, tire screenshot!`);
+                    alert(`✅ CROQUI CAPTURADO!\n\nDanos no array: ${window.damages.length}\nDanos desenhados: ${pinsDrawn}\nScale médio: ${avgScaleX.toFixed(2)}x${avgScaleY.toFixed(2)}\n\nSe posições erradas, tire screenshot!`);
                 } else {
                     console.warn('⚠️ No damages to draw');
                     alert(`⚠️ AVISO!\n\nDanos no array: ${window.damages ? window.damages.length : 0}\nCanvas: ${canvas?.width || 0}x${canvas?.height || 0}\nSaved: ${window.savedCanvasWidth || 0}x${window.savedCanvasHeight || 0}\n\nTire screenshot!`);
