@@ -47837,6 +47837,91 @@ async def get_search_version(version_id: int):
         logging.error(f"❌ [VERSION-LOAD] Full traceback: {traceback.format_exc()}")
         return JSONResponse({"ok": False, "error": str(e)}, status_code=500)
 
+@app.post("/api/automated-search/clean-old-histories")
+async def clean_old_histories(request: Request):
+    """Limpar históricos antigos removendo dias com preços inválidos do array dias
+    
+    Remove dias que têm preços 0 ou muito baixos (< 5€) do array dias,
+    mas mantém os preços dos dias válidos.
+    """
+    require_auth(request)
+    
+    try:
+        import json
+        
+        with _db_lock:
+            conn = _db_connect()
+            try:
+                is_postgres = hasattr(conn, '_conn')
+                real_conn = conn._conn if is_postgres else conn
+                
+                if is_postgres:
+                    with real_conn.cursor() as cur:
+                        # Buscar todos os históricos
+                        cur.execute("""
+                            SELECT id, prices_data, dias
+                            FROM automated_search_history
+                            WHERE dias IS NOT NULL AND prices_data IS NOT NULL
+                        """)
+                        
+                        rows = cur.fetchall()
+                        updated_count = 0
+                        
+                        for row in rows:
+                            history_id, prices_json, dias_json = row
+                            
+                            try:
+                                prices = json.loads(prices_json) if isinstance(prices_json, str) else prices_json
+                                dias = json.loads(dias_json) if isinstance(dias_json, str) else dias_json
+                                
+                                if not prices or not dias:
+                                    continue
+                                
+                                # Encontrar dias que têm preços válidos (> 5€) em pelo menos um grupo
+                                valid_dias = set()
+                                for grupo, grupo_prices in prices.items():
+                                    if isinstance(grupo_prices, dict):
+                                        for dia, price in grupo_prices.items():
+                                            if price and float(price) > 5:
+                                                valid_dias.add(int(dia))
+                                
+                                # Criar novo array de dias apenas com dias válidos
+                                new_dias = [d for d in dias if int(d) in valid_dias]
+                                
+                                # Se houve mudança, atualizar
+                                if len(new_dias) != len(dias):
+                                    cur.execute("""
+                                        UPDATE automated_search_history
+                                        SET dias = %s
+                                        WHERE id = %s
+                                    """, (json.dumps(new_dias), history_id))
+                                    updated_count += 1
+                                    logging.info(f"✅ Histórico {history_id}: {len(dias)} dias → {len(new_dias)} dias válidos")
+                            
+                            except Exception as e:
+                                logging.error(f"Erro ao processar histórico {history_id}: {e}")
+                                continue
+                        
+                        real_conn.commit()
+                        
+                        return JSONResponse({
+                            "ok": True,
+                            "message": f"Limpeza concluída! {updated_count} históricos atualizados.",
+                            "updated": updated_count,
+                            "total": len(rows)
+                        })
+                else:
+                    return JSONResponse({"ok": False, "error": "SQLite não suportado"}, status_code=400)
+                    
+            finally:
+                conn.close()
+                
+    except Exception as e:
+        import traceback
+        logging.error(f"Erro ao limpar históricos: {e}")
+        logging.error(traceback.format_exc())
+        return JSONResponse({"ok": False, "error": str(e)}, status_code=500)
+
 @app.get("/api/automated-search/history")
 async def get_automated_search_history(request: Request, months: int = 6, location: str = None):
     """Get automated search history for the last N months (LEGACY - full data)
