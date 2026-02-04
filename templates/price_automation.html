@@ -10093,6 +10093,27 @@ Continue?`);
                 
                 console.log('🔍 [DEBUG] Payload completo a enviar:', JSON.stringify(payload, null, 2).substring(0, 500));
                 
+                // CRITICAL FIX: Apagar todos os períodos existentes antes de guardar o novo
+                // Isso evita ter múltiplos períodos conflituosos (ex: 1-28, 1-31, 5-31)
+                console.log('🗑️ A apagar períodos existentes...');
+                try {
+                    const deleteResponse = await fetch('/api/current-prices/delete-month', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            location: location,
+                            month: month,
+                            year: year
+                        })
+                    });
+                    const deleteResult = await deleteResponse.json();
+                    if (deleteResult.ok) {
+                        console.log('✅ Períodos antigos apagados');
+                    }
+                } catch (err) {
+                    console.warn('⚠️ Erro ao apagar períodos antigos:', err);
+                }
+                
                 // Enviar para API com período REAL detectado
                 const response = await fetch('/api/current-prices/save', {
                     method: 'POST',
