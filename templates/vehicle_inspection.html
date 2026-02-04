@@ -3684,7 +3684,8 @@
                             
                             const scaledX = damage.x * scaleX;
                             const scaledY = damage.y * scaleY;
-                            const scaledRadius = damage.radius * Math.min(scaleX, scaleY);
+                            // Reduce radius scaling to keep pins smaller and more proportional
+                            const scaledRadius = damage.radius * Math.min(scaleX, scaleY) * 0.5;
                             
                             const damageColor = window.isPickupMode ? '#dc3545' : '#000000';
                             
@@ -3693,7 +3694,7 @@
                             tempCtx.fillStyle = damageColor;
                             tempCtx.fill();
                             tempCtx.strokeStyle = '#ffffff';
-                            tempCtx.lineWidth = 2;
+                            tempCtx.lineWidth = 1.5;
                             tempCtx.stroke();
                             
                             pinsDrawn++;
