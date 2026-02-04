@@ -3668,8 +3668,36 @@
                     console.log('🎨 Temp canvas dimensions:', tempCanvas.width, 'x', tempCanvas.height);
                     
                     let pinsDrawn = 0;
+                    let drawingsDrawn = 0;
                     let avgScaleX = 0, avgScaleY = 0;
                     
+                    // First, load and draw all drawings (async)
+                    const drawingPromises = [];
+                    window.damages.forEach((damage, i) => {
+                        if (damage.type === 'drawing' && damage.dataURL) {
+                            const promise = new Promise((resolve) => {
+                                const img = new Image();
+                                img.onload = () => {
+                                    // Draw the drawing image scaled to tempCanvas size
+                                    tempCtx.drawImage(img, 0, 0, tempCanvas.width, tempCanvas.height);
+                                    drawingsDrawn++;
+                                    console.log(`  ✅ Drawing ${i} loaded and drawn`);
+                                    resolve();
+                                };
+                                img.onerror = () => {
+                                    console.error(`  ❌ Drawing ${i} failed to load`);
+                                    resolve();
+                                };
+                                img.src = damage.dataURL;
+                            });
+                            drawingPromises.push(promise);
+                        }
+                    });
+                    
+                    // Wait for all drawings to load, then draw pins on top
+                    await Promise.all(drawingPromises);
+                    
+                    // Now draw pins on top of drawings
                     window.damages.forEach((damage, i) => {
                         if (damage.type === 'pin') {
                             // Use canvas dimensions stored with this specific damage
@@ -3705,13 +3733,9 @@
                     avgScaleX = pinsDrawn > 0 ? avgScaleX / pinsDrawn : 0;
                     avgScaleY = pinsDrawn > 0 ? avgScaleY / pinsDrawn : 0;
                     
-                    console.log('✅ Total pins drawn:', pinsDrawn);
-                    
-                    // Show alert with capture info for debugging
-                    alert(`✅ CROQUI CAPTURADO!\n\nDanos no array: ${window.damages.length}\nDanos desenhados: ${pinsDrawn}\nScale médio: ${avgScaleX.toFixed(2)}x${avgScaleY.toFixed(2)}\n\nSe posições erradas, tire screenshot!`);
+                    console.log('✅ Total damages drawn:', pinsDrawn, 'pins +', drawingsDrawn, 'drawings');
                 } else {
                     console.warn('⚠️ No damages to draw');
-                    alert(`⚠️ AVISO!\n\nDanos no array: ${window.damages ? window.damages.length : 0}\nCanvas: ${canvas?.width || 0}x${canvas?.height || 0}\nSaved: ${window.savedCanvasWidth || 0}x${window.savedCanvasHeight || 0}\n\nTire screenshot!`);
                 }
                 
                 const result = tempCanvas.toDataURL('image/png');
