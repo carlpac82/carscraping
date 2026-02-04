@@ -7199,10 +7199,16 @@
             console.log('[SAVE-FUNCTION] saveAutomatedPriceHistory called with:', {
                 grupos: Object.keys(automatedPricesByGroup || {}).length,
                 dias: dias?.length,
+                diasList: dias,
                 searchType: searchType,
                 supplierDataDays: Object.keys(supplierData || {}).length,
                 explicitPickupDate: explicitPickupDate
             });
+            
+            // IMPORTANT: Keep original dias array (all selected days)
+            // We will save ALL selected days in the dias array, even if some don't have prices
+            // This allows us to know which days were searched vs which days have prices available
+            const allSelectedDias = [...dias]; // Keep all selected days
             
             // Prepare prices data
             const pricesData = {};
@@ -7229,36 +7235,49 @@
                 }
             }
             
-            // If no prices collected from object, try reading from table inputs (fallback for month searches)
-            if (priceCount === 0) {
-                console.log('[SAVE-FUNCTION] No prices in automatedPricesByGroup, reading from table inputs...');
-                console.log(`[SAVE-FUNCTION] Looking for dias:`, dias);
-                const grupos = ['B1', 'B2', 'C', 'D', 'E1', 'E2', 'F'];
-                
-                for (const grupo of grupos) {
+            // ALWAYS read from table inputs to capture manually edited prices
+            // This ensures that days edited manually in the table are saved even if some days
+            // already have prices in automatedPricesByGroup
+            console.log('[SAVE-FUNCTION] Reading from table inputs to capture all prices (including manual edits)...');
+            console.log(`[SAVE-FUNCTION] Looking for dias:`, dias);
+            const grupos = ['B1', 'B2', 'C', 'D', 'E1', 'E2', 'F'];
+            
+            for (const grupo of grupos) {
+                if (!pricesData[grupo]) {
                     pricesData[grupo] = {};
-                    for (const day of dias) {
-                        // Try Auto column first, then Real column
-                        const inputAuto = document.querySelector(`#pricesTableAuto input[data-grupo="${grupo}"][data-dias="${day}"][data-type="auto"]`);
-                        const inputReal = document.querySelector(`#pricesTableAuto input[data-grupo="${grupo}"][data-dias="${day}"][data-type="real"]`);
-                        
-                        const autoValue = inputAuto?.value ? parseFloat(inputAuto.value) : 0;
-                        const realValue = inputReal?.value ? parseFloat(inputReal.value) : 0;
-                        
-                        console.log(`[SAVE-FUNCTION] ${grupo}/${day}d: Auto=${autoValue}, Real=${realValue}, inputAuto=${!!inputAuto}, inputReal=${!!inputReal}`);
-                        
-                        // Use Auto if available, otherwise Real
-                        const price = autoValue > 0 ? autoValue : realValue;
-                        
-                        // Only save days with valid prices (> 0)
-                        // Don't save days with 0 price that weren't searched
-                        if (price > 0) {
-                            pricesData[grupo][day] = price;
-                            priceCount++;
-                        }
+                }
+                
+                for (const day of dias) {
+                    // Skip if we already have a price for this day from automatedPricesByGroup
+                    if (pricesData[grupo][day] && pricesData[grupo][day] > 0) {
+                        continue;
+                    }
+                    
+                    // Try Auto column first, then Real column
+                    const inputAuto = document.querySelector(`#pricesTableAuto input[data-grupo="${grupo}"][data-dias="${day}"][data-type="auto"]`);
+                    const inputReal = document.querySelector(`#pricesTableAuto input[data-grupo="${grupo}"][data-dias="${day}"][data-type="real"]`);
+                    
+                    const autoValue = inputAuto?.value ? parseFloat(inputAuto.value) : 0;
+                    const realValue = inputReal?.value ? parseFloat(inputReal.value) : 0;
+                    
+                    console.log(`[SAVE-FUNCTION] ${grupo}/${day}d: Auto=${autoValue}, Real=${realValue}, inputAuto=${!!inputAuto}, inputReal=${!!inputReal}`);
+                    
+                    // Use Auto if available, otherwise Real
+                    const price = autoValue > 0 ? autoValue : realValue;
+                    
+                    // Only save days with valid prices (> 0)
+                    if (price > 0) {
+                        pricesData[grupo][day] = price;
+                        priceCount++;
                     }
                 }
-                console.log(`[SAVE-FUNCTION] Collected ${priceCount} prices from table inputs`);
+            }
+            console.log(`[SAVE-FUNCTION] Total collected ${priceCount} prices (from object + table inputs)`);
+            
+            // Now update priceCount to reflect total prices across all groups
+            priceCount = 0;
+            for (const grupo in pricesData) {
+                priceCount += Object.keys(pricesData[grupo]).length;
             }
             
             console.log('[SAVE-FUNCTION] Collected prices:', {
@@ -10093,28 +10112,9 @@ Continue?`);
                 
                 console.log('🔍 [DEBUG] Payload completo a enviar:', JSON.stringify(payload, null, 2).substring(0, 500));
                 
-                // CRITICAL FIX: Apagar todos os períodos existentes antes de guardar o novo
-                // Isso evita ter múltiplos períodos conflituosos (ex: 1-28, 1-31, 5-31)
-                console.log('🗑️ A apagar períodos existentes...');
-                try {
-                    const deleteResponse = await fetch('/api/current-prices/delete-month', {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({
-                            location: location,
-                            month: month,
-                            year: year
-                        })
-                    });
-                    const deleteResult = await deleteResponse.json();
-                    if (deleteResult.ok) {
-                        console.log('✅ Períodos antigos apagados');
-                    }
-                } catch (err) {
-                    console.warn('⚠️ Erro ao apagar períodos antigos:', err);
-                }
-                
                 // Enviar para API com período REAL detectado
+                // Se já existir um período com o mesmo day_start e day_end, será atualizado
+                // Se não existir, será criado um novo período
                 const response = await fetch('/api/current-prices/save', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
