@@ -10073,18 +10073,31 @@ Continue?`);
                     console.log(`  ${grupo}: ${numPrices} dias com preços`);
                 });
                 
+                // DEBUG DETALHADO: Mostrar estrutura EXATA dos preços que vão ser enviados
+                console.log('🔍 [DEBUG] Estrutura COMPLETA dos preços a enviar:');
+                Object.keys(prices).slice(0, 2).forEach(grupo => {
+                    console.log(`🔍 [DEBUG] Grupo ${grupo}:`, prices[grupo]);
+                    Object.keys(prices[grupo]).forEach(dia => {
+                        console.log(`🔍 [DEBUG]   Dia ${dia}: ${prices[grupo][dia]}€`);
+                    });
+                });
+                
+                const payload = {
+                    location: location,
+                    month: month,
+                    year: year,
+                    prices: prices,
+                    day_start: minDay,
+                    day_end: maxDay
+                };
+                
+                console.log('🔍 [DEBUG] Payload completo a enviar:', JSON.stringify(payload, null, 2).substring(0, 500));
+                
                 // Enviar para API com período REAL detectado
                 const response = await fetch('/api/current-prices/save', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                        location: location,
-                        month: month,
-                        year: year,
-                        prices: prices,
-                        day_start: minDay,
-                        day_end: maxDay
-                    })
+                    body: JSON.stringify(payload)
                 });
                 
                 const result = await response.json();
