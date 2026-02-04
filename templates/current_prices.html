@@ -950,7 +950,13 @@
                 if (data.ok) {
                     showToast('Sucesso', `Preços guardados (dias ${dayStart}-${dayEnd})!`);
                     updateInfoBar();
-                    loadPeriods(); // Recarregar para atualizar lista
+                    // Recarregar períodos e manter o período atual selecionado
+                    const currentPeriodIndex = document.getElementById('period').value;
+                    await loadPeriods();
+                    if (currentPeriodIndex !== '') {
+                        document.getElementById('period').value = currentPeriodIndex;
+                        loadPeriodByIndex(parseInt(currentPeriodIndex));
+                    }
                 } else {
                     showToast('Erro', data.error || 'Erro ao guardar preços', 'error');
                 }
