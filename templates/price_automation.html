@@ -10035,15 +10035,28 @@ Continue?`);
                     console.log(`[UPDATE] Input types: NET=${netCount}, REAL=${realCount}, NO_TYPE=${noTypeCount}`);
                 }
                 
-                // Remover grupos sem preços válidos
+                // CRITICAL FIX: Filtrar preços para incluir APENAS dias dentro do período selecionado
+                // Isso evita que preços de dias fora do período (ex: dia 5) sejam usados incorretamente
                 Object.keys(prices).forEach(grupo => {
-                    if (Object.keys(prices[grupo]).length === 0) {
+                    const grupoPrecos = prices[grupo];
+                    
+                    // Filtrar dias fora do período
+                    Object.keys(grupoPrecos).forEach(dia => {
+                        const diaNum = parseInt(dia);
+                        if (diaNum < finalStartDay || diaNum > finalEndDay) {
+                            console.log(`[FILTER] Removendo ${grupo}/${dia}d (fora do período ${finalStartDay}-${finalEndDay})`);
+                            delete grupoPrecos[dia];
+                        }
+                    });
+                    
+                    // Remover grupo se não tiver preços válidos no período
+                    if (Object.keys(grupoPrecos).length === 0) {
                         delete prices[grupo];
                     }
                 });
                 
                 if (Object.keys(prices).length === 0) {
-                    showNotification('❌ Nenhum preço encontrado. Faça uma pesquisa primeiro.', 'error', 4000);
+                    showNotification('❌ Nenhum preço encontrado no período selecionado. Faça uma pesquisa primeiro.', 'error', 4000);
                     return;
                 }
                 
