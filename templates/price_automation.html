@@ -10047,8 +10047,25 @@ Continue?`);
                     return;
                 }
                 
+                // CRITICAL FIX: Detectar período REAL baseado nos dias que têm preços
+                // Não usar finalStartDay/finalEndDay que podem estar incorretos
+                let minDay = 999;
+                let maxDay = 0;
+                Object.keys(prices).forEach(grupo => {
+                    Object.keys(prices[grupo]).forEach(dia => {
+                        const diaNum = parseInt(dia);
+                        if (diaNum < minDay) minDay = diaNum;
+                        if (diaNum > maxDay) maxDay = diaNum;
+                    });
+                });
+                
+                // Se não encontrou dias, usar valores padrão
+                if (minDay === 999) minDay = 1;
+                if (maxDay === 0) maxDay = 31;
+                
                 console.log('📊 Preços coletados:', prices);
                 console.log('📍 Destino:', location, monthNames[month], year);
+                console.log(`📅 Período REAL detectado: ${minDay}-${maxDay} (ignorando campos wr_start_day/wr_end_day)`);
                 
                 // Debug: mostrar quantos preços por grupo
                 Object.keys(prices).forEach(grupo => {
@@ -10056,7 +10073,7 @@ Continue?`);
                     console.log(`  ${grupo}: ${numPrices} dias com preços`);
                 });
                 
-                // Enviar para API com período específico
+                // Enviar para API com período REAL detectado
                 const response = await fetch('/api/current-prices/save', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
@@ -10065,16 +10082,16 @@ Continue?`);
                         month: month,
                         year: year,
                         prices: prices,
-                        day_start: finalStartDay,
-                        day_end: finalEndDay
+                        day_start: minDay,
+                        day_end: maxDay
                     })
                 });
                 
                 const result = await response.json();
                 
                 if (result.ok) {
-                    showNotification(`✅ Preços atualizados com sucesso para ${monthNames[month]}/${year} (${finalStartDay}-${finalEndDay})!`, 'success', 4000);
-                    console.log(`✅ Preços guardados na base de dados para período ${finalStartDay}-${finalEndDay}`);
+                    showNotification(`✅ Preços atualizados com sucesso para ${monthNames[month]}/${year} (${minDay}-${maxDay})!`, 'success', 4000);
+                    console.log(`✅ Preços guardados na base de dados para período ${minDay}-${maxDay}`);
                 } else {
                     throw new Error(result.error || 'Erro ao guardar preços');
                 }
