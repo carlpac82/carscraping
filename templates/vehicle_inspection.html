@@ -3656,13 +3656,46 @@
                 // Draw background (croqui base image only)
                 tempCtx.drawImage(croquiImg, 0, 0);
                 
-                // Draw canvas with pins and drawings - SCALE to natural size
-                if (canvas && canvas.width > 0 && canvas.height > 0) {
-                    console.log('🎨 Drawing canvas overlay:', canvas.width, 'x', canvas.height, '-> scaling to', tempCanvas.width, 'x', tempCanvas.height);
-                    // Scale canvas from visual size to natural size
-                    tempCtx.drawImage(canvas, 0, 0, canvas.width, canvas.height, 0, 0, tempCanvas.width, tempCanvas.height);
+                // CRITICAL FIX: Draw damages directly from window.damages array
+                // Canvas drawImage doesn't work in Android due to hardware acceleration
+                console.log('⚠️ SKIPPING canvas.drawImage - drawing directly from array instead');
+                
+                if (window.damages && window.damages.length > 0 && canvas && canvas.width > 0 && canvas.height > 0) {
+                    const scaleX = tempCanvas.width / canvas.width;
+                    const scaleY = tempCanvas.height / canvas.height;
+                    
+                    console.log('🎨 Drawing', window.damages.length, 'damages directly on tempCanvas');
+                    console.log('🎨 Scale factors:', scaleX, scaleY);
+                    
+                    let pinsDrawn = 0;
+                    window.damages.forEach((damage, i) => {
+                        if (damage.type === 'pin') {
+                            const scaledX = damage.x * scaleX;
+                            const scaledY = damage.y * scaleY;
+                            const scaledRadius = damage.radius * Math.min(scaleX, scaleY);
+                            
+                            const damageColor = window.isPickupMode ? '#dc3545' : '#000000';
+                            
+                            tempCtx.beginPath();
+                            tempCtx.arc(scaledX, scaledY, scaledRadius, 0, 2 * Math.PI);
+                            tempCtx.fillStyle = damageColor;
+                            tempCtx.fill();
+                            tempCtx.strokeStyle = '#ffffff';
+                            tempCtx.lineWidth = 2;
+                            tempCtx.stroke();
+                            
+                            pinsDrawn++;
+                            console.log(`  ✅ Pin ${i} drawn at (${scaledX.toFixed(1)}, ${scaledY.toFixed(1)})`);
+                        }
+                    });
+                    
+                    console.log('✅ Total pins drawn:', pinsDrawn);
+                    
+                    // Show alert with capture info for debugging
+                    alert(`✅ CROQUI CAPTURADO!\n\nDanos no array: ${window.damages.length}\nDanos desenhados: ${pinsDrawn}\n\nSe não aparecerem no email, tire screenshot!`);
                 } else {
-                    console.warn('⚠️ Canvas not available or has zero size');
+                    console.warn('⚠️ No damages to draw or canvas not available');
+                    alert(`⚠️ AVISO!\n\nDanos no array: ${window.damages ? window.damages.length : 0}\nCanvas disponível: ${canvas ? 'SIM' : 'NÃO'}\n\nTire screenshot!`);
                 }
                 
                 const result = tempCanvas.toDataURL('image/png');
