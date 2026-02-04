@@ -46851,6 +46851,15 @@ async def save_current_prices(request: Request):
         
         logging.info(f"💾 SAVE VERSION 2026-01-11-16:30 - Location: {location}, Month: {month}/{year}, Days: {day_start}-{day_end}")
         
+        # DEBUG: Mostrar estrutura dos preços recebidos
+        if prices:
+            first_group = list(prices.keys())[0] if prices else None
+            if first_group:
+                dias_com_precos = list(prices[first_group].keys())
+                logging.info(f"🔍 [DEBUG-BACKEND] Grupo {first_group} tem preços para dias: {dias_com_precos}")
+                for dia in list(dias_com_precos)[:3]:
+                    logging.info(f"🔍 [DEBUG-BACKEND]   Dia {dia}: {prices[first_group][dia]}")
+        
         with _db_lock:
             conn = _db_connect()
             try:
