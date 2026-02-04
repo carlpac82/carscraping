@@ -3660,11 +3660,17 @@
                 // Canvas drawImage doesn't work in Android due to hardware acceleration
                 console.log('⚠️ SKIPPING canvas.drawImage - drawing directly from array instead');
                 
-                if (window.damages && window.damages.length > 0 && canvas && canvas.width > 0 && canvas.height > 0) {
-                    const scaleX = tempCanvas.width / canvas.width;
-                    const scaleY = tempCanvas.height / canvas.height;
+                if (window.damages && window.damages.length > 0) {
+                    // Use saved canvas dimensions or current canvas dimensions
+                    const canvasWidth = window.savedCanvasWidth || canvas?.width || tempCanvas.width;
+                    const canvasHeight = window.savedCanvasHeight || canvas?.height || tempCanvas.height;
+                    
+                    const scaleX = tempCanvas.width / canvasWidth;
+                    const scaleY = tempCanvas.height / canvasHeight;
                     
                     console.log('🎨 Drawing', window.damages.length, 'damages directly on tempCanvas');
+                    console.log('🎨 Canvas dimensions:', canvasWidth, 'x', canvasHeight);
+                    console.log('🎨 Temp canvas dimensions:', tempCanvas.width, 'x', tempCanvas.height);
                     console.log('🎨 Scale factors:', scaleX, scaleY);
                     
                     let pinsDrawn = 0;
@@ -3692,10 +3698,10 @@
                     console.log('✅ Total pins drawn:', pinsDrawn);
                     
                     // Show alert with capture info for debugging
-                    alert(`✅ CROQUI CAPTURADO!\n\nDanos no array: ${window.damages.length}\nDanos desenhados: ${pinsDrawn}\n\nSe não aparecerem no email, tire screenshot!`);
+                    alert(`✅ CROQUI CAPTURADO!\n\nDanos no array: ${window.damages.length}\nDanos desenhados: ${pinsDrawn}\nCanvas: ${canvasWidth}x${canvasHeight}\nScale: ${scaleX.toFixed(2)}x${scaleY.toFixed(2)}\n\nSe não aparecerem no email, tire screenshot!`);
                 } else {
-                    console.warn('⚠️ No damages to draw or canvas not available');
-                    alert(`⚠️ AVISO!\n\nDanos no array: ${window.damages ? window.damages.length : 0}\nCanvas disponível: ${canvas ? 'SIM' : 'NÃO'}\n\nTire screenshot!`);
+                    console.warn('⚠️ No damages to draw');
+                    alert(`⚠️ AVISO!\n\nDanos no array: ${window.damages ? window.damages.length : 0}\nCanvas: ${canvas?.width || 0}x${canvas?.height || 0}\nSaved: ${window.savedCanvasWidth || 0}x${window.savedCanvasHeight || 0}\n\nTire screenshot!`);
                 }
                 
                 const result = tempCanvas.toDataURL('image/png');
