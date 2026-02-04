@@ -1527,6 +1527,9 @@
                     
                     console.log('Preços processados:', pricesByGroup);
                     
+                    // Definir dias para renderizar os cards
+                    const diasMap = [1, 2, 3, 4, 5, 6, 7, 8, 9, 14, 22, 28, 31, 60];
+                    
                     // Criar cards dinamicamente para todos os grupos
                     const container = document.getElementById('cardsContainer');
                     container.innerHTML = ''; // Limpar cards existentes
