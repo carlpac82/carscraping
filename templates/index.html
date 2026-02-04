@@ -1476,18 +1476,25 @@
                     
                     console.log('Grupos (ordem do CSV):', grupos);
                     
-                    const diasMap = [1, 2, 3, 4, 5, 6, 7, 8, 9, 14, 22, 28, 31, 60];
-                    
                     // Criar estrutura de dados: grupo -> dia -> preço
                     const pricesByGroup = {};
                     grupos.forEach(g => pricesByGroup[g] = {});
                     
                     // Processar linhas (cada linha é um dia)
-                    for (let i = 1; i < jsonData.length && i <= diasMap.length; i++) {
+                    // LER O DIA DA PRIMEIRA COLUNA em vez de assumir ordem fixa
+                    for (let i = 1; i < jsonData.length; i++) {
                         const row = jsonData[i];
                         if (!row || row.length === 0) continue;
                         
-                        const dia = diasMap[i - 1]; // Dia correspondente
+                        // Ler o dia da primeira coluna
+                        const diaValue = String(row[0]).trim().replace('d', '').replace('D', '');
+                        const dia = parseInt(diaValue);
+                        
+                        // Ignorar linhas inválidas
+                        if (isNaN(dia) || dia <= 0) {
+                            console.log(`Linha ${i} ignorada: dia inválido "${row[0]}"`);
+                            continue;
+                        }
                         
                         // Cada coluna (exceto a primeira) é um grupo
                         for (let colIdx = 1; colIdx < row.length && colIdx <= grupos.length; colIdx++) {
