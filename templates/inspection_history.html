@@ -2933,19 +2933,55 @@
                     }
                 }
                 
-                // Step 3: Draw canvas with new damages (use natural size - no scaling)
-                console.log('  About to draw drawingCanvas...');
+                // Step 3: Check if drawingCanvas has content
+                const canvasCtx = drawingCanvas.getContext('2d');
+                const imageData = canvasCtx.getImageData(0, 0, drawingCanvas.width, drawingCanvas.height);
+                let hasContent = false;
+                for (let i = 0; i < imageData.data.length; i += 4) {
+                    if (imageData.data[i + 3] > 0) {
+                        hasContent = true;
+                        break;
+                    }
+                }
+                
+                console.log('  About to draw damages...');
                 console.log('  🔍 DEBUG DAMAGES ARRAY:', damages);
                 console.log('  📊 Total damages:', damages.length);
                 console.log('  📍 Pins:', damages.filter(d => d.type === 'pin').length);
                 console.log('  ✏️ Strokes:', damages.filter(d => d.type === 'drawing').length);
+                console.log('  🎨 Canvas has content:', hasContent);
                 
-                // Log each pin position
-                damages.filter(d => d.type === 'pin').forEach((pin, i) => {
-                    console.log(`  Pin ${i + 1}: x=${pin.x}, y=${pin.y}, radius=${pin.radius}`);
+                // Draw canvas content if it has content
+                if (hasContent) {
+                    tempCtx.drawImage(drawingCanvas, 0, 0);
+                }
+                
+                // CRITICAL: Draw damages directly from damages array
+                // This ensures damages are rendered even if canvas is empty (Android issue)
+                const scaleX = tempCanvas.width / drawingCanvas.width;
+                const scaleY = tempCanvas.height / drawingCanvas.height;
+                
+                damages.forEach((damage, i) => {
+                    if (damage.type === 'pin') {
+                        // Scale coordinates from canvas space to image space
+                        const scaledX = damage.x * scaleX;
+                        const scaledY = damage.y * scaleY;
+                        const scaledRadius = damage.radius * Math.min(scaleX, scaleY);
+                        
+                        // Draw pin
+                        tempCtx.beginPath();
+                        tempCtx.arc(scaledX, scaledY, scaledRadius, 0, 2 * Math.PI);
+                        tempCtx.fillStyle = '#000000';
+                        tempCtx.fill();
+                        tempCtx.strokeStyle = '#ffffff';
+                        tempCtx.lineWidth = 2;
+                        tempCtx.stroke();
+                        
+                        console.log(`  ✅ Pin ${i + 1} drawn at (${scaledX.toFixed(1)}, ${scaledY.toFixed(1)})`);
+                    }
                 });
                 
-                tempCtx.drawImage(drawingCanvas, 0, 0);
+                console.log('  ✅ Damages drawn on tempCanvas');
                 
                 return tempCanvas.toDataURL('image/png');
             } catch (error) {
