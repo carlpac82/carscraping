@@ -742,6 +742,26 @@
                 const period = allPeriods[index];
                 currentPeriod = period;
                 currentPrices = period.prices || {};
+                
+                // DEBUG: Mostrar estrutura dos preços carregados
+                console.log('🔍 [CURRENT-PRICES] Período carregado:', {
+                    day_start: period.day_start,
+                    day_end: period.day_end,
+                    updated_at: period.updated_at
+                });
+                
+                // Mostrar primeiros 2 grupos com seus dias e preços
+                const grupos = Object.keys(currentPrices).slice(0, 2);
+                grupos.forEach(grupo => {
+                    console.log(`🔍 [CURRENT-PRICES] Grupo ${grupo}:`, currentPrices[grupo]);
+                    const dias = Object.keys(currentPrices[grupo] || {});
+                    console.log(`🔍 [CURRENT-PRICES]   Dias com preços: ${dias.join(', ')}`);
+                    dias.slice(0, 3).forEach(dia => {
+                        const priceData = currentPrices[grupo][dia];
+                        console.log(`🔍 [CURRENT-PRICES]   Dia ${dia}: NET=${priceData?.net}, GROSS=${priceData?.commission}`);
+                    });
+                });
+                
                 document.getElementById('period').value = index;
                 renderTable();
                 updateInfoBar();
