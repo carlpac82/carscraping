@@ -2023,20 +2023,13 @@
                         damagesArray: window.damages ? window.damages.length : 0
                     });
                     
-                    // Draw canvas content (drawings/lines) if it has content
-                    debugInfo.step = 'drawing canvas overlay';
-                    debugInfo.canvasHasContent = hasContent;
-                    if (hasContent) {
-                        tempCtx.save();
-                        tempCtx.scale(scaleX, scaleY);
-                        tempCtx.drawImage(canvas, 0, 0);
-                        tempCtx.restore();
-                    }
-                    
-                    // CRITICAL: Draw damages directly from window.damages array
-                    // This ensures damages are rendered even if canvas is empty (Android issue)
+                    // SKIP drawing from canvas - it may not be capturable in Android
+                    // Instead, ALWAYS draw damages directly from window.damages array
                     debugInfo.step = 'drawing damages from array';
+                    debugInfo.canvasHasContent = hasContent;
                     debugInfo.pinsDrawn = 0;
+                    
+                    console.log('⚠️ SKIPPING canvas.drawImage - drawing directly from array instead');
                     
                     if (window.damages && window.damages.length > 0) {
                         console.log('🎨 Drawing', window.damages.length, 'damages directly on tempCanvas');
@@ -3781,27 +3774,10 @@
                         const scaleY = tempCanvas.height / canvas.height;
                         console.log('🔍 Scale factors:', scaleX, scaleY);
                         
-                        // Check if canvas has content
-                        const canvasCtx = canvas.getContext('2d');
-                        const imageData = canvasCtx.getImageData(0, 0, canvas.width, canvas.height);
-                        let hasContent = false;
-                        for (let i = 0; i < imageData.data.length; i += 4) {
-                            if (imageData.data[i + 3] > 0) {
-                                hasContent = true;
-                                break;
-                            }
-                        }
+                        // SKIP drawing from canvas - it may not be capturable in Android
+                        // Instead, ALWAYS draw damages directly from window.damages array
+                        console.log('⚠️ SKIPPING canvas.drawImage - drawing directly from array instead');
                         
-                        // Draw the damage canvas (lines/drawings) if it has content
-                        if (hasContent) {
-                            tempCtx.save();
-                            tempCtx.scale(scaleX, scaleY);
-                            tempCtx.drawImage(canvas, 0, 0);
-                            tempCtx.restore();
-                        }
-                        
-                        // CRITICAL: Draw damages directly from window.damages array
-                        // This ensures damages are rendered even if canvas is empty (Android issue)
                         let damagesCount = 0;
                         
                         if (window.damages && window.damages.length > 0) {
