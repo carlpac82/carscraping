@@ -2719,8 +2719,18 @@
             });
             console.log('📍 addPin - event:', {
                 clientX: event.clientX,
-                clientY: event.clientY
+                clientY: event.clientY,
+                type: event.type,
+                isTouchEvent: event.touches !== undefined
             });
+            
+            // CRITICAL: Validate coordinates exist
+            if (event.clientX === undefined || event.clientY === undefined || 
+                isNaN(event.clientX) || isNaN(event.clientY)) {
+                console.error('❌ Invalid coordinates in addPin:', event);
+                alert(`❌ ERRO: Coordenadas inválidas!\n\nclientX: ${event.clientX}\nclientY: ${event.clientY}\n\nEste é o problema! Por favor tire screenshot!`);
+                return;
+            }
             
             // Calculate coordinates in canvas space (visual size)
             const scaleX = canvas.width / rect.width;
@@ -2734,6 +2744,13 @@
                 x,
                 y
             });
+            
+            // CRITICAL: Validate calculated coordinates
+            if (isNaN(x) || isNaN(y) || x < 0 || y < 0) {
+                console.error('❌ Invalid calculated coordinates:', { x, y });
+                alert(`❌ ERRO: Coordenadas calculadas inválidas!\n\nx: ${x}\ny: ${y}\n\nPor favor tire screenshot!`);
+                return;
+            }
             
             // Get radius based on size (proporcional ao canvas para consistência mobile/desktop)
             // Aumentados para serem visíveis no mobile
