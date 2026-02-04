@@ -1935,6 +1935,12 @@
             let damageCroquiBase64 = '';
             let debugInfo = { step: 'init', error: null };
             
+            // DEBUG: Log window.damages state BEFORE capture
+            console.log('🔍 [BEFORE CAPTURE] window.damages:', window.damages);
+            console.log('🔍 [BEFORE CAPTURE] damages array:', damages);
+            console.log('🔍 [BEFORE CAPTURE] damages length:', damages ? damages.length : 'undefined');
+            console.log('🔍 [BEFORE CAPTURE] window.damages length:', window.damages ? window.damages.length : 'undefined');
+            
             try {
                 debugInfo.step = 'getting elements';
                 const canvas = document.getElementById('drawingCanvas');
