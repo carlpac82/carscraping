@@ -2948,33 +2948,56 @@
                 console.log('  🔍 DEBUG DAMAGES ARRAY:', damages);
                 console.log('  📊 Total damages:', damages.length);
                 console.log('  📍 Pins:', damages.filter(d => d.type === 'pin').length);
-                console.log('  ✏️ Strokes:', damages.filter(d => d.type === 'drawing').length);
-                console.log('  🎨 Canvas has content:', hasContent);
+                console.log('  ✏️ Drawings:', damages.filter(d => d.type === 'drawing').length);
                 
-                // Draw canvas content if it has content
-                if (hasContent) {
-                    tempCtx.drawImage(drawingCanvas, 0, 0);
-                }
+                // SKIP drawing from canvas - draw directly from damages array
+                console.log('  ⚠️ SKIPPING canvas.drawImage - drawing directly from array instead');
                 
-                // CRITICAL: Draw damages directly from damages array
-                // This ensures damages are rendered even if canvas is empty (Android issue)
-                const scaleX = tempCanvas.width / drawingCanvas.width;
-                const scaleY = tempCanvas.height / drawingCanvas.height;
+                // First, load and draw all drawings (async)
+                const drawingPromises = [];
+                damages.forEach((damage, i) => {
+                    if (damage.type === 'drawing' && damage.dataURL) {
+                        const promise = new Promise((resolve) => {
+                            const img = new Image();
+                            img.onload = () => {
+                                tempCtx.drawImage(img, 0, 0, tempCanvas.width, tempCanvas.height);
+                                console.log(`  ✅ Drawing ${i} loaded and drawn`);
+                                resolve();
+                            };
+                            img.onerror = () => {
+                                console.error(`  ❌ Drawing ${i} failed to load`);
+                                resolve();
+                            };
+                            img.src = damage.dataURL;
+                        });
+                        drawingPromises.push(promise);
+                    }
+                });
                 
+                // Wait for all drawings to load, then draw pins on top
+                await Promise.all(drawingPromises);
+                
+                // Now draw pins on top of drawings
                 damages.forEach((damage, i) => {
                     if (damage.type === 'pin') {
-                        // Scale coordinates from canvas space to image space
+                        // Use canvas dimensions stored with this specific damage
+                        const damageCanvasWidth = damage.canvasWidth || drawingCanvas.width;
+                        const damageCanvasHeight = damage.canvasHeight || drawingCanvas.height;
+                        
+                        const scaleX = tempCanvas.width / damageCanvasWidth;
+                        const scaleY = tempCanvas.height / damageCanvasHeight;
+                        
                         const scaledX = damage.x * scaleX;
                         const scaledY = damage.y * scaleY;
-                        const scaledRadius = damage.radius * Math.min(scaleX, scaleY);
+                        // Reduce radius scaling to keep pins smaller and more proportional
+                        const scaledRadius = damage.radius * Math.min(scaleX, scaleY) * 0.5;
                         
-                        // Draw pin
                         tempCtx.beginPath();
                         tempCtx.arc(scaledX, scaledY, scaledRadius, 0, 2 * Math.PI);
                         tempCtx.fillStyle = '#000000';
                         tempCtx.fill();
                         tempCtx.strokeStyle = '#ffffff';
-                        tempCtx.lineWidth = 2;
+                        tempCtx.lineWidth = 1.5;
                         tempCtx.stroke();
                         
                         console.log(`  ✅ Pin ${i + 1} drawn at (${scaledX.toFixed(1)}, ${scaledY.toFixed(1)})`);
@@ -5289,33 +5312,47 @@
                     }
                 }
                 
-                // 3. Check if canvas has content
-                const canvasCtx = invalidateCroquiCanvas.getContext('2d');
-                const imageData = canvasCtx.getImageData(0, 0, invalidateCroquiCanvas.width, invalidateCroquiCanvas.height);
-                let hasContent = false;
-                for (let i = 0; i < imageData.data.length; i += 4) {
-                    if (imageData.data[i + 3] > 0) {
-                        hasContent = true;
-                        break;
+                // 3. SKIP drawing from canvas - draw directly from invalidateDamages array
+                console.log('  ⚠️ SKIPPING canvas.drawImage - drawing directly from array instead');
+                
+                // First, load and draw all drawings (async)
+                const drawingPromises = [];
+                invalidateDamages.forEach((damage, i) => {
+                    if (damage.type === 'drawing' && damage.dataURL) {
+                        const promise = new Promise((resolve) => {
+                            const img = new Image();
+                            img.onload = () => {
+                                ctx.drawImage(img, 0, 0, combinedCanvas.width, combinedCanvas.height);
+                                console.log(`  ✅ Drawing ${i} loaded and drawn`);
+                                resolve();
+                            };
+                            img.onerror = () => {
+                                console.error(`  ❌ Drawing ${i} failed to load`);
+                                resolve();
+                            };
+                            img.src = damage.dataURL;
+                        });
+                        drawingPromises.push(promise);
                     }
-                }
+                });
                 
-                // Draw canvas content if it has content
-                if (hasContent) {
-                    ctx.drawImage(invalidateCroquiCanvas, 0, 0);
-                }
+                // Wait for all drawings to load, then draw pins on top
+                await Promise.all(drawingPromises);
                 
-                // CRITICAL: Draw damages directly from invalidateDamages array
-                // This ensures damages are rendered even if canvas is empty (Android issue)
-                const scaleX = combinedCanvas.width / invalidateCroquiCanvas.width;
-                const scaleY = combinedCanvas.height / invalidateCroquiCanvas.height;
-                
+                // Now draw pins on top of drawings
                 invalidateDamages.forEach((damage, i) => {
                     if (damage.type === 'pin') {
-                        // Scale coordinates from canvas space to image space
+                        // Use canvas dimensions stored with this specific damage
+                        const damageCanvasWidth = damage.canvasWidth || invalidateCroquiCanvas.width;
+                        const damageCanvasHeight = damage.canvasHeight || invalidateCroquiCanvas.height;
+                        
+                        const scaleX = combinedCanvas.width / damageCanvasWidth;
+                        const scaleY = combinedCanvas.height / damageCanvasHeight;
+                        
                         const scaledX = damage.x * scaleX;
                         const scaledY = damage.y * scaleY;
-                        const scaledRadius = damage.radius * Math.min(scaleX, scaleY);
+                        // Reduce radius scaling to keep pins smaller and more proportional
+                        const scaledRadius = damage.radius * Math.min(scaleX, scaleY) * 0.5;
                         
                         // Draw pin in RED (new damage)
                         ctx.beginPath();
@@ -5323,7 +5360,7 @@
                         ctx.fillStyle = '#dc3545';
                         ctx.fill();
                         ctx.strokeStyle = '#ffffff';
-                        ctx.lineWidth = 2;
+                        ctx.lineWidth = 1.5;
                         ctx.stroke();
                         
                         console.log(`  ✅ Invalidate damage ${i + 1} drawn at (${scaledX.toFixed(1)}, ${scaledY.toFixed(1)})`);
