@@ -5289,8 +5289,48 @@
                     }
                 }
                 
-                // 3. Draw the new damages (top layer)
-                ctx.drawImage(invalidateCroquiCanvas, 0, 0);
+                // 3. Check if canvas has content
+                const canvasCtx = invalidateCroquiCanvas.getContext('2d');
+                const imageData = canvasCtx.getImageData(0, 0, invalidateCroquiCanvas.width, invalidateCroquiCanvas.height);
+                let hasContent = false;
+                for (let i = 0; i < imageData.data.length; i += 4) {
+                    if (imageData.data[i + 3] > 0) {
+                        hasContent = true;
+                        break;
+                    }
+                }
+                
+                // Draw canvas content if it has content
+                if (hasContent) {
+                    ctx.drawImage(invalidateCroquiCanvas, 0, 0);
+                }
+                
+                // CRITICAL: Draw damages directly from invalidateDamages array
+                // This ensures damages are rendered even if canvas is empty (Android issue)
+                const scaleX = combinedCanvas.width / invalidateCroquiCanvas.width;
+                const scaleY = combinedCanvas.height / invalidateCroquiCanvas.height;
+                
+                invalidateDamages.forEach((damage, i) => {
+                    if (damage.type === 'pin') {
+                        // Scale coordinates from canvas space to image space
+                        const scaledX = damage.x * scaleX;
+                        const scaledY = damage.y * scaleY;
+                        const scaledRadius = damage.radius * Math.min(scaleX, scaleY);
+                        
+                        // Draw pin in RED (new damage)
+                        ctx.beginPath();
+                        ctx.arc(scaledX, scaledY, scaledRadius, 0, 2 * Math.PI);
+                        ctx.fillStyle = '#dc3545';
+                        ctx.fill();
+                        ctx.strokeStyle = '#ffffff';
+                        ctx.lineWidth = 2;
+                        ctx.stroke();
+                        
+                        console.log(`  ✅ Invalidate damage ${i + 1} drawn at (${scaledX.toFixed(1)}, ${scaledY.toFixed(1)})`);
+                    }
+                });
+                
+                console.log(`  ✅ Invalidate damages drawn: ${invalidateDamages.length} damages`);
                 
                 return combinedCanvas.toDataURL('image/png');
             } catch (e) {
