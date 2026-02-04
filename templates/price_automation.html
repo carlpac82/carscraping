@@ -6806,15 +6806,25 @@
                 console.warn('[HISTORY] ⚠️ supplierData is EMPTY - visual cards will not show');
             }
             
+            // CRITICAL FIX: Use days from supplierData (original search days) instead of dias array
+            // The dias array may be incomplete (only days with prices), but supplierData has ALL searched days
+            const allSearchedDays = Object.keys(supplierDataForCards).map(d => parseInt(d)).sort((a, b) => a - b);
+            console.log('[HISTORY] 🔍 Original search days from supplierData:', allSearchedDays);
+            console.log('[HISTORY] 🔍 Days in dias array:', dias);
+            
+            // Use ALL days from original search, not just dias array
+            const daysToLoad = allSearchedDays.length > 0 ? allSearchedDays : dias;
+            console.log('[HISTORY] ✅ Loading history with days:', daysToLoad);
+            
             // Update global dias and supplier data for visual cards
-            window.dias = dias;
+            window.dias = daysToLoad;
             window.currentSupplierData = supplierDataForCards;
             
             // Sync selected days for Automated Prices with history days
             // This ensures that non-default days like 8, 9, 31, 60
             // are shown in the table and used in CSV exports.
-            if (Array.isArray(dias) && dias.length > 0) {
-                selectedDaysAuto = [...dias].map(d => parseInt(d, 10)).filter(d => !isNaN(d));
+            if (Array.isArray(daysToLoad) && daysToLoad.length > 0) {
+                selectedDaysAuto = [...daysToLoad].map(d => parseInt(d, 10)).filter(d => !isNaN(d));
                 selectedDaysAuto.sort((a, b) => a - b);
                 // Rebuild chips to reflect these days
                 if (typeof initDayChipsAuto === 'function') {
@@ -6827,7 +6837,7 @@
             
             // Fill table with AUTOMATED prices (column "Auto")
             Object.keys(prices).forEach(grupo => {
-                dias.forEach(day => {
+                daysToLoad.forEach(day => {
                     const price = prices[grupo][day];
                     if (price) {
                         const inputAuto = document.querySelector(`input[data-grupo="${grupo}"][data-dias="${day}"][data-type="auto"]`);
@@ -6844,7 +6854,7 @@
             if (supplierData && Object.keys(supplierData).length > 0) {
                 console.log('[HISTORY] Populating Real prices from supplier data...');
                 
-                dias.forEach(day => {
+                daysToLoad.forEach(day => {
                     const carsForDay = supplierData[day] || [];
                     console.log(`[HISTORY] Day ${day}: ${carsForDay.length} cars`);
                     
