@@ -5637,13 +5637,13 @@ def require_auth(request: Request):
     if not request.session.get("auth", False):
         raise HTTPException(status_code=401, detail="Unauthorized")
     
-    # Enforce inactivity timeout (exceto durante horário de trabalho e role support)
+    # Enforce inactivity timeout (exceto durante horário de trabalho e roles support/admin)
     user_role = request.session.get("role", "user")
     
     # Não expirar sessão se:
-    # 1. Role "support" (atendimento) - nunca expira
+    # 1. Role "support" ou "admin" - nunca expira
     # 2. OU dentro do horário de trabalho (qualquer utilizador)
-    if user_role != "support" and not is_working_hours():
+    if user_role not in ["support", "admin"] and not is_working_hours():
         try:
             now = int(datetime.now(timezone.utc).timestamp())
             last = int(request.session.get("last_active_ts", 0))
