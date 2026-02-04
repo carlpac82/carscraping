@@ -2088,9 +2088,17 @@
                         base64Length: damageCroquiBase64.length
                     });
                     
-                    // Show success notification on screen
+                    // Show detailed notification on screen for debugging
+                    const damagesInArray = window.damages ? window.damages.length : 0;
+                    const notificationMsg = `CROQUI: ${debugInfo.pinsDrawn} danos desenhados | ${damagesInArray} no array | Canvas: ${hasContent ? 'SIM' : 'NÃO'}`;
+                    
                     if (typeof showNotification === 'function') {
-                        showNotification(`Croqui capturado: ${debugInfo.pinsDrawn} danos`, 'success');
+                        showNotification(notificationMsg, debugInfo.pinsDrawn > 0 ? 'success' : 'warning');
+                    }
+                    
+                    // Also show alert for Android debugging
+                    if (debugInfo.pinsDrawn === 0 && damagesInArray > 0) {
+                        alert(`⚠️ PROBLEMA DETECTADO!\n\nDanos no array: ${damagesInArray}\nDanos desenhados: ${debugInfo.pinsDrawn}\nCanvas tem conteúdo: ${hasContent ? 'SIM' : 'NÃO'}\n\nPor favor tire screenshot desta mensagem!`);
                     }
                 }
             } catch (error) {
