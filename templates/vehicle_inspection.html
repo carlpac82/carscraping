@@ -2013,60 +2013,25 @@
                         height: canvas.height,
                         hasContent: hasContent,
                         scaleX: scaleX,
-                        scaleY: scaleY
+                        scaleY: scaleY,
+                        damagesArray: window.damages ? window.damages.length : 0
                     });
                     
-                    // Draw canvas (drawings/lines)
-                    debugInfo.step = 'drawing canvas overlay';
+                    // Draw canvas content (drawings/lines) - this already contains all damages drawn by redrawCanvas()
+                    debugInfo.step = 'drawing canvas overlay with damages';
                     debugInfo.canvasHasContent = hasContent;
                     tempCtx.save();
                     tempCtx.scale(scaleX, scaleY);
                     tempCtx.drawImage(canvas, 0, 0);
                     tempCtx.restore();
                     
-                    // Draw pins on top
-                    debugInfo.step = 'drawing pins';
-                    debugInfo.pinsDrawn = 0;
+                    // Count damages from the damages array (not DOM elements)
+                    debugInfo.step = 'counting damages';
+                    debugInfo.pinsDrawn = window.damages ? window.damages.length : 0;
                     
-                    if (pins.length === 0) {
-                        console.warn('⚠️ NO PINS FOUND! Cannot render pins on croqui.');
-                    }
-                    
-                    pins.forEach((pin, index) => {
-                        console.log('📍 Processing Pin ' + index + ':');
-                        
-                        // Get pin position from style (already in container coordinates)
-                        const pinLeft = parseFloat(pin.style.left) || 0;
-                        const pinTop = parseFloat(pin.style.top) || 0;
-                        
-                        if (pinLeft === 0 && pinTop === 0) {
-                            console.warn(`  ⚠️ Pin ${index} has zero coordinates!`);
-                            return;
-                        }
-                        
-                        // Scale to canvas size
-                        const pinX = pinLeft * scaleX;
-                        const pinY = pinTop * scaleY;
-                        
-                        // Get pin size
-                        let radius = 8; // default medium
-                        if (pin.classList.contains('size-tiny')) radius = 4;
-                        else if (pin.classList.contains('size-small')) radius = 6;
-                        else if (pin.classList.contains('size-large')) radius = 12;
-                        
-                        const scaledRadius = radius * Math.min(scaleX, scaleY);
-                        
-                        // Draw pin as circle
-                        tempCtx.beginPath();
-                        tempCtx.arc(pinX, pinY, scaledRadius, 0, Math.PI * 2);
-                        tempCtx.fillStyle = '#000000';
-                        tempCtx.fill();
-                        tempCtx.strokeStyle = '#ffffff';
-                        tempCtx.lineWidth = 2;
-                        tempCtx.stroke();
-                        
-                        debugInfo.pinsDrawn++;
-                        console.log(`  ✅ Pin ${index} drawn at (${pinX.toFixed(1)}, ${pinY.toFixed(1)})`);
+                    console.log('✅ Canvas with damages drawn:', {
+                        damagesInArray: debugInfo.pinsDrawn,
+                        canvasHasContent: hasContent
                     });
                     
                     debugInfo.step = 'converting to base64';
@@ -2075,7 +2040,7 @@
                     debugInfo.success = true;
                     
                     console.log('✅ Damage croqui captured:', {
-                        pinsDrawn: debugInfo.pinsDrawn,
+                        damagesCount: debugInfo.pinsDrawn,
                         base64Length: damageCroquiBase64.length
                     });
                     
@@ -3747,50 +3712,19 @@
                         const scaleY = tempCanvas.height / canvas.height;
                         console.log('🔍 Scale factors:', scaleX, scaleY);
                         
-                        // Draw the damage canvas (lines/drawings) on top
+                        // Draw the damage canvas (lines/drawings) on top - this already contains all damages drawn by redrawCanvas()
                         tempCtx.save();
                         tempCtx.scale(scaleX, scaleY);
                         tempCtx.drawImage(canvas, 0, 0);
                         tempCtx.restore();
                         
-                        // NOW DRAW PINS ON TOP
-                        const container = document.getElementById('carDiagram');
-                        const allPins = container.querySelectorAll('.damage-pin');
-                        console.log(`🔍 Total .damage-pin elements: ${allPins.length}`);
-                        
-                        const pins = container.querySelectorAll('.damage-pin:not(#pinPreview)');
-                        console.log(`📍 Pins to render: ${pins.length}`);
-                        
-                        pins.forEach((pin, index) => {
-                            const pinLeft = parseFloat(pin.style.left) || 0;
-                            const pinTop = parseFloat(pin.style.top) || 0;
-                            
-                            const pinX = pinLeft * scaleX;
-                            const pinY = pinTop * scaleY;
-                            
-                            console.log(`📍 Pin ${index}: (${pinLeft}, ${pinTop}) → (${pinX}, ${pinY})`);
-                            
-                            let radius = 8;
-                            if (pin.classList.contains('size-tiny')) radius = 4;
-                            else if (pin.classList.contains('size-small')) radius = 6;
-                            else if (pin.classList.contains('size-large')) radius = 12;
-                            
-                            const scaledRadius = radius * Math.min(scaleX, scaleY);
-                            
-                            tempCtx.beginPath();
-                            tempCtx.arc(pinX, pinY, scaledRadius, 0, Math.PI * 2);
-                            tempCtx.fillStyle = '#000000';
-                            tempCtx.fill();
-                            tempCtx.strokeStyle = '#ffffff';
-                            tempCtx.lineWidth = 2;
-                            tempCtx.stroke();
-                            
-                            console.log(`✅ Pin ${index} drawn`);
-                        });
+                        // Count damages from the damages array (not DOM elements)
+                        const damagesCount = window.damages ? window.damages.length : 0;
+                        console.log(`✅ Canvas with damages drawn: ${damagesCount} damages in array`);
                         
                         // Convert to base64
                         damageCroquiBase64 = tempCanvas.toDataURL('image/png');
-                        console.log('✅ Damage croqui captured with', pins.length, 'pins, length:', damageCroquiBase64.length);
+                        console.log('✅ Damage croqui captured with', damagesCount, 'damages, length:', damageCroquiBase64.length);
                     } else {
                         console.warn('⚠️ Croqui image not loaded or invalid');
                     }
