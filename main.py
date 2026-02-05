@@ -47792,41 +47792,33 @@ async def get_search_version(version_id: int):
                     supplier_data_parsed = {}
                     logging.warning(f"⚠️ [VERSION-LOAD] No supplier_data column available for ID {version_id}")
                 
-                # FIX: Corrigir preços em centavos no supplier_data
-                # Dados antigos podem ter price_num em centavos (8409) em vez de euros (84.09)
-                # Detectar e corrigir automaticamente
+                # FIX: Re-parse price_num from price string to fix bad parsing in old data
+                # Examples: "1.120,00 €" was parsed as 1.12 instead of 1120
+                # Uses _parse_amount which correctly handles European thousands separators
+                def _fix_car_price_num(car):
+                    if not isinstance(car, dict):
+                        return
+                    price_str = car.get('price', '')
+                    if price_str and isinstance(price_str, str):
+                        reparsed = _parse_amount(price_str)
+                        if reparsed is not None:
+                            old_val = car.get('price_num')
+                            if old_val != reparsed:
+                                car['price_num'] = reparsed
+                
                 if supplier_data_parsed:
                     for day_or_group_key in supplier_data_parsed:
                         day_data = supplier_data_parsed[day_or_group_key]
                         
-                        # Pode ser formato DAY→CARS ou GROUP→DAY→CARS
                         if isinstance(day_data, dict):
-                            # Formato GROUP→DAY→CARS
                             for inner_key in day_data:
                                 cars = day_data[inner_key]
                                 if isinstance(cars, list):
                                     for car in cars:
-                                        if isinstance(car, dict) and 'price_num' in car and car['price_num'] is not None:
-                                            price = float(car['price_num'])
-                                            # Se price_num > 100 e o price (string) tem vírgula/ponto, provavelmente está em centavos
-                                            # Ex: price_num=8409 mas price="84,09 €" → dividir por 100
-                                            if price > 100:
-                                                price_str = str(car.get('price', ''))
-                                                # Verificar se o preço string tem formato de euros (com vírgula/ponto decimal)
-                                                if ',' in price_str or ('.' in price_str and price_str.count('.') == 1 and len(price_str.split('.')[-1]) == 2):
-                                                    # Preço está em centavos, dividir por 100
-                                                    car['price_num'] = price / 100
-                                                    logging.debug(f"Corrected centavos to euros: {price} → {price/100}")
+                                        _fix_car_price_num(car)
                         elif isinstance(day_data, list):
-                            # Formato DAY→CARS
                             for car in day_data:
-                                if isinstance(car, dict) and 'price_num' in car and car['price_num'] is not None:
-                                    price = float(car['price_num'])
-                                    if price > 100:
-                                        price_str = str(car.get('price', ''))
-                                        if ',' in price_str or ('.' in price_str and price_str.count('.') == 1 and len(price_str.split('.')[-1]) == 2):
-                                            car['price_num'] = price / 100
-                                            logging.debug(f"Corrected centavos to euros: {price} → {price/100}")
+                                _fix_car_price_num(car)
                 
                 version_data = {
                     'id': row_id,
