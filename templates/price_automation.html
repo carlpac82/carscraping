@@ -595,6 +595,11 @@
                             <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z"/>
                         </svg>
                     </button>
+                    <button onclick="downloadExcelAuto('caralliance')" class="p-2 hover:bg-gray-100 rounded transition-colors" title="Download CarAlliance">
+                        <svg class="w-6 h-6 text-[#1e3a5f]" fill="currentColor" viewBox="0 0 24 24">
+                            <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z"/>
+                        </svg>
+                    </button>
                 </div>
             </div>
         </div>
@@ -3132,6 +3137,137 @@
             } catch (error) {
                 console.error('[ABBYCAR] Excel download failed:', error.message, error);
                 showNotification('Failed to download Excel file: ' + error.message, 'error');
+            }
+        }
+        
+        // ===== DOWNLOAD CARALLIANCE FROM AUTOMATED PRICES =====
+        
+        async function downloadCarAllianceFromAuto() {
+            showNotification('Generating CarAlliance Excel...', 'info');
+            
+            const location = document.getElementById('locationAuto')?.value || 'Faro';
+            const date = document.getElementById('dateAuto')?.value || new Date().toISOString().slice(0, 10);
+            
+            const dateObj = new Date(date + 'T00:00:00');
+            const month = dateObj.getMonth() + 1;
+            const year = dateObj.getFullYear();
+            const lastDayOfMonth = new Date(year, month, 0).getDate();
+            
+            const startDate = `${String(1).padStart(2,'0')}.${String(month).padStart(2,'0')}.${year}.`;
+            const endDate = `${String(lastDayOfMonth).padStart(2,'0')}.${String(month).padStart(2,'0')}.${year}.`;
+            
+            const office = location.toLowerCase().includes('faro') ? 'FAO' : 'ABF';
+            
+            // Fetch CarAlliance commission from Admin Settings
+            let commission = 0;
+            try {
+                const commResp = await fetch('/api/admin-settings/caralliance-commission');
+                const commData = await commResp.json();
+                commission = commData.ok ? commData.caralliance_commission_pct : 0;
+            } catch (e) {
+                console.warn('[CARALLIANCE] Could not fetch commission, using 0%');
+            }
+            console.log('[CARALLIANCE] Commission:', commission);
+            
+            // CarAlliance SIPP codes (same as homepage)
+            const carallianceSipps = [
+                {sipp: 'MDMV', grupo: 'B1'},
+                {sipp: 'MDMR', grupo: 'B2'},
+                {sipp: 'EDMV', grupo: 'D'},
+                {sipp: 'MDAR', grupo: 'E1'},
+                {sipp: 'EDAV', grupo: 'E2'},
+                {sipp: 'CFMR', grupo: 'F'},
+                {sipp: 'MTMR', grupo: 'G'},
+                {sipp: 'CFMV', grupo: 'J1'},
+                {sipp: 'IWMR', grupo: 'J2'},
+                {sipp: 'CFAR', grupo: 'L1'},
+                {sipp: 'CGAR', grupo: 'L1'},
+                {sipp: 'SVMR', grupo: 'M1'},
+                {sipp: 'SVMD', grupo: 'M1'},
+                {sipp: 'SVAD', grupo: 'M2'},
+                {sipp: 'LVMD', grupo: 'N'}
+            ];
+            
+            const days = [1, 2, 3, 4, 5, 6, 7, 8, 9, 14, 22, 28];
+            
+            // Column mapping: key → {sourceDays, divideBy}
+            const columnMapping = [
+                {key: '1_1', sourceDays: 1, divideBy: 1},
+                {key: '2_2', sourceDays: 2, divideBy: 2},
+                {key: '3_3', sourceDays: 3, divideBy: 3},
+                {key: '4_4', sourceDays: 4, divideBy: 4},
+                {key: '5_5', sourceDays: 5, divideBy: 5},
+                {key: '6_6', sourceDays: 6, divideBy: 6},
+                {key: '7_7', sourceDays: 7, divideBy: 7},
+                {key: '8_10', sourceDays: 8, divideBy: 8},
+                {key: '11_12', sourceDays: 9, divideBy: 9},
+                {key: '13_14', sourceDays: 14, divideBy: 14},
+                {key: '15_21', sourceDays: 22, divideBy: 22},
+                {key: '22_plus', sourceDays: 28, divideBy: 28}
+            ];
+            
+            // Collect prices from automated prices table (NET total prices)
+            const data = [];
+            carallianceSipps.forEach(sippInfo => {
+                const grupo = sippInfo.grupo;
+                const row = {
+                    serviceName: sippInfo.sipp,
+                    office: office,
+                    dateFrom: startDate,
+                    dateTo: endDate,
+                    prices: {}
+                };
+                
+                columnMapping.forEach(col => {
+                    const inputAuto = document.querySelector(`#pricesTableAuto input[data-grupo="${grupo}"][data-dias="${col.sourceDays}"][data-type="auto"]`);
+                    const netPrice = inputAuto && inputAuto.value ? parseFloat(inputAuto.value) : 0;
+                    
+                    if (netPrice > 0) {
+                        // Formula: (Net ÷ dias) × (1 + comissão%) ÷ 1.23
+                        const dailyNet = netPrice / col.divideBy;
+                        const withCommission = dailyNet * (1 + commission / 100);
+                        const withoutVAT = withCommission / 1.23;
+                        row.prices[col.key] = withoutVAT.toFixed(2);
+                    }
+                });
+                
+                data.push(row);
+            });
+            
+            console.log('[CARALLIANCE] Data collected:', data.length, 'rows');
+            
+            // Send to backend for Excel generation
+            try {
+                const response = await fetch('/api/export-caralliance-excel', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        data: data,
+                        location: location,
+                        startDate: startDate,
+                        endDate: endDate
+                    })
+                });
+                
+                if (!response.ok) {
+                    throw new Error(`Server returned ${response.status}`);
+                }
+                
+                const blob = await response.blob();
+                const url = window.URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                const filename = `CARALLIANCE-${location.replace(/\s+/g, '-')}-${startDate.replace(/\./g, '-')}.xlsx`;
+                a.download = filename;
+                document.body.appendChild(a);
+                a.click();
+                window.URL.revokeObjectURL(url);
+                document.body.removeChild(a);
+                saveDownloadToHistory(filename, 'caralliance', location);
+                showNotification('CarAlliance Excel downloaded!', 'success');
+            } catch (error) {
+                console.error('[CARALLIANCE] Download failed:', error);
+                showNotification('Failed to download CarAlliance Excel: ' + error.message, 'error');
             }
         }
         
@@ -5923,6 +6059,8 @@
                 exportWebsiteCSVFromAuto();
             } else if (format === 'abbycar') {
                 downloadAutomatedPricesExcel();
+            } else if (format === 'caralliance') {
+                downloadCarAllianceFromAuto();
             } else {
                 console.error('Unknown format:', format);
             }
@@ -9103,7 +9241,7 @@ Continue?`);
                     minute: '2-digit' 
                 });
                 
-                const formatName = download.format === 'abbycar' ? 'Abbycar' : download.format === 'way2rentals' ? 'Way2Rentals' : 'AutoPrudente';
+                const formatName = download.format === 'abbycar' ? 'Abbycar' : download.format === 'way2rentals' ? 'Way2Rentals' : download.format === 'caralliance' ? 'CarAlliance' : 'AutoPrudente';
                 
                 // SVG icons monocromáticos na cor do website
                 let formatIcon = '';
@@ -9117,6 +9255,12 @@ Continue?`);
                     formatIcon = `
                         <svg class="w-6 h-6 text-[#f4ad0f]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+                        </svg>
+                    `;
+                } else if (download.format === 'caralliance') {
+                    formatIcon = `
+                        <svg class="w-6 h-6 text-[#1e3a5f]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
                         </svg>
                     `;
                 } else {
@@ -9267,6 +9411,8 @@ Continue?`);
                     exportWay2RentalsCSVFromAuto();
                 } else if (format === 'abbycar') {
                     downloadAutomatedPricesExcel();
+                } else if (format === 'caralliance') {
+                    downloadCarAllianceFromAuto();
                 } else {
                     console.error('Unknown format:', format);
                     showNotification(`Formato desconhecido: ${format}`, 'error');
