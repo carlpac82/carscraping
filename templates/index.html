@@ -2138,9 +2138,11 @@
 
         // Adicionar event listeners aos inputs de preço
         document.addEventListener('DOMContentLoaded', function() {
+            console.log('[HOMEPAGE] DOMContentLoaded - event listeners registered (v2026-02-05)');
             // Quando alterar NET, recalcular GROSS
             document.addEventListener('input', function(e) {
                 if (e.target.classList.contains('price-input') && !e.target.classList.contains('commission')) {
+                    console.log('[HOMEPAGE] NET input changed:', e.target.value);
                     const row = e.target.closest('.price-row');
                     const card = e.target.closest('.price-card');
                     const commissionInput = row.querySelector('.price-input.commission');
