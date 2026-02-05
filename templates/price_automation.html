@@ -7076,18 +7076,19 @@
                     });
                 });
                 
-                // Prepare data for visual cards
+                // Prepare data for visual cards - read from TABLE inputs (not DB)
+                // Table inputs have the recalculated/edited values which are the correct ones
                 const automatedPricesByGroup = {};
-                Object.keys(prices).forEach(grupo => {
-                    automatedPricesByGroup[grupo] = {};
-                    dias.forEach(day => {
-                        if (prices[grupo][day]) {
-                            automatedPricesByGroup[grupo][day] = {
-                                automated: parseFloat(prices[grupo][day])
-                            };
-                        }
-                    });
+                document.querySelectorAll('#pricesTableAuto input[data-type="auto"]').forEach(input => {
+                    const grupo = input.dataset.grupo;
+                    const day = parseInt(input.dataset.dias);
+                    const val = parseFloat(input.value);
+                    if (grupo && !isNaN(day) && !isNaN(val) && val > 0) {
+                        if (!automatedPricesByGroup[grupo]) automatedPricesByGroup[grupo] = {};
+                        automatedPricesByGroup[grupo][day] = { automated: val };
+                    }
                 });
+                console.log('[HISTORY] ✅ automatedPricesByGroup built from table inputs:', Object.keys(automatedPricesByGroup).length, 'groups');
                 
                 // ⚠️ DETECT FORMAT: supplierData can be in two formats:
                 // Format 1: { "7": [...], "14": [...] } (day → cars) ✅ CORRECT
