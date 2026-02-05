@@ -2104,13 +2104,21 @@
             const month = parseInt(document.getElementById('monthSelect').value);
             const year = parseInt(document.getElementById('yearSelect').value);
             
-            console.log('💾 Guardando alterações manuais:', { location, month, year, grupos: Object.keys(pricesByGroup).length });
+            // Get day_start and day_end from current period
+            let dayStart = 1;
+            let dayEnd = 31;
+            if (allPeriods.length > 0 && currentPeriodIndex >= 0 && currentPeriodIndex < allPeriods.length) {
+                dayStart = allPeriods[currentPeriodIndex].day_start || 1;
+                dayEnd = allPeriods[currentPeriodIndex].day_end || 31;
+            }
+            
+            console.log('💾 Guardando alterações manuais:', { location, month, year, dayStart, dayEnd, grupos: Object.keys(pricesByGroup).length });
             
             try {
                 const response = await fetch('/api/current-prices/save', {
                     method: 'POST',
                     headers: {'Content-Type': 'application/json'},
-                    body: JSON.stringify({ location, month, year, prices: pricesByGroup })
+                    body: JSON.stringify({ location, month, year, day_start: dayStart, day_end: dayEnd, prices: pricesByGroup })
                 });
                 
                 const result = await response.json();
