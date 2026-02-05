@@ -6946,14 +6946,34 @@
                 console.warn('[HISTORY] ⚠️ supplierData is EMPTY - visual cards will not show');
             }
             
-            // Use the dias array from the saved history - this contains EXACTLY the days
-            // the user selected in the chips when they did the search.
-            // DO NOT extract days from supplierData because it may contain extra days
-            // that the Carjet API returned but the user did NOT select in the chips.
-            const daysToLoad = Array.isArray(dias) && dias.length > 0 
-                ? dias.map(d => parseInt(d)).filter(d => !isNaN(d) && d > 0).sort((a, b) => a - b)
+            // Use the dias array from the saved history as base
+            // Also include any days that have actual prices but are missing from dias
+            // (fixes old records saved before the dias fix)
+            let daysToLoad = Array.isArray(dias) && dias.length > 0 
+                ? dias.map(d => parseInt(d)).filter(d => !isNaN(d) && d > 0)
                 : [];
-            console.log('[HISTORY] ✅ Loading history with dias array (chips):', daysToLoad);
+            
+            // Extract days that have prices but are missing from dias array
+            if (prices && typeof prices === 'object') {
+                const daysWithPrices = new Set();
+                Object.values(prices).forEach(groupPrices => {
+                    if (groupPrices && typeof groupPrices === 'object') {
+                        Object.keys(groupPrices).forEach(day => {
+                            const d = parseInt(day);
+                            if (!isNaN(d) && d > 0) daysWithPrices.add(d);
+                        });
+                    }
+                });
+                // Merge: add any day with prices that's missing from dias
+                daysWithPrices.forEach(d => {
+                    if (!daysToLoad.includes(d)) {
+                        console.log(`[HISTORY] ⚠️ Day ${d} has prices but was missing from dias array - adding it`);
+                        daysToLoad.push(d);
+                    }
+                });
+            }
+            daysToLoad.sort((a, b) => a - b);
+            console.log('[HISTORY] ✅ Loading history with dias array (merged):', daysToLoad);
             
             // Update global dias and supplier data for visual cards
             window.dias = daysToLoad;
