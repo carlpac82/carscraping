@@ -6806,43 +6806,14 @@
                 console.warn('[HISTORY] ⚠️ supplierData is EMPTY - visual cards will not show');
             }
             
-            // CRITICAL FIX: Extract ALL searched days from supplierData
-            // The dias array may be incomplete (only days with prices), but supplierData has ALL searched days
-            // Extract from ORIGINAL supplierData (GROUP→DAY→CARS format) for maximum accuracy
-            const allSearchedDaysSet = new Set();
-            if (supplierData && Object.keys(supplierData).length > 0) {
-                const firstKey = Object.keys(supplierData)[0];
-                const isGroupFmt = isNaN(parseInt(firstKey));
-                
-                if (isGroupFmt) {
-                    // GROUP→DAY→CARS: extract days from inside each group
-                    Object.values(supplierData).forEach(groupData => {
-                        if (groupData && typeof groupData === 'object') {
-                            Object.keys(groupData).forEach(day => {
-                                const d = parseInt(day);
-                                if (!isNaN(d) && d > 0) allSearchedDaysSet.add(d);
-                            });
-                        }
-                    });
-                } else {
-                    // DAY→CARS: keys are already days
-                    Object.keys(supplierData).forEach(day => {
-                        const d = parseInt(day);
-                        if (!isNaN(d) && d > 0) allSearchedDaysSet.add(d);
-                    });
-                }
-            }
-            // Also include days from dias array (in case supplierData is missing some)
-            if (Array.isArray(dias)) {
-                dias.forEach(d => { const n = parseInt(d); if (!isNaN(n) && n > 0) allSearchedDaysSet.add(n); });
-            }
-            const allSearchedDays = Array.from(allSearchedDaysSet).sort((a, b) => a - b);
-            console.log('[HISTORY] 🔍 Original search days from supplierData:', allSearchedDays);
-            console.log('[HISTORY] 🔍 Days in dias array:', dias);
-            
-            // Use ALL days from original search, not just dias array
-            const daysToLoad = allSearchedDays.length > 0 ? allSearchedDays : dias;
-            console.log('[HISTORY] ✅ Loading history with days:', daysToLoad);
+            // Use the dias array from the saved history - this contains EXACTLY the days
+            // the user selected in the chips when they did the search.
+            // DO NOT extract days from supplierData because it may contain extra days
+            // that the Carjet API returned but the user did NOT select in the chips.
+            const daysToLoad = Array.isArray(dias) && dias.length > 0 
+                ? dias.map(d => parseInt(d)).filter(d => !isNaN(d) && d > 0).sort((a, b) => a - b)
+                : [];
+            console.log('[HISTORY] ✅ Loading history with dias array (chips):', daysToLoad);
             
             // Update global dias and supplier data for visual cards
             window.dias = daysToLoad;
