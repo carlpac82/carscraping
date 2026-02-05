@@ -6980,15 +6980,19 @@
             window.currentSupplierData = supplierDataForCards;
             
             // Sync selected days for Automated Prices with history days
-            // This ensures that non-default days like 8, 9, 31, 60
-            // are shown in the table and used in CSV exports.
-            if (Array.isArray(daysToLoad) && daysToLoad.length > 0) {
-                selectedDaysAuto = [...daysToLoad].map(d => parseInt(d, 10)).filter(d => !isNaN(d));
-                selectedDaysAuto.sort((a, b) => a - b);
-                // Rebuild chips to reflect these days
-                if (typeof initDayChipsAuto === 'function') {
-                    initDayChipsAuto();
-                }
+            // ALWAYS include the default automated days (1-9,14,22,28) so the table
+            // shows all columns even if old records didn't save all chips.
+            // Also include any extra days from the saved history (e.g. 31, 60).
+            const defaultAutoDays = [1, 2, 3, 4, 5, 6, 7, 8, 9, 14, 22, 28];
+            const mergedDays = new Set(defaultAutoDays);
+            if (Array.isArray(daysToLoad)) {
+                daysToLoad.forEach(d => mergedDays.add(d));
+            }
+            selectedDaysAuto = [...mergedDays].sort((a, b) => a - b);
+            console.log('[HISTORY] ✅ selectedDaysAuto (merged with defaults):', selectedDaysAuto);
+            // Rebuild chips to reflect these days
+            if (typeof initDayChipsAuto === 'function') {
+                initDayChipsAuto();
             }
             
             // Ensure table is initialized with updated selectedDaysAuto
