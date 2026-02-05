@@ -1426,10 +1426,10 @@
         document.getElementById('showGroupsK').addEventListener('change', filterCards);
         document.getElementById('showCommercial').addEventListener('change', filterCards);
 
-        // Adicionar event listeners aos inputs de comissão
-        document.getElementById('commissionBrokers').addEventListener('input', updateCommissionPrices);
-        document.getElementById('commissionWebsite').addEventListener('input', () => {});
-        document.getElementById('commissionAbbycar').addEventListener('input', () => {});
+        // Adicionar event listeners aos inputs de comissão (com null checks)
+        document.getElementById('commissionBrokers')?.addEventListener('input', updateCommissionPrices);
+        document.getElementById('commissionWebsite')?.addEventListener('input', () => {});
+        document.getElementById('commissionAbbycar')?.addEventListener('input', () => {});
 
         // Upload: Ler ficheiro Excel/CSV Brokers e preencher Net
         async function handleUpload(event) {
