@@ -958,6 +958,7 @@
         }
 
         async function savePrices() {
+            console.log('[SAVE-DEBUG] savePrices called - version 2026-02-05-v2');
             const location = document.getElementById('location').value;
             const month = document.getElementById('month').value;
             const year = document.getElementById('year').value;
@@ -970,6 +971,9 @@
                 dayStart = currentPeriod.day_start || 1;
                 dayEnd = currentPeriod.day_end || 31;
             }
+            
+            console.log('[SAVE-DEBUG] Period:', dayStart, '-', dayEnd, '| currentPeriod:', currentPeriod);
+            console.log('[SAVE-DEBUG] currentPrices sample:', JSON.stringify(currentPrices['B1'] || {}).substring(0, 200));
 
             try {
                 // Convert {net, commission} format back to simple numbers for DB
@@ -985,6 +989,9 @@
                         }
                     });
                 });
+                
+                console.log('[SAVE-DEBUG] pricesToSave sample:', JSON.stringify(pricesToSave['B1'] || {}).substring(0, 200));
+                console.log('[SAVE-DEBUG] Sending to API:', { location, month, year, dayStart, dayEnd, groups: Object.keys(pricesToSave).length });
                 
                 const response = await fetch('/api/current-prices/save', {
                     method: 'POST',
