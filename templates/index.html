@@ -2136,51 +2136,47 @@
             }
         }
 
-        // Adicionar event listeners aos inputs de preço
-        document.addEventListener('DOMContentLoaded', function() {
-            console.log('[HOMEPAGE] DOMContentLoaded - event listeners registered (v2026-02-05)');
+        // Recálculo automático NET↔GROSS ao editar inputs de preço
+        // Usa delegação de eventos no document (funciona com cards dinâmicos)
+        document.addEventListener('input', function(e) {
             // Quando alterar NET, recalcular GROSS
-            document.addEventListener('input', function(e) {
-                if (e.target.classList.contains('price-input') && !e.target.classList.contains('commission')) {
-                    console.log('[HOMEPAGE] NET input changed:', e.target.value);
-                    const row = e.target.closest('.price-row');
-                    const card = e.target.closest('.price-card');
-                    const commissionInput = row.querySelector('.price-input.commission');
-                    const grupoText = card.querySelector('h3').textContent.replace('Grupo ', '');
-                    const isCommercial = ['C3','C4','C5'].includes(grupoText);
-                    
-                    if (e.target.value && commissionInput) {
-                        if (isCommercial) {
-                            // C3,C4,C5 são sempre NET (GROSS = NET)
-                            commissionInput.value = parseFloat(e.target.value).toFixed(2);
-                        } else {
-                            const brokersCommission = parseFloat(document.getElementById('commissionBrokers').value) || 0;
-                            commissionInput.value = calculateWithCommission(e.target.value, brokersCommission);
-                        }
-                    }
-                }
+            if (e.target.classList.contains('price-input') && !e.target.classList.contains('commission')) {
+                const row = e.target.closest('.price-row');
+                const card = e.target.closest('.price-card');
+                if (!row || !card) return;
+                const commissionInput = row.querySelector('.price-input.commission');
+                const grupoText = card.querySelector('h3').textContent.replace('Grupo ', '');
+                const isCommercial = ['C3','C4','C5'].includes(grupoText);
                 
-                // Quando alterar GROSS, recalcular NET
-                if (e.target.classList.contains('price-input') && e.target.classList.contains('commission')) {
-                    const row = e.target.closest('.price-row');
-                    const card = e.target.closest('.price-card');
-                    const netInput = row.querySelector('.price-input:not(.commission)');
-                    const grupoText = card.querySelector('h3').textContent.replace('Grupo ', '');
-                    const isCommercial = ['C3','C4','C5'].includes(grupoText);
-                    
-                    if (e.target.value && netInput) {
-                        if (isCommercial) {
-                            // C3,C4,C5 são sempre NET (GROSS = NET)
-                            netInput.value = parseFloat(e.target.value).toFixed(2);
-                        } else {
-                            const brokersCommission = parseFloat(document.getElementById('commissionBrokers').value) || 0;
-                            // NET = GROSS / (1 + comissão%)
-                            const netPrice = parseFloat(e.target.value) / (1 + brokersCommission / 100);
-                            netInput.value = netPrice.toFixed(2);
-                        }
+                if (e.target.value && commissionInput) {
+                    if (isCommercial) {
+                        commissionInput.value = parseFloat(e.target.value).toFixed(2);
+                    } else {
+                        const brokersCommission = parseFloat(document.getElementById('commissionBrokers').value) || 0;
+                        commissionInput.value = calculateWithCommission(e.target.value, brokersCommission);
                     }
                 }
-            });
+            }
+            
+            // Quando alterar GROSS, recalcular NET
+            if (e.target.classList.contains('price-input') && e.target.classList.contains('commission')) {
+                const row = e.target.closest('.price-row');
+                const card = e.target.closest('.price-card');
+                if (!row || !card) return;
+                const netInput = row.querySelector('.price-input:not(.commission)');
+                const grupoText = card.querySelector('h3').textContent.replace('Grupo ', '');
+                const isCommercial = ['C3','C4','C5'].includes(grupoText);
+                
+                if (e.target.value && netInput) {
+                    if (isCommercial) {
+                        netInput.value = parseFloat(e.target.value).toFixed(2);
+                    } else {
+                        const brokersCommission = parseFloat(document.getElementById('commissionBrokers').value) || 0;
+                        const netPrice = parseFloat(e.target.value) / (1 + brokersCommission / 100);
+                        netInput.value = netPrice.toFixed(2);
+                    }
+                }
+            }
         });
     </script>
 </body>
