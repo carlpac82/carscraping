@@ -40030,7 +40030,8 @@ async def export_automated_prices_excel(request: Request):
         prices = data.get('prices', {})
         day_start = data.get('day_start', 1)
         day_end = data.get('day_end', 31)
-        print(f"[BACKEND] Location: {location}, Date: {date}, Period: {day_start}-{day_end}, Prices groups: {len(prices)}", flush=True)
+        broker_commission = data.get('broker_commission', 13.66)  # Default 13.66%
+        print(f"[BACKEND] Location: {location}, Date: {date}, Period: {day_start}-{day_end}, Prices groups: {len(prices)}, Broker commission: {broker_commission}%", flush=True)
         
         # Car group mapping (SIPP codes to groups)
         car_group_mapping = {
@@ -40250,9 +40251,11 @@ async def export_automated_prices_excel(request: Request):
                 price = calculate_price_for_day(group_prices, int(day_key))
                 
                 if price:
-                    # Price from card is NET total
-                    # Apply Abbycar adjustment: NET * (1 + abbycar_pct/100)
-                    adjusted_price = float(price) * (1 + abbycar_adjustment / 100)
+                    # Price from card is GROSS total (includes broker commission)
+                    # Step 1: Convert GROSS to NET: NET = GROSS / (1 + broker_commission/100)
+                    net_price = float(price) / (1 + broker_commission / 100)
+                    # Step 2: Apply Abbycar adjustment: NET * (1 + abbycar_pct/100)
+                    adjusted_price = net_price * (1 + abbycar_adjustment / 100)
                     
                     # Days 8+: divide by days to get daily price
                     if int(day_key) == 8:

@@ -3095,7 +3095,7 @@
                 const response = await fetch('/api/export-automated-prices-excel', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ location, date, prices, day_start, day_end }),
+                    body: JSON.stringify({ location, date, prices, day_start, day_end, broker_commission: getComissao() * 100 }),
                     signal: controller.signal
                 });
                 
@@ -3220,10 +3220,13 @@
                 
                 columnMapping.forEach(col => {
                     const inputAuto = document.querySelector(`#pricesTableAuto input[data-grupo="${grupo}"][data-dias="${col.sourceDays}"][data-type="auto"]`);
-                    const netPrice = inputAuto && inputAuto.value ? parseFloat(inputAuto.value) : 0;
+                    const grossPrice = inputAuto && inputAuto.value ? parseFloat(inputAuto.value) : 0;
                     
-                    if (netPrice > 0) {
-                        // Formula: (Net ÷ dias) × (1 + comissão%) ÷ 1.23
+                    if (grossPrice > 0) {
+                        // Auto input contains GROSS price (from scraping)
+                        // Step 1: Convert GROSS to NET: NET = GROSS / (1 + broker_commission)
+                        const netPrice = calculateNet(grossPrice);
+                        // Step 2: Formula: (Net ÷ dias) × (1 + caralliance%) ÷ 1.23
                         const dailyNet = netPrice / col.divideBy;
                         const withCommission = dailyNet * (1 + commission / 100);
                         const withoutVAT = withCommission / 1.23;
