@@ -40260,15 +40260,19 @@ async def export_automated_prices_excel(request: Request):
                     cell = ws.cell(row_num, col_idx)
                     cell.value = adjusted_price
                     
-                    # Format cell to use comma as decimal separator (Portuguese format)
-                    # Format: #.##0,00 (2 decimal places with comma)
-                    cell.number_format = '#.##0,00'
+                    # Format cell to 2 decimal places
+                    cell.number_format = '0.00'
                 else:
                     ws.cell(row_num, col_idx).value = ''
             
             row_num += 1
         
         print(f"[BACKEND] Filled {row_num - 2} rows with prices", flush=True)
+        
+        # Delete extra rows from template (K groups that were removed)
+        if ws.max_row >= row_num:
+            ws.delete_rows(row_num, ws.max_row - row_num + 1)
+            print(f"[BACKEND] Deleted extra template rows from {row_num} to end", flush=True)
         
         # Save workbook to BytesIO
         print("[BACKEND] Saving workbook to BytesIO...", flush=True)
