@@ -6307,6 +6307,7 @@ async def admin_settings_page(request: Request):
     abbycar_low_deposit_pct = _get_abbycar_low_deposit_adjustment()
     abbycar_low_deposit_enabled = _get_abbycar_low_deposit_enabled()
     website_pct = float(_get_setting("website_pct", "14"))
+    caralliance_pct = float(_get_setting("caralliance_pct", "0"))
     
     # Carregar configurações SMTP da base de dados
     smtp_host = _get_setting("smtp_host", "")
@@ -6324,6 +6325,7 @@ async def admin_settings_page(request: Request):
         "abbycar_low_deposit_pct": abbycar_low_deposit_pct,
         "abbycar_low_deposit_enabled": abbycar_low_deposit_enabled,
         "website_pct": website_pct,
+        "caralliance_pct": caralliance_pct,
         "smtp_host": smtp_host,
         "smtp_port": smtp_port,
         "smtp_username": smtp_username,
@@ -6343,6 +6345,7 @@ async def admin_settings_save(
     abbycar_low_deposit_pct: str = Form(""), 
     abbycar_low_deposit_enabled: str = Form(""),
     website_pct: str = Form(""),
+    caralliance_pct: str = Form(""),
     smtp_host: str = Form(""),
     smtp_port: str = Form("587"),
     smtp_username: str = Form(""),
@@ -6362,6 +6365,7 @@ async def admin_settings_save(
         abbycar_low_deposit_pct_val = float((abbycar_low_deposit_pct or "0").replace(",", "."))
         abbycar_low_deposit_enabled_val = "1" if abbycar_low_deposit_enabled == "1" else "0"
         website_pct_val = float((website_pct or "0").replace(",", "."))
+        caralliance_pct_val = float((caralliance_pct or "0").replace(",", "."))
         
         # Guardar configurações de preços
         _set_setting("carjet_pct", str(pct_val))
@@ -6370,6 +6374,7 @@ async def admin_settings_save(
         _set_setting("abbycar_low_deposit_pct", str(abbycar_low_deposit_pct_val))
         _set_setting("abbycar_low_deposit_enabled", abbycar_low_deposit_enabled_val)
         _set_setting("website_pct", str(website_pct_val))
+        _set_setting("caralliance_pct", str(caralliance_pct_val))
         
         # Guardar configurações SMTP na base de dados (persistente)
         _set_setting("smtp_host", smtp_host.strip())
@@ -6384,6 +6389,7 @@ async def admin_settings_save(
         abbycar_low_deposit_pct_result = abbycar_low_deposit_pct_val
         abbycar_low_deposit_enabled_result = abbycar_low_deposit_enabled_val == "1"
         website_pct_result = website_pct_val
+        caralliance_pct_result = caralliance_pct_val
         smtp_host_result = smtp_host.strip()
         smtp_port_result = smtp_port.strip()
         smtp_username_result = smtp_username.strip()
@@ -6397,6 +6403,7 @@ async def admin_settings_save(
         abbycar_low_deposit_pct_result = _get_abbycar_low_deposit_adjustment()
         abbycar_low_deposit_enabled_result = _get_abbycar_low_deposit_enabled()
         website_pct_result = float(_get_setting("website_pct", "14"))
+        caralliance_pct_result = float(_get_setting("caralliance_pct", "0"))
         smtp_host_result = _get_setting("smtp_host", "")
         smtp_port_result = _get_setting("smtp_port", "587")
         smtp_username_result = _get_setting("smtp_username", "")
@@ -6411,6 +6418,7 @@ async def admin_settings_save(
         "abbycar_low_deposit_pct": abbycar_low_deposit_pct_result,
         "abbycar_low_deposit_enabled": abbycar_low_deposit_enabled_result,
         "website_pct": website_pct_result,
+        "caralliance_pct": caralliance_pct_result,
         "smtp_host": smtp_host_result,
         "smtp_port": smtp_port_result,
         "smtp_username": smtp_username_result,
@@ -19838,6 +19846,20 @@ async def get_abbycar_commission(request: Request):
         })
     except Exception as e:
         logging.error(f"Error getting Abbycar commission: {e}")
+        return JSONResponse({"ok": False, "error": str(e)}, status_code=500)
+
+@app.get("/api/admin-settings/caralliance-commission")
+async def get_caralliance_commission(request: Request):
+    """Get CarAlliance commission percentage from Admin Settings"""
+    try:
+        require_auth(request)
+        caralliance_commission_pct = float(_get_setting("caralliance_pct", "0"))
+        return JSONResponse({
+            "ok": True,
+            "caralliance_commission_pct": caralliance_commission_pct
+        })
+    except Exception as e:
+        logging.error(f"Error getting CarAlliance commission: {e}")
         return JSONResponse({"ok": False, "error": str(e)}, status_code=500)
 
 @app.get("/api/admin-settings/low-deposit")
