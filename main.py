@@ -39948,8 +39948,12 @@ async def export_caralliance_excel(request: Request):
         # Add auto-filter
         ws.auto_filter.ref = f"A1:{get_column_letter(len(headers))}1"
         
+        # Alignment styles for data rows
+        right_align = Alignment(horizontal='right', vertical='center')
+        left_align = Alignment(horizontal='left', vertical='center')
+        
         # Add data rows (white background)
-        for row_data in rows_data:
+        for row_idx, row_data in enumerate(rows_data, 2):
             row_values = [
                 row_data.get('serviceName', ''),
                 row_data.get('office', ''),
@@ -39970,7 +39974,13 @@ async def export_caralliance_excel(request: Request):
             # DiscountPercentage - empty
             row_values.append('')
             
-            ws.append(row_values)
+            for col_idx, val in enumerate(row_values, 1):
+                cell = ws.cell(row=row_idx, column=col_idx, value=val)
+                # Columns C (DateFrom), D (DateTo) and E onwards (prices) = right aligned
+                if col_idx >= 3:
+                    cell.alignment = right_align
+                else:
+                    cell.alignment = left_align
         
         # Set column widths
         col_widths = {'A': 14, 'B': 8, 'C': 14, 'D': 14}
