@@ -40250,8 +40250,21 @@ async def export_automated_prices_excel(request: Request):
                 price = calculate_price_for_day(group_prices, int(day_key))
                 
                 if price:
-                    # Apply Abbycar adjustment percentage (same for all groups including K)
+                    # Price from card is NET total
+                    # Apply Abbycar adjustment: NET * (1 + abbycar_pct/100)
                     adjusted_price = float(price) * (1 + abbycar_adjustment / 100)
+                    
+                    # Days 8+: divide by days to get daily price
+                    if int(day_key) == 8:
+                        adjusted_price = adjusted_price / 8
+                    elif int(day_key) == 9:
+                        adjusted_price = adjusted_price / 9
+                    elif int(day_key) == 14:
+                        adjusted_price = adjusted_price / 14
+                    elif int(day_key) == 22:
+                        adjusted_price = adjusted_price / 22
+                    elif int(day_key) == 28:
+                        adjusted_price = adjusted_price / 28
                     
                     # Round to 2 decimal places
                     adjusted_price = round(adjusted_price, 2)
