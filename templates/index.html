@@ -2058,6 +2058,156 @@
             document.body.removeChild(link);
         }
 
+        // Download CarAlliance: Formato específico com SIPP codes e daily prices
+        async function downloadCarAlliance() {
+            try {
+                console.log('Iniciando download CarAlliance...');
+                
+                const location = document.querySelector('#locationSelect').value;
+                const month = document.querySelector('#monthSelect').value;
+                const year = document.querySelector('#yearSelect').value;
+                
+                // Calculate start and end dates for the month (DD.MM.YYYY. format)
+                const lastDay = new Date(year, month, 0).getDate();
+                const startDate = `${String(1).padStart(2,'0')}.${String(month).padStart(2,'0')}.${year}.`;
+                const endDate = `${String(lastDay).padStart(2,'0')}.${String(month).padStart(2,'0')}.${year}.`;
+                
+                // Fetch CarAlliance commission from Admin Settings
+                const commissionResponse = await fetch('/api/admin-settings/caralliance-commission');
+                const commissionData = await commissionResponse.json();
+                const commission = commissionData.ok ? commissionData.caralliance_commission_pct : 0;
+                console.log('Comissão CarAlliance:', commission);
+                
+                // Office code based on location
+                const office = location === 'Aeroporto de Faro' ? 'FAO' : 'ABF';
+                
+                // CarAlliance SIPP codes (sem grupos K)
+                const carallianceSipps = [
+                    {sipp: 'MDMV', grupo: 'B1'},
+                    {sipp: 'MDMR', grupo: 'B2'},
+                    {sipp: 'EDMV', grupo: 'D'},
+                    {sipp: 'MDAR', grupo: 'E1'},
+                    {sipp: 'EDAV', grupo: 'E2'},
+                    {sipp: 'CFMR', grupo: 'F'},
+                    {sipp: 'MTMR', grupo: 'G'},
+                    {sipp: 'CFMV', grupo: 'J1'},
+                    {sipp: 'IWMR', grupo: 'J2'},
+                    {sipp: 'CFAR', grupo: 'L1'},
+                    {sipp: 'CGAR', grupo: 'L1'},
+                    {sipp: 'IWAR', grupo: 'L2'},
+                    {sipp: 'SVMD', grupo: 'M1'},
+                    {sipp: 'SVMR', grupo: 'M1'},
+                    {sipp: 'SVAD', grupo: 'M2'},
+                    {sipp: 'LVMD', grupo: 'N'}
+                ];
+                
+                const data = collectCarAllianceData(commission, carallianceSipps, startDate, endDate, office);
+                console.log('Dados CarAlliance coletados:', data.length, 'linhas');
+                
+                await downloadCarAllianceExcel(data, location, startDate, endDate);
+                console.log('Download CarAlliance concluído!');
+            } catch (error) {
+                console.error('Erro no download CarAlliance:', error);
+                alert('Erro ao gerar ficheiro CarAlliance: ' + error.message);
+            }
+        }
+
+        // Coletar dados para CarAlliance
+        // Fórmula: (Net ÷ dias) × (1 + comissão%) ÷ 1.23
+        function collectCarAllianceData(commission, carallianceSipps, startDate, endDate, office) {
+            const data = [];
+            
+            // Coletar todos os preços dos cards
+            const cardPrices = {};
+            const cards = document.querySelectorAll('.price-card');
+            cards.forEach(card => {
+                const h3Text = card.querySelector('h3').textContent.trim();
+                const grupo = h3Text.replace('Grupo ', '');
+                const priceInputs = card.querySelectorAll('.price-input:not(.commission)');
+                const dias = [1, 2, 3, 4, 5, 6, 7, 8, 9, 14, 22, 28];
+                
+                cardPrices[grupo] = {};
+                priceInputs.forEach((input, idx) => {
+                    if (idx < dias.length) {
+                        cardPrices[grupo][dias[idx]] = parseFloat(input.value) || 0;
+                    }
+                });
+            });
+            
+            // Mapeamento: coluna Excel → {dias para dividir, dia fonte do Net}
+            const columnMapping = [
+                {key: '1_1', sourceDays: 1, divideBy: 1},
+                {key: '2_2', sourceDays: 2, divideBy: 2},
+                {key: '3_3', sourceDays: 3, divideBy: 3},
+                {key: '4_4', sourceDays: 4, divideBy: 4},
+                {key: '5_5', sourceDays: 5, divideBy: 5},
+                {key: '6_6', sourceDays: 6, divideBy: 6},
+                {key: '7_7', sourceDays: 7, divideBy: 7},
+                {key: '8_10', sourceDays: 8, divideBy: 8},
+                {key: '11_12', sourceDays: 9, divideBy: 9},
+                {key: '13_14', sourceDays: 14, divideBy: 14},
+                {key: '15_21', sourceDays: 22, divideBy: 22},
+                {key: '22_plus', sourceDays: 28, divideBy: 28}
+            ];
+            
+            carallianceSipps.forEach(sippInfo => {
+                const grupo = sippInfo.grupo;
+                const row = {
+                    serviceName: sippInfo.sipp,
+                    office: office,
+                    dateFrom: startDate,
+                    dateTo: endDate,
+                    prices: {}
+                };
+                
+                columnMapping.forEach(col => {
+                    const netPrice = cardPrices[grupo]?.[col.sourceDays] || 0;
+                    if (netPrice > 0) {
+                        // (Net ÷ dias) × (1 + comissão%) ÷ 1.23
+                        const dailyNet = netPrice / col.divideBy;
+                        const withCommission = dailyNet * (1 + commission / 100);
+                        const withoutVAT = withCommission / 1.23;
+                        row.prices[col.key] = withoutVAT.toFixed(2);
+                    }
+                });
+                
+                data.push(row);
+            });
+            
+            return data;
+        }
+
+        // Enviar dados para backend gerar Excel CarAlliance
+        async function downloadCarAllianceExcel(data, location, startDate, endDate) {
+            try {
+                const response = await fetch('/api/export-caralliance-excel', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        data: data,
+                        location: location,
+                        startDate: startDate,
+                        endDate: endDate
+                    })
+                });
+                
+                if (!response.ok) throw new Error('Erro ao gerar Excel');
+                
+                const blob = await response.blob();
+                const url = window.URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = `CARALLIANCE-${location}-${startDate.replace(/\./g, '-')}.xlsx`;
+                document.body.appendChild(a);
+                a.click();
+                window.URL.revokeObjectURL(url);
+                document.body.removeChild(a);
+            } catch (error) {
+                console.error('Erro ao baixar Excel CarAlliance:', error);
+                throw error;
+            }
+        }
+
         // Gerar ficheiro CSV
         function generateCSV(data, filename) {
             let csvContent = '';

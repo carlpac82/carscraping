@@ -39965,6 +39965,104 @@ async def export_abbycar_excel(request: Request):
         import traceback
         return _no_store_json({"ok": False, "error": str(e), "traceback": traceback.format_exc()}, 500)
 
+@app.post("/api/export-caralliance-excel")
+async def export_caralliance_excel(request: Request):
+    """Export CarAlliance Excel with specific formatting"""
+    require_auth(request)
+    try:
+        from openpyxl import Workbook
+        from openpyxl.styles import Font, PatternFill, Alignment, Border, Side
+        from openpyxl.utils import get_column_letter
+        from starlette.responses import Response
+        import io
+        
+        data_json = await request.json()
+        rows_data = data_json.get('data', [])
+        location = data_json.get('location', 'Albufeira')
+        start_date = data_json.get('startDate', '')
+        end_date = data_json.get('endDate', '')
+        
+        # Create workbook
+        wb = Workbook()
+        ws = wb.active
+        ws.title = "CarAlliance"
+        
+        # Headers
+        headers = ['ServiceName', 'Office', 'DateFrom', 'DateTo',
+                   '1-1', '2-2', '3-3', '4-4', '5-5', '6-6', '7-7',
+                   '8-10', '11-12', '13-14', '15-21', '22-', 'DiscountPercentage']
+        
+        # Header styling - dark blue background, white text, bold
+        header_fill = PatternFill(start_color='1F4E79', end_color='1F4E79', fill_type='solid')
+        header_font = Font(bold=True, color='FFFFFF', size=10)
+        header_alignment = Alignment(horizontal='center', vertical='center')
+        thin_border = Border(
+            left=Side(style='thin', color='B0B0B0'),
+            right=Side(style='thin', color='B0B0B0'),
+            top=Side(style='thin', color='B0B0B0'),
+            bottom=Side(style='thin', color='B0B0B0')
+        )
+        
+        # Write headers
+        for col_idx, header in enumerate(headers, 1):
+            cell = ws.cell(row=1, column=col_idx, value=header)
+            cell.fill = header_fill
+            cell.font = header_font
+            cell.alignment = header_alignment
+            cell.border = thin_border
+        
+        # Add auto-filter
+        ws.auto_filter.ref = f"A1:{get_column_letter(len(headers))}1"
+        
+        # Add data rows (white background)
+        for row_data in rows_data:
+            row_values = [
+                row_data.get('serviceName', ''),
+                row_data.get('office', ''),
+                row_data.get('dateFrom', ''),
+                row_data.get('dateTo', ''),
+            ]
+            
+            # Add prices (with comma as decimal separator)
+            prices = row_data.get('prices', {})
+            for key in ['1_1', '2_2', '3_3', '4_4', '5_5', '6_6', '7_7',
+                       '8_10', '11_12', '13_14', '15_21', '22_plus']:
+                price_val = prices.get(key, '')
+                if price_val and str(price_val) != '0' and str(price_val) != '0.00':
+                    row_values.append(str(price_val).replace('.', ','))
+                else:
+                    row_values.append('')
+            
+            # DiscountPercentage - empty
+            row_values.append('')
+            
+            ws.append(row_values)
+        
+        # Set column widths
+        col_widths = {'A': 14, 'B': 8, 'C': 14, 'D': 14}
+        for col_letter, width in col_widths.items():
+            ws.column_dimensions[col_letter].width = width
+        # Price columns
+        for col_idx in range(5, len(headers) + 1):
+            ws.column_dimensions[get_column_letter(col_idx)].width = 8
+        
+        # Save to bytes
+        excel_bytes = io.BytesIO()
+        wb.save(excel_bytes)
+        excel_bytes.seek(0)
+        
+        filename = f"CARALLIANCE-{location}-{start_date.replace('/', '-').replace('.', '-')}.xlsx"
+        
+        return Response(
+            content=excel_bytes.getvalue(),
+            media_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+            headers={'Content-Disposition': f'attachment; filename="{filename}"'}
+        )
+    except Exception as e:
+        import traceback
+        logging.error(f"Error exporting CarAlliance Excel: {e}\n{traceback.format_exc()}")
+        return _no_store_json({"ok": False, "error": str(e)}, 500)
+
 @app.post("/api/export-automated-prices-excel")
 async def export_automated_prices_excel(request: Request):
     """Export automated prices to Excel (Abbycar format)"""
