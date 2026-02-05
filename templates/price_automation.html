@@ -6953,25 +6953,37 @@
                 ? dias.map(d => parseInt(d)).filter(d => !isNaN(d) && d > 0)
                 : [];
             
-            // Extract days that have prices but are missing from dias array
+            // Extract days that have prices OR supplier data but are missing from dias array
+            const daysWithData = new Set();
+            // Check prices object
             if (prices && typeof prices === 'object') {
-                const daysWithPrices = new Set();
                 Object.values(prices).forEach(groupPrices => {
                     if (groupPrices && typeof groupPrices === 'object') {
                         Object.keys(groupPrices).forEach(day => {
                             const d = parseInt(day);
-                            if (!isNaN(d) && d > 0) daysWithPrices.add(d);
+                            if (!isNaN(d) && d > 0) daysWithData.add(d);
                         });
                     }
                 });
-                // Merge: add any day with prices that's missing from dias
-                daysWithPrices.forEach(d => {
-                    if (!daysToLoad.includes(d)) {
-                        console.log(`[HISTORY] ⚠️ Day ${d} has prices but was missing from dias array - adding it`);
-                        daysToLoad.push(d);
+            }
+            // Check supplierData (raw scraping data may have more days than prices)
+            if (supplierData && typeof supplierData === 'object') {
+                Object.values(supplierData).forEach(groupOrDayData => {
+                    if (groupOrDayData && typeof groupOrDayData === 'object') {
+                        Object.keys(groupOrDayData).forEach(key => {
+                            const d = parseInt(key);
+                            if (!isNaN(d) && d > 0) daysWithData.add(d);
+                        });
                     }
                 });
             }
+            // Merge: add any day with data that's missing from dias
+            daysWithData.forEach(d => {
+                if (!daysToLoad.includes(d)) {
+                    console.log(`[HISTORY] ⚠️ Day ${d} has data but was missing from dias array - adding it`);
+                    daysToLoad.push(d);
+                }
+            });
             daysToLoad.sort((a, b) => a - b);
             console.log('[HISTORY] ✅ Loading history with dias array (merged):', daysToLoad);
             
@@ -7118,7 +7130,7 @@
                 console.log('[HISTORY] - Default state: first day open, others closed');
                 console.log('[HISTORY] - Scroll-to-top button');
                 
-                renderPriceComparisonCards(allCarsByDay, automatedPricesByGroup, dias);
+                renderPriceComparisonCards(allCarsByDay, automatedPricesByGroup, selectedDaysAuto);
             } else {
                 console.warn('[HISTORY] No supplier data available - visual cards will be empty');
             }
