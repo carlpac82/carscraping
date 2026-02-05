@@ -257,50 +257,6 @@
           </div>
         </div>
         
-        <!-- SMTP Email Settings -->
-        <div class="border-t pt-4 mt-6">
-          <h3 class="text-md font-semibold text-gray-800 mb-3 flex items-center gap-2">
-            <svg class="w-5 h-5 text-[#009cb6]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"/>
-            </svg>
-            Email Notifications (SMTP)
-          </h3>
-          <div class="space-y-4">
-            <div>
-              <label class="block text-sm font-medium text-gray-700">SMTP Host</label>
-              <input type="text" name="smtp_host" value="{{ smtp_host }}" placeholder="smtp.gmail.com" class="mt-1 w-full rounded-md border-gray-300 shadow-sm focus:border-[#009cb6] focus:ring-2 focus:ring-[#009cb6]" />
-              <p class="text-xs text-gray-500 mt-1">Servidor SMTP para envio de emails</p>
-            </div>
-            <div>
-              <label class="block text-sm font-medium text-gray-700">SMTP Port</label>
-              <input type="text" name="smtp_port" value="{{ smtp_port }}" placeholder="587" class="mt-1 w-full rounded-md border-gray-300 shadow-sm focus:border-[#009cb6] focus:ring-2 focus:ring-[#009cb6]" />
-              <p class="text-xs text-gray-500 mt-1">Porta SMTP (587 para TLS, 465 para SSL)</p>
-            </div>
-            <div>
-              <label class="block text-sm font-medium text-gray-700">SMTP Username</label>
-              <input type="text" name="smtp_username" value="{{ smtp_username }}" placeholder="your-email@gmail.com" class="mt-1 w-full rounded-md border-gray-300 shadow-sm focus:border-[#009cb6] focus:ring-2 focus:ring-[#009cb6]" />
-              <p class="text-xs text-gray-500 mt-1">Email ou username para autenticação</p>
-            </div>
-            <div>
-              <label class="block text-sm font-medium text-gray-700">SMTP Password</label>
-              <input type="password" name="smtp_password" value="{{ smtp_password }}" placeholder="••••••••" class="mt-1 w-full rounded-md border-gray-300 shadow-sm focus:border-[#009cb6] focus:ring-2 focus:ring-[#009cb6]" />
-              <p class="text-xs text-gray-500 mt-1">Password ou App Password</p>
-            </div>
-            <div>
-              <label class="block text-sm font-medium text-gray-700">From Email</label>
-              <input type="text" name="smtp_from" value="{{ smtp_from }}" placeholder="no-reply@example.com" class="mt-1 w-full rounded-md border-gray-300 shadow-sm focus:border-[#009cb6] focus:ring-2 focus:ring-[#009cb6]" />
-              <p class="text-xs text-gray-500 mt-1">Email que aparece como remetente</p>
-            </div>
-            <div>
-              <label class="flex items-center gap-2 cursor-pointer">
-                <input type="checkbox" name="smtp_tls" value="1" {% if smtp_tls %}checked{% endif %} class="w-4 h-4 text-[#009cb6] border-gray-300 rounded focus:ring-[#009cb6]" />
-                <span class="text-sm font-medium text-gray-700">Use TLS</span>
-              </label>
-              <p class="text-xs text-gray-500 mt-1 ml-6">Ativar TLS (recomendado para porta 587)</p>
-            </div>
-          </div>
-        </div>
-        
         <div class="flex items-center gap-3">
           <button type="submit" class="px-4 py-2 rounded bg-[#009cb6] text-white" data-i18n="priceAdjustment.save">Save</button>
           <a href="/admin/env-summary" class="text-sm text-[#009cb6] underline" data-i18n="priceAdjustment.viewJson">View current values (JSON)</a>
