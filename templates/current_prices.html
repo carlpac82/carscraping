@@ -741,7 +741,29 @@
             if (index >= 0 && index < allPeriods.length) {
                 const period = allPeriods[index];
                 currentPeriod = period;
-                currentPrices = period.prices || {};
+                const rawPrices = period.prices || {};
+                
+                // Normalize prices: DB may store as simple numbers (36.42) 
+                // but UI expects {net: 36.42, commission: 41.39}
+                currentPrices = {};
+                Object.keys(rawPrices).forEach(grupo => {
+                    currentPrices[grupo] = {};
+                    Object.keys(rawPrices[grupo] || {}).forEach(dia => {
+                        const val = rawPrices[grupo][dia];
+                        if (typeof val === 'number') {
+                            // Simple number from DB → convert to {net, commission}
+                            currentPrices[grupo][dia] = {
+                                net: val,
+                                commission: calculateCommission(val)
+                            };
+                        } else if (val && typeof val === 'object' && val.net !== undefined) {
+                            // Already in correct format
+                            currentPrices[grupo][dia] = val;
+                        } else {
+                            currentPrices[grupo][dia] = { net: 0, commission: 0 };
+                        }
+                    });
+                });
                 
                 // DEBUG: Mostrar estrutura dos preços carregados
                 console.log('🔍 [CURRENT-PRICES] Período carregado:', {
@@ -950,6 +972,20 @@
             }
 
             try {
+                // Convert {net, commission} format back to simple numbers for DB
+                const pricesToSave = {};
+                Object.keys(currentPrices).forEach(grupo => {
+                    pricesToSave[grupo] = {};
+                    Object.keys(currentPrices[grupo] || {}).forEach(dia => {
+                        const val = currentPrices[grupo][dia];
+                        if (typeof val === 'object' && val.net !== undefined) {
+                            pricesToSave[grupo][dia] = val.net;
+                        } else if (typeof val === 'number') {
+                            pricesToSave[grupo][dia] = val;
+                        }
+                    });
+                });
+                
                 const response = await fetch('/api/current-prices/save', {
                     method: 'POST',
                     headers: {
@@ -961,7 +997,7 @@
                         year: parseInt(year),
                         day_start: dayStart,
                         day_end: dayEnd,
-                        prices: currentPrices
+                        prices: pricesToSave
                     })
                 });
 
