@@ -3062,11 +3062,10 @@
             const day_start = 1;
             const day_end = lastDayOfMonth;
             
-            // Abbycar: todos os grupos incluindo K (sem C3, C4, C5, X - não existem na Abbycar)
-            // Ordem conforme imagem: B1, B2, BK1, BK2, D, DK, E1, E2, EK1, EK2, F, FK, G, J1, J2, JK1, JK2, L1, L1, LK1, M1, M1, M2, MK1, MK2, N, NK
-            const groups = ['B1', 'B2', 'BK1', 'BK2', 'C', 'D', 'DK', 
-                           'E1', 'E2', 'EK1', 'EK2', 'F', 'FK', 'G', 'J1', 'J2', 'JK1', 'JK2', 
-                           'L1', 'L2', 'LK1', 'M1', 'M2', 'MK1', 'MK2', 'N', 'NK'];
+            // Abbycar: apenas grupos base (sem K groups, sem C3, C4, C5, X)
+            const groups = ['B1', 'B2', 'C', 'D', 
+                           'E1', 'E2', 'F', 'G', 'J1', 'J2', 
+                           'L1', 'M1', 'M2', 'N'];
             const days = [1, 2, 3, 4, 5, 6, 7, 8, 9, 14, 22, 28];
             
             // Collect prices

@@ -40050,20 +40050,6 @@ async def export_automated_prices_excel(request: Request):
             'SVMD': 'M1',   # Standard Manual (duplicate)
             'SVAD': 'M2',   # Standard Auto
             'LVMD': 'N',    # Large Manual
-            
-            # K groups (copy from base group + Abbycar adjustment)
-            'MCMV': 'BK1',  # Mini Coupe Manual (K group)
-            'NDMR': 'BK2',  # Economy 4 Doors Manual (K group)
-            'HDMV': 'DK',   # Mini Elite 4 Doors Manual (K group)
-            'MDAV': 'EK1',  # Mini 4 Doors Auto (K group)
-            'EDAR': 'EK2',  # Economy Auto (K group)
-            'DFMR': 'FK',   # Compact 4 Doors Manual (K group)
-            'DFMV': 'JK1',  # Compact 4 Doors Manual (K group)
-            'IWMV': 'JK2',  # Intermediate Wagon Manual (K group)
-            'CFAV': 'LK1',  # Compact Auto (K group)
-            'SVMV': 'MK1',  # Standard Manual (K group)
-            'SVAR': 'MK2',  # Standard Auto (K group)
-            'LVMR': 'NK'    # Large Manual (K group)
         }
         
         # Load template
@@ -40150,55 +40136,26 @@ async def export_automated_prices_excel(request: Request):
             'LVMR': 'Opel Vivaro'
         }
         
-        # Use SIPP codes in the EXACT order from Abbycar image
-        # Order: B1, B2, BK1, BK2, D, DK, E1, E2, EK1, EK2, F, FK, G, J1, J2, JK1, JK2, L1, L1(CGAR), LK1, M1, M1(SVMD), M2, MK1, MK2, N, NK
+        # Use SIPP codes in order (base groups only, no K groups)
         sipp_codes_order = [
             'MDMV',  # B1
             'MDMR',  # B2
-            'MCMV',  # BK1 (K group - copies from B1)
-            'NDMR',  # BK2 (K group - copies from B2)
             'EDMV',  # D
-            'HDMV',  # DK (K group - copies from D)
             'MDAR',  # E1
             'EDAV',  # E2
-            'MDAV',  # EK1 (K group - copies from E1)
-            'EDAR',  # EK2 (K group - copies from E2)
             'CFMR',  # F
-            'DFMR',  # FK (K group - copies from F)
             'MTMR',  # G
             'CFMV',  # J1
             'IWMR',  # J2
-            'DFMV',  # JK1 (K group - copies from J1)
-            'IWMV',  # JK2 (K group - copies from J2)
             'CFAR',  # L1
-            'CGAR',  # L1 (duplicate in image)
-            'CFAV',  # LK1 (K group - copies from L1)
+            'CGAR',  # L1 (duplicate)
             'SVMR',  # M1
-            'SVMD',  # M1 (duplicate in image)
+            'SVMD',  # M1 (duplicate)
             'SVAD',  # M2
-            'SVMV',  # MK1 (K group - copies from M1)
-            'SVAR',  # MK2 (K group - copies from M2)
             'LVMD',  # N
-            'LVMR'   # NK (K group - copies from N) - NOT NK1!
         ]
         print(f"[BACKEND] Processing {len(sipp_codes_order)} SIPP codes in Abbycar order...", flush=True)
         
-        # Map K groups (internal codes) to their base groups (internal codes) for price calculation
-        k_group_base_mapping = {
-            'BK1': 'B1',   # BK1 → B1
-            'BK2': 'B2',   # BK2 → B2
-            'DK': 'D',     # DK → D
-            'EK1': 'E1',   # EK1 → E1
-            'EK2': 'E2',   # EK2 → E2
-            'FK': 'F',     # FK → F
-            'JK1': 'J1',   # JK1 → J1
-            'JK2': 'J2',   # JK2 → J2
-            'LK1': 'L1',   # LK1 → L1
-            'MK1': 'M1',   # MK1 → M1
-            'MK2': 'M2',   # MK2 → M2
-            'NK': 'N'      # NK → N
-        }
-        print(f"[BACKEND] K groups will copy from base groups with same Abbycar adjustment", flush=True)
         
         # Price calculation logic based on periods
         def calculate_price_for_day(group_prices, day):
@@ -40257,19 +40214,8 @@ async def export_automated_prices_excel(request: Request):
         for sipp_code in sipp_codes_order:
             # Get internal group from SIPP code
             internal_group = car_group_mapping.get(sipp_code, sipp_code)
-            
-            # Check if this internal group is a K group (needs to copy from base group)
-            is_k_group = internal_group in k_group_base_mapping
-            
-            if is_k_group:
-                # K group: copy prices from base group
-                base_internal_group = k_group_base_mapping[internal_group]
-                group_prices = prices.get(base_internal_group, {})
-                print(f"[BACKEND] K group {internal_group} (SIPP: {sipp_code}) copying from base {base_internal_group}", flush=True)
-            else:
-                # Normal group: use its own prices
-                group_prices = prices.get(internal_group, {})
-                print(f"[BACKEND] Normal group {internal_group} (SIPP: {sipp_code})", flush=True)
+            group_prices = prices.get(internal_group, {})
+            print(f"[BACKEND] Group {internal_group} (SIPP: {sipp_code})", flush=True)
             
             
             # Column 1: Stations (template already has formatting)

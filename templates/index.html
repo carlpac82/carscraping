@@ -1777,29 +1777,17 @@
             const groupToSipp = {
                 'B1': [{sipp: 'MDMV', model: 'Peugeot 108'}],
                 'B2': [{sipp: 'MDMR', model: 'Fiat Panda'}],
-                'BK1': [{sipp: 'MCMV', model: 'Citroen C1'}],
-                'BK2': [{sipp: 'NDMR', model: 'Toyota Aygo'}],
                 'D': [{sipp: 'EDMV', model: 'Opel Corsa'}],
-                'DK': [{sipp: 'HDMV', model: 'Ford Fiesta'}],
                 'E1': [{sipp: 'MDAR', model: 'Kia Picanto'}],
                 'E2': [{sipp: 'EDAV', model: 'Citroen C3/Opel Corsa'}],
-                'EK1': [{sipp: 'MDAV', model: 'Toyota Aygo'}],
-                'EK2': [{sipp: 'EDAR', model: 'Opel Corsa'}],
                 'F': [{sipp: 'CFMR', model: 'Seat Arona'}],
-                'FK': [{sipp: 'DFMR', model: 'Kia Stonic'}],
                 'G': [{sipp: 'MTMR', model: 'Fiat 500 Cabrio'}],
                 'J1': [{sipp: 'CFMV', model: 'Peugeot 2008'}],
                 'J2': [{sipp: 'IWMR', model: 'Peugeot 308 SW'}],
-                'JK1': [{sipp: 'DFMV', model: 'Citroen C4'}],
-                'JK2': [{sipp: 'IWMV', model: 'Opel Astra STW'}],
                 'L1': [{sipp: 'CFAR', model: 'Seat Arona'}, {sipp: 'CGAR', model: 'Citroen C3 Aircross'}],
-                'LK1': [{sipp: 'CFAV', model: 'VW T-Cross'}],
                 'M1': [{sipp: 'SVMR', model: 'Dacia Jogger SL Extreme'}, {sipp: 'SVMD', model: 'Citroen Grand C4'}],
                 'M2': [{sipp: 'SVAD', model: 'Citroen Grand C4 Automatic'}],
-                'MK1': [{sipp: 'SVMV', model: 'Peugeot Rifter'}],
-                'MK2': [{sipp: 'SVAR', model: 'Peugeot Rifter Automatic'}],
-                'N': [{sipp: 'LVMD', model: 'Fiat Talento'}],
-                'NK': [{sipp: 'LVMR', model: 'Opel Vivaro'}]
+                'N': [{sipp: 'LVMD', model: 'Fiat Talento'}]
             };
             
             const data = collectAbbycarData(abbycarCommission, groupToSipp, startDate, endDate, showGroupsK);
@@ -1882,13 +1870,6 @@
             const data = [];
             const station = 'ABF'; // Albufeira
             
-            // Mapeamento de grupos K para seus grupos base
-            const kGroupMapping = {
-                'BK1': 'B1', 'BK2': 'B2', 'DK': 'D',
-                'EK1': 'E1', 'EK2': 'E2', 'FK': 'F',
-                'JK1': 'J1', 'JK2': 'J2', 'LK1': 'L1',
-                'MK1': 'M1', 'MK2': 'M2', 'NK': 'N'
-            };
             
             // Primeiro, coletar todos os preços dos cards
             const cardPrices = {};
@@ -1912,11 +1893,6 @@
                 const sippInfoArray = groupToSipp[grupo];
                 if (!sippInfoArray) return;
                 
-                // Se é grupo K e checkbox não está marcada, SKIP (não adicionar ao ficheiro)
-                if (kGroupMapping[grupo] && !showGroupsK) {
-                    return; // Não adicionar grupos K ao ficheiro
-                }
-                
                 // Alguns grupos têm múltiplos SIPP codes (L1, M1) - gerar linha para cada um
                 sippInfoArray.forEach(sippInfo => {
                     const row = {
@@ -1935,17 +1911,8 @@
                         let netPrice = 0;
                         let finalPrice = 0;
                         
-                        // Se é grupo K (já verificado que checkbox está marcada)
-                        if (kGroupMapping[grupo]) {
-                            const baseGroup = kGroupMapping[grupo];
-                            netPrice = cardPrices[baseGroup]?.[day] || 0;
-                            // Aplicar comissão Abbycar
-                            finalPrice = parseFloat(calculateWithCommission(netPrice, commission));
-                        } else {
-                            // Grupos normais sempre têm preços
-                            netPrice = cardPrices[grupo]?.[day] || 0;
-                            finalPrice = parseFloat(calculateWithCommission(netPrice, commission));
-                        }
+                        netPrice = cardPrices[grupo]?.[day] || 0;
+                        finalPrice = parseFloat(calculateWithCommission(netPrice, commission));
                         
                         // Mapear para colunas do Abbycar
                         if (day <= 7) {
