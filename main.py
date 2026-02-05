@@ -472,29 +472,6 @@ def _get_abbycar_adjustment() -> float:
     except Exception:
         return 3.0
 
-def _get_abbycar_low_deposit_enabled() -> bool:
-    """
-    Check if Low Deposit adjustment is enabled
-    Returns: True if enabled, False otherwise
-    Default: False
-    """
-    try:
-        val = _get_setting("abbycar_low_deposit_enabled")
-        return val == "1" or val == "true" or val == True
-    except Exception:
-        return False
-
-def _get_abbycar_low_deposit_adjustment() -> float:
-    """
-    Get Low Deposit groups additional adjustment percentage
-    Returns: Additional percentage adjustment for Low Deposit groups
-    Default: 0.0%
-    """
-    try:
-        val = _get_setting("abbycar_low_deposit_pct")
-        return float(val) if val else 0.0
-    except Exception:
-        return 0.0
 
 def apply_price_adjustments(items: List[Dict[str, Any]], base_url: str) -> List[Dict[str, Any]]:
     try:
@@ -6304,8 +6281,6 @@ async def admin_settings_page(request: Request):
         return RedirectResponse(url="/login", status_code=HTTP_303_SEE_OTHER)
     cj_pct, cj_off = _get_carjet_adjustment()
     abbycar_pct = _get_abbycar_adjustment()
-    abbycar_low_deposit_pct = _get_abbycar_low_deposit_adjustment()
-    abbycar_low_deposit_enabled = _get_abbycar_low_deposit_enabled()
     website_pct = float(_get_setting("website_pct", "14"))
     caralliance_pct = float(_get_setting("caralliance_pct", "0"))
     
@@ -6322,8 +6297,6 @@ async def admin_settings_page(request: Request):
         "carjet_pct": cj_pct, 
         "carjet_off": cj_off, 
         "abbycar_pct": abbycar_pct,
-        "abbycar_low_deposit_pct": abbycar_low_deposit_pct,
-        "abbycar_low_deposit_enabled": abbycar_low_deposit_enabled,
         "website_pct": website_pct,
         "caralliance_pct": caralliance_pct,
         "smtp_host": smtp_host,
@@ -6342,8 +6315,6 @@ async def admin_settings_save(
     carjet_pct: str = Form(""), 
     carjet_off: str = Form(""), 
     abbycar_pct: str = Form(""), 
-    abbycar_low_deposit_pct: str = Form(""), 
-    abbycar_low_deposit_enabled: str = Form(""),
     website_pct: str = Form(""),
     caralliance_pct: str = Form(""),
     smtp_host: str = Form(""),
@@ -6362,8 +6333,6 @@ async def admin_settings_save(
         pct_val = float((carjet_pct or "0").replace(",", "."))
         off_val = float((carjet_off or "0").replace(",", "."))
         abbycar_pct_val = float((abbycar_pct or "3").replace(",", "."))
-        abbycar_low_deposit_pct_val = float((abbycar_low_deposit_pct or "0").replace(",", "."))
-        abbycar_low_deposit_enabled_val = "1" if abbycar_low_deposit_enabled == "1" else "0"
         website_pct_val = float((website_pct or "0").replace(",", "."))
         caralliance_pct_val = float((caralliance_pct or "0").replace(",", "."))
         
@@ -6371,8 +6340,6 @@ async def admin_settings_save(
         _set_setting("carjet_pct", str(pct_val))
         _set_setting("carjet_off", str(off_val))
         _set_setting("abbycar_pct", str(abbycar_pct_val))
-        _set_setting("abbycar_low_deposit_pct", str(abbycar_low_deposit_pct_val))
-        _set_setting("abbycar_low_deposit_enabled", abbycar_low_deposit_enabled_val)
         _set_setting("website_pct", str(website_pct_val))
         _set_setting("caralliance_pct", str(caralliance_pct_val))
         
@@ -6386,8 +6353,6 @@ async def admin_settings_save(
         
         cj_pct, cj_off = pct_val, off_val
         abbycar_pct_result = abbycar_pct_val
-        abbycar_low_deposit_pct_result = abbycar_low_deposit_pct_val
-        abbycar_low_deposit_enabled_result = abbycar_low_deposit_enabled_val == "1"
         website_pct_result = website_pct_val
         caralliance_pct_result = caralliance_pct_val
         smtp_host_result = smtp_host.strip()
@@ -6400,8 +6365,6 @@ async def admin_settings_save(
         err = str(e)
         cj_pct, cj_off = _get_carjet_adjustment()
         abbycar_pct_result = _get_abbycar_adjustment()
-        abbycar_low_deposit_pct_result = _get_abbycar_low_deposit_adjustment()
-        abbycar_low_deposit_enabled_result = _get_abbycar_low_deposit_enabled()
         website_pct_result = float(_get_setting("website_pct", "14"))
         caralliance_pct_result = float(_get_setting("caralliance_pct", "0"))
         smtp_host_result = _get_setting("smtp_host", "")
@@ -6415,8 +6378,6 @@ async def admin_settings_save(
         "carjet_pct": cj_pct, 
         "carjet_off": cj_off, 
         "abbycar_pct": abbycar_pct_result,
-        "abbycar_low_deposit_pct": abbycar_low_deposit_pct_result,
-        "abbycar_low_deposit_enabled": abbycar_low_deposit_enabled_result,
         "website_pct": website_pct_result,
         "caralliance_pct": caralliance_pct_result,
         "smtp_host": smtp_host_result,
@@ -19860,20 +19821,6 @@ async def get_caralliance_commission(request: Request):
         })
     except Exception as e:
         logging.error(f"Error getting CarAlliance commission: {e}")
-        return JSONResponse({"ok": False, "error": str(e)}, status_code=500)
-
-@app.get("/api/admin-settings/low-deposit")
-async def get_low_deposit_settings(request: Request):
-    """Get Low Deposit settings from Admin Settings"""
-    try:
-        require_auth(request)
-        low_deposit_pct = _get_abbycar_low_deposit_adjustment()
-        return JSONResponse({
-            "ok": True,
-            "low_deposit_pct": low_deposit_pct
-        })
-    except Exception as e:
-        logging.error(f"Error getting Low Deposit settings: {e}")
         return JSONResponse({"ok": False, "error": str(e)}, status_code=500)
 
 @app.get("/api/debug/ra/{ra_number}")
@@ -39873,19 +39820,6 @@ async def download_export_history(request: Request, export_id: int):
         import traceback
         return _no_store_json({"ok": False, "error": str(e), "traceback": traceback.format_exc()}, 500)
 
-@app.get("/api/admin-settings/low-deposit")
-async def get_low_deposit_percentage(request: Request):
-    """Get Low Deposit percentage from Admin Settings"""
-    require_auth(request)
-    try:
-        low_deposit_pct = _get_abbycar_low_deposit_adjustment()
-        return _no_store_json({
-            "ok": True,
-            "low_deposit_pct": low_deposit_pct
-        })
-    except Exception as e:
-        return _no_store_json({"ok": False, "error": str(e)}, 500)
-
 @app.post("/api/export-abbycar-excel")
 async def export_abbycar_excel(request: Request):
     """Export Abbycar Excel with blue background for K groups"""
@@ -40101,13 +40035,13 @@ async def export_automated_prices_excel(request: Request):
             'CFMV': 'J1',   # Compact Manual
             'IWMR': 'J2',   # Intermediate Wagon Manual
             'CFAR': 'L1',   # Compact Auto
-            'CGAR': 'L2',   # Compact Auto (L2 not L1!)
+            'CGAR': 'L1',   # Compact Auto (L1 - same as CFAR)
             'SVMR': 'M1',   # Standard Manual
             'SVMD': 'M1',   # Standard Manual (duplicate)
             'SVAD': 'M2',   # Standard Auto
             'LVMD': 'N',    # Large Manual
             
-            # K groups (Low Deposit - copy from base + adjustment)
+            # K groups (copy from base group + Abbycar adjustment)
             'MCMV': 'BK1',  # Mini Coupe Manual (K group)
             'NDMR': 'BK2',  # Economy 4 Doors Manual (K group)
             'HDMV': 'DK',   # Mini Elite 4 Doors Manual (K group)
@@ -40160,8 +40094,8 @@ async def export_automated_prices_excel(request: Request):
         # Map internal group codes to primary SIPP code for display
         group_to_sipp = {
             'B1': 'MDMV',
-            'B2': 'EDMV',
-            'D': 'MDMR',
+            'B2': 'MDMR',
+            'D': 'EDMV',
             'E1': 'MDAR',
             'E2': 'EDAV',
             'F': 'CFMR',
@@ -40169,7 +40103,7 @@ async def export_automated_prices_excel(request: Request):
             'J1': 'CFMV',
             'J2': 'IWMR',
             'L1': 'CFAR',
-            'L2': 'CGAR',
+            'L1_2': 'CGAR',  # L1 second SIPP
             'M1': 'SVMR',
             'M2': 'SVAD',
             'N': 'LVMD'
@@ -40254,7 +40188,7 @@ async def export_automated_prices_excel(request: Request):
             'MK2': 'M2',   # MK2 → M2
             'NK': 'N'      # NK → N
         }
-        print(f"[BACKEND] K groups will copy from base groups + {abbycar_low_deposit_adjustment}% adjustment", flush=True)
+        print(f"[BACKEND] K groups will copy from base groups with same Abbycar adjustment", flush=True)
         
         # Price calculation logic based on periods
         def calculate_price_for_day(group_prices, day):
@@ -40293,17 +40227,8 @@ async def export_automated_prices_excel(request: Request):
             # Just return it (Admin Settings % will be applied later)
             return price
         
-        # Get Abbycar price adjustments
+        # Get Abbycar price adjustment
         abbycar_adjustment = _get_abbycar_adjustment()
-        abbycar_low_deposit_enabled = _get_abbycar_low_deposit_enabled()
-        abbycar_low_deposit_adjustment = _get_abbycar_low_deposit_adjustment()
-        
-        # Define Low Deposit groups (ALWAYS defined, but only filled if enabled)
-        # SIPP codes: MCMV, NDMR, HDMV, MDAV, EDAR, DFMR, DFMV, IWMV, CFAV, SVMV, SVAR, LVMR
-        # Map to internal groups:
-        low_deposit_sipp_codes = ['MCMV', 'NDMR', 'HDMV', 'MDAV', 'EDAR', 'DFMR', 'DFMV', 'IWMV', 'CFAV', 'SVMV', 'SVAR', 'LVMR']
-        low_deposit_groups = list(set([car_group_mapping[sipp] for sipp in low_deposit_sipp_codes if sipp in car_group_mapping]))
-        # Result: ['B1', 'B2', 'D', 'E1', 'E2', 'F', 'J1', 'J2', 'L1', 'M1', 'M2', 'N']
         
         # Fill data rows - template already has formatting, just update values
         print(f"[BACKEND] Filling {len(sipp_codes_order)} rows with prices...", flush=True)
@@ -40336,8 +40261,6 @@ async def export_automated_prices_excel(request: Request):
                 group_prices = prices.get(internal_group, {})
                 print(f"[BACKEND] Normal group {internal_group} (SIPP: {sipp_code})", flush=True)
             
-            # Check if this is a Low Deposit group (for legacy compatibility)
-            is_low_deposit_group = sipp_code in low_deposit_sipp_codes
             
             # Column 1: Stations (template already has formatting)
             ws.cell(row_num, 1).value = station_code
@@ -40370,18 +40293,9 @@ async def export_automated_prices_excel(request: Request):
             for day_key, col_idx in price_columns:
                 price = calculate_price_for_day(group_prices, int(day_key))
                 
-                # K groups: check if Low Deposit is enabled
-                should_skip_price = is_k_group and not abbycar_low_deposit_enabled
-                
-                if price and not should_skip_price:
-                    # Apply Abbycar adjustment percentage
-                    total_adjustment = abbycar_adjustment
-                    
-                    # K groups: add Low Deposit adjustment if enabled
-                    if is_k_group and abbycar_low_deposit_enabled:
-                        total_adjustment += abbycar_low_deposit_adjustment
-                    
-                    adjusted_price = float(price) * (1 + total_adjustment / 100)
+                if price:
+                    # Apply Abbycar adjustment percentage (same for all groups including K)
+                    adjusted_price = float(price) * (1 + abbycar_adjustment / 100)
                     
                     # Round to 2 decimal places
                     adjusted_price = round(adjusted_price, 2)
@@ -40394,7 +40308,6 @@ async def export_automated_prices_excel(request: Request):
                     # Format: #.##0,00 (2 decimal places with comma)
                     cell.number_format = '#.##0,00'
                 else:
-                    # Leave empty if: no price OR (K group AND Low Deposit disabled)
                     ws.cell(row_num, col_idx).value = ''
             
             row_num += 1

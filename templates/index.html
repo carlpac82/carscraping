@@ -1762,12 +1762,6 @@
                 const startDate = `${month}/01/${year}`;
                 const endDate = `${month}/${lastDay}/${year}`;
                 
-                // Fetch Low Deposit percentage from Admin Settings
-                const lowDepositResponse = await fetch('/api/admin-settings/low-deposit');
-                const lowDepositData = await lowDepositResponse.json();
-                const lowDepositPct = lowDepositData.ok ? lowDepositData.low_deposit_pct : 0;
-                console.log('Low Deposit %:', lowDepositPct);
-                
                 // Fetch Abbycar commission from Admin Settings
                 const abbycarCommissionResponse = await fetch('/api/admin-settings/abbycar-commission');
                 const abbycarCommissionData = await abbycarCommissionResponse.json();
@@ -1808,7 +1802,7 @@
                 'NK': [{sipp: 'LVMR', model: 'Opel Vivaro'}]
             };
             
-            const data = collectAbbycarData(abbycarCommission, groupToSipp, startDate, endDate, lowDepositPct, showGroupsK);
+            const data = collectAbbycarData(abbycarCommission, groupToSipp, startDate, endDate, showGroupsK);
                 console.log('Dados coletados:', data.length, 'grupos');
                 
                 // Enviar para backend para gerar Excel com formatação
@@ -1884,7 +1878,7 @@
         }
 
         // Coletar dados para Abbycar (formato específico)
-        function collectAbbycarData(commission, groupToSipp, startDate, endDate, lowDepositPct, showGroupsK) {
+        function collectAbbycarData(commission, groupToSipp, startDate, endDate, showGroupsK) {
             const data = [];
             const station = 'ABF'; // Albufeira
             
@@ -1947,8 +1941,6 @@
                             netPrice = cardPrices[baseGroup]?.[day] || 0;
                             // Aplicar comissão Abbycar
                             finalPrice = parseFloat(calculateWithCommission(netPrice, commission));
-                            // Aplicar Low Deposit adicional
-                            finalPrice = finalPrice * (1 + lowDepositPct / 100);
                         } else {
                             // Grupos normais sempre têm preços
                             netPrice = cardPrices[grupo]?.[day] || 0;
