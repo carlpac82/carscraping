@@ -3570,15 +3570,14 @@
                 });
             }
             
-            // Check if editing history or current search
+            // ALWAYS auto-save when editing a price in a card
+            // This ensures edited prices are always persisted to DB
+            console.log('[AUTO-SAVE] Saving price change...');
+            autoSaveCurrentSearch();
+            
+            // Also show save button for history editing (visual feedback)
             if (window.editingHistoryData) {
-                // EDITING HISTORY: Show Save button to create new version
                 showSaveEditedButton();
-                console.log('[EDIT-HISTORY] Save button shown - editing historical version');
-            } else {
-                // CURRENT SEARCH: Auto-save immediately (no button needed)
-                console.log('[AUTO-SAVE] Saving current search price change...');
-                autoSaveCurrentSearch();
             }
             
             // Update the table input field (RÁPIDO)
@@ -7150,6 +7149,13 @@
             showSaveEditedButton();
             
             showNotification('Versão carregada para edição - Modo visual ativo', 'success');
+            
+            // Auto-save after history load to persist recalculated prices
+            // This ensures new days (8,9,14,22,28) and recalculated values are saved to DB
+            setTimeout(() => {
+                console.log('[HISTORY] 💾 Auto-saving recalculated prices after history load...');
+                autoSaveCurrentSearch();
+            }, 2000);
         }
         
         function showSaveEditedButton() {
