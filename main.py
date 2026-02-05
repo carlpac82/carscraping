@@ -5637,13 +5637,19 @@ def require_auth(request: Request):
     if not request.session.get("auth", False):
         raise HTTPException(status_code=401, detail="Unauthorized")
     
-    # Enforce inactivity timeout (exceto durante horário de trabalho e roles support/admin)
+    # Enforce inactivity timeout (exceto para admins e horário de trabalho)
     user_role = request.session.get("role", "user")
+    is_admin = request.session.get("is_admin", False)
+    username = request.session.get("username", "")
     
     # Não expirar sessão se:
     # 1. Role "support" ou "admin" - nunca expira
-    # 2. OU dentro do horário de trabalho (qualquer utilizador)
-    if user_role not in ["support", "admin"] and not is_working_hours():
+    # 2. is_admin flag = True - nunca expira
+    # 3. Username admin específico (admin, carlpac82, dprudente) - nunca expira
+    # 4. OU dentro do horário de trabalho (qualquer utilizador)
+    admin_usernames = ["admin", "carlpac82", "dprudente"]
+    is_privileged = (user_role in ["support", "admin"] or is_admin or username in admin_usernames)
+    if not is_privileged and not is_working_hours():
         try:
             now = int(datetime.now(timezone.utc).timestamp())
             last = int(request.session.get("last_active_ts", 0))
@@ -47877,24 +47883,36 @@ async def clean_old_histories(request: Request):
                                 if not prices or not dias:
                                     continue
                                 
-                                # Encontrar dias que têm preços válidos (> 5€) em pelo menos um grupo
+                                # Encontrar dias que têm preços válidos (> 0€) em pelo menos um grupo
                                 valid_dias = set()
                                 for grupo, grupo_prices in prices.items():
                                     if isinstance(grupo_prices, dict):
                                         for dia, price in grupo_prices.items():
-                                            if price and float(price) > 5:
+                                            if price and float(price) > 0:
                                                 valid_dias.add(int(dia))
                                 
                                 # Criar novo array de dias apenas com dias válidos
                                 new_dias = [d for d in dias if int(d) in valid_dias]
                                 
+                                # Limpar preços: remover dias inválidos de cada grupo
+                                new_prices = {}
+                                for grupo, grupo_prices in prices.items():
+                                    if isinstance(grupo_prices, dict):
+                                        new_prices[grupo] = {
+                                            dia: price 
+                                            for dia, price in grupo_prices.items() 
+                                            if int(dia) in valid_dias
+                                        }
+                                    else:
+                                        new_prices[grupo] = grupo_prices
+                                
                                 # Se houve mudança, atualizar
                                 if len(new_dias) != len(dias):
                                     cur.execute("""
                                         UPDATE automated_search_history
-                                        SET dias = %s
+                                        SET dias = %s, prices_data = %s
                                         WHERE id = %s
-                                    """, (json.dumps(new_dias), history_id))
+                                    """, (json.dumps(new_dias), json.dumps(new_prices), history_id))
                                     updated_count += 1
                                     logging.info(f"✅ Histórico {history_id}: {len(dias)} dias → {len(new_dias)} dias válidos")
                             
