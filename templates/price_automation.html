@@ -7034,12 +7034,17 @@
                 console.log('[AUTO-SAVE] Starting auto-save...');
                 
                 // Collect current prices from table
+                // CRITICAL: Use selectedDaysAuto (Automated Prices chips), NOT the global 'dias' variable
+                // which points to selectedDaysCurrent (Current Prices)
+                const autoSaveDias = selectedDaysAuto;
+                console.log('[AUTO-SAVE] Using selectedDaysAuto:', autoSaveDias);
+                
                 const automatedPricesByGroup = {};
                 let priceCount = 0;
                 
                 grupos.forEach(grupo => {
                     automatedPricesByGroup[grupo] = {};
-                    dias.forEach(day => {
+                    autoSaveDias.forEach(day => {
                         const inputAuto = document.querySelector(`input[data-grupo="${grupo}"][data-dias="${day}"][data-type="auto"]`);
                         
                         if (inputAuto && inputAuto.value) {
@@ -7070,7 +7075,7 @@
                     pickupDate: pickupDate
                 });
                 
-                const savedCount = await saveAutomatedPriceHistory(automatedPricesByGroup, dias, searchType, supplierData, pickupDate);
+                const savedCount = await saveAutomatedPriceHistory(automatedPricesByGroup, autoSaveDias, searchType, supplierData, pickupDate);
                 
                 if (savedCount > 0) {
                     console.log(`[AUTO-SAVE] ✅ Saved ${savedCount} prices automatically with ${Object.keys(supplierData).length} supplier data keys`);
