@@ -54679,9 +54679,7 @@ async def force_send_checkout_emails(request: Request):
 @app.get("/api/admin/fix-ra-06774-06792")
 async def fix_ra_06774_06792(request: Request):
     """
-    TEMPORARY: Fix RA 06774/06792 inspection data
-    1) Change today's check-in (VI-20260206-093702-424-929) from 06774-09 to 06792-09
-    2) Recover old replaced inspections for 06774
+    TEMPORARY: Investigate all inspections for RA 06774 and 06792
     """
     try:
         require_inspection_access(request)
@@ -54695,67 +54693,36 @@ async def fix_ra_06774_06792(request: Request):
         
         if is_postgres:
             with conn.cursor() as cur:
-                # Step 1: Find today's inspection for plate 31-XQ-74 with contract 06774
+                # Find ALL inspections for 06774 and 06792 (any status)
                 cur.execute("""
-                    SELECT inspection_number, inspection_type, contract_number, status, created_at
-                    FROM vehicle_inspections
-                    WHERE contract_number LIKE '06774%'
-                    AND vehicle_plate = '31-XQ-74'
-                    AND created_at::date = CURRENT_DATE
-                """)
-                today_inspections = cur.fetchall()
-                results.append(f"Step 1a: Found {len(today_inspections)} inspection(s) today for 06774/31-XQ-74: {[(r[0], r[1], r[2], r[3], str(r[4])) for r in today_inspections]}")
-                
-                # Change contract_number from 06774 to 06792 for today's inspections
-                cur.execute("""
-                    UPDATE vehicle_inspections
-                    SET contract_number = REPLACE(contract_number, '06774', '06792')
-                    WHERE contract_number LIKE '06774%'
-                    AND vehicle_plate = '31-XQ-74'
-                    AND created_at::date = CURRENT_DATE
-                """)
-                updated_1 = cur.rowcount
-                results.append(f"Step 1b: Changed contract_number for today's inspection(s): {updated_1} row(s) updated")
-                
-                # Step 2: Recover old replaced inspections for 06774
-                # First, see what replaced inspections exist
-                cur.execute("""
-                    SELECT inspection_number, inspection_type, status, created_at
-                    FROM vehicle_inspections
-                    WHERE contract_number LIKE '06774%'
-                    AND status = 'replaced'
-                """)
-                replaced = cur.fetchall()
-                results.append(f"Step 2: Found {len(replaced)} replaced inspection(s) for 06774: {[(r[0], r[1], r[3]) for r in replaced]}")
-                
-                # Restore them to 'completed'
-                cur.execute("""
-                    UPDATE vehicle_inspections
-                    SET status = 'completed'
-                    WHERE contract_number LIKE '06774%'
-                    AND status = 'replaced'
-                """)
-                updated_2 = cur.rowcount
-                results.append(f"Step 2: Restored {updated_2} inspection(s) to 'completed' status")
-                
-                # Step 3: Verify final state
-                cur.execute("""
-                    SELECT inspection_number, inspection_type, contract_number, status, created_at
+                    SELECT inspection_number, inspection_type, contract_number, status, 
+                           vehicle_plate, created_at
                     FROM vehicle_inspections
                     WHERE contract_number LIKE '06774%' OR contract_number LIKE '06792%'
                     ORDER BY created_at
                 """)
-                final = cur.fetchall()
-                results.append(f"Final state: {[(r[0], r[1], r[2], r[3], str(r[4])) for r in final]}")
+                all_insp = cur.fetchall()
+                results.append(f"All inspections for 06774/06792: {len(all_insp)}")
+                for r in all_insp:
+                    results.append(f"  {r[0]} | type={r[1]} | ra={r[2]} | status={r[3]} | plate={r[4]} | date={r[5]}")
+                
+                # Also check for plate 31-XQ-74 with ANY contract
+                cur.execute("""
+                    SELECT inspection_number, inspection_type, contract_number, status, created_at
+                    FROM vehicle_inspections
+                    WHERE vehicle_plate = '31-XQ-74'
+                    ORDER BY created_at
+                """)
+                plate_insp = cur.fetchall()
+                results.append(f"All inspections for plate 31-XQ-74: {len(plate_insp)}")
+                for r in plate_insp:
+                    results.append(f"  {r[0]} | type={r[1]} | ra={r[2]} | status={r[3]} | date={r[4]}")
         
-        conn.commit()
         conn.close()
-        
-        logging.info(f"✅ Fix RA 06774/06792 completed: {results}")
         return JSONResponse({"ok": True, "results": results})
         
     except Exception as e:
-        logging.error(f"❌ Error fixing RA 06774/06792: {e}")
+        logging.error(f"❌ Error: {e}")
         import traceback
         return JSONResponse({"ok": False, "error": str(e), "traceback": traceback.format_exc()}, status_code=500)
 
