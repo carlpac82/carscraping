@@ -51931,20 +51931,10 @@ async def get_latest_ra_by_plate(request: Request, plate: str):
         normalized_plate = plate.replace(" ", "").replace("-", "").upper()
         logging.info(f"🔍 Searching for plate: '{plate}' (normalized: '{normalized_plate}')")
         
-        # Get latest RA for this plate (highest RA number)
+        # Get ALL RAs for this plate, ordered by most recent first
+        # Then pick the first one that is NOT closed (has both check-in and check-out)
         if is_postgres:
             with conn.cursor() as cur:
-                # First, let's see all plates in the database for debugging
-                cur.execute("""
-                    SELECT license_plate, rental_agreement_number, 
-                           REPLACE(REPLACE(UPPER(license_plate), ' ', ''), '-', '') as normalized
-                    FROM rental_agreements
-                    ORDER BY rental_agreement_number DESC
-                    LIMIT 10
-                """)
-                all_plates = cur.fetchall()
-                logging.info(f"📋 Recent plates in DB: {[(p[0], p[1], p[2]) for p in all_plates]}")
-                
                 cur.execute("""
                     SELECT ra.id, ra.rental_agreement_number, ra.license_plate, 
                            ra.vehicle_id, ra.odometer, ra.fuel_level, 
@@ -51952,19 +51942,9 @@ async def get_latest_ra_by_plate(request: Request, plate: str):
                            ra.created_at, ra.updated_at, ra.extracted_data
                     FROM rental_agreements ra
                     WHERE REPLACE(REPLACE(UPPER(ra.license_plate), ' ', ''), '-', '') = %s
-                    ORDER BY 
-                        CASE 
-                            WHEN ra.extracted_data::jsonb ? 'pickup_date' THEN 
-                                TO_DATE(
-                                    REPLACE(ra.extracted_data::jsonb->>'pickup_date', ' ', ''),
-                                    'DD-MM-YYYY'
-                                )
-                            ELSE ra.created_at::date
-                        END DESC,
-                        ra.rental_agreement_number DESC
-                    LIMIT 1
+                    ORDER BY ra.rental_agreement_number DESC
                 """, (normalized_plate,))
-                ra_row = cur.fetchone()
+                all_ra_rows = cur.fetchall()
         else:
             cursor = conn.execute("""
                 SELECT ra.id, ra.rental_agreement_number, ra.license_plate, 
@@ -51973,20 +51953,54 @@ async def get_latest_ra_by_plate(request: Request, plate: str):
                        ra.created_at, ra.updated_at, ra.extracted_data
                 FROM rental_agreements ra
                 WHERE REPLACE(REPLACE(UPPER(ra.license_plate), ' ', ''), '-', '') = ?
-                ORDER BY 
-                    CASE 
-                        WHEN json_extract(ra.extracted_data, '$.pickup_date') IS NOT NULL THEN 
-                            date(
-                                substr(replace(json_extract(ra.extracted_data, '$.pickup_date'), ' ', ''), 7, 4) || '-' ||
-                                substr(replace(json_extract(ra.extracted_data, '$.pickup_date'), ' ', ''), 4, 2) || '-' ||
-                                substr(replace(json_extract(ra.extracted_data, '$.pickup_date'), ' ', ''), 1, 2)
-                            )
-                        ELSE date(ra.created_at)
-                    END DESC,
-                    ra.rental_agreement_number DESC
-                LIMIT 1
+                ORDER BY ra.rental_agreement_number DESC
             """, (normalized_plate,))
-            ra_row = cursor.fetchone()
+            all_ra_rows = cursor.fetchall()
+        
+        logging.info(f"📋 Found {len(all_ra_rows)} RA(s) for plate {plate}: {[r[1] for r in all_ra_rows]}")
+        
+        # Find the first RA that is NOT closed (no check-in+check-out)
+        ra_row = None
+        for candidate in all_ra_rows:
+            ra_num = candidate[1]
+            ra_base = ra_num.split('-')[0] if '-' in ra_num else ra_num
+            
+            # Check if this RA has both check-in and check-out (closed)
+            if is_postgres:
+                with conn.cursor() as cur:
+                    cur.execute("""
+                        SELECT 
+                            COUNT(CASE WHEN inspection_type = 'checkin' AND COALESCE(status, '') != 'replaced' THEN 1 END),
+                            COUNT(CASE WHEN inspection_type = 'checkout' AND COALESCE(status, '') != 'replaced' THEN 1 END)
+                        FROM vehicle_inspections
+                        WHERE contract_number LIKE %s
+                    """, (f"{ra_base}%",))
+                    counts = cur.fetchone()
+            else:
+                cursor = conn.execute("""
+                    SELECT 
+                        COUNT(CASE WHEN inspection_type = 'checkin' AND COALESCE(status, '') != 'replaced' THEN 1 END),
+                        COUNT(CASE WHEN inspection_type = 'checkout' AND COALESCE(status, '') != 'replaced' THEN 1 END)
+                    FROM vehicle_inspections
+                    WHERE contract_number LIKE ?
+                """, (f"{ra_base}%",))
+                counts = cursor.fetchone()
+            
+            has_checkin = counts[0] > 0 if counts else False
+            has_checkout = counts[1] > 0 if counts else False
+            is_closed = has_checkin and has_checkout
+            
+            logging.info(f"📋 RA {ra_num}: checkin={has_checkin}, checkout={has_checkout}, closed={is_closed}")
+            
+            if not is_closed:
+                ra_row = candidate
+                logging.info(f"✅ Selected RA {ra_num} (not closed)")
+                break
+        
+        # If all RAs are closed, return the most recent one (frontend will show 'closed' popup)
+        if not ra_row and all_ra_rows:
+            ra_row = all_ra_rows[0]
+            logging.info(f"⚠️ All RAs for plate {plate} are closed. Returning most recent: {ra_row[1]}")
         
         if not ra_row:
             conn.close()
