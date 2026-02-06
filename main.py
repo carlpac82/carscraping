@@ -54676,56 +54676,6 @@ async def force_send_checkout_emails(request: Request):
             "traceback": traceback.format_exc()
         }, status_code=500)
 
-@app.get("/api/admin/fix-ra-06774-06792")
-async def fix_ra_06774_06792(request: Request):
-    """
-    TEMPORARY: Investigate all inspections for RA 06774 and 06792
-    """
-    try:
-        require_inspection_access(request)
-    except HTTPException:
-        return JSONResponse({"ok": False, "error": "Unauthorized"}, status_code=403)
-    
-    results = []
-    try:
-        conn = _db_connect()
-        is_postgres = _is_postgresql_connection(conn)
-        
-        if is_postgres:
-            with conn.cursor() as cur:
-                # Find ALL inspections for 06774 and 06792 (any status)
-                cur.execute("""
-                    SELECT inspection_number, inspection_type, contract_number, status, 
-                           vehicle_plate, created_at
-                    FROM vehicle_inspections
-                    WHERE contract_number LIKE '06774%' OR contract_number LIKE '06792%'
-                    ORDER BY created_at
-                """)
-                all_insp = cur.fetchall()
-                results.append(f"All inspections for 06774/06792: {len(all_insp)}")
-                for r in all_insp:
-                    results.append(f"  {r[0]} | type={r[1]} | ra={r[2]} | status={r[3]} | plate={r[4]} | date={r[5]}")
-                
-                # Also check for plate 31-XQ-74 with ANY contract
-                cur.execute("""
-                    SELECT inspection_number, inspection_type, contract_number, status, created_at
-                    FROM vehicle_inspections
-                    WHERE vehicle_plate = '31-XQ-74'
-                    ORDER BY created_at
-                """)
-                plate_insp = cur.fetchall()
-                results.append(f"All inspections for plate 31-XQ-74: {len(plate_insp)}")
-                for r in plate_insp:
-                    results.append(f"  {r[0]} | type={r[1]} | ra={r[2]} | status={r[3]} | date={r[4]}")
-        
-        conn.close()
-        return JSONResponse({"ok": True, "results": results})
-        
-    except Exception as e:
-        logging.error(f"❌ Error: {e}")
-        import traceback
-        return JSONResponse({"ok": False, "error": str(e), "traceback": traceback.format_exc()}, status_code=500)
-
 if __name__ == "__main__":
     import uvicorn
     uvicorn.run(app, host="0.0.0.0", port=8000)
