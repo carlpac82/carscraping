@@ -30128,6 +30128,48 @@ async def save_inspection(request: Request):
         print(f"📧 [BACKEND] Email config - email: '{email}', send_email: {send_email}, type: {inspection_type}", flush=True)
         logging.info(f"📧 Email config - email: '{email}', send_email: {send_email} (type: {type(send_email).__name__})")
         
+        # ============================================================
+        # VALIDAÇÃO CRÍTICA: Bloquear inspeções em contratos encerrados
+        # Um contrato encerrado tem check-in E check-out completos
+        # ============================================================
+        if ra and plate:
+            try:
+                conn_check = _db_connect()
+                is_postgres_check = _is_postgresql_connection(conn_check)
+                ra_base_check = ra.split('-')[0] if '-' in ra else ra
+                
+                if is_postgres_check:
+                    with conn_check.cursor() as cur_check:
+                        cur_check.execute("""
+                            SELECT 
+                                COUNT(CASE WHEN inspection_type = 'checkin' AND COALESCE(status, '') != 'replaced' THEN 1 END) as checkin_count,
+                                COUNT(CASE WHEN inspection_type = 'checkout' AND COALESCE(status, '') != 'replaced' THEN 1 END) as checkout_count
+                            FROM vehicle_inspections
+                            WHERE contract_number LIKE %s
+                        """, (f"{ra_base_check}%",))
+                        counts = cur_check.fetchone()
+                else:
+                    cursor_check = conn_check.execute("""
+                        SELECT 
+                            COUNT(CASE WHEN inspection_type = 'checkin' AND COALESCE(status, '') != 'replaced' THEN 1 END) as checkin_count,
+                            COUNT(CASE WHEN inspection_type = 'checkout' AND COALESCE(status, '') != 'replaced' THEN 1 END) as checkout_count
+                        FROM vehicle_inspections
+                        WHERE contract_number LIKE ?
+                    """, (f"{ra_base_check}%",))
+                    counts = cursor_check.fetchone()
+                
+                conn_check.close()
+                
+                if counts and counts[0] > 0 and counts[1] > 0:
+                    logging.error(f"🚫 BLOCKED: Contract {ra} is closed (has {counts[0]} check-in(s) and {counts[1]} check-out(s)). Cannot create new inspection.")
+                    return JSONResponse({
+                        "success": False, 
+                        "error": f"O contrato {ra_base_check} está encerrado (já tem check-in e check-out). Faça upload de um novo Rental Agreement."
+                    }, status_code=400)
+                    
+            except Exception as check_err:
+                logging.warning(f"⚠️ Error checking contract status: {check_err}")
+        
         # New fields for check-in (pickup/recolha)
         colaborador = data.get('colaborador', '')
         data_hora = data.get('data_hora', '')

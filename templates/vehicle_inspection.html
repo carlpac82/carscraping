@@ -4384,17 +4384,7 @@
                             console.log('📧 Client Email:', ra.client_email);
                             console.log('✅ RA data guardado em window.currentRAData com Km e Fuel');
                             
-                            // Auto-fill RA number
-                            document.getElementById('inputRA').value = ra.rental_agreement_number;
-                            
-                            // Auto-fill email if available
-                            const emailInput = document.getElementById('reportEmail');
-                            if (emailInput && ra.client_email) {
-                                emailInput.value = ra.client_email;
-                                console.log('✅ Email preenchido automaticamente:', ra.client_email);
-                            }
-                            
-                            // Store inspection status for later check when clicking "Iniciar Entrega"
+                            // Store inspection status for later check
                             window.inspectionCompleted = ra.inspection_completed;
                             window.hasCheckout = ra.has_checkout;
                             window.hasCheckin = ra.has_checkin;
@@ -4406,8 +4396,25 @@
                             console.log('  - has_checkin:', ra.has_checkin);
                             console.log('  - contract_closed:', ra.contract_closed);
                             
-                            // Check contract status
-                            if (ra.has_checkin === true && ra.has_checkout === false) {
+                            // Check contract status BEFORE auto-filling fields
+                            if (ra.contract_closed === true) {
+                                // Contract CLOSED (has check-in AND check-out) - DO NOT fill RA field
+                                // Clear RA field to prevent accidental use of closed contract
+                                document.getElementById('inputRA').value = '';
+                                const emailInput = document.getElementById('reportEmail');
+                                if (emailInput) emailInput.value = '';
+                                window.currentRAData = null;
+                                showContractStatusPopup(plate, ra.rental_agreement_number, 'closed');
+                                disableBothButtons();
+                                console.log('🚫 Contract closed: RA field cleared, buttons disabled until new RA is uploaded');
+                            } else if (ra.has_checkin === true && ra.has_checkout === false) {
+                                // Auto-fill RA for open contract
+                                document.getElementById('inputRA').value = ra.rental_agreement_number;
+                                const emailInput = document.getElementById('reportEmail');
+                                if (emailInput && ra.client_email) {
+                                    emailInput.value = ra.client_email;
+                                    console.log('✅ Email preenchido automaticamente:', ra.client_email);
+                                }
                                 // Se tem self-checkout pendente, permitir fazer checkout normal
                                 if (ra.inspection_completed === true) {
                                     enableCheckOutOnly();
@@ -4418,12 +4425,14 @@
                                     disableBothButtons();
                                     console.log('🚫 Contract open with check-in: both buttons disabled');
                                 }
-                            } else if (ra.contract_closed === true) {
-                                // Contract CLOSED (has check-in AND check-out) - block until new RA is uploaded
-                                showContractStatusPopup(plate, ra.rental_agreement_number, 'closed');
-                                disableBothButtons();
-                                console.log('🚫 Contract closed: both buttons disabled until new RA is uploaded');
                             } else {
+                                // Auto-fill RA for new contract (no inspections yet)
+                                document.getElementById('inputRA').value = ra.rental_agreement_number;
+                                const emailInput = document.getElementById('reportEmail');
+                                if (emailInput && ra.client_email) {
+                                    emailInput.value = ra.client_email;
+                                    console.log('✅ Email preenchido automaticamente:', ra.client_email);
+                                }
                                 // Contract exists but NO inspections yet - only allow check-in
                                 enableCheckInOnly();
                                 console.log('✅ Contract exists but no inspections: only check-in enabled');
