@@ -4405,13 +4405,24 @@ def log_to_db(level: str, message: str, module: str = None, function: str = None
         with _db_lock:
             conn = _db_connect()
             try:
-                conn.execute(
-                    """
-                    INSERT INTO system_logs (level, message, module, function, line_number, exception)
-                    VALUES (?, ?, ?, ?, ?, ?)
-                    """,
-                    (level, message, module, function, line_number, exception)
-                )
+                is_postgres = bool(os.getenv('DATABASE_URL'))
+                if is_postgres:
+                    cursor = conn.cursor()
+                    cursor.execute(
+                        """
+                        INSERT INTO system_logs (timestamp, level, message, module, function, line_number, exception)
+                        VALUES (NOW(), %s, %s, %s, %s, %s, %s)
+                        """,
+                        (level, message, module, function, line_number, exception)
+                    )
+                else:
+                    conn.execute(
+                        """
+                        INSERT INTO system_logs (timestamp, level, message, module, function, line_number, exception)
+                        VALUES (datetime('now'), ?, ?, ?, ?, ?, ?)
+                        """,
+                        (level, message, module, function, line_number, exception)
+                    )
                 conn.commit()
             finally:
                 conn.close()
@@ -30366,20 +30377,43 @@ async def save_inspection(request: Request):
                                 "error": f"Tem que fazer a Recolha da viatura {pending_plate} (RA {ra}) antes de fazer Entrega da nova viatura. Troca de viatura requer Recolha da viatura anterior primeiro."
                             }, status_code=400)
                     
-                    # Delete previous inspection with same RA+plate (if exists)
-                    # This prevents duplicate check-outs for the same vehicle+contract
-                    # Exception: If RA is same but plate is different, keep both (vehicle swap)
-                    logging.info(f"🗑️ Checking for previous inspection with RA={ra} and Plate={plate}...")
+                    # Mark previous inspection as 'replaced' (keep history, don't delete)
+                    # Also get old inspection_number to cancel scheduled emails
+                    logging.info(f"🔍 Checking for previous inspection with RA={ra} and Plate={plate}...")
                     cursor.execute("""
-                        DELETE FROM vehicle_inspections
+                        SELECT inspection_number FROM vehicle_inspections
                         WHERE contract_number = %s 
                         AND vehicle_plate = %s
                         AND inspection_type = %s
+                        AND status != 'replaced'
                     """, (ra, plate, inspection_type))
+                    old_inspections = cursor.fetchall()
                     
-                    deleted_count = cursor.rowcount
-                    if deleted_count > 0:
-                        logging.info(f"🗑️ Deleted {deleted_count} previous inspection(s) with same RA+Plate")
+                    if old_inspections:
+                        old_inspection_numbers = [row[0] for row in old_inspections]
+                        cursor.execute("""
+                            UPDATE vehicle_inspections
+                            SET status = 'replaced'
+                            WHERE contract_number = %s 
+                            AND vehicle_plate = %s
+                            AND inspection_type = %s
+                            AND status != 'replaced'
+                        """, (ra, plate, inspection_type))
+                        replaced_count = cursor.rowcount
+                        logging.info(f"🔄 Marked {replaced_count} previous inspection(s) as 'replaced': {old_inspection_numbers}")
+                        
+                        # Cancel scheduled emails for replaced inspections
+                        for old_insp_num in old_inspection_numbers:
+                            try:
+                                cursor.execute("""
+                                    UPDATE scheduled_checkout_emails
+                                    SET status = 'cancelled', updated_at = NOW()
+                                    WHERE inspection_number = %s AND status = 'pending'
+                                """, (old_insp_num,))
+                                if cursor.rowcount > 0:
+                                    logging.info(f"📧 Cancelled scheduled email for replaced inspection {old_insp_num}")
+                            except Exception as email_cancel_err:
+                                logging.warning(f"⚠️ Could not cancel email for {old_insp_num}: {email_cancel_err}")
                     else:
                         logging.info(f"✅ No previous inspection found with same RA+Plate")
                     
@@ -30526,20 +30560,29 @@ async def save_inspection(request: Request):
                                 "error": f"Tem que fazer a Recolha da viatura {pending_plate} (RA {ra}) antes de fazer Entrega da nova viatura. Troca de viatura requer Recolha da viatura anterior primeiro."
                             }, status_code=400)
                     
-                    # Delete previous inspection with same RA+plate (if exists)
-                    # This prevents duplicate check-outs for the same vehicle+contract
-                    # Exception: If RA is same but plate is different, keep both (vehicle swap)
-                    logging.info(f"🗑️ Checking for previous inspection with RA={ra} and Plate={plate}...")
+                    # Mark previous inspection as 'replaced' (keep history, don't delete)
+                    logging.info(f"🔍 Checking for previous inspection with RA={ra} and Plate={plate}...")
                     cursor.execute("""
-                        DELETE FROM vehicle_inspections
+                        SELECT inspection_number FROM vehicle_inspections
                         WHERE contract_number = ? 
                         AND vehicle_plate = ?
                         AND inspection_type = ?
+                        AND status != 'replaced'
                     """, (ra, plate, inspection_type))
+                    old_inspections = cursor.fetchall()
                     
-                    deleted_count = cursor.rowcount
-                    if deleted_count > 0:
-                        logging.info(f"🗑️ Deleted {deleted_count} previous inspection(s) with same RA+Plate")
+                    if old_inspections:
+                        old_inspection_numbers = [row[0] for row in old_inspections]
+                        cursor.execute("""
+                            UPDATE vehicle_inspections
+                            SET status = 'replaced'
+                            WHERE contract_number = ? 
+                            AND vehicle_plate = ?
+                            AND inspection_type = ?
+                            AND status != 'replaced'
+                        """, (ra, plate, inspection_type))
+                        replaced_count = cursor.rowcount
+                        logging.info(f"🔄 Marked {replaced_count} previous inspection(s) as 'replaced': {old_inspection_numbers}")
                     else:
                         logging.info(f"✅ No previous inspection found with same RA+Plate")
                     
@@ -49533,6 +49576,7 @@ async def get_inspections_history(request: Request):
                         ra.rental_agreement_number = vi.contract_number 
                         OR ra.rental_agreement_number = SPLIT_PART(vi.contract_number, '-', 1)
                     )
+                    WHERE COALESCE(vi.status, '') != 'replaced'
                     ORDER BY vi.created_at DESC
                     LIMIT 200
                 """)
@@ -49555,6 +49599,7 @@ async def get_inspections_history(request: Request):
                             THEN INSTR(vi.contract_number, '-') - 1 
                             ELSE LENGTH(vi.contract_number) END)
                     )
+                    WHERE COALESCE(vi.status, '') != 'replaced'
                     ORDER BY vi.created_at DESC
                     LIMIT 200
                 """)

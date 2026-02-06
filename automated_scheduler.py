@@ -918,14 +918,32 @@ def check_and_send_scheduled_checkout_emails():
                     SELECT contract_number
                     FROM vehicle_inspections
                     WHERE inspection_number = %s
+                      AND status != 'replaced'
                 """, (inspection_number,))
                 
                 checkin_row = cursor.fetchone()
+                
+                # If not found, the inspection may have been replaced by a newer one
+                # Try to find the current active inspection for the same vehicle plate
                 if not checkin_row or not checkin_row[0]:
-                    logging.error(f"❌ No contract_number found for check-in {inspection_number}")
-                    mark_email_sent(inspection_number, success=False, error_message="Contract number not found")
-                    conn.close()
-                    continue
+                    logging.warning(f"⚠️ Inspection {inspection_number} not found or replaced, searching by plate {vehicle_plate}...")
+                    cursor.execute("""
+                        SELECT contract_number, inspection_number
+                        FROM vehicle_inspections
+                        WHERE vehicle_plate = %s
+                          AND inspection_type = 'checkin'
+                          AND status != 'replaced'
+                        ORDER BY created_at DESC
+                        LIMIT 1
+                    """, (vehicle_plate,))
+                    checkin_row = cursor.fetchone()
+                    if checkin_row and checkin_row[0]:
+                        logging.info(f"✅ Found replacement inspection {checkin_row[1]} for plate {vehicle_plate}")
+                    else:
+                        logging.error(f"❌ No contract_number found for check-in {inspection_number} (plate: {vehicle_plate})")
+                        mark_email_sent(inspection_number, success=False, error_message="Contract number not found")
+                        conn.close()
+                        continue
                 
                 contract_number = checkin_row[0]
                 # Remover sufixo (e.g., "06691-09" -> "06691")
