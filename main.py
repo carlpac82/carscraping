@@ -49784,12 +49784,12 @@ async def get_inspections_history(request: Request):
                     if is_postgres:
                         cursor.execute("""
                             SELECT COUNT(*) FROM parking_qr_codes 
-                            WHERE rental_agreement_number = %s
+                            WHERE ra_number = %s
                         """, (ra_number,))
                     else:
                         cursor.execute("""
                             SELECT COUNT(*) FROM parking_qr_codes 
-                            WHERE rental_agreement_number = ?
+                            WHERE ra_number = ?
                         """, (ra_number,))
                     
                     count_row = cursor.fetchone()
@@ -49797,6 +49797,10 @@ async def get_inspections_history(request: Request):
                 except Exception as e:
                     logging.error(f"Error checking parking QR for RA {ra_number}: {e}")
                     contract["has_parking_qr"] = False
+                    try:
+                        conn.rollback()
+                    except:
+                        pass
             
             # Convert to list and sort by latest date
             contracts = list(grouped.values())
@@ -51056,7 +51060,7 @@ async def update_inspection(inspection_number: str, request: Request):
                     logging.info(f"✅ Updated extracted_data in database")
                     
                     # REAGENDAR EMAIL DE SELF-CHECKOUT quando data é alterada
-                    if _USE_NEW_DB and 'return_location' in extracted_data:
+                    if _USE_NEW_DB and ('return_location' in extracted_data or 'returnLocation' in extracted_data):
                         return_location = extracted_data.get('return_location') or extracted_data.get('returnLocation', '')
                         
                         # Verificar se é Aeroporto de Faro
