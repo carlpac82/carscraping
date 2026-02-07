@@ -263,29 +263,25 @@ def scrape_carjet_requests(location: str, start_dt: datetime, end_dt: datetime) 
         if not html_results:
             return []
         
-        # PASSO 5: Parse do HTML da página principal
-        print("[REQUESTS] Fazendo parse do HTML principal...")
-        
+        # Definir função de parse (mesmo para homepage e categorias)
         parse_func = parse_carjet_html_complete if HAS_CARJET_PARSE else parse_cars_simple
-        cars = parse_func(html_results)
-        print(f"[REQUESTS] ✅ {len(cars)} carros na página principal")
         
-        # PASSO 6: Buscar categorias adicionais (carros escondidos atrás dos filtros)
-        # Usa a MESMA sessão e URL, apenas adiciona frmAgrp para filtrar por categoria
-        # O parse é EXACTAMENTE o mesmo - não altera nada no circuito
+        # PASSO 5: Buscar TODAS as categorias (contêm todos os carros, incluindo os da homepage)
+        # Testado: 100% dos carros da homepage aparecem nas categorias, + ~168 carros extra
+        # CARG (carrinhas comerciais) excluído - não fazemos scraping dessas
         CATEGORIES_TO_FETCH = ['MINI', 'COMP', 'FAMI', 'ESTA', 'SUVS', 'VANS', 'LUXU', 'AUTO']
-        # NOTA: CARG (carrinhas comerciais) excluído - não fazemos scraping dessas
         
         # Extrair tokens s= e b= da URL para construir URL de filtro
         s_match = re.search(r'[?&]s=([^&]+)', full_redirect_url)
         b_match = re.search(r'[?&]b=([^&]+)', full_redirect_url)
         
+        cars = []
+        
         if s_match and b_match:
             s_token = s_match.group(1)
             b_token = b_match.group(1)
-            base_filter_url = f"https://www.carjet.com/do/list/pt?s={s_token}&b={b_token}"
             
-            print(f"[REQUESTS] 📂 Buscando {len(CATEGORIES_TO_FETCH)} categorias adicionais...")
+            print(f"[REQUESTS] 📂 Buscando {len(CATEGORIES_TO_FETCH)} categorias...")
             
             for cat_code in CATEGORIES_TO_FETCH:
                 try:
@@ -339,7 +335,7 @@ def scrape_carjet_requests(location: str, start_dt: datetime, end_dt: datetime) 
                     print(f"[REQUESTS]    {cat_code}: erro - {cat_err}", file=sys.stderr, flush=True)
                     continue
             
-            # PASSO 7: Deduplicar carros por nome+supplier (mesmos carros aparecem em várias categorias)
+            # PASSO 6: Deduplicar carros (mesmos carros aparecem em várias categorias)
             total_before = len(cars)
             seen = set()
             unique_cars = []
@@ -356,7 +352,10 @@ def scrape_carjet_requests(location: str, start_dt: datetime, end_dt: datetime) 
             cars = unique_cars
             print(f"[REQUESTS] 🔄 Deduplicação: {total_before} → {len(cars)} carros ({total_before - len(cars)} duplicados removidos)")
         else:
-            print(f"[REQUESTS] ⚠️ Não encontrou tokens s/b na URL, saltando categorias", file=sys.stderr, flush=True)
+            # Fallback: se não encontrou tokens s/b, usar parse da homepage
+            print(f"[REQUESTS] ⚠️ Não encontrou tokens s/b na URL, usando homepage como fallback", file=sys.stderr, flush=True)
+            cars = parse_func(html_results)
+            print(f"[REQUESTS] ✅ {len(cars)} carros (fallback homepage)")
         
         return cars
         

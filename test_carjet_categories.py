@@ -1,22 +1,19 @@
 #!/usr/bin/env python3
 """
-Teste visual CarJet - Navegar pelas categorias para ver todos os carros
-Abre Chrome visível e clica em cada categoria (Minivans, SUVs, etc.)
-NOTA: CARG (carrinhas comerciais) excluído - não fazemos scraping dessas
+Teste visual CarJet - Comparar Homepage vs Categorias
+Conta carros por supplier na homepage e em cada categoria.
+Verifica se todos os carros da homepage aparecem nas categorias.
 """
 from selenium import webdriver
 from selenium.webdriver.chrome.options import Options
 from selenium.webdriver.chrome.service import Service
 from webdriver_manager.chrome import ChromeDriverManager
 from selenium.webdriver.common.by import By
-from selenium.webdriver.support.ui import WebDriverWait
-from selenium.webdriver.support import expected_conditions as EC
 import time
-import sys
 import os
-from datetime import datetime
+from collections import defaultdict
 
-# Categorias a testar (sem CARG - carrinhas comerciais, não necessário)
+# Categorias (sem CARG - carrinhas comerciais)
 CATEGORIES = {
     'MINI': 'Pequeno',
     'COMP': 'Médio',
@@ -28,8 +25,8 @@ CATEGORIES = {
     'AUTO': 'Automático',
 }
 
-def setup_chrome_visual():
-    """Chrome visível (não headless) para teste"""
+
+def setup_chrome():
     opts = Options()
     opts.add_argument('--start-maximized')
     opts.add_argument('--disable-blink-features=AutomationControlled')
@@ -42,200 +39,193 @@ def setup_chrome_visual():
 
 
 def wait_for_cars(driver, max_wait=8):
-    """Aguarda até carros aparecerem na página (polling rápido)"""
-    for i in range(max_wait):
+    """Polling rápido até carros aparecerem"""
+    for _ in range(max_wait):
         time.sleep(1)
-        # Verificar se loading terminou
-        loading = driver.find_elements(By.CSS_SELECTOR, '.loading, .spinner, [class*="loading"]')
-        has_loading = any(l.is_displayed() for l in loading) if loading else False
-        
         articles = driver.find_elements(By.CSS_SELECTOR, 'section.newcarlist article')
         visible = [a for a in articles if a.is_displayed()]
-        
-        if len(visible) > 0 and not has_loading:
+        if len(visible) > 0:
             return len(visible)
     return 0
 
 
-def count_cars(driver):
-    """Conta carros visíveis na página"""
-    articles = driver.find_elements(By.CSS_SELECTOR, 'section.newcarlist article')
-    visible = [a for a in articles if a.is_displayed() and 'hidden' not in (a.get_attribute('class') or '')]
-    return len(visible)
-
-
-def extract_cars_from_page(driver):
-    """Extrai info dos carros visíveis"""
+def extract_cars(driver):
+    """Extrai (nome, supplier) de cada carro visível"""
     cars = []
     articles = driver.find_elements(By.CSS_SELECTOR, 'section.newcarlist article')
-    
     for art in articles:
         try:
             if not art.is_displayed():
                 continue
-            if 'hidden' in (art.get_attribute('class') or ''):
-                continue
-            
-            # Nome do carro
             name_el = art.find_elements(By.CSS_SELECTOR, 'h2, h3, .cl--title')
-            name = name_el[0].text.strip() if name_el else '?'
-            
-            # Supplier
+            name = name_el[0].text.strip() if name_el else ''
             supplier = art.get_attribute('data-prv') or '?'
-            
-            # Preço
-            price_el = art.find_elements(By.CSS_SELECTOR, '.price.pr-euros')
-            price = '?'
-            for p in price_el:
-                txt = p.text.strip()
-                if txt and '€' in txt and 'day' not in (p.get_attribute('class') or '').lower():
-                    price = txt
-                    break
-            
-            # Foto
-            img_el = art.find_elements(By.CSS_SELECTOR, '.thbCarDest img, .cl--car img')
-            photo = img_el[0].get_attribute('src') if img_el else ''
-            
-            cars.append({
-                'name': name,
-                'supplier': supplier,
-                'price': price,
-                'photo': photo
-            })
+            if name:
+                cars.append((name.lower().strip(), supplier.strip()))
         except:
             continue
-    
     return cars
 
 
-def test_categories():
-    """Teste principal - abre CarJet e navega pelas categorias"""
-    
-    # Screenshots dir
+def count_by_supplier(cars):
+    """Conta carros por supplier"""
+    counts = defaultdict(int)
+    for _, supplier in cars:
+        counts[supplier] += 1
+    return dict(sorted(counts.items(), key=lambda x: -x[1]))
+
+
+def print_supplier_table(title, supplier_counts, total):
+    print(f"\n   {title} ({total} carros):")
+    for sup, cnt in supplier_counts.items():
+        bar = '█' * min(cnt, 40)
+        print(f"      {sup:12s}: {cnt:3d} {bar}")
+
+
+def test_homepage_vs_categories():
     ss_dir = 'screenshots_categories'
     os.makedirs(ss_dir, exist_ok=True)
-    
+
     print("=" * 70)
-    print("🚗 TESTE VISUAL CARJET - CATEGORIAS")
+    print("🚗 TESTE: HOMEPAGE vs CATEGORIAS (por supplier)")
     print("=" * 70)
-    
-    # Setup Chrome
-    opts = setup_chrome_visual()
+
+    opts = setup_chrome()
     service = Service(ChromeDriverManager().install())
     driver = webdriver.Chrome(service=service, options=opts)
     driver.execute_script("Object.defineProperty(navigator, 'webdriver', {get: () => undefined})")
-    
-    all_cars = {}
-    
+
     try:
-        # Usar a URL da sessão existente
         url = "https://www.carjet.com/do/list/pt?s=acc2519f-b521-4f31-b31e-3577274fd60a&b=15362c64-66d7-4cb3-84bf-9661ce12feaa"
-        
-        print(f"\n📌 Abrindo página de resultados...")
-        print(f"   URL: {url[:80]}...")
+        print(f"\n📌 Abrindo homepage de resultados...")
         driver.get(url)
-        
-        # Aguardar carregamento
         print("⏳ Aguardando carregamento...")
         time.sleep(10)
-        
-        # Screenshot inicial
-        driver.save_screenshot(f"{ss_dir}/00_pagina_inicial.png")
-        
-        # Contar carros na página inicial
-        n_initial = count_cars(driver)
-        initial_cars = extract_cars_from_page(driver)
-        print(f"\n✅ Página inicial carregada: {n_initial} carros visíveis")
-        
-        all_cars['TODOS'] = initial_cars
-        
-        for car in initial_cars[:5]:
-            print(f"   - {car['name']} | {car['supplier']} | {car['price']}")
-        if len(initial_cars) > 5:
-            print(f"   ... e mais {len(initial_cars) - 5} carros")
-        
-        # Agora navegar por cada categoria
+        driver.save_screenshot(f"{ss_dir}/00_homepage.png")
+
+        # ── HOMEPAGE ──
+        homepage_cars = extract_cars(driver)
+        homepage_set = set(homepage_cars)  # set de (nome, supplier)
+        homepage_by_supplier = count_by_supplier(homepage_cars)
+
         print("\n" + "=" * 70)
-        print("📂 NAVEGANDO PELAS CATEGORIAS")
+        print("📋 HOMEPAGE")
         print("=" * 70)
-        
+        print_supplier_table("Homepage", homepage_by_supplier, len(homepage_cars))
+
+        # ── CATEGORIAS ──
+        all_category_cars = []  # lista de (nome, supplier)
+        category_data = {}     # cat_code -> lista de (nome, supplier)
+
+        print("\n" + "=" * 70)
+        print("📂 CATEGORIAS")
+        print("=" * 70)
+
         for cat_code, cat_name in CATEGORIES.items():
-            print(f"\n{'─' * 50}")
-            print(f"🔍 Categoria: {cat_name} ({cat_code})")
-            print(f"{'─' * 50}")
-            
+            print(f"\n   🔍 {cat_name} ({cat_code})...", end=" ", flush=True)
             try:
-                # Clicar no filtro de categoria via JavaScript
                 driver.execute_script(f"filterAgrupVeh('{cat_code}')")
-                
-                print(f"   ⏳ Aguardando carregamento...")
-                n_loaded = wait_for_cars(driver, max_wait=8)
-                
-                # Screenshot
-                driver.save_screenshot(f"{ss_dir}/cat_{cat_code}_{cat_name}.png")
-                
-                # Contar e extrair carros
-                n_cars = count_cars(driver)
-                cars = extract_cars_from_page(driver)
-                
-                all_cars[cat_code] = cars
-                
-                print(f"   ✅ {n_cars} carros encontrados ({len(cars)} extraídos)")
-                
-                for car in cars[:3]:
-                    print(f"      - {car['name']} | {car['supplier']} | {car['price']}")
-                if len(cars) > 3:
-                    print(f"      ... e mais {len(cars) - 3} carros")
-                    
+                wait_for_cars(driver, max_wait=8)
+                driver.save_screenshot(f"{ss_dir}/cat_{cat_code}.png")
+
+                cars = extract_cars(driver)
+                category_data[cat_code] = cars
+                all_category_cars.extend(cars)
+
+                by_sup = count_by_supplier(cars)
+                suppliers_str = ", ".join(f"{s}:{c}" for s, c in list(by_sup.items())[:5])
+                print(f"{len(cars)} carros ({suppliers_str})")
             except Exception as e:
-                print(f"   ❌ Erro: {e}")
-                driver.save_screenshot(f"{ss_dir}/erro_{cat_code}.png")
-        
-        # Deduplicação: juntar todos os carros, remover duplicados por nome+supplier
+                print(f"❌ {e}")
+                category_data[cat_code] = []
+
+        # ── DEDUPLICAÇÃO DAS CATEGORIAS ──
+        all_cat_set = set(all_category_cars)
+
+        # ── ANÁLISE: Homepage vs Categorias ──
         print("\n" + "=" * 70)
-        print("� DEDUPLICAÇÃO")
+        print("🔍 ANÁLISE: HOMEPAGE vs CATEGORIAS")
         print("=" * 70)
-        
-        seen = set()
-        unique_cars = []
-        total_before = 0
-        
-        for cat, cars in all_cars.items():
-            total_before += len(cars)
-            for car in cars:
-                key = (car['name'].strip().lower(), car['supplier'].strip().lower())
-                if key not in seen and car['name'].strip():
-                    seen.add(key)
-                    unique_cars.append({**car, 'category': cat})
-        
-        # Resumo final
+
+        # Carros da homepage que NÃO aparecem nas categorias
+        only_homepage = homepage_set - all_cat_set
+        # Carros das categorias que NÃO aparecem na homepage
+        only_categories = all_cat_set - homepage_set
+        # Carros em ambos
+        in_both = homepage_set & all_cat_set
+
+        print(f"\n   Homepage total:     {len(homepage_set)} carros únicos")
+        print(f"   Categorias total:   {len(all_cat_set)} carros únicos")
+        print(f"   Em ambos:           {len(in_both)}")
+        print(f"   SÓ na homepage:     {len(only_homepage)}")
+        print(f"   SÓ nas categorias:  {len(only_categories)}")
+
+        if only_homepage:
+            print(f"\n   ⚠️  Carros que SÓ existem na homepage ({len(only_homepage)}):")
+            for name, sup in sorted(only_homepage):
+                print(f"      - {name} | {sup}")
+        else:
+            print(f"\n   ✅ TODOS os carros da homepage aparecem nas categorias!")
+            print(f"      → Não é necessário recolher da homepage, basta as categorias.")
+
+        if only_categories:
+            print(f"\n   📦 Carros EXTRA nas categorias ({len(only_categories)}):")
+            for name, sup in sorted(list(only_categories)[:20]):
+                print(f"      + {name} | {sup}")
+            if len(only_categories) > 20:
+                print(f"      ... e mais {len(only_categories) - 20}")
+
+        # ── RESUMO POR SUPPLIER ──
         print("\n" + "=" * 70)
-        print("📊 RESUMO FINAL")
+        print("📊 RESUMO POR SUPPLIER")
         print("=" * 70)
-        
-        for cat, cars in all_cars.items():
-            print(f"   {cat:10s}: {len(cars):3d} carros")
-        
-        print(f"\n   TOTAL BRUTO: {total_before} carros (com duplicados)")
-        print(f"   TOTAL ÚNICO: {len(unique_cars)} carros (após deduplicação)")
-        print(f"   DUPLICADOS REMOVIDOS: {total_before - len(unique_cars)}")
-        print(f"   Screenshots em: {ss_dir}/")
-        
-        # Pausa para o utilizador ver
+
+        all_combined = homepage_set | all_cat_set
+        combined_by_supplier = count_by_supplier(list(all_combined))
+        homepage_by_sup = count_by_supplier(list(homepage_set))
+        cat_by_sup = count_by_supplier(list(all_cat_set))
+
+        print(f"\n   {'Supplier':12s} | {'Homepage':>8s} | {'Categorias':>10s} | {'Combinado':>9s} | {'Extra cat':>9s}")
+        print(f"   {'─'*12} | {'─'*8} | {'─'*10} | {'─'*9} | {'─'*9}")
+
+        all_suppliers = sorted(set(list(homepage_by_sup.keys()) + list(cat_by_sup.keys())))
+        for sup in all_suppliers:
+            h = homepage_by_sup.get(sup, 0)
+            c = cat_by_sup.get(sup, 0)
+            t = combined_by_supplier.get(sup, 0)
+            extra = c - h if c > h else 0
+            marker = f"+{extra}" if extra > 0 else ""
+            print(f"   {sup:12s} | {h:8d} | {c:10d} | {t:9d} | {marker:>9s}")
+
+        print(f"   {'─'*12} | {'─'*8} | {'─'*10} | {'─'*9} | {'─'*9}")
+        print(f"   {'TOTAL':12s} | {len(homepage_set):8d} | {len(all_cat_set):10d} | {len(all_combined):9d} | +{len(only_categories)}")
+
+        # ── CONCLUSÃO ──
+        print("\n" + "=" * 70)
+        print("� CONCLUSÃO")
+        print("=" * 70)
+        if len(only_homepage) == 0:
+            print("   ✅ As categorias contêm TODOS os carros da homepage.")
+            print("   → Podemos usar SÓ as categorias e ignorar a homepage.")
+            print(f"   → Isto dá {len(only_categories)} carros EXTRA que a homepage não mostra!")
+        else:
+            print(f"   ⚠️  {len(only_homepage)} carros SÓ existem na homepage.")
+            print("   → Precisamos da homepage + categorias para ter tudo.")
+
+        print(f"\n   Screenshots em: {ss_dir}/")
+
         print("\n" + "=" * 70)
         input("👀 Pressione ENTER para fechar o navegador...")
-        
+
     except Exception as e:
         print(f"\n❌ Erro: {e}")
         import traceback
         traceback.print_exc()
-        driver.save_screenshot(f"{ss_dir}/erro_fatal.png")
         input("\nPressione ENTER para fechar...")
-    
     finally:
         driver.quit()
         print("🔒 Navegador fechado")
 
 
 if __name__ == '__main__':
-    test_categories()
+    test_homepage_vs_categories()
