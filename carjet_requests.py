@@ -263,17 +263,100 @@ def scrape_carjet_requests(location: str, start_dt: datetime, end_dt: datetime) 
         if not html_results:
             return []
         
-        # PASSO 5: Parse do HTML
-        print("[REQUESTS] Fazendo parse do HTML...")
+        # PASSO 5: Parse do HTML da página principal
+        print("[REQUESTS] Fazendo parse do HTML principal...")
         
-        # Usar parse completo do carjet_direct.py se disponível
-        if HAS_CARJET_PARSE:
-            cars = parse_carjet_html_complete(html_results)
-            print(f"[REQUESTS] ✅ {len(cars)} carros encontrados (parse completo)")
+        parse_func = parse_carjet_html_complete if HAS_CARJET_PARSE else parse_cars_simple
+        cars = parse_func(html_results)
+        print(f"[REQUESTS] ✅ {len(cars)} carros na página principal")
+        
+        # PASSO 6: Buscar categorias adicionais (carros escondidos atrás dos filtros)
+        # Usa a MESMA sessão e URL, apenas adiciona frmAgrp para filtrar por categoria
+        # O parse é EXACTAMENTE o mesmo - não altera nada no circuito
+        CATEGORIES_TO_FETCH = ['MINI', 'COMP', 'FAMI', 'ESTA', 'SUVS', 'VANS', 'LUXU', 'AUTO']
+        # NOTA: CARG (carrinhas comerciais) excluído - não fazemos scraping dessas
+        
+        # Extrair tokens s= e b= da URL para construir URL de filtro
+        s_match = re.search(r'[?&]s=([^&]+)', full_redirect_url)
+        b_match = re.search(r'[?&]b=([^&]+)', full_redirect_url)
+        
+        if s_match and b_match:
+            s_token = s_match.group(1)
+            b_token = b_match.group(1)
+            base_filter_url = f"https://www.carjet.com/do/list/pt?s={s_token}&b={b_token}"
+            
+            print(f"[REQUESTS] 📂 Buscando {len(CATEGORIES_TO_FETCH)} categorias adicionais...")
+            
+            for cat_code in CATEGORIES_TO_FETCH:
+                try:
+                    # Submeter filtro de categoria (mesmo mecanismo que filterAgrupVeh no JS)
+                    filter_data = dict(form_data)
+                    filter_data['frmAgrp'] = cat_code
+                    filter_data['frmPrvNo'] = ''
+                    
+                    filter_headers = {
+                        'Content-Type': 'application/x-www-form-urlencoded',
+                        'Origin': 'https://www.carjet.com',
+                        'Referer': full_redirect_url,
+                    }
+                    
+                    resp_cat = session.post(
+                        f"https://www.carjet.com/do/list/pt?s={s_token}&b={b_token}",
+                        data=filter_data,
+                        headers=filter_headers,
+                        timeout=10,
+                        allow_redirects=True
+                    )
+                    
+                    cat_html = resp_cat.text
+                    
+                    # Verificar se tem carros
+                    has_cars = 'class="carCardWeb"' in cat_html or 'class="price pr-euros"' in cat_html
+                    
+                    if has_cars and len(cat_html) > 10000:
+                        cat_cars = parse_func(cat_html)
+                        if cat_cars:
+                            cars.extend(cat_cars)
+                            print(f"[REQUESTS]    {cat_code}: +{len(cat_cars)} carros", file=sys.stderr, flush=True)
+                    else:
+                        # Pode precisar de polling (página ainda a carregar)
+                        time.sleep(3)
+                        resp_cat2 = session.get(resp_cat.url, timeout=10)
+                        cat_html2 = resp_cat2.text
+                        has_cars2 = 'class="carCardWeb"' in cat_html2 or 'class="price pr-euros"' in cat_html2
+                        if has_cars2:
+                            cat_cars = parse_func(cat_html2)
+                            if cat_cars:
+                                cars.extend(cat_cars)
+                                print(f"[REQUESTS]    {cat_code}: +{len(cat_cars)} carros (polling)", file=sys.stderr, flush=True)
+                        else:
+                            print(f"[REQUESTS]    {cat_code}: sem carros", file=sys.stderr, flush=True)
+                    
+                    # Pequena pausa entre categorias para não sobrecarregar
+                    time.sleep(1)
+                    
+                except Exception as cat_err:
+                    print(f"[REQUESTS]    {cat_code}: erro - {cat_err}", file=sys.stderr, flush=True)
+                    continue
+            
+            # PASSO 7: Deduplicar carros por nome+supplier (mesmos carros aparecem em várias categorias)
+            total_before = len(cars)
+            seen = set()
+            unique_cars = []
+            for car in cars:
+                key = (
+                    (car.get('car') or car.get('car_name') or '').strip().lower(),
+                    (car.get('supplier') or '').strip().lower(),
+                    (car.get('price') or '').strip().lower()
+                )
+                if key not in seen and key[0]:
+                    seen.add(key)
+                    unique_cars.append(car)
+            
+            cars = unique_cars
+            print(f"[REQUESTS] 🔄 Deduplicação: {total_before} → {len(cars)} carros ({total_before - len(cars)} duplicados removidos)")
         else:
-            # Fallback para parse simples
-            cars = parse_cars_simple(html_results)
-            print(f"[REQUESTS] ✅ {len(cars)} carros encontrados (parse simples)")
+            print(f"[REQUESTS] ⚠️ Não encontrou tokens s/b na URL, saltando categorias", file=sys.stderr, flush=True)
         
         return cars
         
