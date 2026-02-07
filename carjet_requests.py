@@ -139,6 +139,7 @@ def scrape_carjet_requests(location: str, start_dt: datetime, end_dt: datetime) 
             'frmMoneda': 'EUR',
             'frmMonedaForzada': 'EUR',  # Forçar EUR
             'frmJsonFilterInfo': '',
+            'frmTrans': 'none',  # Não filtrar por transmissão (capturar manuais + automáticos)
             'frmTipoVeh': 'CAR',
             'idioma': 'PT',
             'frmSession': session_id,
