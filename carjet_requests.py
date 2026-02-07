@@ -315,7 +315,17 @@ def scrape_carjet_requests(location: str, start_dt: datetime, end_dt: datetime) 
                     # DEBUG: Contar ocorrências de carros no HTML bruto vs parse
                     jogger_in_html = cat_html.lower().count('jogger')
                     articles_in_html = cat_html.count('<article')
-                    print(f"[REQUESTS]    {cat_code}: HTML={len(cat_html)} bytes, <article>={articles_in_html}, 'jogger'={jogger_in_html}", file=sys.stderr, flush=True)
+                    carcard_count = cat_html.count('carCardWeb')
+                    partner_deal_count = cat_html.count('partner-deal')
+                    print(f"[REQUESTS]    {cat_code}: HTML={len(cat_html)} bytes, <article>={articles_in_html}, carCardWeb={carcard_count}, partner-deal={partner_deal_count}, 'jogger'={jogger_in_html}", file=sys.stderr, flush=True)
+                    
+                    # DEBUG: Para VANS, listar todos os data-prv dos artigos
+                    if cat_code == 'VANS':
+                        import re as _re
+                        prv_matches = _re.findall(r'data-prv="([^"]*)"', cat_html)
+                        h2_matches = _re.findall(r'<h2[^>]*title="([^"]*)"', cat_html)
+                        print(f"[REQUESTS]    VANS data-prv: {prv_matches}", file=sys.stderr, flush=True)
+                        print(f"[REQUESTS]    VANS h2 titles: {h2_matches}", file=sys.stderr, flush=True)
                     
                     # Verificar se tem carros
                     has_cars = 'class="carCardWeb"' in cat_html or 'class="price pr-euros"' in cat_html
