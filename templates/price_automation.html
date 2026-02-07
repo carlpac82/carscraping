@@ -10262,6 +10262,12 @@ Continue?`);
                     console.log(`[UPDATE] Collected from net inputs (already NET)`);
                 }
                 
+                // Grupo C copia sempre os preços do grupo D (C não existe na tabela automated)
+                if (prices['D'] && Object.keys(prices['D']).length > 0) {
+                    prices['C'] = { ...prices['D'] };
+                    console.log(`[UPDATE] Grupo C copiado do grupo D (${Object.keys(prices['C']).length} dias)`);
+                }
+                
                 // Remover grupos sem preços válidos
                 Object.keys(prices).forEach(grupo => {
                     if (Object.keys(prices[grupo]).length === 0) {
