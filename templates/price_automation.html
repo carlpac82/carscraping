@@ -6865,10 +6865,19 @@
             // This prevents losing visual card data AND ensures updates go to same version
             window.originalSupplierDataForEdit = historyData.supplierData || {};
             window.originalSearchType = historyData.search_type || historyData.searchType || 'automated';
-            window.originalPickupDate = historyData.pickup_date || historyData.searchDate || null;
+            // CRITICAL: monthKey (e.g. '2026-03') is the correct source for the month
+            // searchDate/pickup_date contains the TIMESTAMP of when the search was performed, NOT the target month
+            window.originalMonthKey = historyData.monthKey || historyData.month_key || null;
+            if (window.originalMonthKey) {
+                // Derive a proper pickup date from monthKey (e.g. '2026-03' -> '2026-03-04')
+                window.originalPickupDate = window.originalMonthKey + '-04';
+            } else {
+                window.originalPickupDate = historyData.pickup_date || historyData.searchDate || null;
+            }
             console.log('[HISTORY] 💾 Preserved original data:', {
                 supplierDataKeys: Object.keys(window.originalSupplierDataForEdit).length,
                 searchType: window.originalSearchType,
+                monthKey: window.originalMonthKey,
                 pickupDate: window.originalPickupDate
             });
             
