@@ -15092,6 +15092,8 @@ def parse_prices(html: str, base_url: str) -> List[Dict[str, Any]]:
                 "HER": "Hertz",
                 "LOC": "Million",
                 "ICX": "International Car Hire",
+                "OKX": "OK Mobility",
+                "OKX1": "OK Mobility Non-Refundable",
             }
             idx = 0
             for s in raw_objs:
@@ -15173,6 +15175,8 @@ def parse_prices(html: str, base_url: str) -> List[Dict[str, Any]]:
                 "ATR": "Autorent",
                 "AUU": "Auto Union",
                 "ICX": "International Car Hire",
+                "OKX": "OK Mobility",
+                "OKX1": "OK Mobility Non-Refundable",
             }
             idx = 0
             for it in arr:
@@ -15332,6 +15336,8 @@ def parse_prices(html: str, base_url: str) -> List[Dict[str, Any]]:
                     "HER": "Hertz",
                     "LOC": "Million",
                     "ICX": "International Car Hire",
+                    "OKX": "OK Mobility",
+                    "OKX1": "OK Mobility Non-Refundable",
                 }
                 code = ""
                 for im in card.select("img[src]"):
