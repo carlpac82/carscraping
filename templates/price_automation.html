@@ -10000,8 +10000,9 @@ Continue?`);
                 const locationSelect = document.getElementById('locationAuto');
                 const dateInput = document.getElementById('pickupDateAuto');
                 
-                // Tentar obter data do input ou do histórico carregado
-                let dateValue = dateInput?.value || window.originalPickupDate;
+                // Prioridade: data do histórico carregado > data do input
+                // Quando se abre uma pesquisa do histórico (ex: março), usar essa data, não a do input (que pode ser hoje/fevereiro)
+                let dateValue = window.originalPickupDate || dateInput?.value;
                 
                 if (!locationSelect || !dateValue) {
                     showNotification('❌ Faça uma pesquisa primeiro para detectar localização e data!', 'error', 4000);
