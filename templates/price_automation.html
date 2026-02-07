@@ -5222,7 +5222,8 @@
                     // ⚠️ CRITICAL: Store allCarsByDay for future edits
                     // This allows auto-save and manual saves to preserve visual card data
                     window.currentSupplierData = allCarsByDay;
-                    console.log(`[SAVE-HISTORY] 💾 Stored currentSupplierData with ${Object.keys(allCarsByDay).length} days`);
+                    window.originalPickupDate = pickupDate;
+                    console.log(`[SAVE-HISTORY] 💾 Stored currentSupplierData with ${Object.keys(allCarsByDay).length} days, pickupDate: ${pickupDate}`);
                     
                     // DEBUG: Log dias before saving
                     console.log(`[SAVE-HISTORY] 🔍 DEBUG - dias being saved:`, dias);
