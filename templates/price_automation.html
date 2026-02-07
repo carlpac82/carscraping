@@ -10194,16 +10194,44 @@ Continue?`);
                 
                 showNotification('Coletando preços ajustados...', 'info', 2000);
                 
-                // Coletar preços dos inputs NET
+                // Coletar preços dos inputs - converter para NET se necessário
                 const prices = {};
                 const dias = [1, 2, 3, 4, 5, 6, 7, 8, 9, 14, 22, 28, 31, 60];
                 
-                // Tentar primeiro com data-attributes
-                let inputsFound = document.querySelectorAll('input[data-type="net"]');
+                // Recolher preços da tabela automated (pricesTableAuto)
+                // Os inputs data-type="auto" contêm o preço de VENDA (GROSS, com comissão)
+                // Os inputs data-type="net" contêm o preço NET (sem comissão)
+                // A homepage espera NET, por isso precisamos converter auto→NET
+                const autoInputs = document.querySelectorAll('#pricesTableAuto input[data-type="auto"]');
+                const netInputs = document.querySelectorAll('input[data-type="net"]');
                 
-                if (inputsFound.length > 0) {
-                    // Método 1: Usar data-attributes (pesquisas novas)
-                    inputsFound.forEach(input => {
+                console.log(`[UPDATE] Found ${autoInputs.length} auto inputs, ${netInputs.length} net inputs`);
+                
+                if (autoInputs.length > 0) {
+                    // Tabela Automated: inputs "auto" contêm GROSS → converter para NET
+                    autoInputs.forEach(input => {
+                        const grupo = input.dataset.grupo;
+                        const dia = parseInt(input.dataset.dias);
+                        
+                        if (grupo && dia && input.value) {
+                            const grossPrice = parseFloat(input.value);
+                            if (grossPrice > 0) {
+                                // Converter GROSS → NET (remover comissão CarJet)
+                                const netPrice = calculateNet(grossPrice);
+                                if (!prices[grupo]) {
+                                    prices[grupo] = {};
+                                }
+                                prices[grupo][dia] = parseFloat(netPrice.toFixed(2));
+                                if (Object.keys(prices).length <= 3) {
+                                    console.log(`[UPDATE] ${grupo}/${dia}d: GROSS=${grossPrice.toFixed(2)} → NET=${netPrice.toFixed(2)}`);
+                                }
+                            }
+                        }
+                    });
+                    console.log(`[UPDATE] Collected from auto inputs (converted GROSS→NET)`);
+                } else if (netInputs.length > 0) {
+                    // Tabela simples: inputs "net" já contêm NET
+                    netInputs.forEach(input => {
                         const grupo = input.dataset.grupo;
                         const dia = parseInt(input.dataset.dias);
                         
@@ -10217,51 +10245,7 @@ Continue?`);
                             }
                         }
                     });
-                } else {
-                    // Método 2: Procurar inputs com data-dias e data-grupo (histórico carregado)
-                    // Os inputs podem não ter data-type="net" mas têm data-dias e data-grupo
-                    const allInputs = document.querySelectorAll('input[data-dias][data-grupo]');
-                    console.log('[UPDATE] Found', allInputs.length, 'inputs with data-dias and data-grupo');
-                    
-                    let netCount = 0;
-                    let realCount = 0;
-                    let noTypeCount = 0;
-                    
-                    allInputs.forEach((input, idx) => {
-                        const grupo = input.dataset.grupo;
-                        const dia = parseInt(input.dataset.dias);
-                        const tipo = input.dataset.type;
-                        
-                        // Debug primeiros 5 inputs
-                        if (idx < 5) {
-                            console.log(`[UPDATE] Input[${idx}]: grupo=${grupo}, dia=${dia}, type=${tipo}, value=${input.value}, placeholder=${input.placeholder}`);
-                        }
-                        
-                        // Contar tipos
-                        if (tipo === 'net' || tipo === 'auto') netCount++;
-                        else if (tipo === 'real') realCount++;
-                        else noTypeCount++;
-                        
-                        // Coletar apenas inputs NET/AUTO (preços calculados automaticamente)
-                        // type="auto" = NET calculado automaticamente
-                        // type="real" = preço REAL (ignorar)
-                        const isNet = tipo === 'net' || tipo === 'auto' || !tipo;
-                        
-                        if (grupo && dia && isNet && input.value) {
-                            const netPrice = parseFloat(input.value);
-                            if (netPrice > 0) {
-                                if (!prices[grupo]) {
-                                    prices[grupo] = {};
-                                }
-                                prices[grupo][dia] = netPrice;
-                                if (Object.keys(prices).length <= 3) { // Log primeiros 3 grupos
-                                    console.log(`[UPDATE] Collected ${grupo}/${dia}d: ${netPrice}`);
-                                }
-                            }
-                        }
-                    });
-                    
-                    console.log(`[UPDATE] Input types: NET=${netCount}, REAL=${realCount}, NO_TYPE=${noTypeCount}`);
+                    console.log(`[UPDATE] Collected from net inputs (already NET)`);
                 }
                 
                 // Remover grupos sem preços válidos
