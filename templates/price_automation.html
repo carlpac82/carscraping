@@ -3509,10 +3509,11 @@
                             <div class="flex-1 min-w-0">
                                 <div class="flex items-center gap-1 mb-1">
                                     ${getSupplierLogo(item.car.supplier) ? `
-                                        <img src="${getSupplierLogo(item.car.supplier)}" alt="${item.car.supplier}" 
+                                        <img src="${getSupplierLogo(item.car.supplier)}" alt="${supplierDisplayName(item.car.supplier)}" 
                                              class="h-4 object-contain"
                                              onerror="this.style.display='none'">
                                     ` : '<span class="font-semibold text-xs text-[#009cb6]">AutoPrudente</span>'}
+                                    ${isNonRefundable(item.car.supplier) ? '<span class="text-red-500 font-bold text-xs" title="Não reembolsável">*</span>' : ''}
                                 </div>
                                 <div class="text-xs text-gray-600 truncate">${item.car.car}</div>
                             </div>
@@ -3531,10 +3532,11 @@
                             <div class="flex-1 min-w-0">
                                 <div class="flex items-center gap-1 mb-1">
                                     ${getSupplierLogo(item.car.supplier) ? `
-                                        <img src="${getSupplierLogo(item.car.supplier)}" alt="${item.car.supplier}" 
+                                        <img src="${getSupplierLogo(item.car.supplier)}" alt="${supplierDisplayName(item.car.supplier)}" 
                                              class="h-3.5 object-contain"
                                              onerror="this.style.display='none'">
-                                    ` : '<span class="text-xs text-gray-600 truncate">' + item.car.supplier + '</span>'}
+                                    ` : '<span class="text-xs text-gray-600 truncate">' + supplierDisplayName(item.car.supplier) + '</span>'}
+                                    ${isNonRefundable(item.car.supplier) ? '<span class="text-red-500 font-bold text-xs" title="Não reembolsável">*</span>' : ''}
                                 </div>
                                 <div class="text-xs text-gray-500 truncate">${item.car.car}</div>
                             </div>
@@ -3926,6 +3928,21 @@
             
             // Fallback: sem logo
             return null;
+        }
+        
+        function isNonRefundable(supplierName) {
+            if (!supplierName) return false;
+            const s = supplierName.toLowerCase();
+            return s.includes('non-refundable') || s.includes('não reembolsável') || s.includes('nao reembolsavel');
+        }
+        
+        function supplierDisplayName(supplierName) {
+            if (!supplierName) return '';
+            if (isNonRefundable(supplierName)) {
+                // Remover "Non-Refundable" do nome e adicionar asterisco
+                return supplierName.replace(/\s*Non-Refundable\s*/i, '').replace(/\s*Não Reembolsável\s*/i, '').trim();
+            }
+            return supplierName;
         }
         
         // Mapeamento de fotos por GRUPO da AutoPrudente (usando Vehicles Editor API)
@@ -4687,10 +4704,11 @@
                                     <div class="flex-1 min-w-0">
                                         <div class="flex items-center gap-1 mb-1">
                                             ${getSupplierLogo(item.car.supplier) ? `
-                                                <img src="${getSupplierLogo(item.car.supplier)}" alt="${item.car.supplier}" 
+                                                <img src="${getSupplierLogo(item.car.supplier)}" alt="${supplierDisplayName(item.car.supplier)}" 
                                                      class="h-4 object-contain"
                                                      onerror="this.style.display='none'">
                                             ` : '<span class="font-semibold text-xs text-[#009cb6]">AutoPrudente</span>'}
+                                            ${isNonRefundable(item.car.supplier) ? '<span class="text-red-500 font-bold text-xs" title="Não reembolsável">*</span>' : ''}
                                         </div>
                                         <div class="flex items-center gap-1 text-xs text-gray-600">
                                             <span class="truncate">${item.car.car}</span>
@@ -4712,10 +4730,11 @@
                                     <div class="flex-1 min-w-0">
                                         <div class="flex items-center gap-1 mb-1">
                                             ${getSupplierLogo(item.car.supplier) ? `
-                                                <img src="${getSupplierLogo(item.car.supplier)}" alt="${item.car.supplier}" 
+                                                <img src="${getSupplierLogo(item.car.supplier)}" alt="${supplierDisplayName(item.car.supplier)}" 
                                                      class="h-3.5 object-contain"
                                                      onerror="this.style.display='none'">
-                                            ` : '<span class="text-xs text-gray-600 truncate">' + item.car.supplier + '</span>'}
+                                            ` : '<span class="text-xs text-gray-600 truncate">' + supplierDisplayName(item.car.supplier) + '</span>'}
+                                            ${isNonRefundable(item.car.supplier) ? '<span class="text-red-500 font-bold text-xs" title="Não reembolsável">*</span>' : ''}
                                         </div>
                                         <div class="flex items-center gap-1 text-xs text-gray-500">
                                             <span class="truncate">${item.car.car}</span>
