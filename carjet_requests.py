@@ -264,6 +264,11 @@ def scrape_carjet_requests(location: str, start_dt: datetime, end_dt: datetime) 
         if not html_results:
             return []
         
+        # DEBUG: Verificar homepage HTML
+        jogger_homepage = html_results.lower().count('jogger')
+        articles_homepage = html_results.count('<article')
+        print(f"[REQUESTS] 📊 Homepage HTML: {len(html_results)} bytes, <article>={articles_homepage}, 'jogger'={jogger_homepage}", file=sys.stderr, flush=True)
+        
         # Definir função de parse (mesmo para homepage e categorias)
         parse_func = parse_carjet_html_complete if HAS_CARJET_PARSE else parse_cars_simple
         
@@ -307,6 +312,11 @@ def scrape_carjet_requests(location: str, start_dt: datetime, end_dt: datetime) 
                     
                     cat_html = resp_cat.text
                     
+                    # DEBUG: Contar ocorrências de carros no HTML bruto vs parse
+                    jogger_in_html = cat_html.lower().count('jogger')
+                    articles_in_html = cat_html.count('<article')
+                    print(f"[REQUESTS]    {cat_code}: HTML={len(cat_html)} bytes, <article>={articles_in_html}, 'jogger'={jogger_in_html}", file=sys.stderr, flush=True)
+                    
                     # Verificar se tem carros
                     has_cars = 'class="carCardWeb"' in cat_html or 'class="price pr-euros"' in cat_html
                     
@@ -314,6 +324,11 @@ def scrape_carjet_requests(location: str, start_dt: datetime, end_dt: datetime) 
                         cat_cars = parse_func(cat_html)
                         if cat_cars:
                             cars.extend(cat_cars)
+                            # DEBUG: Log Jogger encontrados nesta categoria
+                            jogger_parsed = [c for c in cat_cars if 'jogger' in (c.get('car') or c.get('car_name') or '').lower()]
+                            if jogger_parsed:
+                                for jp in jogger_parsed:
+                                    print(f"[REQUESTS]    {cat_code}: JOGGER → {jp.get('supplier','?')} | {jp.get('price','?')}", file=sys.stderr, flush=True)
                             print(f"[REQUESTS]    {cat_code}: +{len(cat_cars)} carros", file=sys.stderr, flush=True)
                     else:
                         # Pode precisar de polling (página ainda a carregar)
@@ -336,6 +351,12 @@ def scrape_carjet_requests(location: str, start_dt: datetime, end_dt: datetime) 
                     print(f"[REQUESTS]    {cat_code}: erro - {cat_err}", file=sys.stderr, flush=True)
                     continue
             
+            # DEBUG: Contar Jogger antes da deduplicação
+            jogger_before_dedup = [c for c in cars if 'jogger' in (c.get('car') or c.get('car_name') or '').lower()]
+            print(f"[REQUESTS] 🔍 Jogger ANTES dedup: {len(jogger_before_dedup)}", file=sys.stderr, flush=True)
+            for jb in jogger_before_dedup:
+                print(f"[REQUESTS]    → {jb.get('supplier','?')} | {jb.get('price','?')}", file=sys.stderr, flush=True)
+            
             # PASSO 6: Deduplicar carros (mesmos carros aparecem em várias categorias)
             total_before = len(cars)
             seen = set()
@@ -349,8 +370,19 @@ def scrape_carjet_requests(location: str, start_dt: datetime, end_dt: datetime) 
                 if key not in seen and key[0]:
                     seen.add(key)
                     unique_cars.append(car)
+                else:
+                    # DEBUG: Log duplicados de Jogger
+                    if 'jogger' in key[0]:
+                        print(f"[REQUESTS] 🔄 JOGGER duplicado removido: {key}", file=sys.stderr, flush=True)
             
             cars = unique_cars
+            
+            # DEBUG: Contar Jogger depois da deduplicação
+            jogger_after_dedup = [c for c in cars if 'jogger' in (c.get('car') or c.get('car_name') or '').lower()]
+            print(f"[REQUESTS] 🔍 Jogger DEPOIS dedup: {len(jogger_after_dedup)}", file=sys.stderr, flush=True)
+            for ja in jogger_after_dedup:
+                print(f"[REQUESTS]    → {ja.get('supplier','?')} | {ja.get('price','?')}", file=sys.stderr, flush=True)
+            
             print(f"[REQUESTS] 🔄 Deduplicação: {total_before} → {len(cars)} carros ({total_before - len(cars)} duplicados removidos)")
         else:
             # Fallback: se não encontrou tokens s/b, usar parse da homepage
