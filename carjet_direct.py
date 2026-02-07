@@ -235,7 +235,7 @@ VEHICLES = {
     'kia picanto': 'MINI 4 Lugares',
     'opel adam': 'MINI 4 Lugares',
     'peugeot 108': 'MINI 4 Lugares',
-    'renault twingo': 'MINI 5 Lugares',  # Twingo tem 5 lugares
+    'renault twingo': 'MINI 4 Lugares',  # B1
     'seat mii': 'MINI 4 Lugares',
     'toyota aygo': 'MINI 4 Lugares',
     'toyota yaris': 'MINI 5 Lugares',  # Yaris tem 5 lugares
@@ -341,7 +341,8 @@ VEHICLES = {
     'hyundai kauai': 'SUV',
     'kia stonic': 'SUV',
     'mitsubishi asx': 'SUV',
-    'nissan juke': 'Crossover',  # J1
+    'nissan juke': 'SUV',  # F
+    'ford puma': 'SUV',  # F
     'renault captur': 'SUV',
     'renault captur auto': 'SUV Auto',
     'renault captur aut': 'SUV Auto',
