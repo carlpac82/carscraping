@@ -6864,8 +6864,8 @@
             // ⚠️ CRITICAL: Preserve original supplierData, searchType, and pickupDate for re-saving
             // This prevents losing visual card data AND ensures updates go to same version
             window.originalSupplierDataForEdit = historyData.supplierData || {};
-            window.originalSearchType = historyData.search_type || 'automated';
-            window.originalPickupDate = historyData.pickup_date || null;
+            window.originalSearchType = historyData.search_type || historyData.searchType || 'automated';
+            window.originalPickupDate = historyData.pickup_date || historyData.searchDate || null;
             console.log('[HISTORY] 💾 Preserved original data:', {
                 supplierDataKeys: Object.keys(window.originalSupplierDataForEdit).length,
                 searchType: window.originalSearchType,
@@ -10063,10 +10063,15 @@ Continue?`);
                 }
                 
                 // Criar opções do dropdown
-                let periodOptionsHtml = '<option value="new">Criar novo período</option>';
+                // Se só há 1 período existente, seleccioná-lo por defeito
+                const hasDetectedMatch = existingPeriods.some(p => p.day_start === detectedStartDay && p.day_end === detectedEndDay);
+                const autoSelectSingle = existingPeriods.length === 1 && !hasDetectedMatch;
+                
+                let periodOptionsHtml = `<option value="new" ${autoSelectSingle ? '' : (!hasDetectedMatch && existingPeriods.length !== 1 ? 'selected' : '')}>Criar novo período</option>`;
                 existingPeriods.forEach((period, idx) => {
                     const isDetected = period.day_start === detectedStartDay && period.day_end === detectedEndDay;
-                    periodOptionsHtml += `<option value="${idx}" ${isDetected ? 'selected' : ''}>${period.day_start}-${period.day_end}</option>`;
+                    const isAutoSelected = autoSelectSingle && idx === 0;
+                    periodOptionsHtml += `<option value="${idx}" ${(isDetected || isAutoSelected) ? 'selected' : ''}>${period.day_start}-${period.day_end}</option>`;
                 });
                 
                 // Criar popup personalizado com design clean e minimalista
