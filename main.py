@@ -12270,7 +12270,7 @@ async def track_by_params(request: Request):
     print(f"[API] COMPUTED: start_dt={start_dt.date()}, end_dt={end_dt.date()}, days={days}", file=sys.stderr, flush=True)
     
     # Verificar se requests/urllib estão disponíveis e se devem ser usados
-    _DISABLE_REQUESTS = os.getenv("DISABLE_CARJET_REQUESTS", "0").strip() in ("1", "true", "yes", "on")
+    _DISABLE_REQUESTS = True  # Requests/urllib não funciona no Railway - ir direto para Selenium
     _HAS_CARJET_REQUESTS = True
     try:
         import requests
@@ -13380,7 +13380,7 @@ async def track_by_params(request: Request):
                 # Configurar timeout (apenas em sistemas Unix)
                 try:
                     signal.signal(signal.SIGALRM, timeout_handler)
-                    signal.alarm(60)  # 60 segundos de timeout
+                    signal.alarm(120)  # 120 segundos de timeout (categorias precisam ~30s extra)
                 except:
                     pass  # Windows não suporta SIGALRM
                 # Esconder webdriver
@@ -13631,17 +13631,86 @@ async def track_by_params(request: Request):
                 
                 # Se obtivemos URL s/b válida, pegar HTML do driver ANTES de fechar
                 if 's=' in final_url and 'b=' in final_url:
-                    print(f"[SELENIUM] ✅ URL s/b obtida! Pegando HTML do driver...", file=sys.stderr, flush=True)
+                    print(f"[SELENIUM] ✅ URL s/b obtida! Navegando por categorias...", file=sys.stderr, flush=True)
                     
-                    # Usar page_source do driver em vez de fazer novo request
-                    html_content = driver.page_source
+                    # NAVEGAR POR CATEGORIAS para capturar TODOS os carros
+                    # O CarJet mostra carros diferentes em cada categoria
+                    CATEGORIES = ['MINI', 'COMP', 'FAMI', 'ESTA', 'SUVS', 'VANS', 'LUXU', 'AUTO']
+                    all_html_parts = []
+                    
+                    # Garantir frmTrans=none (sem filtro de transmissão) via JS instantâneo
+                    try:
+                        driver.execute_script("""
+                            var radios = document.querySelectorAll('input[name="frmTrans"]');
+                            radios.forEach(function(x) { x.checked = false; });
+                            var none = document.querySelector('input[name="frmTrans"][value="none"]');
+                            if (none) none.checked = true;
+                        """)
+                        print(f"[SELENIUM] 🧹 frmTrans=none definido", file=sys.stderr, flush=True)
+                    except:
+                        pass
+                    
+                    for cat in CATEGORIES:
+                        try:
+                            driver.execute_script(f"filterAgrupVeh('{cat}')")
+                            # Polling rápido (100ms) em vez de sleep fixo
+                            for _poll in range(30):  # Max 3s
+                                time.sleep(0.1)
+                                _ready = driver.execute_script("return document.querySelectorAll('article').length")
+                                if _ready and _ready > 0:
+                                    break
+                            cat_html = driver.page_source
+                            cat_articles = cat_html.count('<article')
+                            all_html_parts.append(cat_html)
+                            print(f"[SELENIUM]    {cat}: {cat_articles} artigos, {len(cat_html)} bytes", file=sys.stderr, flush=True)
+                        except Exception as cat_err:
+                            print(f"[SELENIUM]    {cat}: erro - {cat_err}", file=sys.stderr, flush=True)
+                    
+                    # Usar o HTML com mais conteúdo (combinar todos)
+                    # Cada categoria tem carros diferentes, vamos usar o maior como base
+                    # e fazer parse de todos
+                    if all_html_parts:
+                        # Parse de cada categoria e juntar resultados
+                        all_items_raw = []
+                        for i, cat_html in enumerate(all_html_parts):
+                            cat_items = parse_prices(cat_html, final_url)
+                            if cat_items:
+                                all_items_raw.extend(cat_items)
+                                print(f"[SELENIUM]    {CATEGORIES[i]}: +{len(cat_items)} carros parsed", file=sys.stderr, flush=True)
+                        
+                        # Deduplicar por (car_name, supplier, price)
+                        seen = set()
+                        unique_items = []
+                        for item in all_items_raw:
+                            key = (
+                                (item.get('car') or item.get('car_name') or '').strip().lower(),
+                                (item.get('supplier') or '').strip().lower(),
+                                str(item.get('price_num') or item.get('price') or '').strip().lower()
+                            )
+                            if key not in seen and key[0]:
+                                seen.add(key)
+                                unique_items.append(item)
+                        
+                        print(f"[SELENIUM] 📊 Categorias: {len(all_items_raw)} total → {len(unique_items)} únicos", file=sys.stderr, flush=True)
+                        html_content = all_html_parts[0]  # Para compatibilidade
+                    else:
+                        # Fallback: usar homepage se categorias falharam
+                        html_content = driver.page_source
+                        unique_items = None
                     
                     # Agora pode fechar o driver
                     driver.quit()
                     
-                    print(f"[SELENIUM] Fazendo parse de {len(html_content)} bytes...", file=sys.stderr, flush=True)
-                    items = parse_prices(html_content, final_url)
-                    print(f"[SELENIUM] Parsed {len(items)} items", file=sys.stderr, flush=True)
+                    # Se temos items das categorias, usar esses (mais completos)
+                    if unique_items:
+                        print(f"[SELENIUM] Usando {len(unique_items)} carros das categorias", file=sys.stderr, flush=True)
+                        items = unique_items
+                    else:
+                        # Fallback: parse da homepage
+                        print(f"[SELENIUM] Fazendo parse de {len(html_content)} bytes (homepage fallback)...", file=sys.stderr, flush=True)
+                        items = parse_prices(html_content, final_url)
+                        print(f"[SELENIUM] Parsed {len(items)} items", file=sys.stderr, flush=True)
+                    
                     items = convert_items_gbp_to_eur(items)
                     print(f"[SELENIUM] {len(items)} após GBP→EUR", file=sys.stderr, flush=True)
                     items = apply_price_adjustments(items, final_url)
