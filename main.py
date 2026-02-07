@@ -47021,7 +47021,38 @@ async def save_current_prices(request: Request):
                                   AND day_start = %s AND day_end = %s
                             """, (prices_json, location, month, year, day_start, day_end))
                         else:
-                            logging.info(f"➕ Inserting new period")
+                            # Shrink or delete overlapping periods before inserting
+                            cur.execute("""
+                                SELECT id, day_start, day_end FROM current_prices
+                                WHERE location = %s AND month = %s AND year = %s
+                                ORDER BY day_start
+                            """, (location, month, year))
+                            all_periods = cur.fetchall()
+                            
+                            for pid, p_start, p_end in all_periods:
+                                # Check if existing period overlaps with new period
+                                if p_start < day_start and p_end >= day_start:
+                                    # Existing period starts before new and overlaps: shrink end
+                                    new_end = day_start - 1
+                                    logging.info(f"✂️ Shrinking period {pid}: {p_start}-{p_end} → {p_start}-{new_end}")
+                                    cur.execute("""
+                                        UPDATE current_prices SET day_end = %s, updated_at = CURRENT_TIMESTAMP
+                                        WHERE id = %s
+                                    """, (new_end, pid))
+                                elif p_start >= day_start and p_end <= day_end:
+                                    # Existing period fully contained in new: delete it
+                                    logging.info(f"🗑️ Deleting fully overlapped period {pid}: {p_start}-{p_end}")
+                                    cur.execute("DELETE FROM current_prices WHERE id = %s", (pid,))
+                                elif p_start <= day_end and p_end > day_end:
+                                    # Existing period starts inside new and extends beyond: shrink start
+                                    new_start = day_end + 1
+                                    logging.info(f"✂️ Shrinking period {pid}: {p_start}-{p_end} → {new_start}-{p_end}")
+                                    cur.execute("""
+                                        UPDATE current_prices SET day_start = %s, updated_at = CURRENT_TIMESTAMP
+                                        WHERE id = %s
+                                    """, (new_start, pid))
+                            
+                            logging.info(f"➕ Inserting new period {day_start}-{day_end}")
                             cur.execute("""
                                 INSERT INTO current_prices (location, month, year, day_start, day_end, prices_data, updated_at)
                                 VALUES (%s, %s, %s, %s, %s, %s, CURRENT_TIMESTAMP)
@@ -47051,7 +47082,28 @@ async def save_current_prices(request: Request):
                               AND day_start = ? AND day_end = ?
                         """, (prices_json, location, month, year, day_start, day_end))
                     else:
-                        logging.info(f"➕ Inserting new period")
+                        # Shrink or delete overlapping periods before inserting
+                        cursor.execute("""
+                            SELECT id, day_start, day_end FROM current_prices
+                            WHERE location = ? AND month = ? AND year = ?
+                            ORDER BY day_start
+                        """, (location, month, year))
+                        all_periods = cursor.fetchall()
+                        
+                        for pid, p_start, p_end in all_periods:
+                            if p_start < day_start and p_end >= day_start:
+                                new_end = day_start - 1
+                                logging.info(f"✂️ Shrinking period {pid}: {p_start}-{p_end} → {p_start}-{new_end}")
+                                cursor.execute("UPDATE current_prices SET day_end = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?", (new_end, pid))
+                            elif p_start >= day_start and p_end <= day_end:
+                                logging.info(f"🗑️ Deleting fully overlapped period {pid}: {p_start}-{p_end}")
+                                cursor.execute("DELETE FROM current_prices WHERE id = ?", (pid,))
+                            elif p_start <= day_end and p_end > day_end:
+                                new_start = day_end + 1
+                                logging.info(f"✂️ Shrinking period {pid}: {p_start}-{p_end} → {new_start}-{p_end}")
+                                cursor.execute("UPDATE current_prices SET day_start = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?", (new_start, pid))
+                        
+                        logging.info(f"➕ Inserting new period {day_start}-{day_end}")
                         cursor.execute("""
                             INSERT INTO current_prices (location, month, year, day_start, day_end, prices_data, updated_at)
                             VALUES (?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP)
