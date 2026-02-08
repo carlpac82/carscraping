@@ -13666,6 +13666,28 @@ async def track_by_params(request: Request):
                                 else:
                                     _stable_ticks = 0
                                 _prev_count = _cur_count
+                            # Scroll para baixo para forçar lazy loading de TODOS os carros
+                            try:
+                                driver.execute_script("window.scrollTo(0, document.body.scrollHeight);")
+                                time.sleep(0.5)
+                                # Verificar se apareceram mais artigos após scroll
+                                _after_scroll = driver.execute_script("return document.querySelectorAll('article').length") or 0
+                                if _after_scroll > _cur_count:
+                                    # Esperar estabilizar novamente
+                                    _prev2 = _after_scroll
+                                    for _poll2 in range(30):  # Max 3s extra
+                                        time.sleep(0.1)
+                                        _cur2 = driver.execute_script("return document.querySelectorAll('article').length") or 0
+                                        if _cur2 == _prev2:
+                                            _stable_ticks += 1
+                                            if _stable_ticks >= 5:
+                                                break
+                                        else:
+                                            _stable_ticks = 0
+                                        _prev2 = _cur2
+                                    _cur_count = _prev2
+                            except:
+                                pass
                             cat_html = driver.page_source
                             cat_articles = cat_html.count('<article')
                             all_html_parts.append(cat_html)
