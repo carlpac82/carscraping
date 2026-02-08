@@ -14427,6 +14427,14 @@ async def track_by_params(request: Request):
         print(f"[API] RESPONSE: {len(items)} items, days={days}, start={start_dt.date()}, end={end_dt.date()}", file=sys.stderr, flush=True)
         if items:
             print(f"[API] First car: {items[0].get('car', 'N/A')} - {items[0].get('price', 'N/A')}", file=sys.stderr, flush=True)
+            # DEBUG: Mostrar suppliers únicos ANTES do normalize_and_sort
+            _suppliers_pre = {}
+            for _it in items:
+                _s = _it.get('supplier', '(empty)')
+                _suppliers_pre[_s] = _suppliers_pre.get(_s, 0) + 1
+            print(f"[API] 🔍 SUPPLIERS PRE-NORMALIZE: {dict(sorted(_suppliers_pre.items(), key=lambda x: -x[1])[:15])}", file=sys.stderr, flush=True)
+            _aup_pre = sum(1 for _it in items if 'prudente' in (_it.get('supplier','') or '').lower())
+            print(f"[API] 🔍 AutoPrudente items PRE-NORMALIZE: {_aup_pre}", file=sys.stderr, flush=True)
         # APLICAR NORMALIZE_AND_SORT para adicionar campo 'group'
         items = normalize_and_sort(items, supplier_priority=None)
         

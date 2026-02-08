@@ -400,7 +400,7 @@ VEHICLES = {
     'fiat 500l': 'Crossover',
     'fiat 500x': 'Crossover',
     'ford kuga': 'Crossover',
-    'ford puma': 'Crossover',
+    # ford puma: movido para secção F (SUV)
     'hyundai kona': 'Crossover',
     'hyundai tucson': 'Crossover',
     'jeep avenger': 'Crossover',
