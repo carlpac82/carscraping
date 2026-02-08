@@ -15469,6 +15469,10 @@ def parse_prices(html: str, base_url: str) -> List[Dict[str, Any]]:
                             # -> nome: "Kia Niro Auto" | transmissão: "Automático"
                             parts = alt_text.split('|')
                             alt_car_name = parts[0].split('ou similar')[0].strip()
+                            # Clean trailing fuel type markers: ", Electric", ", Hybrid", ", Diesel"
+                            alt_car_name = re.sub(r',?\s*(electric|electrico|eléctrico|hybrid|híbrido|diesel|gasolina|petrol)\s*$', '', alt_car_name, flags=re.I).strip()
+                            # Remove trailing commas/spaces
+                            alt_car_name = alt_car_name.rstrip(', ').strip()
                             if alt_car_name:
                                 car_name = alt_car_name
                                 logging.debug(f"✅ [SCRAPING-ALT] Nome extraído do alt: '{car_name}' (original: '{alt_text}')")
@@ -15911,6 +15915,12 @@ def parse_prices(html: str, base_url: str) -> List[Dict[str, Any]]:
                 # Dacia Jogger -> M1 (7 Seater); automatic will auto-suffix to M2 later
                 if re.search(r"\bdacia\s*jogger\b", cn):
                     category = "7 Seater"
+                # Renault Zoe (electric, always automatic) -> E1 (Mini Auto)
+                if re.search(r"\brenault\s*zoe\b", cn):
+                    category = "Mini Automatic"
+                # Volkswagen ID.3 (electric, always automatic) -> E2 (Economy Auto)
+                if re.search(r"\b(vw|volkswagen)\s*id\.?\s*3\b", cn):
+                    category = "Economy Automatic"
                 # ❌ REMOVIDO: Fiat 500X -> Agora controlado pelo VEHICLES
                 # if re.search(r"\bfiat\s*500x\b", cn):
                 #     if _is_auto_flag(cn, '', card_transmission):
