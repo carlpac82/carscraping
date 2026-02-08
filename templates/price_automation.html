@@ -4905,6 +4905,7 @@
                         }
                         
                         try {
+                            console.log(`🔍 [FETCH-START] ${day}d offset=${dateOffset} date=${searchDateStr}`);
                             const response = await fetch('/api/track-by-params', {
                                 method: 'POST',
                                 headers: { 'Content-Type': 'application/json' },
@@ -4917,8 +4918,10 @@
                                     currency: 'EUR'
                                 })
                             });
+                            console.log(`🔍 [FETCH-DONE] ${day}d status=${response.status} ok=${response.ok}`);
 
                             const data = await response.json();
+                            console.log(`🔍 [JSON-PARSED] ${day}d items=${data.items?.length || 0} ok=${data.ok}`);
                             
                             if (data.items && data.items.length > 0) {
                                 console.log(`${day} days - ${data.items.length} cars found`);
@@ -4958,6 +4961,14 @@
                                 // Store ALL cars for Auto price calculations
                                 allCarsByDay[day] = data.items;
                                 
+                                // DEBUG: Log unique suppliers
+                                const supplierCounts = {};
+                                data.items.forEach(item => {
+                                    const s = item.supplier || '(empty)';
+                                    supplierCounts[s] = (supplierCounts[s] || 0) + 1;
+                                });
+                                console.log(`🔍 [SUPPLIERS] ${day}d:`, supplierCounts);
+                                
                                 // FILTER ONLY AUTOPRUDENTE for Real column
                                 const autoprudenteItems = data.items.filter(item => {
                                     const supplier = (item.supplier || '').toLowerCase();
@@ -4967,7 +4978,7 @@
                                            supplier === 'aup';
                                 });
                                 
-                                console.log(`${day} days - ${autoprudenteItems.length} AUTOPRUDENTE cars found`);
+                                console.log(`🔍 [AUP-FILTER] ${day}d - ${autoprudenteItems.length} AUTOPRUDENTE cars found`);
                                 
                                 if (autoprudenteItems.length > 0) {
                                     // RULE: Group by car group and choose LOWEST PRICE
@@ -5019,7 +5030,7 @@
                                 console.warn(`${day} days - No items returned by API`);
                             }
                         } catch (err) {
-                            console.error(`Error searching ${day} days (offset ${dateOffset}):`, err);
+                            console.error(`❌ [FETCH-ERROR] ${day}d offset=${dateOffset}:`, err.message, err);
                         }
                     }
                     

@@ -14444,7 +14444,10 @@ async def track_by_params(request: Request):
         if items_before_filter > len(items):
             print(f"[API] 🔧 Filtered: {items_before_filter} → {len(items)} (removed {items_before_filter - len(items)} manual cars)")
         
-        return _no_store_json({
+        # DEBUG CRÍTICO: Verificar AutoPrudente DEPOIS do normalize_and_sort
+        _aup_post = sum(1 for _it in items if 'prudente' in (_it.get('supplier','') or '').lower())
+        import json as _json_debug
+        _response_obj = {
             "ok": True,
             "items": items,
             "location": location,
@@ -14453,7 +14456,15 @@ async def track_by_params(request: Request):
             "end_date": end_dt.date().isoformat(),
             "end_time": end_dt.strftime("%H:%M"),
             "days": days,
-        })
+        }
+        _json_size = len(_json_debug.dumps(_response_obj))
+        print(f"[API] 📊 FINAL: {len(items)} items, AutoPrudente={_aup_post}, JSON={_json_size} bytes ({_json_size/1024:.0f}KB)", file=sys.stderr, flush=True)
+        if _aup_post > 0:
+            _aup_sample = next((_it for _it in items if 'prudente' in (_it.get('supplier','') or '').lower()), None)
+            if _aup_sample:
+                print(f"[API] 📊 AUP sample: supplier='{_aup_sample.get('supplier')}', car='{_aup_sample.get('car')}', group='{_aup_sample.get('group')}'", file=sys.stderr, flush=True)
+        
+        return _no_store_json(_response_obj)
     except Exception as e:
         print(f"\n{'='*60}")
         print(f"[API ERROR] track-by-params failed: {str(e)}")
