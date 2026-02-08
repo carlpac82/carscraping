@@ -272,6 +272,9 @@ VEHICLES = {
     'toyota yaris auto': 'MINI Auto',
     'toyota yaris hybrid': 'MINI Auto',
     'toyota yaris  hybrid': 'MINI Auto',
+    'renault zoe': 'MINI Auto',  # Eléctrico (sempre automático)
+    'renault zoe electric': 'MINI Auto',
+    'renault zoe , electric': 'MINI Auto',
     'volkswagen up auto': 'MINI Auto',
     'fiat panda hybrid': 'MINI 5 Lugares',  # CORRIGIDO: Hybrid sem Auto no nome = Manual
     'fiat panda hybrid auto': 'MINI Auto',
