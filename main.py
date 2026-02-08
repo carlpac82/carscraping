@@ -17633,6 +17633,7 @@ def normalize_and_sort(items: List[Dict[str, Any]], supplier_priority: Optional[
     detailed: List[Dict[str, Any]] = []
     summary: List[Dict[str, Any]] = []
     import re as _re2
+    import sys
     
     # PRE-LOAD: Carregar TODOS os vehicle_photos e name_overrides de uma vez (evita ~2000 queries individuais)
     _all_vehicle_photos = {}  # {vehicle_name_lower: photo_url}
