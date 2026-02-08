@@ -13681,17 +13681,33 @@ async def track_by_params(request: Request):
                         # Deduplicar por (car_name, supplier, price)
                         seen = set()
                         unique_items = []
+                        _dupes_removed = 0
+                        _empty_supplier = 0
+                        _dupe_samples = []
                         for item in all_items_raw:
                             key = (
                                 (item.get('car') or item.get('car_name') or '').strip().lower(),
                                 (item.get('supplier') or '').strip().lower(),
                                 str(item.get('price_num') or item.get('price') or '').strip().lower()
                             )
+                            if not key[1]:
+                                _empty_supplier += 1
                             if key not in seen and key[0]:
                                 seen.add(key)
                                 unique_items.append(item)
+                            else:
+                                _dupes_removed += 1
+                                if len(_dupe_samples) < 5:
+                                    _dupe_samples.append(f"{item.get('car','')}|{item.get('supplier','')}|{item.get('price_num','')}")
                         
-                        print(f"[SELENIUM] 📊 Categorias: {len(all_items_raw)} total → {len(unique_items)} únicos", file=sys.stderr, flush=True)
+                        print(f"[SELENIUM] 📊 Categorias: {len(all_items_raw)} total → {len(unique_items)} únicos (removed {_dupes_removed} dupes, {_empty_supplier} empty supplier)", file=sys.stderr, flush=True)
+                        if _dupe_samples:
+                            print(f"[SELENIUM] 📊 Dupe samples: {_dupe_samples}", file=sys.stderr, flush=True)
+                        # DEBUG: Mostrar Dacia Jogger antes e depois da dedup
+                        _jogger_raw = [f"{it.get('supplier','')}|{it.get('price_num','')}" for it in all_items_raw if 'jogger' in (it.get('car','') or '').lower()]
+                        _jogger_unique = [f"{it.get('supplier','')}|{it.get('price_num','')}" for it in unique_items if 'jogger' in (it.get('car','') or '').lower()]
+                        print(f"[SELENIUM] 🔍 Jogger RAW ({len(_jogger_raw)}): {_jogger_raw[:10]}", file=sys.stderr, flush=True)
+                        print(f"[SELENIUM] 🔍 Jogger UNIQUE ({len(_jogger_unique)}): {_jogger_unique[:10]}", file=sys.stderr, flush=True)
                         html_content = all_html_parts[0]  # Para compatibilidade
                     else:
                         # Fallback: usar homepage se categorias falharam
