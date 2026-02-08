@@ -15434,10 +15434,6 @@ def parse_prices(html: str, base_url: str) -> List[Dict[str, Any]]:
                     "RNA": "Rentauto",
                     "SVN": "Sevens",
                     "TAX": "Tangerine",
-                    "SXT": "Sixt",
-                    "BGX": "Budget",
-                    "ATR": "Autorent",
-                    "EPI": "Epi",
                 }
                 code = ""
                 for im in card.select("img[src]"):
@@ -15449,6 +15445,8 @@ def parse_prices(html: str, base_url: str) -> List[Dict[str, Any]]:
                 
                 if code:
                     supplier = supplier_alias.get(code, code)
+                    if code not in supplier_alias:
+                        print(f"[SELENIUM] ⚠️ UNMAPPED supplier code: {code} (logo URL: logo_{code}.png)", file=sys.stderr, flush=True)
                 if not supplier:
                     # textual fallback but avoid using car name
                     supplier_el = card.select_one(".supplier, .vendor, .partner, [class*='supplier'], [class*='vendor']")
