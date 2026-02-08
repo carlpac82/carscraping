@@ -15433,6 +15433,11 @@ def parse_prices(html: str, base_url: str) -> List[Dict[str, Any]]:
                     "AIR": "Airauto",
                     "RNA": "Rentauto",
                     "SVN": "Sevens",
+                    "TAX": "Tangerine",
+                    "SXT": "Sixt",
+                    "BGX": "Budget",
+                    "ATR": "Autorent",
+                    "EPI": "Epi",
                 }
                 code = ""
                 for im in card.select("img[src]"):
