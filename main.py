@@ -13685,36 +13685,40 @@ async def track_by_params(request: Request):
                                 all_items_raw.extend(cat_items)
                                 print(f"[SELENIUM]    {CATEGORIES[i]}: +{len(cat_items)} carros parsed", file=sys.stderr, flush=True)
                         
-                        # Deduplicar por (car_name, supplier, price)
+                        # Deduplicar por (car_name, supplier, price) — MAS NÃO deduplicar items sem supplier
                         seen = set()
                         unique_items = []
                         _dupes_removed = 0
                         _empty_supplier = 0
-                        _dupe_samples = []
                         for item in all_items_raw:
-                            key = (
-                                (item.get('car') or item.get('car_name') or '').strip().lower(),
-                                (item.get('supplier') or '').strip().lower(),
-                                str(item.get('price_num') or item.get('price') or '').strip().lower()
-                            )
-                            if not key[1]:
+                            car_key = (item.get('car') or item.get('car_name') or '').strip().lower()
+                            sup_key = (item.get('supplier') or '').strip().lower()
+                            price_key = str(item.get('price_num') or item.get('price') or '').strip().lower()
+                            
+                            if not car_key:
+                                _dupes_removed += 1
+                                continue
+                            
+                            if not sup_key:
                                 _empty_supplier += 1
-                            if key not in seen and key[0]:
+                                # Sem supplier = sempre incluir (não deduplicar)
+                                unique_items.append(item)
+                                continue
+                            
+                            key = (car_key, sup_key, price_key)
+                            if key not in seen:
                                 seen.add(key)
                                 unique_items.append(item)
                             else:
                                 _dupes_removed += 1
-                                if len(_dupe_samples) < 5:
-                                    _dupe_samples.append(f"{item.get('car','')}|{item.get('supplier','')}|{item.get('price_num','')}")
                         
                         print(f"[SELENIUM] 📊 Categorias: {len(all_items_raw)} total → {len(unique_items)} únicos (removed {_dupes_removed} dupes, {_empty_supplier} empty supplier)", file=sys.stderr, flush=True)
-                        if _dupe_samples:
-                            print(f"[SELENIUM] 📊 Dupe samples: {_dupe_samples}", file=sys.stderr, flush=True)
-                        # DEBUG: Mostrar Dacia Jogger antes e depois da dedup
-                        _jogger_raw = [f"{it.get('supplier','')}|{it.get('price_num','')}" for it in all_items_raw if 'jogger' in (it.get('car','') or '').lower()]
-                        _jogger_unique = [f"{it.get('supplier','')}|{it.get('price_num','')}" for it in unique_items if 'jogger' in (it.get('car','') or '').lower()]
-                        print(f"[SELENIUM] 🔍 Jogger RAW ({len(_jogger_raw)}): {_jogger_raw[:10]}", file=sys.stderr, flush=True)
-                        print(f"[SELENIUM] 🔍 Jogger UNIQUE ({len(_jogger_unique)}): {_jogger_unique[:10]}", file=sys.stderr, flush=True)
+                        # DEBUG: suppliers nos dados RAW
+                        _raw_suppliers = {}
+                        for _it in all_items_raw:
+                            _s = _it.get('supplier', '') or '(empty)'
+                            _raw_suppliers[_s] = _raw_suppliers.get(_s, 0) + 1
+                        print(f"[SELENIUM] 📊 RAW suppliers: {dict(sorted(_raw_suppliers.items(), key=lambda x: -x[1])[:20])}", file=sys.stderr, flush=True)
                         html_content = all_html_parts[0]  # Para compatibilidade
                     else:
                         # Fallback: usar homepage se categorias falharam
