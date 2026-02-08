@@ -13653,16 +13653,23 @@ async def track_by_params(request: Request):
                     for cat in CATEGORIES:
                         try:
                             driver.execute_script(f"filterAgrupVeh('{cat}')")
-                            # Polling rápido (100ms) em vez de sleep fixo
-                            for _poll in range(30):  # Max 3s
+                            # Esperar que artigos ESTABILIZEM (não apenas >0)
+                            _prev_count = 0
+                            _stable_ticks = 0
+                            for _poll in range(80):  # Max 8s
                                 time.sleep(0.1)
-                                _ready = driver.execute_script("return document.querySelectorAll('article').length")
-                                if _ready and _ready > 0:
-                                    break
+                                _cur_count = driver.execute_script("return document.querySelectorAll('article').length") or 0
+                                if _cur_count > 0 and _cur_count == _prev_count:
+                                    _stable_ticks += 1
+                                    if _stable_ticks >= 5:  # Estável durante 500ms
+                                        break
+                                else:
+                                    _stable_ticks = 0
+                                _prev_count = _cur_count
                             cat_html = driver.page_source
                             cat_articles = cat_html.count('<article')
                             all_html_parts.append(cat_html)
-                            print(f"[SELENIUM]    {cat}: {cat_articles} artigos, {len(cat_html)} bytes", file=sys.stderr, flush=True)
+                            print(f"[SELENIUM]    {cat}: {cat_articles} artigos (polled {_cur_count}), {len(cat_html)} bytes", file=sys.stderr, flush=True)
                         except Exception as cat_err:
                             print(f"[SELENIUM]    {cat}: erro - {cat_err}", file=sys.stderr, flush=True)
                     
@@ -15391,6 +15398,7 @@ def parse_prices(html: str, base_url: str) -> List[Dict[str, Any]]:
                     "ICX": "International Car Hire",
                     "OKX": "OK Mobility",
                     "OKX1": "OK Mobility Non-Refundable",
+                    "KLA": "Klasswagen",
                     "GUX": "Guerin",
                     "CEX": "Centauro",
                     "SAX": "Drivalia",
