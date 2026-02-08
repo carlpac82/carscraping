@@ -15297,9 +15297,9 @@ def parse_prices(html: str, base_url: str) -> List[Dict[str, Any]]:
                 price_text = (let_price.get_text(strip=True) if let_price else "") or (card.get("data-price") or "")
             
             if not price_text:
-                print(f"   ❌ [CARD-SKIP] Sem preço - pulando card", file=sys.stderr, flush=True)
+                logging.debug(f"   ❌ [CARD-SKIP] Sem preço - pulando card")
                 continue
-            print(f"   ✅ [CARD-PRICE] Preço encontrado: {price_text}", file=sys.stderr, flush=True)
+            logging.debug(f"   ✅ [CARD-PRICE] Preço encontrado: {price_text}")
             cards_with_price += 1
             # car/model
             name_el = card.select_one(
@@ -15307,7 +15307,7 @@ def parse_prices(html: str, base_url: str) -> List[Dict[str, Any]]:
             )
             car_name = name_el.get_text(strip=True) if name_el else ""
             if car_name:
-                logging.info(f"✅ [SCRAPING-H2] Nome extraído do h2/título: '{car_name}'")
+                logging.debug(f"✅ [SCRAPING-H2] Nome extraído do h2/título: '{car_name}'")
             if not car_name:
                 # try common data attributes
                 for attr in ("data-model", "data-vehicle", "data-name", "aria-label", "title"):
@@ -15316,10 +15316,10 @@ def parse_prices(html: str, base_url: str) -> List[Dict[str, Any]]:
                         car_name = v
                         break
             if car_name:
-                print(f"   ✅ [CARD-NAME] Nome: '{car_name}'", file=sys.stderr, flush=True)
+                logging.debug(f"   ✅ [CARD-NAME] Nome: '{car_name}'")
                 cards_with_name += 1
             else:
-                print(f"   ⚠️  [CARD-NAME] Nome NÃO encontrado", file=sys.stderr, flush=True)
+                logging.debug(f"   ⚠️  [CARD-NAME] Nome NÃO encontrado")
             # supplier: try to extract provider code from logo_XXX.* in img src, then map via alias
             supplier = ""
             try:
@@ -15405,20 +15405,17 @@ def parse_prices(html: str, base_url: str) -> List[Dict[str, Any]]:
                             alt_car_name = parts[0].split('ou similar')[0].strip()
                             if alt_car_name:
                                 car_name = alt_car_name
-                                logging.info(f"✅ [SCRAPING-ALT] Nome extraído do alt: '{car_name}' (original: '{alt_text}')")
-                                print(f"[SCRAPING] Nome extraído do alt da imagem: {car_name} (foto: {src})")
+                                logging.debug(f"✅ [SCRAPING-ALT] Nome extraído do alt: '{car_name}' (original: '{alt_text}')")
                             
                             # Extrair transmissão do ALT se existir (após |)
                             if len(parts) > 1:
                                 alt_trans = parts[1].strip().lower()
                                 if 'automático' in alt_trans or 'automatic' in alt_trans:
                                     card_transmission = "Automatic"
-                                    logging.info(f"✅ [ALT-TRANS] Automático detectado no alt: '{parts[1].strip()}'")
-                                    print(f"[SCRAPING] Transmissão extraída do alt: Automatic")
+                                    logging.debug(f"✅ [ALT-TRANS] Automático detectado no alt: '{parts[1].strip()}'")
                                 elif 'manual' in alt_trans:
                                     card_transmission = "Manual"
-                                    logging.info(f"✅ [ALT-TRANS] Manual detectado no alt: '{parts[1].strip()}'")
-                                    print(f"[SCRAPING] Transmissão extraída do alt: Manual")
+                                    logging.debug(f"✅ [ALT-TRANS] Manual detectado no alt: '{parts[1].strip()}'")
                 
                 # PRIORIDADE 2: prefer <picture> sources
                 if not photo:
@@ -15512,24 +15509,24 @@ def parse_prices(html: str, base_url: str) -> List[Dict[str, Any]]:
                 
                 if trans_li_auto:
                     card_transmission = "Automatic"
-                    logging.info(f"✅ [LI-VALUE] {car_name} → AUTOMATIC (li value='A' encontrado)")
+                    logging.debug(f"✅ [LI-VALUE] {car_name} → AUTOMATIC (li value='A' encontrado)")
                 elif trans_li_manual:
                     card_transmission = "Manual"
-                    logging.info(f"✅ [LI-VALUE] {car_name} → MANUAL (li value='M' encontrado)")
+                    logging.debug(f"✅ [LI-VALUE] {car_name} → MANUAL (li value='M' encontrado)")
                 
                 # MÉTODO 2: Se <li value> não encontrado, tentar por ícone
                 if not card_transmission:
                     trans_icon = card.select_one("i.icon-transm-auto, i.icon.icon-transm-auto")
                     if trans_icon:
                         card_transmission = "Automatic"
-                        logging.info(f"✅ [ICON-TRANS] {car_name} → AUTOMATIC (icon-transm-auto encontrado)")
+                        logging.debug(f"✅ [ICON-TRANS] {car_name} → AUTOMATIC (icon-transm-auto encontrado)")
                     else:
                         trans_icon_manual = card.select_one("i.icon-transm")
                         if trans_icon_manual:
                             icon_classes = trans_icon_manual.get('class', [])
                             if 'icon-transm-auto' not in icon_classes:
                                 card_transmission = "Manual"
-                                logging.info(f"✅ [ICON-TRANS] {car_name} → MANUAL (icon-transm sem auto)")
+                                logging.debug(f"✅ [ICON-TRANS] {car_name} → MANUAL (icon-transm sem auto)")
                 
                 # MÉTODO 3: Se ainda não detectou, verificar nome do carro
                 if not card_transmission and car_name:
@@ -15538,10 +15535,10 @@ def parse_prices(html: str, base_url: str) -> List[Dict[str, Any]]:
                         words = name_lower.split()
                         if 'auto' in words or any(w.startswith('auto,') for w in words):
                             card_transmission = "Automatic"
-                            logging.info(f"✅ [NAME-TRANS] {car_name} → AUTOMATIC (nome contém ' Auto')")
+                            logging.debug(f"✅ [NAME-TRANS] {car_name} → AUTOMATIC (nome contém ' Auto')")
                     elif 'manual' in name_lower:
                         card_transmission = "Manual"
-                        logging.info(f"✅ [NAME-TRANS] {car_name} → MANUAL (nome contém 'Manual')")
+                        logging.debug(f"✅ [NAME-TRANS] {car_name} → MANUAL (nome contém 'Manual')")
                 
                 # MÉTODO 4: Verificar span.cl--name-type (CarJet específico)
                 if not card_transmission:
@@ -15550,16 +15547,16 @@ def parse_prices(html: str, base_url: str) -> List[Dict[str, Any]]:
                         name_type_text = name_type_el.get_text(strip=True).lower()
                         if 'automático' in name_type_text or 'automatic' in name_type_text:
                             card_transmission = "Automatic"
-                            logging.info(f"✅ [NAME-TYPE] {car_name} → AUTOMATIC (span.cl--name-type)")
+                            logging.debug(f"✅ [NAME-TYPE] {car_name} → AUTOMATIC (span.cl--name-type)")
                         elif 'manual' in name_type_text:
                             card_transmission = "Manual"
-                            logging.info(f"✅ [NAME-TYPE] {car_name} → MANUAL (span.cl--name-type)")
+                            logging.debug(f"✅ [NAME-TYPE] {car_name} → MANUAL (span.cl--name-type)")
                 
                 # LOG FINAL da transmissão detectada
                 if card_transmission:
-                    logging.info(f"🎯 [TRANS-FINAL] {car_name} → {card_transmission}")
+                    logging.debug(f"🎯 [TRANS-FINAL] {car_name} → {card_transmission}")
                 else:
-                    logging.warning(f"⚠️ [TRANS-NONE] {car_name} → Transmissão NÃO detectada, assumindo Manual")
+                    logging.debug(f"⚠️ [TRANS-NONE] {car_name} → Transmissão NÃO detectada, assumindo Manual")
                     card_transmission = "Manual"  # Default para Manual se não detectado
             except Exception as e:
                 logging.error(f"❌ [TRANS-DETECT] Erro: {e}")
@@ -16353,15 +16350,15 @@ def parse_prices(html: str, base_url: str) -> List[Dict[str, Any]]:
             logging.debug(f"      card_icon={card_transmission} | global={transmission_label} | VEHICLES={vehicles_transmission or 'N/A'}")
             
             group_code = map_category_to_group(category, car_name, final_transmission)
-            print(f"   📍 [PRE-CHECK] car='{car_name[:30]}' | group='{group_code}'", file=sys.stderr, flush=True)
+            logging.debug(f"   📍 [PRE-CHECK] car='{car_name[:30]}' | group='{group_code}'")
             if not car_name:
                 # Tentar usar supplier + categoria como fallback
                 car_name = f"{supplier} {category}".strip() if (supplier or category) else "Unknown Car"
-                print(f"   ⚠️ [FALLBACK-NAME] Nome não encontrado, usando: '{car_name}'", file=sys.stderr, flush=True)
+                logging.debug(f"   ⚠️ [FALLBACK-NAME] Nome não encontrado, usando: '{car_name}'")
             
             if not group_code:
                 group_code = "Others"
-                print(f"   ⚠️ [FALLBACK-GROUP] Grupo não encontrado, usando: 'Others'", file=sys.stderr, flush=True)
+                logging.debug(f"   ⚠️ [FALLBACK-GROUP] Grupo não encontrado, usando: 'Others'")
             
             logging.debug(f"✅ [FINAL-RESULT] {car_name} → GRUPO '{group_code}' | {final_transmission} | {supplier} | {price_text}")
             if vehicles_match:
