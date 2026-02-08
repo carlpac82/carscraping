@@ -15325,6 +15325,7 @@ def parse_prices(html: str, base_url: str) -> List[Dict[str, Any]]:
         cards_with_price = 0
         cards_with_name = 0
         cards_blocked = 0
+        _unmapped_codes = set()
         for card in cards:
             # print(f"🔍 [CARD-START] Processando card {idx+1}/{len(cards)}...", file=sys.stderr, flush=True)
             # price - PRIORIZAR .price.pr-euros (preço total em euros, NÃO libras nem por dia)
@@ -15445,7 +15446,8 @@ def parse_prices(html: str, base_url: str) -> List[Dict[str, Any]]:
                 
                 if code:
                     supplier = supplier_alias.get(code, code)
-                    if code not in supplier_alias:
+                    if code not in supplier_alias and code not in _unmapped_codes:
+                        _unmapped_codes.add(code)
                         print(f"[SELENIUM] ⚠️ UNMAPPED supplier code: {code} (logo URL: logo_{code}.png)", file=sys.stderr, flush=True)
                 if not supplier:
                     # textual fallback but avoid using car name
