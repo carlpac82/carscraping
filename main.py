@@ -13722,8 +13722,15 @@ async def track_by_params(request: Request):
                         items = normalize_and_sort(items, supplier_priority=None)
                         # FILTRAR APENAS AUTOMÁTICOS
                         items = filter_automatic_only(items)
-                        # SUCESSO! Retornar resultados
-                        return _no_store_json({
+                        # DEBUG CRÍTICO: suppliers e AutoPrudente
+                        _suppliers = {}
+                        for _it in items:
+                            _s = _it.get('supplier', '(empty)')
+                            _suppliers[_s] = _suppliers.get(_s, 0) + 1
+                        print(f"[API] 🔍 SUPPLIERS: {dict(sorted(_suppliers.items(), key=lambda x: -x[1])[:15])}", file=sys.stderr, flush=True)
+                        _aup = sum(1 for _it in items if 'prudente' in (_it.get('supplier','') or '').lower())
+                        import json as _jd
+                        _resp = {
                             "ok": True,
                             "items": items,
                             "location": location,
@@ -13732,7 +13739,15 @@ async def track_by_params(request: Request):
                             "end_date": end_dt.date().isoformat(),
                             "end_time": end_dt.strftime("%H:%M"),
                             "days": days,
-                        })
+                        }
+                        _jsz = len(_jd.dumps(_resp))
+                        print(f"[API] 📊 FINAL: {len(items)} items, AutoPrudente={_aup}, JSON={_jsz} bytes ({_jsz/1024:.0f}KB)", file=sys.stderr, flush=True)
+                        if _aup > 0:
+                            _sample = next((_it for _it in items if 'prudente' in (_it.get('supplier','') or '').lower()), None)
+                            if _sample:
+                                print(f"[API] 📊 AUP sample: supplier='{_sample.get('supplier')}', car='{_sample.get('car')}', group='{_sample.get('group')}'", file=sys.stderr, flush=True)
+                        # SUCESSO! Retornar resultados
+                        return _no_store_json(_resp)
                 else:
                     print(f"[SELENIUM] ⚠️ URL s/b NÃO obtida! URL: {final_url}", file=sys.stderr, flush=True)
                     driver.quit()
