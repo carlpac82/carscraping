@@ -13674,6 +13674,7 @@ async def track_by_params(request: Request):
                                 _after_scroll = driver.execute_script("return document.querySelectorAll('article').length") or 0
                                 if _after_scroll > _cur_count:
                                     # Esperar estabilizar novamente
+                                    _stable_ticks = 0  # Reset antes do 2º loop
                                     _prev2 = _after_scroll
                                     for _poll2 in range(30):  # Max 3s extra
                                         time.sleep(0.1)
