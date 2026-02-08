@@ -15375,6 +15375,9 @@ def parse_prices(html: str, base_url: str) -> List[Dict[str, Any]]:
                     "ICX": "International Car Hire",
                     "OKX": "OK Mobility",
                     "OKX1": "OK Mobility Non-Refundable",
+                    "GUX": "Guerin",
+                    "CEX": "Centauro",
+                    "SAX": "Drivalia",
                 }
                 code = ""
                 for im in card.select("img[src]"):
