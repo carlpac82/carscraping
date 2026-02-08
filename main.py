@@ -13650,19 +13650,40 @@ async def track_by_params(request: Request):
                     except:
                         pass
                     
+                    _prev_article_count = 0
                     for cat in CATEGORIES:
                         try:
+                            # Contar artigos ANTES de mudar
+                            _before = driver.execute_script("return document.querySelectorAll('article').length") or 0
                             driver.execute_script(f"filterAgrupVeh('{cat}')")
-                            # Polling rápido (100ms) em vez de sleep fixo
-                            for _poll in range(30):  # Max 3s
+                            # Esperar que artigos apareçam (polling 100ms, max 5s)
+                            _stable = 0
+                            _last_count = -1
+                            for _poll in range(50):  # Max 5s
                                 time.sleep(0.1)
-                                _ready = driver.execute_script("return document.querySelectorAll('article').length")
-                                if _ready and _ready > 0:
-                                    break
+                                _count = driver.execute_script("return document.querySelectorAll('article').length") or 0
+                                if _count > 0 and _count == _last_count:
+                                    _stable += 1
+                                    if _stable >= 3:  # 300ms estável
+                                        break
+                                else:
+                                    _stable = 0
+                                _last_count = _count
+                            # Scroll para carregar lazy-loaded cars
+                            try:
+                                driver.execute_script("""
+                                    var container = document.querySelector('.results-list, .cl--list, [class*="results"]') || document.documentElement;
+                                    container.scrollTop = container.scrollHeight;
+                                    window.scrollTo(0, document.body.scrollHeight);
+                                """)
+                                time.sleep(0.5)
+                            except:
+                                pass
                             cat_html = driver.page_source
                             cat_articles = cat_html.count('<article')
                             all_html_parts.append(cat_html)
-                            print(f"[SELENIUM]    {cat}: {cat_articles} artigos, {len(cat_html)} bytes", file=sys.stderr, flush=True)
+                            print(f"[SELENIUM]    {cat}: {cat_articles} artigos, {len(cat_html)} bytes (before={_before})", file=sys.stderr, flush=True)
+                            _prev_article_count = cat_articles
                         except Exception as cat_err:
                             print(f"[SELENIUM]    {cat}: erro - {cat_err}", file=sys.stderr, flush=True)
                     
@@ -13676,22 +13697,46 @@ async def track_by_params(request: Request):
                             cat_items = parse_prices(cat_html, final_url)
                             if cat_items:
                                 all_items_raw.extend(cat_items)
-                                print(f"[SELENIUM]    {CATEGORIES[i]}: +{len(cat_items)} carros parsed", file=sys.stderr, flush=True)
+                                _cat_sups = {}
+                                for _ci in cat_items:
+                                    _s = _ci.get('supplier', '') or '(empty)'
+                                    _cat_sups[_s] = _cat_sups.get(_s, 0) + 1
+                                print(f"[SELENIUM]    {CATEGORIES[i]}: +{len(cat_items)} carros | suppliers: {dict(sorted(_cat_sups.items(), key=lambda x: -x[1]))}", file=sys.stderr, flush=True)
                         
                         # Deduplicar por (car_name, supplier, price)
                         seen = set()
                         unique_items = []
+                        _dupes = 0
+                        _empty_sup = 0
+                        _dupe_samples = []
                         for item in all_items_raw:
                             key = (
                                 (item.get('car') or item.get('car_name') or '').strip().lower(),
                                 (item.get('supplier') or '').strip().lower(),
                                 str(item.get('price_num') or item.get('price') or '').strip().lower()
                             )
+                            if not key[1]:
+                                _empty_sup += 1
                             if key not in seen and key[0]:
                                 seen.add(key)
                                 unique_items.append(item)
+                            else:
+                                _dupes += 1
+                                if len(_dupe_samples) < 5:
+                                    _dupe_samples.append(f"{key[0][:25]}|{key[1][:15]}|{key[2]}")
                         
-                        print(f"[SELENIUM] 📊 Categorias: {len(all_items_raw)} total → {len(unique_items)} únicos", file=sys.stderr, flush=True)
+                        print(f"[SELENIUM] 📊 Categorias: {len(all_items_raw)} total → {len(unique_items)} únicos (dupes={_dupes}, empty_supplier={_empty_sup})", file=sys.stderr, flush=True)
+                        if _dupe_samples:
+                            print(f"[SELENIUM] 📊 Dupe samples: {_dupe_samples}", file=sys.stderr, flush=True)
+                        # DEBUG: Supplier breakdown após dedup
+                        _sup_cars = {}
+                        for _it in unique_items:
+                            _s = _it.get('supplier', '') or '(empty)'
+                            if _s not in _sup_cars:
+                                _sup_cars[_s] = []
+                            _sup_cars[_s].append(f"{_it.get('car','')[:30]}|{_it.get('price_num','')}")
+                        for _s, _cars in sorted(_sup_cars.items()):
+                            print(f"[SELENIUM] 🏷️ {_s} ({len(_cars)} carros): {_cars[:5]}", file=sys.stderr, flush=True)
                         html_content = all_html_parts[0]  # Para compatibilidade
                     else:
                         # Fallback: usar homepage se categorias falharam
