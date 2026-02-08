@@ -337,6 +337,10 @@ VEHICLES = {
     'mazda 3 automatic': 'ECONOMY Auto',
     'toyota corolla hybrid': 'ECONOMY Auto',
     'toyota corolla  hybrid': 'ECONOMY Auto',
+    'volkswagen id.3': 'ECONOMY Auto',  # Eléctrico (sempre automático)
+    'volkswagen id.3 electric': 'ECONOMY Auto',
+    'volkswagen id.3 5 door': 'ECONOMY Auto',
+    'volkswagen id.3 5 door electric': 'ECONOMY Auto',
 
     # ========== F: SUV ==========
     'dacia duster': 'SUV',
