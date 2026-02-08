@@ -13653,46 +13653,16 @@ async def track_by_params(request: Request):
                     for cat in CATEGORIES:
                         try:
                             driver.execute_script(f"filterAgrupVeh('{cat}')")
-                            # Esperar que artigos ESTABILIZEM (não apenas >0)
-                            _prev_count = 0
-                            _stable_ticks = 0
-                            for _poll in range(80):  # Max 8s
+                            # Polling rápido (100ms) em vez de sleep fixo
+                            for _poll in range(30):  # Max 3s
                                 time.sleep(0.1)
-                                _cur_count = driver.execute_script("return document.querySelectorAll('article').length") or 0
-                                if _cur_count > 0 and _cur_count == _prev_count:
-                                    _stable_ticks += 1
-                                    if _stable_ticks >= 5:  # Estável durante 500ms
-                                        break
-                                else:
-                                    _stable_ticks = 0
-                                _prev_count = _cur_count
-                            # Scroll para baixo para forçar lazy loading de TODOS os carros
-                            try:
-                                driver.execute_script("window.scrollTo(0, document.body.scrollHeight);")
-                                time.sleep(0.5)
-                                # Verificar se apareceram mais artigos após scroll
-                                _after_scroll = driver.execute_script("return document.querySelectorAll('article').length") or 0
-                                if _after_scroll > _cur_count:
-                                    # Esperar estabilizar novamente
-                                    _stable_ticks = 0  # Reset antes do 2º loop
-                                    _prev2 = _after_scroll
-                                    for _poll2 in range(30):  # Max 3s extra
-                                        time.sleep(0.1)
-                                        _cur2 = driver.execute_script("return document.querySelectorAll('article').length") or 0
-                                        if _cur2 == _prev2:
-                                            _stable_ticks += 1
-                                            if _stable_ticks >= 5:
-                                                break
-                                        else:
-                                            _stable_ticks = 0
-                                        _prev2 = _cur2
-                                    _cur_count = _prev2
-                            except:
-                                pass
+                                _ready = driver.execute_script("return document.querySelectorAll('article').length")
+                                if _ready and _ready > 0:
+                                    break
                             cat_html = driver.page_source
                             cat_articles = cat_html.count('<article')
                             all_html_parts.append(cat_html)
-                            print(f"[SELENIUM]    {cat}: {cat_articles} artigos (polled {_cur_count}), {len(cat_html)} bytes", file=sys.stderr, flush=True)
+                            print(f"[SELENIUM]    {cat}: {cat_articles} artigos, {len(cat_html)} bytes", file=sys.stderr, flush=True)
                         except Exception as cat_err:
                             print(f"[SELENIUM]    {cat}: erro - {cat_err}", file=sys.stderr, flush=True)
                     
@@ -13708,40 +13678,20 @@ async def track_by_params(request: Request):
                                 all_items_raw.extend(cat_items)
                                 print(f"[SELENIUM]    {CATEGORIES[i]}: +{len(cat_items)} carros parsed", file=sys.stderr, flush=True)
                         
-                        # Deduplicar por (car_name, supplier, price) — MAS NÃO deduplicar items sem supplier
+                        # Deduplicar por (car_name, supplier, price)
                         seen = set()
                         unique_items = []
-                        _dupes_removed = 0
-                        _empty_supplier = 0
                         for item in all_items_raw:
-                            car_key = (item.get('car') or item.get('car_name') or '').strip().lower()
-                            sup_key = (item.get('supplier') or '').strip().lower()
-                            price_key = str(item.get('price_num') or item.get('price') or '').strip().lower()
-                            
-                            if not car_key:
-                                _dupes_removed += 1
-                                continue
-                            
-                            if not sup_key:
-                                _empty_supplier += 1
-                                # Sem supplier = sempre incluir (não deduplicar)
-                                unique_items.append(item)
-                                continue
-                            
-                            key = (car_key, sup_key, price_key)
-                            if key not in seen:
+                            key = (
+                                (item.get('car') or item.get('car_name') or '').strip().lower(),
+                                (item.get('supplier') or '').strip().lower(),
+                                str(item.get('price_num') or item.get('price') or '').strip().lower()
+                            )
+                            if key not in seen and key[0]:
                                 seen.add(key)
                                 unique_items.append(item)
-                            else:
-                                _dupes_removed += 1
                         
-                        print(f"[SELENIUM] 📊 Categorias: {len(all_items_raw)} total → {len(unique_items)} únicos (removed {_dupes_removed} dupes, {_empty_supplier} empty supplier)", file=sys.stderr, flush=True)
-                        # DEBUG: suppliers nos dados RAW
-                        _raw_suppliers = {}
-                        for _it in all_items_raw:
-                            _s = _it.get('supplier', '') or '(empty)'
-                            _raw_suppliers[_s] = _raw_suppliers.get(_s, 0) + 1
-                        print(f"[SELENIUM] 📊 RAW suppliers: {dict(sorted(_raw_suppliers.items(), key=lambda x: -x[1])[:20])}", file=sys.stderr, flush=True)
+                        print(f"[SELENIUM] 📊 Categorias: {len(all_items_raw)} total → {len(unique_items)} únicos", file=sys.stderr, flush=True)
                         html_content = all_html_parts[0]  # Para compatibilidade
                     else:
                         # Fallback: usar homepage se categorias falharam
@@ -15326,7 +15276,6 @@ def parse_prices(html: str, base_url: str) -> List[Dict[str, Any]]:
         cards_with_price = 0
         cards_with_name = 0
         cards_blocked = 0
-        _unmapped_codes = set()
         for card in cards:
             # print(f"🔍 [CARD-START] Processando card {idx+1}/{len(cards)}...", file=sys.stderr, flush=True)
             # price - PRIORIZAR .price.pr-euros (preço total em euros, NÃO libras nem por dia)
@@ -15426,48 +15375,17 @@ def parse_prices(html: str, base_url: str) -> List[Dict[str, Any]]:
                     "ICX": "International Car Hire",
                     "OKX": "OK Mobility",
                     "OKX1": "OK Mobility Non-Refundable",
-                    "KLA": "Klasswagen",
-                    "GUX": "Guerin",
-                    "CEX": "Centauro",
-                    "SAX": "Drivalia",
-                    "TAN": "Tangerine",
-                    "TAN1": "Rentacar",
-                    "AIR": "Airauto",
-                    "RNA": "Rentauto",
-                    "SVN": "Sevens",
-                    "TAX": "Tangerine",
-                    "YES": "YesCarHire",
-                    "OKR1": "OK Mobility Non-Refundable",
-                    "OKR": "OK Mobility",
-                    "SUR": "Surprice",
-                    "REC": "Rentacar",
-                    "FFX": "Firefly",
-                    "PAR": "PAA",
-                    "MVY": "Movyng",
-                    "ICT": "International Car",
-                    "GUE": "Guerin",
-                    "DOY": "Drive on Holidays",
                 }
                 code = ""
-                # PRIORIDADE 1: data-prv attribute (100% fiável no CarJet)
-                _data_prv = (card.get("data-prv") or "").strip().upper()
-                if _data_prv:
-                    code = _data_prv
-                
-                # PRIORIDADE 2: logo img src (fallback para outros sites)
-                if not code:
-                    for im in card.select("img[src]"):
-                        src = im.get("src") or ""
-                        mcode = LOGO_CODE_RX.search(src)
-                        if mcode:
-                            code = (mcode.group(1) or "").upper()
-                            break
+                for im in card.select("img[src]"):
+                    src = im.get("src") or ""
+                    mcode = LOGO_CODE_RX.search(src)
+                    if mcode:
+                        code = (mcode.group(1) or "").upper()
+                        break
                 
                 if code:
                     supplier = supplier_alias.get(code, code)
-                    if code not in supplier_alias and code not in _unmapped_codes:
-                        _unmapped_codes.add(code)
-                        print(f"[SELENIUM] ⚠️ UNMAPPED supplier code: {code} (logo URL: logo_{code}.png)", file=sys.stderr, flush=True)
                 if not supplier:
                     # textual fallback but avoid using car name
                     supplier_el = card.select_one(".supplier, .vendor, .partner, [class*='supplier'], [class*='vendor']")

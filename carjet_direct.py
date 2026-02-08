@@ -272,9 +272,6 @@ VEHICLES = {
     'toyota yaris auto': 'MINI Auto',
     'toyota yaris hybrid': 'MINI Auto',
     'toyota yaris  hybrid': 'MINI Auto',
-    'renault zoe': 'MINI Auto',  # Eléctrico (sempre automático)
-    'renault zoe electric': 'MINI Auto',
-    'renault zoe , electric': 'MINI Auto',
     'volkswagen up auto': 'MINI Auto',
     'fiat panda hybrid': 'MINI 5 Lugares',  # CORRIGIDO: Hybrid sem Auto no nome = Manual
     'fiat panda hybrid auto': 'MINI Auto',
@@ -337,10 +334,6 @@ VEHICLES = {
     'mazda 3 automatic': 'ECONOMY Auto',
     'toyota corolla hybrid': 'ECONOMY Auto',
     'toyota corolla  hybrid': 'ECONOMY Auto',
-    'volkswagen id.3': 'ECONOMY Auto',  # Eléctrico (sempre automático)
-    'volkswagen id.3 electric': 'ECONOMY Auto',
-    'volkswagen id.3 5 door': 'ECONOMY Auto',
-    'volkswagen id.3 5 door electric': 'ECONOMY Auto',
 
     # ========== F: SUV ==========
     'dacia duster': 'SUV',
