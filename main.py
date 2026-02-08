@@ -15449,18 +15449,33 @@ def parse_prices(html: str, base_url: str) -> List[Dict[str, Any]]:
                     "DOY": "Drive on Holidays",
                 }
                 code = ""
+                _is_jogger = 'jogger' in (car_name or '').lower()
                 for im in card.select("img[src]"):
                     src = im.get("src") or ""
+                    if _is_jogger:
+                        print(f"[DEBUG-JOGGER] img src: {src}", file=sys.stderr, flush=True)
                     mcode = LOGO_CODE_RX.search(src)
                     if mcode:
                         code = (mcode.group(1) or "").upper()
+                        if _is_jogger:
+                            print(f"[DEBUG-JOGGER] logo code={code}, mapped={supplier_alias.get(code, '???')}", file=sys.stderr, flush=True)
                         break
+                
+                if _is_jogger and not code:
+                    # Also check data-src for lazy-loaded logos
+                    _all_imgs = card.select("img")
+                    for _im2 in _all_imgs:
+                        _dsrc = _im2.get("data-src") or _im2.get("data-original") or ""
+                        if _dsrc:
+                            print(f"[DEBUG-JOGGER] data-src: {_dsrc}", file=sys.stderr, flush=True)
                 
                 if code:
                     supplier = supplier_alias.get(code, code)
                     if code not in supplier_alias and code not in _unmapped_codes:
                         _unmapped_codes.add(code)
                         print(f"[SELENIUM] ⚠️ UNMAPPED supplier code: {code} (logo URL: logo_{code}.png)", file=sys.stderr, flush=True)
+                if _is_jogger:
+                    print(f"[DEBUG-JOGGER] FINAL: car='{car_name}' supplier='{supplier}' code='{code}' price='{price_text}'", file=sys.stderr, flush=True)
                 if not supplier:
                     # textual fallback but avoid using car name
                     supplier_el = card.select_one(".supplier, .vendor, .partner, [class*='supplier'], [class*='vendor']")
