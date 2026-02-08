@@ -15435,6 +15435,17 @@ def parse_prices(html: str, base_url: str) -> List[Dict[str, Any]]:
                     "RNA": "Rentauto",
                     "SVN": "Sevens",
                     "TAX": "Tangerine",
+                    "YES": "YesCarHire",
+                    "OKR1": "OK Mobility Non-Refundable",
+                    "OKR": "OK Mobility",
+                    "SUR": "Surprice",
+                    "REC": "Rentacar",
+                    "FFX": "Firefly",
+                    "PAR": "PAA",
+                    "MVY": "Movyng",
+                    "ICT": "International Car",
+                    "GUE": "Guerin",
+                    "DOY": "Drive on Holidays",
                 }
                 code = ""
                 for im in card.select("img[src]"):
