@@ -17634,9 +17634,50 @@ def normalize_and_sort(items: List[Dict[str, Any]], supplier_priority: Optional[
     summary: List[Dict[str, Any]] = []
     import re as _re2
     
-    # Helper: Buscar foto de veículo por nome (vehicle_photos)
+    # PRE-LOAD: Carregar TODOS os vehicle_photos e name_overrides de uma vez (evita ~2000 queries individuais)
+    _all_vehicle_photos = {}  # {vehicle_name_lower: photo_url}
+    _all_name_overrides = {}  # {original_name_lower: edited_name}
+    try:
+        with _db_lock:
+            conn = _db_connect()
+            try:
+                if conn.__class__.__module__ == 'psycopg2.extensions':
+                    with conn.cursor() as cur:
+                        cur.execute("SELECT vehicle_name, photo_url FROM vehicle_photos WHERE photo_url IS NOT NULL AND photo_url != ''")
+                        for row in cur.fetchall():
+                            if row[0] and row[1]:
+                                _all_vehicle_photos[row[0].lower().strip()] = row[1]
+                else:
+                    for row in conn.execute("SELECT vehicle_name, photo_url FROM vehicle_photos WHERE photo_url IS NOT NULL AND photo_url != ''").fetchall():
+                        if row[0] and row[1]:
+                            _all_vehicle_photos[row[0].lower().strip()] = row[1]
+            finally:
+                conn.close()
+    except Exception:
+        pass
+    try:
+        with _db_lock:
+            conn = _db_connect()
+            try:
+                if conn.__class__.__module__ == 'psycopg2.extensions':
+                    with conn.cursor() as cur:
+                        cur.execute("SELECT original_name, edited_name FROM vehicle_name_overrides WHERE edited_name IS NOT NULL AND edited_name != ''")
+                        for row in cur.fetchall():
+                            if row[0] and row[1]:
+                                _all_name_overrides[row[0].lower().strip()] = row[1]
+                else:
+                    for row in conn.execute("SELECT original_name, edited_name FROM vehicle_name_overrides WHERE edited_name IS NOT NULL AND edited_name != ''").fetchall():
+                        if row[0] and row[1]:
+                            _all_name_overrides[row[0].lower().strip()] = row[1]
+            finally:
+                conn.close()
+    except Exception:
+        pass
+    print(f"[NORMALIZE] Pre-loaded {len(_all_vehicle_photos)} vehicle photos, {len(_all_name_overrides)} name overrides", file=sys.stderr, flush=True)
+    
+    # Helper: Buscar foto de veículo por nome (usa dict pre-loaded)
     def _get_vehicle_photo_by_name(car_name: str) -> str:
-        """Busca foto na tabela vehicle_photos pelo nome do carro"""
+        """Busca foto na tabela vehicle_photos pelo nome do carro (pre-loaded)"""
         if not car_name:
             return ""
         
@@ -17649,60 +17690,24 @@ def normalize_and_sort(items: List[Dict[str, Any]], supplier_priority: Optional[
         import re
         vehicle_key = re.sub(r'\s+(hybrid|electric|diesel|petrol|aut\.|auto)$', '', vehicle_key, flags=re.IGNORECASE).strip()
         
-        try:
-            with _db_lock:
-                conn = _db_connect()
-                try:
-                    if conn.__class__.__module__ == 'psycopg2.extensions':
-                        # PostgreSQL - Tentar match exato primeiro, depois LIKE
-                        with conn.cursor() as cur:
-                            # 1º: Match exato
-                            cur.execute("SELECT photo_url FROM vehicle_photos WHERE vehicle_name = %s", (vehicle_key,))
-                            row = cur.fetchone()
-                            if row and row[0]:
-                                return row[0]
-                            
-                            # 2º: Match parcial (LIKE) - pega "vw polo" se tiver "volkswagen polo"
-                            cur.execute("SELECT photo_url FROM vehicle_photos WHERE vehicle_name LIKE %s LIMIT 1", (f"%{vehicle_key}%",))
-                            row = cur.fetchone()
-                            if row and row[0]:
-                                return row[0]
-                    else:
-                        # SQLite
-                        row = conn.execute("SELECT photo_url FROM vehicle_photos WHERE vehicle_name = ?", (vehicle_key,)).fetchone()
-                        if row and row[0]:
-                            return row[0]
-                        
-                        # Match parcial SQLite
-                        row = conn.execute("SELECT photo_url FROM vehicle_photos WHERE vehicle_name LIKE ? LIMIT 1", (f"%{vehicle_key}%",)).fetchone()
-                        if row and row[0]:
-                            return row[0]
-                finally:
-                    conn.close()
-        except Exception:
-            pass
+        # 1º: Match exato
+        if vehicle_key in _all_vehicle_photos:
+            return _all_vehicle_photos[vehicle_key]
+        
+        # 2º: Match parcial
+        for db_name, photo_url in _all_vehicle_photos.items():
+            if vehicle_key in db_name or db_name in vehicle_key:
+                return photo_url
+        
         return ""
     
-    # Helper: Buscar nome editado (vehicle_name_overrides)
+    # Helper: Buscar nome editado (usa dict pre-loaded)
     def _get_edited_name(original_name: str) -> str:
-        """Busca nome editado na tabela vehicle_name_overrides"""
+        """Busca nome editado na tabela vehicle_name_overrides (pre-loaded)"""
         if not original_name:
             return original_name
-        try:
-            with _db_lock:
-                conn = _db_connect()
-                try:
-                    row = conn.execute(
-                        "SELECT edited_name FROM vehicle_name_overrides WHERE LOWER(original_name) = ?",
-                        (original_name.lower().strip(),)
-                    ).fetchone()
-                    if row and row[0]:
-                        return row[0]
-                finally:
-                    conn.close()
-        except Exception:
-            pass
-        return original_name
+        key = original_name.lower().strip()
+        return _all_name_overrides.get(key, original_name)
     
     # Carregar características do Admin Vehicles
     vehicle_groups = _get_vehicle_groups()
