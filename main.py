@@ -12269,6 +12269,16 @@ async def track_by_params(request: Request):
     print(f"[API] COMPUTED: start_dt={start_dt.date()}, end_dt={end_dt.date()}, days={days}")
     print(f"[API] COMPUTED: start_dt={start_dt.date()}, end_dt={end_dt.date()}, days={days}", file=sys.stderr, flush=True)
     
+    # ═══════════════════════════════════════════════════════════════════════════
+    # ALBUFEIRA: Hertz/Rentacar/Thrifty fechadas ao domingo
+    # Se end_dt calha a domingo, avançar start e end +1 dia
+    # ═══════════════════════════════════════════════════════════════════════════
+    if 'albufeira' in location.lower() and end_dt.weekday() == 6:
+        start_dt += timedelta(days=1)
+        end_dt += timedelta(days=1)
+        start_date = start_dt.strftime("%Y-%m-%d")
+        print(f"[ALBUFEIRA-SUNDAY] Devolução calha a domingo, avançado +1 dia: {start_dt.date()} → {end_dt.date()}", file=sys.stderr, flush=True)
+    
     # Verificar se requests/urllib estão disponíveis e se devem ser usados
     _DISABLE_REQUESTS = True  # Requests/urllib não funciona no Railway - ir direto para Selenium
     _HAS_CARJET_REQUESTS = True
