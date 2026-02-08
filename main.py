@@ -15377,12 +15377,18 @@ def parse_prices(html: str, base_url: str) -> List[Dict[str, Any]]:
                     "OKX1": "OK Mobility Non-Refundable",
                 }
                 code = ""
-                for im in card.select("img[src]"):
-                    src = im.get("src") or ""
-                    mcode = LOGO_CODE_RX.search(src)
-                    if mcode:
-                        code = (mcode.group(1) or "").upper()
-                        break
+                # data-prv attribute (fiável no CarJet)
+                _data_prv = (card.get("data-prv") or "").strip().upper()
+                if _data_prv:
+                    code = _data_prv
+                # fallback: logo img src
+                if not code:
+                    for im in card.select("img[src]"):
+                        src = im.get("src") or ""
+                        mcode = LOGO_CODE_RX.search(src)
+                        if mcode:
+                            code = (mcode.group(1) or "").upper()
+                            break
                 
                 if code:
                     supplier = supplier_alias.get(code, code)
