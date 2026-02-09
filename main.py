@@ -12401,7 +12401,7 @@ async def track_by_params(request: Request):
         print(f"[ALBUFEIRA-SUNDAY] Devolução calha a domingo, avançado +1 dia: {start_dt.date()} → {end_dt.date()}", file=sys.stderr, flush=True)
     
     # Verificar se requests/urllib estão disponíveis e se devem ser usados
-    _DISABLE_REQUESTS = True  # Requests não funciona (CarJet carrega via JS/AJAX) - Selenium direto
+    _DISABLE_REQUESTS = True  # Requests/urllib não funciona no Railway - ir direto para Selenium
     _HAS_CARJET_REQUESTS = True
     try:
         import requests
@@ -13511,7 +13511,7 @@ async def track_by_params(request: Request):
                 # Configurar timeout (apenas em sistemas Unix)
                 try:
                     signal.signal(signal.SIGALRM, timeout_handler)
-                    signal.alarm(180)  # 180s timeout (categorias + possível retry war=28)
+                    signal.alarm(120)  # 120 segundos de timeout (categorias precisam ~30s extra)
                 except:
                     pass  # Windows não suporta SIGALRM
                 # Esconder webdriver
@@ -13755,79 +13755,10 @@ async def track_by_params(request: Request):
                 except:
                     pass
                 
-                # RETRY se war= detectado: voltar à homepage, esperar, e re-submeter
+                # NÃO fazer retry com war= - aceitar o resultado como está
+                # O retry pode causar cliques extras e bagunçar o formulário
                 if 'war=' in final_url:
-                    _retry_delay = random.randint(15, 25)
-                    print(f"[SELENIUM] ⚠️ war= detectado! Retry em {_retry_delay}s (mesma sessão)...", file=sys.stderr, flush=True)
-                    time.sleep(_retry_delay)
-                    
-                    try:
-                        # Voltar à homepage
-                        driver.get(carjet_url)
-                        time.sleep(2)
-                        
-                        # Rejeitar cookies se aparecerem
-                        reject_cookies_if_present("retry")
-                        time.sleep(1)
-                        
-                        # Re-preencher: local
-                        _retry_pickup = WebDriverWait(driver, 10).until(
-                            EC.presence_of_element_located((By.ID, "pickup"))
-                        )
-                        _retry_pickup.clear()
-                        _retry_pickup.send_keys(carjet_location)
-                        time.sleep(1.5)
-                        driver.execute_script("""
-                            const items = document.querySelectorAll('#recogida_lista li');
-                            if (items.length > 0) items[0].querySelector('a')?.click() || items[0].click();
-                        """)
-                        time.sleep(0.5)
-                        driver.find_element(By.CSS_SELECTOR, "h1, h2, .title, header").click()
-                        time.sleep(1)
-                        
-                        # Re-preencher: datas
-                        driver.set_script_timeout(10)
-                        driver.execute_script("""
-                            const fr = document.querySelector('#fechaRecogida');
-                            const fd = document.querySelector('#fechaDevolucion');
-                            if (fr) fr.value = arguments[0];
-                            if (fd) fd.value = arguments[1];
-                            const h1 = document.querySelector('#fechaRecogidaSelHour');
-                            const h2 = document.querySelector('#fechaDevolucionSelHour');
-                            if (h1) { h1.value = arguments[2]; h1.dispatchEvent(new Event('change', {bubbles:true})); }
-                            if (h2) { h2.value = arguments[3]; h2.dispatchEvent(new Event('change', {bubbles:true})); }
-                        """, fecha_recogida, fecha_devolucion, hour_pickup, hour_dropoff)
-                        
-                        # Re-submeter
-                        driver.set_script_timeout(5)
-                        driver.execute_script("""
-                            const btn = document.querySelector('#btnBuscar');
-                            if (btn) btn.click();
-                            else { const form = document.querySelector('#frm_search_cars') || document.querySelector('form'); if (form) form.submit(); }
-                        """)
-                        print(f"[SELENIUM] 🔄 Retry submetido!", file=sys.stderr, flush=True)
-                        
-                        # Aguardar resultados do retry
-                        time.sleep(2)
-                        _retry_waited = 0
-                        while _retry_waited < 25:
-                            _retry_url = driver.current_url
-                            if '/do/list/' in _retry_url and 's=' in _retry_url and 'b=' in _retry_url:
-                                print(f"[SELENIUM] ✅ Retry funcionou após {_retry_waited}s!", file=sys.stderr, flush=True)
-                                final_url = _retry_url
-                                break
-                            if 'war=' in _retry_url:
-                                print(f"[SELENIUM] ❌ Retry também deu war= - desistindo", file=sys.stderr, flush=True)
-                                break
-                            time.sleep(2)
-                            _retry_waited += 2
-                        
-                        time.sleep(3)
-                        final_url = driver.current_url
-                        print(f"[SELENIUM] URL após retry: {final_url[:80]}", file=sys.stderr, flush=True)
-                        
-                    except Exception as retry_err:
-                        print(f"[SELENIUM] ❌ Retry falhou: {retry_err}", file=sys.stderr, flush=True)
+                    print(f"[SELENIUM] ⚠️ war= detectado (sem disponibilidade ou erro)", file=sys.stderr, flush=True)
                 
                 # Se obtivemos URL s/b válida, pegar HTML do driver ANTES de fechar
                 if 's=' in final_url and 'b=' in final_url:
