@@ -4866,46 +4866,175 @@
                 const total = dias.length;
                 let completed = 0;
                 
-                for (const day of dias) {
-                    // Check stop flag
-                    if (stopGenerateFlag) {
-                        break;
-                    }
-
-                    progressText.textContent = `Searching ${day} days...`;
-                    progressPercent.textContent = `${Math.round((completed / total) * 100)}%`;
-                    progressFill.style.width = `${(completed / total) * 100}%`;
+                // ═══════════════════════════════════════════════════════════
+                // BATCH MODE: 1 Chrome para TODOS os dias (evita war=28)
+                // ═══════════════════════════════════════════════════════════
+                console.log(`🚀 [BATCH] Iniciando batch: ${dias.length} dias para ${currentLocation}`);
+                progressText.textContent = `Batch: searching ${dias.length} days (1 Chrome session)...`;
+                
+                const batchDaysWithResults = new Set(); // dias que já têm resultados do batch
+                
+                try {
+                    const batchResponse = await fetch('/api/track-by-params-batch', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            location: currentLocation,
+                            pickup_date: pickupDate,
+                            days: dias,
+                            lang: 'pt',
+                            currency: 'EUR'
+                        })
+                    });
                     
-                    console.log(`📡 Fetching prices for ${day} days from Carjet...`);
+                    console.log(`🚀 [BATCH] Status: ${batchResponse.status}`);
+                    
+                    if (batchResponse.ok) {
+                        const batchData = await batchResponse.json();
+                        
+                        if (batchData.ok && batchData.results) {
+                            console.log(`🚀 [BATCH] ✅ Resultados recebidos para ${Object.keys(batchData.results).length} dias`);
+                            
+                            // Processar resultados de cada dia
+                            for (const day of dias) {
+                                if (stopGenerateFlag) break;
+                                
+                                const dayItems = batchData.results[String(day)] || [];
+                                console.log(`🚀 [BATCH] ${day}d: ${dayItems.length} carros`);
+                                
+                                if (dayItems.length > 0) {
+                                    batchDaysWithResults.add(day);
+                                    
+                                    // Save recent search
+                                    const previewData = dayItems.map(car => ({
+                                        car: car.car,
+                                        group: car.group,
+                                        supplier: car.supplier,
+                                        price_num: car.price_num,
+                                        photo_url: car.photo_url
+                                    }));
+                                    
+                                    fetch('/api/recent-searches/save', {
+                                        method: 'POST',
+                                        headers: { 'Content-Type': 'application/json' },
+                                        credentials: 'same-origin',
+                                        body: JSON.stringify({
+                                            searches: [{
+                                                location: currentLocation,
+                                                startDate: pickupDate,
+                                                days: day,
+                                                results: previewData,
+                                                timestamp: new Date().toISOString()
+                                            }]
+                                        })
+                                    }).catch(e => console.warn('[RECENT] Failed to save:', e));
+                                    
+                                    // Store ALL cars for Auto price calculations
+                                    allCarsByDay[day] = dayItems;
+                                    
+                                    // DEBUG: Log unique suppliers
+                                    const supplierCounts = {};
+                                    dayItems.forEach(item => {
+                                        const s = item.supplier || '(empty)';
+                                        supplierCounts[s] = (supplierCounts[s] || 0) + 1;
+                                    });
+                                    console.log(`🔍 [SUPPLIERS] ${day}d:`, supplierCounts);
+                                    
+                                    // FILTER ONLY AUTOPRUDENTE for Real column
+                                    const autoprudenteItems = dayItems.filter(item => {
+                                        const supplier = (item.supplier || '').toLowerCase();
+                                        return supplier.includes('autoprudente') || 
+                                               supplier.includes('auto prudente') ||
+                                               supplier.includes('auto-prudente') ||
+                                               supplier === 'aup';
+                                    });
+                                    
+                                    console.log(`🔍 [AUP-FILTER] ${day}d - ${autoprudenteItems.length} AUTOPRUDENTE cars found`);
+                                    
+                                    if (autoprudenteItems.length > 0) {
+                                        const precosPorGrupo = {};
+                                        autoprudenteItems.forEach(item => {
+                                            const grupo = item.group || extractGroup(item.car);
+                                            const precoReal = parseFloat(item.price_num || 0);
+                                            
+                                            if (precoReal > 0) {
+                                                if (!precosPorGrupo[grupo] || precoReal < precosPorGrupo[grupo].preco) {
+                                                    precosPorGrupo[grupo] = {
+                                                        preco: precoReal,
+                                                        carro: item.car
+                                                    };
+                                                }
+                                            }
+                                        });
+                                        
+                                        Object.keys(precosPorGrupo).forEach(grupo => {
+                                            const { preco: precoReal, carro } = precosPorGrupo[grupo];
+                                            
+                                            console.log(`AUTOPRUDENTE - Group ${grupo}: ${carro} (LOWEST PRICE: ${precoReal}€)`);
+                                            
+                                            if (grupos.includes(grupo)) {
+                                                const inputReal = document.querySelector(`#pricesTableAuto input[data-grupo="${grupo}"][data-dias="${day}"][data-type="real"]`);
+                                                
+                                                if (inputReal) {
+                                                    inputReal.value = precoReal.toFixed(2);
+                                                    realPricesGenerated++;
+                                                    inputReal.classList.remove('bg-red-100');
+                                                }
+                                            }
+                                        });
+                                        
+                                        updateDayChipColor(day, true);
+                                    }
+                                }
+                                
+                                completed++;
+                                progressPercent.textContent = `${Math.round((completed / total) * 100)}%`;
+                                progressFill.style.width = `${(completed / total) * 100}%`;
+                            }
+                        } else {
+                            console.warn(`🚀 [BATCH] ⚠️ Batch ok=false: ${batchData.error || 'unknown'}`);
+                        }
+                    } else {
+                        console.warn(`🚀 [BATCH] ❌ HTTP ${batchResponse.status}`);
+                    }
+                } catch (batchErr) {
+                    console.error(`🚀 [BATCH] ❌ Erro batch:`, batchErr);
+                }
+                
+                // ═══════════════════════════════════════════════════════════
+                // FALLBACK: Dias que falharam no batch → chamadas individuais
+                // ═══════════════════════════════════════════════════════════
+                const missingDays = dias.filter(d => !batchDaysWithResults.has(d));
+                if (missingDays.length > 0) {
+                    console.log(`🔄 [FALLBACK] ${missingDays.length} dias sem resultados batch: ${missingDays}`);
+                }
+                
+                for (const day of missingDays) {
+                    if (stopGenerateFlag) break;
+
+                    progressText.textContent = `Fallback: searching ${day} days...`;
+                    console.log(`📡 [FALLBACK] Fetching ${day} days individually...`);
                     
                     let foundPrices = false;
                     const maxAlternativeDays = getMaxAlternativeDays();
                     
-                    // Try original date and up to X days forward (configurable in settings)
                     for (let dateOffset = 0; dateOffset <= maxAlternativeDays && !foundPrices; dateOffset++) {
-                        // Check stop flag
-                        if (stopGenerateFlag) {
-                            return;
-                        }
+                        if (stopGenerateFlag) return;
                         
                         const searchDate = new Date(pickupDate);
                         searchDate.setDate(searchDate.getDate() + dateOffset);
                         
-                        // Check if month changed
                         const originalDate = new Date(pickupDate);
-                        if (searchDate.getMonth() !== originalDate.getMonth()) {
-                            // Stop if month changed
-                            break;
-                        }
+                        if (searchDate.getMonth() !== originalDate.getMonth()) break;
                         
                         const searchDateStr = searchDate.toISOString().split('T')[0];
                         
                         if (dateOffset > 0) {
-                            progressText.textContent = `Searching ${day} days (date +${dateOffset})...`;
+                            progressText.textContent = `Fallback: ${day} days (date +${dateOffset})...`;
                         }
                         
                         try {
-                            console.log(`🔍 [FETCH-START] ${day}d offset=${dateOffset} date=${searchDateStr}`);
+                            console.log(`🔍 [FALLBACK-FETCH] ${day}d offset=${dateOffset} date=${searchDateStr}`);
                             const response = await fetch('/api/track-by-params', {
                                 method: 'POST',
                                 headers: { 'Content-Type': 'application/json' },
@@ -4918,21 +5047,18 @@
                                     currency: 'EUR'
                                 })
                             });
-                            console.log(`🔍 [FETCH-DONE] ${day}d status=${response.status} ok=${response.ok}`);
 
                             const data = await response.json();
-                            console.log(`🔍 [JSON-PARSED] ${day}d items=${data.items?.length || 0} ok=${data.ok}`);
                             
                             if (data.items && data.items.length > 0) {
-                                console.log(`${day} days - ${data.items.length} cars found`);
+                                console.log(`${day} days - ${data.items.length} cars found (fallback)`);
                                 
-                                // Save APENAS os campos necessários para o preview (evita erro 500)
                                 const previewData = data.items.map(car => ({
-                                    car: car.car,           // Nome do carro
-                                    group: car.group,       // Grupo (B1, D, etc)
-                                    supplier: car.supplier, // Fornecedor
-                                    price_num: car.price_num, // Preço numérico
-                                    photo_url: car.photo_url  // Foto (para mostrar no preview)
+                                    car: car.car,
+                                    group: car.group,
+                                    supplier: car.supplier,
+                                    price_num: car.price_num,
+                                    photo_url: car.photo_url
                                 }));
                                 
                                 fetch('/api/recent-searches/save', {
@@ -4944,24 +5070,14 @@
                                             location: currentLocation,
                                             startDate: searchDateStr,
                                             days: day,
-                                            results: previewData, // APENAS 5 campos essenciais
+                                            results: previewData,
                                             timestamp: new Date().toISOString()
                                         }]
                                     })
-                                })
-                                .then(response => {
-                                    if (response.ok) {
-                                        console.log(`✅ Recent search saved: ${currentLocation}, ${searchDateStr}, ${day} days (${data.items.length} cars)`);
-                                    } else {
-                                        console.error(`❌ Failed to save search: ${response.status}`);
-                                    }
-                                })
-                                .catch(e => console.warn('[RECENT] Failed to save search:', e));
+                                }).catch(e => console.warn('[RECENT] Failed to save:', e));
                                 
-                                // Store ALL cars for Auto price calculations
                                 allCarsByDay[day] = data.items;
                                 
-                                // DEBUG: Log unique suppliers
                                 const supplierCounts = {};
                                 data.items.forEach(item => {
                                     const s = item.supplier || '(empty)';
@@ -4969,7 +5085,6 @@
                                 });
                                 console.log(`🔍 [SUPPLIERS] ${day}d:`, supplierCounts);
                                 
-                                // FILTER ONLY AUTOPRUDENTE for Real column
                                 const autoprudenteItems = data.items.filter(item => {
                                     const supplier = (item.supplier || '').toLowerCase();
                                     return supplier.includes('autoprudente') || 
@@ -4981,7 +5096,6 @@
                                 console.log(`🔍 [AUP-FILTER] ${day}d - ${autoprudenteItems.length} AUTOPRUDENTE cars found`);
                                 
                                 if (autoprudenteItems.length > 0) {
-                                    // RULE: Group by car group and choose LOWEST PRICE
                                     const precosPorGrupo = {};
                                     autoprudenteItems.forEach(item => {
                                         const grupo = item.group || extractGroup(item.car);
@@ -4997,7 +5111,6 @@
                                         }
                                     });
                                     
-                                    // Fill Real column with lowest prices per group
                                     Object.keys(precosPorGrupo).forEach(grupo => {
                                         const { preco: precoReal, carro } = precosPorGrupo[grupo];
                                         
@@ -5007,21 +5120,15 @@
                                             const inputReal = document.querySelector(`#pricesTableAuto input[data-grupo="${grupo}"][data-dias="${day}"][data-type="real"]`);
                                             
                                             if (inputReal) {
-                                                // Fill Real column
                                                 inputReal.value = precoReal.toFixed(2);
                                                 realPricesGenerated++;
-                                                
-                                                // Remove red if exists
                                                 inputReal.classList.remove('bg-red-100');
-                                                
                                                 foundPrices = true;
                                             }
                                         }
                                     });
                                     
-                                    // Stop trying alternative dates if we found prices
                                     if (foundPrices) {
-                                        // Update chip color to blue when prices are loaded
                                         updateDayChipColor(day, true);
                                         break;
                                     }
@@ -5030,11 +5137,10 @@
                                 console.warn(`${day} days - No items returned by API`);
                             }
                         } catch (err) {
-                            console.error(`❌ [FETCH-ERROR] ${day}d offset=${dateOffset}:`, err.message, err);
+                            console.error(`❌ [FALLBACK-ERROR] ${day}d offset=${dateOffset}:`, err.message, err);
                         }
                     }
                     
-                    // If no prices found after trying alternative dates, mark as red
                     if (!foundPrices) {
                         console.warn(`${day} days - AUTOPRUDENTE has no prices available (tried ${maxAlternativeDays + 1} dates)`);
                         grupos.forEach(grupo => {
@@ -5047,6 +5153,21 @@
                     }
                     
                     completed++;
+                    progressPercent.textContent = `${Math.round((completed / total) * 100)}%`;
+                    progressFill.style.width = `${(completed / total) * 100}%`;
+                }
+                
+                // Marcar dias sem resultados (batch ou fallback)
+                for (const day of dias) {
+                    if (!allCarsByDay[day]) {
+                        grupos.forEach(grupo => {
+                            const inputReal = document.querySelector(`#pricesTableAuto input[data-grupo="${grupo}"][data-dias="${day}"][data-type="real"]`);
+                            if (inputReal && !inputReal.value) {
+                                inputReal.value = '-';
+                                inputReal.classList.add('bg-red-100');
+                            }
+                        });
+                    }
                 }
                 
                 progressText.textContent = 'Calculating automated prices...';
