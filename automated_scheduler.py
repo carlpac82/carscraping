@@ -496,127 +496,146 @@ def execute_search_for_schedule(schedule, schedule_index):
 
 async def _do_carjet_search(locations, days, pickup_date):
     """
-    Execute CarJet search using HTTP request to own API in ASYNC mode
-    This prevents blocking the server during scraping
+    Execute CarJet search using BATCH endpoint (reutiliza mesma sessão Chrome).
+    Em vez de abrir/fechar Chrome para cada dia, abre UMA VEZ e muda datas.
+    Fallback: chamadas individuais se batch falhar.
     """
     import aiohttp
     import os
     
-    print(f"\n🛡️ Using HTTP API call in ASYNC mode (non-blocking)", flush=True)
+    print(f"\n🛡️ Using BATCH API (single Chrome session for all days)", flush=True)
     
-    # Get the service URL (Render provides RENDER_EXTERNAL_URL)
-    service_url = os.getenv('RENDER_EXTERNAL_URL', 'http://localhost:10000')
-    api_url = f"{service_url}/api/track-by-params"
+    service_url = os.getenv('RENDER_EXTERNAL_URL', os.getenv('RAILWAY_PUBLIC_DOMAIN', 'http://localhost:10000'))
+    if not service_url.startswith('http'):
+        service_url = f"https://{service_url}"
+    batch_api_url = f"{service_url}/api/track-by-params-batch"
+    single_api_url = f"{service_url}/api/track-by-params"
     jobs_api_url = f"{service_url}/api/jobs"
     
-    print(f"   API URL: {api_url}", flush=True)
+    print(f"   Batch API URL: {batch_api_url}", flush=True)
     
     all_results = {}
     
-    # IMPORTANTE: Fazer pesquisas SEQUENCIALMENTE (não paralelo) para evitar múltiplos browsers
-    # Isso reduz uso de RAM de ~1GB (3 browsers simultâneos) para ~200MB (1 browser por vez)
     async with aiohttp.ClientSession() as session:
         for location in locations:
-            print(f"\n📍 Searching {location}...", flush=True)
+            print(f"\n📍 Searching {location} (batch mode)...", flush=True)
             location_results = {}
             
-            for day in days:
-                print(f"   → {day} days...", flush=True)
+            # TENTAR BATCH PRIMEIRO (1 Chrome para todos os dias)
+            try:
+                payload = {
+                    'location': location,
+                    'pickup_date': pickup_date,
+                    'days': days,
+                    'lang': 'pt',
+                    'currency': 'EUR',
+                }
                 
-                # Aguardar 2s entre pesquisas para garantir cleanup de memória
-                if location_results:  # Não aguardar na primeira iteração
-                    await asyncio.sleep(2)
+                print(f"   [BATCH] Submitting: {days} days for {location}...", flush=True)
+                headers = {'X-Internal-Request': 'scheduler'}
                 
-                try:
-                    payload = {
-                        'location': location,
-                        'start_date': pickup_date,
-                        'start_time': '15:00',
-                        'days': day,
-                        'lang': 'pt',
-                        'currency': 'EUR',
-                        'async': 1  # ← MODO ASSÍNCRONO - Não bloqueia servidor
-                    }
+                # Batch pode demorar (N dias * ~2min cada), timeout generoso
+                timeout = aiohttp.ClientTimeout(total=len(days) * 180 + 60)
+                
+                async with session.post(batch_api_url, json=payload, headers=headers, timeout=timeout) as response:
+                    print(f"   [BATCH] Status: {response.status}", flush=True)
                     
-                    print(f"      [HTTP POST] Submitting async job... (async={payload.get('async')})", flush=True)
-                    print(f"      [PAYLOAD] {payload}", flush=True)
-                    
-                    # Add authentication header for internal scheduler requests
-                    headers = {'X-Internal-Request': 'scheduler'}
-                    
-                    # Submit job (retorna imediatamente com job_id)
-                    async with session.post(api_url, json=payload, headers=headers, timeout=aiohttp.ClientTimeout(total=30)) as response:
-                        print(f"      [HTTP] Status: {response.status}", flush=True)
+                    if response.status == 200:
+                        data = await response.json()
                         
-                        if response.status == 200:
-                            data = await response.json()
+                        if data.get('ok') and data.get('results'):
+                            results = data['results']
+                            total = 0
+                            for day_key, items in results.items():
+                                day_int = int(day_key)
+                                location_results[day_int] = items
+                                total += len(items)
+                                print(f"      ✅ {day_key} days: {len(items)} cars", flush=True)
+                                if items:
+                                    print(f"         [EXAMPLE] {items[0].get('car', 'N/A')}, {items[0].get('supplier', 'N/A')}, {items[0].get('price', 'N/A')}", flush=True)
                             
-                            # Verificar se é resposta assíncrona
-                            if data.get('async') and data.get('job_id'):
-                                job_id = data['job_id']
-                                print(f"      🔄 Job submitted: {job_id}", flush=True)
-                                print(f"      ⏳ Polling for results...", flush=True)
-                                
-                                # Polling do job até completar (max 3 minutos)
-                                max_attempts = 90  # 90 * 2s = 3 minutos
-                                attempt = 0
-                                items = []
-                                
-                                while attempt < max_attempts:
-                                    await asyncio.sleep(2)  # Check a cada 2 segundos
-                                    attempt += 1
-                                    
-                                    try:
-                                        job_status_url = f"{jobs_api_url}/{job_id}"
-                                        async with session.get(job_status_url, headers=headers, timeout=aiohttp.ClientTimeout(total=10)) as status_response:
-                                            if status_response.status == 200:
-                                                status_data = await status_response.json()
-                                                job_status = status_data.get('status')
-                                                
-                                                if job_status == 'completed':
-                                                    # Job completado - obter resultado
-                                                    result_url = f"{jobs_api_url}/{job_id}/result"
-                                                    async with session.get(result_url, headers=headers, timeout=aiohttp.ClientTimeout(total=10)) as result_response:
-                                                        if result_response.status == 200:
-                                                            result_data = await result_response.json()
-                                                            items = result_data.get('items', [])
-                                                            print(f"      ✅ {len(items)} cars found (async)", flush=True)
-                                                            if len(items) > 0:
-                                                                print(f"      [EXAMPLE] First car: {items[0].get('car', 'N/A')}, {items[0].get('supplier', 'N/A')}, {items[0].get('price', 'N/A')}", flush=True)
-                                                            break
-                                                elif job_status == 'failed':
-                                                    error = status_data.get('error', 'Unknown error')
-                                                    print(f"      ❌ Job failed: {error}", flush=True)
-                                                    break
-                                                else:
-                                                    # Job ainda em execução
-                                                    if attempt % 10 == 0:  # Log a cada 20 segundos
-                                                        print(f"      ⏳ Still running... ({attempt * 2}s elapsed)", flush=True)
-                                    except Exception as poll_error:
-                                        print(f"      ⚠️ Polling error: {poll_error}", flush=True)
-                                        continue
-                                
-                                if attempt >= max_attempts:
-                                    print(f"      ⏱️ Timeout waiting for job {job_id}", flush=True)
-                                
-                                location_results[day] = items
-                            else:
-                                # Resposta síncrona (fallback)
-                                items = data.get('items', [])
-                                print(f"      ✅ {len(items)} cars found (sync fallback)", flush=True)
-                                if len(items) > 0:
-                                    print(f"      [EXAMPLE] First car: {items[0].get('car', 'N/A')}, {items[0].get('supplier', 'N/A')}, {items[0].get('price', 'N/A')}", flush=True)
-                                location_results[day] = items
+                            print(f"   [BATCH] ✅ Total: {total} cars for {location}", flush=True)
                         else:
-                            error_text = await response.text()
-                            print(f"      ❌ HTTP Error {response.status}: {error_text[:200]}", flush=True)
-                            location_results[day] = []
-                            
-                except Exception as e:
-                    print(f"      ❌ Error: {str(e)}", flush=True)
-                    import traceback
-                    print(f"      [TRACEBACK] {traceback.format_exc()}", flush=True)
-                    location_results[day] = []
+                            error = data.get('error', 'Unknown')
+                            print(f"   [BATCH] ⚠️ Batch returned ok=false: {error}", flush=True)
+                    else:
+                        error_text = await response.text()
+                        print(f"   [BATCH] ❌ HTTP {response.status}: {error_text[:200]}", flush=True)
+                        
+            except Exception as batch_err:
+                print(f"   [BATCH] ❌ Batch failed: {batch_err}", flush=True)
+                import traceback
+                print(f"   [TRACEBACK] {traceback.format_exc()}", flush=True)
+            
+            # FALLBACK: Para dias que falharam no batch, tentar individualmente
+            missing_days = [d for d in days if d not in location_results or not location_results.get(d)]
+            if missing_days:
+                print(f"   [FALLBACK] {len(missing_days)} days missing, trying individual calls: {missing_days}", flush=True)
+                
+                for day in missing_days:
+                    try:
+                        payload = {
+                            'location': location,
+                            'start_date': pickup_date,
+                            'start_time': '15:00',
+                            'days': day,
+                            'lang': 'pt',
+                            'currency': 'EUR',
+                            'async': 1
+                        }
+                        
+                        headers = {'X-Internal-Request': 'scheduler'}
+                        
+                        async with session.post(single_api_url, json=payload, headers=headers, timeout=aiohttp.ClientTimeout(total=30)) as response:
+                            if response.status == 200:
+                                data = await response.json()
+                                
+                                if data.get('async') and data.get('job_id'):
+                                    job_id = data['job_id']
+                                    print(f"      🔄 Job submitted: {job_id} ({day} days)", flush=True)
+                                    
+                                    max_attempts = 90
+                                    attempt = 0
+                                    items = []
+                                    
+                                    while attempt < max_attempts:
+                                        await asyncio.sleep(2)
+                                        attempt += 1
+                                        
+                                        try:
+                                            job_status_url = f"{jobs_api_url}/{job_id}"
+                                            async with session.get(job_status_url, headers=headers, timeout=aiohttp.ClientTimeout(total=10)) as status_response:
+                                                if status_response.status == 200:
+                                                    status_data = await status_response.json()
+                                                    job_status = status_data.get('status')
+                                                    
+                                                    if job_status == 'completed':
+                                                        result_url = f"{jobs_api_url}/{job_id}/result"
+                                                        async with session.get(result_url, headers=headers, timeout=aiohttp.ClientTimeout(total=10)) as result_response:
+                                                            if result_response.status == 200:
+                                                                result_data = await result_response.json()
+                                                                items = result_data.get('items', [])
+                                                                print(f"      ✅ {len(items)} cars ({day} days, fallback)", flush=True)
+                                                                break
+                                                    elif job_status == 'failed':
+                                                        print(f"      ❌ Job failed ({day} days)", flush=True)
+                                                        break
+                                                    else:
+                                                        if attempt % 10 == 0:
+                                                            print(f"      ⏳ Still running... ({attempt * 2}s)", flush=True)
+                                        except Exception as poll_error:
+                                            continue
+                                    
+                                    location_results[day] = items
+                                else:
+                                    items = data.get('items', [])
+                                    print(f"      ✅ {len(items)} cars ({day} days, sync)", flush=True)
+                                    location_results[day] = items
+                            else:
+                                location_results[day] = []
+                    except Exception as e:
+                        print(f"      ❌ Error ({day} days): {e}", flush=True)
+                        location_results[day] = []
             
             all_results[location] = location_results
     

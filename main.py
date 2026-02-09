@@ -12070,6 +12070,127 @@ def ensure_all_fields(items: List[Dict[str, Any]], defaults: Dict[str, Any]) -> 
                 item[key] = value
     return items
 
+@app.post("/api/track-by-params-batch")
+async def track_by_params_batch(request: Request):
+    """
+    Batch scraping: reutiliza mesma sessão Chrome para múltiplos dias.
+    Abre Chrome UMA VEZ, muda datas entre pesquisas (clica Alterar + Pesquisar).
+    
+    Body JSON:
+    {
+        "location": "Albufeira" ou "Aeroporto de Faro",
+        "pickup_date": "2026-02-10",
+        "days": [3, 7, 14, 30],
+        "lang": "pt",
+        "currency": "EUR"
+    }
+    
+    Returns:
+    {
+        "ok": true,
+        "results": { "3": [...items], "7": [...items], ... },
+        "location": "Albufeira"
+    }
+    """
+    import sys
+    try:
+        if not bool(str(os.getenv("DEV_NO_AUTH", "")).strip().lower() in ("1","true","yes","on")):
+            require_auth(request)
+    except HTTPException:
+        return JSONResponse({"ok": False, "error": "Unauthorized"}, status_code=401)
+    
+    try:
+        body = await request.json()
+    except Exception:
+        body = {}
+    
+    location = str(body.get("location") or "").strip()
+    pickup_date = str(body.get("pickup_date") or body.get("start_date") or "").strip()
+    days_list = body.get("days") or []
+    lang = str(body.get("lang") or "pt").strip() or "pt"
+    currency = str(body.get("currency") or "EUR").strip() or "EUR"
+    
+    if not location or not pickup_date or not days_list:
+        return JSONResponse({"ok": False, "error": "Missing location, pickup_date, or days[]"}, status_code=400)
+    
+    print(f"\n{'='*60}", file=sys.stderr, flush=True)
+    print(f"[BATCH API] location={location}, pickup_date={pickup_date}, days={days_list}", file=sys.stderr, flush=True)
+    print(f"{'='*60}", file=sys.stderr, flush=True)
+    
+    # Construir lista de pesquisas
+    try:
+        base_date = datetime.strptime(pickup_date, "%Y-%m-%d")
+    except Exception:
+        return JSONResponse({"ok": False, "error": "Invalid pickup_date (YYYY-MM-DD)"}, status_code=400)
+    
+    # Rotação de horas (14:30-17:00 aleatório)
+    available_hours = ['14:30', '15:00', '15:30', '16:00', '16:30', '17:00']
+    selected_hour = random.choice(available_hours)
+    hour_h = int(selected_hour.split(':')[0])
+    hour_m = int(selected_hour.split(':')[1])
+    
+    searches = []
+    for d in days_list:
+        try:
+            d = int(d)
+            start_dt = base_date.replace(hour=hour_h, minute=hour_m)
+            end_dt = start_dt + timedelta(days=d)
+            
+            # ALBUFEIRA: Se end_dt calha a domingo, avançar +1 dia
+            if 'albufeira' in location.lower() and end_dt.weekday() == 6:
+                start_dt += timedelta(days=1)
+                end_dt += timedelta(days=1)
+            
+            searches.append({
+                'days': d,
+                'start_dt': start_dt,
+                'end_dt': end_dt,
+            })
+        except Exception as e:
+            print(f"[BATCH API] Erro ao processar days={d}: {e}", file=sys.stderr, flush=True)
+    
+    if not searches:
+        return JSONResponse({"ok": False, "error": "No valid days to search"}, status_code=400)
+    
+    # Executar batch scraping
+    try:
+        from carjet_batch import scrape_carjet_batch
+        
+        batch_results = scrape_carjet_batch(
+            location=location,
+            searches=searches,
+            parse_prices_fn=parse_prices,
+            convert_fn=convert_items_gbp_to_eur,
+            adjust_fn=apply_price_adjustments,
+            normalize_fn=normalize_and_sort,
+            filter_fn=filter_automatic_only,
+            lang=lang,
+            currency=currency,
+        )
+        
+        # Converter keys para string para JSON
+        results_json = {}
+        for days_key, items in batch_results.items():
+            results_json[str(days_key)] = items
+        
+        total_cars = sum(len(v) for v in results_json.values())
+        print(f"[BATCH API] ✅ Concluído: {total_cars} carros total em {len(results_json)} pesquisas", file=sys.stderr, flush=True)
+        
+        return _no_store_json({
+            "ok": True,
+            "results": results_json,
+            "location": location,
+            "pickup_date": pickup_date,
+            "days": days_list,
+        })
+        
+    except Exception as e:
+        print(f"[BATCH API] ❌ Erro: {e}", file=sys.stderr, flush=True)
+        import traceback
+        traceback.print_exc(file=sys.stderr)
+        return JSONResponse({"ok": False, "error": str(e)}, status_code=500)
+
+
 @app.post("/api/track-by-params")
 async def track_by_params(request: Request):
     try:
@@ -12280,7 +12401,7 @@ async def track_by_params(request: Request):
         print(f"[ALBUFEIRA-SUNDAY] Devolução calha a domingo, avançado +1 dia: {start_dt.date()} → {end_dt.date()}", file=sys.stderr, flush=True)
     
     # Verificar se requests/urllib estão disponíveis e se devem ser usados
-    _DISABLE_REQUESTS = True  # Requests/urllib não funciona no Railway - ir direto para Selenium
+    _DISABLE_REQUESTS = True  # Requests não funciona (CarJet carrega via JS/AJAX) - Selenium direto
     _HAS_CARJET_REQUESTS = True
     try:
         import requests
@@ -13390,7 +13511,7 @@ async def track_by_params(request: Request):
                 # Configurar timeout (apenas em sistemas Unix)
                 try:
                     signal.signal(signal.SIGALRM, timeout_handler)
-                    signal.alarm(120)  # 120 segundos de timeout (categorias precisam ~30s extra)
+                    signal.alarm(180)  # 180s timeout (categorias + possível retry war=28)
                 except:
                     pass  # Windows não suporta SIGALRM
                 # Esconder webdriver
@@ -13634,10 +13755,79 @@ async def track_by_params(request: Request):
                 except:
                     pass
                 
-                # NÃO fazer retry com war= - aceitar o resultado como está
-                # O retry pode causar cliques extras e bagunçar o formulário
+                # RETRY se war= detectado: voltar à homepage, esperar, e re-submeter
                 if 'war=' in final_url:
-                    print(f"[SELENIUM] ⚠️ war= detectado (sem disponibilidade ou erro)", file=sys.stderr, flush=True)
+                    _retry_delay = random.randint(15, 25)
+                    print(f"[SELENIUM] ⚠️ war= detectado! Retry em {_retry_delay}s (mesma sessão)...", file=sys.stderr, flush=True)
+                    time.sleep(_retry_delay)
+                    
+                    try:
+                        # Voltar à homepage
+                        driver.get(carjet_url)
+                        time.sleep(2)
+                        
+                        # Rejeitar cookies se aparecerem
+                        reject_cookies_if_present("retry")
+                        time.sleep(1)
+                        
+                        # Re-preencher: local
+                        _retry_pickup = WebDriverWait(driver, 10).until(
+                            EC.presence_of_element_located((By.ID, "pickup"))
+                        )
+                        _retry_pickup.clear()
+                        _retry_pickup.send_keys(carjet_location)
+                        time.sleep(1.5)
+                        driver.execute_script("""
+                            const items = document.querySelectorAll('#recogida_lista li');
+                            if (items.length > 0) items[0].querySelector('a')?.click() || items[0].click();
+                        """)
+                        time.sleep(0.5)
+                        driver.find_element(By.CSS_SELECTOR, "h1, h2, .title, header").click()
+                        time.sleep(1)
+                        
+                        # Re-preencher: datas
+                        driver.set_script_timeout(10)
+                        driver.execute_script("""
+                            const fr = document.querySelector('#fechaRecogida');
+                            const fd = document.querySelector('#fechaDevolucion');
+                            if (fr) fr.value = arguments[0];
+                            if (fd) fd.value = arguments[1];
+                            const h1 = document.querySelector('#fechaRecogidaSelHour');
+                            const h2 = document.querySelector('#fechaDevolucionSelHour');
+                            if (h1) { h1.value = arguments[2]; h1.dispatchEvent(new Event('change', {bubbles:true})); }
+                            if (h2) { h2.value = arguments[3]; h2.dispatchEvent(new Event('change', {bubbles:true})); }
+                        """, fecha_recogida, fecha_devolucion, hour_pickup, hour_dropoff)
+                        
+                        # Re-submeter
+                        driver.set_script_timeout(5)
+                        driver.execute_script("""
+                            const btn = document.querySelector('#btnBuscar');
+                            if (btn) btn.click();
+                            else { const form = document.querySelector('#frm_search_cars') || document.querySelector('form'); if (form) form.submit(); }
+                        """)
+                        print(f"[SELENIUM] 🔄 Retry submetido!", file=sys.stderr, flush=True)
+                        
+                        # Aguardar resultados do retry
+                        time.sleep(2)
+                        _retry_waited = 0
+                        while _retry_waited < 25:
+                            _retry_url = driver.current_url
+                            if '/do/list/' in _retry_url and 's=' in _retry_url and 'b=' in _retry_url:
+                                print(f"[SELENIUM] ✅ Retry funcionou após {_retry_waited}s!", file=sys.stderr, flush=True)
+                                final_url = _retry_url
+                                break
+                            if 'war=' in _retry_url:
+                                print(f"[SELENIUM] ❌ Retry também deu war= - desistindo", file=sys.stderr, flush=True)
+                                break
+                            time.sleep(2)
+                            _retry_waited += 2
+                        
+                        time.sleep(3)
+                        final_url = driver.current_url
+                        print(f"[SELENIUM] URL após retry: {final_url[:80]}", file=sys.stderr, flush=True)
+                        
+                    except Exception as retry_err:
+                        print(f"[SELENIUM] ❌ Retry falhou: {retry_err}", file=sys.stderr, flush=True)
                 
                 # Se obtivemos URL s/b válida, pegar HTML do driver ANTES de fechar
                 if 's=' in final_url and 'b=' in final_url:
@@ -13661,8 +13851,13 @@ async def track_by_params(request: Request):
                         pass
                     
                     _prev_article_count = 0
-                    for cat in CATEGORIES:
+                    for _cat_idx, cat in enumerate(CATEGORIES):
                         try:
+                            # Delay entre categorias para evitar rate limiting (war=28)
+                            if _cat_idx > 0:
+                                _cat_delay = random.uniform(1.5, 3.0)
+                                time.sleep(_cat_delay)
+                            
                             # Contar artigos ANTES de mudar
                             _before = driver.execute_script("return document.querySelectorAll('article').length") or 0
                             driver.execute_script(f"filterAgrupVeh('{cat}')")
