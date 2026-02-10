@@ -3146,7 +3146,7 @@
             showNotification('Generating CarAlliance Excel...', 'info');
             
             const location = document.getElementById('locationAuto')?.value || 'Faro';
-            const date = document.getElementById('dateAuto')?.value || new Date().toISOString().slice(0, 10);
+            const date = document.getElementById('pickupDateAuto')?.value || new Date().toISOString().slice(0, 10);
             
             const dateObj = new Date(date + 'T00:00:00');
             const month = dateObj.getMonth() + 1;
