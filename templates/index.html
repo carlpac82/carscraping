@@ -1802,7 +1802,7 @@
                 console.log('Dados coletados:', data.length, 'grupos');
                 
                 // Enviar para backend para gerar Excel com formatação
-                await downloadAbbycarExcel(data, location, startDate, endDate);
+                await downloadAbbycarExcel(data, location, startDate, endDate, month, lastDay);
                 console.log('Download Abbycar concluído!');
             } catch (error) {
                 console.error('Erro no download Abbycar:', error);
@@ -1946,7 +1946,7 @@
         }
 
         // Enviar dados para backend gerar Excel com formatação
-        async function downloadAbbycarExcel(data, location, startDate, endDate) {
+        async function downloadAbbycarExcel(data, location, startDate, endDate, month, lastDay) {
             try {
                 const response = await fetch('/api/export-abbycar-excel', {
                     method: 'POST',
@@ -1967,10 +1967,10 @@
                 const url = window.URL.createObjectURL(blob);
                 const a = document.createElement('a');
                 a.href = url;
-                const _abMonthNames = ['JAN','FEV','MAR','ABR','MAI','JUN','JUL','AGO','SET','OUT','NOV','DEZ'];
-                const _abMon = _abMonthNames[parseInt(month) - 1];
-                const _abLoc = location.toUpperCase().replace(/\s+/g, '-');
-                a.download = `ABBYCAR-${_abLoc}-01-${String(lastDay).padStart(2,'0')}-${_abMon}.xlsx`;
+                const _abxMonthNames = ['JAN','FEV','MAR','ABR','MAI','JUN','JUL','AGO','SET','OUT','NOV','DEZ'];
+                const _abxMon = _abxMonthNames[parseInt(month) - 1];
+                const _abxLoc = location.toUpperCase().replace(/\s+/g, '-');
+                a.download = `ABBYCAR-${_abxLoc}-01-${String(lastDay).padStart(2,'0')}-${_abxMon}.xlsx`;
                 document.body.appendChild(a);
                 a.click();
                 window.URL.revokeObjectURL(url);
@@ -2024,7 +2024,8 @@
             const _abCsvMonthNames = ['JAN','FEV','MAR','ABR','MAI','JUN','JUL','AGO','SET','OUT','NOV','DEZ'];
             const _abCsvMon = _abCsvMonthNames[parseInt(month) - 1];
             const _abCsvLoc = location.toUpperCase().replace(/\s+/g, '-');
-            link.setAttribute('download', `ABBYCAR-${_abCsvLoc}-01-31-${_abCsvMon}.csv`);
+            const _abCsvLastDay = new Date(year, month, 0).getDate();
+            link.setAttribute('download', `ABBYCAR-${_abCsvLoc}-01-${String(_abCsvLastDay).padStart(2,'0')}-${_abCsvMon}.csv`);
             link.style.visibility = 'hidden';
             document.body.appendChild(link);
             link.click();
