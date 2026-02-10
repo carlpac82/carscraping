@@ -27,6 +27,22 @@ from typing import List, Dict, Any, Optional, Tuple
 
 CATEGORIES = ['MINI', 'COMP', 'FAMI', 'ESTA', 'SUVS', 'VANS', 'LUXU', 'AUTO']
 
+# Progresso global do batch (partilhado com endpoint de progresso)
+# Estrutura: { batch_id: { 'total': N, 'completed': M, 'status': 'running'|'done', 'results': {days: items} } }
+import threading
+_batch_progress = {}
+_batch_progress_lock = threading.Lock()
+
+def get_batch_progress(batch_id: str) -> dict:
+    """Obter progresso atual de um batch"""
+    with _batch_progress_lock:
+        return _batch_progress.get(batch_id, {}).copy()
+
+def clear_batch_progress(batch_id: str):
+    """Limpar progresso de um batch terminado"""
+    with _batch_progress_lock:
+        _batch_progress.pop(batch_id, None)
+
 
 def _setup_chrome_driver():
     """Configurar e iniciar Chrome driver com anti-deteção (igual ao main.py)"""
@@ -440,6 +456,7 @@ def scrape_carjet_batch(
     filter_fn,
     lang: str = "pt",
     currency: str = "EUR",
+    **kwargs,
 ) -> Dict[int, List[Dict[str, Any]]]:
     """
     Scraping batch do CarJet - reutiliza mesma sessão Chrome para múltiplos dias.
@@ -475,7 +492,35 @@ def scrape_carjet_batch(
     results = {}
     driver = None
 
+    # Inicializar progresso se batch_id fornecido
+    batch_id = kwargs.get('batch_id')
+    if batch_id:
+        with _batch_progress_lock:
+            _batch_progress[batch_id] = {
+                'total': len(searches),
+                'completed': 0,
+                'status': 'starting',
+                'results': {},
+                'current_day': None,
+            }
+
+    def _update_progress(day_key=None, items=None, status=None):
+        if not batch_id:
+            return
+        with _batch_progress_lock:
+            prog = _batch_progress.get(batch_id)
+            if not prog:
+                return
+            if status:
+                prog['status'] = status
+            if day_key is not None and items is not None:
+                prog['results'][str(day_key)] = items
+                prog['completed'] = len(prog['results'])
+            if day_key is not None and items is None:
+                prog['current_day'] = day_key
+
     try:
+        _update_progress(status='starting_chrome')
         driver = _setup_chrome_driver()
 
         # Timeout global (5 min por pesquisa + margem)
@@ -488,6 +533,8 @@ def scrape_carjet_batch(
         except:
             pass
 
+        _update_progress(status='running')
+
         for idx, search in enumerate(searches):
             days = search['days']
             start_dt = search['start_dt']
@@ -496,6 +543,7 @@ def scrape_carjet_batch(
             print(f"\n{'━'*70}", file=sys.stderr, flush=True)
             print(f"[BATCH] 📅 Pesquisa {idx+1}/{len(searches)}: {days} dias ({start_dt.strftime('%d/%m')} → {end_dt.strftime('%d/%m')})", file=sys.stderr, flush=True)
             print(f"{'━'*70}", file=sys.stderr, flush=True)
+            _update_progress(day_key=days, status='running')
 
             try:
                 if idx == 0:
@@ -525,12 +573,15 @@ def scrape_carjet_batch(
                             normalize_fn, filter_fn
                         )
                         results[days] = items
+                        _update_progress(day_key=days, items=items)
                         print(f"[BATCH] ✅ {days} dias: {len(items)} carros", file=sys.stderr, flush=True)
                     else:
                         results[days] = []
+                        _update_progress(day_key=days, items=[])
                         print(f"[BATCH] ⚠️ {days} dias: sem HTML das categorias", file=sys.stderr, flush=True)
                 else:
                     results[days] = []
+                    _update_progress(day_key=days, items=[])
                     print(f"[BATCH] ❌ {days} dias: falhou (war= ou timeout)", file=sys.stderr, flush=True)
 
             except Exception as e:
@@ -538,6 +589,7 @@ def scrape_carjet_batch(
                 import traceback
                 traceback.print_exc(file=sys.stderr)
                 results[days] = []
+                _update_progress(day_key=days, items=[])
 
             # Pausa entre pesquisas (simular comportamento humano)
             if idx < len(searches) - 1:
@@ -573,4 +625,5 @@ def scrape_carjet_batch(
         print(f"[BATCH]   {status} {days} dias: {len(items)} carros", file=sys.stderr, flush=True)
     print(f"{'='*70}", file=sys.stderr, flush=True)
 
+    _update_progress(status='done')
     return results

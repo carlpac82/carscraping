@@ -4867,17 +4867,12 @@
                 let completed = 0;
                 
                 // ═══════════════════════════════════════════════════════════
-                // BATCH MODE: Mini-batches de 3 dias para progresso visível
-                // Cada mini-batch abre 1 Chrome, pesquisa 3 dias, fecha
-                // A UI atualiza preços e barra após cada mini-batch
+                // BATCH MODE: 1 Chrome para TODOS os dias + polling progressivo
+                // Lança batch async, depois faz polling a cada 3s para
+                // mostrar preços e barra conforme cada dia termina
                 // ═══════════════════════════════════════════════════════════
-                const MINI_BATCH_SIZE = 3;
-                const miniBatches = [];
-                for (let i = 0; i < dias.length; i += MINI_BATCH_SIZE) {
-                    miniBatches.push(dias.slice(i, i + MINI_BATCH_SIZE));
-                }
-                
-                console.log(`🚀 [BATCH] ${dias.length} dias divididos em ${miniBatches.length} mini-batches de até ${MINI_BATCH_SIZE}`);
+                console.log(`🚀 [BATCH] Iniciando batch async: ${dias.length} dias para ${currentLocation}`);
+                progressText.textContent = `A iniciar pesquisa (${dias.length} dias, 1 sessão Chrome)...`;
                 
                 const batchDaysWithResults = new Set();
                 
@@ -4969,62 +4964,101 @@
                     }
                 }
                 
-                // Executar mini-batches sequencialmente
-                for (let batchIdx = 0; batchIdx < miniBatches.length; batchIdx++) {
-                    if (stopGenerateFlag) break;
+                // 1. Lançar batch em modo async (retorna imediatamente com batch_id)
+                let batchId = null;
+                try {
+                    const batchResponse = await fetch('/api/track-by-params-batch', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            location: currentLocation,
+                            pickup_date: pickupDate,
+                            days: dias,
+                            lang: 'pt',
+                            currency: 'EUR',
+                            async: true
+                        })
+                    });
                     
-                    const miniBatch = miniBatches[batchIdx];
-                    const batchLabel = miniBatch.join(', ');
-                    progressText.textContent = `Batch ${batchIdx + 1}/${miniBatches.length}: searching ${batchLabel} days...`;
-                    console.log(`🚀 [BATCH ${batchIdx + 1}/${miniBatches.length}] Dias: ${batchLabel}`);
-                    
-                    try {
-                        const batchResponse = await fetch('/api/track-by-params-batch', {
-                            method: 'POST',
-                            headers: { 'Content-Type': 'application/json' },
-                            body: JSON.stringify({
-                                location: currentLocation,
-                                pickup_date: pickupDate,
-                                days: miniBatch,
-                                lang: 'pt',
-                                currency: 'EUR'
-                            })
-                        });
-                        
-                        if (batchResponse.ok) {
-                            const batchData = await batchResponse.json();
-                            
-                            if (batchData.ok && batchData.results) {
-                                for (const day of miniBatch) {
-                                    if (stopGenerateFlag) break;
-                                    
-                                    const dayItems = batchData.results[String(day)] || [];
-                                    console.log(`🚀 [BATCH] ${day}d: ${dayItems.length} carros`);
-                                    
-                                    processDayResults(day, dayItems);
-                                    
-                                    completed++;
-                                    progressPercent.textContent = `${Math.round((completed / total) * 100)}%`;
-                                    progressFill.style.width = `${(completed / total) * 100}%`;
-                                }
-                            } else {
-                                console.warn(`🚀 [BATCH ${batchIdx + 1}] ⚠️ ok=false: ${batchData.error || 'unknown'}`);
-                                completed += miniBatch.length;
-                                progressPercent.textContent = `${Math.round((completed / total) * 100)}%`;
-                                progressFill.style.width = `${(completed / total) * 100}%`;
-                            }
-                        } else {
-                            console.warn(`🚀 [BATCH ${batchIdx + 1}] ❌ HTTP ${batchResponse.status}`);
-                            completed += miniBatch.length;
-                            progressPercent.textContent = `${Math.round((completed / total) * 100)}%`;
-                            progressFill.style.width = `${(completed / total) * 100}%`;
+                    if (batchResponse.ok) {
+                        const batchData = await batchResponse.json();
+                        if (batchData.ok && batchData.batch_id) {
+                            batchId = batchData.batch_id;
+                            console.log(`🚀 [BATCH] Async iniciado: batch_id=${batchId}`);
                         }
-                    } catch (batchErr) {
-                        console.error(`🚀 [BATCH ${batchIdx + 1}] ❌ Erro:`, batchErr);
-                        completed += miniBatch.length;
-                        progressPercent.textContent = `${Math.round((completed / total) * 100)}%`;
-                        progressFill.style.width = `${(completed / total) * 100}%`;
                     }
+                } catch (err) {
+                    console.error(`🚀 [BATCH] Erro ao iniciar batch:`, err);
+                }
+                
+                // 2. Polling: verificar progresso a cada 3s e mostrar preços conforme chegam
+                if (batchId) {
+                    const processedDays = new Set();
+                    const maxPolls = 300; // 300 * 3s = 15 min max
+                    
+                    for (let poll = 0; poll < maxPolls; poll++) {
+                        if (stopGenerateFlag) break;
+                        
+                        await new Promise(r => setTimeout(r, 3000)); // esperar 3s
+                        
+                        try {
+                            const progressResponse = await fetch(`/api/track-by-params-batch/progress/${batchId}`);
+                            if (!progressResponse.ok) continue;
+                            
+                            const progress = await progressResponse.json();
+                            if (!progress.ok) continue;
+                            
+                            const status = progress.status;
+                            const completedCount = progress.completed || 0;
+                            const currentDay = progress.current_day;
+                            const results = progress.results || {};
+                            
+                            // Atualizar barra de progresso
+                            const pct = Math.round((completedCount / total) * 100);
+                            progressPercent.textContent = `${pct}%`;
+                            progressFill.style.width = `${pct}%`;
+                            
+                            if (status === 'starting' || status === 'starting_chrome') {
+                                progressText.textContent = `A iniciar Chrome...`;
+                            } else if (currentDay && !results[String(currentDay)]) {
+                                progressText.textContent = `A pesquisar ${currentDay} dias... (${completedCount}/${total})`;
+                            } else {
+                                progressText.textContent = `${completedCount}/${total} dias concluídos...`;
+                            }
+                            
+                            // Processar novos dias que chegaram
+                            for (const [dayKey, dayItems] of Object.entries(results)) {
+                                const dayNum = parseInt(dayKey);
+                                if (!processedDays.has(dayNum) && dayItems) {
+                                    processedDays.add(dayNum);
+                                    console.log(`🚀 [POLL] Novo resultado: ${dayNum}d com ${dayItems.length} carros`);
+                                    processDayResults(dayNum, dayItems);
+                                    completed++;
+                                }
+                            }
+                            
+                            // Batch terminado?
+                            if (status === 'done' || status === 'error') {
+                                console.log(`🚀 [BATCH] Terminado: status=${status}, ${completedCount}/${total} dias`);
+                                // Processar quaisquer resultados finais
+                                for (const [dayKey, dayItems] of Object.entries(results)) {
+                                    const dayNum = parseInt(dayKey);
+                                    if (!processedDays.has(dayNum) && dayItems) {
+                                        processedDays.add(dayNum);
+                                        processDayResults(dayNum, dayItems);
+                                        completed++;
+                                    }
+                                }
+                                break;
+                            }
+                        } catch (pollErr) {
+                            console.warn(`🚀 [POLL] Erro:`, pollErr);
+                        }
+                    }
+                    
+                    // Atualizar barra final
+                    progressPercent.textContent = `${Math.round((completed / total) * 100)}%`;
+                    progressFill.style.width = `${(completed / total) * 100}%`;
                 }
                 
                 // ═══════════════════════════════════════════════════════════

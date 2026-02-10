@@ -12152,7 +12152,49 @@ async def track_by_params_batch(request: Request):
     if not searches:
         return JSONResponse({"ok": False, "error": "No valid days to search"}, status_code=400)
     
-    # Executar batch scraping
+    # Modo async: lançar em background e retornar batch_id para polling
+    async_mode = bool(body.get("async"))
+    
+    if async_mode:
+        import uuid, threading
+        batch_id = str(uuid.uuid4())[:8]
+        
+        def _run_batch_background():
+            try:
+                from carjet_batch import scrape_carjet_batch
+                scrape_carjet_batch(
+                    location=location,
+                    searches=searches,
+                    parse_prices_fn=parse_prices,
+                    convert_fn=convert_items_gbp_to_eur,
+                    adjust_fn=apply_price_adjustments,
+                    normalize_fn=normalize_and_sort,
+                    filter_fn=filter_automatic_only,
+                    lang=lang,
+                    currency=currency,
+                    batch_id=batch_id,
+                )
+            except Exception as e:
+                print(f"[BATCH BG] ❌ Erro: {e}", file=sys.stderr, flush=True)
+                from carjet_batch import _batch_progress, _batch_progress_lock
+                with _batch_progress_lock:
+                    prog = _batch_progress.get(batch_id)
+                    if prog:
+                        prog['status'] = 'error'
+                        prog['error'] = str(e)
+        
+        t = threading.Thread(target=_run_batch_background, daemon=True)
+        t.start()
+        
+        print(f"[BATCH API] 🚀 Async batch iniciado: batch_id={batch_id}", file=sys.stderr, flush=True)
+        return _no_store_json({
+            "ok": True,
+            "async": True,
+            "batch_id": batch_id,
+            "total": len(searches),
+        })
+    
+    # Modo síncrono (usado pelo scheduler)
     try:
         from carjet_batch import scrape_carjet_batch
         
@@ -12189,6 +12231,26 @@ async def track_by_params_batch(request: Request):
         import traceback
         traceback.print_exc(file=sys.stderr)
         return JSONResponse({"ok": False, "error": str(e)}, status_code=500)
+
+
+@app.get("/api/track-by-params-batch/progress/{batch_id}")
+async def track_by_params_batch_progress(batch_id: str):
+    """Polling endpoint: retorna progresso parcial do batch (resultados dia a dia)"""
+    from carjet_batch import get_batch_progress
+    
+    progress = get_batch_progress(batch_id)
+    if not progress:
+        return JSONResponse({"ok": False, "error": "batch_id not found"}, status_code=404)
+    
+    return _no_store_json({
+        "ok": True,
+        "batch_id": batch_id,
+        "status": progress.get('status', 'unknown'),
+        "total": progress.get('total', 0),
+        "completed": progress.get('completed', 0),
+        "current_day": progress.get('current_day'),
+        "results": progress.get('results', {}),
+    })
 
 
 @app.post("/api/track-by-params")
