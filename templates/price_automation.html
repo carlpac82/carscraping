@@ -1237,9 +1237,10 @@
         }
         
         // Load cache from localStorage if from today
+        const _AI_CACHE_VERSION = 'v2';  // Bump to invalidate old cache
         function loadCacheFromStorage(location) {
-            const cacheKey = `aiPricesCache_${location}`;
-            const dateKey = `aiPricesCacheDate_${location}`;
+            const cacheKey = `aiPricesCache_${_AI_CACHE_VERSION}_${location}`;
+            const dateKey = `aiPricesCacheDate_${_AI_CACHE_VERSION}_${location}`;
             
             const cachedDate = localStorage.getItem(dateKey);
             const today = getTodayString();
@@ -1263,8 +1264,8 @@
         
         // Save cache to localStorage
         function saveCacheToStorage(location, cache) {
-            const cacheKey = `aiPricesCache_${location}`;
-            const dateKey = `aiPricesCacheDate_${location}`;
+            const cacheKey = `aiPricesCache_${_AI_CACHE_VERSION}_${location}`;
+            const dateKey = `aiPricesCacheDate_${_AI_CACHE_VERSION}_${location}`;
             const today = getTodayString();
             
             try {
