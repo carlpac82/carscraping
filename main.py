@@ -49722,48 +49722,51 @@ async def debug_ai_data(request: Request, grupo: str = "B1", days: int = 1):
             try:
                 is_postgres = conn.__class__.__module__ == 'psycopg2.extensions'
                 import json
-                from datetime import datetime, timedelta, timezone
-                now = datetime.now(timezone.utc)
                 
+                # First: list ALL available month_keys and locations
+                available = []
+                if is_postgres:
+                    with conn.cursor() as cur:
+                        cur.execute(
+                            """SELECT month_key, location, COUNT(*), MAX(search_date)
+                                FROM automated_search_history 
+                                WHERE supplier_data IS NOT NULL
+                                GROUP BY month_key, location
+                                ORDER BY month_key DESC, location
+                                LIMIT 20"""
+                        )
+                        for r in cur.fetchall():
+                            available.append({"month_key": r[0], "location": r[1], "count": r[2], "latest": str(r[3])})
+                
+                # Then: get most recent entry with supplier_data
                 results = []
-                for months_ago in range(4):
-                    target_date = now - timedelta(days=30 * months_ago)
-                    month_key = f"{target_date.year}-{str(target_date.month).zfill(2)}"
-                    
-                    if is_postgres:
-                        with conn.cursor() as cur:
-                            cur.execute(
-                                """SELECT id, location, month_key, search_date, supplier_data
-                                    FROM automated_search_history 
-                                    WHERE month_key = %s
-                                    AND supplier_data IS NOT NULL
-                                    ORDER BY search_date DESC 
-                                    LIMIT 3""",
-                                (month_key,)
-                            )
-                            rows = cur.fetchall()
-                    else:
-                        rows = []
-                    
-                    for row in rows:
-                        sd = json.loads(row[4]) if isinstance(row[4], str) else row[4]
-                        cars_for_group = sd.get(grupo, {}).get(str(days), [])
-                        sample = cars_for_group[:5] if cars_for_group else []
-                        results.append({
-                            "id": row[0],
-                            "location": row[1],
-                            "month_key": row[2],
-                            "search_date": str(row[3]),
-                            "total_groups": len(sd),
-                            "groups_available": list(sd.keys())[:10],
-                            f"cars_for_{grupo}_{days}d": len(cars_for_group),
-                            "sample_cars": sample
-                        })
-                    
-                    if results:
-                        break
+                if is_postgres:
+                    with conn.cursor() as cur:
+                        cur.execute(
+                            """SELECT id, location, month_key, search_date, supplier_data
+                                FROM automated_search_history 
+                                WHERE supplier_data IS NOT NULL
+                                ORDER BY search_date DESC 
+                                LIMIT 3"""
+                        )
+                        rows = cur.fetchall()
+                        
+                        for row in rows:
+                            sd = json.loads(row[4]) if isinstance(row[4], str) else row[4]
+                            cars_for_group = sd.get(grupo, {}).get(str(days), [])
+                            sample = cars_for_group[:5] if cars_for_group else []
+                            results.append({
+                                "id": row[0],
+                                "location": row[1],
+                                "month_key": row[2],
+                                "search_date": str(row[3]),
+                                "total_groups": len(sd),
+                                "groups_available": list(sd.keys())[:10],
+                                f"cars_for_{grupo}_{days}d": len(cars_for_group),
+                                "sample_cars": sample
+                            })
                 
-                return JSONResponse({"ok": True, "grupo": grupo, "days": days, "results": results})
+                return JSONResponse({"ok": True, "grupo": grupo, "days": days, "available_months": available, "results": results})
             finally:
                 conn.close()
     except Exception as e:
