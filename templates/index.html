@@ -2156,7 +2156,10 @@
                 const url = window.URL.createObjectURL(blob);
                 const a = document.createElement('a');
                 a.href = url;
-                a.download = `CARALLIANCE-${location}-${startDate.replace(/\./g, '-')}.xlsx`;
+                const _caMonthNames = ['JAN','FEV','MAR','ABR','MAI','JUN','JUL','AGO','SET','OUT','NOV','DEZ'];
+                const _caMonth = _caMonthNames[parseInt(month) - 1];
+                const _caLoc = location.toUpperCase().replace(/\s+/g, '-');
+                a.download = `CARALLIANCE-${_caLoc}-01-${String(lastDay).padStart(2,'0')}-${_caMonth}.xlsx`;
                 document.body.appendChild(a);
                 a.click();
                 window.URL.revokeObjectURL(url);
