@@ -5013,42 +5013,33 @@
                             const currentDay = progress.current_day;
                             const results = progress.results || {};
                             
-                            // Atualizar barra de progresso
-                            const pct = Math.round((completedCount / total) * 100);
+                            // Processar novos dias que chegaram (ANTES de atualizar barra)
+                            for (const [dayKey, dayItems] of Object.entries(results)) {
+                                const dayNum = parseInt(dayKey);
+                                if (!processedDays.has(dayNum) && dayItems) {
+                                    processedDays.add(dayNum);
+                                    console.log(`\ud83d\ude80 [POLL] Novo resultado: ${dayNum}d com ${dayItems.length} carros`);
+                                    processDayResults(dayNum, dayItems);
+                                    completed++;
+                                }
+                            }
+                            
+                            // Atualizar barra de progresso com completed real (dias com resultados)
+                            const pct = Math.round((completed / total) * 100);
                             progressPercent.textContent = `${pct}%`;
                             progressFill.style.width = `${pct}%`;
                             
                             if (status === 'starting' || status === 'starting_chrome') {
                                 progressText.textContent = `A iniciar Chrome...`;
                             } else if (currentDay && !results[String(currentDay)]) {
-                                progressText.textContent = `A pesquisar ${currentDay} dias... (${completedCount}/${total})`;
+                                progressText.textContent = `A pesquisar ${currentDay} dias... (${completed}/${total})`;
                             } else {
-                                progressText.textContent = `${completedCount}/${total} dias concluídos...`;
-                            }
-                            
-                            // Processar novos dias que chegaram
-                            for (const [dayKey, dayItems] of Object.entries(results)) {
-                                const dayNum = parseInt(dayKey);
-                                if (!processedDays.has(dayNum) && dayItems) {
-                                    processedDays.add(dayNum);
-                                    console.log(`🚀 [POLL] Novo resultado: ${dayNum}d com ${dayItems.length} carros`);
-                                    processDayResults(dayNum, dayItems);
-                                    completed++;
-                                }
+                                progressText.textContent = `${completed}/${total} dias concluídos...`;
                             }
                             
                             // Batch terminado?
                             if (status === 'done' || status === 'error') {
-                                console.log(`🚀 [BATCH] Terminado: status=${status}, ${completedCount}/${total} dias`);
-                                // Processar quaisquer resultados finais
-                                for (const [dayKey, dayItems] of Object.entries(results)) {
-                                    const dayNum = parseInt(dayKey);
-                                    if (!processedDays.has(dayNum) && dayItems) {
-                                        processedDays.add(dayNum);
-                                        processDayResults(dayNum, dayItems);
-                                        completed++;
-                                    }
-                                }
+                                console.log(`\ud83d\ude80 [BATCH] Terminado: status=${status}, ${completed}/${total} dias com resultados`);
                                 break;
                             }
                         } catch (pollErr) {
@@ -5056,9 +5047,8 @@
                         }
                     }
                     
-                    // Atualizar barra final
-                    progressPercent.textContent = `${Math.round((completed / total) * 100)}%`;
-                    progressFill.style.width = `${(completed / total) * 100}%`;
+                    // NÃO forçar 100% aqui - fallback pode ainda precisar correr
+                    console.log(`\ud83d\ude80 [BATCH] Polling terminado: ${completed}/${total} dias com resultados`);
                 }
                 
                 // ═══════════════════════════════════════════════════════════
@@ -5072,7 +5062,7 @@
                 for (const day of missingDays) {
                     if (stopGenerateFlag) break;
 
-                    progressText.textContent = `Fallback: searching ${day} days...`;
+                    progressText.textContent = `Fallback: a pesquisar ${day} dias... (${completed}/${total})`;
                     console.log(`📡 [FALLBACK] Fetching ${day} days individually...`);
                     
                     let foundPrices = false;
@@ -5213,8 +5203,10 @@
                     }
                     
                     completed++;
-                    progressPercent.textContent = `${Math.round((completed / total) * 100)}%`;
-                    progressFill.style.width = `${(completed / total) * 100}%`;
+                    const fbPct = Math.round((completed / total) * 100);
+                    progressPercent.textContent = `${fbPct}%`;
+                    progressFill.style.width = `${fbPct}%`;
+                    progressText.textContent = `Fallback: ${completed}/${total} dias concluídos...`;
                 }
                 
                 // Marcar dias sem resultados (batch ou fallback)
