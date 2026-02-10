@@ -49564,8 +49564,7 @@ def _safe_float_from_price(price_value):
 
 @app.get("/api/ai/get-price")
 async def get_ai_price(request: Request, grupo: str, days: int, location: str):
-    """Get AI-suggested price based on automated_search_history from BOTH locations"""
-    # No auth required - this is a read-only AI suggestion endpoint
+    """Get AI-suggested price based on automated_search_history - uses MOST RECENT data with competitor median"""
     try:
         with _db_lock:
             conn = _db_connect()
@@ -49577,117 +49576,54 @@ async def get_ai_price(request: Request, grupo: str, days: int, location: str):
                 import json
                 now = datetime.now(timezone.utc)
                 
-                # STEP 1: Analisar HISTÓRICO de automated_search_history (últimos 6 meses)
-                # ⚠️ IMPORTANTE: Ler de AMBAS localizações (Albufeira E Faro)
-                historical_positions = []
-                
-                for months_ago in range(6):
+                # STEP 1: Buscar dados RECENTES (últimos 3 meses, mais recente primeiro)
+                current_searches = []
+                for months_ago in range(4):
                     target_date = now - timedelta(days=30 * months_ago)
                     month_key = f"{target_date.year}-{str(target_date.month).zfill(2)}"
                     
-                    # Buscar histórico de AMBAS as localizações
                     if is_postgres:
                         with conn.cursor() as cur:
                             cur.execute(
-                                f"""SELECT location, prices_data, supplier_data, search_date
+                                f"""SELECT location, prices_data, supplier_data
                                     FROM automated_search_history 
                                     WHERE month_key = {placeholder}
                                     AND supplier_data IS NOT NULL
-                                    ORDER BY search_date DESC""",
+                                    ORDER BY search_date DESC 
+                                    LIMIT 5""",
                                 (month_key,)
                             )
-                            month_searches = cur.fetchall()
+                            rows = cur.fetchall()
                     else:
                         cursor = conn.execute(
-                            f"""SELECT location, prices_data, supplier_data, search_date
-                                FROM automated_search_history 
-                                WHERE month_key = {placeholder}
-                                AND supplier_data IS NOT NULL
-                                ORDER BY search_date DESC""",
-                            (month_key,)
-                        )
-                        month_searches = cursor.fetchall()
-                    
-                    if month_searches:
-                        # Processar pesquisas de AMBAS localizações
-                        for search in month_searches:
-                            search_location = search[0]
-                            prices_data = json.loads(search[1]) if isinstance(search[1], str) else search[1]
-                            supplier_data = json.loads(search[2]) if isinstance(search[2], str) else search[2]
-                            
-                            # Verificar se tem dados para este grupo e dias
-                            if grupo not in prices_data or str(days) not in prices_data[grupo]:
-                                continue
-                            
-                            # Extrair preços dos suppliers para este grupo/dias
-                            suppliers_for_group_day = supplier_data.get(grupo, {}).get(str(days), [])
-                            if not suppliers_for_group_day or len(suppliers_for_group_day) < 3:
-                                continue
-                            
-                            # Ordenar por preço (usar price_num se disponível, senão price)
-                            suppliers_sorted = sorted(suppliers_for_group_day, key=lambda x: _safe_float_from_price(x.get('price_num') or x.get('price', 999)))
-                            
-                            # Encontrar posição da AutoPrudente
-                            ap_position = None
-                            ap_price = None
-                            for idx, supp in enumerate(suppliers_sorted, 1):
-                                supplier_name = (supp.get('supplier', '') or '').lower()
-                                is_ap = 'autoprudente' in supplier_name or 'auto prudente' in supplier_name or 'prudente' in supplier_name
-                                if is_ap:
-                                    ap_position = idx
-                                    ap_price = _safe_float_from_price(supp.get('price_num') or supp.get('price', 0))
-                                    break
-                            
-                            if ap_position:
-                                historical_positions.append({
-                                    'month': target_date.month,
-                                    'year': target_date.year,
-                                    'location': search_location,
-                                    'position': ap_position,
-                                    'total': len(suppliers_sorted),
-                                    'price': ap_price,
-                                    'percentage': round((ap_position / len(suppliers_sorted)) * 100, 1)
-                                })
-                                break  # Usar primeira pesquisa válida do mês
-                
-                # STEP 2: Buscar dados ATUAIS de automated_search_history (último mês)
-                current_month_key = f"{now.year}-{str(now.month).zfill(2)}"
-                
-                if is_postgres:
-                    with conn.cursor() as cur:
-                        cur.execute(
                             f"""SELECT location, prices_data, supplier_data
                                 FROM automated_search_history 
                                 WHERE month_key = {placeholder}
                                 AND supplier_data IS NOT NULL
                                 ORDER BY search_date DESC 
-                                LIMIT 10""",
-                            (current_month_key,)
+                                LIMIT 5""",
+                            (month_key,)
                         )
-                        current_searches = cur.fetchall()
-                else:
-                    cursor = conn.execute(
-                        f"""SELECT location, prices_data, supplier_data
-                            FROM automated_search_history 
-                            WHERE month_key = {placeholder}
-                            AND supplier_data IS NOT NULL
-                            ORDER BY search_date DESC 
-                            LIMIT 10""",
-                        (current_month_key,)
-                    )
-                    current_searches = cursor.fetchall()
+                        rows = cursor.fetchall()
+                    
+                    if rows:
+                        current_searches.extend(rows)
+                        break  # Use most recent month that has data
                 
                 if not current_searches:
-                    logging.info(f"🤖 AI: Sem dados automated_search_history para {grupo}/{days}d")
                     return JSONResponse({"ok": True, "price": None, "confidence": 0, "reason": "no_automated_searches"})
                 
-                # STEP 3: Extrair preços dos competidores do supplier_data
-                autoprudente_prices = []
+                # STEP 2: Extrair preços dos competidores para este grupo/dias ESPECÍFICO
+                # Use only the FIRST (most recent) search to avoid mixing data
                 competitor_prices = []
+                ap_price = None
                 
-                for search in current_searches:
+                for search in current_searches[:2]:  # Max 2 searches
                     supplier_data = json.loads(search[2]) if isinstance(search[2], str) else search[2]
                     suppliers_for_group_day = supplier_data.get(grupo, {}).get(str(days), [])
+                    
+                    if not suppliers_for_group_day:
+                        continue
                     
                     for supp in suppliers_for_group_day:
                         supplier_name = (supp.get('supplier', '') or '').lower()
@@ -49697,57 +49633,57 @@ async def get_ai_price(request: Request, grupo: str, days: int, location: str):
                         
                         is_ap = 'autoprudente' in supplier_name or 'auto prudente' in supplier_name or 'prudente' in supplier_name
                         if is_ap:
-                            autoprudente_prices.append(price)
+                            if ap_price is None:
+                                ap_price = price
                         else:
                             competitor_prices.append(price)
+                    
+                    if competitor_prices:
+                        break  # Got data from this search, don't mix with others
                 
-                if not competitor_prices or len(competitor_prices) < 3:
-                    logging.info(f"🤖 AI: Poucos competidores em automated_search_history para {grupo}/{days}d")
+                if not competitor_prices or len(competitor_prices) < 2:
                     return JSONResponse({"ok": True, "price": None, "confidence": 0, "reason": "no_competitors"})
                 
-                # STEP 4: Calcular estatísticas atuais
-                competitor_prices.sort()
+                # STEP 3: Deduplicate and sort
+                competitor_prices = sorted(set(competitor_prices))
+                
                 min_competitor = competitor_prices[0]
                 avg_competitor = sum(competitor_prices) / len(competitor_prices)
-                median_competitor = competitor_prices[len(competitor_prices) // 2]
+                median_idx = len(competitor_prices) // 2
+                median_competitor = competitor_prices[median_idx]
                 
-                # STEP 5: ESTRATÉGIA INTELIGENTE baseada em histórico
-                if historical_positions:
-                    avg_historical_percentage = sum(h['percentage'] for h in historical_positions) / len(historical_positions)
-                    
-                    # Objetivo: Melhorar posição histórica em 10%
-                    target_percentage = max(5, avg_historical_percentage - 10)
-                    target_position_float = (target_percentage / 100) * (len(competitor_prices) + 1)
-                    target_position = max(1, int(target_position_float))
-                    
-                    if target_position <= len(competitor_prices):
-                        target_price = competitor_prices[target_position - 1] - 2.0
-                    else:
-                        target_price = min_competitor - 4.0
-                else:
-                    target_price = min_competitor - 4.0
+                # STEP 4: Sugestão simples - posicionar ligeiramente abaixo da mediana
+                # Objectivo: ficar no top 40% dos preços (competitivo mas não o mais barato)
+                target_idx = max(0, int(len(competitor_prices) * 0.35))
+                target_price = competitor_prices[target_idx]
                 
-                # Limites de segurança
-                min_acceptable = avg_competitor * 0.70
-                max_acceptable = avg_competitor * 1.05
+                # Pequeno desconto para ficar abaixo do competitor nessa posição
+                suggested_price = round(target_price * 0.97, 2)
                 
-                suggested_price = max(min_acceptable, min(target_price, max_acceptable))
-                suggested_price = round(suggested_price, 2)
+                # Sanity check: preço não pode ser absurdo
+                # Para 1 dia, preço razoável é 5-200€; para 28 dias, 50-2000€
+                max_reasonable = max(50, days * 80)
+                min_reasonable = max(3, days * 2)
                 
-                # STEP 6: Calcular confiança
-                competitor_count = min(len(competitor_prices) / 10.0, 1.0)
-                historical_weight = min(len(historical_positions) / 6.0, 1.0)
-                searches_quality = min(len(current_searches) / 5.0, 1.0)
-                confidence = (competitor_count + historical_weight + searches_quality) / 3.0
+                if suggested_price > max_reasonable:
+                    logging.warning(f"🤖 AI: Preço {suggested_price}€ para {grupo}/{days}d excede máximo razoável {max_reasonable}€ - usando mediana")
+                    suggested_price = round(median_competitor * 0.95, 2)
                 
-                position = sum(1 for p in competitor_prices if suggested_price < p) + 1
-                position_percentage = round((position / (len(competitor_prices) + 1)) * 100, 1)
+                if suggested_price > max_reasonable:
+                    logging.warning(f"🤖 AI: Mediana {suggested_price}€ ainda excede máximo - retornando null")
+                    return JSONResponse({"ok": True, "price": None, "confidence": 0, "reason": "prices_unreasonable"})
                 
-                logging.info(
+                suggested_price = max(min_reasonable, suggested_price)
+                
+                # STEP 5: Confiança
+                confidence = min(len(competitor_prices) / 8.0, 1.0)
+                
+                position = sum(1 for p in competitor_prices if suggested_price >= p)
+                
+                logging.debug(
                     f"🤖 AI price for {grupo}/{days}d: {suggested_price}€ "
-                    f"(hist_avg: {avg_historical_percentage if historical_positions else 'N/A'}%, "
-                    f"target: {position_percentage}%, position: {position}/{len(competitor_prices)+1}, "
-                    f"confidence: {confidence:.0%}, locations_used: {len(set(h['location'] for h in historical_positions))})"
+                    f"(min={min_competitor}, median={median_competitor}, avg={avg_competitor:.1f}, "
+                    f"competitors={len(competitor_prices)}, position={position+1}/{len(competitor_prices)+1})"
                 )
                 
                 return JSONResponse({
@@ -49759,13 +49695,9 @@ async def get_ai_price(request: Request, grupo: str, days: int, location: str):
                         "avg_competitor": round(avg_competitor, 2),
                         "median_competitor": median_competitor,
                         "competitors_count": len(competitor_prices),
-                        "estimated_position": position,
-                        "position_percentage": position_percentage,
+                        "estimated_position": position + 1,
                         "total_results": len(competitor_prices) + 1,
-                        "autoprudente_count": len(autoprudente_prices),
-                        "searches_analyzed": len(current_searches),
-                        "historical_data": historical_positions[-3:] if historical_positions else [],
-                        "locations_used": list(set(h['location'] for h in historical_positions))
+                        "searches_analyzed": len(current_searches)
                     }
                 })
             finally:
