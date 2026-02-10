@@ -4867,138 +4867,164 @@
                 let completed = 0;
                 
                 // ═══════════════════════════════════════════════════════════
-                // BATCH MODE: 1 Chrome para TODOS os dias (evita war=28)
+                // BATCH MODE: Mini-batches de 3 dias para progresso visível
+                // Cada mini-batch abre 1 Chrome, pesquisa 3 dias, fecha
+                // A UI atualiza preços e barra após cada mini-batch
                 // ═══════════════════════════════════════════════════════════
-                console.log(`🚀 [BATCH] Iniciando batch: ${dias.length} dias para ${currentLocation}`);
-                progressText.textContent = `Batch: searching ${dias.length} days (1 Chrome session)...`;
+                const MINI_BATCH_SIZE = 3;
+                const miniBatches = [];
+                for (let i = 0; i < dias.length; i += MINI_BATCH_SIZE) {
+                    miniBatches.push(dias.slice(i, i + MINI_BATCH_SIZE));
+                }
                 
-                const batchDaysWithResults = new Set(); // dias que já têm resultados do batch
+                console.log(`🚀 [BATCH] ${dias.length} dias divididos em ${miniBatches.length} mini-batches de até ${MINI_BATCH_SIZE}`);
                 
-                try {
-                    const batchResponse = await fetch('/api/track-by-params-batch', {
+                const batchDaysWithResults = new Set();
+                
+                // Função para processar resultados de 1 dia na UI
+                function processDayResults(day, dayItems) {
+                    if (!dayItems || dayItems.length === 0) return;
+                    
+                    batchDaysWithResults.add(day);
+                    
+                    // Save recent search
+                    const previewData = dayItems.map(car => ({
+                        car: car.car,
+                        group: car.group,
+                        supplier: car.supplier,
+                        price_num: car.price_num,
+                        photo_url: car.photo_url
+                    }));
+                    
+                    fetch('/api/recent-searches/save', {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json' },
+                        credentials: 'same-origin',
                         body: JSON.stringify({
-                            location: currentLocation,
-                            pickup_date: pickupDate,
-                            days: dias,
-                            lang: 'pt',
-                            currency: 'EUR'
+                            searches: [{
+                                location: currentLocation,
+                                startDate: pickupDate,
+                                days: day,
+                                results: previewData,
+                                timestamp: new Date().toISOString()
+                            }]
                         })
+                    }).catch(e => console.warn('[RECENT] Failed to save:', e));
+                    
+                    // Store ALL cars for Auto price calculations
+                    allCarsByDay[day] = dayItems;
+                    
+                    // DEBUG: Log unique suppliers
+                    const supplierCounts = {};
+                    dayItems.forEach(item => {
+                        const s = item.supplier || '(empty)';
+                        supplierCounts[s] = (supplierCounts[s] || 0) + 1;
+                    });
+                    console.log(`🔍 [SUPPLIERS] ${day}d:`, supplierCounts);
+                    
+                    // FILTER ONLY AUTOPRUDENTE for Real column
+                    const autoprudenteItems = dayItems.filter(item => {
+                        const supplier = (item.supplier || '').toLowerCase();
+                        return supplier.includes('autoprudente') || 
+                               supplier.includes('auto prudente') ||
+                               supplier.includes('auto-prudente') ||
+                               supplier === 'aup';
                     });
                     
-                    console.log(`🚀 [BATCH] Status: ${batchResponse.status}`);
+                    console.log(`🔍 [AUP-FILTER] ${day}d - ${autoprudenteItems.length} AUTOPRUDENTE cars found`);
                     
-                    if (batchResponse.ok) {
-                        const batchData = await batchResponse.json();
-                        
-                        if (batchData.ok && batchData.results) {
-                            console.log(`🚀 [BATCH] ✅ Resultados recebidos para ${Object.keys(batchData.results).length} dias`);
+                    if (autoprudenteItems.length > 0) {
+                        const precosPorGrupo = {};
+                        autoprudenteItems.forEach(item => {
+                            const grupo = item.group || extractGroup(item.car);
+                            const precoReal = parseFloat(item.price_num || 0);
                             
-                            // Processar resultados de cada dia
-                            for (const day of dias) {
-                                if (stopGenerateFlag) break;
-                                
-                                const dayItems = batchData.results[String(day)] || [];
-                                console.log(`🚀 [BATCH] ${day}d: ${dayItems.length} carros`);
-                                
-                                if (dayItems.length > 0) {
-                                    batchDaysWithResults.add(day);
-                                    
-                                    // Save recent search
-                                    const previewData = dayItems.map(car => ({
-                                        car: car.car,
-                                        group: car.group,
-                                        supplier: car.supplier,
-                                        price_num: car.price_num,
-                                        photo_url: car.photo_url
-                                    }));
-                                    
-                                    fetch('/api/recent-searches/save', {
-                                        method: 'POST',
-                                        headers: { 'Content-Type': 'application/json' },
-                                        credentials: 'same-origin',
-                                        body: JSON.stringify({
-                                            searches: [{
-                                                location: currentLocation,
-                                                startDate: pickupDate,
-                                                days: day,
-                                                results: previewData,
-                                                timestamp: new Date().toISOString()
-                                            }]
-                                        })
-                                    }).catch(e => console.warn('[RECENT] Failed to save:', e));
-                                    
-                                    // Store ALL cars for Auto price calculations
-                                    allCarsByDay[day] = dayItems;
-                                    
-                                    // DEBUG: Log unique suppliers
-                                    const supplierCounts = {};
-                                    dayItems.forEach(item => {
-                                        const s = item.supplier || '(empty)';
-                                        supplierCounts[s] = (supplierCounts[s] || 0) + 1;
-                                    });
-                                    console.log(`🔍 [SUPPLIERS] ${day}d:`, supplierCounts);
-                                    
-                                    // FILTER ONLY AUTOPRUDENTE for Real column
-                                    const autoprudenteItems = dayItems.filter(item => {
-                                        const supplier = (item.supplier || '').toLowerCase();
-                                        return supplier.includes('autoprudente') || 
-                                               supplier.includes('auto prudente') ||
-                                               supplier.includes('auto-prudente') ||
-                                               supplier === 'aup';
-                                    });
-                                    
-                                    console.log(`🔍 [AUP-FILTER] ${day}d - ${autoprudenteItems.length} AUTOPRUDENTE cars found`);
-                                    
-                                    if (autoprudenteItems.length > 0) {
-                                        const precosPorGrupo = {};
-                                        autoprudenteItems.forEach(item => {
-                                            const grupo = item.group || extractGroup(item.car);
-                                            const precoReal = parseFloat(item.price_num || 0);
-                                            
-                                            if (precoReal > 0) {
-                                                if (!precosPorGrupo[grupo] || precoReal < precosPorGrupo[grupo].preco) {
-                                                    precosPorGrupo[grupo] = {
-                                                        preco: precoReal,
-                                                        carro: item.car
-                                                    };
-                                                }
-                                            }
-                                        });
-                                        
-                                        Object.keys(precosPorGrupo).forEach(grupo => {
-                                            const { preco: precoReal, carro } = precosPorGrupo[grupo];
-                                            
-                                            console.log(`AUTOPRUDENTE - Group ${grupo}: ${carro} (LOWEST PRICE: ${precoReal}€)`);
-                                            
-                                            if (grupos.includes(grupo)) {
-                                                const inputReal = document.querySelector(`#pricesTableAuto input[data-grupo="${grupo}"][data-dias="${day}"][data-type="real"]`);
-                                                
-                                                if (inputReal) {
-                                                    inputReal.value = precoReal.toFixed(2);
-                                                    realPricesGenerated++;
-                                                    inputReal.classList.remove('bg-red-100');
-                                                }
-                                            }
-                                        });
-                                        
-                                        updateDayChipColor(day, true);
-                                    }
+                            if (precoReal > 0) {
+                                if (!precosPorGrupo[grupo] || precoReal < precosPorGrupo[grupo].preco) {
+                                    precosPorGrupo[grupo] = {
+                                        preco: precoReal,
+                                        carro: item.car
+                                    };
                                 }
+                            }
+                        });
+                        
+                        Object.keys(precosPorGrupo).forEach(grupo => {
+                            const { preco: precoReal, carro } = precosPorGrupo[grupo];
+                            
+                            console.log(`AUTOPRUDENTE - Group ${grupo}: ${carro} (LOWEST PRICE: ${precoReal}€)`);
+                            
+                            if (grupos.includes(grupo)) {
+                                const inputReal = document.querySelector(`#pricesTableAuto input[data-grupo="${grupo}"][data-dias="${day}"][data-type="real"]`);
                                 
-                                completed++;
+                                if (inputReal) {
+                                    inputReal.value = precoReal.toFixed(2);
+                                    realPricesGenerated++;
+                                    inputReal.classList.remove('bg-red-100');
+                                }
+                            }
+                        });
+                        
+                        updateDayChipColor(day, true);
+                    }
+                }
+                
+                // Executar mini-batches sequencialmente
+                for (let batchIdx = 0; batchIdx < miniBatches.length; batchIdx++) {
+                    if (stopGenerateFlag) break;
+                    
+                    const miniBatch = miniBatches[batchIdx];
+                    const batchLabel = miniBatch.join(', ');
+                    progressText.textContent = `Batch ${batchIdx + 1}/${miniBatches.length}: searching ${batchLabel} days...`;
+                    console.log(`🚀 [BATCH ${batchIdx + 1}/${miniBatches.length}] Dias: ${batchLabel}`);
+                    
+                    try {
+                        const batchResponse = await fetch('/api/track-by-params-batch', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({
+                                location: currentLocation,
+                                pickup_date: pickupDate,
+                                days: miniBatch,
+                                lang: 'pt',
+                                currency: 'EUR'
+                            })
+                        });
+                        
+                        if (batchResponse.ok) {
+                            const batchData = await batchResponse.json();
+                            
+                            if (batchData.ok && batchData.results) {
+                                for (const day of miniBatch) {
+                                    if (stopGenerateFlag) break;
+                                    
+                                    const dayItems = batchData.results[String(day)] || [];
+                                    console.log(`🚀 [BATCH] ${day}d: ${dayItems.length} carros`);
+                                    
+                                    processDayResults(day, dayItems);
+                                    
+                                    completed++;
+                                    progressPercent.textContent = `${Math.round((completed / total) * 100)}%`;
+                                    progressFill.style.width = `${(completed / total) * 100}%`;
+                                }
+                            } else {
+                                console.warn(`🚀 [BATCH ${batchIdx + 1}] ⚠️ ok=false: ${batchData.error || 'unknown'}`);
+                                completed += miniBatch.length;
                                 progressPercent.textContent = `${Math.round((completed / total) * 100)}%`;
                                 progressFill.style.width = `${(completed / total) * 100}%`;
                             }
                         } else {
-                            console.warn(`🚀 [BATCH] ⚠️ Batch ok=false: ${batchData.error || 'unknown'}`);
+                            console.warn(`🚀 [BATCH ${batchIdx + 1}] ❌ HTTP ${batchResponse.status}`);
+                            completed += miniBatch.length;
+                            progressPercent.textContent = `${Math.round((completed / total) * 100)}%`;
+                            progressFill.style.width = `${(completed / total) * 100}%`;
                         }
-                    } else {
-                        console.warn(`🚀 [BATCH] ❌ HTTP ${batchResponse.status}`);
+                    } catch (batchErr) {
+                        console.error(`🚀 [BATCH ${batchIdx + 1}] ❌ Erro:`, batchErr);
+                        completed += miniBatch.length;
+                        progressPercent.textContent = `${Math.round((completed / total) * 100)}%`;
+                        progressFill.style.width = `${(completed / total) * 100}%`;
                     }
-                } catch (batchErr) {
-                    console.error(`🚀 [BATCH] ❌ Erro batch:`, batchErr);
                 }
                 
                 // ═══════════════════════════════════════════════════════════
