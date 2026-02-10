@@ -2526,8 +2526,11 @@
             
             const location = document.getElementById('location').value;
             const date = document.getElementById('pickupDate').value || 'sem-data';
-            const brokerName = broker === 'abbycar' ? 'Abbycar' : 'AutoPrudente';
-            const filename = `${brokerName}_${location.replace(/\s+/g, '_')}_${date}.xlsx`;
+            const _hpMonthNames = ['JAN','FEV','MAR','ABR','MAI','JUN','JUL','AGO','SET','OUT','NOV','DEZ'];
+            const _hpMonth = date && date !== 'sem-data' ? _hpMonthNames[parseInt(date.split('-')[1]) - 1] : 'NOV';
+            const brokerName = broker === 'abbycar' ? 'ABBYCAR' : 'AUTOPRUDENTE';
+            const _hpLoc = location.toUpperCase().replace(/\s+/g, '-');
+            const filename = `${brokerName}-${_hpLoc}-01-31-${_hpMonth}.xlsx`;
             
             XLSX.writeFile(wb, filename);
             
@@ -2576,17 +2579,18 @@
                 endDay = endDayInput.value.padStart(2, '0');
             }
             
-            // Get current date for filename: BROKERS-STARTDAY-ENDDAY-MONTH.csv
+            // Get current date for filename: BROKERS-LOCATION-DD-DD-MON.csv
             const date = document.getElementById('pickupDate').value;
+            const _brkLoc = (document.getElementById('location')?.value || 'FARO').toUpperCase().replace(/\s+/g, '-');
             let monthName = 'NOV';
-            let filename = `BROKERS-${startDay}-${endDay}-NOV.csv`;
+            let filename = `BROKERS-${_brkLoc}-${startDay}-${endDay}-NOV.csv`;
             
             if (date) {
                 const [year, month, day] = date.split('-');
                 const monthNames = ['JAN','FEV','MAR','ABR','MAI','JUN',
                                     'JUL','AGO','SET','OUT','NOV','DEZ'];
                 monthName = monthNames[parseInt(month) - 1];
-                filename = `BROKERS-${startDay}-${endDay}-${monthName}.csv`;
+                filename = `BROKERS-${_brkLoc}-${startDay}-${endDay}-${monthName}.csv`;
             }
             
             // Build CSV content
@@ -2737,8 +2741,10 @@
             console.log(`[WEBSITE] Location: ${location}, isFaroAirport: ${isFaroAirport}`);
             
             const date = document.getElementById('pickupDate')?.value || new Date().toISOString().split('T')[0];
-            const timestamp = new Date().toISOString().slice(0, 10);
-            const filename = `Website_${location.replace(/\s+/g, '_')}_${timestamp}_1-31.csv`;
+            const _wsMonthNames = ['JAN','FEV','MAR','ABR','MAI','JUN','JUL','AGO','SET','OUT','NOV','DEZ'];
+            const _wsMonth = date ? _wsMonthNames[parseInt(date.split('-')[1]) - 1] : 'NOV';
+            const _wsLoc = location.toUpperCase().replace(/\s+/g, '_');
+            const filename = `WEBSITE_${_wsLoc}_1-31-${_wsMonth}.csv`;
             
             // Get prices from Price Automation table (pricesTableAuto)
             const pricesData = {};
@@ -3113,16 +3119,12 @@
                     throw new Error('Excel file too small - likely corrupted');
                 }
                 
-                // Extract filename from Content-Disposition header
-                const contentDisposition = response.headers.get('Content-Disposition');
-                let filename = `ABBYCAR-${location.toUpperCase()}-01-31-NOV.xlsx`;
-                
-                if (contentDisposition) {
-                    const filenameMatch = contentDisposition.match(/filename="(.+)"/);
-                    if (filenameMatch) {
-                        filename = filenameMatch[1];
-                    }
-                }
+                // Build filename with correct month from selected date
+                const _abbyDate = document.getElementById('pickupDateAuto')?.value || new Date().toISOString().split('T')[0];
+                const _abbyMonthNames = ['JAN','FEV','MAR','ABR','MAI','JUN','JUL','AGO','SET','OUT','NOV','DEZ'];
+                const _abbyMonth = _abbyMonthNames[parseInt(_abbyDate.split('-')[1]) - 1];
+                const _abbyLoc = location.toUpperCase().replace(/\s+/g, '-');
+                let filename = `ABBYCAR-${_abbyLoc}-${String(day_start).padStart(2,'0')}-${String(day_end).padStart(2,'0')}-${_abbyMonth}.xlsx`;
                 
                 const url = window.URL.createObjectURL(blob);
                 const a = document.createElement('a');
@@ -3261,7 +3263,10 @@
                 const url = window.URL.createObjectURL(blob);
                 const a = document.createElement('a');
                 a.href = url;
-                const filename = `CARALLIANCE-${location.replace(/\s+/g, '-')}-${startDate.replace(/\./g, '-')}.xlsx`;
+                const _caMonthNames = ['JAN','FEV','MAR','ABR','MAI','JUN','JUL','AGO','SET','OUT','NOV','DEZ'];
+                const _caMonth = _caMonthNames[month - 1];
+                const _caLoc = location.toUpperCase().replace(/\s+/g, '-');
+                const filename = `CARALLIANCE-${_caLoc}-01-${String(lastDayOfMonth).padStart(2,'0')}-${_caMonth}.xlsx`;
                 a.download = filename;
                 document.body.appendChild(a);
                 a.click();
@@ -6320,16 +6325,17 @@
             // Get current date for month
             const date = document.getElementById('pickupDateAuto')?.value || 
                          document.getElementById('pickupDate')?.value;
+            const _brkLocAuto = (document.getElementById('locationAuto')?.value || 'FARO').toUpperCase().replace(/\s+/g, '-');
             
             let monthName = 'NOV';
-            let filename = `BROKERS-${startDay}-${endDay}-NOV.csv`;
+            let filename = `BROKERS-${_brkLocAuto}-${startDay}-${endDay}-NOV.csv`;
             
             if (date) {
                 const [year, month, day] = date.split('-');
                 const monthNames = ['JAN','FEV','MAR','ABR','MAI','JUN',
                                     'JUL','AGO','SET','OUT','NOV','DEZ'];
                 monthName = monthNames[parseInt(month) - 1];
-                filename = `BROKERS-${startDay}-${endDay}-${monthName}.csv`;
+                filename = `BROKERS-${_brkLocAuto}-${startDay}-${endDay}-${monthName}.csv`;
             }
             
             // Build CSV content
@@ -6501,7 +6507,7 @@
                     monthName = monthNames[parseInt(month) - 1];
                 }
                 
-                const filename = `Website_${location.replace(/\s+/g, '_')}_1-31-${monthName}.csv`;
+                const filename = `WEBSITE_${location.toUpperCase().replace(/\s+/g, '_')}_1-31-${monthName}.csv`;
                 
                 // Get prices from Price Automation table (pricesTableAuto)
                 const pricesData = {};
