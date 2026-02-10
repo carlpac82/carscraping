@@ -49625,6 +49625,11 @@ async def get_ai_price(request: Request, grupo: str, days: int, location: str):
                     if not suppliers_for_group_day:
                         continue
                     
+                    # DEBUG: Log raw supplier data to understand price format
+                    if days <= 2:
+                        sample = suppliers_for_group_day[:3]
+                        logging.warning(f"🔍 AI DEBUG {grupo}/{days}d - RAW supplier_data sample: {json.dumps(sample, default=str)}")
+                    
                     for supp in suppliers_for_group_day:
                         supplier_name = (supp.get('supplier', '') or '').lower()
                         price = _safe_float_from_price(supp.get('price_num') or supp.get('price', 0))
