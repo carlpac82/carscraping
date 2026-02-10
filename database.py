@@ -258,9 +258,14 @@ class PostgreSQLConnectionWrapper:
         except Exception as e:
             # Log the error with query and params for debugging
             import logging
-            logging.error(f"PostgreSQL execute error: {e}")
-            logging.error(f"Query: {query}")
-            logging.error(f"Params: {params}")
+            err_msg = str(e).lower()
+            # Migrations "already exists" / "does not exist" are expected on startup - don't spam ERROR
+            if 'already exists' in err_msg or 'duplicate column' in err_msg:
+                logging.debug(f"PostgreSQL migration (expected): {e}")
+            else:
+                logging.error(f"PostgreSQL execute error: {e}")
+                logging.error(f"Query: {query}")
+                logging.error(f"Params: {params}")
             raise
         return self._cursor
     
