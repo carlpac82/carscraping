@@ -49713,6 +49713,62 @@ async def get_ai_price(request: Request, grupo: str, days: int, location: str):
         traceback.print_exc()
         return JSONResponse({"ok": False, "error": str(e)}, status_code=500)
 
+@app.get("/api/ai/debug-data")
+async def debug_ai_data(request: Request, grupo: str = "B1", days: int = 1):
+    """DEBUG: Show raw supplier_data from DB for a specific grupo/days"""
+    try:
+        with _db_lock:
+            conn = _db_connect()
+            try:
+                is_postgres = conn.__class__.__module__ == 'psycopg2.extensions'
+                import json
+                from datetime import datetime, timedelta, timezone
+                now = datetime.now(timezone.utc)
+                
+                results = []
+                for months_ago in range(4):
+                    target_date = now - timedelta(days=30 * months_ago)
+                    month_key = f"{target_date.year}-{str(target_date.month).zfill(2)}"
+                    
+                    if is_postgres:
+                        with conn.cursor() as cur:
+                            cur.execute(
+                                """SELECT id, location, month_key, search_date, supplier_data
+                                    FROM automated_search_history 
+                                    WHERE month_key = %s
+                                    AND supplier_data IS NOT NULL
+                                    ORDER BY search_date DESC 
+                                    LIMIT 3""",
+                                (month_key,)
+                            )
+                            rows = cur.fetchall()
+                    else:
+                        rows = []
+                    
+                    for row in rows:
+                        sd = json.loads(row[4]) if isinstance(row[4], str) else row[4]
+                        cars_for_group = sd.get(grupo, {}).get(str(days), [])
+                        sample = cars_for_group[:5] if cars_for_group else []
+                        results.append({
+                            "id": row[0],
+                            "location": row[1],
+                            "month_key": row[2],
+                            "search_date": str(row[3]),
+                            "total_groups": len(sd),
+                            "groups_available": list(sd.keys())[:10],
+                            f"cars_for_{grupo}_{days}d": len(cars_for_group),
+                            "sample_cars": sample
+                        })
+                    
+                    if results:
+                        break
+                
+                return JSONResponse({"ok": True, "grupo": grupo, "days": days, "results": results})
+            finally:
+                conn.close()
+    except Exception as e:
+        return JSONResponse({"ok": False, "error": str(e)}, status_code=500)
+
 @app.get("/clean-automated-history")
 async def clean_automated_history():
     """Delete all automated search history entries - NO AUTH REQUIRED"""
