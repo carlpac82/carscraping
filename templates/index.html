@@ -1738,14 +1738,22 @@
         // Download Brokers: Preço Net dividido por dias (8+ dias)
         function downloadBrokers() {
             const data = collectPriceData('brokers');
-            generateCSV(data, 'Brokers_Net.csv');
+            const _bLoc = (document.querySelector('#locationSelect')?.value || 'FARO').toUpperCase().replace(/\s+/g, '-');
+            const _bMonth = document.querySelector('#monthSelect')?.value || '1';
+            const _bMonthNames = ['JAN','FEV','MAR','ABR','MAI','JUN','JUL','AGO','SET','OUT','NOV','DEZ'];
+            const _bMon = _bMonthNames[parseInt(_bMonth) - 1];
+            generateCSV(data, `BROKERS-${_bLoc}-01-31-${_bMon}.csv`);
         }
 
         // Download Website: Net + comissão (ou 14% default)
         function downloadWebsite() {
             const websiteCommission = parseFloat(document.getElementById('commissionWebsite').value) || 14;
             const data = collectPriceData('website', websiteCommission);
-            generateCSV(data, 'Website_Prices.csv');
+            const _wLoc = (document.querySelector('#locationSelect')?.value || 'FARO').toUpperCase().replace(/\s+/g, '_');
+            const _wMonth = document.querySelector('#monthSelect')?.value || '1';
+            const _wMonthNames = ['JAN','FEV','MAR','ABR','MAI','JUN','JUL','AGO','SET','OUT','NOV','DEZ'];
+            const _wMon = _wMonthNames[parseInt(_wMonth) - 1];
+            generateCSV(data, `WEBSITE_${_wLoc}_1-31-${_wMon}.csv`);
         }
 
         // Download Abbycar: Formato específico com SIPP codes e daily prices
@@ -1959,7 +1967,10 @@
                 const url = window.URL.createObjectURL(blob);
                 const a = document.createElement('a');
                 a.href = url;
-                a.download = `ABBYCAR-${location}-${startDate.replace(/\//g, '-')}.xlsx`;
+                const _abMonthNames = ['JAN','FEV','MAR','ABR','MAI','JUN','JUL','AGO','SET','OUT','NOV','DEZ'];
+                const _abMon = _abMonthNames[parseInt(month) - 1];
+                const _abLoc = location.toUpperCase().replace(/\s+/g, '-');
+                a.download = `ABBYCAR-${_abLoc}-01-${String(lastDay).padStart(2,'0')}-${_abMon}.xlsx`;
                 document.body.appendChild(a);
                 a.click();
                 window.URL.revokeObjectURL(url);
@@ -2010,7 +2021,10 @@
             const link = document.createElement('a');
             const url = URL.createObjectURL(blob);
             link.setAttribute('href', url);
-            link.setAttribute('download', `ABBYCAR-${location}-${month}-${year}.csv`);
+            const _abCsvMonthNames = ['JAN','FEV','MAR','ABR','MAI','JUN','JUL','AGO','SET','OUT','NOV','DEZ'];
+            const _abCsvMon = _abCsvMonthNames[parseInt(month) - 1];
+            const _abCsvLoc = location.toUpperCase().replace(/\s+/g, '-');
+            link.setAttribute('download', `ABBYCAR-${_abCsvLoc}-01-31-${_abCsvMon}.csv`);
             link.style.visibility = 'hidden';
             document.body.appendChild(link);
             link.click();
@@ -2063,7 +2077,7 @@
                 const data = collectCarAllianceData(commission, carallianceSipps, startDate, endDate, office);
                 console.log('Dados CarAlliance coletados:', data.length, 'linhas');
                 
-                await downloadCarAllianceExcel(data, location, startDate, endDate);
+                await downloadCarAllianceExcel(data, location, startDate, endDate, month, lastDay);
                 console.log('Download CarAlliance concluído!');
             } catch (error) {
                 console.error('Erro no download CarAlliance:', error);
@@ -2137,7 +2151,7 @@
         }
 
         // Enviar dados para backend gerar Excel CarAlliance
-        async function downloadCarAllianceExcel(data, location, startDate, endDate) {
+        async function downloadCarAllianceExcel(data, location, startDate, endDate, month, lastDay) {
             try {
                 const response = await fetch('/api/export-caralliance-excel', {
                     method: 'POST',
