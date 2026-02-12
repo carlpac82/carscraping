@@ -173,20 +173,49 @@ def _reject_cookies(driver):
         pass
 
 
+def _click_search(driver):
+    """Clicar no botão pesquisar"""
+    driver.execute_script("""
+        const btn = document.querySelector('#btnBuscar');
+        if (btn) btn.click();
+        else {
+            const form = document.querySelector('#frm_search_cars') || document.querySelector('form');
+            if (form) form.submit();
+        }
+    """)
+
+
 def _wait_for_results(driver, max_wait=30):
-    """Aguardar até URL ter s= e b= (resultados prontos)"""
-    waited = 0
-    while waited < max_wait:
-        url = driver.current_url
-        if 'war=' in url:
-            print(f"[BATCH] ❌ war= detectado após {waited}s", file=sys.stderr, flush=True)
+    """Aguardar até URL ter s= e b= (resultados prontos).
+    Se war=28, clicar pesquisar outra vez (até 4 retries com pausa)."""
+    max_war_retries = 4
+    war_count = 0
+    
+    while war_count <= max_war_retries:
+        waited = 0
+        while waited < max_wait:
+            url = driver.current_url
+            if 'war=' in url:
+                war_count += 1
+                if war_count > max_war_retries:
+                    print(f"[BATCH] ❌ war= detectado {war_count}x - desistindo", file=sys.stderr, flush=True)
+                    return False
+                pause = random.uniform(4, 8)
+                print(f"[BATCH] ⚠️ war= detectado ({war_count}/{max_war_retries}) → pausa {pause:.1f}s e retry...", file=sys.stderr, flush=True)
+                time.sleep(pause)
+                _click_search(driver)
+                time.sleep(2)
+                break  # Reiniciar o wait loop
+            if '/do/list/' in url and 's=' in url and 'b=' in url:
+                print(f"[BATCH] ✅ Resultados prontos após {waited}s (war retries: {war_count})", file=sys.stderr, flush=True)
+                return True
+            time.sleep(2)
+            waited += 2
+        else:
+            # Timeout sem war= nem resultados
+            print(f"[BATCH] ⏰ Timeout após {max_wait}s", file=sys.stderr, flush=True)
             return False
-        if '/do/list/' in url and 's=' in url and 'b=' in url:
-            print(f"[BATCH] ✅ Resultados prontos após {waited}s", file=sys.stderr, flush=True)
-            return True
-        time.sleep(2)
-        waited += 2
-    print(f"[BATCH] ⏰ Timeout após {max_wait}s", file=sys.stderr, flush=True)
+    
     return False
 
 
@@ -554,9 +583,9 @@ def scrape_carjet_batch(
                     ok = _update_search(driver, start_dt, end_dt)
 
                 if not ok:
-                    # Recovery: tentar voltar à homepage
-                    print(f"[BATCH] 🔄 Recovery: voltando à homepage...", file=sys.stderr, flush=True)
-                    time.sleep(random.uniform(3, 5))
+                    # Recovery: tentar homepage apenas como último recurso
+                    print(f"[BATCH] 🔄 Recovery: tentando homepage...", file=sys.stderr, flush=True)
+                    time.sleep(random.uniform(5, 10))
                     ok = _do_first_search(driver, carjet_location, start_dt, end_dt)
 
                 if ok:
