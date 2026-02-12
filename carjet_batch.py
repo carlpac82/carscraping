@@ -51,7 +51,7 @@ def _setup_chrome_driver():
     from selenium.webdriver.chrome.service import Service
     from selenium_stealth import stealth
 
-    iphone_ua = "Mozilla/5.0 (iPhone; CPU iPhone OS 16_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/16.0 Mobile/15E148 Safari/604.1"
+    iphone_ua = "Mozilla/5.0 (iPhone; CPU iPhone OS 18_2 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/18.2 Mobile/15E148 Safari/604.1"
 
     chrome_options = Options()
     system = platform.system()
@@ -88,7 +88,7 @@ def _setup_chrome_driver():
     chrome_options.add_argument('--safebrowsing-disable-auto-update')
     chrome_options.add_argument('--enable-features=NetworkService,NetworkServiceInProcess')
     chrome_options.add_argument('--force-color-profile=srgb')
-    chrome_options.add_argument('--single-process')
+    # chrome_options.add_argument('--single-process')  # Removido: flag conhecida por denunciar headless
     chrome_options.add_argument('--disable-crash-reporter')
     chrome_options.add_argument('--disable-in-process-stack-traces')
     chrome_options.add_argument('--disable-logging')
@@ -150,8 +150,27 @@ def _setup_chrome_driver():
         fix_hairline=True,
     )
 
+    # Esconder webdriver properties via CDP
+    try:
+        driver.execute_cdp_cmd('Page.addScriptToEvaluateOnNewDocument', {
+            'source': '''
+                Object.defineProperty(navigator, 'webdriver', {get: () => undefined});
+                Object.defineProperty(navigator, 'plugins', {get: () => [1, 2, 3, 4, 5]});
+                Object.defineProperty(navigator, 'languages', {get: () => ['pt-PT', 'pt', 'en-US', 'en']});
+                window.chrome = {runtime: {}};
+                const originalQuery = window.navigator.permissions.query;
+                window.navigator.permissions.query = (parameters) => (
+                    parameters.name === 'notifications' ?
+                        Promise.resolve({state: Notification.permission}) :
+                        originalQuery(parameters)
+                );
+            '''
+        })
+    except Exception:
+        pass
+
     driver.set_page_load_timeout(30)
-    print(f"[BATCH] ✅ Chrome iniciado com stealth", file=sys.stderr, flush=True)
+    print(f"[BATCH] ✅ Chrome iniciado com stealth + CDP", file=sys.stderr, flush=True)
     return driver
 
 
@@ -219,26 +238,71 @@ def _wait_for_results(driver, max_wait=30):
     return False
 
 
+def _human_delay(min_s=0.5, max_s=1.5):
+    """Pausa aleatória que simula comportamento humano"""
+    time.sleep(random.uniform(min_s, max_s))
+
+
+def _type_human(element, text):
+    """Digitar texto letra a letra com velocidade humana variável"""
+    for i, char in enumerate(text):
+        element.send_keys(char)
+        if i < 2 or i > len(text) - 2:
+            time.sleep(random.uniform(0.18, 0.40))
+        else:
+            time.sleep(random.uniform(0.08, 0.22))
+
+
+def _set_field_with_events(driver, field_id, value):
+    """Preencher campo disparando eventos nativos (focus, input, change, blur)"""
+    driver.execute_script("""
+        const el = document.querySelector('#' + arguments[0]);
+        if (!el) return;
+        el.focus();
+        el.dispatchEvent(new Event('focus', {bubbles:true}));
+        const nativeInputValueSetter = Object.getOwnPropertyDescriptor(
+            window.HTMLInputElement.prototype, 'value'
+        ).set;
+        nativeInputValueSetter.call(el, arguments[1]);
+        el.dispatchEvent(new Event('input', {bubbles:true}));
+        el.dispatchEvent(new Event('change', {bubbles:true}));
+        el.dispatchEvent(new Event('blur', {bubbles:true}));
+    """, field_id, value)
+
+
 def _fill_dates(driver, start_dt, end_dt):
-    """Preencher campos de data e hora via JS"""
+    """Preencher campos de data e hora via JS com eventos nativos"""
     fecha_rec = start_dt.strftime("%d/%m/%Y")
     fecha_dev = end_dt.strftime("%d/%m/%Y")
     hour = start_dt.strftime("%H:%M")
 
+    _set_field_with_events(driver, 'fechaRecogida', fecha_rec)
+    _human_delay(0.3, 0.6)
+    _set_field_with_events(driver, 'fechaDevolucion', fecha_dev)
+    _human_delay(0.3, 0.6)
+
     driver.execute_script("""
-        const fr = document.querySelector('#fechaRecogida');
-        const fd = document.querySelector('#fechaDevolucion');
-        if (fr) fr.value = arguments[0];
-        if (fd) fd.value = arguments[1];
         const h1 = document.querySelector('#fechaRecogidaSelHour');
         const h2 = document.querySelector('#fechaDevolucionSelHour');
-        if (h1) { h1.value = arguments[2]; h1.dispatchEvent(new Event('change', {bubbles:true})); }
-        if (h2) { h2.value = arguments[2]; h2.dispatchEvent(new Event('change', {bubbles:true})); }
-    """, fecha_rec, fecha_dev, hour)
+        if (h1) { 
+            h1.focus();
+            h1.value = arguments[0]; 
+            h1.dispatchEvent(new Event('input', {bubbles:true}));
+            h1.dispatchEvent(new Event('change', {bubbles:true})); 
+            h1.blur();
+        }
+        if (h2) { 
+            h2.focus();
+            h2.value = arguments[0]; 
+            h2.dispatchEvent(new Event('input', {bubbles:true}));
+            h2.dispatchEvent(new Event('change', {bubbles:true})); 
+            h2.blur();
+        }
+    """, hour)
 
 
 def _do_first_search(driver, carjet_location, start_dt, end_dt):
-    """Primeira pesquisa: homepage completa"""
+    """Primeira pesquisa: homepage completa com comportamento humano"""
     from selenium.webdriver.common.by import By
     from selenium.webdriver.support.ui import WebDriverWait
     from selenium.webdriver.support import expected_conditions as EC
@@ -246,46 +310,75 @@ def _do_first_search(driver, carjet_location, start_dt, end_dt):
     url = "https://www.carjet.com/aluguel-carros/index.htm"
     print(f"[BATCH] Abrindo homepage: {url}", file=sys.stderr, flush=True)
     driver.get(url)
-    time.sleep(3)
+    _human_delay(2.5, 4.0)
 
     _reject_cookies(driver)
-    time.sleep(1)
+    _human_delay(1.0, 2.0)
 
-    # Preencher local
-    print(f"[BATCH] Escrevendo local: {carjet_location}", file=sys.stderr, flush=True)
+    # Simular browsing humano (scroll antes de preencher)
+    try:
+        driver.execute_script("window.scrollTo({top: 200, behavior: 'smooth'});")
+        _human_delay(0.8, 1.5)
+        driver.execute_script("window.scrollTo({top: 0, behavior: 'smooth'});")
+        _human_delay(0.5, 1.0)
+    except:
+        pass
+
+    # Preencher local - apenas "Faro" ou "Albufeira" (curto, para dropdown)
+    search_text = carjet_location.split()[0]  # "Faro" ou "Albufeira"
+    print(f"[BATCH] Escrevendo local: {search_text} (letra a letra)", file=sys.stderr, flush=True)
     pickup = WebDriverWait(driver, 10).until(
         EC.presence_of_element_located((By.ID, "pickup"))
     )
+    pickup.click()
+    _human_delay(0.3, 0.7)
     pickup.clear()
-    pickup.send_keys(carjet_location)
-    time.sleep(1.5)
+    _human_delay(0.2, 0.5)
 
-    # Clicar dropdown
+    # Digitar letra a letra
+    _type_human(pickup, search_text)
+    _human_delay(2.0, 3.0)
+
+    # Clicar dropdown - procurar opção correcta
+    target_lower = carjet_location.lower()
     driver.execute_script("""
         const items = document.querySelectorAll('#recogida_lista li');
-        if (items.length > 0) items[0].querySelector('a')?.click() || items[0].click();
-    """)
-    time.sleep(0.5)
+        const target = arguments[0];
+        for (let li of items) {
+            const text = li.textContent.toLowerCase();
+            if (text.includes(target.split(' ')[0]) && (target.includes('aeroporto') ? text.includes('aeroporto') || text.includes('fao') : true)) {
+                const link = li.querySelector('a');
+                if (link) { link.click(); return; }
+                li.click(); return;
+            }
+        }
+        if (items.length > 0) {
+            const link = items[0].querySelector('a');
+            if (link) link.click(); else items[0].click();
+        }
+    """, target_lower)
+    _human_delay(0.8, 1.5)
+
     try:
         driver.find_element(By.CSS_SELECTOR, "h1, h2, .title, header").click()
     except:
         pass
-    time.sleep(1)
+    _human_delay(0.5, 1.0)
 
-    # Preencher datas
+    # Preencher datas com eventos nativos
     _fill_dates(driver, start_dt, end_dt)
-    time.sleep(0.5)
+    _human_delay(0.8, 1.5)
+
+    # Scroll antes de submeter
+    try:
+        driver.execute_script("window.scrollTo({top: 100, behavior: 'smooth'});")
+        _human_delay(0.5, 1.0)
+    except:
+        pass
 
     # Submit
     print(f"[BATCH] Submetendo pesquisa...", file=sys.stderr, flush=True)
-    driver.execute_script("""
-        const btn = document.querySelector('#btnBuscar');
-        if (btn) btn.click();
-        else {
-            const form = document.querySelector('#frm_search_cars') || document.querySelector('form');
-            if (form) form.submit();
-        }
-    """)
+    _click_search(driver)
     time.sleep(2)
 
     return _wait_for_results(driver)
