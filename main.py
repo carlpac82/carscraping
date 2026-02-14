@@ -38973,7 +38973,6 @@ async def send_inspection_email(request: Request, inspection_number: str):
             """, (inspection_id,))
         
         photos_rows = cursor.fetchall()
-        conn.close()
         
         # Build photos HTML
         photos_html = ""
@@ -39185,6 +39184,9 @@ async def send_inspection_email(request: Request, inspection_number: str):
                 checkout_odometer = int(checkout_row[0])
                 km_driven = int(odometer) - checkout_odometer
                 logging.info(f"📊 KM Driven: {km_driven} km (Check-in: {odometer} - Checkout: {checkout_odometer})")
+        
+        # Close connection after all queries are done
+        conn.close()
         
         html_content = templates.get_template(template_name).render(
             LOGO_URL=logo_base64,
