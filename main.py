@@ -56023,13 +56023,13 @@ async def delete_ra_complete(ra_number: str):
                     
                     # 2. Get all inspection numbers for this RA
                     cur.execute("""
-                        SELECT inspection_number FROM inspections 
+                        SELECT inspection_number FROM vehicle_inspections 
                         WHERE contract_number = %s
                     """, (ra_number,))
                     inspection_numbers = [row[0] for row in cur.fetchall()]
                     
                     # 3. Delete all inspections
-                    cur.execute("DELETE FROM inspections WHERE contract_number = %s", (ra_number,))
+                    cur.execute("DELETE FROM vehicle_inspections WHERE contract_number = %s", (ra_number,))
                     inspections_deleted = cur.rowcount
                     logging.info(f"✅ Deleted {inspections_deleted} inspections: {inspection_numbers}")
                     
@@ -56071,13 +56071,13 @@ async def delete_ra_complete(ra_number: str):
                     
                     # 2. Get all inspection numbers for this RA
                     cur.execute("""
-                        SELECT inspection_number FROM inspections 
+                        SELECT inspection_number FROM vehicle_inspections 
                         WHERE contract_number = ?
                     """, (ra_number,))
                     inspection_numbers = [row[0] for row in cur.fetchall()]
                     
                     # 3. Delete all inspections
-                    cur.execute("DELETE FROM inspections WHERE contract_number = ?", (ra_number,))
+                    cur.execute("DELETE FROM vehicle_inspections WHERE contract_number = ?", (ra_number,))
                     inspections_deleted = cur.rowcount
                     logging.info(f"✅ Deleted {inspections_deleted} inspections: {inspection_numbers}")
                     
