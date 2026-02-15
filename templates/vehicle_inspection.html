@@ -3136,20 +3136,20 @@
                 const ra = document.getElementById('inputRA').value.trim();
                 
                 if (!plate || !ra) {
-                    alert('Por favor preencha a Matrícula e o RA');
-                    return;
-                }
-                
-                // Check if photos are captured (from vehicle_inspection.js)
-                if (window.inspectionData && Object.keys(window.inspectionData.photos || {}).length < 6) {
-                    alert('Por favor tire todas as 6 fotos primeiro');
-                    console.log('❌ Not enough photos:', Object.keys(window.inspectionData.photos || {}).length);
-                    return;
-                }
             }
             
             console.log('✅ All validations passed');
             console.log('✅ Photos captured:', Object.keys((window.inspectionData && window.inspectionData.photos) || {}).length);
+            
+            // Show main element if hidden (from swap auto-start)
+            const mainElement = document.querySelector('body > main');
+            if (mainElement) {
+                const computedStyle = window.getComputedStyle(mainElement);
+                if (computedStyle.display === 'none') {
+                    mainElement.style.display = '';
+                    console.log('✅ Showed main element for diagram step');
+                }
+            }
             
             // Hide photos step, show diagram step
             const stepPhotos = document.getElementById('stepPhotos');
