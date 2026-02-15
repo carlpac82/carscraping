@@ -53340,6 +53340,20 @@ async def vehicle_swap(request: Request):
                             AND extracted_data IS NOT NULL
                         """, (f'"{new_plate}"', f"{ra}%"))
                         
+                        # Update old vehicle in fleet management
+                        cur.execute("""
+                            UPDATE vehicles 
+                            SET km_atual = %s, nivel_combustivel = %s
+                            WHERE matricula = %s
+                        """, (old_kms, old_fuel, old_plate))
+                        
+                        # Update new vehicle in fleet management
+                        cur.execute("""
+                            UPDATE vehicles 
+                            SET km_atual = %s, nivel_combustivel = %s
+                            WHERE matricula = %s
+                        """, (new_kms, new_fuel, new_plate))
+                        
                         # Record swap in history
                         cur.execute("""
                             INSERT INTO vehicle_swaps 
@@ -53355,6 +53369,20 @@ async def vehicle_swap(request: Request):
                         SET license_plate = ?
                         WHERE rental_agreement_number LIKE ?
                     """, (new_plate, f"{ra}%"))
+                    
+                    # Update old vehicle in fleet management
+                    cur.execute("""
+                        UPDATE vehicles 
+                        SET km_atual = ?, nivel_combustivel = ?
+                        WHERE matricula = ?
+                    """, (old_kms, old_fuel, old_plate))
+                    
+                    # Update new vehicle in fleet management
+                    cur.execute("""
+                        UPDATE vehicles 
+                        SET km_atual = ?, nivel_combustivel = ?
+                        WHERE matricula = ?
+                    """, (new_kms, new_fuel, new_plate))
                     
                     # Record swap in history
                     cur.execute("""
