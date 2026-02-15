@@ -53314,15 +53314,25 @@ async def get_available_vehicles(request: Request):
             try:
                 if is_postgres:
                     with conn.cursor() as cur:
+                        # Get vehicles that are NOT in open contracts (have check-in but no check-out)
                         cur.execute("""
                             SELECT DISTINCT v.matricula, v.marca, v.modelo, v.km_atual, v.nivel_combustivel, v.grupo
                             FROM vehicles v
                             WHERE v.matricula NOT IN (
-                                SELECT DISTINCT ON (license_plate) license_plate
-                                FROM rental_agreements
-                                WHERE status = 'active'
-                                AND license_plate IS NOT NULL
-                                ORDER BY license_plate, created_at DESC
+                                SELECT DISTINCT ra.license_plate
+                                FROM rental_agreements ra
+                                WHERE ra.license_plate IS NOT NULL
+                                AND EXISTS (
+                                    SELECT 1 FROM vehicle_inspections vi
+                                    WHERE vi.contract_number LIKE ra.rental_agreement_number || '%'
+                                    AND vi.inspection_type = 'checkin'
+                                    AND COALESCE(vi.status, '') != 'replaced'
+                                )
+                                AND NOT EXISTS (
+                                    SELECT 1 FROM vehicle_inspections vi
+                                    WHERE vi.contract_number LIKE ra.rental_agreement_number || '%'
+                                    AND vi.inspection_type = 'checkout'
+                                )
                             )
                             AND v.matricula IS NOT NULL
                             ORDER BY v.matricula
@@ -53330,18 +53340,25 @@ async def get_available_vehicles(request: Request):
                         vehicles = cur.fetchall()
                 else:
                     cur = conn.cursor()
+                    # Get vehicles that are NOT in open contracts (have check-in but no check-out)
                     cur.execute("""
                         SELECT DISTINCT v.matricula, v.marca, v.modelo, v.km_atual, v.nivel_combustivel, v.grupo
                         FROM vehicles v
                         WHERE v.matricula NOT IN (
-                            SELECT license_plate
-                            FROM (
-                                SELECT license_plate, MAX(created_at) as max_date
-                                FROM rental_agreements
-                                WHERE status = 'active'
-                                AND license_plate IS NOT NULL
-                                GROUP BY license_plate
-                            ) latest
+                            SELECT DISTINCT ra.license_plate
+                            FROM rental_agreements ra
+                            WHERE ra.license_plate IS NOT NULL
+                            AND EXISTS (
+                                SELECT 1 FROM vehicle_inspections vi
+                                WHERE vi.contract_number LIKE ra.rental_agreement_number || '%'
+                                AND vi.inspection_type = 'checkin'
+                                AND COALESCE(vi.status, '') != 'replaced'
+                            )
+                            AND NOT EXISTS (
+                                SELECT 1 FROM vehicle_inspections vi
+                                WHERE vi.contract_number LIKE ra.rental_agreement_number || '%'
+                                AND vi.inspection_type = 'checkout'
+                            )
                         )
                         AND v.matricula IS NOT NULL
                         ORDER BY v.matricula
