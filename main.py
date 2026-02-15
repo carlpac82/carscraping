@@ -53197,7 +53197,8 @@ async def get_vehicles_by_group(group: str, request: Request):
 
 @app.get("/api/vehicles/available")
 async def get_available_vehicles(request: Request):
-    """Get vehicles that are not in open contracts (available for swap)"""
+    """Get vehicles that are not in open contracts (available for swap)
+    Uses DISTINCT ON to get only the most recent active rental per vehicle"""
     require_auth(request)
     
     try:
