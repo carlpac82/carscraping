@@ -9,6 +9,15 @@
     <script src="/static/notifications.js"></script>
     <!-- Tesseract.js for OCR -->
     <script src='https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js'></script>
+    <!-- Hide selection buttons immediately if coming from swap -->
+    <script>
+        (function() {
+            const urlParams = new URLSearchParams(window.location.search);
+            if (urlParams.get('auto_start') === 'true' && urlParams.get('from_swap') === 'true') {
+                document.write('<style>#deliveryButton, #pickupButton { display: none !important; }</style>');
+            }
+        })();
+    </script>
     <style>
         * { 
             font-family: 'Outfit', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
