@@ -2486,6 +2486,12 @@
                 if (autoStart === 'true' && fromSwap === 'true') {
                     console.log('🚀 Auto-starting inspection from vehicle swap');
                     
+                    // Hide selection buttons immediately to prevent flash
+                    const deliveryButton = document.getElementById('deliveryButton');
+                    const pickupButton = document.getElementById('pickupButton');
+                    if (deliveryButton) deliveryButton.style.display = 'none';
+                    if (pickupButton) pickupButton.style.display = 'none';
+                    
                     // Wait for DOM and startDelivery function to be ready
                     setTimeout(() => {
                         if (typeof startDelivery === 'function') {
@@ -2494,7 +2500,7 @@
                         } else {
                             console.error('❌ startDelivery function not found');
                         }
-                    }, 300);
+                    }, 100);
                 }
             }
             
