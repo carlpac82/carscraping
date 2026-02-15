@@ -1511,6 +1511,31 @@
                     showCleanErrorPopup('Matrícula inválida ou inexistente');
                     return;
                 }
+            } else {
+                // Coming from swap - load RA data for email auto-fill
+                const raNumber = document.getElementById('inputRA')?.value?.trim();
+                if (raNumber) {
+                    console.log('🔍 Loading RA data for swap - RA:', raNumber);
+                    try {
+                        const response = await fetch(`/api/rental-agreement/by-number/${encodeURIComponent(raNumber)}`);
+                        const data = await response.json();
+                        
+                        if (data.success && data.rental_agreement) {
+                            const ra = data.rental_agreement;
+                            window.currentRAData = {
+                                rental_agreement_number: ra.rental_agreement_number,
+                                license_plate: plate,
+                                client_email: ra.client_email || ra.extracted_data?.email || ra.extracted_data?.clientEmail,
+                                extracted_data: ra.extracted_data
+                            };
+                            console.log('✅ RA data loaded for swap:', window.currentRAData);
+                        } else {
+                            console.warn('⚠️ Could not load RA data for swap');
+                        }
+                    } catch (error) {
+                        console.error('❌ Error loading RA data for swap:', error);
+                    }
+                }
             }
             
             // Proceed with delivery
