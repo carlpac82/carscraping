@@ -53832,6 +53832,146 @@ async def fix_replaced_inspections(request: Request):
             "error": str(e)
         }, status_code=500)
 
+@app.get("/api/admin/debug-vehicle-availability/{plate}")
+async def debug_vehicle_availability(request: Request, plate: str):
+    """Debug endpoint to investigate why a vehicle is not available"""
+    require_admin(request)
+    
+    try:
+        with _db_lock:
+            conn = _db_connect()
+            is_postgres = _is_postgresql_connection(conn)
+            
+            result = {
+                "plate": plate,
+                "checks": {}
+            }
+            
+            if is_postgres:
+                cur = conn.cursor()
+                
+                # 1. Check if vehicle exists
+                cur.execute("SELECT matricula, marca, modelo, status, grupo FROM vehicles WHERE matricula = %s", (plate,))
+                vehicle = cur.fetchone()
+                result["checks"]["vehicle_exists"] = {
+                    "found": vehicle is not None,
+                    "data": {"plate": vehicle[0], "brand": vehicle[1], "model": vehicle[2], "status": vehicle[3], "group": vehicle[4]} if vehicle else None
+                }
+                
+                # 2. Check rental_agreements with this plate
+                cur.execute("SELECT rental_agreement_number, license_plate FROM rental_agreements WHERE license_plate = %s", (plate,))
+                ras = cur.fetchall()
+                result["checks"]["rental_agreements_with_plate"] = {
+                    "count": len(ras),
+                    "data": [{"ra": r[0], "plate": r[1]} for r in ras]
+                }
+                
+                # 3. Check ALL inspections for this plate
+                cur.execute("""
+                    SELECT inspection_number, contract_number, inspection_type, status, created_at
+                    FROM vehicle_inspections
+                    WHERE vehicle_plate = %s
+                    ORDER BY created_at DESC
+                """, (plate,))
+                inspections = cur.fetchall()
+                result["checks"]["all_inspections"] = {
+                    "count": len(inspections),
+                    "data": [{"inspection": i[0], "contract": i[1], "type": i[2], "status": i[3], "created": str(i[4])} for i in inspections]
+                }
+                
+                # 4. Check ACTIVE check-ins (not replaced, no checkout)
+                cur.execute("""
+                    SELECT DISTINCT vi.contract_number, vi.inspection_type, vi.status
+                    FROM vehicle_inspections vi
+                    WHERE vi.vehicle_plate = %s
+                    AND vi.inspection_type = 'checkin'
+                    AND COALESCE(vi.status, '') != 'replaced'
+                """, (plate,))
+                active_checkins = cur.fetchall()
+                result["checks"]["active_checkins_not_replaced"] = {
+                    "count": len(active_checkins),
+                    "data": [{"contract": c[0], "type": c[1], "status": c[2]} for c in active_checkins],
+                    "blocking": len(active_checkins) > 0
+                }
+                
+                # 5. Run the blocking subquery
+                cur.execute("""
+                    SELECT DISTINCT ra.rental_agreement_number, ra.license_plate
+                    FROM rental_agreements ra
+                    WHERE ra.license_plate = %s
+                    AND ra.license_plate IS NOT NULL
+                    AND EXISTS (
+                        SELECT 1 FROM vehicle_inspections vi
+                        WHERE vi.contract_number LIKE ra.rental_agreement_number || '%%'
+                        AND vi.inspection_type = 'checkin'
+                        AND COALESCE(vi.status, '') != 'replaced'
+                    )
+                    AND NOT EXISTS (
+                        SELECT 1 FROM vehicle_inspections vi
+                        WHERE vi.contract_number LIKE ra.rental_agreement_number || '%%'
+                        AND vi.inspection_type = 'checkout'
+                    )
+                """, (plate,))
+                blocking = cur.fetchall()
+                result["checks"]["in_blocking_list"] = {
+                    "blocked": len(blocking) > 0,
+                    "data": [{"ra": b[0], "plate": b[1]} for b in blocking]
+                }
+                
+                # 6. Run the full availability query
+                cur.execute("""
+                    SELECT DISTINCT v.matricula, v.marca, v.modelo, v.grupo
+                    FROM vehicles v
+                    WHERE v.matricula = %s
+                    AND v.matricula NOT IN (
+                        SELECT DISTINCT ra.license_plate
+                        FROM rental_agreements ra
+                        WHERE ra.license_plate IS NOT NULL
+                        AND EXISTS (
+                            SELECT 1 FROM vehicle_inspections vi
+                            WHERE vi.contract_number LIKE ra.rental_agreement_number || '%%'
+                            AND vi.inspection_type = 'checkin'
+                            AND COALESCE(vi.status, '') != 'replaced'
+                        )
+                        AND NOT EXISTS (
+                            SELECT 1 FROM vehicle_inspections vi
+                            WHERE vi.contract_number LIKE ra.rental_agreement_number || '%%'
+                            AND vi.inspection_type = 'checkout'
+                        )
+                    )
+                    AND v.matricula IS NOT NULL
+                """, (plate,))
+                available = cur.fetchone()
+                result["checks"]["passes_availability_query"] = {
+                    "available": available is not None,
+                    "data": {"plate": available[0], "brand": available[1], "model": available[2], "group": available[3]} if available else None
+                }
+                
+                cur.close()
+            
+            conn.close()
+            
+            # Add conclusion
+            if result["checks"]["passes_availability_query"]["available"]:
+                result["conclusion"] = "✅ Vehicle SHOULD be available"
+            elif result["checks"]["in_blocking_list"]["blocked"]:
+                result["conclusion"] = "❌ Vehicle is BLOCKED by rental_agreements query"
+            elif result["checks"]["active_checkins_not_replaced"]["blocking"]:
+                result["conclusion"] = "❌ Vehicle has ACTIVE check-ins without 'replaced' status"
+            else:
+                result["conclusion"] = "❓ Unknown blocking reason"
+            
+            return JSONResponse(result)
+    
+    except Exception as e:
+        logging.error(f"Error debugging vehicle availability: {e}")
+        import traceback
+        logging.error(traceback.format_exc())
+        return JSONResponse({
+            "success": False,
+            "error": str(e)
+        }, status_code=500)
+
 @app.get("/api/admin/vehicles")
 async def get_vehicles(request: Request):
     """Listar todos os veículos"""
