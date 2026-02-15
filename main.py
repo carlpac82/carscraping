@@ -56071,15 +56071,15 @@ async def delete_ra_complete(ra_number: str):
                     swaps_deleted = cur.rowcount
                     logging.info(f"✅ Deleted {swaps_deleted} vehicle swaps")
                     
-                    # 2. Get all inspection numbers for this RA
+                    # 2. Get all inspection numbers for this RA (including variations like 06761-09)
                     cur.execute("""
                         SELECT inspection_number FROM vehicle_inspections 
-                        WHERE contract_number = %s
-                    """, (ra_number,))
+                        WHERE contract_number LIKE %s
+                    """, (f"{ra_number}%",))
                     inspection_numbers = [row[0] for row in cur.fetchall()]
                     
-                    # 3. Delete all inspections
-                    cur.execute("DELETE FROM vehicle_inspections WHERE contract_number = %s", (ra_number,))
+                    # 3. Delete all inspections (including variations)
+                    cur.execute("DELETE FROM vehicle_inspections WHERE contract_number LIKE %s", (f"{ra_number}%",))
                     inspections_deleted = cur.rowcount
                     logging.info(f"✅ Deleted {inspections_deleted} inspections: {inspection_numbers}")
                     
@@ -56109,15 +56109,15 @@ async def delete_ra_complete(ra_number: str):
                     swaps_deleted = cur.rowcount
                     logging.info(f"✅ Deleted {swaps_deleted} vehicle swaps")
                     
-                    # 2. Get all inspection numbers for this RA
+                    # 2. Get all inspection numbers for this RA (including variations like 06761-09)
                     cur.execute("""
                         SELECT inspection_number FROM vehicle_inspections 
-                        WHERE contract_number = ?
-                    """, (ra_number,))
+                        WHERE contract_number LIKE ?
+                    """, (f"{ra_number}%",))
                     inspection_numbers = [row[0] for row in cur.fetchall()]
                     
-                    # 3. Delete all inspections
-                    cur.execute("DELETE FROM vehicle_inspections WHERE contract_number = ?", (ra_number,))
+                    # 3. Delete all inspections (including variations)
+                    cur.execute("DELETE FROM vehicle_inspections WHERE contract_number LIKE ?", (f"{ra_number}%",))
                     inspections_deleted = cur.rowcount
                     logging.info(f"✅ Deleted {inspections_deleted} inspections: {inspection_numbers}")
                     
