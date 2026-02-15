@@ -3135,7 +3135,7 @@
             if (mainElement) {
                 const computedStyle = window.getComputedStyle(mainElement);
                 if (computedStyle.display === 'none') {
-                    mainElement.style.display = '';
+                    mainElement.style.setProperty('display', 'block', 'important');
                     console.log('✅ Showed main element for diagram step');
                 }
             }
@@ -3158,7 +3158,12 @@
                 console.error('❌ stepDiagram not found');
             }
             
-            // Initialize canvas now that diagram step is visible
+            // Force reflow to ensure elements are rendered
+            if (stepDiagram) {
+                void stepDiagram.offsetHeight;
+            }
+            
+            // Initialize canvas now that diagram step is visible - increased delay
             setTimeout(() => {
                 console.log('📅 Initializing canvas for diagram step...');
                 
