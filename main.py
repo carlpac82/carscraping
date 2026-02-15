@@ -53553,6 +53553,8 @@ async def vehicle_swap(request: Request):
                         logging.info(f"✅ Marked {inspections_updated} check-in inspection(s) as replaced")
                         
                         # Record swap in history
+                        logging.info(f"🔄 [SWAP INSERT] About to insert swap record for RA {ra}")
+                        logging.info(f"🔄 [SWAP INSERT] Data: {old_plate} → {new_plate}, datetime={swap_datetime}, employee={user.get('name')}")
                         cur.execute("""
                             INSERT INTO vehicle_swaps 
                             (rental_agreement_number, swap_datetime, old_plate, old_kms, old_fuel, 
@@ -53560,6 +53562,7 @@ async def vehicle_swap(request: Request):
                             VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
                         """, (ra, swap_datetime, old_plate, old_kms, old_fuel, 
                               new_plate, new_kms, new_fuel, user.get('name'), user.get('email')))
+                        logging.info(f"✅ [SWAP INSERT] Swap record inserted successfully for RA {ra}")
                 else:
                     cur = conn.cursor()
                     cur.execute("""
@@ -53608,6 +53611,8 @@ async def vehicle_swap(request: Request):
                     logging.info(f"✅ Marked {inspections_updated} check-in inspection(s) as replaced")
                     
                     # Record swap in history
+                    logging.info(f"🔄 [SWAP INSERT] About to insert swap record for RA {ra}")
+                    logging.info(f"🔄 [SWAP INSERT] Data: {old_plate} → {new_plate}, datetime={swap_datetime}, employee={user.get('name')}")
                     cur.execute("""
                         INSERT INTO vehicle_swaps 
                         (rental_agreement_number, swap_datetime, old_plate, old_kms, old_fuel, 
@@ -53615,6 +53620,7 @@ async def vehicle_swap(request: Request):
                         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                     """, (ra, swap_datetime, old_plate, old_kms, old_fuel, 
                           new_plate, new_kms, new_fuel, user.get('name'), user.get('email')))
+                    logging.info(f"✅ [SWAP INSERT] Swap record inserted successfully for RA {ra}")
                 
                 # Update scheduled self-checkout emails with new plate
                 if is_postgres:
