@@ -3695,7 +3695,12 @@
                         
                         // If no email yet, try to fetch from RA
                         if (!email) {
-                            const raNumber = document.getElementById('inputRA')?.value?.trim();
+                            // Try to get RA number from input field or URL params
+                            let raNumber = document.getElementById('inputRA')?.value?.trim();
+                            if (!raNumber) {
+                                const urlParams = new URLSearchParams(window.location.search);
+                                raNumber = urlParams.get('ra');
+                            }
                             console.log('📧 [EMAIL AUTO-FILL] No email in currentRAData, fetching RA:', raNumber);
                             
                             if (raNumber) {
@@ -3706,7 +3711,21 @@
                                     
                                     if (data.ok && data.rental_agreement) {
                                         const ra = data.rental_agreement;
-                                        email = ra.client_email || ra.extracted_data?.email || ra.extracted_data?.clientEmail || '';
+                                        // Try multiple sources for email
+                                        email = ra.client_email || '';
+                                        
+                                        // If still no email, try extracted_data
+                                        if (!email && ra.extracted_data) {
+                                            try {
+                                                const extractedData = typeof ra.extracted_data === 'string' 
+                                                    ? JSON.parse(ra.extracted_data) 
+                                                    : ra.extracted_data;
+                                                email = extractedData.email || extractedData.clientEmail || extractedData.client_email || '';
+                                            } catch (e) {
+                                                console.error('📧 [EMAIL AUTO-FILL] Error parsing extracted_data:', e);
+                                            }
+                                        }
+                                        
                                         console.log('📧 [EMAIL AUTO-FILL] Email fetched from RA:', email);
                                     } else {
                                         console.log('📧 [EMAIL AUTO-FILL] API returned ok=false or no rental_agreement');
