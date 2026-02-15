@@ -1494,19 +1494,33 @@
                 return;
             }
             
-            // Validate plate exists in database
-            const plateExists = await validatePlateExists(plate);
-            
-            if (!plateExists) {
-                showCleanErrorPopup('Matrícula inválida ou inexistente');
-                return;
+            // Skip validation if coming from swap (already validated)
+            if (!window.AUTO_START_DELIVERY) {
+                // Validate plate exists in database
+                const plateExists = await validatePlateExists(plate);
+                
+                if (!plateExists) {
+                    showCleanErrorPopup('Matrícula inválida ou inexistente');
+                    return;
+                }
             }
             
             // Proceed with delivery
             localStorage.setItem('processType', 'delivery');
             window.isPickupMode = false;
-            document.getElementById('stepSelection').classList.add('hidden');
-            document.getElementById('stepPhotos').classList.remove('hidden');
+            
+            // Hide selection step if it exists
+            const stepSelection = document.getElementById('stepSelection');
+            if (stepSelection) {
+                stepSelection.classList.add('hidden');
+            }
+            
+            // Show photos step
+            const stepPhotos = document.getElementById('stepPhotos');
+            if (stepPhotos) {
+                stepPhotos.classList.remove('hidden');
+            }
+            
             console.log('✅ Starting delivery (check-in) process');
         }
         
