@@ -943,7 +943,8 @@
                     console.log('📦 Contract data:', {
                         ra: contract.contract_number,
                         client_name: contract.client_name,
-                        client_email: contract.client_email
+                        client_email: contract.client_email,
+                        vehicle_swaps: contract.vehicle_swaps
                     });
                     const hasCheckout = contract.checkout !== null;  // checkout = recolha (validado)
                     const hasCheckin = contract.checkin !== null;    // checkin = entrega
