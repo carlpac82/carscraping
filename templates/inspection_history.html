@@ -6,9 +6,9 @@
     <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
     <meta http-equiv="Pragma" content="no-cache">
     <meta http-equiv="Expires" content="0">
-    <title>Histórico de Inspeções - v35.0</title>
+    <title>Histórico de Inspeções - v36.0</title>
     <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
-    <script src="https://cdn.tailwindcss.com?v=35.0"></script>
+    <script src="https://cdn.tailwindcss.com?v=36.0"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js"></script>
@@ -6215,16 +6215,16 @@
         // Start inspection flow for vehicle swap
         async function startInspectionForSwap() {
             const swapData = window.vehicleSwapData;
-            
+
             console.log('🚀 Starting inspection for vehicle swap:', swapData);
-            
+
             // Close vehicle swap modal (inspection choice modal is already closed by promise)
             closeVehicleSwapModal();
-            
+
             // Store swap data globally for later use
             window.pendingVehicleSwap = swapData;
-            
-            // Redirect to vehicle inspection page with parameters
+
+            // Create fullscreen iframe modal with inspection page
             const params = new URLSearchParams({
                 plate: swapData.newPlate,
                 ra: swapData.raNumber,
@@ -6232,8 +6232,36 @@
                 from_swap: 'true',
                 auto_start: 'true'
             });
+
+            const modal = document.createElement('div');
+            modal.id = 'inspectionIframeModal';
+            modal.style.cssText = 'position: fixed; top: 0; left: 0; right: 0; bottom: 0; z-index: 99999; background: white;';
             
-            window.location.href = `/vehicle-inspection?${params.toString()}`;
+            modal.innerHTML = `
+                <div style="position: absolute; top: 10px; right: 10px; z-index: 100000;">
+                    <button onclick="closeInspectionIframeModal()" style="background: #ef4444; color: white; padding: 8px 16px; border-radius: 6px; border: none; cursor: pointer; font-weight: 600; box-shadow: 0 2px 8px rgba(0,0,0,0.2);">
+                        ✕ Fechar
+                    </button>
+                </div>
+                <iframe src="/vehicle-inspection?${params.toString()}" style="width: 100%; height: 100%; border: none;"></iframe>
+            `;
+            
+            document.body.appendChild(modal);
+            document.body.style.overflow = 'hidden';
+            
+            console.log('✅ Inspection iframe modal opened');
+        }
+        
+        function closeInspectionIframeModal() {
+            const modal = document.getElementById('inspectionIframeModal');
+            if (modal) {
+                modal.remove();
+                document.body.style.overflow = '';
+                console.log('✅ Inspection iframe modal closed');
+                
+                // Reload inspections to show the new one
+                loadInspections();
+            }
         }
         
         // Detect language from country (matching backend logic)
