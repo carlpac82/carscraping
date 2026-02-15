@@ -2461,11 +2461,12 @@
             const urlParams = new URLSearchParams(window.location.search);
             const plateParam = urlParams.get('plate');
             const raParam = urlParams.get('ra');
+            const typeParam = urlParams.get('type');
             const autoStart = urlParams.get('auto_start');
             const fromSwap = urlParams.get('from_swap');
             
             if (plateParam && raParam) {
-                console.log('🔄 Auto-filling from vehicle swap:', plateParam, raParam);
+                console.log('🔄 Auto-filling from vehicle swap:', plateParam, raParam, 'type:', typeParam);
                 
                 setTimeout(() => {
                     const plateField = document.getElementById('inputPlate');
@@ -2483,11 +2484,13 @@
                     
                     // Auto-start inspection if requested
                     if (autoStart === 'true' && fromSwap === 'true') {
-                        console.log('🚀 Auto-starting inspection from vehicle swap');
+                        console.log('🚀 Auto-starting inspection from vehicle swap - calling startDelivery()');
                         setTimeout(() => {
-                            const startButton = document.querySelector('button[onclick="startInspection()"]');
-                            if (startButton) {
-                                startButton.click();
+                            // Call startDelivery() directly to start the full inspection flow
+                            if (typeof startDelivery === 'function') {
+                                startDelivery();
+                            } else {
+                                console.error('❌ startDelivery function not found');
                             }
                         }, 500);
                     }
