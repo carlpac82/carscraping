@@ -50186,7 +50186,7 @@ async def get_inspections_history(request: Request):
             
             logging.info(f"📊 Found {len(rows)} inspections in database")
             
-            # Group by plate + RA (using RA base to handle suffixes like -09)
+            # Group by RA only (not plate+RA) to handle vehicle swaps correctly
             grouped = {}
             for row in rows:
                 plate = row[1]
@@ -50195,7 +50195,8 @@ async def get_inspections_history(request: Request):
                 ra_base = ra.split('-')[0] if ra and '-' in ra else ra
                 inspection_type = row[3]
                 inspection_id = row[10]
-                key = f"{plate}_{ra_base}"
+                # Use only RA as key to group all inspections for same contract, even with different plates
+                key = ra_base
                 
                 # Extract client info from rental agreement
                 extracted_data = row[12] if len(row) > 12 else None
@@ -50329,6 +50330,12 @@ async def get_inspections_history(request: Request):
                         "expected_return_date": return_date
                     }
                 else:
+                    # Update vehicle_plate to most recent (for swaps, use new plate)
+                    current_date = str(row[5]) if row[5] else None
+                    if current_date and (not grouped[key].get("latest_date") or current_date > grouped[key]["latest_date"]):
+                        grouped[key]["vehicle_plate"] = plate
+                        grouped[key]["latest_date"] = current_date
+                    
                     # Update client info if not already set
                     if not grouped[key].get("client_name") and client_name:
                         grouped[key]["client_name"] = client_name
