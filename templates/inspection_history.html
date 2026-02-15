@@ -6,9 +6,9 @@
     <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
     <meta http-equiv="Pragma" content="no-cache">
     <meta http-equiv="Expires" content="0">
-    <title>Histórico de Inspeções - v26.0</title>
+    <title>Histórico de Inspeções - v27.0</title>
     <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
-    <script src="https://cdn.tailwindcss.com?v=26.0"></script>
+    <script src="https://cdn.tailwindcss.com?v=27.0"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js"></script>
@@ -6286,14 +6286,24 @@
             try {
                 const contract = contracts.find(c => c.rental_agreement_number === swapData.raNumber);
                 if (contract) {
-                    clientEmail = contract.client_email || '';
+                    console.log('📋 Contract found:', contract);
                     
-                    // Try to get country from extracted_data
+                    // Try multiple sources for email (matching delivery inspection flow)
                     if (contract.extracted_data) {
                         const data = typeof contract.extracted_data === 'string' 
                             ? JSON.parse(contract.extracted_data) 
                             : contract.extracted_data;
+                        
+                        console.log('📧 Extracted data:', data);
+                        
+                        // Get email from extracted_data (same as delivery inspection)
+                        clientEmail = data.email || data.clientEmail || contract.client_email || '';
                         clientCountry = data.country || data.clientCountry || data.client_country || '';
+                        
+                        console.log('📧 Client email found:', clientEmail);
+                        console.log('🌍 Client country found:', clientCountry);
+                    } else {
+                        clientEmail = contract.client_email || '';
                     }
                     
                     // Detect language from country
@@ -6301,13 +6311,18 @@
                         detectedLanguage = detectLanguageFromCountry(clientCountry);
                         console.log(`🌍 Detected language: ${detectedLanguage} from country: ${clientCountry}`);
                     }
+                } else {
+                    console.warn('⚠️ Contract not found for RA:', swapData.raNumber);
                 }
             } catch (error) {
-                console.error('Error fetching client data:', error);
+                console.error('❌ Error fetching client data:', error);
             }
             
             // Store language for email sending
             window.swapEmailLanguage = detectedLanguage;
+            
+            console.log('✅ Final email to use:', clientEmail);
+            console.log('✅ Final language to use:', detectedLanguage);
             
             const existingModal = document.getElementById('swapSummaryModal');
             if (existingModal) existingModal.remove();
