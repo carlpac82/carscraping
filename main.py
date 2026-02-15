@@ -50389,25 +50389,33 @@ async def get_inspections_history(request: Request):
                     except:
                         pass
                 
-                # Get vehicle swap history
+                # Get vehicle swap history with old inspection number
                 contract["vehicle_swaps"] = []
                 try:
                     if is_postgres:
                         cursor.execute("""
-                            SELECT swap_datetime, old_plate, new_plate, old_kms, old_fuel, 
-                                   new_kms, new_fuel, employee_name
-                            FROM vehicle_swaps
-                            WHERE rental_agreement_number = %s
-                            ORDER BY swap_datetime DESC
-                        """, (ra_number,))
+                            SELECT vs.swap_datetime, vs.old_plate, vs.new_plate, vs.old_kms, vs.old_fuel, 
+                                   vs.new_kms, vs.new_fuel, vs.employee_name, vi.inspection_number
+                            FROM vehicle_swaps vs
+                            LEFT JOIN vehicle_inspections vi ON vi.vehicle_plate = vs.old_plate 
+                                AND vi.contract_number LIKE %s
+                                AND vi.inspection_type = 'checkin'
+                                AND COALESCE(vi.status, '') != 'replaced'
+                            WHERE vs.rental_agreement_number = %s
+                            ORDER BY vs.swap_datetime DESC
+                        """, (f"{ra_number}%", ra_number))
                     else:
                         cursor.execute("""
-                            SELECT swap_datetime, old_plate, new_plate, old_kms, old_fuel, 
-                                   new_kms, new_fuel, employee_name
-                            FROM vehicle_swaps
-                            WHERE rental_agreement_number = ?
-                            ORDER BY swap_datetime DESC
-                        """, (ra_number,))
+                            SELECT vs.swap_datetime, vs.old_plate, vs.new_plate, vs.old_kms, vs.old_fuel, 
+                                   vs.new_kms, vs.new_fuel, vs.employee_name, vi.inspection_number
+                            FROM vehicle_swaps vs
+                            LEFT JOIN vehicle_inspections vi ON vi.vehicle_plate = vs.old_plate 
+                                AND vi.contract_number LIKE ?
+                                AND vi.inspection_type = 'checkin'
+                                AND COALESCE(vi.status, '') != 'replaced'
+                            WHERE vs.rental_agreement_number = ?
+                            ORDER BY vs.swap_datetime DESC
+                        """, (f"{ra_number}%", ra_number))
                     
                     swap_rows = cursor.fetchall()
                     logging.info(f"🔄 [SWAP DEBUG] RA {ra_number}: Found {len(swap_rows)} swaps in database")
@@ -50420,10 +50428,11 @@ async def get_inspections_history(request: Request):
                             "old_fuel": swap_row[4],
                             "new_kms": swap_row[5],
                             "new_fuel": swap_row[6],
-                            "employee_name": swap_row[7]
+                            "employee_name": swap_row[7],
+                            "old_inspection_number": swap_row[8] if len(swap_row) > 8 else None
                         }
                         contract["vehicle_swaps"].append(swap_data)
-                        logging.info(f"🔄 [SWAP DEBUG] Swap: {swap_data['old_plate']} → {swap_data['new_plate']} at {swap_data['swap_datetime']}")
+                        logging.info(f"🔄 [SWAP DEBUG] Swap: {swap_data['old_plate']} → {swap_data['new_plate']} at {swap_data['swap_datetime']}, old_inspection: {swap_data.get('old_inspection_number', 'N/A')}")
                 except Exception as e:
                     logging.error(f"Error getting vehicle swaps for RA {ra_number}: {e}")
                     try:
