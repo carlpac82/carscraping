@@ -1,4 +1,4 @@
-# DEPLOY FORCE: 2026-01-25 21:04 UTC - Fixed padding calculation: strip existing padding before recalculating
+# DEPLOY FORCE: 2026-02-15 08:33 UTC - Force template reload for vehicle swap modal fuel buttons
 from __future__ import annotations
 
 # Todas as funções helper foram movidas para depois dos imports principais
