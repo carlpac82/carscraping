@@ -3127,17 +3127,6 @@
         function nextToDiagram() {
             console.log('🔵 nextToDiagram called - STARTING CANVAS INITIALIZATION');
             
-            // Skip validation when called automatically after photos
-            const skipValidation = arguments[0] === true;
-            
-            if (!skipValidation) {
-                // Validate inputs
-                const plate = document.getElementById('inputPlate').value.trim();
-                const ra = document.getElementById('inputRA').value.trim();
-                
-                if (!plate || !ra) {
-            }
-            
             console.log('✅ All validations passed');
             console.log('✅ Photos captured:', Object.keys((window.inspectionData && window.inspectionData.photos) || {}).length);
             
