@@ -2157,6 +2157,33 @@
                             </div>
                             ` : ''}
                             
+                            <!-- Vehicle Swap Alert (for checkin only) -->
+                            ${type === 'checkin' && swapHistory ? `
+                                <div class="mb-6">
+                                    <div class="bg-orange-50 border-2 border-orange-400 rounded-lg p-4">
+                                        <div class="flex items-start gap-3">
+                                            <svg class="w-6 h-6 text-orange-600 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4"/>
+                                            </svg>
+                                            <div class="flex-1">
+                                                <h4 class="text-lg font-bold text-orange-800 mb-2">Troca de Viatura</h4>
+                                                <p class="text-sm text-orange-700 mb-3">
+                                                    Esta viatura substituiu a matrícula <strong>${swapHistory.old_plate}</strong> em ${new Date(swapHistory.swap_datetime).toLocaleDateString('pt-PT')} às ${new Date(swapHistory.swap_datetime).toLocaleTimeString('pt-PT', {hour: '2-digit', minute: '2-digit'})}.
+                                                </p>
+                                                <button onclick="previewInspection('${swapHistory.old_inspection_number}', 'checkin')" 
+                                                        class="px-4 py-2 bg-orange-600 hover:bg-orange-700 text-white rounded-lg transition-colors text-sm font-semibold flex items-center gap-2">
+                                                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/>
+                                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/>
+                                                    </svg>
+                                                    Ver Inspeção da Viatura Anterior (${swapHistory.old_plate})
+                                                </button>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            ` : ''}
+                            
                             <!-- Damage Croqui (BEFORE photos) - SEMPRE mostrar para checkout -->
                             ${type === 'checkout' || inspection.damage_croqui ? `
                                 <div class="mb-6">
