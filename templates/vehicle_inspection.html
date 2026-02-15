@@ -2486,26 +2486,15 @@
                 if (autoStart === 'true' && fromSwap === 'true') {
                     console.log('🚀 Auto-starting inspection from vehicle swap');
                     
-                    // Set process type
-                    localStorage.setItem('processType', 'delivery');
-                    window.isPickupMode = false;
-                    
-                    // Wait for DOM to be fully ready, then hide/show steps
+                    // Wait for DOM and startDelivery function to be ready
                     setTimeout(() => {
-                        const stepSelection = document.getElementById('stepSelection');
-                        const stepPhotos = document.getElementById('stepPhotos');
-                        
-                        console.log('🔍 stepSelection element:', stepSelection);
-                        console.log('🔍 stepPhotos element:', stepPhotos);
-                        
-                        if (stepSelection && stepPhotos) {
-                            stepSelection.classList.add('hidden');
-                            stepPhotos.classList.remove('hidden');
-                            console.log('✅ Skipped selection screen, showing photos directly');
+                        if (typeof startDelivery === 'function') {
+                            console.log('✅ Calling startDelivery() to begin inspection');
+                            startDelivery();
                         } else {
-                            console.error('❌ Could not find step elements');
+                            console.error('❌ startDelivery function not found');
                         }
-                    }, 100);
+                    }, 300);
                 }
             }
             
