@@ -9,12 +9,16 @@
     <script src="/static/notifications.js"></script>
     <!-- Tesseract.js for OCR -->
     <script src='https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js'></script>
-    <!-- Hide selection buttons immediately if coming from swap -->
+    <!-- Hide ALL content and execute startDelivery immediately if coming from swap -->
     <script>
         (function() {
             const urlParams = new URLSearchParams(window.location.search);
             if (urlParams.get('auto_start') === 'true' && urlParams.get('from_swap') === 'true') {
-                document.write('<style>#deliveryButton, #pickupButton { display: none !important; }</style>');
+                // Hide EVERYTHING except the camera modal
+                document.write('<style>body > main { display: none !important; } body > header { display: none !important; }</style>');
+                
+                // Set flag to auto-start immediately when DOM loads
+                window.AUTO_START_DELIVERY = true;
             }
         })();
     </script>
@@ -2492,24 +2496,16 @@
                 }
                 
                 // Auto-start inspection if requested
-                if (autoStart === 'true' && fromSwap === 'true') {
-                    console.log('🚀 Auto-starting inspection from vehicle swap');
+                if (window.AUTO_START_DELIVERY === true) {
+                    console.log('🚀 AUTO_START_DELIVERY flag detected - starting immediately');
                     
-                    // Hide selection buttons immediately to prevent flash
-                    const deliveryButton = document.getElementById('deliveryButton');
-                    const pickupButton = document.getElementById('pickupButton');
-                    if (deliveryButton) deliveryButton.style.display = 'none';
-                    if (pickupButton) pickupButton.style.display = 'none';
-                    
-                    // Wait for DOM and startDelivery function to be ready
-                    setTimeout(() => {
-                        if (typeof startDelivery === 'function') {
-                            console.log('✅ Calling startDelivery() to begin inspection');
-                            startDelivery();
-                        } else {
-                            console.error('❌ startDelivery function not found');
-                        }
-                    }, 100);
+                    // Call startDelivery immediately - no delay
+                    if (typeof startDelivery === 'function') {
+                        console.log('✅ Calling startDelivery() immediately');
+                        startDelivery();
+                    } else {
+                        console.error('❌ startDelivery function not found');
+                    }
                 }
             }
             
