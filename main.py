@@ -52180,13 +52180,13 @@ async def _save_rental_agreement_to_db(result: dict, pdf_bytes: bytes, pdf_filen
                             
                             cur.execute("""
                                 SELECT 
-                                    COUNT(CASE WHEN inspection_type = 'checkout' THEN 1 END) as checkout_count,
-                                    COUNT(CASE WHEN inspection_type = 'checkin' THEN 1 END) as checkin_count
+                                    COUNT(CASE WHEN inspection_type = 'checkout' AND COALESCE(status, '') != 'replaced' THEN 1 END) as checkout_count,
+                                    COUNT(CASE WHEN inspection_type = 'checkin' AND COALESCE(status, '') != 'replaced' THEN 1 END) as checkin_count
                                 FROM vehicle_inspections
-                                WHERE contract_number = %s 
+                                WHERE (contract_number = %s 
                                    OR contract_number = %s
                                    OR contract_number = %s
-                                   OR REPLACE(REPLACE(contract_number, '-', ''), '0', '') = %s
+                                   OR REPLACE(REPLACE(contract_number, '-', ''), '0', '') = %s)
                             """, (ra_number, ra_from_db, ra_with_suffix, ra_normalized))
                             inspection_counts = cur.fetchone()
                             
@@ -52226,8 +52226,8 @@ async def _save_rental_agreement_to_db(result: dict, pdf_bytes: bytes, pdf_filen
                         # Check if contract has both checkout and checkin (closed)
                         cursor2 = conn.execute("""
                             SELECT 
-                                SUM(CASE WHEN inspection_type = 'checkout' THEN 1 ELSE 0 END) as checkout_count,
-                                SUM(CASE WHEN inspection_type = 'checkin' THEN 1 ELSE 0 END) as checkin_count
+                                SUM(CASE WHEN inspection_type = 'checkout' AND COALESCE(status, '') != 'replaced' THEN 1 ELSE 0 END) as checkout_count,
+                                SUM(CASE WHEN inspection_type = 'checkin' AND COALESCE(status, '') != 'replaced' THEN 1 ELSE 0 END) as checkin_count
                             FROM vehicle_inspections
                             WHERE contract_number = ?
                         """, (result["rental_agreement"],))
