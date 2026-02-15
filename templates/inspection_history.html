@@ -516,6 +516,7 @@
                 
                 if ((data.ok || data.success) && data.contracts) {
                     contracts = data.contracts;
+                    window.allContracts = data.contracts; // Store globally for swap history lookup
                     console.log('📊 Loaded', contracts.length, 'contracts');
                     updateStats();
                     renderHistory(contracts);
@@ -1118,12 +1119,40 @@
                                 
                                 <!-- Info: Inspector and times -->
                                 <div class="flex flex-col gap-1 text-sm text-gray-600">
-                                    ${hasCheckin ? `
-                                    <div class="flex items-center gap-2">
-                                        <span class="font-medium">Entregue por:</span>
-                                        <span>${contract.checkin.inspector_name || 'N/A'} às ${checkinTime} de ${checkinDate}</span>
-                                    </div>
-                                    ` : ''}
+                                    ${(() => {
+                                        // Se há troca, mostrar entrega da viatura ANTIGA primeiro
+                                        if (contract.vehicle_swaps && contract.vehicle_swaps.length > 0) {
+                                            const swap = contract.vehicle_swaps[0]; // Primeira troca
+                                            // Buscar inspeção da viatura antiga nos contratos
+                                            const oldVehicleContract = window.allContracts?.find(c => 
+                                                c.vehicle_plate === swap.old_plate && 
+                                                c.contract_number === contract.contract_number
+                                            );
+                                            
+                                            if (oldVehicleContract && oldVehicleContract.checkin) {
+                                                const oldCheckinDate = new Date(oldVehicleContract.checkin.created_at);
+                                                const oldCheckinTime = oldCheckinDate.toLocaleTimeString('pt-PT', { hour: '2-digit', minute: '2-digit' });
+                                                const oldCheckinDateStr = oldCheckinDate.toLocaleDateString('pt-PT', { day: '2-digit', month: '2-digit', year: 'numeric' });
+                                                return `
+                                                <div class="flex items-center gap-2">
+                                                    <span class="font-medium">Entregue por:</span>
+                                                    <span>${oldVehicleContract.checkin.inspector_name || 'N/A'} às ${oldCheckinTime} de ${oldCheckinDateStr}</span>
+                                                </div>
+                                                `;
+                                            }
+                                        }
+                                        
+                                        // Senão, mostrar entrega normal
+                                        if (hasCheckin) {
+                                            return `
+                                            <div class="flex items-center gap-2">
+                                                <span class="font-medium">Entregue por:</span>
+                                                <span>${contract.checkin.inspector_name || 'N/A'} às ${checkinTime} de ${checkinDate}</span>
+                                            </div>
+                                            `;
+                                        }
+                                        return '';
+                                    })()}
                                     ${contract.vehicle_swaps && contract.vehicle_swaps.length > 0 ? `
                                     <div class="flex flex-col gap-1 mt-1 pl-4 border-l-2 border-orange-400">
                                         ${contract.vehicle_swaps.map(swap => {
@@ -1137,7 +1166,7 @@
                                                 </svg>
                                                 <span class="font-medium">Troca:</span>
                                                 <span>${swap.old_plate} → ${swap.new_plate}</span>
-                                                <span class="text-xs text-gray-500">por ${swap.employee_name} às ${swapTime} de ${swapDateStr}</span>
+                                                <span class="text-xs text-gray-500">por ${swap.employee_name || 'N/A'} às ${swapTime} de ${swapDateStr}</span>
                                             </div>
                                             `;
                                         }).join('')}
