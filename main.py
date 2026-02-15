@@ -53195,6 +53195,74 @@ async def get_vehicles_by_group(group: str, request: Request):
             "error": str(e)
         }, status_code=500)
 
+@app.get("/api/vehicles/available")
+async def get_available_vehicles(request: Request):
+    """Get vehicles that are not in open contracts (available for swap)"""
+    require_auth(request)
+    
+    try:
+        with _db_lock:
+            conn = _db_connect()
+            is_postgres = _is_postgresql_connection(conn)
+            
+            try:
+                if is_postgres:
+                    with conn.cursor() as cur:
+                        cur.execute("""
+                            SELECT DISTINCT v.license_plate, v.brand, v.model, v.odometer, v.fuel_level, v.group_name
+                            FROM vehicles v
+                            WHERE v.license_plate NOT IN (
+                                SELECT DISTINCT ra.license_plate
+                                FROM rental_agreements ra
+                                WHERE ra.status = 'open'
+                                AND ra.license_plate IS NOT NULL
+                            )
+                            AND v.license_plate IS NOT NULL
+                            ORDER BY v.license_plate
+                        """)
+                        vehicles = cur.fetchall()
+                else:
+                    cur = conn.cursor()
+                    cur.execute("""
+                        SELECT DISTINCT v.license_plate, v.brand, v.model, v.odometer, v.fuel_level, v.group_name
+                        FROM vehicles v
+                        WHERE v.license_plate NOT IN (
+                            SELECT DISTINCT ra.license_plate
+                            FROM rental_agreements ra
+                            WHERE ra.status = 'open'
+                            AND ra.license_plate IS NOT NULL
+                        )
+                        AND v.license_plate IS NOT NULL
+                        ORDER BY v.license_plate
+                    """)
+                    vehicles = cur.fetchall()
+                
+                result = []
+                for v in vehicles:
+                    result.append({
+                        'plate': v[0],
+                        'brand': v[1],
+                        'model': v[2],
+                        'odometer': v[3],
+                        'fuel_level': v[4],
+                        'group': v[5]
+                    })
+                
+                return JSONResponse({
+                    "success": True,
+                    "vehicles": result
+                })
+                
+            finally:
+                conn.close()
+                
+    except Exception as e:
+        logging.error(f"Error getting available vehicles: {e}")
+        return JSONResponse({
+            "success": False,
+            "error": str(e)
+        }, status_code=500)
+
 @app.post("/api/vehicle-swap")
 async def vehicle_swap(request: Request):
     """Process vehicle swap for a rental agreement"""
