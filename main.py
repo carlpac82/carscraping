@@ -53519,6 +53519,19 @@ async def vehicle_swap(request: Request):
                         if new_updated == 0:
                             logging.warning(f"⚠️ New vehicle {new_plate} not found in vehicles table!")
                         
+                        # Mark old vehicle's check-in inspection as 'replaced' so it won't be found when searching by old plate
+                        logging.info(f"🔧 Marking old vehicle's check-in as 'replaced' for RA {ra}")
+                        cur.execute("""
+                            UPDATE vehicle_inspections
+                            SET status = 'replaced'
+                            WHERE contract_number LIKE %s
+                              AND vehicle_plate = %s
+                              AND inspection_type = 'checkin'
+                              AND COALESCE(status, '') != 'replaced'
+                        """, (f"{ra}%", old_plate))
+                        inspections_updated = cur.rowcount
+                        logging.info(f"✅ Marked {inspections_updated} check-in inspection(s) as replaced")
+                        
                         # Record swap in history
                         cur.execute("""
                             INSERT INTO vehicle_swaps 
@@ -53560,6 +53573,19 @@ async def vehicle_swap(request: Request):
                     
                     if new_updated == 0:
                         logging.warning(f"⚠️ New vehicle {new_plate} not found in vehicles table!")
+                    
+                    # Mark old vehicle's check-in inspection as 'replaced' so it won't be found when searching by old plate
+                    logging.info(f"🔧 Marking old vehicle's check-in as 'replaced' for RA {ra}")
+                    cur.execute("""
+                        UPDATE vehicle_inspections
+                        SET status = 'replaced'
+                        WHERE contract_number LIKE ?
+                          AND vehicle_plate = ?
+                          AND inspection_type = 'checkin'
+                          AND COALESCE(status, '') != 'replaced'
+                    """, (f"{ra}%", old_plate))
+                    inspections_updated = cur.rowcount
+                    logging.info(f"✅ Marked {inspections_updated} check-in inspection(s) as replaced")
                     
                     # Record swap in history
                     cur.execute("""
