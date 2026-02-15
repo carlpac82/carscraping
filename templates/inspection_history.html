@@ -1160,26 +1160,6 @@
                                         <span>${selfCheckoutName || 'Cliente'} às ${selfCheckoutTime} de ${selfCheckoutDate}</span>
                                     </div>
                                     ` : ''}
-                                    ${!hasCheckout && !hasSelfCheckout && contract.expected_return_date ? `
-                                    <div class="flex items-center gap-2 text-orange-600">
-                                        <svg class="w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/>
-                                        </svg>
-                                        <span class="font-medium">Recolha Prevista:</span>
-                                        <span>${(() => {
-                                            let dateStr = contract.expected_return_date;
-                                            if (dateStr.includes('/')) {
-                                                return dateStr;
-                                            } else if (dateStr.includes(' - ')) {
-                                                return dateStr;
-                                            } else if (/^\\d{4}-\\d{2}-\\d{2}$/.test(dateStr)) {
-                                                const parts = dateStr.split('-');
-                                                return parts[2] + '/' + parts[1] + '/' + parts[0];
-                                            }
-                                            return dateStr;
-                                        })()}</span>
-                                    </div>
-                                    ` : ''}
                                 </div>
                                 
                                 <!-- Actions: Car icons and email -->
