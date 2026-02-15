@@ -53553,8 +53553,8 @@ async def vehicle_swap(request: Request):
                     logging.info(f"✅ Marked {inspections_updated} check-in inspection(s) as replaced")
                     
                     # Record swap in history
-                    logging.info(f"🔄 [SWAP INSERT] About to insert swap record for RA {ra}")
-                    logging.info(f"🔄 [SWAP INSERT] Data: {old_plate} → {new_plate}, datetime={swap_datetime}, employee={user.get('name')}")
+                    logging.info(f"🔄 [SWAP INSERT - PostgreSQL] About to insert swap record for RA '{ra}' (type: {type(ra).__name__}, length: {len(ra) if ra else 0})")
+                    logging.info(f"🔄 [SWAP INSERT - PostgreSQL] Data: {old_plate} → {new_plate}, datetime={swap_datetime}, employee={user.get('name')}")
                     cur.execute("""
                         INSERT INTO vehicle_swaps 
                         (rental_agreement_number, swap_datetime, old_plate, old_kms, old_fuel, 
@@ -53612,8 +53612,8 @@ async def vehicle_swap(request: Request):
                     logging.info(f"✅ Marked {inspections_updated} check-in inspection(s) as replaced")
                     
                     # Record swap in history
-                    logging.info(f"🔄 [SWAP INSERT] About to insert swap record for RA {ra}")
-                    logging.info(f"🔄 [SWAP INSERT] Data: {old_plate} → {new_plate}, datetime={swap_datetime}, employee={user.get('name')}")
+                    logging.info(f"🔄 [SWAP INSERT - SQLite] About to insert swap record for RA '{ra}' (type: {type(ra).__name__}, length: {len(ra) if ra else 0})")
+                    logging.info(f"🔄 [SWAP INSERT - SQLite] Data: {old_plate} → {new_plate}, datetime={swap_datetime}, employee={user.get('name')}")
                     cur.execute("""
                         INSERT INTO vehicle_swaps 
                         (rental_agreement_number, swap_datetime, old_plate, old_kms, old_fuel, 
