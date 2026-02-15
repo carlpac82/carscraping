@@ -56038,15 +56038,6 @@ async def delete_ra_complete(ra_number: str):
                     ra_deleted = cur.rowcount
                     logging.info(f"✅ Deleted {ra_deleted} rental agreement")
                     
-                    # 5. Mark vehicles as available (get plates from deleted inspections)
-                    cur.execute("""
-                        UPDATE fleet_vehicles 
-                        SET status = 'disponivel', current_rental_agreement = NULL
-                        WHERE current_rental_agreement = %s
-                    """, (ra_number,))
-                    vehicles_updated = cur.rowcount
-                    logging.info(f"✅ Marked {vehicles_updated} vehicles as available")
-                    
                     conn.commit()
                     
                     return JSONResponse({
@@ -56056,8 +56047,7 @@ async def delete_ra_complete(ra_number: str):
                             "swaps": swaps_deleted,
                             "inspections": inspections_deleted,
                             "inspection_numbers": inspection_numbers,
-                            "rental_agreement": ra_deleted,
-                            "vehicles_updated": vehicles_updated
+                            "rental_agreement": ra_deleted
                         }
                     })
                     
@@ -56086,15 +56076,6 @@ async def delete_ra_complete(ra_number: str):
                     ra_deleted = cur.rowcount
                     logging.info(f"✅ Deleted {ra_deleted} rental agreement")
                     
-                    # 5. Mark vehicles as available
-                    cur.execute("""
-                        UPDATE fleet_vehicles 
-                        SET status = 'disponivel', current_rental_agreement = NULL
-                        WHERE current_rental_agreement = ?
-                    """, (ra_number,))
-                    vehicles_updated = cur.rowcount
-                    logging.info(f"✅ Marked {vehicles_updated} vehicles as available")
-                    
                     conn.commit()
                     
                     return JSONResponse({
@@ -56104,8 +56085,7 @@ async def delete_ra_complete(ra_number: str):
                             "swaps": swaps_deleted,
                             "inspections": inspections_deleted,
                             "inspection_numbers": inspection_numbers,
-                            "rental_agreement": ra_deleted,
-                            "vehicles_updated": vehicles_updated
+                            "rental_agreement": ra_deleted
                         }
                     })
                     
