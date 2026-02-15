@@ -53212,10 +53212,11 @@ async def get_available_vehicles(request: Request):
                             SELECT DISTINCT v.matricula, v.marca, v.modelo, v.km_atual, v.nivel_combustivel, v.grupo
                             FROM vehicles v
                             WHERE v.matricula NOT IN (
-                                SELECT DISTINCT ra.license_plate
-                                FROM rental_agreements ra
-                                WHERE ra.status = 'active'
-                                AND ra.license_plate IS NOT NULL
+                                SELECT DISTINCT ON (license_plate) license_plate
+                                FROM rental_agreements
+                                WHERE status = 'active'
+                                AND license_plate IS NOT NULL
+                                ORDER BY license_plate, created_at DESC
                             )
                             AND v.matricula IS NOT NULL
                             ORDER BY v.matricula
@@ -53227,10 +53228,14 @@ async def get_available_vehicles(request: Request):
                         SELECT DISTINCT v.matricula, v.marca, v.modelo, v.km_atual, v.nivel_combustivel, v.grupo
                         FROM vehicles v
                         WHERE v.matricula NOT IN (
-                            SELECT DISTINCT ra.license_plate
-                            FROM rental_agreements ra
-                            WHERE ra.status = 'active'
-                            AND ra.license_plate IS NOT NULL
+                            SELECT license_plate
+                            FROM (
+                                SELECT license_plate, MAX(created_at) as max_date
+                                FROM rental_agreements
+                                WHERE status = 'active'
+                                AND license_plate IS NOT NULL
+                                GROUP BY license_plate
+                            ) latest
                         )
                         AND v.matricula IS NOT NULL
                         ORDER BY v.matricula
