@@ -1756,9 +1756,17 @@
                 }
             }
             
-            // Fetch rental agreement data for vehicle info and return date
+            // Use expected_return_date from contract first (handles swaps correctly)
             let expectedReturnDate = null;
             let expectedReturnTime = null;
+            
+            // Priority 1: Use expected_return_date from contract (already in backend response)
+            if (contract && contract.expected_return_date) {
+                expectedReturnDate = contract.expected_return_date.replace(/\s*-\s*/g, '/').trim();
+                console.log('📅 Using expected_return_date from contract:', expectedReturnDate);
+            }
+            
+            // Fetch rental agreement data for vehicle info and return time
             const raNumber = contract && contract.contract_number;
             if (raNumber) {
                 try {
@@ -1799,13 +1807,15 @@
                             }
                         }
                         // Get expected return date and time (try multiple field names)
-                        let rawDate = ed.returnDate || ed.return_date || ed.data_entrega || ed.dropOffDate || ed.dataEntrega || null;
-                        let rawTime = ed.returnTime || ed.return_time || ed.hora_entrega || ed.dropOffTime || ed.horaEntrega || null;
-                        // Normalize date format: "21 - 01 - 2026" -> "21/01/2026"
-                        if (rawDate) {
-                            expectedReturnDate = rawDate.replace(/\s*-\s*/g, '/').trim();
+                        // Only use date from extracted_data if not already set from contract
+                        if (!expectedReturnDate) {
+                            let rawDate = ed.returnDate || ed.return_date || ed.data_entrega || ed.dropOffDate || ed.dataEntrega || null;
+                            if (rawDate) {
+                                expectedReturnDate = rawDate.replace(/\s*-\s*/g, '/').trim();
+                            }
                         }
-                        // Normalize time format: "10 : 00" -> "10:00"
+                        // Always try to get time from extracted_data
+                        let rawTime = ed.returnTime || ed.return_time || ed.hora_entrega || ed.dropOffTime || ed.horaEntrega || null;
                         if (rawTime) {
                             expectedReturnTime = rawTime.replace(/\s*:\s*/g, ':').trim();
                         }
