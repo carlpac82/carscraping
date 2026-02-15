@@ -5736,45 +5736,63 @@
             document.getElementById('vehicleSwapModal').classList.add('hidden');
         }
         
-        // Setup event listeners for vehicle swap modal
-        document.addEventListener('DOMContentLoaded', function() {
-            // Old fuel change - update canvas
-            const oldFuelSelect = document.getElementById('swapOldFuel');
-            if (oldFuelSelect) {
-                oldFuelSelect.addEventListener('change', function() {
-                    const fuelLevel = parseFloat(this.value) || 0;
-                    drawFuelGauge('swapOldFuelCanvas', fuelLevel);
-                });
-            }
+        // Setup event listeners for vehicle swap modal - execute immediately
+        (function setupVehicleSwapListeners() {
+            // Wait for DOM to be ready
+            const setup = function() {
+                console.log('🔧 Setting up vehicle swap event listeners...');
+                
+                // Old fuel change - update canvas
+                const oldFuelSelect = document.getElementById('swapOldFuel');
+                if (oldFuelSelect) {
+                    oldFuelSelect.addEventListener('change', function() {
+                        const fuelLevel = parseFloat(this.value) || 0;
+                        console.log('⛽ Old fuel changed to:', fuelLevel);
+                        drawFuelGauge('swapOldFuelCanvas', fuelLevel);
+                    });
+                    console.log('✅ Old fuel listener attached');
+                }
+                
+                // Group change - filter vehicles
+                const groupSelect = document.getElementById('swapNewGroup');
+                if (groupSelect) {
+                    groupSelect.addEventListener('change', function() {
+                        console.log('🏷️ Group changed to:', this.value);
+                        filterVehiclesByGroup(this.value);
+                    });
+                    console.log('✅ Group listener attached');
+                }
+                
+                // New plate change - auto-fill data
+                const newPlateSelect = document.getElementById('swapNewPlate');
+                if (newPlateSelect) {
+                    newPlateSelect.addEventListener('change', function() {
+                        const selectedOption = this.options[this.selectedIndex];
+                        if (selectedOption.value) {
+                            const odometer = selectedOption.dataset.odometer || 0;
+                            const fuelLevel = parseFloat(selectedOption.dataset.fuelLevel) || 0;
+                            
+                            console.log('🚗 New plate selected:', selectedOption.value, 'KMs:', odometer, 'Fuel:', fuelLevel);
+                            
+                            document.getElementById('swapNewKms').value = odometer;
+                            document.getElementById('swapNewFuelDisplay').value = `${fuelLevel}%`;
+                            drawFuelGauge('swapNewFuelCanvas', fuelLevel);
+                        } else {
+                            document.getElementById('swapNewKms').value = '';
+                            document.getElementById('swapNewFuelDisplay').value = '';
+                            drawFuelGauge('swapNewFuelCanvas', 0);
+                        }
+                    });
+                    console.log('✅ New plate listener attached');
+                }
+            };
             
-            // Group change - filter vehicles
-            const groupSelect = document.getElementById('swapNewGroup');
-            if (groupSelect) {
-                groupSelect.addEventListener('change', function() {
-                    filterVehiclesByGroup(this.value);
-                });
+            if (document.readyState === 'loading') {
+                document.addEventListener('DOMContentLoaded', setup);
+            } else {
+                setup();
             }
-            
-            // New plate change - auto-fill data
-            const newPlateSelect = document.getElementById('swapNewPlate');
-            if (newPlateSelect) {
-                newPlateSelect.addEventListener('change', function() {
-                    const selectedOption = this.options[this.selectedIndex];
-                    if (selectedOption.value) {
-                        const odometer = selectedOption.dataset.odometer || 0;
-                        const fuelLevel = parseFloat(selectedOption.dataset.fuelLevel) || 0;
-                        
-                        document.getElementById('swapNewKms').value = odometer;
-                        document.getElementById('swapNewFuelDisplay').value = `${fuelLevel}%`;
-                        drawFuelGauge('swapNewFuelCanvas', fuelLevel);
-                    } else {
-                        document.getElementById('swapNewKms').value = '';
-                        document.getElementById('swapNewFuelDisplay').value = '';
-                        drawFuelGauge('swapNewFuelCanvas', 0);
-                    }
-                });
-            }
-        });
+        })();
         
         // Confirm vehicle swap
         async function confirmVehicleSwap() {
