@@ -1770,7 +1770,16 @@
                     // Store RA data globally for debugging
                     window.currentRAData = raData.rental_agreement;
                     if (raData.success && raData.rental_agreement && raData.rental_agreement.extracted_data) {
-                        const ed = raData.rental_agreement.extracted_data;
+                        // Parse extracted_data if it's a string
+                        let ed = raData.rental_agreement.extracted_data;
+                        if (typeof ed === 'string') {
+                            try {
+                                ed = JSON.parse(ed);
+                                console.log('📄 Parsed extracted_data from string');
+                            } catch (e) {
+                                console.error('Error parsing extracted_data:', e);
+                            }
+                        }
                         console.log('📄 extracted_data object:', ed);
                         console.log('📄 ed.return_date:', ed.return_date);
                         console.log('📄 ed.return_time:', ed.return_time);

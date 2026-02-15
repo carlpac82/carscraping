@@ -55894,6 +55894,114 @@ async def manual_swap_fix(request: Request):
             "error": str(e)
         }, status_code=500)
 
+@app.post("/api/cleanup-duplicate-swaps")
+async def cleanup_duplicate_swaps(request: Request):
+    """Remove duplicate vehicle swap records for a specific RA"""
+    try:
+        data = await request.json()
+        ra = data.get('rental_agreement_number')
+        
+        if not ra:
+            return JSONResponse({
+                "ok": False,
+                "error": "rental_agreement_number is required"
+            }, status_code=400)
+        
+        logging.info(f"🧹 Cleaning up duplicate swaps for RA {ra}")
+        
+        with _db_lock:
+            conn = _db_connect()
+            is_postgres = _is_postgresql_connection(conn)
+            
+            try:
+                if is_postgres:
+                    cur = conn.cursor()
+                    # Get all swaps for this RA
+                    cur.execute("""
+                        SELECT id, swap_datetime, old_plate, new_plate
+                        FROM vehicle_swaps
+                        WHERE rental_agreement_number = %s
+                        ORDER BY swap_datetime DESC
+                    """, (ra,))
+                    swaps = cur.fetchall()
+                    
+                    if len(swaps) <= 1:
+                        return JSONResponse({
+                            "ok": True,
+                            "message": "No duplicates found",
+                            "count": len(swaps)
+                        })
+                    
+                    # Keep the most recent one, delete the rest
+                    keep_id = swaps[0][0]
+                    delete_ids = [s[0] for s in swaps[1:]]
+                    
+                    cur.execute("""
+                        DELETE FROM vehicle_swaps
+                        WHERE id = ANY(%s)
+                    """, (delete_ids,))
+                    
+                    conn.commit()
+                    
+                    logging.info(f"✅ Kept swap ID {keep_id}, deleted {len(delete_ids)} duplicates")
+                    return JSONResponse({
+                        "ok": True,
+                        "message": f"Deleted {len(delete_ids)} duplicate swaps",
+                        "kept_id": keep_id,
+                        "deleted_ids": delete_ids
+                    })
+                else:
+                    cur = conn.cursor()
+                    # Get all swaps for this RA
+                    cur.execute("""
+                        SELECT id, swap_datetime, old_plate, new_plate
+                        FROM vehicle_swaps
+                        WHERE rental_agreement_number = ?
+                        ORDER BY swap_datetime DESC
+                    """, (ra,))
+                    swaps = cur.fetchall()
+                    
+                    if len(swaps) <= 1:
+                        return JSONResponse({
+                            "ok": True,
+                            "message": "No duplicates found",
+                            "count": len(swaps)
+                        })
+                    
+                    # Keep the most recent one, delete the rest
+                    keep_id = swaps[0][0]
+                    delete_ids = [s[0] for s in swaps[1:]]
+                    
+                    placeholders = ','.join('?' * len(delete_ids))
+                    cur.execute(f"""
+                        DELETE FROM vehicle_swaps
+                        WHERE id IN ({placeholders})
+                    """, delete_ids)
+                    
+                    conn.commit()
+                    
+                    logging.info(f"✅ Kept swap ID {keep_id}, deleted {len(delete_ids)} duplicates")
+                    return JSONResponse({
+                        "ok": True,
+                        "message": f"Deleted {len(delete_ids)} duplicate swaps",
+                        "kept_id": keep_id,
+                        "deleted_ids": delete_ids
+                    })
+                    
+            except Exception as e:
+                conn.rollback()
+                logging.error(f"Error cleaning up duplicate swaps: {e}")
+                raise
+            finally:
+                conn.close()
+                
+    except Exception as e:
+        logging.error(f"Error in cleanup duplicate swaps: {e}")
+        return JSONResponse({
+            "ok": False,
+            "error": str(e)
+        }, status_code=500)
+
 if __name__ == "__main__":
     import uvicorn
     uvicorn.run(app, host="0.0.0.0", port=8000)
