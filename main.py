@@ -50400,7 +50400,6 @@ async def get_inspections_history(request: Request):
                             LEFT JOIN vehicle_inspections vi ON vi.vehicle_plate = vs.old_plate 
                                 AND vi.contract_number LIKE %s
                                 AND vi.inspection_type = 'checkin'
-                                AND COALESCE(vi.status, '') != 'replaced'
                             WHERE vs.rental_agreement_number = %s
                             ORDER BY vs.swap_datetime DESC
                         """, (f"{ra_number}%", ra_number))
@@ -50412,7 +50411,6 @@ async def get_inspections_history(request: Request):
                             LEFT JOIN vehicle_inspections vi ON vi.vehicle_plate = vs.old_plate 
                                 AND vi.contract_number LIKE ?
                                 AND vi.inspection_type = 'checkin'
-                                AND COALESCE(vi.status, '') != 'replaced'
                             WHERE vs.rental_agreement_number = ?
                             ORDER BY vs.swap_datetime DESC
                         """, (f"{ra_number}%", ra_number))
@@ -54089,6 +54087,85 @@ async def debug_vehicle_availability(request: Request, plate: str):
     
     except Exception as e:
         logging.error(f"Error debugging vehicle availability: {e}")
+        import traceback
+        logging.error(traceback.format_exc())
+        return JSONResponse({
+            "success": False,
+            "error": str(e)
+        }, status_code=500)
+
+@app.get("/api/admin/check-swaps")
+async def check_swaps(request: Request, ra: str = None):
+    """Check vehicle_swaps table for debugging"""
+    require_admin(request)
+    
+    try:
+        with _db_lock:
+            conn = _db_connect()
+            is_postgres = _is_postgresql_connection(conn)
+            
+            if is_postgres:
+                cur = conn.cursor()
+                if ra:
+                    cur.execute("""
+                        SELECT id, rental_agreement_number, swap_datetime, 
+                               old_plate, new_plate, employee_name
+                        FROM vehicle_swaps
+                        WHERE rental_agreement_number = %s
+                        ORDER BY swap_datetime DESC
+                    """, (ra,))
+                else:
+                    cur.execute("""
+                        SELECT id, rental_agreement_number, swap_datetime, 
+                               old_plate, new_plate, employee_name
+                        FROM vehicle_swaps
+                        ORDER BY swap_datetime DESC
+                        LIMIT 20
+                    """)
+                swaps = cur.fetchall()
+                cur.close()
+            else:
+                cur = conn.cursor()
+                if ra:
+                    cur.execute("""
+                        SELECT id, rental_agreement_number, swap_datetime, 
+                               old_plate, new_plate, employee_name
+                        FROM vehicle_swaps
+                        WHERE rental_agreement_number = ?
+                        ORDER BY swap_datetime DESC
+                    """, (ra,))
+                else:
+                    cur.execute("""
+                        SELECT id, rental_agreement_number, swap_datetime, 
+                               old_plate, new_plate, employee_name
+                        FROM vehicle_swaps
+                        ORDER BY swap_datetime DESC
+                        LIMIT 20
+                    """)
+                swaps = cur.fetchall()
+                cur.close()
+            
+            conn.close()
+            
+            result = []
+            for swap in swaps:
+                result.append({
+                    "id": swap[0],
+                    "ra": swap[1],
+                    "datetime": swap[2],
+                    "old_plate": swap[3],
+                    "new_plate": swap[4],
+                    "employee": swap[5]
+                })
+            
+            return JSONResponse({
+                "success": True,
+                "count": len(result),
+                "swaps": result
+            })
+    
+    except Exception as e:
+        logging.error(f"Error checking swaps: {e}")
         import traceback
         logging.error(traceback.format_exc())
         return JSONResponse({
