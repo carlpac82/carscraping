@@ -21566,6 +21566,44 @@ async def startup_vehicle_inspections():
                 )
             """)
         
+        # Create vehicle_swaps table
+        if is_postgres:
+            conn.execute("""
+                CREATE TABLE IF NOT EXISTS vehicle_swaps (
+                    id SERIAL PRIMARY KEY,
+                    rental_agreement_number TEXT NOT NULL,
+                    swap_datetime TIMESTAMP NOT NULL,
+                    old_plate TEXT NOT NULL,
+                    old_kms INTEGER,
+                    old_fuel REAL,
+                    new_plate TEXT NOT NULL,
+                    new_kms INTEGER,
+                    new_fuel REAL,
+                    employee_name TEXT,
+                    employee_email TEXT,
+                    created_inspection_number TEXT,
+                    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+                )
+            """)
+        else:
+            conn.execute("""
+                CREATE TABLE IF NOT EXISTS vehicle_swaps (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    rental_agreement_number TEXT NOT NULL,
+                    swap_datetime TIMESTAMP NOT NULL,
+                    old_plate TEXT NOT NULL,
+                    old_kms INTEGER,
+                    old_fuel REAL,
+                    new_plate TEXT NOT NULL,
+                    new_kms INTEGER,
+                    new_fuel REAL,
+                    employee_name TEXT,
+                    employee_email TEXT,
+                    created_inspection_number TEXT,
+                    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+                )
+            """)
+        
         # Migração: Adicionar coluna pdf_data à tabela parking_qr_codes se não existir
         try:
             if is_postgres:
@@ -21586,7 +21624,7 @@ async def startup_vehicle_inspections():
         
         conn.commit()
         conn.close()
-        logging.info("✅ Vehicle inspection tables ready")
+        logging.info("✅ Vehicle inspection tables ready (including vehicle_swaps)")
     except Exception as e:
         logging.error(f"Error creating vehicle inspection tables: {e}")
 
@@ -53062,6 +53100,189 @@ async def get_vehicle_by_plate(plate: str, request: Request):
         logging.error(f"Error getting vehicle by plate: {e}")
         return JSONResponse({
             "ok": False,
+            "error": str(e)
+        }, status_code=500)
+
+@app.get("/api/vehicles/groups")
+async def get_vehicle_groups(request: Request):
+    """Get all vehicle groups from fleet"""
+    require_auth(request)
+    
+    try:
+        with _db_lock:
+            con = _db_connect()
+            is_postgres = _is_postgresql_connection(con)
+            try:
+                if is_postgres:
+                    with con.cursor() as cur:
+                        cur.execute("""
+                            SELECT DISTINCT grupo FROM vehicles 
+                            WHERE grupo IS NOT NULL AND grupo != ''
+                            ORDER BY grupo
+                        """)
+                        rows = cur.fetchall()
+                else:
+                    cur = con.execute("""
+                        SELECT DISTINCT grupo FROM vehicles 
+                        WHERE grupo IS NOT NULL AND grupo != ''
+                        ORDER BY grupo
+                    """)
+                    rows = cur.fetchall()
+                
+                groups = [row[0] for row in rows if row[0]]
+                
+                return JSONResponse({
+                    "success": True,
+                    "groups": groups
+                })
+            finally:
+                con.close()
+    except Exception as e:
+        logging.error(f"Error getting vehicle groups: {e}")
+        return JSONResponse({
+            "success": False,
+            "error": str(e)
+        }, status_code=500)
+
+@app.get("/api/vehicles/by-group/{group}")
+async def get_vehicles_by_group(group: str, request: Request):
+    """Get all vehicles in a specific group"""
+    require_auth(request)
+    
+    try:
+        with _db_lock:
+            con = _db_connect()
+            is_postgres = _is_postgresql_connection(con)
+            try:
+                if is_postgres:
+                    with con.cursor() as cur:
+                        cur.execute("""
+                            SELECT matricula, marca, modelo, grupo, km_atual
+                            FROM vehicles 
+                            WHERE grupo = %s
+                            ORDER BY matricula
+                        """, (group,))
+                        rows = cur.fetchall()
+                else:
+                    cur = con.execute("""
+                        SELECT matricula, marca, modelo, grupo, km_atual
+                        FROM vehicles 
+                        WHERE grupo = ?
+                        ORDER BY matricula
+                    """, (group,))
+                    rows = cur.fetchall()
+                
+                vehicles = []
+                for row in rows:
+                    vehicles.append({
+                        "plate": row[0],
+                        "brand": row[1] or 'N/A',
+                        "model": row[2] or 'N/A',
+                        "group": row[3] or 'N/A',
+                        "km": row[4] or 0
+                    })
+                
+                return JSONResponse({
+                    "success": True,
+                    "vehicles": vehicles
+                })
+            finally:
+                con.close()
+    except Exception as e:
+        logging.error(f"Error getting vehicles by group: {e}")
+        return JSONResponse({
+            "success": False,
+            "error": str(e)
+        }, status_code=500)
+
+@app.post("/api/vehicle-swap")
+async def vehicle_swap(request: Request):
+    """Process vehicle swap for a rental agreement"""
+    user = require_auth(request)
+    
+    try:
+        data = await request.json()
+        ra = data.get('ra')
+        swap_datetime = data.get('swap_datetime')
+        old_plate = data.get('old_plate')
+        old_kms = data.get('old_kms')
+        old_fuel = data.get('old_fuel')
+        new_plate = data.get('new_plate')
+        new_kms = data.get('new_kms')
+        new_fuel = data.get('new_fuel')
+        create_inspection = data.get('create_inspection', False)
+        
+        logging.info(f"🔄 Processing vehicle swap for RA {ra}: {old_plate} -> {new_plate}")
+        
+        with _db_lock:
+            conn = _db_connect()
+            is_postgres = _is_postgresql_connection(conn)
+            
+            try:
+                # Update rental agreement with new plate
+                if is_postgres:
+                    with conn.cursor() as cur:
+                        cur.execute("""
+                            UPDATE rental_agreements 
+                            SET license_plate = %s
+                            WHERE rental_agreement_number LIKE %s
+                        """, (new_plate, f"{ra}%"))
+                        
+                        # Update extracted_data JSON if it exists
+                        cur.execute("""
+                            UPDATE rental_agreements 
+                            SET extracted_data = jsonb_set(
+                                CAST(extracted_data AS jsonb),
+                                '{plate}',
+                                %s
+                            )
+                            WHERE rental_agreement_number LIKE %s 
+                            AND extracted_data IS NOT NULL
+                        """, (f'"{new_plate}"', f"{ra}%"))
+                        
+                        # Record swap in history
+                        cur.execute("""
+                            INSERT INTO vehicle_swaps 
+                            (rental_agreement_number, swap_datetime, old_plate, old_kms, old_fuel, 
+                             new_plate, new_kms, new_fuel, employee_name, employee_email)
+                            VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+                        """, (ra, swap_datetime, old_plate, old_kms, old_fuel, 
+                              new_plate, new_kms, new_fuel, user.get('name'), user.get('email')))
+                else:
+                    cur = conn.cursor()
+                    cur.execute("""
+                        UPDATE rental_agreements 
+                        SET license_plate = ?
+                        WHERE rental_agreement_number LIKE ?
+                    """, (new_plate, f"{ra}%"))
+                    
+                    # Record swap in history
+                    cur.execute("""
+                        INSERT INTO vehicle_swaps 
+                        (rental_agreement_number, swap_datetime, old_plate, old_kms, old_fuel, 
+                         new_plate, new_kms, new_fuel, employee_name, employee_email)
+                        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                    """, (ra, swap_datetime, old_plate, old_kms, old_fuel, 
+                          new_plate, new_kms, new_fuel, user.get('name'), user.get('email')))
+                
+                conn.commit()
+                
+                logging.info(f"✅ Vehicle swap completed: {old_plate} -> {new_plate} for RA {ra}")
+                
+                return JSONResponse({
+                    "success": True,
+                    "message": f"Troca de matrícula realizada com sucesso: {old_plate} -> {new_plate}"
+                })
+                
+            finally:
+                conn.close()
+                
+    except Exception as e:
+        logging.error(f"Error processing vehicle swap: {e}")
+        import traceback
+        logging.error(traceback.format_exc())
+        return JSONResponse({
+            "success": False,
             "error": str(e)
         }, status_code=500)
 

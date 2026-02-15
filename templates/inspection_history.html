@@ -292,6 +292,74 @@
         </div>
     </div>
 
+    <!-- Modal: Trocar Matrícula -->
+    <div id="vehicleSwapModal" class="hidden fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+        <div class="bg-white rounded-lg shadow-xl max-w-2xl w-full mx-4">
+            <div class="bg-[#f97316] text-white px-6 py-4 rounded-t-lg">
+                <h3 class="text-lg font-bold">🔄 Trocar Matrícula do Veículo</h3>
+            </div>
+            <div class="p-6">
+                <p class="text-gray-700 mb-4">Preencha os dados da troca de matrícula:</p>
+                
+                <div class="grid grid-cols-2 gap-4 mb-4">
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">Contrato (RA)</label>
+                        <input type="text" id="swapRANumber" readonly class="w-full px-4 py-2 border border-gray-300 rounded-lg bg-gray-50" />
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">Data/Hora da Troca</label>
+                        <input type="datetime-local" id="swapDateTime" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#f97316]" />
+                    </div>
+                </div>
+                
+                <div class="border-t border-gray-200 pt-4 mb-4">
+                    <h4 class="font-semibold text-gray-800 mb-3">Veículo Antigo</h4>
+                    <div class="grid grid-cols-3 gap-4">
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-2">Matrícula</label>
+                            <input type="text" id="swapOldPlate" readonly class="w-full px-4 py-2 border border-gray-300 rounded-lg bg-gray-50" />
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-2">KMs</label>
+                            <input type="number" id="swapOldKms" placeholder="0" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#f97316]" />
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-2">Combustível (%)</label>
+                            <input type="number" id="swapOldFuel" placeholder="0" min="0" max="100" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#f97316]" />
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="border-t border-gray-200 pt-4 mb-6">
+                    <h4 class="font-semibold text-gray-800 mb-3">Veículo Novo</h4>
+                    <div class="grid grid-cols-3 gap-4">
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-2">Matrícula *</label>
+                            <input type="text" id="swapNewPlate" placeholder="XX-XX-XX" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#f97316]" required />
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-2">KMs</label>
+                            <input type="number" id="swapNewKms" placeholder="0" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#f97316]" />
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-2">Combustível (%)</label>
+                            <input type="number" id="swapNewFuel" placeholder="0" min="0" max="100" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#f97316]" />
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="flex gap-3">
+                    <button onclick="closeVehicleSwapModal()" class="flex-1 px-4 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 transition-colors">
+                        Cancelar
+                    </button>
+                    <button onclick="confirmVehicleSwap()" class="flex-1 px-4 py-2 bg-[#f97316] text-white rounded-lg hover:bg-[#ea580c] transition-colors">
+                        Confirmar Troca
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <script>
         let contracts = [];
         const currentUser = {{ current_user | tojson if current_user else 'null' }};
@@ -1043,6 +1111,14 @@
                                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/>
                                         </svg>
                                         <span class="hidden sm:inline text-sm font-medium ${contract.self_checkout.status === 'validated' ? 'text-green-600' : contract.self_checkout.status === 'validated_with_incidence' ? 'text-orange-600' : contract.self_checkout.status === 'invalidated' ? 'text-red-600' : 'text-orange-600'}">Self Check-Out</span>
+                                    </button>
+                                    ` : ''}
+                                    ${isOpen ? `
+                                    <button onclick="showVehicleSwapModal('${contract.contract_number}', '${contract.vehicle_plate}')" class="flex items-center gap-2 px-3 py-2 bg-orange-50 hover:bg-orange-100 rounded-lg transition-colors" title="Trocar Matrícula">
+                                        <svg class="w-6 h-6 text-[#f97316]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4"/>
+                                        </svg>
+                                        <span class="hidden sm:inline text-sm font-medium text-[#f97316]">Trocar</span>
                                     </button>
                                     ` : ''}
                                     <button onclick="showEmailModal(${contract.checkout ? `'${contract.checkout.inspection_number}'` : 'null'}, ${contract.checkin ? `'${contract.checkin.inspection_number}'` : 'null'}, '${contract.vehicle_plate}', '${contract.contract_number}', ${isOpen}, ${hasSelfCheckout})" class="flex items-center gap-2 px-3 py-2 bg-yellow-50 hover:bg-yellow-100 rounded-lg transition-colors" title="Enviar por Email">
@@ -5503,6 +5579,98 @@
             document.getElementById('selfCheckoutEmailModal').classList.add('hidden');
         }
         
+        // Show vehicle swap modal
+        function showVehicleSwapModal(raNumber, currentPlate) {
+            console.log('🔄 Opening vehicle swap modal for RA:', raNumber, 'Plate:', currentPlate);
+            
+            document.getElementById('swapRANumber').value = raNumber;
+            document.getElementById('swapOldPlate').value = currentPlate;
+            
+            // Set current datetime
+            const now = new Date();
+            const localDateTime = new Date(now.getTime() - now.getTimezoneOffset() * 60000).toISOString().slice(0, 16);
+            document.getElementById('swapDateTime').value = localDateTime;
+            
+            // Clear other fields
+            document.getElementById('swapOldKms').value = '';
+            document.getElementById('swapOldFuel').value = '';
+            document.getElementById('swapNewPlate').value = '';
+            document.getElementById('swapNewKms').value = '';
+            document.getElementById('swapNewFuel').value = '';
+            
+            // Show modal
+            document.getElementById('vehicleSwapModal').classList.remove('hidden');
+        }
+        
+        // Close vehicle swap modal
+        function closeVehicleSwapModal() {
+            document.getElementById('vehicleSwapModal').classList.add('hidden');
+        }
+        
+        // Confirm vehicle swap
+        async function confirmVehicleSwap() {
+            const ra = document.getElementById('swapRANumber').value;
+            const swapDateTime = document.getElementById('swapDateTime').value;
+            const oldPlate = document.getElementById('swapOldPlate').value;
+            const oldKms = document.getElementById('swapOldKms').value;
+            const oldFuel = document.getElementById('swapOldFuel').value;
+            const newPlate = document.getElementById('swapNewPlate').value.trim().toUpperCase();
+            const newKms = document.getElementById('swapNewKms').value;
+            const newFuel = document.getElementById('swapNewFuel').value;
+            
+            if (!newPlate) {
+                showNotification('Por favor, insira a nova matrícula', 'error');
+                return;
+            }
+            
+            if (!swapDateTime) {
+                showNotification('Por favor, selecione a data/hora da troca', 'error');
+                return;
+            }
+            
+            // Confirm with user
+            const confirmed = await showConfirmModal(
+                'Confirmar Troca de Matrícula',
+                `Tem a certeza que deseja trocar a matrícula de ${oldPlate} para ${newPlate} no contrato ${ra}?`,
+                'Confirmar',
+                'Cancelar'
+            );
+            
+            if (!confirmed) return;
+            
+            try {
+                showNotification('A processar troca de matrícula...', 'info');
+                
+                const response = await fetch('/api/vehicle-swap', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        ra: ra,
+                        swap_datetime: swapDateTime,
+                        old_plate: oldPlate,
+                        old_kms: oldKms ? parseInt(oldKms) : null,
+                        old_fuel: oldFuel ? parseFloat(oldFuel) : null,
+                        new_plate: newPlate,
+                        new_kms: newKms ? parseInt(newKms) : null,
+                        new_fuel: newFuel ? parseFloat(newFuel) : null
+                    })
+                });
+                
+                const result = await response.json();
+                
+                if (result.success) {
+                    showNotification(`✅ ${result.message}`, 'success');
+                    closeVehicleSwapModal();
+                    await loadHistory(true);
+                } else {
+                    showNotification('Erro: ' + (result.error || 'Erro desconhecido'), 'error');
+                }
+            } catch (error) {
+                console.error('Error swapping vehicle:', error);
+                showNotification('Erro ao processar troca: ' + error.message, 'error');
+            }
+        }
+        
         // Send self-checkout link directly with provided email
         async function sendSelfCheckoutLinkDirect(raNumber, clientEmail) {
             try {
@@ -6191,6 +6359,243 @@
             } catch (error) {
                 console.error('Error sending parking QR email:', error);
                 showNotification('Erro ao enviar email: ' + error.message, 'error');
+            }
+        }
+
+        // Vehicle swap modal
+        async function showVehicleSwapModal(ra, currentPlate) {
+            console.log('🔄 Opening vehicle swap modal for RA:', ra, 'Current plate:', currentPlate);
+            
+            // Get current vehicle data
+            let currentFuel = 100;
+            let currentKms = 0;
+            let vehicleGroup = '';
+            
+            try {
+                const response = await fetch(`/api/get_inspection?plate=${currentPlate}&ra=${ra}&type=checkin`);
+                const data = await response.json();
+                if (data.success && data.inspection) {
+                    currentFuel = data.inspection.fuel_level || 100;
+                    currentKms = data.inspection.odometer_reading || 0;
+                }
+            } catch (e) {
+                console.error('Error fetching current vehicle data:', e);
+            }
+            
+            // Get vehicle groups from fleet
+            let groupsHtml = '<option value="">Selecionar grupo...</option>';
+            try {
+                const groupsResponse = await fetch('/api/vehicles/groups');
+                const groupsData = await groupsResponse.json();
+                if (groupsData.success && groupsData.groups) {
+                    groupsData.groups.forEach(group => {
+                        groupsHtml += `<option value="${group}">${group}</option>`;
+                    });
+                }
+            } catch (e) {
+                console.error('Error fetching vehicle groups:', e);
+            }
+            
+            const modal = document.createElement('div');
+            modal.className = 'fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-[9999] overflow-y-auto';
+            modal.innerHTML = `
+                <div class="bg-white rounded-lg max-w-2xl w-full mx-4 my-8 p-6 max-h-[90vh] overflow-y-auto">
+                    <h3 class="text-xl font-bold text-[#009cb6] mb-4">Trocar Matrícula - RA ${ra}</h3>
+                    
+                    <div class="space-y-4">
+                        <!-- Data e Hora da Troca -->
+                        <div class="grid grid-cols-2 gap-4">
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-2">Data da Troca</label>
+                                <input type="date" id="swapDate" value="${new Date().toISOString().split('T')[0]}" 
+                                       class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#009cb6]">
+                            </div>
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-2">Hora da Troca</label>
+                                <input type="time" id="swapTime" value="${new Date().toTimeString().slice(0,5)}" 
+                                       class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#009cb6]">
+                            </div>
+                        </div>
+                        
+                        <!-- Viatura Atual -->
+                        <div class="bg-gray-50 p-4 rounded-lg">
+                            <h4 class="font-semibold text-gray-700 mb-3">Viatura Atual: ${currentPlate}</h4>
+                            <div class="grid grid-cols-2 gap-4">
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-700 mb-2">Quilómetros</label>
+                                    <input type="number" id="oldKms" value="${currentKms}" 
+                                           class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#009cb6]">
+                                </div>
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-700 mb-2">Combustível (%)</label>
+                                    <select id="oldFuel" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#009cb6]">
+                                        <option value="100" ${currentFuel === 100 ? 'selected' : ''}>Cheio</option>
+                                        <option value="87.5" ${currentFuel === 87.5 ? 'selected' : ''}>7/8</option>
+                                        <option value="75" ${currentFuel === 75 ? 'selected' : ''}>3/4</option>
+                                        <option value="62.5" ${currentFuel === 62.5 ? 'selected' : ''}>5/8</option>
+                                        <option value="50" ${currentFuel === 50 ? 'selected' : ''}>1/2</option>
+                                        <option value="37.5" ${currentFuel === 37.5 ? 'selected' : ''}>3/8</option>
+                                        <option value="25" ${currentFuel === 25 ? 'selected' : ''}>1/4</option>
+                                        <option value="12.5" ${currentFuel === 12.5 ? 'selected' : ''}>1/8</option>
+                                        <option value="0" ${currentFuel === 0 ? 'selected' : ''}>Reserva</option>
+                                    </select>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- Nova Viatura -->
+                        <div class="bg-green-50 p-4 rounded-lg">
+                            <h4 class="font-semibold text-gray-700 mb-3">Nova Viatura</h4>
+                            <div class="grid grid-cols-2 gap-4 mb-4">
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-700 mb-2">Grupo</label>
+                                    <select id="newGroup" onchange="loadVehiclesByGroup(this.value)" 
+                                            class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#009cb6]">
+                                        ${groupsHtml}
+                                    </select>
+                                </div>
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-700 mb-2">Matrícula</label>
+                                    <select id="newPlate" 
+                                            class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#009cb6]">
+                                        <option value="">Selecionar matrícula...</option>
+                                    </select>
+                                </div>
+                            </div>
+                            <div class="grid grid-cols-2 gap-4">
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-700 mb-2">Quilómetros</label>
+                                    <input type="number" id="newKms" value="0" 
+                                           class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#009cb6]">
+                                </div>
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-700 mb-2">Combustível (%)</label>
+                                    <select id="newFuel" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#009cb6]">
+                                        <option value="100" selected>Cheio</option>
+                                        <option value="87.5">7/8</option>
+                                        <option value="75">3/4</option>
+                                        <option value="62.5">5/8</option>
+                                        <option value="50">1/2</option>
+                                        <option value="37.5">3/8</option>
+                                        <option value="25">1/4</option>
+                                        <option value="12.5">1/8</option>
+                                        <option value="0">Reserva</option>
+                                    </select>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- Nova Inspeção (Opcional) -->
+                        <div class="flex items-center gap-2">
+                            <input type="checkbox" id="createNewInspection" class="w-4 h-4 text-[#009cb6] border-gray-300 rounded focus:ring-[#009cb6]">
+                            <label for="createNewInspection" class="text-sm font-medium text-gray-700">Criar nova inspeção para a nova viatura (opcional)</label>
+                        </div>
+                    </div>
+                    
+                    <div class="flex gap-3 mt-6">
+                        <button onclick="closeVehicleSwapModal()" 
+                                class="flex-1 px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors">
+                            Cancelar
+                        </button>
+                        <button onclick="submitVehicleSwap('${ra}', '${currentPlate}')" 
+                                class="flex-1 px-4 py-2 bg-[#009cb6] text-white rounded-lg hover:bg-[#007a8f] transition-colors font-semibold">
+                            Confirmar Troca
+                        </button>
+                    </div>
+                </div>
+            `;
+            
+            document.body.appendChild(modal);
+            window.currentVehicleSwapModal = modal;
+        }
+        
+        function closeVehicleSwapModal() {
+            if (window.currentVehicleSwapModal) {
+                document.body.removeChild(window.currentVehicleSwapModal);
+                window.currentVehicleSwapModal = null;
+            }
+        }
+        
+        async function loadVehiclesByGroup(group) {
+            if (!group) {
+                document.getElementById('newPlate').innerHTML = '<option value="">Selecionar matrícula...</option>';
+                return;
+            }
+            
+            try {
+                const response = await fetch(`/api/vehicles/by-group/${encodeURIComponent(group)}`);
+                const data = await response.json();
+                
+                let options = '<option value="">Selecionar matrícula...</option>';
+                if (data.success && data.vehicles) {
+                    data.vehicles.forEach(vehicle => {
+                        options += `<option value="${vehicle.plate}">${vehicle.plate} - ${vehicle.brand} ${vehicle.model}</option>`;
+                    });
+                }
+                
+                document.getElementById('newPlate').innerHTML = options;
+            } catch (e) {
+                console.error('Error loading vehicles by group:', e);
+                showNotification('Erro ao carregar viaturas do grupo', 'error');
+            }
+        }
+        
+        async function submitVehicleSwap(ra, oldPlate) {
+            const swapDate = document.getElementById('swapDate').value;
+            const swapTime = document.getElementById('swapTime').value;
+            const oldKms = document.getElementById('oldKms').value;
+            const oldFuel = document.getElementById('oldFuel').value;
+            const newGroup = document.getElementById('newGroup').value;
+            const newPlate = document.getElementById('newPlate').value;
+            const newKms = document.getElementById('newKms').value;
+            const newFuel = document.getElementById('newFuel').value;
+            const createInspection = document.getElementById('createNewInspection').checked;
+            
+            // Validation
+            if (!swapDate || !swapTime) {
+                showNotification('Por favor preencha a data e hora da troca', 'error');
+                return;
+            }
+            
+            if (!newGroup || !newPlate) {
+                showNotification('Por favor selecione o grupo e a matrícula da nova viatura', 'error');
+                return;
+            }
+            
+            if (newPlate === oldPlate) {
+                showNotification('A nova matrícula não pode ser igual à atual', 'error');
+                return;
+            }
+            
+            try {
+                const response = await fetch('/api/vehicle-swap', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        ra: ra,
+                        swap_datetime: `${swapDate} ${swapTime}`,
+                        old_plate: oldPlate,
+                        old_kms: parseInt(oldKms),
+                        old_fuel: parseFloat(oldFuel),
+                        new_plate: newPlate,
+                        new_kms: parseInt(newKms),
+                        new_fuel: parseFloat(newFuel),
+                        create_inspection: createInspection
+                    })
+                });
+                
+                const data = await response.json();
+                
+                if (data.success) {
+                    showNotification('Troca de matrícula realizada com sucesso!', 'success');
+                    closeVehicleSwapModal();
+                    await loadHistory(true);
+                } else {
+                    showNotification('Erro ao realizar troca: ' + (data.error || 'Erro desconhecido'), 'error');
+                }
+            } catch (error) {
+                console.error('Error submitting vehicle swap:', error);
+                showNotification('Erro ao realizar troca: ' + error.message, 'error');
             }
         }
 
