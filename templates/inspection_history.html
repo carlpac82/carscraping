@@ -1653,9 +1653,11 @@
             // Fetch rental agreement data for vehicle info and return date
             let expectedReturnDate = null;
             let expectedReturnTime = null;
-            if (plate) {
+            const raNumber = contract && contract.contract_number;
+            if (raNumber) {
                 try {
-                    const raResponse = await fetch(`/api/rental-agreement/by-plate/${encodeURIComponent(plate)}`);
+                    // Buscar pelo RA number em vez de plate, porque o RA não muda quando há troca
+                    const raResponse = await fetch(`/api/rental-agreement/by-number/${encodeURIComponent(raNumber)}`);
                     const raData = await raResponse.json();
                     console.log('📄 RA API response:', raData);
                     console.log('📄 raData.rental_agreement:', raData.rental_agreement);
