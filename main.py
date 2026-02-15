@@ -36122,7 +36122,7 @@ async def delete_ra_parking_qr(ra_number: str, request: Request):
 
 @app.delete("/api/rental-agreements/{ra_number}")
 async def delete_rental_agreement(ra_number: str, request: Request):
-    """Delete a specific rental agreement"""
+    """Delete a specific rental agreement and all associated data"""
     try:
         require_inspection_access(request)
     except HTTPException:
@@ -36133,23 +36133,42 @@ async def delete_rental_agreement(ra_number: str, request: Request):
         conn = _db_connect()
         is_postgres = _is_postgresql_connection(conn)
         
-        deleted = 0
+        deleted_ra = 0
+        deleted_swaps = 0
         
         if is_postgres:
             with conn.cursor() as cur:
+                # Delete vehicle swaps first (foreign key constraint)
+                cur.execute("""
+                    DELETE FROM vehicle_swaps 
+                    WHERE rental_agreement_number = %s
+                """, (ra_num,))
+                deleted_swaps = cur.rowcount
+                logging.info(f"🗑️ Deleted {deleted_swaps} vehicle swap(s) for RA {ra_num}")
+                
+                # Delete rental agreement
                 cur.execute("""
                     DELETE FROM rental_agreements 
                     WHERE rental_agreement_number = %s
                 """, (ra_num,))
-                deleted = cur.rowcount
+                deleted_ra = cur.rowcount
             conn.commit()
         else:
             cursor = conn.cursor()
+            # Delete vehicle swaps first (foreign key constraint)
+            cursor.execute("""
+                DELETE FROM vehicle_swaps 
+                WHERE rental_agreement_number = ?
+            """, (ra_num,))
+            deleted_swaps = cursor.rowcount
+            logging.info(f"🗑️ Deleted {deleted_swaps} vehicle swap(s) for RA {ra_num}")
+            
+            # Delete rental agreement
             cursor.execute("""
                 DELETE FROM rental_agreements 
                 WHERE rental_agreement_number = ?
             """, (ra_num,))
-            deleted = cursor.rowcount
+            deleted_ra = cursor.rowcount
             conn.commit()
         
         conn.close()
@@ -36158,7 +36177,9 @@ async def delete_rental_agreement(ra_number: str, request: Request):
         return JSONResponse({
             "ok": True,
             "success": True,
-            "message": f"Rental agreement {ra_num} deleted successfully"
+            "message": f"Rental agreement {ra_num} deleted successfully",
+            "deleted_swaps": deleted_swaps,
+            "deleted_rental_agreement": deleted_ra
         })
     
     except Exception as e:
