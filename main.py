@@ -53295,6 +53295,51 @@ async def get_available_vehicles(request: Request):
             "error": str(e)
         }, status_code=500)
 
+@app.get("/api/vehicles/groups")
+async def get_vehicle_groups(request: Request):
+    """Get unique vehicle groups from fleet management, ordered alphabetically"""
+    require_auth(request)
+    
+    try:
+        with _db_lock:
+            conn = _db_connect()
+            is_postgres = _is_postgresql_connection(conn)
+            
+            try:
+                if is_postgres:
+                    with conn.cursor() as cur:
+                        cur.execute("""
+                            SELECT DISTINCT grupo
+                            FROM vehicles
+                            WHERE grupo IS NOT NULL AND grupo != ''
+                            ORDER BY grupo
+                        """)
+                        groups = [row[0] for row in cur.fetchall()]
+                else:
+                    cur = conn.cursor()
+                    cur.execute("""
+                        SELECT DISTINCT grupo
+                        FROM vehicles
+                        WHERE grupo IS NOT NULL AND grupo != ''
+                        ORDER BY grupo
+                    """)
+                    groups = [row[0] for row in cur.fetchall()]
+                
+                return JSONResponse({
+                    "success": True,
+                    "groups": groups
+                })
+                
+            finally:
+                conn.close()
+                
+    except Exception as e:
+        logging.error(f"Error getting vehicle groups: {e}")
+        return JSONResponse({
+            "success": False,
+            "error": str(e)
+        }, status_code=500)
+
 @app.post("/api/vehicle-swap")
 async def vehicle_swap(request: Request):
     """Process vehicle swap for a rental agreement"""

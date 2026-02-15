@@ -6,7 +6,7 @@
     <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
     <meta http-equiv="Pragma" content="no-cache">
     <meta http-equiv="Expires" content="0">
-    <title>Histórico de Inspeções - v16.0</title>
+    <title>Histórico de Inspeções - v17.0</title>
     <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
@@ -357,14 +357,6 @@
                         <label class="block text-sm font-medium text-gray-700 mb-2">Grupo</label>
                         <select id="swapNewGroup" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#009cb6]">
                             <option value="">Selecione o grupo...</option>
-                            <option value="B2">B2</option>
-                            <option value="B3">B3</option>
-                            <option value="C1">C1</option>
-                            <option value="C2">C2</option>
-                            <option value="D1">D1</option>
-                            <option value="E1">E1</option>
-                            <option value="F1">F1</option>
-                            <option value="F2">F2</option>
                         </select>
                     </div>
                     <div class="mb-4">
@@ -5690,6 +5682,32 @@
         
         let availableVehicles = [];
         
+        // Load vehicle groups from fleet management
+        async function loadVehicleGroups() {
+            try {
+                const response = await fetch('/api/vehicles/groups');
+                const result = await response.json();
+                
+                if (result.success) {
+                    const groupSelect = document.getElementById('swapNewGroup');
+                    groupSelect.innerHTML = '<option value="">Selecione o grupo...</option>';
+                    
+                    result.groups.forEach(group => {
+                        const option = document.createElement('option');
+                        option.value = group;
+                        option.textContent = group;
+                        groupSelect.appendChild(option);
+                    });
+                    
+                    console.log('📦 Loaded vehicle groups:', result.groups.length);
+                } else {
+                    console.error('Error loading groups:', result.error);
+                }
+            } catch (error) {
+                console.error('Error loading vehicle groups:', error);
+            }
+        }
+        
         // Load available vehicles
         async function loadAvailableVehicles() {
             try {
@@ -5735,7 +5753,8 @@
         async function showVehicleSwapModal(raNumber, currentPlate) {
             console.log('🔄 Opening vehicle swap modal for RA:', raNumber, 'Plate:', currentPlate);
             
-            // Load available vehicles
+            // Load groups and available vehicles
+            await loadVehicleGroups();
             await loadAvailableVehicles();
             
             // Set RA and current plate
