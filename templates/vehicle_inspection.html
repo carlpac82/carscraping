@@ -3676,20 +3676,53 @@
                 `;
                 
                 // Preencher email automaticamente se disponível (com fallbacks)
-                setTimeout(() => {
+                setTimeout(async () => {
                     const emailInput = document.getElementById('reportEmail');
-                    if (emailInput && window.currentRAData) {
-                        // Try multiple sources for email
-                        const email = window.currentRAData.client_email || 
-                                     window.currentRAData.extracted_data?.email || 
-                                     window.currentRAData.extracted_data?.clientEmail || 
-                                     '';
+                    console.log('📧 [EMAIL AUTO-FILL] Starting email auto-fill...');
+                    console.log('📧 [EMAIL AUTO-FILL] window.currentRAData:', window.currentRAData);
+                    
+                    if (emailInput) {
+                        let email = '';
+                        
+                        // Try from window.currentRAData first
+                        if (window.currentRAData) {
+                            email = window.currentRAData.client_email || 
+                                   window.currentRAData.extracted_data?.email || 
+                                   window.currentRAData.extracted_data?.clientEmail || 
+                                   '';
+                            console.log('📧 [EMAIL AUTO-FILL] Email from currentRAData:', email);
+                        }
+                        
+                        // If no email yet, try to fetch from RA
+                        if (!email) {
+                            const raNumber = document.getElementById('inputRA')?.value?.trim();
+                            console.log('📧 [EMAIL AUTO-FILL] No email in currentRAData, fetching RA:', raNumber);
+                            
+                            if (raNumber) {
+                                try {
+                                    const response = await fetch(`/api/rental-agreement/by-number/${encodeURIComponent(raNumber)}`);
+                                    const data = await response.json();
+                                    
+                                    if (data.success && data.rental_agreement) {
+                                        const ra = data.rental_agreement;
+                                        email = ra.client_email || ra.extracted_data?.email || ra.extracted_data?.clientEmail || '';
+                                        console.log('📧 [EMAIL AUTO-FILL] Email fetched from RA:', email);
+                                    }
+                                } catch (error) {
+                                    console.error('📧 [EMAIL AUTO-FILL] Error fetching RA:', error);
+                                }
+                            }
+                        }
+                        
+                        // Fill the email input
                         if (email) {
                             emailInput.value = email;
-                            console.log('✅ Email preenchido automaticamente no modal final:', email);
+                            console.log('✅ [EMAIL AUTO-FILL] Email preenchido automaticamente:', email);
                         } else {
-                            console.log('⚠️ Nenhum email encontrado no RA data');
+                            console.log('⚠️ [EMAIL AUTO-FILL] Nenhum email encontrado');
                         }
+                    } else {
+                        console.error('❌ [EMAIL AUTO-FILL] Email input not found!');
                     }
                 }, 100);
             }
