@@ -55713,6 +55713,93 @@ async def force_send_checkout_emails(request: Request):
             "traceback": traceback.format_exc()
         }, status_code=500)
 
+@app.post("/api/fix-swapped-vehicles-status")
+async def fix_swapped_vehicles_status(request: Request):
+    """Fix status of vehicles that were swapped before the status update was implemented"""
+    try:
+        require_auth(request)
+    except HTTPException:
+        return JSONResponse({"ok": False, "error": "Unauthorized"}, status_code=403)
+    
+    try:
+        with _db_lock:
+            conn = _db_connect()
+            is_postgres = _is_postgresql_connection(conn)
+            
+            try:
+                if is_postgres:
+                    with conn.cursor() as cur:
+                        # Get all swapped vehicles (old plates that are no longer in active RAs)
+                        cur.execute("""
+                            SELECT DISTINCT vs.old_plate, vs.old_kms, vs.old_fuel
+                            FROM vehicle_swaps vs
+                            WHERE vs.old_plate NOT IN (
+                                SELECT license_plate 
+                                FROM rental_agreements 
+                                WHERE license_plate IS NOT NULL
+                            )
+                        """)
+                        
+                        swapped_vehicles = cur.fetchall()
+                        updated_count = 0
+                        
+                        for old_plate, old_kms, old_fuel in swapped_vehicles:
+                            # Mark as available
+                            cur.execute("""
+                                UPDATE vehicles 
+                                SET status = 'disponivel', 
+                                    km_atual = %s, 
+                                    nivel_combustivel = %s
+                                WHERE matricula = %s
+                            """, (old_kms, old_fuel, old_plate))
+                            updated_count += 1
+                            logging.info(f"✅ Fixed status for {old_plate} -> disponivel")
+                else:
+                    cur = conn.cursor()
+                    # Get all swapped vehicles (old plates that are no longer in active RAs)
+                    cur.execute("""
+                        SELECT DISTINCT vs.old_plate, vs.old_kms, vs.old_fuel
+                        FROM vehicle_swaps vs
+                        WHERE vs.old_plate NOT IN (
+                            SELECT license_plate 
+                            FROM rental_agreements 
+                            WHERE license_plate IS NOT NULL
+                        )
+                    """)
+                    
+                    swapped_vehicles = cur.fetchall()
+                    updated_count = 0
+                    
+                    for old_plate, old_kms, old_fuel in swapped_vehicles:
+                        # Mark as available
+                        cur.execute("""
+                            UPDATE vehicles 
+                            SET status = 'disponivel', 
+                                km_atual = ?, 
+                                nivel_combustivel = ?
+                            WHERE matricula = ?
+                        """, (old_kms, old_fuel, old_plate))
+                        updated_count += 1
+                        logging.info(f"✅ Fixed status for {old_plate} -> disponivel")
+                
+                conn.commit()
+                
+                return JSONResponse({
+                    "ok": True,
+                    "message": f"Fixed status for {updated_count} swapped vehicles",
+                    "updated_count": updated_count
+                })
+                
+            finally:
+                conn.close()
+                
+    except Exception as e:
+        logging.error(f"Error fixing swapped vehicles status: {e}")
+        return JSONResponse({
+            "ok": False,
+            "error": str(e)
+        }, status_code=500)
+
 if __name__ == "__main__":
     import uvicorn
     uvicorn.run(app, host="0.0.0.0", port=8000)
