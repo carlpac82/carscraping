@@ -1119,40 +1119,12 @@
                                 
                                 <!-- Info: Inspector and times -->
                                 <div class="flex flex-col gap-1 text-sm text-gray-600">
-                                    ${(() => {
-                                        // Se há troca, mostrar entrega da viatura ANTIGA primeiro
-                                        if (contract.vehicle_swaps && contract.vehicle_swaps.length > 0) {
-                                            const swap = contract.vehicle_swaps[0]; // Primeira troca
-                                            // Buscar inspeção da viatura antiga nos contratos
-                                            const oldVehicleContract = window.allContracts?.find(c => 
-                                                c.vehicle_plate === swap.old_plate && 
-                                                c.contract_number === contract.contract_number
-                                            );
-                                            
-                                            if (oldVehicleContract && oldVehicleContract.checkin) {
-                                                const oldCheckinDate = new Date(oldVehicleContract.checkin.created_at);
-                                                const oldCheckinTime = oldCheckinDate.toLocaleTimeString('pt-PT', { hour: '2-digit', minute: '2-digit' });
-                                                const oldCheckinDateStr = oldCheckinDate.toLocaleDateString('pt-PT', { day: '2-digit', month: '2-digit', year: 'numeric' });
-                                                return `
-                                                <div class="flex items-center gap-2">
-                                                    <span class="font-medium">Entregue por:</span>
-                                                    <span>${oldVehicleContract.checkin.inspector_name || 'N/A'} às ${oldCheckinTime} de ${oldCheckinDateStr}</span>
-                                                </div>
-                                                `;
-                                            }
-                                        }
-                                        
-                                        // Senão, mostrar entrega normal
-                                        if (hasCheckin) {
-                                            return `
-                                            <div class="flex items-center gap-2">
-                                                <span class="font-medium">Entregue por:</span>
-                                                <span>${contract.checkin.inspector_name || 'N/A'} às ${checkinTime} de ${checkinDate}</span>
-                                            </div>
-                                            `;
-                                        }
-                                        return '';
-                                    })()}
+                                    ${hasCheckin ? `
+                                    <div class="flex items-center gap-2" data-contract-id="${contract.contract_number}">
+                                        <span class="font-medium">Entregue por:</span>
+                                        <span class="delivery-info">${contract.checkin.inspector_name || 'N/A'} às ${checkinTime} de ${checkinDate}</span>
+                                    </div>
+                                    ` : ''}
                                     ${contract.vehicle_swaps && contract.vehicle_swaps.length > 0 ? `
                                     <div class="flex flex-col gap-1 mt-1 pl-4 border-l-2 border-orange-400">
                                         ${contract.vehicle_swaps.map(swap => {
@@ -1267,6 +1239,42 @@
             });
 
             container.innerHTML = html;
+            
+            // Após renderizar, buscar informação da entrega antiga para contratos com trocas
+            updateOldVehicleDeliveryInfo();
+        }
+        
+        // Buscar e atualizar informação da entrega da viatura antiga quando há trocas
+        async function updateOldVehicleDeliveryInfo() {
+            const contractsWithSwaps = contracts.filter(c => c.vehicle_swaps && c.vehicle_swaps.length > 0);
+            
+            for (const contract of contractsWithSwaps) {
+                const swap = contract.vehicle_swaps[0];
+                const raNumber = contract.contract_number;
+                const oldPlate = swap.old_plate;
+                
+                try {
+                    // Buscar inspeção da viatura antiga (incluindo replaced)
+                    const response = await fetch(`/api/get_inspection?plate=${encodeURIComponent(oldPlate)}&ra=${encodeURIComponent(raNumber)}&type=checkin`);
+                    const data = await response.json();
+                    
+                    if (data.success && data.inspection) {
+                        const oldInspection = data.inspection;
+                        const oldDate = new Date(oldInspection.created_at);
+                        const oldTime = oldDate.toLocaleTimeString('pt-PT', { hour: '2-digit', minute: '2-digit' });
+                        const oldDateStr = oldDate.toLocaleDateString('pt-PT', { day: '2-digit', month: '2-digit', year: 'numeric' });
+                        const oldInspector = oldInspection.inspector_name || 'N/A';
+                        
+                        // Atualizar o DOM
+                        const deliveryInfoElement = document.querySelector(`[data-contract-id="${raNumber}"] .delivery-info`);
+                        if (deliveryInfoElement) {
+                            deliveryInfoElement.textContent = `${oldInspector} às ${oldTime} de ${oldDateStr}`;
+                        }
+                    }
+                } catch (error) {
+                    console.error(`Error fetching old vehicle delivery info for ${oldPlate}:`, error);
+                }
+            }
         }
 
         function formatDate(date) {
