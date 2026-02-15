@@ -53526,17 +53526,17 @@ async def vehicle_swap(request: Request):
                             AND extracted_data IS NOT NULL
                         """, (f'"{new_plate}"', f"{ra}%"))
                         
-                        # Update old vehicle in fleet management
+                        # Update old vehicle in fleet management - mark as available
                         cur.execute("""
                             UPDATE vehicles 
-                            SET km_atual = %s, nivel_combustivel = %s
+                            SET km_atual = %s, nivel_combustivel = %s, status = 'disponivel'
                             WHERE matricula = %s
                         """, (old_kms, old_fuel, old_plate))
                         
-                        # Update new vehicle in fleet management
+                        # Update new vehicle in fleet management - mark as rented
                         cur.execute("""
                             UPDATE vehicles 
-                            SET km_atual = %s, nivel_combustivel = %s
+                            SET km_atual = %s, nivel_combustivel = %s, status = 'alugado'
                             WHERE matricula = %s
                         """, (new_kms, new_fuel, new_plate))
                         
@@ -53556,17 +53556,17 @@ async def vehicle_swap(request: Request):
                         WHERE rental_agreement_number LIKE ?
                     """, (new_plate, f"{ra}%"))
                     
-                    # Update old vehicle in fleet management
+                    # Update old vehicle in fleet management - mark as available
                     cur.execute("""
                         UPDATE vehicles 
-                        SET km_atual = ?, nivel_combustivel = ?
+                        SET km_atual = ?, nivel_combustivel = ?, status = 'disponivel'
                         WHERE matricula = ?
                     """, (old_kms, old_fuel, old_plate))
                     
-                    # Update new vehicle in fleet management
+                    # Update new vehicle in fleet management - mark as rented
                     cur.execute("""
                         UPDATE vehicles 
-                        SET km_atual = ?, nivel_combustivel = ?
+                        SET km_atual = ?, nivel_combustivel = ?, status = 'alugado'
                         WHERE matricula = ?
                     """, (new_kms, new_fuel, new_plate))
                     
