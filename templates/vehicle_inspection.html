@@ -1061,7 +1061,7 @@
                 </div>
                 
                 <!-- Seção Quilómetros e Combustível -->
-                <div class="mt-6 bg-white p-6 rounded-lg border-2 border-gray-200">
+                <div id="diagramKmsFuelSection" class="mt-6 bg-white p-6 rounded-lg border-2 border-gray-200">
                     <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
                         
                         <!-- Quilómetros -->
@@ -3156,6 +3156,15 @@
                 console.log('✅ Showing stepDiagram');
             } else {
                 console.error('❌ stepDiagram not found');
+            }
+            
+            // Hide KMs and fuel section if coming from swap (already filled in swap modal)
+            if (window.AUTO_START_DELIVERY) {
+                const kmsFuelSection = document.getElementById('diagramKmsFuelSection');
+                if (kmsFuelSection) {
+                    kmsFuelSection.style.display = 'none';
+                    console.log('✅ Hidden KMs/Fuel section (already filled in swap modal)');
+                }
             }
             
             // Force reflow to ensure elements are rendered
