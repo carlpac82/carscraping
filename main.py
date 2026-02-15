@@ -30815,31 +30815,46 @@ async def save_inspection(request: Request):
                     # Check for vehicle swap scenario (same RA, different plate)
                     # If doing check-in and there's a previous check-in with same RA but different plate
                     # that doesn't have a check-out yet, block the operation
+                    # UNLESS this inspection is coming from a vehicle swap (already registered in vehicle_swaps table)
                     if inspection_type == 'checkin':
                         logging.info(f"🔍 Checking for pending check-out with RA={ra}...")
-                        cursor.execute("""
-                        SELECT vehicle_plate, inspection_number
-                        FROM vehicle_inspections
-                        WHERE contract_number = %s
-                        AND vehicle_plate != %s
-                        AND inspection_type = 'checkin'
-                        AND NOT EXISTS (
-                            SELECT 1 FROM vehicle_inspections ci
-                            WHERE ci.contract_number = vehicle_inspections.contract_number
-                            AND ci.vehicle_plate = vehicle_inspections.vehicle_plate
-                            AND ci.inspection_type = 'checkout'
-                        )
-                        LIMIT 1
-                    """, (ra, plate))
                         
-                        pending_checkout = cursor.fetchone()
-                        if pending_checkout:
-                            pending_plate = pending_checkout[0]
-                            logging.error(f"❌ Cannot do delivery: pending pickup for {pending_plate} with RA {ra}")
-                            return JSONResponse({
-                                "ok": False,
-                                "error": f"Tem que fazer a Recolha da viatura {pending_plate} (RA {ra}) antes de fazer Entrega da nova viatura. Troca de viatura requer Recolha da viatura anterior primeiro."
-                            }, status_code=400)
+                        # First check if this is a vehicle swap (new plate already registered in vehicle_swaps)
+                        cursor.execute("""
+                            SELECT COUNT(*) FROM vehicle_swaps
+                            WHERE rental_agreement_number = %s
+                            AND new_plate = %s
+                        """, (ra, plate))
+                        
+                        is_swap = cursor.fetchone()[0] > 0
+                        
+                        if not is_swap:
+                            # Not a swap, check for pending checkout
+                            cursor.execute("""
+                            SELECT vehicle_plate, inspection_number
+                            FROM vehicle_inspections
+                            WHERE contract_number = %s
+                            AND vehicle_plate != %s
+                            AND inspection_type = 'checkin'
+                            AND NOT EXISTS (
+                                SELECT 1 FROM vehicle_inspections ci
+                                WHERE ci.contract_number = vehicle_inspections.contract_number
+                                AND ci.vehicle_plate = vehicle_inspections.vehicle_plate
+                                AND ci.inspection_type = 'checkout'
+                            )
+                            LIMIT 1
+                        """, (ra, plate))
+                            
+                            pending_checkout = cursor.fetchone()
+                            if pending_checkout:
+                                pending_plate = pending_checkout[0]
+                                logging.error(f"❌ Cannot do delivery: pending pickup for {pending_plate} with RA {ra}")
+                                return JSONResponse({
+                                    "ok": False,
+                                    "error": f"Tem que fazer a Recolha da viatura {pending_plate} (RA {ra}) antes de fazer Entrega da nova viatura. Troca de viatura requer Recolha da viatura anterior primeiro."
+                                }, status_code=400)
+                        else:
+                            logging.info(f"✅ Vehicle swap detected for {plate} in RA {ra} - skipping pending checkout validation")
                     
                     # Mark previous inspection as 'replaced' (keep history, don't delete)
                     # Also get old inspection_number to cancel scheduled emails
@@ -30998,31 +31013,46 @@ async def save_inspection(request: Request):
                     # Check for vehicle swap scenario (same RA, different plate)
                     # If doing check-in and there's a previous check-in with same RA but different plate
                     # that doesn't have a check-out yet, block the operation
+                    # UNLESS this inspection is coming from a vehicle swap (already registered in vehicle_swaps table)
                     if inspection_type == 'checkin':
                         logging.info(f"🔍 Checking for pending check-out with RA={ra}...")
+                        
+                        # First check if this is a vehicle swap (new plate already registered in vehicle_swaps)
                         cursor.execute("""
-                            SELECT vehicle_plate, inspection_number
-                            FROM vehicle_inspections
-                            WHERE contract_number = ?
-                            AND vehicle_plate != ?
-                            AND inspection_type = 'checkin'
-                            AND NOT EXISTS (
-                                SELECT 1 FROM vehicle_inspections ci
-                                WHERE ci.contract_number = vehicle_inspections.contract_number
-                                AND ci.vehicle_plate = vehicle_inspections.vehicle_plate
-                                AND ci.inspection_type = 'checkout'
-                            )
-                            LIMIT 1
+                            SELECT COUNT(*) FROM vehicle_swaps
+                            WHERE rental_agreement_number = ?
+                            AND new_plate = ?
                         """, (ra, plate))
                         
-                        pending_checkout = cursor.fetchone()
-                        if pending_checkout:
-                            pending_plate = pending_checkout[0]
-                            logging.error(f"❌ Cannot do delivery: pending pickup for {pending_plate} with RA {ra}")
-                            return JSONResponse({
-                                "ok": False,
-                                "error": f"Tem que fazer a Recolha da viatura {pending_plate} (RA {ra}) antes de fazer Entrega da nova viatura. Troca de viatura requer Recolha da viatura anterior primeiro."
-                            }, status_code=400)
+                        is_swap = cursor.fetchone()[0] > 0
+                        
+                        if not is_swap:
+                            # Not a swap, check for pending checkout
+                            cursor.execute("""
+                                SELECT vehicle_plate, inspection_number
+                                FROM vehicle_inspections
+                                WHERE contract_number = ?
+                                AND vehicle_plate != ?
+                                AND inspection_type = 'checkin'
+                                AND NOT EXISTS (
+                                    SELECT 1 FROM vehicle_inspections ci
+                                    WHERE ci.contract_number = vehicle_inspections.contract_number
+                                    AND ci.vehicle_plate = vehicle_inspections.vehicle_plate
+                                    AND ci.inspection_type = 'checkout'
+                                )
+                                LIMIT 1
+                            """, (ra, plate))
+                            
+                            pending_checkout = cursor.fetchone()
+                            if pending_checkout:
+                                pending_plate = pending_checkout[0]
+                                logging.error(f"❌ Cannot do delivery: pending pickup for {pending_plate} with RA {ra}")
+                                return JSONResponse({
+                                    "ok": False,
+                                    "error": f"Tem que fazer a Recolha da viatura {pending_plate} (RA {ra}) antes de fazer Entrega da nova viatura. Troca de viatura requer Recolha da viatura anterior primeiro."
+                                }, status_code=400)
+                        else:
+                            logging.info(f"✅ Vehicle swap detected for {plate} in RA {ra} - skipping pending checkout validation")
                     
                     # Mark previous inspection as 'replaced' (keep history, don't delete)
                     logging.info(f"🔍 Checking for previous inspection with RA={ra} and Plate={plate}...")
