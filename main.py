@@ -55797,6 +55797,103 @@ async def fix_swapped_vehicles_status(request: Request):
             "error": str(e)
         }, status_code=500)
 
+@app.post("/api/manual-swap-fix")
+async def manual_swap_fix(request: Request):
+    """Temporary endpoint to manually register a vehicle swap"""
+    try:
+        data = await request.json()
+        ra = data.get('rental_agreement_number')
+        old_plate = data.get('old_plate')
+        new_plate = data.get('new_plate')
+        old_kms = data.get('old_kms', 0)
+        old_fuel = data.get('old_fuel', 0)
+        new_kms = data.get('new_kms', 0)
+        new_fuel = data.get('new_fuel', 0)
+        swap_datetime = data.get('swap_datetime', datetime.now().isoformat())
+        employee_name = data.get('employee_name', 'Filipe Pacheco')
+        employee_email = data.get('employee_email', '')
+        
+        logging.info(f"🔧 Manual swap fix: {old_plate} -> {new_plate} for RA {ra}")
+        
+        with _db_lock:
+            conn = _db_connect()
+            is_postgres = _is_postgresql_connection(conn)
+            
+            try:
+                if is_postgres:
+                    cur = conn.cursor()
+                    # Insert swap record
+                    cur.execute("""
+                        INSERT INTO vehicle_swaps 
+                        (rental_agreement_number, swap_datetime, old_plate, old_kms, old_fuel, 
+                         new_plate, new_kms, new_fuel, employee_name, employee_email)
+                        VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+                    """, (ra, swap_datetime, old_plate, old_kms, old_fuel, 
+                          new_plate, new_kms, new_fuel, employee_name, employee_email))
+                    
+                    # Mark old vehicle as available
+                    cur.execute("""
+                        UPDATE vehicles 
+                        SET status = 'disponivel'
+                        WHERE matricula = %s
+                    """, (old_plate,))
+                    
+                    # Mark old inspection as replaced
+                    cur.execute("""
+                        UPDATE vehicle_inspections
+                        SET status = 'replaced'
+                        WHERE vehicle_plate = %s AND contract_number = %s AND inspection_type = 'checkin'
+                    """, (old_plate, ra))
+                    
+                    conn.commit()
+                else:
+                    cur = conn.cursor()
+                    # Insert swap record
+                    cur.execute("""
+                        INSERT INTO vehicle_swaps 
+                        (rental_agreement_number, swap_datetime, old_plate, old_kms, old_fuel, 
+                         new_plate, new_kms, new_fuel, employee_name, employee_email)
+                        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                    """, (ra, swap_datetime, old_plate, old_kms, old_fuel, 
+                          new_plate, new_kms, new_fuel, employee_name, employee_email))
+                    
+                    # Mark old vehicle as available
+                    cur.execute("""
+                        UPDATE vehicles 
+                        SET status = 'disponivel'
+                        WHERE matricula = ?
+                    """, (old_plate,))
+                    
+                    # Mark old inspection as replaced
+                    cur.execute("""
+                        UPDATE vehicle_inspections
+                        SET status = 'replaced'
+                        WHERE vehicle_plate = ? AND contract_number = ? AND inspection_type = 'checkin'
+                    """, (old_plate, ra))
+                    
+                    conn.commit()
+                
+                logging.info(f"✅ Manual swap registered successfully")
+                return JSONResponse({
+                    "ok": True,
+                    "success": True,
+                    "message": "Swap registered successfully"
+                })
+                
+            except Exception as e:
+                conn.rollback()
+                logging.error(f"Error in manual swap fix: {e}")
+                raise
+            finally:
+                conn.close()
+                
+    except Exception as e:
+        logging.error(f"Error in manual swap fix: {e}")
+        return JSONResponse({
+            "ok": False,
+            "error": str(e)
+        }, status_code=500)
+
 if __name__ == "__main__":
     import uvicorn
     uvicorn.run(app, host="0.0.0.0", port=8000)
