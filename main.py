@@ -56103,6 +56103,121 @@ async def delete_ra_complete(ra_number: str):
             "error": str(e)
         }, status_code=500)
 
+@app.delete("/api/delete-checkin-06761")
+async def delete_checkin_06761():
+    """Temporary endpoint to delete check-in inspection for RA 06761"""
+    try:
+        logging.info(f"🗑️ Deleting check-in inspection for RA 06761")
+        
+        with _db_lock:
+            conn = _db_connect()
+            is_postgres = _is_postgresql_connection(conn)
+            
+            try:
+                if is_postgres:
+                    cur = conn.cursor()
+                    
+                    # Get check-in inspection details
+                    cur.execute("""
+                        SELECT inspection_number, vehicle_plate, inspection_type, status
+                        FROM vehicle_inspections 
+                        WHERE contract_number = %s AND inspection_type = 'checkin'
+                    """, ('06761',))
+                    inspection = cur.fetchone()
+                    
+                    if not inspection:
+                        return JSONResponse({
+                            "ok": False,
+                            "error": "No check-in inspection found for RA 06761"
+                        })
+                    
+                    inspection_number = inspection[0]
+                    
+                    # Delete the check-in inspection
+                    cur.execute("""
+                        DELETE FROM vehicle_inspections 
+                        WHERE contract_number = %s AND inspection_type = 'checkin'
+                    """, ('06761',))
+                    deleted = cur.rowcount
+                    
+                    # Update RA flags
+                    cur.execute("""
+                        UPDATE rental_agreements 
+                        SET inspection_completed = false, inspection_id = NULL
+                        WHERE rental_agreement_number = %s
+                    """, ('06761',))
+                    
+                    conn.commit()
+                    
+                    return JSONResponse({
+                        "ok": True,
+                        "message": f"Check-in inspection {inspection_number} deleted",
+                        "deleted": {
+                            "inspection_number": inspection_number,
+                            "plate": inspection[1],
+                            "count": deleted
+                        }
+                    })
+                    
+                else:
+                    cur = conn.cursor()
+                    
+                    # Get check-in inspection details
+                    cur.execute("""
+                        SELECT inspection_number, vehicle_plate, inspection_type, status
+                        FROM vehicle_inspections 
+                        WHERE contract_number = ? AND inspection_type = 'checkin'
+                    """, ('06761',))
+                    inspection = cur.fetchone()
+                    
+                    if not inspection:
+                        return JSONResponse({
+                            "ok": False,
+                            "error": "No check-in inspection found for RA 06761"
+                        })
+                    
+                    inspection_number = inspection[0]
+                    
+                    # Delete the check-in inspection
+                    cur.execute("""
+                        DELETE FROM vehicle_inspections 
+                        WHERE contract_number = ? AND inspection_type = 'checkin'
+                    """, ('06761',))
+                    deleted = cur.rowcount
+                    
+                    # Update RA flags
+                    cur.execute("""
+                        UPDATE rental_agreements 
+                        SET inspection_completed = 0, inspection_id = NULL
+                        WHERE rental_agreement_number = ?
+                    """, ('06761',))
+                    
+                    conn.commit()
+                    
+                    return JSONResponse({
+                        "ok": True,
+                        "message": f"Check-in inspection {inspection_number} deleted",
+                        "deleted": {
+                            "inspection_number": inspection_number,
+                            "plate": inspection[1],
+                            "count": deleted
+                        }
+                    })
+                    
+            except Exception as e:
+                conn.rollback()
+                logging.error(f"Error deleting check-in: {e}")
+                raise
+            finally:
+                conn.close()
+                
+    except Exception as e:
+        logging.error(f"Error in delete check-in: {e}")
+        return JSONResponse({
+            "ok": False,
+            "error": str(e)
+        }, status_code=500)
+
 if __name__ == "__main__":
     import uvicorn
     uvicorn.run(app, host="0.0.0.0", port=8000)
