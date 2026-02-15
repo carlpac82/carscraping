@@ -53214,7 +53214,7 @@ async def get_available_vehicles(request: Request):
                             WHERE v.matricula NOT IN (
                                 SELECT DISTINCT ra.license_plate
                                 FROM rental_agreements ra
-                                WHERE ra.status = 'open'
+                                WHERE ra.status = 'active'
                                 AND ra.license_plate IS NOT NULL
                             )
                             AND v.matricula IS NOT NULL
@@ -53229,7 +53229,7 @@ async def get_available_vehicles(request: Request):
                         WHERE v.matricula NOT IN (
                             SELECT DISTINCT ra.license_plate
                             FROM rental_agreements ra
-                            WHERE ra.status = 'open'
+                            WHERE ra.status = 'active'
                             AND ra.license_plate IS NOT NULL
                         )
                         AND v.matricula IS NOT NULL
