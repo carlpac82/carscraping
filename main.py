@@ -53453,6 +53453,9 @@ async def vehicle_swap(request: Request):
         new_kms = data.get('new_kms')
         new_fuel = data.get('new_fuel')
         create_inspection = data.get('create_inspection', False)
+        send_email = data.get('send_email', False)
+        client_email = data.get('client_email', '')
+        language = data.get('language', 'pt')
         
         logging.info(f"🔄 Processing vehicle swap for RA {ra}: {old_plate} -> {new_plate}")
         
@@ -53538,6 +53541,74 @@ async def vehicle_swap(request: Request):
                 conn.commit()
                 
                 logging.info(f"✅ Vehicle swap completed: {old_plate} -> {new_plate} for RA {ra}")
+                
+                # Send email notification if requested
+                if send_email and client_email:
+                    try:
+                        # Get email templates based on language
+                        email_subjects = {
+                            'pt': f'Troca de Viatura - RA {ra}',
+                            'en': f'Vehicle Swap - RA {ra}',
+                            'fr': f'Changement de Véhicule - RA {ra}'
+                        }
+                        
+                        email_bodies = {
+                            'pt': f'''Caro Cliente,
+
+Informamos que foi realizada uma troca de viatura no seu contrato RA {ra}.
+
+**Detalhes da Troca:**
+- Data/Hora: {swap_datetime}
+- Viatura Anterior: {old_plate} ({old_kms} km, {old_fuel}% combustível)
+- Nova Viatura: {new_plate} ({new_kms} km, {new_fuel}% combustível)
+
+Esta alteração foi registada no sistema e a nova viatura está agora associada ao seu contrato.
+
+Caso tenha alguma dúvida, não hesite em contactar-nos.
+
+Cumprimentos,
+Equipa Auto Prudente''',
+                            'en': f'''Dear Customer,
+
+We inform you that a vehicle swap has been completed for your contract RA {ra}.
+
+**Swap Details:**
+- Date/Time: {swap_datetime}
+- Previous Vehicle: {old_plate} ({old_kms} km, {old_fuel}% fuel)
+- New Vehicle: {new_plate} ({new_kms} km, {new_fuel}% fuel)
+
+This change has been registered in the system and the new vehicle is now associated with your contract.
+
+If you have any questions, please do not hesitate to contact us.
+
+Best regards,
+Auto Prudente Team''',
+                            'fr': f'''Cher Client,
+
+Nous vous informons qu'un changement de véhicule a été effectué pour votre contrat RA {ra}.
+
+**Détails du Changement:**
+- Date/Heure: {swap_datetime}
+- Véhicule Précédent: {old_plate} ({old_kms} km, {old_fuel}% carburant)
+- Nouveau Véhicule: {new_plate} ({new_kms} km, {new_fuel}% carburant)
+
+Cette modification a été enregistrée dans le système et le nouveau véhicule est maintenant associé à votre contrat.
+
+Si vous avez des questions, n'hésitez pas à nous contacter.
+
+Cordialement,
+Équipe Auto Prudente'''
+                        }
+                        
+                        subject = email_subjects.get(language, email_subjects['pt'])
+                        body = email_bodies.get(language, email_bodies['pt'])
+                        
+                        _send_notification_email(client_email, subject, body)
+                        logging.info(f"📧 Vehicle swap notification email sent to {client_email} (language: {language})")
+                        
+                    except Exception as email_error:
+                        logging.error(f"❌ Failed to send vehicle swap email: {email_error}")
+                        # Don't fail the whole operation if email fails
                 
                 return JSONResponse({
                     "success": True,

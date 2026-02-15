@@ -6,9 +6,9 @@
     <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
     <meta http-equiv="Pragma" content="no-cache">
     <meta http-equiv="Expires" content="0">
-    <title>Histórico de Inspeções - v24.0</title>
+    <title>Histórico de Inspeções - v25.0</title>
     <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
-    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.tailwindcss.com?v=25.0"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js"></script>
@@ -6235,20 +6235,77 @@
             window.location.href = `/?${params.toString()}`;
         }
         
+        // Detect language from country (matching backend logic)
+        function detectLanguageFromCountry(country) {
+            if (!country) return 'pt';
+            
+            const countryLower = country.toLowerCase().trim();
+            
+            // French-speaking countries
+            const frenchCountries = ['france', 'frança', 'belgium', 'bélgica', 'switzerland', 'suíça', 
+                                    'luxembourg', 'luxemburgo', 'monaco', 'mónaco'];
+            if (frenchCountries.some(fc => countryLower.includes(fc))) {
+                return 'fr';
+            }
+            
+            // English-speaking countries
+            const englishCountries = ['united kingdom', 'reino unido', 'uk', 'england', 'inglaterra',
+                                     'ireland', 'irlanda', 'usa', 'united states', 'estados unidos',
+                                     'canada', 'canadá', 'australia', 'austrália', 'new zealand',
+                                     'nova zelândia', 'south africa', 'áfrica do sul',
+                                     'germany', 'alemanha', 'netherlands', 'holanda', 'países baixos',
+                                     'denmark', 'dinamarca', 'sweden', 'suécia', 'norway', 'noruega',
+                                     'finland', 'finlândia', 'austria', 'áustria', 'poland', 'polónia',
+                                     'czech', 'checa', 'hungary', 'hungria', 'romania', 'roménia',
+                                     'italy', 'itália', 'spain', 'espanha'];
+            if (englishCountries.some(ec => countryLower.includes(ec))) {
+                return 'en';
+            }
+            
+            // Portuguese-speaking countries
+            const portugueseCountries = ['portugal', 'brazil', 'brasil', 'angola', 'mozambique', 'moçambique'];
+            if (portugueseCountries.some(pc => countryLower.includes(pc))) {
+                return 'pt';
+            }
+            
+            // Default to Portuguese
+            return 'pt';
+        }
+        
         // Show summary modal (NO inspection)
         async function showSwapSummaryModal() {
             const swapData = window.vehicleSwapData;
             
-            // Fetch client email from contract
+            // Fetch client email and country from contract
             let clientEmail = '';
+            let clientCountry = '';
+            let detectedLanguage = 'pt'; // Default to Portuguese
+            
             try {
                 const contract = contracts.find(c => c.rental_agreement_number === swapData.raNumber);
                 if (contract) {
                     clientEmail = contract.client_email || '';
+                    
+                    // Try to get country from extracted_data
+                    if (contract.extracted_data) {
+                        const data = typeof contract.extracted_data === 'string' 
+                            ? JSON.parse(contract.extracted_data) 
+                            : contract.extracted_data;
+                        clientCountry = data.country || data.clientCountry || data.client_country || '';
+                    }
+                    
+                    // Detect language from country
+                    if (clientCountry) {
+                        detectedLanguage = detectLanguageFromCountry(clientCountry);
+                        console.log(`🌍 Detected language: ${detectedLanguage} from country: ${clientCountry}`);
+                    }
                 }
             } catch (error) {
-                console.error('Error fetching client email:', error);
+                console.error('Error fetching client data:', error);
             }
+            
+            // Store language for email sending
+            window.swapEmailLanguage = detectedLanguage;
             
             const existingModal = document.getElementById('swapSummaryModal');
             if (existingModal) existingModal.remove();
@@ -6360,6 +6417,9 @@
             const emailInput = document.getElementById('swapEmailInput');
             const clientEmail = emailInput ? emailInput.value.trim() : '';
             
+            // Get detected language (default to 'pt' if not set)
+            const language = window.swapEmailLanguage || 'pt';
+            
             // Validate email if sending
             if (sendEmail && clientEmail && !isValidEmail(clientEmail)) {
                 showNotification('Por favor, insira um email válido', 'error');
@@ -6370,6 +6430,8 @@
                 showNotification('A processar troca de matrícula...', 'info');
                 
                 const swapDateTime = `${swapData.swapDate}T${swapData.swapTime}`;
+                
+                console.log(`📧 Sending vehicle swap with language: ${language}`);
                 
                 const response = await fetch('/api/vehicle-swap', {
                     method: 'POST',
@@ -6384,7 +6446,8 @@
                         new_kms: swapData.newKms,
                         new_fuel: swapData.newFuel,
                         send_email: sendEmail,
-                        client_email: clientEmail
+                        client_email: clientEmail,
+                        language: language
                     })
                 });
                 
