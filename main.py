@@ -53579,6 +53579,40 @@ async def vehicle_swap(request: Request):
                     """, (ra, swap_datetime, old_plate, old_kms, old_fuel, 
                           new_plate, new_kms, new_fuel, user.get('name'), user.get('email')))
                 
+                # Update scheduled self-checkout emails with new plate
+                if is_postgres:
+                    with conn.cursor() as cur2:
+                        cur2.execute("""
+                            UPDATE scheduled_checkout_emails
+                            SET vehicle_plate = %s
+                            WHERE inspection_number IN (
+                                SELECT inspection_number
+                                FROM vehicle_inspections
+                                WHERE contract_number LIKE %s
+                                AND inspection_type = 'checkin'
+                            )
+                            AND status = 'pending'
+                        """, (new_plate, f"{ra}%"))
+                        
+                        if cur2.rowcount > 0:
+                            logging.info(f"📧 Updated {cur2.rowcount} scheduled self-checkout email(s) with new plate {new_plate}")
+                else:
+                    cur2 = conn.cursor()
+                    cur2.execute("""
+                        UPDATE scheduled_checkout_emails
+                        SET vehicle_plate = ?
+                        WHERE inspection_number IN (
+                            SELECT inspection_number
+                            FROM vehicle_inspections
+                            WHERE contract_number LIKE ?
+                            AND inspection_type = 'checkin'
+                        )
+                        AND status = 'pending'
+                    """, (new_plate, f"{ra}%"))
+                    
+                    if cur2.rowcount > 0:
+                        logging.info(f"📧 Updated {cur2.rowcount} scheduled self-checkout email(s) with new plate {new_plate}")
+                
                 conn.commit()
                 
                 logging.info(f"✅ Vehicle swap completed: {old_plate} -> {new_plate} for RA {ra}")
@@ -55715,7 +55749,7 @@ async def force_send_checkout_emails(request: Request):
 
 @app.post("/api/fix-swapped-vehicles-status")
 async def fix_swapped_vehicles_status(request: Request):
-    """Fix status of vehicles that were swapped before the status update was implemented"""
+    """Fix status of vehicles that were swapped - mark old plates as available"""
     try:
         require_auth(request)
     except HTTPException:
@@ -55729,15 +55763,11 @@ async def fix_swapped_vehicles_status(request: Request):
             try:
                 if is_postgres:
                     with conn.cursor() as cur:
-                        # Get all swapped vehicles (old plates that are no longer in active RAs)
+                        # Get all old plates from vehicle swaps
                         cur.execute("""
-                            SELECT DISTINCT vs.old_plate, vs.old_kms, vs.old_fuel
-                            FROM vehicle_swaps vs
-                            WHERE vs.old_plate NOT IN (
-                                SELECT license_plate 
-                                FROM rental_agreements 
-                                WHERE license_plate IS NOT NULL
-                            )
+                            SELECT DISTINCT old_plate, old_kms, old_fuel
+                            FROM vehicle_swaps
+                            ORDER BY old_plate
                         """)
                         
                         swapped_vehicles = cur.fetchall()
@@ -55750,21 +55780,19 @@ async def fix_swapped_vehicles_status(request: Request):
                                 SET status = 'disponivel', 
                                     km_atual = %s, 
                                     nivel_combustivel = %s
-                                WHERE matricula = %s
+                                WHERE matricula = %s AND status != 'disponivel'
                             """, (old_kms, old_fuel, old_plate))
-                            updated_count += 1
-                            logging.info(f"✅ Fixed status for {old_plate} -> disponivel")
+                            
+                            if cur.rowcount > 0:
+                                updated_count += 1
+                                logging.info(f"✅ Fixed status for {old_plate} -> disponivel")
                 else:
                     cur = conn.cursor()
-                    # Get all swapped vehicles (old plates that are no longer in active RAs)
+                    # Get all old plates from vehicle swaps
                     cur.execute("""
-                        SELECT DISTINCT vs.old_plate, vs.old_kms, vs.old_fuel
-                        FROM vehicle_swaps vs
-                        WHERE vs.old_plate NOT IN (
-                            SELECT license_plate 
-                            FROM rental_agreements 
-                            WHERE license_plate IS NOT NULL
-                        )
+                        SELECT DISTINCT old_plate, old_kms, old_fuel
+                        FROM vehicle_swaps
+                        ORDER BY old_plate
                     """)
                     
                     swapped_vehicles = cur.fetchall()
@@ -55777,10 +55805,12 @@ async def fix_swapped_vehicles_status(request: Request):
                             SET status = 'disponivel', 
                                 km_atual = ?, 
                                 nivel_combustivel = ?
-                            WHERE matricula = ?
+                            WHERE matricula = ? AND status != 'disponivel'
                         """, (old_kms, old_fuel, old_plate))
-                        updated_count += 1
-                        logging.info(f"✅ Fixed status for {old_plate} -> disponivel")
+                        
+                        if cur.rowcount > 0:
+                            updated_count += 1
+                            logging.info(f"✅ Fixed status for {old_plate} -> disponivel")
                 
                 conn.commit()
                 
