@@ -53511,11 +53511,24 @@ async def vehicle_swap(request: Request):
                 # Update rental agreement with new plate
                 if is_postgres:
                     cur = conn.cursor()
+                    logging.info(f"🔧 [SWAP] Updating rental_agreements.license_plate: {old_plate} → {new_plate} for RA LIKE '{ra}%'")
                     cur.execute("""
                         UPDATE rental_agreements 
                         SET license_plate = %s
                         WHERE rental_agreement_number LIKE %s
                     """, (new_plate, f"{ra}%"))
+                    ra_rows_updated = cur.rowcount
+                    logging.info(f"✅ [SWAP] rental_agreements UPDATE: {ra_rows_updated} row(s) affected")
+                    
+                    if ra_rows_updated == 0:
+                        logging.error(f"❌ [SWAP] CRITICAL: No rental_agreements updated for RA LIKE '{ra}%'!")
+                        # Check if RA exists
+                        cur.execute("SELECT rental_agreement_number, license_plate FROM rental_agreements WHERE rental_agreement_number LIKE %s", (f"{ra}%",))
+                        existing = cur.fetchall()
+                        if existing:
+                            logging.error(f"⚠️ [SWAP] Found {len(existing)} matching RA(s): {existing}")
+                        else:
+                            logging.error(f"⚠️ [SWAP] No RA found matching '{ra}%' - RA may not exist!")
                     
                     # Update extracted_data JSON if it exists
                     cur.execute("""
@@ -53582,11 +53595,24 @@ async def vehicle_swap(request: Request):
                     cur.close()
                 else:
                     cur = conn.cursor()
+                    logging.info(f"🔧 [SWAP] Updating rental_agreements.license_plate: {old_plate} → {new_plate} for RA LIKE '{ra}%'")
                     cur.execute("""
                         UPDATE rental_agreements 
                         SET license_plate = ?
                         WHERE rental_agreement_number LIKE ?
                     """, (new_plate, f"{ra}%"))
+                    ra_rows_updated = cur.rowcount
+                    logging.info(f"✅ [SWAP] rental_agreements UPDATE: {ra_rows_updated} row(s) affected")
+                    
+                    if ra_rows_updated == 0:
+                        logging.error(f"❌ [SWAP] CRITICAL: No rental_agreements updated for RA LIKE '{ra}%'!")
+                        # Check if RA exists
+                        cur.execute("SELECT rental_agreement_number, license_plate FROM rental_agreements WHERE rental_agreement_number LIKE ?", (f"{ra}%",))
+                        existing = cur.fetchall()
+                        if existing:
+                            logging.error(f"⚠️ [SWAP] Found {len(existing)} matching RA(s): {existing}")
+                        else:
+                            logging.error(f"⚠️ [SWAP] No RA found matching '{ra}%' - RA may not exist!")
                     
                     # Update old vehicle in fleet management - mark as available
                     logging.info(f"🔧 Marking old vehicle {old_plate} as available (km={old_kms}, fuel={old_fuel})")
@@ -53673,6 +53699,21 @@ async def vehicle_swap(request: Request):
                     
                     if cur2.rowcount > 0:
                         logging.info(f"📧 Updated {cur2.rowcount} scheduled self-checkout email(s) with new plate {new_plate}")
+                
+                # CRITICAL: Verify the UPDATE actually happened before committing
+                verify_cur = conn.cursor()
+                if is_postgres:
+                    verify_cur.execute("SELECT rental_agreement_number, license_plate FROM rental_agreements WHERE rental_agreement_number LIKE %s", (f"{ra}%",))
+                else:
+                    verify_cur.execute("SELECT rental_agreement_number, license_plate FROM rental_agreements WHERE rental_agreement_number LIKE ?", (f"{ra}%",))
+                verify_result = verify_cur.fetchone()
+                if verify_result:
+                    logging.info(f"🔍 [PRE-COMMIT VERIFY] RA {verify_result[0]} has license_plate = '{verify_result[1]}' (expected: '{new_plate}')")
+                    if verify_result[1] != new_plate:
+                        logging.error(f"❌ [PRE-COMMIT VERIFY] CRITICAL: license_plate is still '{verify_result[1]}', not '{new_plate}'! UPDATE FAILED!")
+                else:
+                    logging.error(f"❌ [PRE-COMMIT VERIFY] CRITICAL: No RA found matching '{ra}%'!")
+                verify_cur.close()
                 
                 logging.info(f"💾 [COMMIT] About to commit transaction for RA {ra}")
                 logging.info(f"💾 [COMMIT] Connection object: {type(conn).__name__}")
