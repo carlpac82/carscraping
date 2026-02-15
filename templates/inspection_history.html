@@ -6367,6 +6367,7 @@
             
             console.log('✅ Final email to use:', clientEmail);
             console.log('✅ Final language to use:', detectedLanguage);
+            console.log('✅ Email will be pre-filled in modal input field');
             
             const existingModal = document.getElementById('swapSummaryModal');
             if (existingModal) existingModal.remove();
@@ -6463,6 +6464,10 @@
             `;
 
             document.body.appendChild(modal);
+            
+            // Log to confirm email was pre-filled
+            const emailField = document.getElementById('swapEmailInput');
+            console.log('✅ Modal created - Email field value:', emailField ? emailField.value : 'FIELD NOT FOUND');
         }
         
         function closeSwapSummaryModal() {
