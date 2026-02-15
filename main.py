@@ -53772,6 +53772,89 @@ Cordialement,
             "error": str(e)
         }, status_code=500)
 
+@app.post("/api/admin/fix-swap-license-plate")
+async def fix_swap_license_plate(request: Request):
+    """Fix rental_agreement license_plate after swap"""
+    require_admin(request)
+    
+    try:
+        data = await request.json()
+        ra = data.get('ra')
+        new_plate = data.get('new_plate')
+        
+        if not ra or not new_plate:
+            return JSONResponse({
+                "success": False,
+                "error": "Missing ra or new_plate"
+            }, status_code=400)
+        
+        with _db_lock:
+            conn = _db_connect()
+            is_postgres = _is_postgresql_connection(conn)
+            
+            if is_postgres:
+                cur = conn.cursor()
+                
+                # Get current plate
+                cur.execute("SELECT license_plate FROM rental_agreements WHERE rental_agreement_number = %s", (ra,))
+                current = cur.fetchone()
+                old_plate = current[0] if current else None
+                
+                # Update license_plate
+                cur.execute("""
+                    UPDATE rental_agreements 
+                    SET license_plate = %s
+                    WHERE rental_agreement_number = %s
+                """, (new_plate, ra))
+                rows_updated = cur.rowcount
+                
+                # Update extracted_data JSON if it exists
+                cur.execute("""
+                    UPDATE rental_agreements 
+                    SET extracted_data = jsonb_set(
+                        CAST(extracted_data AS jsonb),
+                        '{vehicle_plate}',
+                        %s
+                    )
+                    WHERE rental_agreement_number = %s
+                    AND extracted_data IS NOT NULL
+                """, (f'"{new_plate}"', ra))
+                
+                cur.close()
+            else:
+                cur = conn.cursor()
+                
+                # Get current plate
+                cur.execute("SELECT license_plate FROM rental_agreements WHERE rental_agreement_number = ?", (ra,))
+                current = cur.fetchone()
+                old_plate = current[0] if current else None
+                
+                # Update license_plate
+                cur.execute("""
+                    UPDATE rental_agreements 
+                    SET license_plate = ?
+                    WHERE rental_agreement_number = ?
+                """, (new_plate, ra))
+                rows_updated = cur.rowcount
+            
+            conn.commit()
+            conn.close()
+        
+        return JSONResponse({
+            "success": True,
+            "rows_updated": rows_updated,
+            "old_plate": old_plate,
+            "new_plate": new_plate,
+            "message": f"Updated RA {ra}: {old_plate} → {new_plate}"
+        })
+    
+    except Exception as e:
+        logging.error(f"Error fixing swap license plate: {e}")
+        return JSONResponse({
+            "success": False,
+            "error": str(e)
+        }, status_code=500)
+
 @app.post("/api/admin/fix-replaced-inspections")
 async def fix_replaced_inspections(request: Request):
     """Temporary endpoint to fix inspection status for swapped vehicles"""
