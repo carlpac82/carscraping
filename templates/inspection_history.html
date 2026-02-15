@@ -6,7 +6,7 @@
     <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
     <meta http-equiv="Pragma" content="no-cache">
     <meta http-equiv="Expires" content="0">
-    <title>Histórico de Inspeções - v13.0</title>
+    <title>Histórico de Inspeções - v14.0</title>
     <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
@@ -315,28 +315,42 @@
                 
                 <div class="bg-gray-50 rounded-lg p-4 mb-6">
                     <h4 class="font-semibold text-gray-800 mb-3">Viatura Atual: <span id="swapCurrentPlate" class="text-[#009cb6]"></span></h4>
-                    <div class="grid grid-cols-2 gap-4">
-                        <div>
-                            <label class="block text-sm font-medium text-gray-700 mb-2">Quilómetros</label>
-                            <input type="number" id="swapOldKms" placeholder="0" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#009cb6]" />
-                        </div>
-                        <div>
-                            <label class="block text-sm font-medium text-gray-700 mb-2">Combustível (%)</label>
-                            <select id="swapOldFuel" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#009cb6]">
-                                <option value="">Selecione...</option>
-                                <option value="0">Vazio (0%)</option>
-                                <option value="12.5">1/8 (12.5%)</option>
-                                <option value="25">1/4 (25%)</option>
-                                <option value="37.5">3/8 (37.5%)</option>
-                                <option value="50">1/2 (50%)</option>
-                                <option value="62.5">5/8 (62.5%)</option>
-                                <option value="75">3/4 (75%)</option>
-                                <option value="87.5">7/8 (87.5%)</option>
-                                <option value="100">Cheio (100%)</option>
-                            </select>
-                        </div>
+                    <div class="mb-4">
+                        <label class="block text-sm font-medium text-gray-700 mb-2">Quilómetros</label>
+                        <input type="number" id="swapOldKms" placeholder="0" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#009cb6]" />
                     </div>
-                    <div class="mt-3">
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">Nível de Combustível</label>
+                        <input type="hidden" id="swapOldFuel" value="">
+                        <div class="grid grid-cols-4 gap-2 mb-3">
+                            <button type="button" onclick="selectOldFuelLevel('Reserva', 0)" class="fuel-btn px-3 py-2 border-2 border-gray-300 rounded-lg hover:border-[#009cb6] hover:bg-[#009cb6] hover:text-white transition-colors text-sm font-medium">
+                                Reserva
+                            </button>
+                            <button type="button" onclick="selectOldFuelLevel('1/8', 12.5)" class="fuel-btn px-3 py-2 border-2 border-gray-300 rounded-lg hover:border-[#009cb6] hover:bg-[#009cb6] hover:text-white transition-colors text-sm font-medium">
+                                1/8
+                            </button>
+                            <button type="button" onclick="selectOldFuelLevel('1/4', 25)" class="fuel-btn px-3 py-2 border-2 border-gray-300 rounded-lg hover:border-[#009cb6] hover:bg-[#009cb6] hover:text-white transition-colors text-sm font-medium">
+                                1/4
+                            </button>
+                            <button type="button" onclick="selectOldFuelLevel('3/8', 37.5)" class="fuel-btn px-3 py-2 border-2 border-gray-300 rounded-lg hover:border-[#009cb6] hover:bg-[#009cb6] hover:text-white transition-colors text-sm font-medium">
+                                3/8
+                            </button>
+                            <button type="button" onclick="selectOldFuelLevel('1/2', 50)" class="fuel-btn px-3 py-2 border-2 border-gray-300 rounded-lg hover:border-[#009cb6] hover:bg-[#009cb6] hover:text-white transition-colors text-sm font-medium">
+                                1/2
+                            </button>
+                            <button type="button" onclick="selectOldFuelLevel('5/8', 62.5)" class="fuel-btn px-3 py-2 border-2 border-gray-300 rounded-lg hover:border-[#009cb6] hover:bg-[#009cb6] hover:text-white transition-colors text-sm font-medium">
+                                5/8
+                            </button>
+                            <button type="button" onclick="selectOldFuelLevel('3/4', 75)" class="fuel-btn px-3 py-2 border-2 border-gray-300 rounded-lg hover:border-[#009cb6] hover:bg-[#009cb6] hover:text-white transition-colors text-sm font-medium">
+                                3/4
+                            </button>
+                            <button type="button" onclick="selectOldFuelLevel('7/8', 87.5)" class="fuel-btn px-3 py-2 border-2 border-gray-300 rounded-lg hover:border-[#009cb6] hover:bg-[#009cb6] hover:text-white transition-colors text-sm font-medium">
+                                7/8
+                            </button>
+                            <button type="button" onclick="selectOldFuelLevel('Cheio', 100)" class="fuel-btn px-3 py-2 border-2 border-gray-300 rounded-lg hover:border-[#009cb6] hover:bg-[#009cb6] hover:text-white transition-colors text-sm font-medium col-span-4">
+                                Cheio
+                            </button>
+                        </div>
                         <canvas id="swapOldFuelCanvas" width="400" height="60" class="w-full border border-gray-300 rounded"></canvas>
                     </div>
                 </div>
@@ -5693,6 +5707,7 @@
                 option.textContent = `${vehicle.plate} - ${vehicle.brand} ${vehicle.model}`;
                 option.dataset.odometer = vehicle.odometer || 0;
                 option.dataset.fuelLevel = vehicle.fuel_level || 0;
+                option.dataset.fuelLabel = vehicle.fuel_label || '';
                 plateSelect.appendChild(option);
             });
             
@@ -5736,22 +5751,31 @@
             document.getElementById('vehicleSwapModal').classList.add('hidden');
         }
         
+        // Select old fuel level with visual button feedback
+        function selectOldFuelLevel(label, percentage) {
+            console.log('⛽ Old fuel selected:', label, percentage + '%');
+            
+            // Update hidden input
+            document.getElementById('swapOldFuel').value = percentage;
+            
+            // Update button states
+            const buttons = document.querySelectorAll('#vehicleSwapModal .bg-gray-50 .fuel-btn');
+            buttons.forEach(btn => {
+                btn.classList.remove('border-[#009cb6]', 'bg-[#009cb6]', 'text-white');
+                btn.classList.add('border-gray-300');
+            });
+            event.target.classList.remove('border-gray-300');
+            event.target.classList.add('border-[#009cb6]', 'bg-[#009cb6]', 'text-white');
+            
+            // Draw fuel gauge
+            drawFuelGauge('swapOldFuelCanvas', percentage);
+        }
+        
         // Setup event listeners for vehicle swap modal - execute immediately
         (function setupVehicleSwapListeners() {
             // Wait for DOM to be ready
             const setup = function() {
                 console.log('🔧 Setting up vehicle swap event listeners...');
-                
-                // Old fuel change - update canvas
-                const oldFuelSelect = document.getElementById('swapOldFuel');
-                if (oldFuelSelect) {
-                    oldFuelSelect.addEventListener('change', function() {
-                        const fuelLevel = parseFloat(this.value) || 0;
-                        console.log('⛽ Old fuel changed to:', fuelLevel);
-                        drawFuelGauge('swapOldFuelCanvas', fuelLevel);
-                    });
-                    console.log('✅ Old fuel listener attached');
-                }
                 
                 // Group change - filter vehicles
                 const groupSelect = document.getElementById('swapNewGroup');
@@ -5771,11 +5795,12 @@
                         if (selectedOption.value) {
                             const odometer = selectedOption.dataset.odometer || 0;
                             const fuelLevel = parseFloat(selectedOption.dataset.fuelLevel) || 0;
+                            const fuelLabel = selectedOption.dataset.fuelLabel || '';
                             
-                            console.log('🚗 New plate selected:', selectedOption.value, 'KMs:', odometer, 'Fuel:', fuelLevel);
+                            console.log('🚗 New plate selected:', selectedOption.value, 'KMs:', odometer, 'Fuel:', fuelLabel);
                             
                             document.getElementById('swapNewKms').value = odometer;
-                            document.getElementById('swapNewFuelDisplay').value = `${fuelLevel}%`;
+                            document.getElementById('swapNewFuelDisplay').value = fuelLabel;
                             drawFuelGauge('swapNewFuelCanvas', fuelLevel);
                         } else {
                             document.getElementById('swapNewKms').value = '';

@@ -53239,27 +53239,30 @@ async def get_available_vehicles(request: Request):
                 
                 result = []
                 for v in vehicles:
-                    # Parse fuel level from TEXT (e.g., "50%", "Cheio", "1/2")
+                    # Parse fuel level from TEXT (Reserva, 1/8, 1/4, 3/8, 1/2, 5/8, 3/4, 7/8, Cheio)
                     fuel_level = 0
+                    fuel_label = ''
                     if v[4]:
                         fuel_str = str(v[4]).strip()
-                        try:
-                            # Try to extract numeric value
-                            if '%' in fuel_str:
-                                fuel_level = float(fuel_str.replace('%', '').strip())
-                            elif '/' in fuel_str:
-                                # Handle fractions like "1/2", "3/4"
-                                parts = fuel_str.split('/')
-                                if len(parts) == 2:
-                                    fuel_level = (float(parts[0]) / float(parts[1])) * 100
-                            elif fuel_str.lower() in ['cheio', 'full']:
-                                fuel_level = 100
-                            elif fuel_str.lower() in ['vazio', 'empty']:
-                                fuel_level = 0
-                            else:
-                                fuel_level = float(fuel_str)
-                        except:
-                            fuel_level = 0
+                        fuel_label = fuel_str
+                        
+                        # Map text values to percentages
+                        fuel_map = {
+                            'reserva': 0,
+                            '1/8': 12.5,
+                            '1/4': 25,
+                            '3/8': 37.5,
+                            '1/2': 50,
+                            '5/8': 62.5,
+                            '3/4': 75,
+                            '7/8': 87.5,
+                            'cheio': 100,
+                            'vazio': 0,
+                            'empty': 0,
+                            'full': 100
+                        }
+                        
+                        fuel_level = fuel_map.get(fuel_str.lower(), 0)
                     
                     result.append({
                         'plate': v[0],
@@ -53267,6 +53270,7 @@ async def get_available_vehicles(request: Request):
                         'model': v[2],
                         'odometer': v[3] or 0,
                         'fuel_level': fuel_level,
+                        'fuel_label': fuel_label,
                         'group': v[5]
                     })
                 
