@@ -3702,11 +3702,14 @@
                                 try {
                                     const response = await fetch(`/api/rental-agreement/by-number/${encodeURIComponent(raNumber)}`);
                                     const data = await response.json();
+                                    console.log('📧 [EMAIL AUTO-FILL] API response:', data);
                                     
-                                    if (data.success && data.rental_agreement) {
+                                    if (data.ok && data.rental_agreement) {
                                         const ra = data.rental_agreement;
                                         email = ra.client_email || ra.extracted_data?.email || ra.extracted_data?.clientEmail || '';
                                         console.log('📧 [EMAIL AUTO-FILL] Email fetched from RA:', email);
+                                    } else {
+                                        console.log('📧 [EMAIL AUTO-FILL] API returned ok=false or no rental_agreement');
                                     }
                                 } catch (error) {
                                     console.error('📧 [EMAIL AUTO-FILL] Error fetching RA:', error);
