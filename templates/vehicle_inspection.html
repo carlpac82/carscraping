@@ -3348,22 +3348,39 @@
             // For checkout mode, continue with normal flow
             console.log('📍 Checkout mode - skipping AI page');
             
-            // Validate required fields
-            const odometerReading = getOdometerReading();
-            if (!odometerReading || odometerReading === 0) {
-                alert('Por favor, preencha os quilómetros. Este campo é obrigatório.');
-                document.getElementById('odometerReading').focus();
-                return;
+            // Validate required fields (skip if coming from swap - already filled)
+            let odometerReading;
+            if (!window.AUTO_START_DELIVERY) {
+                // Normal delivery - validate odometer field
+                odometerReading = getOdometerReading();
+                if (!odometerReading || odometerReading === 0) {
+                    alert('Por favor, preencha os quilómetros. Este campo é obrigatório.');
+                    document.getElementById('odometerReading').focus();
+                    return;
+                }
+            } else {
+                // Coming from swap - use values from swap modal (stored in vehicleSwapData)
+                odometerReading = window.vehicleSwapData?.newKms || 0;
+                console.log('✅ Using KMs from swap modal:', odometerReading);
             }
             
             // Save observations
             const observations = document.getElementById('damageObservations').value;
             
+            // Get fuel level (from swap modal if coming from swap, otherwise from slider)
+            let fuelLevel;
+            if (window.AUTO_START_DELIVERY) {
+                fuelLevel = window.vehicleSwapData?.newFuel || 100;
+                console.log('✅ Using fuel from swap modal:', fuelLevel + '%');
+            } else {
+                fuelLevel = getFuelLevel();
+            }
+            
             // Save diagram data including fuel and odometer
             window.diagramData = {
                 damages: damages,
                 observations: observations,
-                fuelLevel: getFuelLevel(),
+                fuelLevel: fuelLevel,
                 odometerReading: odometerReading
             };
             
