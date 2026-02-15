@@ -1814,12 +1814,14 @@
                                 expectedReturnDate = rawDate.replace(/\s*-\s*/g, '/').trim();
                             }
                         }
-                        // Always try to get time from extracted_data
-                        let rawTime = ed.returnTime || ed.return_time || ed.hora_entrega || ed.dropOffTime || ed.horaEntrega || null;
+                        // Always try to get time from extracted_data (try multiple field names)
+                        let rawTime = ed.returnTime || ed.return_time || ed.hora_entrega || ed.dropOffTime || ed.horaEntrega || ed.return_hour || ed.hora_recolha || null;
                         if (rawTime) {
+                            // Normalize time format: "15 : 15" -> "15:15"
                             expectedReturnTime = rawTime.replace(/\s*:\s*/g, ':').trim();
                         }
                         console.log('📅 Expected return date:', expectedReturnDate, 'time:', expectedReturnTime, 'from extracted_data:', ed);
+                        console.log('📅 Raw time value:', rawTime);
                     }
                 } catch (e) {
                     console.error('Error fetching RA data:', e);
