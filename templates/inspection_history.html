@@ -6330,6 +6330,10 @@
                     
                     console.log('📧 RA data:', raData);
                     console.log('📧 Extracted data:', extractedData);
+                    console.log('🔍 extractedData.email:', extractedData.email);
+                    console.log('🔍 extractedData.client_email:', extractedData.client_email);
+                    console.log('🔍 raData.client_email:', raData.client_email);
+                    console.log('🔍 raData.email:', raData.email);
                     
                     // Get email from extracted_data first, then fallback to RA data
                     clientEmail = extractedData.email || extractedData.client_email || 
