@@ -50403,8 +50403,9 @@ async def get_inspections_history(request: Request):
                         """, (ra_number,))
                     
                     swap_rows = cursor.fetchall()
+                    logging.info(f"🔄 [SWAP DEBUG] RA {ra_number}: Found {len(swap_rows)} swaps in database")
                     for swap_row in swap_rows:
-                        contract["vehicle_swaps"].append({
+                        swap_data = {
                             "swap_datetime": str(swap_row[0]) if swap_row[0] else None,
                             "old_plate": swap_row[1],
                             "new_plate": swap_row[2],
@@ -50413,7 +50414,9 @@ async def get_inspections_history(request: Request):
                             "new_kms": swap_row[5],
                             "new_fuel": swap_row[6],
                             "employee_name": swap_row[7]
-                        })
+                        }
+                        contract["vehicle_swaps"].append(swap_data)
+                        logging.info(f"🔄 [SWAP DEBUG] Swap: {swap_data['old_plate']} → {swap_data['new_plate']} at {swap_data['swap_datetime']}")
                 except Exception as e:
                     logging.error(f"Error getting vehicle swaps for RA {ra_number}: {e}")
                     try:
