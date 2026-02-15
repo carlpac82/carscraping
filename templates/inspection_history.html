@@ -2157,7 +2157,8 @@
                             </div>
                             ` : ''}
                             
-                            <!-- Vehicle Swap Alert (for checkin only) -->
+                            <!-- Damage Croqui (BEFORE photos) - SEMPRE mostrar para checkout -->
+                            <!-- Vehicle Swap Alert - ANTES do croqui (for checkin only) -->
                             ${type === 'checkin' && swapHistory ? `
                                 <div class="mb-6">
                                     <div class="bg-orange-50 border-2 border-orange-400 rounded-lg p-4">
@@ -2183,8 +2184,6 @@
                                     </div>
                                 </div>
                             ` : ''}
-                            
-                            <!-- Damage Croqui (BEFORE photos) - SEMPRE mostrar para checkout -->
                             ${type === 'checkout' || inspection.damage_croqui ? `
                                 <div class="mb-6">
                                     <h4 class="text-lg font-bold text-gray-900 mb-4">Croqui de Danos</h4>
