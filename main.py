@@ -56002,6 +56002,127 @@ async def cleanup_duplicate_swaps(request: Request):
             "error": str(e)
         }, status_code=500)
 
+@app.delete("/api/delete-ra-complete/{ra_number}")
+async def delete_ra_complete(ra_number: str):
+    """Delete EVERYTHING related to a rental agreement: inspections, swaps, photos, RA"""
+    try:
+        logging.info(f"🗑️ Deleting complete RA: {ra_number}")
+        
+        with _db_lock:
+            conn = _db_connect()
+            is_postgres = _is_postgresql_connection(conn)
+            
+            try:
+                if is_postgres:
+                    cur = conn.cursor()
+                    
+                    # 1. Delete vehicle swaps
+                    cur.execute("DELETE FROM vehicle_swaps WHERE rental_agreement_number = %s", (ra_number,))
+                    swaps_deleted = cur.rowcount
+                    logging.info(f"✅ Deleted {swaps_deleted} vehicle swaps")
+                    
+                    # 2. Get all inspection numbers for this RA
+                    cur.execute("""
+                        SELECT inspection_number FROM inspections 
+                        WHERE contract_number = %s
+                    """, (ra_number,))
+                    inspection_numbers = [row[0] for row in cur.fetchall()]
+                    
+                    # 3. Delete all inspections
+                    cur.execute("DELETE FROM inspections WHERE contract_number = %s", (ra_number,))
+                    inspections_deleted = cur.rowcount
+                    logging.info(f"✅ Deleted {inspections_deleted} inspections: {inspection_numbers}")
+                    
+                    # 4. Delete rental agreement
+                    cur.execute("DELETE FROM rental_agreements WHERE rental_agreement_number = %s", (ra_number,))
+                    ra_deleted = cur.rowcount
+                    logging.info(f"✅ Deleted {ra_deleted} rental agreement")
+                    
+                    # 5. Mark vehicles as available (get plates from deleted inspections)
+                    cur.execute("""
+                        UPDATE fleet_vehicles 
+                        SET status = 'disponivel', current_rental_agreement = NULL
+                        WHERE current_rental_agreement = %s
+                    """, (ra_number,))
+                    vehicles_updated = cur.rowcount
+                    logging.info(f"✅ Marked {vehicles_updated} vehicles as available")
+                    
+                    conn.commit()
+                    
+                    return JSONResponse({
+                        "ok": True,
+                        "message": f"RA {ra_number} completely deleted",
+                        "deleted": {
+                            "swaps": swaps_deleted,
+                            "inspections": inspections_deleted,
+                            "inspection_numbers": inspection_numbers,
+                            "rental_agreement": ra_deleted,
+                            "vehicles_updated": vehicles_updated
+                        }
+                    })
+                    
+                else:
+                    cur = conn.cursor()
+                    
+                    # 1. Delete vehicle swaps
+                    cur.execute("DELETE FROM vehicle_swaps WHERE rental_agreement_number = ?", (ra_number,))
+                    swaps_deleted = cur.rowcount
+                    logging.info(f"✅ Deleted {swaps_deleted} vehicle swaps")
+                    
+                    # 2. Get all inspection numbers for this RA
+                    cur.execute("""
+                        SELECT inspection_number FROM inspections 
+                        WHERE contract_number = ?
+                    """, (ra_number,))
+                    inspection_numbers = [row[0] for row in cur.fetchall()]
+                    
+                    # 3. Delete all inspections
+                    cur.execute("DELETE FROM inspections WHERE contract_number = ?", (ra_number,))
+                    inspections_deleted = cur.rowcount
+                    logging.info(f"✅ Deleted {inspections_deleted} inspections: {inspection_numbers}")
+                    
+                    # 4. Delete rental agreement
+                    cur.execute("DELETE FROM rental_agreements WHERE rental_agreement_number = ?", (ra_number,))
+                    ra_deleted = cur.rowcount
+                    logging.info(f"✅ Deleted {ra_deleted} rental agreement")
+                    
+                    # 5. Mark vehicles as available
+                    cur.execute("""
+                        UPDATE fleet_vehicles 
+                        SET status = 'disponivel', current_rental_agreement = NULL
+                        WHERE current_rental_agreement = ?
+                    """, (ra_number,))
+                    vehicles_updated = cur.rowcount
+                    logging.info(f"✅ Marked {vehicles_updated} vehicles as available")
+                    
+                    conn.commit()
+                    
+                    return JSONResponse({
+                        "ok": True,
+                        "message": f"RA {ra_number} completely deleted",
+                        "deleted": {
+                            "swaps": swaps_deleted,
+                            "inspections": inspections_deleted,
+                            "inspection_numbers": inspection_numbers,
+                            "rental_agreement": ra_deleted,
+                            "vehicles_updated": vehicles_updated
+                        }
+                    })
+                    
+            except Exception as e:
+                conn.rollback()
+                logging.error(f"Error deleting RA: {e}")
+                raise
+            finally:
+                conn.close()
+                
+    except Exception as e:
+        logging.error(f"Error in delete RA complete: {e}")
+        return JSONResponse({
+            "ok": False,
+            "error": str(e)
+        }, status_code=500)
+
 if __name__ == "__main__":
     import uvicorn
     uvicorn.run(app, host="0.0.0.0", port=8000)
