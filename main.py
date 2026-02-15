@@ -53209,42 +53209,64 @@ async def get_available_vehicles(request: Request):
                 if is_postgres:
                     with conn.cursor() as cur:
                         cur.execute("""
-                            SELECT DISTINCT v.license_plate, v.brand, v.model, v.odometer, v.fuel_level, v.group_name
+                            SELECT DISTINCT v.matricula, v.marca, v.modelo, v.km_atual, v.nivel_combustivel, v.grupo
                             FROM vehicles v
-                            WHERE v.license_plate NOT IN (
+                            WHERE v.matricula NOT IN (
                                 SELECT DISTINCT ra.license_plate
                                 FROM rental_agreements ra
                                 WHERE ra.status = 'open'
                                 AND ra.license_plate IS NOT NULL
                             )
-                            AND v.license_plate IS NOT NULL
-                            ORDER BY v.license_plate
+                            AND v.matricula IS NOT NULL
+                            ORDER BY v.matricula
                         """)
                         vehicles = cur.fetchall()
                 else:
                     cur = conn.cursor()
                     cur.execute("""
-                        SELECT DISTINCT v.license_plate, v.brand, v.model, v.odometer, v.fuel_level, v.group_name
+                        SELECT DISTINCT v.matricula, v.marca, v.modelo, v.km_atual, v.nivel_combustivel, v.grupo
                         FROM vehicles v
-                        WHERE v.license_plate NOT IN (
+                        WHERE v.matricula NOT IN (
                             SELECT DISTINCT ra.license_plate
                             FROM rental_agreements ra
                             WHERE ra.status = 'open'
                             AND ra.license_plate IS NOT NULL
                         )
-                        AND v.license_plate IS NOT NULL
-                        ORDER BY v.license_plate
+                        AND v.matricula IS NOT NULL
+                        ORDER BY v.matricula
                     """)
                     vehicles = cur.fetchall()
                 
                 result = []
                 for v in vehicles:
+                    # Parse fuel level from TEXT (e.g., "50%", "Cheio", "1/2")
+                    fuel_level = 0
+                    if v[4]:
+                        fuel_str = str(v[4]).strip()
+                        try:
+                            # Try to extract numeric value
+                            if '%' in fuel_str:
+                                fuel_level = float(fuel_str.replace('%', '').strip())
+                            elif '/' in fuel_str:
+                                # Handle fractions like "1/2", "3/4"
+                                parts = fuel_str.split('/')
+                                if len(parts) == 2:
+                                    fuel_level = (float(parts[0]) / float(parts[1])) * 100
+                            elif fuel_str.lower() in ['cheio', 'full']:
+                                fuel_level = 100
+                            elif fuel_str.lower() in ['vazio', 'empty']:
+                                fuel_level = 0
+                            else:
+                                fuel_level = float(fuel_str)
+                        except:
+                            fuel_level = 0
+                    
                     result.append({
                         'plate': v[0],
                         'brand': v[1],
                         'model': v[2],
-                        'odometer': v[3],
-                        'fuel_level': v[4],
+                        'odometer': v[3] or 0,
+                        'fuel_level': fuel_level,
                         'group': v[5]
                     })
                 
