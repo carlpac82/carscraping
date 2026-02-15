@@ -53772,6 +53772,66 @@ Cordialement,
             "error": str(e)
         }, status_code=500)
 
+@app.post("/api/admin/fix-replaced-inspections")
+async def fix_replaced_inspections(request: Request):
+    """Temporary endpoint to fix inspection status for swapped vehicles"""
+    require_admin(request)
+    
+    try:
+        data = await request.json()
+        ra = data.get('ra')
+        old_plate = data.get('old_plate')
+        
+        if not ra or not old_plate:
+            return JSONResponse({
+                "success": False,
+                "error": "Missing ra or old_plate"
+            }, status_code=400)
+        
+        with _db_lock:
+            conn = _db_connect()
+            is_postgres = _is_postgresql_connection(conn)
+            
+            if is_postgres:
+                cur = conn.cursor()
+                cur.execute("""
+                    UPDATE vehicle_inspections
+                    SET status = 'replaced'
+                    WHERE contract_number LIKE %s
+                      AND vehicle_plate = %s
+                      AND inspection_type = 'checkin'
+                      AND COALESCE(status, '') != 'replaced'
+                """, (f"{ra}%", old_plate))
+                rows_updated = cur.rowcount
+                cur.close()
+            else:
+                cur = conn.cursor()
+                cur.execute("""
+                    UPDATE vehicle_inspections
+                    SET status = 'replaced'
+                    WHERE contract_number LIKE ?
+                      AND vehicle_plate = ?
+                      AND inspection_type = 'checkin'
+                      AND COALESCE(status, '') != 'replaced'
+                """, (f"{ra}%", old_plate))
+                rows_updated = cur.rowcount
+            
+            conn.commit()
+            conn.close()
+        
+        return JSONResponse({
+            "success": True,
+            "rows_updated": rows_updated,
+            "message": f"Marked {rows_updated} inspection(s) as replaced for {old_plate} in RA {ra}"
+        })
+    
+    except Exception as e:
+        logging.error(f"Error fixing replaced inspections: {e}")
+        return JSONResponse({
+            "success": False,
+            "error": str(e)
+        }, status_code=500)
+
 @app.get("/api/admin/vehicles")
 async def get_vehicles(request: Request):
     """Listar todos os veículos"""
