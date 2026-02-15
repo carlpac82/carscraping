@@ -6230,7 +6230,9 @@
                 ra: swapData.raNumber,
                 type: 'checkin',
                 from_swap: 'true',
-                auto_start: 'true'
+                auto_start: 'true',
+                swap_kms: swapData.newKms,
+                swap_fuel: swapData.newFuel
             });
 
             const modal = document.createElement('div');

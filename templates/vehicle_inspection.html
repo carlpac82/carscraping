@@ -19,6 +19,14 @@
                 
                 // Set flag to auto-start immediately when DOM loads
                 window.AUTO_START_DELIVERY = true;
+                
+                // Store swap data from URL parameters
+                window.vehicleSwapData = {
+                    newKms: parseInt(urlParams.get('swap_kms')) || 0,
+                    newFuel: parseFloat(urlParams.get('swap_fuel')) || 100
+                };
+                
+                console.log('✅ Swap data loaded from URL:', window.vehicleSwapData);
             }
         })();
     </script>
