@@ -54096,6 +54096,82 @@ async def debug_vehicle_availability(request: Request, plate: str):
             "error": str(e)
         }, status_code=500)
 
+@app.post("/api/admin/delete-rental-agreement")
+async def delete_rental_agreement(request: Request):
+    """Delete a rental agreement and its associated inspections"""
+    require_admin(request)
+    
+    try:
+        data = await request.json()
+        ra = data.get('ra')
+        
+        if not ra:
+            return JSONResponse({
+                "success": False,
+                "error": "Missing ra parameter"
+            }, status_code=400)
+        
+        with _db_lock:
+            conn = _db_connect()
+            is_postgres = _is_postgresql_connection(conn)
+            
+            if is_postgres:
+                cur = conn.cursor()
+                
+                # Delete inspections first (foreign key constraint)
+                cur.execute("""
+                    DELETE FROM vehicle_inspections
+                    WHERE contract_number LIKE %s
+                """, (f"{ra}%",))
+                inspections_deleted = cur.rowcount
+                
+                # Delete rental agreement
+                cur.execute("""
+                    DELETE FROM rental_agreements
+                    WHERE rental_agreement_number = %s
+                """, (ra,))
+                ra_deleted = cur.rowcount
+                
+                conn.commit()
+                cur.close()
+            else:
+                cur = conn.cursor()
+                
+                # Delete inspections first (foreign key constraint)
+                cur.execute("""
+                    DELETE FROM vehicle_inspections
+                    WHERE contract_number LIKE ?
+                """, (f"{ra}%",))
+                inspections_deleted = cur.rowcount
+                
+                # Delete rental agreement
+                cur.execute("""
+                    DELETE FROM rental_agreements
+                    WHERE rental_agreement_number = ?
+                """, (ra,))
+                ra_deleted = cur.rowcount
+                
+                conn.commit()
+                cur.close()
+            
+            conn.close()
+            
+            return JSONResponse({
+                "success": True,
+                "ra_deleted": ra_deleted,
+                "inspections_deleted": inspections_deleted,
+                "message": f"Deleted RA {ra} and {inspections_deleted} associated inspection(s)"
+            })
+    
+    except Exception as e:
+        logging.error(f"Error deleting rental agreement: {e}")
+        import traceback
+        logging.error(traceback.format_exc())
+        return JSONResponse({
+            "success": False,
+            "error": str(e)
+        }, status_code=500)
+
 @app.get("/api/admin/vehicles")
 async def get_vehicles(request: Request):
     """Listar todos os veículos"""
