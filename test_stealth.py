@@ -94,9 +94,9 @@ def test_carjet():
         
         print("✅ Não bloqueado! Preenchendo formulário...")
         
-        # Datas de teste - usar datas FUTURAS (Janeiro 2026)
-        start_dt = datetime(2026, 1, 10, 10, 0)
-        end_dt = datetime(2026, 1, 13, 10, 0)
+        # Datas de teste - usar datas FUTURAS (Fevereiro 2026)
+        start_dt = datetime(2026, 2, 11, 15, 0)
+        end_dt = datetime(2026, 2, 12, 15, 0)
         
         # PASSO 1: Preencher localização e clicar no dropdown
         print("📍 PASSO 1: Preenchendo localização...")
@@ -110,8 +110,8 @@ def test_carjet():
             pickup_input.click()
             time.sleep(0.3)
             pickup_input.clear()
-            pickup_input.send_keys("faro aero")
-            print("   ✅ Local digitado: Faro")
+            pickup_input.send_keys("albufeira")
+            print("   ✅ Local digitado: Albufeira")
             
             # Aguardar dropdown aparecer
             time.sleep(2)
@@ -132,7 +132,7 @@ def test_carjet():
                 if (!list) return 'no list';
                 const items = list.querySelectorAll('li a');
                 for (const a of items) {
-                    if (a.textContent.includes('Faro')) {
+                    if (a.textContent.includes('Albufeira')) {
                         a.click();
                         return 'clicked: ' + a.textContent.substring(0, 40);
                     }
@@ -188,14 +188,14 @@ def test_carjet():
             // Horas (selects)
             const h1 = document.querySelector('#fechaRecogidaSelHour');
             if (h1) { 
-                h1.value = '10:00'; 
+                h1.value = '15:00'; 
                 h1.dispatchEvent(new Event('change', {bubbles: true})); 
                 filled.h1 = h1.value; 
             }
             
             const h2 = document.querySelector('#fechaDevolucionSelHour');
             if (h2) { 
-                h2.value = '10:00'; 
+                h2.value = '15:00'; 
                 h2.dispatchEvent(new Event('change', {bubbles: true})); 
                 filled.h2 = h2.value; 
             }

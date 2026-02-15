@@ -56363,6 +56363,109 @@ async def delete_checkin_06761():
             "error": str(e)
         }, status_code=500)
 
+@app.get("/api/debug-plate-40xm45")
+async def debug_plate_40xm45():
+    """Temporary: Debug all data related to plate 40-XM-45"""
+    try:
+        conn = _db_connect()
+        is_postgres = _is_postgresql_connection(conn)
+        
+        result = {
+            "rental_agreements": [],
+            "inspections": [],
+            "swaps": [],
+            "vehicle": None
+        }
+        
+        if is_postgres:
+            with conn.cursor() as cur:
+                # 1. Rental agreements
+                cur.execute("""
+                    SELECT id, rental_agreement_number, license_plate, vehicle_id, 
+                           inspection_completed, created_at
+                    FROM rental_agreements
+                    WHERE UPPER(license_plate) = '40-XM-45'
+                    ORDER BY created_at DESC
+                """)
+                for row in cur.fetchall():
+                    result["rental_agreements"].append({
+                        "id": row[0],
+                        "ra_number": row[1],
+                        "plate": row[2],
+                        "vehicle_id": row[3],
+                        "inspection_completed": row[4],
+                        "created_at": str(row[5])
+                    })
+                
+                # 2. Inspections
+                cur.execute("""
+                    SELECT inspection_number, contract_number, vehicle_plate, 
+                           inspection_type, status, created_at
+                    FROM vehicle_inspections
+                    WHERE UPPER(vehicle_plate) = '40-XM-45'
+                    ORDER BY created_at DESC
+                """)
+                for row in cur.fetchall():
+                    result["inspections"].append({
+                        "inspection_number": row[0],
+                        "contract_number": row[1],
+                        "vehicle_plate": row[2],
+                        "type": row[3],
+                        "status": row[4],
+                        "created_at": str(row[5])
+                    })
+                
+                # 3. Swaps
+                cur.execute("""
+                    SELECT id, rental_agreement_number, old_plate, new_plate, 
+                           swap_datetime, created_at
+                    FROM vehicle_swaps
+                    WHERE UPPER(old_plate) = '40-XM-45' OR UPPER(new_plate) = '40-XM-45'
+                    ORDER BY created_at DESC
+                """)
+                for row in cur.fetchall():
+                    result["swaps"].append({
+                        "id": row[0],
+                        "ra_number": row[1],
+                        "old_plate": row[2],
+                        "new_plate": row[3],
+                        "swap_datetime": str(row[4]),
+                        "created_at": str(row[5])
+                    })
+                
+                # 4. Vehicle
+                cur.execute("""
+                    SELECT id, matricula, grupo, marca, modelo, status, km_atual, nivel_combustivel
+                    FROM vehicles
+                    WHERE UPPER(matricula) = '40-XM-45'
+                """)
+                vehicle_row = cur.fetchone()
+                if vehicle_row:
+                    result["vehicle"] = {
+                        "id": vehicle_row[0],
+                        "plate": vehicle_row[1],
+                        "group": vehicle_row[2],
+                        "brand": vehicle_row[3],
+                        "model": vehicle_row[4],
+                        "status": vehicle_row[5],
+                        "km": vehicle_row[6],
+                        "fuel": vehicle_row[7]
+                    }
+        
+        conn.close()
+        
+        return JSONResponse({
+            "ok": True,
+            "data": result
+        })
+        
+    except Exception as e:
+        logging.error(f"Error in debug endpoint: {e}")
+        return JSONResponse({
+            "ok": False,
+            "error": str(e)
+        }, status_code=500)
+
 if __name__ == "__main__":
     import uvicorn
     uvicorn.run(app, host="0.0.0.0", port=8000)
