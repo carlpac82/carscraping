@@ -2457,6 +2457,43 @@
                 initializeFuelSelector();
             }, 100);
             
+            // Check for URL parameters (from vehicle swap)
+            const urlParams = new URLSearchParams(window.location.search);
+            const plateParam = urlParams.get('plate');
+            const raParam = urlParams.get('ra');
+            const autoStart = urlParams.get('auto_start');
+            const fromSwap = urlParams.get('from_swap');
+            
+            if (plateParam && raParam) {
+                console.log('🔄 Auto-filling from vehicle swap:', plateParam, raParam);
+                
+                setTimeout(() => {
+                    const plateField = document.getElementById('inputPlate');
+                    const raField = document.getElementById('inputRA');
+                    
+                    if (plateField) {
+                        plateField.value = plateParam;
+                        console.log('✅ Plate auto-filled:', plateParam);
+                    }
+                    
+                    if (raField) {
+                        raField.value = raParam;
+                        console.log('✅ RA auto-filled:', raParam);
+                    }
+                    
+                    // Auto-start inspection if requested
+                    if (autoStart === 'true' && fromSwap === 'true') {
+                        console.log('🚀 Auto-starting inspection from vehicle swap');
+                        setTimeout(() => {
+                            const startButton = document.querySelector('button[onclick="startInspection()"]');
+                            if (startButton) {
+                                startButton.click();
+                            }
+                        }, 500);
+                    }
+                }, 200);
+            }
+            
             // Ensure RA field formatting is working
             setTimeout(() => {
                 const raField = document.getElementById('inputRA');

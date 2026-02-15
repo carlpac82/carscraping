@@ -6,9 +6,9 @@
     <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
     <meta http-equiv="Pragma" content="no-cache">
     <meta http-equiv="Expires" content="0">
-    <title>Histórico de Inspeções - v25.0</title>
+    <title>Histórico de Inspeções - v26.0</title>
     <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
-    <script src="https://cdn.tailwindcss.com?v=25.0"></script>
+    <script src="https://cdn.tailwindcss.com?v=26.0"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js"></script>
@@ -6219,20 +6219,22 @@
             console.log('🚀 Starting inspection for vehicle swap:', swapData);
             
             // Close all modals
+            closeInspectionChoiceModal();
             closeVehicleSwapModal();
             
             // Store swap data globally for later use
             window.pendingVehicleSwap = swapData;
             
-            // Redirect to main page with inspection parameters
+            // Redirect to vehicle inspection page with parameters
             const params = new URLSearchParams({
                 plate: swapData.newPlate,
                 ra: swapData.raNumber,
                 type: 'checkin',
-                from_swap: 'true'
+                from_swap: 'true',
+                auto_start: 'true'
             });
             
-            window.location.href = `/?${params.toString()}`;
+            window.location.href = `/vehicle-inspection?${params.toString()}`;
         }
         
         // Detect language from country (matching backend logic)
