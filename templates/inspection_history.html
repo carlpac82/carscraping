@@ -6,9 +6,9 @@
     <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
     <meta http-equiv="Pragma" content="no-cache">
     <meta http-equiv="Expires" content="0">
-    <title>Histórico de Inspeções - v33.0</title>
+    <title>Histórico de Inspeções - v34.0</title>
     <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
-    <script src="https://cdn.tailwindcss.com?v=33.0"></script>
+    <script src="https://cdn.tailwindcss.com?v=34.0"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js"></script>
@@ -6303,6 +6303,16 @@
                                  raData.client_email || raData.email || '';
                     clientCountry = extractedData.country || extractedData.clientCountry || 
                                    raData.country || '';
+                    
+                    // If still no email, try to get from contracts array
+                    if (!clientEmail) {
+                        console.log('📧 No email in API response, checking contracts array...');
+                        const contract = contracts.find(c => c.rental_agreement_number === swapData.raNumber);
+                        if (contract) {
+                            clientEmail = contract.client_email || '';
+                            console.log('📧 Email from contracts array:', clientEmail);
+                        }
+                    }
                     
                     console.log('📧 Client email found:', clientEmail);
                     console.log('🌍 Client country found:', clientCountry);

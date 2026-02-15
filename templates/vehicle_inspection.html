@@ -2490,11 +2490,22 @@
                     localStorage.setItem('processType', 'delivery');
                     window.isPickupMode = false;
                     
-                    // Hide selection step and show photos step immediately
-                    document.getElementById('stepSelection').classList.add('hidden');
-                    document.getElementById('stepPhotos').classList.remove('hidden');
-                    
-                    console.log('✅ Skipped selection screen, showing photos directly');
+                    // Wait for DOM to be fully ready, then hide/show steps
+                    setTimeout(() => {
+                        const stepSelection = document.getElementById('stepSelection');
+                        const stepPhotos = document.getElementById('stepPhotos');
+                        
+                        console.log('🔍 stepSelection element:', stepSelection);
+                        console.log('🔍 stepPhotos element:', stepPhotos);
+                        
+                        if (stepSelection && stepPhotos) {
+                            stepSelection.classList.add('hidden');
+                            stepPhotos.classList.remove('hidden');
+                            console.log('✅ Skipped selection screen, showing photos directly');
+                        } else {
+                            console.error('❌ Could not find step elements');
+                        }
+                    }, 100);
                 }
             }
             
