@@ -56103,6 +56103,101 @@ async def delete_ra_complete(ra_number: str):
             "error": str(e)
         }, status_code=500)
 
+@app.post("/api/fix-vehicle-status-40xm45")
+async def fix_vehicle_status_40xm45():
+    """Temporary endpoint to mark 40-XM-45 as available"""
+    try:
+        logging.info(f"🔧 Fixing status for vehicle 40-XM-45")
+        
+        with _db_lock:
+            conn = _db_connect()
+            is_postgres = _is_postgresql_connection(conn)
+            
+            try:
+                if is_postgres:
+                    cur = conn.cursor()
+                    
+                    # Get current status
+                    cur.execute("SELECT status, km_atual, nivel_combustivel FROM vehicles WHERE matricula = %s", ('40-XM-45',))
+                    current = cur.fetchone()
+                    
+                    if not current:
+                        return JSONResponse({
+                            "ok": False,
+                            "error": "Vehicle 40-XM-45 not found"
+                        })
+                    
+                    # Update to available
+                    cur.execute("""
+                        UPDATE vehicles 
+                        SET status = 'disponivel'
+                        WHERE matricula = %s
+                    """, ('40-XM-45',))
+                    
+                    conn.commit()
+                    
+                    return JSONResponse({
+                        "ok": True,
+                        "message": "Vehicle 40-XM-45 marked as available",
+                        "before": {
+                            "status": current[0],
+                            "km": current[1],
+                            "fuel": current[2]
+                        },
+                        "after": {
+                            "status": "disponivel"
+                        }
+                    })
+                    
+                else:
+                    cur = conn.cursor()
+                    
+                    # Get current status
+                    cur.execute("SELECT status, km_atual, nivel_combustivel FROM vehicles WHERE matricula = ?", ('40-XM-45',))
+                    current = cur.fetchone()
+                    
+                    if not current:
+                        return JSONResponse({
+                            "ok": False,
+                            "error": "Vehicle 40-XM-45 not found"
+                        })
+                    
+                    # Update to available
+                    cur.execute("""
+                        UPDATE vehicles 
+                        SET status = 'disponivel'
+                        WHERE matricula = ?
+                    """, ('40-XM-45',))
+                    
+                    conn.commit()
+                    
+                    return JSONResponse({
+                        "ok": True,
+                        "message": "Vehicle 40-XM-45 marked as available",
+                        "before": {
+                            "status": current[0],
+                            "km": current[1],
+                            "fuel": current[2]
+                        },
+                        "after": {
+                            "status": "disponivel"
+                        }
+                    })
+                    
+            except Exception as e:
+                conn.rollback()
+                logging.error(f"Error fixing vehicle status: {e}")
+                raise
+            finally:
+                conn.close()
+                
+    except Exception as e:
+        logging.error(f"Error in fix vehicle status: {e}")
+        return JSONResponse({
+            "ok": False,
+            "error": str(e)
+        }, status_code=500)
+
 @app.delete("/api/delete-checkin-06761")
 async def delete_checkin_06761():
     """Temporary endpoint to delete check-in inspection for RA 06761"""
