@@ -50388,9 +50388,11 @@ async def get_inspections_history(request: Request):
                     if not grouped[key]["checkin"]:
                         grouped[key]["checkin"] = inspection_data
             
-            # Check for parking QR for each contract
+            # Check for parking QR and vehicle swaps for each contract
             for contract in grouped.values():
                 ra_number = contract["contract_number"]
+                
+                # Check parking QR
                 try:
                     if is_postgres:
                         cursor.execute("""
@@ -50408,6 +50410,45 @@ async def get_inspections_history(request: Request):
                 except Exception as e:
                     logging.error(f"Error checking parking QR for RA {ra_number}: {e}")
                     contract["has_parking_qr"] = False
+                    try:
+                        conn.rollback()
+                    except:
+                        pass
+                
+                # Get vehicle swap history
+                contract["vehicle_swaps"] = []
+                try:
+                    if is_postgres:
+                        cursor.execute("""
+                            SELECT swap_datetime, old_plate, new_plate, old_kms, old_fuel, 
+                                   new_kms, new_fuel, employee_name
+                            FROM vehicle_swaps
+                            WHERE rental_agreement_number = %s
+                            ORDER BY swap_datetime DESC
+                        """, (ra_number,))
+                    else:
+                        cursor.execute("""
+                            SELECT swap_datetime, old_plate, new_plate, old_kms, old_fuel, 
+                                   new_kms, new_fuel, employee_name
+                            FROM vehicle_swaps
+                            WHERE rental_agreement_number = ?
+                            ORDER BY swap_datetime DESC
+                        """, (ra_number,))
+                    
+                    swap_rows = cursor.fetchall()
+                    for swap_row in swap_rows:
+                        contract["vehicle_swaps"].append({
+                            "swap_datetime": str(swap_row[0]) if swap_row[0] else None,
+                            "old_plate": swap_row[1],
+                            "new_plate": swap_row[2],
+                            "old_kms": swap_row[3],
+                            "old_fuel": swap_row[4],
+                            "new_kms": swap_row[5],
+                            "new_fuel": swap_row[6],
+                            "employee_name": swap_row[7]
+                        })
+                except Exception as e:
+                    logging.error(f"Error getting vehicle swaps for RA {ra_number}: {e}")
                     try:
                         conn.rollback()
                     except:
