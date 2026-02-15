@@ -53658,7 +53658,16 @@ async def vehicle_swap(request: Request):
                     if cur2.rowcount > 0:
                         logging.info(f"📧 Updated {cur2.rowcount} scheduled self-checkout email(s) with new plate {new_plate}")
                 
-                conn.commit()
+                logging.info(f"💾 [COMMIT] About to commit transaction for RA {ra}")
+                logging.info(f"💾 [COMMIT] Connection object: {type(conn).__name__}")
+                logging.info(f"💾 [COMMIT] Connection status: {conn.status if hasattr(conn, 'status') else 'N/A'}")
+                
+                try:
+                    conn.commit()
+                    logging.info(f"✅ [COMMIT] Transaction committed successfully for RA {ra}")
+                except Exception as commit_error:
+                    logging.error(f"❌ [COMMIT] Failed to commit transaction: {commit_error}")
+                    raise
                 
                 logging.info(f"✅ Vehicle swap completed: {old_plate} -> {new_plate} for RA {ra}")
                 
