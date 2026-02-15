@@ -53494,18 +53494,30 @@ async def vehicle_swap(request: Request):
                         """, (f'"{new_plate}"', f"{ra}%"))
                         
                         # Update old vehicle in fleet management - mark as available
+                        logging.info(f"🔧 Marking old vehicle {old_plate} as available (km={old_kms}, fuel={old_fuel})")
                         cur.execute("""
                             UPDATE vehicles 
                             SET km_atual = %s, nivel_combustivel = %s, status = 'disponivel'
                             WHERE matricula = %s
                         """, (old_kms, old_fuel, old_plate))
+                        old_updated = cur.rowcount
+                        logging.info(f"✅ Old vehicle update: {old_updated} row(s) affected")
+                        
+                        if old_updated == 0:
+                            logging.warning(f"⚠️ Old vehicle {old_plate} not found in vehicles table!")
                         
                         # Update new vehicle in fleet management - mark as rented
+                        logging.info(f"🔧 Marking new vehicle {new_plate} as rented (km={new_kms}, fuel={new_fuel})")
                         cur.execute("""
                             UPDATE vehicles 
                             SET km_atual = %s, nivel_combustivel = %s, status = 'alugado'
                             WHERE matricula = %s
                         """, (new_kms, new_fuel, new_plate))
+                        new_updated = cur.rowcount
+                        logging.info(f"✅ New vehicle update: {new_updated} row(s) affected")
+                        
+                        if new_updated == 0:
+                            logging.warning(f"⚠️ New vehicle {new_plate} not found in vehicles table!")
                         
                         # Record swap in history
                         cur.execute("""
@@ -53524,18 +53536,30 @@ async def vehicle_swap(request: Request):
                     """, (new_plate, f"{ra}%"))
                     
                     # Update old vehicle in fleet management - mark as available
+                    logging.info(f"🔧 Marking old vehicle {old_plate} as available (km={old_kms}, fuel={old_fuel})")
                     cur.execute("""
                         UPDATE vehicles 
                         SET km_atual = ?, nivel_combustivel = ?, status = 'disponivel'
                         WHERE matricula = ?
                     """, (old_kms, old_fuel, old_plate))
+                    old_updated = cur.rowcount
+                    logging.info(f"✅ Old vehicle update: {old_updated} row(s) affected")
+                    
+                    if old_updated == 0:
+                        logging.warning(f"⚠️ Old vehicle {old_plate} not found in vehicles table!")
                     
                     # Update new vehicle in fleet management - mark as rented
+                    logging.info(f"🔧 Marking new vehicle {new_plate} as rented (km={new_kms}, fuel={new_fuel})")
                     cur.execute("""
                         UPDATE vehicles 
                         SET km_atual = ?, nivel_combustivel = ?, status = 'alugado'
                         WHERE matricula = ?
                     """, (new_kms, new_fuel, new_plate))
+                    new_updated = cur.rowcount
+                    logging.info(f"✅ New vehicle update: {new_updated} row(s) affected")
+                    
+                    if new_updated == 0:
+                        logging.warning(f"⚠️ New vehicle {new_plate} not found in vehicles table!")
                     
                     # Record swap in history
                     cur.execute("""
