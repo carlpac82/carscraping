@@ -2241,10 +2241,18 @@
                         'Inspeção guardada no histórico com sucesso!';
                     showNotification(successMessage, 'success');
                     
-                    // Redirect after delay to show notification
-                    setTimeout(() => {
-                        window.location.href = '/check-in';
-                    }, 2500);
+                    // If inside iframe (from swap), notify parent to close modal
+                    if (window.AUTO_START_DELIVERY && window.parent !== window) {
+                        console.log('📤 Notifying parent window to close iframe modal');
+                        setTimeout(() => {
+                            window.parent.postMessage({ type: 'CLOSE_INSPECTION_MODAL' }, '*');
+                        }, 2000);
+                    } else {
+                        // Normal redirect after delay to show notification
+                        setTimeout(() => {
+                            window.location.href = '/check-in';
+                        }, 2500);
+                    }
                 } else {
                     showNotification('Erro ao guardar inspeção: ' + (data.error || 'Erro desconhecido'), 'error');
                 }
