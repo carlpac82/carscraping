@@ -53412,13 +53412,19 @@ async def get_available_vehicles(request: Request):
                         fuel_level = fuel_map.get(fuel_str.lower(), 0)
                     
                     result.append({
-                        'plate': v[0],
-                        'brand': v[1],
-                        'model': v[2],
-                        'odometer': v[3] or 0,
-                        'fuel_level': fuel_level,
+                        'matricula': v[0],  # Frontend expects 'matricula'
+                        'plate': v[0],      # Keep for backward compatibility
+                        'marca': v[1],      # Frontend expects 'marca'
+                        'brand': v[1],      # Keep for backward compatibility
+                        'modelo': v[2],     # Frontend expects 'modelo'
+                        'model': v[2],      # Keep for backward compatibility
+                        'km_atual': v[3] or 0,  # Frontend expects 'km_atual'
+                        'odometer': v[3] or 0,  # Keep for backward compatibility
+                        'nivel_combustivel': fuel_level,  # Frontend expects 'nivel_combustivel'
+                        'fuel_level': fuel_level,         # Keep for backward compatibility
                         'fuel_label': fuel_label,
-                        'group': v[5]
+                        'grupo': v[5],      # Frontend expects 'grupo'
+                        'group': v[5]       # Keep for backward compatibility
                     })
                 
                 return JSONResponse({
