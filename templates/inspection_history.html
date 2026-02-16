@@ -6676,6 +6676,8 @@
         async function saveVehicleSwap(sendEmail) {
             const swapData = window.vehicleSwapData;
             
+            console.log('🔄 [FRONTEND] saveVehicleSwap called with:', { sendEmail, swapData });
+            
             // Get email from input field
             const emailInput = document.getElementById('swapEmailInput');
             const clientEmail = emailInput ? emailInput.value.trim() : '';
@@ -6683,8 +6685,11 @@
             // Get detected language (default to 'pt' if not set)
             const language = window.swapEmailLanguage || 'pt';
             
+            console.log('📧 [FRONTEND] Email config:', { sendEmail, clientEmail, language });
+            
             // Validate email if sending
             if (sendEmail && clientEmail && !isValidEmail(clientEmail)) {
+                console.error('❌ [FRONTEND] Invalid email:', clientEmail);
                 showNotification('Por favor, insira um email válido', 'error');
                 return;
             }
@@ -6694,37 +6699,46 @@
                 
                 const swapDateTime = `${swapData.swapDate}T${swapData.swapTime}`;
                 
-                console.log(`📧 Sending vehicle swap with language: ${language}`);
+                const requestBody = {
+                    ra: swapData.raNumber,
+                    swap_datetime: swapDateTime,
+                    old_plate: swapData.oldPlate,
+                    old_kms: swapData.oldKms,
+                    old_fuel: swapData.oldFuel,
+                    new_plate: swapData.newPlate,
+                    new_kms: swapData.newKms,
+                    new_fuel: swapData.newFuel,
+                    send_email: sendEmail,
+                    client_email: clientEmail,
+                    language: language
+                };
+                
+                console.log('📤 [FRONTEND] Sending POST /api/vehicle-swap with body:', requestBody);
                 
                 const response = await fetch('/api/vehicle-swap', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                        ra: swapData.raNumber,
-                        swap_datetime: swapDateTime,
-                        old_plate: swapData.oldPlate,
-                        old_kms: swapData.oldKms,
-                        old_fuel: swapData.oldFuel,
-                        new_plate: swapData.newPlate,
-                        new_kms: swapData.newKms,
-                        new_fuel: swapData.newFuel,
-                        send_email: sendEmail,
-                        client_email: clientEmail,
-                        language: language
-                    })
+                    body: JSON.stringify(requestBody)
                 });
                 
+                console.log('📥 [FRONTEND] Response status:', response.status, response.statusText);
+                
                 const result = await response.json();
+                console.log('📥 [FRONTEND] Response body:', result);
                 
                 if (result.success) {
+                    console.log('✅ [FRONTEND] Swap successful, reloading history...');
                     showNotification(`✅ ${result.message}`, 'success');
                     closeSwapSummaryModal();
                     await loadHistory(true);
+                    console.log('✅ [FRONTEND] History reloaded');
                 } else {
+                    console.error('❌ [FRONTEND] Swap failed:', result.error);
                     showNotification('Erro: ' + (result.error || 'Erro desconhecido'), 'error');
                 }
             } catch (error) {
-                console.error('Error swapping vehicle:', error);
+                console.error('❌ [FRONTEND] Exception during swap:', error);
+                console.error('❌ [FRONTEND] Error stack:', error.stack);
                 showNotification('Erro ao processar troca de matrícula', 'error');
             }
         }

@@ -53499,7 +53499,14 @@ async def vehicle_swap(request: Request):
         client_email = data.get('client_email', '')
         language = data.get('language', 'pt')
         
-        logging.info(f"🔄 Processing vehicle swap for RA {ra}: {old_plate} -> {new_plate}")
+        logging.info("="*80)
+        logging.info(f"🔄 [SWAP START] Processing vehicle swap for RA {ra}: {old_plate} -> {new_plate}")
+        logging.info(f"🔄 [SWAP START] User: {user.get('name')} ({user.get('email')})")
+        logging.info(f"🔄 [SWAP START] Datetime: {swap_datetime}")
+        logging.info(f"🔄 [SWAP START] Old: {old_plate} (km={old_kms}, fuel={old_fuel})")
+        logging.info(f"🔄 [SWAP START] New: {new_plate} (km={new_kms}, fuel={new_fuel})")
+        logging.info(f"🔄 [SWAP START] Email: send={send_email}, to={client_email}, lang={language}")
+        logging.info("="*80)
         
         with _db_lock:
             conn = _db_connect()
@@ -53582,14 +53589,33 @@ async def vehicle_swap(request: Request):
                     # Record swap in history
                     logging.info(f"🔄 [SWAP INSERT - PostgreSQL] About to insert swap record for RA '{ra}' (type: {type(ra).__name__}, length: {len(ra) if ra else 0})")
                     logging.info(f"🔄 [SWAP INSERT - PostgreSQL] Data: {old_plate} → {new_plate}, datetime={swap_datetime}, employee={user.get('name')}")
-                    cur.execute("""
-                        INSERT INTO vehicle_swaps 
-                        (rental_agreement_number, swap_datetime, old_plate, old_kms, old_fuel, 
-                         new_plate, new_kms, new_fuel, employee_name, employee_email)
-                        VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
-                    """, (ra, swap_datetime, old_plate, old_kms, old_fuel, 
-                          new_plate, new_kms, new_fuel, user.get('name'), user.get('email')))
-                    logging.info(f"✅ [SWAP INSERT] Swap record inserted successfully for RA {ra}")
+                    
+                    try:
+                        cur.execute("""
+                            INSERT INTO vehicle_swaps 
+                            (rental_agreement_number, swap_datetime, old_plate, old_kms, old_fuel, 
+                             new_plate, new_kms, new_fuel, employee_name, employee_email)
+                            VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+                        """, (ra, swap_datetime, old_plate, old_kms, old_fuel, 
+                              new_plate, new_kms, new_fuel, user.get('name'), user.get('email')))
+                        insert_rowcount = cur.rowcount
+                        logging.info(f"✅ [SWAP INSERT] INSERT executed, rowcount={insert_rowcount}")
+                        
+                        # Verify the insert
+                        cur.execute("SELECT COUNT(*) FROM vehicle_swaps WHERE rental_agreement_number = %s AND old_plate = %s AND new_plate = %s", (ra, old_plate, new_plate))
+                        verify_count = cur.fetchone()[0]
+                        logging.info(f"🔍 [SWAP INSERT VERIFY] Found {verify_count} swap record(s) for RA {ra}")
+                        
+                        if verify_count == 0:
+                            logging.error(f"❌ [SWAP INSERT VERIFY] CRITICAL: Swap record NOT found after INSERT!")
+                        else:
+                            logging.info(f"✅ [SWAP INSERT VERIFY] Swap record confirmed in database")
+                    except Exception as insert_error:
+                        logging.error(f"❌ [SWAP INSERT] Exception during INSERT: {insert_error}")
+                        import traceback
+                        logging.error(traceback.format_exc())
+                        raise
+                    
                     cur.close()
                 else:
                     cur = conn.cursor()
@@ -53654,14 +53680,32 @@ async def vehicle_swap(request: Request):
                     # Record swap in history
                     logging.info(f"🔄 [SWAP INSERT - SQLite] About to insert swap record for RA '{ra}' (type: {type(ra).__name__}, length: {len(ra) if ra else 0})")
                     logging.info(f"🔄 [SWAP INSERT - SQLite] Data: {old_plate} → {new_plate}, datetime={swap_datetime}, employee={user.get('name')}")
-                    cur.execute("""
-                        INSERT INTO vehicle_swaps 
-                        (rental_agreement_number, swap_datetime, old_plate, old_kms, old_fuel, 
-                         new_plate, new_kms, new_fuel, employee_name, employee_email)
-                        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-                    """, (ra, swap_datetime, old_plate, old_kms, old_fuel, 
-                          new_plate, new_kms, new_fuel, user.get('name'), user.get('email')))
-                    logging.info(f"✅ [SWAP INSERT] Swap record inserted successfully for RA {ra}")
+                    
+                    try:
+                        cur.execute("""
+                            INSERT INTO vehicle_swaps 
+                            (rental_agreement_number, swap_datetime, old_plate, old_kms, old_fuel, 
+                             new_plate, new_kms, new_fuel, employee_name, employee_email)
+                            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                        """, (ra, swap_datetime, old_plate, old_kms, old_fuel, 
+                              new_plate, new_kms, new_fuel, user.get('name'), user.get('email')))
+                        insert_rowcount = cur.rowcount
+                        logging.info(f"✅ [SWAP INSERT] INSERT executed, rowcount={insert_rowcount}")
+                        
+                        # Verify the insert
+                        cur.execute("SELECT COUNT(*) FROM vehicle_swaps WHERE rental_agreement_number = ? AND old_plate = ? AND new_plate = ?", (ra, old_plate, new_plate))
+                        verify_count = cur.fetchone()[0]
+                        logging.info(f"🔍 [SWAP INSERT VERIFY] Found {verify_count} swap record(s) for RA {ra}")
+                        
+                        if verify_count == 0:
+                            logging.error(f"❌ [SWAP INSERT VERIFY] CRITICAL: Swap record NOT found after INSERT!")
+                        else:
+                            logging.info(f"✅ [SWAP INSERT VERIFY] Swap record confirmed in database")
+                    except Exception as insert_error:
+                        logging.error(f"❌ [SWAP INSERT] Exception during INSERT: {insert_error}")
+                        import traceback
+                        logging.error(traceback.format_exc())
+                        raise
                 
                 # Update scheduled self-checkout emails with new plate
                 if is_postgres:
@@ -53718,13 +53762,36 @@ async def vehicle_swap(request: Request):
                 logging.info(f"💾 [COMMIT] Connection status: {conn.status if hasattr(conn, 'status') else 'N/A'}")
                 
                 try:
+                    logging.info(f"💾 [COMMIT] Committing transaction...")
                     conn.commit()
                     logging.info(f"✅ [COMMIT] Transaction committed successfully for RA {ra}")
+                    
+                    # POST-COMMIT VERIFICATION: Check if swap record persisted
+                    verify_conn = _db_connect()
+                    verify_cur = verify_conn.cursor()
+                    if is_postgres:
+                        verify_cur.execute("SELECT COUNT(*) FROM vehicle_swaps WHERE rental_agreement_number = %s AND old_plate = %s AND new_plate = %s", (ra, old_plate, new_plate))
+                    else:
+                        verify_cur.execute("SELECT COUNT(*) FROM vehicle_swaps WHERE rental_agreement_number = ? AND old_plate = ? AND new_plate = ?", (ra, old_plate, new_plate))
+                    post_commit_count = verify_cur.fetchone()[0]
+                    verify_cur.close()
+                    verify_conn.close()
+                    
+                    logging.info(f"🔍 [POST-COMMIT VERIFY] Found {post_commit_count} swap record(s) after commit")
+                    if post_commit_count == 0:
+                        logging.error(f"❌ [POST-COMMIT VERIFY] CRITICAL: Swap record DISAPPEARED after commit!")
+                    else:
+                        logging.info(f"✅ [POST-COMMIT VERIFY] Swap record persisted successfully")
+                        
                 except Exception as commit_error:
                     logging.error(f"❌ [COMMIT] Failed to commit transaction: {commit_error}")
+                    import traceback
+                    logging.error(traceback.format_exc())
                     raise
                 
-                logging.info(f"✅ Vehicle swap completed: {old_plate} -> {new_plate} for RA {ra}")
+                logging.info("="*80)
+                logging.info(f"✅ [SWAP END] Vehicle swap completed: {old_plate} -> {new_plate} for RA {ra}")
+                logging.info("="*80)
                 
                 # Send email notification if requested
                 if send_email and client_email:
