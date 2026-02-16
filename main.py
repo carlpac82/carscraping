@@ -54484,7 +54484,14 @@ async def delete_rental_agreement(request: Request):
             if is_postgres:
                 cur = conn.cursor()
                 
-                # Delete inspections first (foreign key constraint)
+                # Delete vehicle swaps first
+                cur.execute("""
+                    DELETE FROM vehicle_swaps
+                    WHERE rental_agreement_number LIKE %s
+                """, (f"{ra}%",))
+                swaps_deleted = cur.rowcount
+                
+                # Delete inspections
                 cur.execute("""
                     DELETE FROM vehicle_inspections
                     WHERE contract_number LIKE %s
@@ -54503,7 +54510,14 @@ async def delete_rental_agreement(request: Request):
             else:
                 cur = conn.cursor()
                 
-                # Delete inspections first (foreign key constraint)
+                # Delete vehicle swaps first
+                cur.execute("""
+                    DELETE FROM vehicle_swaps
+                    WHERE rental_agreement_number LIKE ?
+                """, (f"{ra}%",))
+                swaps_deleted = cur.rowcount
+                
+                # Delete inspections
                 cur.execute("""
                     DELETE FROM vehicle_inspections
                     WHERE contract_number LIKE ?
@@ -54526,7 +54540,8 @@ async def delete_rental_agreement(request: Request):
                 "success": True,
                 "ra_deleted": ra_deleted,
                 "inspections_deleted": inspections_deleted,
-                "message": f"Deleted RA {ra} and {inspections_deleted} associated inspection(s)"
+                "swaps_deleted": swaps_deleted,
+                "message": f"Deleted RA {ra}, {inspections_deleted} inspection(s), and {swaps_deleted} swap(s)"
             })
     
     except Exception as e:
