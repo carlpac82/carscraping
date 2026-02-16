@@ -54094,6 +54094,66 @@ async def debug_vehicle_availability(request: Request, plate: str):
             "error": str(e)
         }, status_code=500)
 
+@app.post("/api/admin/insert-missing-swap")
+async def insert_missing_swap(request: Request):
+    """Manually insert the missing swap record for RA 06761"""
+    require_admin(request)
+    
+    try:
+        data = await request.json()
+        ra = data.get('ra', '06761')
+        old_plate = data.get('old_plate', '40-XM-45')
+        new_plate = data.get('new_plate', 'BA-28-FP')
+        swap_datetime = data.get('swap_datetime', '2026-02-15 23:55:00')
+        employee_name = data.get('employee_name', 'Filipe Pacheco')
+        employee_email = data.get('employee_email', 'filipe@rentalprices.pt')
+        old_kms = data.get('old_kms', 0)
+        old_fuel = data.get('old_fuel', 0)
+        new_kms = data.get('new_kms', 13978)
+        new_fuel = data.get('new_fuel', 25)
+        
+        with _db_lock:
+            conn = _db_connect()
+            is_postgres = _is_postgresql_connection(conn)
+            
+            if is_postgres:
+                cur = conn.cursor()
+                cur.execute("""
+                    INSERT INTO vehicle_swaps 
+                    (rental_agreement_number, swap_datetime, old_plate, old_kms, old_fuel, 
+                     new_plate, new_kms, new_fuel, employee_name, employee_email)
+                    VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+                """, (ra, swap_datetime, old_plate, old_kms, old_fuel, 
+                      new_plate, new_kms, new_fuel, employee_name, employee_email))
+                cur.close()
+            else:
+                cur = conn.cursor()
+                cur.execute("""
+                    INSERT INTO vehicle_swaps 
+                    (rental_agreement_number, swap_datetime, old_plate, old_kms, old_fuel, 
+                     new_plate, new_kms, new_fuel, employee_name, employee_email)
+                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                """, (ra, swap_datetime, old_plate, old_kms, old_fuel, 
+                      new_plate, new_kms, new_fuel, employee_name, employee_email))
+                cur.close()
+            
+            conn.commit()
+            conn.close()
+            
+            return JSONResponse({
+                "success": True,
+                "message": f"Swap record inserted for RA {ra}: {old_plate} → {new_plate}"
+            })
+    
+    except Exception as e:
+        logging.error(f"Error inserting swap: {e}")
+        import traceback
+        logging.error(traceback.format_exc())
+        return JSONResponse({
+            "success": False,
+            "error": str(e)
+        }, status_code=500)
+
 @app.get("/api/admin/check-swaps")
 async def check_swaps(request: Request, ra: str = None):
     """Check vehicle_swaps table for debugging"""
