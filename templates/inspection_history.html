@@ -6455,9 +6455,62 @@
         }
         
         // Listen for messages from iframe to close modal when inspection is saved
-        window.addEventListener('message', function(event) {
+        window.addEventListener('message', async function(event) {
             if (event.data && event.data.type === 'CLOSE_INSPECTION_MODAL') {
                 console.log('📨 Received close modal message from iframe');
+                
+                // If there's a pending vehicle swap, execute it now
+                if (window.pendingVehicleSwap) {
+                    console.log('🔄 [SWAP AFTER INSPECTION] Executing pending vehicle swap:', window.pendingVehicleSwap);
+                    
+                    try {
+                        const swapData = window.pendingVehicleSwap;
+                        const swapDateTime = `${swapData.swapDate}T${swapData.swapTime}`;
+                        
+                        const requestBody = {
+                            ra: swapData.raNumber,
+                            swap_datetime: swapDateTime,
+                            old_plate: swapData.oldPlate,
+                            old_kms: swapData.oldKms,
+                            old_fuel: swapData.oldFuel,
+                            new_plate: swapData.newPlate,
+                            new_kms: swapData.newKms,
+                            new_fuel: swapData.newFuel,
+                            send_email: false,
+                            client_email: '',
+                            language: 'pt'
+                        };
+                        
+                        console.log('📤 [SWAP AFTER INSPECTION] Sending POST /api/vehicle-swap:', requestBody);
+                        
+                        const response = await fetch('/api/vehicle-swap', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify(requestBody)
+                        });
+                        
+                        console.log('📥 [SWAP AFTER INSPECTION] Response status:', response.status);
+                        
+                        const result = await response.json();
+                        console.log('📥 [SWAP AFTER INSPECTION] Response body:', result);
+                        
+                        if (result.success) {
+                            console.log('✅ [SWAP AFTER INSPECTION] Swap completed successfully');
+                            showNotification(`✅ ${result.message}`, 'success');
+                        } else {
+                            console.error('❌ [SWAP AFTER INSPECTION] Swap failed:', result.error);
+                            showNotification('Erro na troca: ' + (result.error || 'Erro desconhecido'), 'error');
+                        }
+                        
+                        // Clear pending swap
+                        window.pendingVehicleSwap = null;
+                        
+                    } catch (error) {
+                        console.error('❌ [SWAP AFTER INSPECTION] Exception:', error);
+                        showNotification('Erro ao processar troca de matrícula', 'error');
+                    }
+                }
+                
                 closeInspectionIframeModal();
             }
         });
