@@ -1413,13 +1413,24 @@
         async function showEmailModalForOldVehicle(oldInspectionNumber, oldPlate, raNumber) {
             console.log('📧 showEmailModalForOldVehicle called with:', { oldInspectionNumber, oldPlate, raNumber });
             
-            // Fetch old vehicle inspection to get client email
+            // Get client email from contract data (already loaded in frontend)
             let clientEmail = '';
             try {
-                const response = await fetch(`/api/inspections/${oldInspectionNumber}`);
-                const data = await response.json();
-                if (data.ok && data.inspection) {
-                    clientEmail = data.inspection.client_email || '';
+                // Find contract in the loaded history data
+                const contracts = window.allContracts || [];
+                const contract = contracts.find(c => c.ra === raNumber || c.contract_number === raNumber);
+                if (contract && contract.client_email) {
+                    clientEmail = contract.client_email;
+                    console.log('📧 Client email from contract:', clientEmail);
+                } else {
+                    console.log('⚠️ Contract not found or no email, trying API...');
+                    // Fallback: try to get from inspection API
+                    const response = await fetch(`/api/inspections/${oldInspectionNumber}`);
+                    const data = await response.json();
+                    if (data.ok && data.inspection) {
+                        clientEmail = data.inspection.client_email || '';
+                        console.log('📧 Client email from API:', clientEmail);
+                    }
                 }
             } catch (e) {
                 console.error('Error fetching old vehicle inspection:', e);
