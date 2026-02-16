@@ -6425,7 +6425,8 @@
                 from_swap: 'true',
                 auto_start: 'true',
                 swap_kms: swapData.newKms,
-                swap_fuel: swapData.newFuel
+                swap_fuel: swapData.newFuel,
+                _cb: Date.now() // Cache buster to force reload
             });
 
             const modal = document.createElement('div');
