@@ -2275,12 +2275,17 @@
                     showNotification(successMessage, 'success');
                     
                     // If inside iframe (from swap), notify parent to close modal
+                    console.log('🔍 [SWAP CHECK] AUTO_START_DELIVERY:', window.AUTO_START_DELIVERY);
+                    console.log('🔍 [SWAP CHECK] window.parent !== window:', window.parent !== window);
+                    console.log('🔍 [SWAP CHECK] Combined condition:', window.AUTO_START_DELIVERY && window.parent !== window);
+                    
                     if (window.AUTO_START_DELIVERY && window.parent !== window) {
                         console.log('📤 Notifying parent window to close iframe modal');
                         setTimeout(() => {
                             window.parent.postMessage({ type: 'CLOSE_INSPECTION_MODAL' }, '*');
                         }, 2000);
                     } else {
+                        console.log('❌ [SWAP CHECK] Not in iframe or not from swap, redirecting to /check-in');
                         // Normal redirect after delay to show notification
                         setTimeout(() => {
                             window.location.href = '/check-in';
