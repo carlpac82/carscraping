@@ -4216,10 +4216,27 @@
                     
                     showNotification(successMessage, 'success');
                     
-                    // Redirect after delay to show notification
-                    setTimeout(() => {
-                        window.location.href = '/check-in';
-                    }, 2500);
+                    // CRITICAL: Check if inside iframe FIRST
+                    const inIframe = window.self !== window.top;
+                    
+                    console.log('🔍 [SAVE WITH EMAIL] window.self !== window.top:', inIframe);
+                    
+                    if (inIframe) {
+                        // Inside iframe - ALWAYS notify parent, NO redirect
+                        console.log('✅ [SAVE WITH EMAIL] Sending postMessage to parent window');
+                        console.log('📤 [SAVE WITH EMAIL] Message: CLOSE_INSPECTION_MODAL');
+                        
+                        // Send message immediately
+                        window.parent.postMessage({ type: 'CLOSE_INSPECTION_MODAL' }, '*');
+                        
+                        // DO NOT REDIRECT - let parent handle closing
+                    } else {
+                        // Not in iframe - normal redirect
+                        console.log('❌ [SAVE WITH EMAIL] Not in iframe, redirecting to /check-in');
+                        setTimeout(() => {
+                            window.location.href = '/check-in';
+                        }, 2500);
+                    }
                 } else {
                     showNotification('Erro ao guardar inspeção: ' + (data.error || 'Erro desconhecido'), 'error');
                 }
