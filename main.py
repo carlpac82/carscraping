@@ -53695,10 +53695,18 @@ async def vehicle_swap(request: Request):
                     
                     # Record swap in history
                     logging.info(f"🔄 [SWAP INSERT - PostgreSQL] About to insert swap record for RA '{ra}' (type: {type(ra).__name__}, length: {len(ra) if ra else 0})")
-                    logging.info(f"🔍 [EMPLOYEE DEBUG] user object: {user}")
-                    logging.info(f"🔍 [EMPLOYEE DEBUG] first_name: '{user.get('first_name', '')}' (type: {type(user.get('first_name', '')).__name__})")
-                    logging.info(f"🔍 [EMPLOYEE DEBUG] last_name: '{user.get('last_name', '')}' (type: {type(user.get('last_name', '')).__name__})")
-                    employee_name = f"{user.get('first_name', '')} {user.get('last_name', '')}".strip() or 'N/A'
+                    # Build employee name with fallback to username
+                    first_name = user.get('first_name', '').strip()
+                    last_name = user.get('last_name', '').strip()
+                    username = user.get('username', '').strip()
+                    
+                    if first_name or last_name:
+                        employee_name = f"{first_name} {last_name}".strip()
+                    elif username:
+                        employee_name = username
+                    else:
+                        employee_name = 'N/A'
+                    
                     logging.info(f"🔄 [SWAP INSERT - PostgreSQL] Data: {old_plate} → {new_plate}, datetime={swap_datetime}, employee={employee_name}")
                     
                     try:
@@ -53790,10 +53798,18 @@ async def vehicle_swap(request: Request):
                     
                     # Record swap in history
                     logging.info(f"🔄 [SWAP INSERT - SQLite] About to insert swap record for RA '{ra}' (type: {type(ra).__name__}, length: {len(ra) if ra else 0})")
-                    logging.info(f"🔍 [EMPLOYEE DEBUG - SQLite] user object: {user}")
-                    logging.info(f"🔍 [EMPLOYEE DEBUG - SQLite] first_name: '{user.get('first_name', '')}' (type: {type(user.get('first_name', '')).__name__})")
-                    logging.info(f"🔍 [EMPLOYEE DEBUG - SQLite] last_name: '{user.get('last_name', '')}' (type: {type(user.get('last_name', '')).__name__})")
-                    employee_name = f"{user.get('first_name', '')} {user.get('last_name', '')}".strip() or 'N/A'
+                    # Build employee name with fallback to username
+                    first_name = user.get('first_name', '').strip()
+                    last_name = user.get('last_name', '').strip()
+                    username = user.get('username', '').strip()
+                    
+                    if first_name or last_name:
+                        employee_name = f"{first_name} {last_name}".strip()
+                    elif username:
+                        employee_name = username
+                    else:
+                        employee_name = 'N/A'
+                    
                     logging.info(f"🔄 [SWAP INSERT - SQLite] Data: {old_plate} → {new_plate}, datetime={swap_datetime}, employee={employee_name}")
                     
                     try:
