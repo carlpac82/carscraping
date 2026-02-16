@@ -1774,16 +1774,24 @@
                     const raResponse = await fetch(`/api/rental-agreement/by-number/${encodeURIComponent(raNumber)}`);
                     const raData = await raResponse.json();
                     console.log('📄 RA API response:', raData);
-                    console.log('📄 raData.extracted_data:', raData.extracted_data);
+                    
                     // Store RA data globally for debugging
                     window.currentRAData = raData.rental_agreement;
                     
-                    // Use extracted_data from root level (already parsed by API)
-                    if (raData.success && raData.extracted_data) {
+                    // Extract return time from extracted_data (already parsed by API)
+                    if (raData.ok && raData.extracted_data) {
                         let ed = raData.extracted_data;
-                        console.log('📄 extracted_data object:', ed);
-                        console.log('📄 ed.return_date:', ed.return_date);
-                        console.log('📄 ed.return_time:', ed.return_time);
+                        console.log('📄 extracted_data:', ed);
+                        
+                        // Extract return time
+                        let rawTime = ed.return_time || ed.returnTime || ed.hora_entrega || ed.dropOffTime || null;
+                        console.log('🕐 Raw return_time:', rawTime);
+                        
+                        if (rawTime) {
+                            // Normalize: "15 : 15" -> "15:15"
+                            expectedReturnTime = String(rawTime).replace(/\s+/g, '').trim();
+                            console.log('✅ Normalized return_time:', expectedReturnTime);
+                        }
                         if (vehicleBrand === 'N/A') {
                             vehicleBrand = ed.vehicleBrand || ed.vehicle_brand || 'N/A';
                         }
@@ -1798,44 +1806,6 @@
                                 if (vehicleModel === 'N/A') vehicleModel = parts[1].trim();
                             }
                         }
-                        // Get expected return date and time (try multiple field names)
-                        // Only use date from extracted_data if not already set from contract
-                        if (!expectedReturnDate) {
-                            let rawDate = ed.returnDate || ed.return_date || ed.data_entrega || ed.dropOffDate || ed.dataEntrega || null;
-                            if (rawDate) {
-                                expectedReturnDate = rawDate.replace(/\s*-\s*/g, '/').trim();
-                            }
-                        }
-                        // Always try to get time from extracted_data (try multiple field names)
-                        let rawTime = ed.returnTime || ed.return_time || ed.hora_entrega || ed.dropOffTime || 
-                                     ed.horaEntrega || ed.return_hour || ed.hora_recolha || ed.horaRecolha ||
-                                     ed['Hora de Recolha'] || ed['hora de recolha'] || null;
-                        
-                        console.log('🔍 [TIME DEBUG] Checking time fields:', {
-                            returnTime: ed.returnTime,
-                            return_time: ed.return_time,
-                            hora_entrega: ed.hora_entrega,
-                            dropOffTime: ed.dropOffTime,
-                            rawTime: rawTime
-                        });
-                        
-                        if (rawTime) {
-                            // Normalize time format: "15 : 15" -> "15:15" or "16 : 00" -> "16:00"
-                            expectedReturnTime = String(rawTime).replace(/\s+/g, '').replace(/(\d{1,2}):(\d{2})/, '$1:$2').trim();
-                            // If still has spaces, try more aggressive normalization
-                            if (expectedReturnTime.includes(' ')) {
-                                expectedReturnTime = expectedReturnTime.replace(/\s*:\s*/g, ':').replace(/\s+/g, '');
-                            }
-                            console.log('✅ [TIME DEBUG] Normalized time:', expectedReturnTime);
-                        } else {
-                            console.log('❌ [TIME DEBUG] No time found in extracted_data');
-                        }
-                        
-                        // Store globally for debugging
-                        window.debugExpectedReturnTime = expectedReturnTime;
-                        
-                        console.log('📅 Expected return date:', expectedReturnDate, 'time:', expectedReturnTime, 'from extracted_data:', ed);
-                        console.log('📅 Raw time value:', rawTime);
                     }
                 } catch (e) {
                     console.error('Error fetching RA data:', e);
