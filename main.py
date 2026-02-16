@@ -38258,7 +38258,8 @@ async def get_inspection(request: Request, plate: str, ra: str, type: str = 'che
                         "new_plate": swap_row[5],
                         "new_kms": swap_row[6],
                         "new_fuel": swap_row[7],
-                        "employee_name": swap_row[8]
+                        "employee_name": swap_row[8],
+                        "old_inspection_number": None  # Will be set below if found
                     }
                     
                     # Get old vehicle inspection (delivery inspection of swapped vehicle)
@@ -38275,6 +38276,9 @@ async def get_inspection(request: Request, plate: str, ra: str, type: str = 'che
                     
                     old_inspection_row = cursor.fetchone()
                     if old_inspection_row:
+                        # Set old_inspection_number at top level for easy access
+                        swap_history['old_inspection_number'] = old_inspection_row[1]
+                        
                         swap_history['old_inspection'] = {
                             "id": old_inspection_row[0],
                             "inspection_number": old_inspection_row[1],
@@ -38459,13 +38463,112 @@ async def get_inspection(request: Request, plate: str, ra: str, type: str = 'che
             # Get damages
             damages = []
             
+            # Check for vehicle swap history (SQLite)
+            swap_history = None
+            try:
+                ra_base = ra.split('-')[0] if '-' in ra else ra
+                cursor.execute("""
+                    SELECT id, swap_datetime, old_plate, old_kms, old_fuel, 
+                           new_plate, new_kms, new_fuel, employee_name
+                    FROM vehicle_swaps
+                    WHERE rental_agreement_number LIKE ?
+                    ORDER BY swap_datetime DESC
+                    LIMIT 1
+                """, (f"{ra_base}%",))
+                
+                swap_row = cursor.fetchone()
+                if swap_row:
+                    swap_history = {
+                        "id": swap_row[0],
+                        "swap_datetime": str(swap_row[1]),
+                        "old_plate": swap_row[2],
+                        "old_kms": swap_row[3],
+                        "old_fuel": swap_row[4],
+                        "new_plate": swap_row[5],
+                        "new_kms": swap_row[6],
+                        "new_fuel": swap_row[7],
+                        "employee_name": swap_row[8],
+                        "old_inspection_number": None  # Will be set below if found
+                    }
+                    
+                    # Get old vehicle inspection (delivery inspection of swapped vehicle)
+                    cursor.execute("""
+                        SELECT id, inspection_number, odometer_reading, fuel_level, 
+                               damage_count, created_at, diagram_data
+                        FROM vehicle_inspections
+                        WHERE UPPER(vehicle_plate) = UPPER(?)
+                          AND contract_number LIKE ?
+                          AND inspection_type = 'checkin'
+                        ORDER BY created_at DESC
+                        LIMIT 1
+                    """, (swap_row[2], f"{ra_base}%"))
+                    
+                    old_inspection_row = cursor.fetchone()
+                    if old_inspection_row:
+                        # Set old_inspection_number at top level for easy access
+                        swap_history['old_inspection_number'] = old_inspection_row[1]
+                        
+                        swap_history['old_inspection'] = {
+                            "id": old_inspection_row[0],
+                            "inspection_number": old_inspection_row[1],
+                            "odometer_reading": old_inspection_row[2],
+                            "fuel_level": old_inspection_row[3],
+                            "damage_count": old_inspection_row[4],
+                            "created_at": str(old_inspection_row[5]),
+                            "diagram_data": old_inspection_row[6]
+                        }
+                        
+                        # Get old vehicle photos
+                        cursor.execute("""
+                            SELECT id, photo_type, photo_order, image_data, image_filename
+                            FROM inspection_photos
+                            WHERE inspection_id = ?
+                            ORDER BY photo_order
+                        """, (old_inspection_row[0],))
+                        
+                        old_photos = []
+                        old_damage_croqui = None
+                        for old_photo_row in cursor.fetchall():
+                            photo_type = old_photo_row[1]
+                            image_data = old_photo_row[3]
+                            if image_data:
+                                if isinstance(image_data, (bytes, memoryview)):
+                                    if isinstance(image_data, memoryview):
+                                        image_data = image_data.tobytes()
+                                    image_base64 = base64.b64encode(image_data).decode('utf-8')
+                                    if photo_type == 'damage_croqui':
+                                        image_data_url = f"data:image/png;base64,{image_base64}"
+                                    else:
+                                        image_data_url = f"data:image/jpeg;base64,{image_base64}"
+                                else:
+                                    image_data_url = image_data
+                                
+                                if photo_type == 'damage_croqui':
+                                    old_damage_croqui = image_data_url
+                                else:
+                                    old_photos.append({
+                                        "id": old_photo_row[0],
+                                        "photo_type": photo_type,
+                                        "photo_order": old_photo_row[2],
+                                        "image_data": image_data_url,
+                                        "image_filename": old_photo_row[4]
+                                    })
+                        
+                        swap_history['old_inspection']['photos'] = old_photos
+                        swap_history['old_inspection']['damage_croqui'] = old_damage_croqui
+                    
+                    logging.info(f"🔄 [SQLite] Found vehicle swap history for RA {ra}: {swap_row[2]} -> {swap_row[5]}")
+            except Exception as e:
+                logging.warning(f"⚠️ [SQLite] Could not fetch vehicle swap history: {e}")
+            
             conn.close()
             
             return JSONResponse({
                 "success": True,
                 "inspection": inspection,
                 "photos": photos,
-                "damages": damages
+                "damages": damages,
+                "swap_history": swap_history
             })
     
     except Exception as e:
