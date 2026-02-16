@@ -1774,21 +1774,13 @@
                     const raResponse = await fetch(`/api/rental-agreement/by-number/${encodeURIComponent(raNumber)}`);
                     const raData = await raResponse.json();
                     console.log('📄 RA API response:', raData);
-                    console.log('📄 raData.rental_agreement:', raData.rental_agreement);
-                    console.log('📄 raData.rental_agreement?.extracted_data:', raData.rental_agreement?.extracted_data);
+                    console.log('📄 raData.extracted_data:', raData.extracted_data);
                     // Store RA data globally for debugging
                     window.currentRAData = raData.rental_agreement;
-                    if (raData.success && raData.rental_agreement && raData.rental_agreement.extracted_data) {
-                        // Parse extracted_data if it's a string
-                        let ed = raData.rental_agreement.extracted_data;
-                        if (typeof ed === 'string') {
-                            try {
-                                ed = JSON.parse(ed);
-                                console.log('📄 Parsed extracted_data from string');
-                            } catch (e) {
-                                console.error('Error parsing extracted_data:', e);
-                            }
-                        }
+                    
+                    // Use extracted_data from root level (already parsed by API)
+                    if (raData.success && raData.extracted_data) {
+                        let ed = raData.extracted_data;
                         console.log('📄 extracted_data object:', ed);
                         console.log('📄 ed.return_date:', ed.return_date);
                         console.log('📄 ed.return_time:', ed.return_time);
