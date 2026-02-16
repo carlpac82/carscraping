@@ -53513,6 +53513,9 @@ async def vehicle_swap(request: Request):
             is_postgres = _is_postgresql_connection(conn)
             
             try:
+                # CRITICAL: Ensure we're in a transaction
+                logging.info(f"🔒 [TRANSACTION] Starting swap transaction for RA {ra}")
+                
                 # Update rental agreement with new plate
                 if is_postgres:
                     cur = conn.cursor()
@@ -53761,6 +53764,22 @@ async def vehicle_swap(request: Request):
                 logging.info(f"💾 [COMMIT] Connection object: {type(conn).__name__}")
                 logging.info(f"💾 [COMMIT] Connection status: {conn.status if hasattr(conn, 'status') else 'N/A'}")
                 
+                # FINAL VERIFICATION before commit
+                logging.info(f"🔍 [FINAL CHECK] Verifying all changes before commit...")
+                final_check_cur = conn.cursor()
+                if is_postgres:
+                    final_check_cur.execute("SELECT COUNT(*) FROM vehicle_swaps WHERE rental_agreement_number = %s AND old_plate = %s AND new_plate = %s", (ra, old_plate, new_plate))
+                else:
+                    final_check_cur.execute("SELECT COUNT(*) FROM vehicle_swaps WHERE rental_agreement_number = ? AND old_plate = ? AND new_plate = ?", (ra, old_plate, new_plate))
+                final_count = final_check_cur.fetchone()[0]
+                final_check_cur.close()
+                
+                if final_count == 0:
+                    logging.error(f"❌ [FINAL CHECK] CRITICAL: Swap record NOT in transaction buffer! Aborting commit.")
+                    raise Exception("Swap record not found in transaction - INSERT may have failed")
+                else:
+                    logging.info(f"✅ [FINAL CHECK] Swap record confirmed in transaction buffer (count={final_count})")
+                
                 try:
                     logging.info(f"💾 [COMMIT] Committing transaction...")
                     conn.commit()
@@ -53866,13 +53885,28 @@ Cordialement,
                     "message": f"Troca de matrícula realizada com sucesso: {old_plate} -> {new_plate}"
                 })
                 
+            except Exception as inner_error:
+                logging.error(f"❌ [SWAP] Exception in swap transaction: {inner_error}")
+                import traceback
+                logging.error(traceback.format_exc())
+                try:
+                    logging.warning(f"🔄 [ROLLBACK] Rolling back transaction due to error")
+                    conn.rollback()
+                    logging.info(f"✅ [ROLLBACK] Transaction rolled back successfully")
+                except Exception as rollback_error:
+                    logging.error(f"❌ [ROLLBACK] Failed to rollback: {rollback_error}")
+                raise
+                
             finally:
                 conn.close()
                 
     except Exception as e:
-        logging.error(f"Error processing vehicle swap: {e}")
+        logging.error("="*80)
+        logging.error(f"❌ [SWAP ERROR] Error processing vehicle swap: {e}")
+        logging.error(f"❌ [SWAP ERROR] Error type: {type(e).__name__}")
         import traceback
-        logging.error(traceback.format_exc())
+        logging.error(f"❌ [SWAP ERROR] Full traceback:\n{traceback.format_exc()}")
+        logging.error("="*80)
         return JSONResponse({
             "success": False,
             "error": str(e)
