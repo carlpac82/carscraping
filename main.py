@@ -53482,7 +53482,8 @@ async def get_vehicle_groups(request: Request):
 @app.post("/api/vehicle-swap")
 async def vehicle_swap(request: Request):
     """Process vehicle swap for a rental agreement"""
-    user = require_auth(request)
+    require_auth(request)  # Verify authentication
+    user = get_user_from_session(request)  # Get user data safely
     
     try:
         data = await request.json()
@@ -53501,7 +53502,7 @@ async def vehicle_swap(request: Request):
         
         logging.info("="*80)
         logging.info(f"🔄 [SWAP START] Processing vehicle swap for RA {ra}: {old_plate} -> {new_plate}")
-        logging.info(f"🔄 [SWAP START] User: {user.get('name')} ({user.get('email')})")
+        logging.info(f"🔄 [SWAP START] User: {user.get('first_name', 'Unknown')} ({user.get('email', 'no-email')})")
         logging.info(f"🔄 [SWAP START] Datetime: {swap_datetime}")
         logging.info(f"🔄 [SWAP START] Old: {old_plate} (km={old_kms}, fuel={old_fuel})")
         logging.info(f"🔄 [SWAP START] New: {new_plate} (km={new_kms}, fuel={new_fuel})")
