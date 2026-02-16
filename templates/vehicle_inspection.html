@@ -12,6 +12,10 @@
     <!-- Hide ALL content and execute startDelivery immediately if coming from swap -->
     <script>
         (function() {
+            // VERSION TIMESTAMP - PARA CONFIRMAR QUE VERSÃO ESTÁ CARREGADA
+            const VERSION = 'v2026.02.16-20:56';
+            console.log('🔧 PAGE VERSION:', VERSION);
+            
             const urlParams = new URLSearchParams(window.location.search);
             if (urlParams.get('auto_start') === 'true' && urlParams.get('from_swap') === 'true') {
                 // Hide EVERYTHING except the camera modal
