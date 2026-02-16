@@ -53592,7 +53592,8 @@ async def vehicle_swap(request: Request):
                     
                     # Record swap in history
                     logging.info(f"🔄 [SWAP INSERT - PostgreSQL] About to insert swap record for RA '{ra}' (type: {type(ra).__name__}, length: {len(ra) if ra else 0})")
-                    logging.info(f"🔄 [SWAP INSERT - PostgreSQL] Data: {old_plate} → {new_plate}, datetime={swap_datetime}, employee={user.get('name')}")
+                    employee_name = f"{user.get('first_name', '')} {user.get('last_name', '')}".strip() or 'N/A'
+                    logging.info(f"🔄 [SWAP INSERT - PostgreSQL] Data: {old_plate} → {new_plate}, datetime={swap_datetime}, employee={employee_name}")
                     
                     try:
                         cur.execute("""
@@ -53601,7 +53602,7 @@ async def vehicle_swap(request: Request):
                              new_plate, new_kms, new_fuel, employee_name, employee_email)
                             VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
                         """, (ra, swap_datetime, old_plate, old_kms, old_fuel, 
-                              new_plate, new_kms, new_fuel, user.get('name'), user.get('email')))
+                              new_plate, new_kms, new_fuel, employee_name, user.get('email', '')))
                         insert_rowcount = cur.rowcount
                         logging.info(f"✅ [SWAP INSERT] INSERT executed, rowcount={insert_rowcount}")
                         
@@ -53683,7 +53684,8 @@ async def vehicle_swap(request: Request):
                     
                     # Record swap in history
                     logging.info(f"🔄 [SWAP INSERT - SQLite] About to insert swap record for RA '{ra}' (type: {type(ra).__name__}, length: {len(ra) if ra else 0})")
-                    logging.info(f"🔄 [SWAP INSERT - SQLite] Data: {old_plate} → {new_plate}, datetime={swap_datetime}, employee={user.get('name')}")
+                    employee_name = f"{user.get('first_name', '')} {user.get('last_name', '')}".strip() or 'N/A'
+                    logging.info(f"🔄 [SWAP INSERT - SQLite] Data: {old_plate} → {new_plate}, datetime={swap_datetime}, employee={employee_name}")
                     
                     try:
                         cur.execute("""
@@ -53692,7 +53694,7 @@ async def vehicle_swap(request: Request):
                              new_plate, new_kms, new_fuel, employee_name, employee_email)
                             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                         """, (ra, swap_datetime, old_plate, old_kms, old_fuel, 
-                              new_plate, new_kms, new_fuel, user.get('name'), user.get('email')))
+                              new_plate, new_kms, new_fuel, employee_name, user.get('email', '')))
                         insert_rowcount = cur.rowcount
                         logging.info(f"✅ [SWAP INSERT] INSERT executed, rowcount={insert_rowcount}")
                         
