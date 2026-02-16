@@ -1819,6 +1819,14 @@
                                      ed.horaEntrega || ed.return_hour || ed.hora_recolha || ed.horaRecolha ||
                                      ed['Hora de Recolha'] || ed['hora de recolha'] || null;
                         
+                        console.log('🔍 [TIME DEBUG] Checking time fields:', {
+                            returnTime: ed.returnTime,
+                            return_time: ed.return_time,
+                            hora_entrega: ed.hora_entrega,
+                            dropOffTime: ed.dropOffTime,
+                            rawTime: rawTime
+                        });
+                        
                         if (rawTime) {
                             // Normalize time format: "15 : 15" -> "15:15" or "16 : 00" -> "16:00"
                             expectedReturnTime = String(rawTime).replace(/\s+/g, '').replace(/(\d{1,2}):(\d{2})/, '$1:$2').trim();
@@ -1826,7 +1834,14 @@
                             if (expectedReturnTime.includes(' ')) {
                                 expectedReturnTime = expectedReturnTime.replace(/\s*:\s*/g, ':').replace(/\s+/g, '');
                             }
+                            console.log('✅ [TIME DEBUG] Normalized time:', expectedReturnTime);
+                        } else {
+                            console.log('❌ [TIME DEBUG] No time found in extracted_data');
                         }
+                        
+                        // Store globally for debugging
+                        window.debugExpectedReturnTime = expectedReturnTime;
+                        
                         console.log('📅 Expected return date:', expectedReturnDate, 'time:', expectedReturnTime, 'from extracted_data:', ed);
                         console.log('📅 Raw time value:', rawTime);
                     }
