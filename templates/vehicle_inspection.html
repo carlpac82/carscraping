@@ -2274,20 +2274,27 @@
                         'Inspeção guardada no histórico com sucesso!';
                     showNotification(successMessage, 'success');
                     
-                    // Check if inside iframe using multiple methods
+                    // CRITICAL: Check if inside iframe FIRST - this is the ONLY reliable way
                     const inIframe = window.self !== window.top;
-                    const fromSwap = window.AUTO_START_DELIVERY === true;
                     
-                    console.log('🔍 [SWAP CHECK] AUTO_START_DELIVERY:', window.AUTO_START_DELIVERY);
-                    console.log('🔍 [SWAP CHECK] window.self !== window.top:', inIframe);
-                    console.log('🔍 [SWAP CHECK] Combined condition:', fromSwap && inIframe);
+                    console.log('🔍 [IFRAME CHECK] window.self !== window.top:', inIframe);
+                    console.log('🔍 [IFRAME CHECK] window.parent:', window.parent);
+                    console.log('🔍 [IFRAME CHECK] window.top:', window.top);
                     
                     if (inIframe) {
-                        // Inside iframe - notify parent to close modal
-                        console.log('📤 [IFRAME] Notifying parent window to close iframe modal');
+                        // Inside iframe - ALWAYS notify parent, NO redirect
+                        console.log('✅ [IFRAME DETECTED] Sending postMessage to parent window');
+                        console.log('📤 [IFRAME] Message: CLOSE_INSPECTION_MODAL');
+                        
+                        // Send message immediately, no delay
+                        window.parent.postMessage({ type: 'CLOSE_INSPECTION_MODAL' }, '*');
+                        
+                        // Also log after 1 second to confirm
                         setTimeout(() => {
-                            window.parent.postMessage({ type: 'CLOSE_INSPECTION_MODAL' }, '*');
-                        }, 2000);
+                            console.log('✅ [IFRAME] PostMessage sent 1 second ago');
+                        }, 1000);
+                        
+                        // DO NOT REDIRECT - let parent handle closing
                     } else {
                         // Not in iframe - normal redirect
                         console.log('❌ [NO IFRAME] Not in iframe, redirecting to /check-in');
