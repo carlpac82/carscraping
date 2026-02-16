@@ -1288,18 +1288,25 @@
             const inspectionNumber = checkoutNumber || checkinNumber;
             if (!inspectionNumber && !isOpen && !hasSelfCheckout) return;
             
-            // Get inspection to fetch client email
+            // Get client email from contract data (already loaded in frontend)
             let clientEmail = '';
             try {
-                const inspType = checkoutNumber ? 'checkout' : checkinNumber ? 'checkin' : 'self_checkout';
-                const response = await fetch(`/api/get_inspection?plate=${plate}&ra=${ra}&type=${inspType}`);
-                const data = await response.json();
-                console.log('📧 Inspection data:', data);
-                if (data.success && data.inspection) {
-                    clientEmail = data.inspection.client_email || '';
-                    console.log('📧 Client email found:', clientEmail);
+                // Find contract in the loaded history data
+                const contracts = window.allContracts || [];
+                const contract = contracts.find(c => c.ra === ra || c.contract_number === ra);
+                if (contract && contract.client_email) {
+                    clientEmail = contract.client_email;
+                    console.log('📧 Client email from contract:', clientEmail);
                 } else {
-                    console.log('❌ No inspection data or not successful');
+                    console.log('⚠️ Contract not found or no email, trying API...');
+                    // Fallback: try to get from inspection API
+                    const inspType = checkoutNumber ? 'checkout' : checkinNumber ? 'checkin' : 'self_checkout';
+                    const response = await fetch(`/api/get_inspection?plate=${plate}&ra=${ra}&type=${inspType}`);
+                    const data = await response.json();
+                    if (data.success && data.inspection) {
+                        clientEmail = data.inspection.client_email || '';
+                        console.log('📧 Client email from API:', clientEmail);
+                    }
                 }
             } catch (e) {
                 console.error('Error fetching client email:', e);
