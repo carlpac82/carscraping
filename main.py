@@ -50155,19 +50155,20 @@ async def check_active_inspection(request: Request, plate: str, ra: str):
         conn = _db_connect()
         cursor = conn.cursor()
         
-        # Check if there's a checkout inspection without corresponding checkin
+        # Check if there's a checkin (delivery) inspection without corresponding checkout (pickup)
+        # Terminology: checkin = delivery/entrega, checkout = pickup/recolha
         if _USE_NEW_DB:
             cursor.execute("""
                 SELECT contract_number 
                 FROM vehicle_inspections 
                 WHERE vehicle_plate = %s 
-                  AND inspection_type = 'checkout'
+                  AND inspection_type = 'checkin'
                   AND contract_number != %s
                   AND NOT EXISTS (
                       SELECT 1 FROM vehicle_inspections ci 
                       WHERE ci.vehicle_plate = vehicle_inspections.vehicle_plate 
                         AND ci.contract_number = vehicle_inspections.contract_number
-                        AND ci.inspection_type = 'checkin'
+                        AND ci.inspection_type = 'checkout'
                   )
                 LIMIT 1
             """, (plate, ra))
@@ -50176,13 +50177,13 @@ async def check_active_inspection(request: Request, plate: str, ra: str):
                 SELECT contract_number 
                 FROM vehicle_inspections 
                 WHERE vehicle_plate = ? 
-                  AND inspection_type = 'checkout'
+                  AND inspection_type = 'checkin'
                   AND contract_number != ?
                   AND NOT EXISTS (
                       SELECT 1 FROM vehicle_inspections ci 
                       WHERE ci.vehicle_plate = vehicle_inspections.vehicle_plate 
                         AND ci.contract_number = vehicle_inspections.contract_number
-                        AND ci.inspection_type = 'checkin'
+                        AND ci.inspection_type = 'checkout'
                   )
                 LIMIT 1
             """, (plate, ra))
