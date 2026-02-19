@@ -13464,30 +13464,36 @@ async def track_by_params(request: Request):
             
             # IMPORTANTE: Usar try/finally para GARANTIR que driver.quit() sempre executa
             try:
-                # Tentativa 1: Chrome do sistema
+                # Tentativa 1: chromedriver do sistema (Railway/Linux)
                 try:
-                    print(f"[SELENIUM] Tentativa 1: Chrome do sistema...", file=sys.stderr, flush=True)
-                    driver = webdriver.Chrome(options=chrome_options)
-                    print(f"[SELENIUM] ✅ Chrome iniciado com sucesso!", file=sys.stderr, flush=True)
+                    print(f"[SELENIUM] Tentativa 1: chromedriver do sistema...", file=sys.stderr, flush=True)
+                    import shutil
+                    chromedriver_path = shutil.which('chromedriver')
+                    if chromedriver_path:
+                        print(f"[SELENIUM] chromedriver encontrado em: {chromedriver_path}", file=sys.stderr, flush=True)
+                        driver = webdriver.Chrome(
+                            service=Service(chromedriver_path),
+                            options=chrome_options
+                        )
+                        print(f"[SELENIUM] ✅ Chrome iniciado com chromedriver do sistema!", file=sys.stderr, flush=True)
+                    else:
+                        raise Exception("chromedriver não encontrado no PATH")
                 except Exception as e:
                     last_error = str(e)
                     print(f"[SELENIUM] ⚠️ Tentativa 1 falhou: {e}", file=sys.stderr, flush=True)
                     
-                    # Tentativa 2: ChromeDriverManager
+                    # Tentativa 2: Chrome do sistema (autodetecção)
                     try:
-                        print(f"[SELENIUM] Tentativa 2: ChromeDriverManager...", file=sys.stderr, flush=True)
-                        driver = webdriver.Chrome(
-                            service=Service(ChromeDriverManager().install()),
-                            options=chrome_options
-                        )
-                        print(f"[SELENIUM] ✅ Chrome iniciado via ChromeDriverManager!", file=sys.stderr, flush=True)
+                        print(f"[SELENIUM] Tentativa 2: Chrome autodetecção...", file=sys.stderr, flush=True)
+                        driver = webdriver.Chrome(options=chrome_options)
+                        print(f"[SELENIUM] ✅ Chrome iniciado com autodetecção!", file=sys.stderr, flush=True)
                     except Exception as e2:
                         last_error = str(e2)
                         print(f"[SELENIUM] ❌ Tentativa 2 falhou: {e2}", file=sys.stderr, flush=True)
                         
-                        # Tentativa 3: Sem binary_location (autodetecção)
+                        # Tentativa 3: Sem binary_location
                         try:
-                            print(f"[SELENIUM] Tentativa 3: Autodetecção (sem binary_location)...", file=sys.stderr, flush=True)
+                            print(f"[SELENIUM] Tentativa 3: Sem binary_location...", file=sys.stderr, flush=True)
                             chrome_options_clean = Options()
                             # Copiar todos os argumentos mas sem binary_location
                             for arg in chrome_options.arguments:
@@ -13496,26 +13502,19 @@ async def track_by_params(request: Request):
                                 chrome_options_clean.add_experimental_option(key, value)
                             
                             driver = webdriver.Chrome(options=chrome_options_clean)
-                            print(f"[SELENIUM] ✅ Chrome iniciado via autodetecção!", file=sys.stderr, flush=True)
+                            print(f"[SELENIUM] ✅ Chrome iniciado sem binary_location!", file=sys.stderr, flush=True)
                         except Exception as e3:
                             last_error = str(e3)
                             print(f"[SELENIUM] ❌ Tentativa 3 falhou: {e3}", file=sys.stderr, flush=True)
                             
-                            # Tentativa 4: chromedriver do sistema (sem ChromeDriverManager)
+                            # Tentativa 4: ChromeDriverManager (último recurso)
                             try:
-                                print(f"[SELENIUM] Tentativa 4: chromedriver do sistema...", file=sys.stderr, flush=True)
-                                # Tentar usar chromedriver do PATH do sistema
-                                import shutil
-                                chromedriver_path = shutil.which('chromedriver')
-                                if chromedriver_path:
-                                    print(f"[SELENIUM] chromedriver encontrado em: {chromedriver_path}", file=sys.stderr, flush=True)
-                                    driver = webdriver.Chrome(
-                                        service=Service(chromedriver_path),
-                                        options=chrome_options_clean
-                                    )
-                                    print(f"[SELENIUM] ✅ Chrome iniciado com chromedriver do sistema!", file=sys.stderr, flush=True)
-                                else:
-                                    raise Exception("chromedriver não encontrado no PATH")
+                                print(f"[SELENIUM] Tentativa 4: ChromeDriverManager (último recurso)...", file=sys.stderr, flush=True)
+                                driver = webdriver.Chrome(
+                                    service=Service(ChromeDriverManager().install()),
+                                    options=chrome_options_clean
+                                )
+                                print(f"[SELENIUM] ✅ Chrome iniciado via ChromeDriverManager!", file=sys.stderr, flush=True)
                             except Exception as e4:
                                 last_error = str(e4)
                                 print(f"[SELENIUM] ❌ Tentativa 4 falhou: {e4}", file=sys.stderr, flush=True)
