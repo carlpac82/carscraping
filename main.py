@@ -50230,6 +50230,46 @@ async def check_active_inspection(request: Request, plate: str, ra: str):
             "has_active_inspection": False
         }, status_code=500)
 
+@app.get("/api/inspections/debug/{plate}")
+async def debug_inspections(request: Request, plate: str):
+    """Debug endpoint to see all inspections for a plate"""
+    try:
+        require_inspection_access(request)
+        conn = _db_connect()
+        cursor = conn.cursor()
+        
+        if _USE_NEW_DB:
+            cursor.execute("""
+                SELECT contract_number, inspection_type, created_at, inspection_number
+                FROM vehicle_inspections 
+                WHERE UPPER(vehicle_plate) = UPPER(%s)
+                ORDER BY created_at DESC
+            """, (plate,))
+        else:
+            cursor.execute("""
+                SELECT contract_number, inspection_type, created_at, inspection_number
+                FROM vehicle_inspections 
+                WHERE UPPER(vehicle_plate) = UPPER(?)
+                ORDER BY created_at DESC
+            """, (plate,))
+        
+        inspections = cursor.fetchall()
+        conn.close()
+        
+        result = []
+        for insp in inspections:
+            result.append({
+                "contract_number": insp[0],
+                "inspection_type": insp[1],
+                "created_at": str(insp[2]),
+                "inspection_number": insp[3]
+            })
+        
+        return JSONResponse({"inspections": result})
+    except Exception as e:
+        logging.error(f"Error in debug endpoint: {e}")
+        return JSONResponse({"error": str(e)}, status_code=500)
+
 @app.get("/api/inspections/history")
 async def get_inspections_history(request: Request):
     """Get vehicle inspections history grouped by plate+RA"""
