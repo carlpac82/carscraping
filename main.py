@@ -50157,13 +50157,16 @@ async def check_active_inspection(request: Request, plate: str, ra: str):
         
         # Check if there's a checkin (delivery) inspection without corresponding checkout (pickup)
         # Terminology: checkin = delivery/entrega, checkout = pickup/recolha
+        # Extract base RA number (e.g., "06867-09" -> "06867")
+        ra_base = ra.split('-')[0] if '-' in ra else ra
+        
         if _USE_NEW_DB:
             cursor.execute("""
                 SELECT contract_number 
                 FROM vehicle_inspections 
                 WHERE vehicle_plate = %s 
                   AND inspection_type = 'checkin'
-                  AND contract_number != %s
+                  AND contract_number NOT LIKE %s
                   AND NOT EXISTS (
                       SELECT 1 FROM vehicle_inspections ci 
                       WHERE ci.vehicle_plate = vehicle_inspections.vehicle_plate 
@@ -50171,14 +50174,14 @@ async def check_active_inspection(request: Request, plate: str, ra: str):
                         AND ci.inspection_type = 'checkout'
                   )
                 LIMIT 1
-            """, (plate, ra))
+            """, (plate, f"{ra_base}%"))
         else:
             cursor.execute("""
                 SELECT contract_number 
                 FROM vehicle_inspections 
                 WHERE vehicle_plate = ? 
                   AND inspection_type = 'checkin'
-                  AND contract_number != ?
+                  AND contract_number NOT LIKE ?
                   AND NOT EXISTS (
                       SELECT 1 FROM vehicle_inspections ci 
                       WHERE ci.vehicle_plate = vehicle_inspections.vehicle_plate 
@@ -50186,7 +50189,7 @@ async def check_active_inspection(request: Request, plate: str, ra: str):
                         AND ci.inspection_type = 'checkout'
                   )
                 LIMIT 1
-            """, (plate, ra))
+            """, (plate, f"{ra_base}%"))
         
         active_inspection = cursor.fetchone()
         conn.close()
