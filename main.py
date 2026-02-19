@@ -50160,6 +50160,25 @@ async def check_active_inspection(request: Request, plate: str, ra: str):
         # Extract base RA number (e.g., "06867-09" -> "06867")
         ra_base = ra.split('-')[0] if '-' in ra else ra
         
+        # First, log all inspections for this plate to debug
+        if _USE_NEW_DB:
+            cursor.execute("""
+                SELECT contract_number, inspection_type, created_at
+                FROM vehicle_inspections 
+                WHERE vehicle_plate = %s
+                ORDER BY created_at DESC
+            """, (plate,))
+        else:
+            cursor.execute("""
+                SELECT contract_number, inspection_type, created_at
+                FROM vehicle_inspections 
+                WHERE vehicle_plate = ?
+                ORDER BY created_at DESC
+            """, (plate,))
+        
+        all_inspections = cursor.fetchall()
+        logging.info(f"🔍 All inspections for plate {plate}: {all_inspections}")
+        
         if _USE_NEW_DB:
             cursor.execute("""
                 SELECT contract_number 
@@ -50192,6 +50211,7 @@ async def check_active_inspection(request: Request, plate: str, ra: str):
             """, (plate, f"{ra_base}%"))
         
         active_inspection = cursor.fetchone()
+        logging.info(f"🔍 Active inspection check for plate={plate}, ra={ra}, ra_base={ra_base}: {active_inspection}")
         conn.close()
         
         if active_inspection:
