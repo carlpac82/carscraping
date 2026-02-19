@@ -50185,30 +50185,42 @@ async def check_active_inspection(request: Request, plate: str, ra: str):
                 FROM vehicle_inspections 
                 WHERE vehicle_plate = %s 
                   AND inspection_type = 'checkin'
-                  AND contract_number NOT LIKE %s
+                  AND SPLIT_PART(contract_number, '-', 1) != %s
                   AND NOT EXISTS (
                       SELECT 1 FROM vehicle_inspections ci 
                       WHERE ci.vehicle_plate = vehicle_inspections.vehicle_plate 
-                        AND ci.contract_number = vehicle_inspections.contract_number
+                        AND SPLIT_PART(ci.contract_number, '-', 1) = SPLIT_PART(vehicle_inspections.contract_number, '-', 1)
                         AND ci.inspection_type = 'checkout'
                   )
                 LIMIT 1
-            """, (plate, f"{ra_base}%"))
+            """, (plate, ra_base))
         else:
             cursor.execute("""
                 SELECT contract_number 
                 FROM vehicle_inspections 
                 WHERE vehicle_plate = ? 
                   AND inspection_type = 'checkin'
-                  AND contract_number NOT LIKE ?
+                  AND (CASE 
+                        WHEN INSTR(contract_number, '-') > 0 
+                        THEN SUBSTR(contract_number, 1, INSTR(contract_number, '-') - 1)
+                        ELSE contract_number 
+                      END) != ?
                   AND NOT EXISTS (
                       SELECT 1 FROM vehicle_inspections ci 
                       WHERE ci.vehicle_plate = vehicle_inspections.vehicle_plate 
-                        AND ci.contract_number = vehicle_inspections.contract_number
+                        AND (CASE 
+                              WHEN INSTR(ci.contract_number, '-') > 0 
+                              THEN SUBSTR(ci.contract_number, 1, INSTR(ci.contract_number, '-') - 1)
+                              ELSE ci.contract_number 
+                            END) = (CASE 
+                                      WHEN INSTR(vehicle_inspections.contract_number, '-') > 0 
+                                      THEN SUBSTR(vehicle_inspections.contract_number, 1, INSTR(vehicle_inspections.contract_number, '-') - 1)
+                                      ELSE vehicle_inspections.contract_number 
+                                    END)
                         AND ci.inspection_type = 'checkout'
                   )
                 LIMIT 1
-            """, (plate, f"{ra_base}%"))
+            """, (plate, ra_base))
         
         active_inspection = cursor.fetchone()
         logging.info(f"🔍 Active inspection check for plate={plate}, ra={ra}, ra_base={ra_base}: {active_inspection}")
