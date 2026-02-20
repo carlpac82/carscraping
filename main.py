@@ -20334,11 +20334,10 @@ async def create_abbycar_insurance_pricing(request: Request):
                 cur.execute("""
                     INSERT INTO abbycar_insurance_pricing (vehicle_group, period, period_type, seasonal_month, insurance_price, category, updated_at)
                     VALUES (%s, %s, %s, %s, %s, %s, NOW())
-                    ON CONFLICT (vehicle_group, period, seasonal_month) 
+                    ON CONFLICT (vehicle_group, period, seasonal_month, category) 
                     DO UPDATE SET 
                         period_type = EXCLUDED.period_type,
                         insurance_price = EXCLUDED.insurance_price,
-                        category = EXCLUDED.category,
                         updated_at = NOW()
                     RETURNING id
                 """, (vehicle_group, period, period_type, seasonal_month, insurance_price, category))
@@ -49976,18 +49975,28 @@ async def add_abbycar_insurance_unique_constraint(request: Request):
                     constraints = [row[0] for row in cur.fetchall()]
                     logging.info(f"📋 [MIGRATION] Existing constraints: {constraints}")
                     
-                    # Try to add the constraint
+                    # Drop old constraint if exists (without category)
+                    if 'abbycar_insurance_unique' in constraints:
+                        try:
+                            cur.execute("ALTER TABLE abbycar_insurance_pricing DROP CONSTRAINT abbycar_insurance_unique")
+                            conn.commit()
+                            logging.info("🗑️ [MIGRATION] Dropped old UNIQUE constraint")
+                        except Exception as e:
+                            logging.warning(f"⚠️ [MIGRATION] Could not drop old constraint: {e}")
+                            conn.rollback()
+                    
+                    # Try to add the new constraint with category
                     try:
                         cur.execute("""
                             ALTER TABLE abbycar_insurance_pricing 
                             ADD CONSTRAINT abbycar_insurance_unique 
-                            UNIQUE (vehicle_group, period, seasonal_month)
+                            UNIQUE (vehicle_group, period, seasonal_month, category)
                         """)
                         conn.commit()
-                        logging.info("✅ [MIGRATION] Added UNIQUE constraint")
+                        logging.info("✅ [MIGRATION] Added UNIQUE constraint with category")
                         return JSONResponse({
                             "ok": True,
-                            "message": "UNIQUE constraint added successfully"
+                            "message": "UNIQUE constraint added successfully (with category)"
                         })
                     except Exception as e:
                         if "already exists" in str(e).lower():
