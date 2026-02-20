@@ -49886,6 +49886,70 @@ async def create_abbycar_insurance_table(request: Request):
         logging.error(f"❌ [MIGRATION] Error creating abbycar_insurance_pricing table: {str(e)}", exc_info=True)
         return JSONResponse({"ok": False, "error": str(e)}, status_code=500)
 
+@app.post("/api/abbycar-insurance/fix-table-structure")
+async def fix_abbycar_insurance_table_structure(request: Request):
+    """Fix abbycar_insurance_pricing table structure by adding missing columns (migration)"""
+    # No auth for migration - temporary
+    try:
+        with _db_lock:
+            conn = _db_connect()
+            try:
+                is_postgres = _is_postgresql_connection(conn)
+                
+                if not is_postgres:
+                    return JSONResponse({"ok": False, "error": "This migration is for PostgreSQL only"}, status_code=400)
+                
+                logging.info("🔧 [MIGRATION] Fixing abbycar_insurance_pricing table structure...")
+                
+                with conn.cursor() as cur:
+                    # Get current columns
+                    cur.execute("""
+                        SELECT column_name 
+                        FROM information_schema.columns 
+                        WHERE table_name='abbycar_insurance_pricing'
+                    """)
+                    existing_columns = [row[0] for row in cur.fetchall()]
+                    logging.info(f"📋 [MIGRATION] Current columns: {existing_columns}")
+                    
+                    required_columns = {
+                        'period': 'TEXT',
+                        'period_type': "TEXT DEFAULT 'fixed'",
+                        'seasonal_month': 'TEXT',
+                        'category': "TEXT NOT NULL DEFAULT 'Standard'"
+                    }
+                    
+                    added_columns = []
+                    
+                    for col_name, col_type in required_columns.items():
+                        if col_name not in existing_columns:
+                            try:
+                                cur.execute(f"ALTER TABLE abbycar_insurance_pricing ADD COLUMN {col_name} {col_type}")
+                                added_columns.append(col_name)
+                                logging.info(f"✅ [MIGRATION] Added column: {col_name}")
+                            except Exception as e:
+                                logging.warning(f"⚠️ [MIGRATION] Could not add column {col_name}: {e}")
+                    
+                    if added_columns:
+                        conn.commit()
+                        return JSONResponse({
+                            "ok": True,
+                            "message": f"Added {len(added_columns)} column(s)",
+                            "added_columns": added_columns
+                        })
+                    else:
+                        return JSONResponse({
+                            "ok": True,
+                            "message": "All required columns already exist",
+                            "existing_columns": existing_columns
+                        })
+                
+            finally:
+                conn.close()
+                
+    except Exception as e:
+        logging.error(f"❌ [MIGRATION] Error fixing table structure: {str(e)}", exc_info=True)
+        return JSONResponse({"ok": False, "error": str(e)}, status_code=500)
+
 @app.post("/api/automated-search/fix-month-keys")
 async def fix_month_keys(request: Request):
     """Recalculate month_key for all searches based on pickup_date (fixes old wrong entries)"""
