@@ -57380,6 +57380,133 @@ async def debug_plate_40xm45():
             "error": str(e)
         }, status_code=500)
 
+@app.post("/api/copy-inspection-data")
+async def copy_inspection_data(request: Request):
+    """Copy croqui and photos from RA 06850 to RA 06876-09 and update inspector details"""
+    require_auth(request)
+    
+    try:
+        conn = _db_connect()
+        is_postgres = _is_postgresql_connection(conn)
+        
+        if not is_postgres:
+            return JSONResponse({
+                "success": False,
+                "error": "This operation requires PostgreSQL"
+            }, status_code=400)
+        
+        # 1. Find source inspection (RA 06850 check-in)
+        with conn.cursor() as cur:
+            cur.execute("""
+                SELECT id, inspection_number, damage_croqui_base64
+                FROM vehicle_inspections
+                WHERE contract_number LIKE '06850%'
+                  AND inspection_type = 'checkin'
+                  AND COALESCE(status, '') != 'replaced'
+                ORDER BY created_at DESC
+                LIMIT 1
+            """)
+            source_inspection = cur.fetchone()
+            
+            if not source_inspection:
+                return JSONResponse({
+                    "success": False,
+                    "error": "Source inspection (RA 06850 check-in) not found"
+                }, status_code=404)
+            
+            source_id, source_number, source_croqui = source_inspection
+            logging.info(f"✅ Found source inspection: {source_number} (ID: {source_id})")
+            
+            # 2. Find target inspection (RA 06876-09 latest)
+            cur.execute("""
+                SELECT id, inspection_number
+                FROM vehicle_inspections
+                WHERE contract_number LIKE '06876%'
+                ORDER BY created_at DESC
+                LIMIT 1
+            """)
+            target_inspection = cur.fetchone()
+            
+            if not target_inspection:
+                return JSONResponse({
+                    "success": False,
+                    "error": "Target inspection (RA 06876-09) not found"
+                }, status_code=404)
+            
+            target_id, target_number = target_inspection
+            logging.info(f"✅ Found target inspection: {target_number} (ID: {target_id})")
+            
+            # 3. Copy croqui
+            if source_croqui:
+                cur.execute("""
+                    UPDATE vehicle_inspections
+                    SET damage_croqui_base64 = %s
+                    WHERE id = %s
+                """, (source_croqui, target_id))
+                logging.info(f"✅ Copied croqui from {source_number} to {target_number}")
+            
+            # 4. Copy photos
+            cur.execute("""
+                SELECT photo_base64, photo_type, photo_order, damage_id
+                FROM inspection_photos
+                WHERE inspection_id = %s
+                ORDER BY photo_order
+            """, (source_id,))
+            photos = cur.fetchall()
+            
+            if photos:
+                # Delete existing photos from target
+                cur.execute("DELETE FROM inspection_photos WHERE inspection_id = %s", (target_id,))
+                logging.info(f"🗑️ Deleted existing photos from target inspection")
+                
+                # Insert copied photos
+                for photo in photos:
+                    cur.execute("""
+                        INSERT INTO inspection_photos (inspection_id, photo_base64, photo_type, photo_order, damage_id)
+                        VALUES (%s, %s, %s, %s, %s)
+                    """, (target_id, photo[0], photo[1], photo[2], photo[3]))
+                
+                logging.info(f"✅ Copied {len(photos)} photos from {source_number} to {target_number}")
+            
+            # 5. Update inspector name and time
+            cur.execute("""
+                UPDATE vehicle_inspections
+                SET inspector_name = 'Lina Prudente',
+                    created_at = DATE_TRUNC('day', created_at) + INTERVAL '15 hours 55 minutes'
+                WHERE id = %s
+            """, (target_id,))
+            logging.info(f"✅ Updated inspector to 'Lina Prudente' and time to 15:55")
+            
+            # 6. Update photo count
+            cur.execute("""
+                UPDATE vehicle_inspections
+                SET photo_count = (SELECT COUNT(*) FROM inspection_photos WHERE inspection_id = %s)
+                WHERE id = %s
+            """, (target_id, target_id))
+            
+            conn.commit()
+            logging.info(f"✅ SUCCESS: All data copied from RA 06850 to RA 06876-09")
+            
+        conn.close()
+        
+        return JSONResponse({
+            "success": True,
+            "message": f"Successfully copied data from {source_number} to {target_number}",
+            "source_inspection": source_number,
+            "target_inspection": target_number,
+            "photos_copied": len(photos) if photos else 0,
+            "croqui_copied": bool(source_croqui)
+        })
+        
+    except Exception as e:
+        logging.error(f"Error copying inspection data: {e}")
+        import traceback
+        traceback.print_exc()
+        return JSONResponse({
+            "success": False,
+            "error": str(e)
+        }, status_code=500)
+
 if __name__ == "__main__":
     import uvicorn
     uvicorn.run(app, host="0.0.0.0", port=8000)
