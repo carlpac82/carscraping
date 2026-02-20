@@ -20428,11 +20428,18 @@ async def export_insurance_pricing_template(request: Request):
             ("", ""),
             ("6. PREÇO DIÁRIO", "Valor em euros (ex: 5.00)"),
             ("", ""),
+            ("COMO PREENCHER MÚLTIPLOS MESES:", ""),
+            ("   Para aplicar o mesmo preço em vários meses:", "Crie UMA LINHA para CADA MÊS"),
+            ("   Exemplo: 1 day a €7 em Julho e Agosto:", ""),
+            ("   Linha 1:", "Standard | MDMR | 1 day | fixed | July | 7.00"),
+            ("   Linha 2:", "Standard | MDMR | 1 day | fixed | August | 7.00"),
+            ("", ""),
             ("IMPORTANTE:", ""),
             ("- Preencha a aba 'Preços' com os dados", ""),
             ("- Não altere os cabeçalhos das colunas", ""),
             ("- Use os valores EXATOS listados acima", ""),
             ("- Para preços ano todo, deixe 'Mês Sazonal' vazio", ""),
+            ("- Para múltiplos meses, crie uma linha por mês", ""),
             ("- Os meses devem estar em inglês", ""),
         ]
         
@@ -20510,13 +20517,34 @@ async def export_insurance_pricing_template(request: Request):
         finally:
             conn.close()
         
-        # Add existing prices to sheet
-        for row_idx, price_row in enumerate(existing_prices, 2):
-            for col_idx, value in enumerate(price_row, 1):
-                cell = ws_pricing.cell(row=row_idx, column=col_idx)
-                cell.value = value if value is not None else ""
-                if row_idx % 2 == 0:
-                    cell.fill = PatternFill(start_color="F9F9F9", end_color="F9F9F9", fill_type="solid")
+        # Add existing prices to sheet, or examples if empty
+        if existing_prices:
+            for row_idx, price_row in enumerate(existing_prices, 2):
+                for col_idx, value in enumerate(price_row, 1):
+                    cell = ws_pricing.cell(row=row_idx, column=col_idx)
+                    cell.value = value if value is not None else ""
+                    if row_idx % 2 == 0:
+                        cell.fill = PatternFill(start_color="F9F9F9", end_color="F9F9F9", fill_type="solid")
+        else:
+            # Add example rows showing different scenarios
+            examples = [
+                ["Standard", "MDMR", "1 day", "fixed", "", "5.00"],
+                ["Standard", "MDMR", "2 days", "fixed", "", "5.00"],
+                ["Standard", "MDMR", "3 days", "fixed", "", "5.00"],
+                ["Standard", "MDMR", "8-10 days", "daily", "", "4.50"],
+                ["Standard", "MDMR", "1 day", "fixed", "July", "7.00"],
+                ["Standard", "MDMR", "1 day", "fixed", "August", "7.00"],
+                ["Standard", "MDMR", "2 days", "fixed", "July", "7.00"],
+                ["Standard", "MDMR", "2 days", "fixed", "August", "7.00"],
+                ["Comfort", "CDMR", "1 day", "fixed", "", "6.00"],
+                ["Comfort", "CDMR", "1 day", "fixed", "December", "8.00"],
+            ]
+            
+            for row_idx, example in enumerate(examples, 2):
+                for col_idx, value in enumerate(example, 1):
+                    cell = ws_pricing.cell(row=row_idx, column=col_idx)
+                    cell.value = value
+                    cell.fill = PatternFill(start_color="FFF4E6", end_color="FFF4E6", fill_type="solid")
         
         # Set column widths
         ws_pricing.column_dimensions['A'].width = 15
