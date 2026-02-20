@@ -20295,6 +20295,84 @@ async def get_abbycar_insurance_pricing(request: Request):
         logging.error(f"Error getting ABBYCAR insurance pricing: {e}")
         return JSONResponse({"ok": False, "error": str(e)}, status_code=500)
 
+@app.post("/api/abbycar-insurance-pricing/batch")
+async def create_abbycar_insurance_pricing_batch(request: Request):
+    """Create or update multiple ABBYCAR insurance pricing entries in one request"""
+    try:
+        require_auth(request)
+        data = await request.json()
+        prices = data.get("prices", [])
+        
+        if not prices:
+            return JSONResponse({"ok": False, "error": "No prices provided"}, status_code=400)
+        
+        conn = _db_connect()
+        is_postgres = _is_postgresql_connection(conn)
+        
+        success_count = 0
+        error_count = 0
+        errors = []
+        
+        try:
+            for price_data in prices:
+                vehicle_group = price_data.get("vehicle_group", "").strip().upper()
+                period = price_data.get("period", "").strip() if price_data.get("period") else None
+                period_type = price_data.get("period_type", "fixed") if period else None
+                seasonal_month_raw = price_data.get("seasonal_month")
+                seasonal_month = seasonal_month_raw.strip() if seasonal_month_raw and isinstance(seasonal_month_raw, str) else None
+                insurance_price = float(price_data.get("insurance_price", 0))
+                category = price_data.get("category", "Standard")
+                
+                # Validation
+                if not vehicle_group or not period:
+                    error_count += 1
+                    errors.append(f"Missing vehicle_group or period")
+                    continue
+                
+                if category not in ["Light", "Standard", "Comfort", "Premium"]:
+                    error_count += 1
+                    errors.append(f"Invalid category: {category}")
+                    continue
+                
+                try:
+                    if is_postgres:
+                        with conn.cursor() as cur:
+                            cur.execute("""
+                                INSERT INTO abbycar_insurance_pricing (vehicle_group, period, period_type, seasonal_month, insurance_price, category, updated_at)
+                                VALUES (%s, %s, %s, %s, %s, %s, NOW())
+                                ON CONFLICT (vehicle_group, period, seasonal_month, category) 
+                                DO UPDATE SET 
+                                    period_type = EXCLUDED.period_type,
+                                    insurance_price = EXCLUDED.insurance_price,
+                                    updated_at = NOW()
+                            """, (vehicle_group, period, period_type, seasonal_month, insurance_price, category))
+                    else:
+                        conn.execute("""
+                            INSERT OR REPLACE INTO abbycar_insurance_pricing (vehicle_group, period, period_type, seasonal_month, insurance_price, category, updated_at)
+                            VALUES (?, ?, ?, ?, ?, ?, datetime('now'))
+                        """, (vehicle_group, period, period_type, seasonal_month, insurance_price, category))
+                    
+                    success_count += 1
+                except Exception as e:
+                    error_count += 1
+                    errors.append(str(e))
+            
+            conn.commit()
+            logging.info(f"✅ Batch insert: {success_count} success, {error_count} errors")
+            
+            return JSONResponse({
+                "ok": True,
+                "success_count": success_count,
+                "error_count": error_count,
+                "errors": errors[:10]
+            })
+        finally:
+            conn.close()
+            
+    except Exception as e:
+        logging.error(f"Error in batch insert: {e}")
+        return JSONResponse({"ok": False, "error": str(e)}, status_code=500)
+
 @app.post("/api/abbycar-insurance-pricing")
 async def create_abbycar_insurance_pricing(request: Request):
     """Create or update ABBYCAR insurance pricing for a vehicle group and period"""

@@ -578,90 +578,77 @@
           return;
         }
         
+        // Show loading indicator
+        const submitBtn = document.querySelector('button[type="submit"]');
+        const originalBtnText = submitBtn.innerHTML;
+        submitBtn.disabled = true;
+        submitBtn.innerHTML = '<svg class="animate-spin h-5 w-5 inline mr-2" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>A guardar...';
+        
         try {
-          let successCount = 0;
-          let errorCount = 0;
+          // Build array of all price entries to insert
+          const prices = [];
           
-          // For each selected vehicle group
           for (const vehicleGroup of selectedGroups) {
-            // For each selected period
             for (const period of selectedPeriods) {
-              // If no months selected, create one entry with null month (applies to all year)
               if (selectedMonths.length === 0) {
-                const requestBody = {
+                // No months selected = applies to all year
+                prices.push({
                   category,
                   vehicle_group: vehicleGroup,
                   period: period.value,
                   period_type: period.type,
                   seasonal_month: null,
                   insurance_price: insurancePrice
-                };
-                
-                const response = await fetch('/api/abbycar-insurance-pricing', {
-                  method: 'POST',
-                  headers: {
-                    'Content-Type': 'application/json'
-                  },
-                  body: JSON.stringify(requestBody)
                 });
-                
-                const data = await response.json();
-                
-                if (data.ok) {
-                  successCount++;
-                } else {
-                  errorCount++;
-                  console.error('Error saving:', requestBody, data.error);
-                }
               } else {
                 // Create one entry for each selected month
                 for (const month of selectedMonths) {
-                  const requestBody = {
+                  prices.push({
                     category,
                     vehicle_group: vehicleGroup,
                     period: period.value,
                     period_type: period.type,
                     seasonal_month: month,
                     insurance_price: insurancePrice
-                  };
-                  
-                  const response = await fetch('/api/abbycar-insurance-pricing', {
-                    method: 'POST',
-                    headers: {
-                      'Content-Type': 'application/json'
-                    },
-                    body: JSON.stringify(requestBody)
                   });
-                  
-                  const data = await response.json();
-                  
-                  if (data.ok) {
-                    successCount++;
-                  } else {
-                    errorCount++;
-                    console.error('Error saving:', requestBody, data.error);
-                  }
                 }
               }
             }
           }
           
-          if (successCount > 0) {
-            showAlert(`${successCount} preço(s) guardado(s) com sucesso!`, 'success');
+          // Send all prices in one batch request
+          const response = await fetch('/api/abbycar-insurance-pricing/batch', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({ prices })
+          });
+          
+          const data = await response.json();
+          
+          if (data.ok) {
+            showAlert(`${data.success_count} preço(s) guardado(s) com sucesso!`, 'success');
             // Clear all checkboxes
             document.querySelectorAll('input[name="vehicleGroup"]').forEach(cb => cb.checked = false);
             document.querySelectorAll('input[name="period"]').forEach(cb => cb.checked = false);
             document.querySelectorAll('input[name="seasonalMonth"]').forEach(cb => cb.checked = false);
             document.getElementById('insurancePrice').value = '';
             loadPricing();
-          }
-          
-          if (errorCount > 0) {
-            showAlert(`${errorCount} erro(s) ao guardar preços`, 'error');
+            
+            if (data.error_count > 0) {
+              console.warn(`${data.error_count} erro(s):`, data.errors);
+            }
+          } else {
+            showAlert('Erro ao guardar preços: ' + data.error, 'error');
           }
         } catch (error) {
           console.error('Error saving pricing:', error);
           showAlert('Erro ao guardar preços', 'error');
+        } finally {
+          // Restore button state
+          submitBtn.disabled = false;
+          submitBtn.innerHTML = originalBtnText;
         }
       });
 
