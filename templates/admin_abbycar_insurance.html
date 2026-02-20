@@ -438,11 +438,20 @@
                     byMonth[month].push(p);
                   });
                   
+                  // Sort months chronologically
+                  const monthOrder = ['January', 'February', 'March', 'April', 'May', 'June', 
+                                     'July', 'August', 'September', 'October', 'November', 'December', 'Todos'];
+                  const sortedMonths = Object.keys(byMonth).sort((a, b) => {
+                    const indexA = monthOrder.indexOf(a);
+                    const indexB = monthOrder.indexOf(b);
+                    return indexA - indexB;
+                  });
+                  
                   return `
                     <div class="mb-2 border-b border-gray-100 pb-2 last:border-b-0">
                       <div class="text-xs font-semibold text-gray-600 mb-1">${period}</div>
                       <div class="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-1">
-                        ${Object.keys(byMonth).sort().map(month => {
+                        ${sortedMonths.map(month => {
                           const monthPrices = byMonth[month];
                           const monthNames = {
                             'January': 'Jan', 'February': 'Fev', 'March': 'Mar',
