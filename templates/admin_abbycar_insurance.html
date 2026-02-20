@@ -252,24 +252,6 @@
       <div class="bg-white rounded shadow p-6">
         <div class="flex items-center justify-between mb-4">
           <h3 class="text-md font-semibold text-gray-800">Preços Configurados</h3>
-          <div class="flex items-center gap-3">
-            <select id="sortBy" onchange="applySortAndFilter()" class="text-sm border-gray-300 rounded-md shadow-sm focus:border-[#009cb6] focus:ring-[#009cb6]" title="Ordenar por">
-              <option value="season">Ordenar por Temporada</option>
-              <option value="price-asc">Preço (Menor → Maior)</option>
-              <option value="price-desc">Preço (Maior → Menor)</option>
-              <option value="period">Ordenar por Período</option>
-            </select>
-            <select id="filterSeason" onchange="applySortAndFilter()" class="text-sm border-gray-300 rounded-md shadow-sm focus:border-[#009cb6] focus:ring-[#009cb6]" title="Filtrar por temporada">
-              <option value="">Todas as Temporadas</option>
-              <option value="High">Alta</option>
-              <option value="Mid">Média</option>
-              <option value="Low">Baixa</option>
-              <option value="Ano todo">Ano todo</option>
-            </select>
-            <button type="button" onclick="deleteSelectedPrices()" class="px-3 py-1 bg-red-500 text-white text-sm rounded hover:bg-red-600 transition-colors">
-              Eliminar Selecionados
-            </button>
-          </div>
         </div>
         
         <div class="mb-6">
@@ -369,49 +351,16 @@
       }
       
       function applySortAndFilter() {
-        const sortBy = document.getElementById('sortBy')?.value || 'season';
-        const filterSeason = document.getElementById('filterSeason')?.value || '';
-        
-        let filteredData = [...allPricingData];
-        
-        // Apply season filter
-        if (filterSeason) {
-          filteredData = filteredData.filter(p => {
-            const season = p.season || 'Ano todo';
-            return season === filterSeason;
-          });
-        }
-        
-        // Apply sorting
-        const seasonOrder = ['High', 'Mid', 'Low', 'Ano todo'];
-        
-        filteredData.sort((a, b) => {
-          if (sortBy === 'season') {
-            const seasonA = a.season || 'Ano todo';
-            const seasonB = b.season || 'Ano todo';
-            return seasonOrder.indexOf(seasonA) - seasonOrder.indexOf(seasonB);
-          } else if (sortBy === 'price-asc') {
-            return a.insurance_price - b.insurance_price;
-          } else if (sortBy === 'price-desc') {
-            return b.insurance_price - a.insurance_price;
-          } else if (sortBy === 'period') {
-            const periodA = a.period || '';
-            const periodB = b.period || '';
-            return periodA.localeCompare(periodB);
-          }
-          return 0;
-        });
-        
-        // Render filtered and sorted data
+        // Render data by category
         const lightList = document.getElementById('lightList');
         const standardList = document.getElementById('standardList');
         const comfortList = document.getElementById('comfortList');
         const premiumList = document.getElementById('premiumList');
         
-        const light = filteredData.filter(p => p.category === 'Light');
-        const standard = filteredData.filter(p => p.category === 'Standard');
-        const comfort = filteredData.filter(p => p.category === 'Comfort');
-        const premium = filteredData.filter(p => p.category === 'Premium');
+        const light = allPricingData.filter(p => p.category === 'Light');
+        const standard = allPricingData.filter(p => p.category === 'Standard');
+        const comfort = allPricingData.filter(p => p.category === 'Comfort');
+        const premium = allPricingData.filter(p => p.category === 'Premium');
         
         lightList.innerHTML = light.length ? createGroupedPriceTable(light) : '<p class="text-sm text-gray-500 italic">Nenhum grupo configurado</p>';
         standardList.innerHTML = standard.length ? createGroupedPriceTable(standard) : '<p class="text-sm text-gray-500 italic">Nenhum grupo configurado</p>';
@@ -430,7 +379,6 @@
         html += '<table class="min-w-full divide-y divide-gray-200 border border-gray-200 rounded-lg">';
         html += '<thead class="bg-gray-50">';
         html += '<tr>';
-        html += '<th class="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"><input type="checkbox" onclick="toggleAllCheckboxes(this)" class="rounded" title="Selecionar todos"></th>';
         html += '<th class="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Grupo Veículo</th>';
         html += '<th class="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Período</th>';
         html += '<th class="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Temporada</th>';
@@ -451,9 +399,6 @@
           }
           
           html += '<tr class="' + rowClass + ' hover:bg-blue-50 transition-colors">';
-          html += '<td class="px-3 py-3 whitespace-nowrap">';
-          html += '<input type="checkbox" class="price-checkbox rounded text-[#009cb6] focus:ring-[#009cb6]" data-id="' + p.id + '" data-group="' + p.vehicle_group + '">';
-          html += '</td>';
           html += '<td class="px-3 py-3 whitespace-nowrap">';
           html += '<span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-[#009cb6] text-white">' + p.vehicle_group + '</span>';
           html += '</td>';
