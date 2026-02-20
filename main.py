@@ -49950,6 +49950,63 @@ async def fix_abbycar_insurance_table_structure(request: Request):
         logging.error(f"❌ [MIGRATION] Error fixing table structure: {str(e)}", exc_info=True)
         return JSONResponse({"ok": False, "error": str(e)}, status_code=500)
 
+@app.post("/api/abbycar-insurance/add-unique-constraint")
+async def add_abbycar_insurance_unique_constraint(request: Request):
+    """Add UNIQUE constraint to abbycar_insurance_pricing table (migration)"""
+    # No auth for migration - temporary
+    try:
+        with _db_lock:
+            conn = _db_connect()
+            try:
+                is_postgres = _is_postgresql_connection(conn)
+                
+                if not is_postgres:
+                    return JSONResponse({"ok": False, "error": "This migration is for PostgreSQL only"}, status_code=400)
+                
+                logging.info("🔧 [MIGRATION] Adding UNIQUE constraint to abbycar_insurance_pricing...")
+                
+                with conn.cursor() as cur:
+                    # Check if constraint already exists
+                    cur.execute("""
+                        SELECT constraint_name 
+                        FROM information_schema.table_constraints 
+                        WHERE table_name = 'abbycar_insurance_pricing' 
+                        AND constraint_type = 'UNIQUE'
+                    """)
+                    constraints = [row[0] for row in cur.fetchall()]
+                    logging.info(f"📋 [MIGRATION] Existing constraints: {constraints}")
+                    
+                    # Try to add the constraint
+                    try:
+                        cur.execute("""
+                            ALTER TABLE abbycar_insurance_pricing 
+                            ADD CONSTRAINT abbycar_insurance_unique 
+                            UNIQUE (vehicle_group, period, seasonal_month)
+                        """)
+                        conn.commit()
+                        logging.info("✅ [MIGRATION] Added UNIQUE constraint")
+                        return JSONResponse({
+                            "ok": True,
+                            "message": "UNIQUE constraint added successfully"
+                        })
+                    except Exception as e:
+                        if "already exists" in str(e).lower():
+                            logging.info("✅ [MIGRATION] UNIQUE constraint already exists")
+                            conn.rollback()
+                            return JSONResponse({
+                                "ok": True,
+                                "message": "UNIQUE constraint already exists"
+                            })
+                        else:
+                            raise
+                
+            finally:
+                conn.close()
+                
+    except Exception as e:
+        logging.error(f"❌ [MIGRATION] Error adding UNIQUE constraint: {str(e)}", exc_info=True)
+        return JSONResponse({"ok": False, "error": str(e)}, status_code=500)
+
 @app.post("/api/automated-search/fix-month-keys")
 async def fix_month_keys(request: Request):
     """Recalculate month_key for all searches based on pickup_date (fixes old wrong entries)"""
