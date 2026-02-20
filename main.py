@@ -41308,9 +41308,18 @@ async def export_automated_prices_excel(request: Request):
                                 sipp_code, current_month_name, period_str, period_type, category
                             )
                             if insurance_price:
-                                # Insurance price is per day, add it to the adjusted price
-                                adjusted_price += insurance_price
-                                print(f"[BACKEND] {category} - {sipp_code} - {period_str}: base={adjusted_price-insurance_price:.2f}, insurance={insurance_price:.2f}, total={adjusted_price:.2f}", flush=True)
+                                # Insurance price from DB is per day
+                                # For fixed periods (1-7 days): multiply by number of days to get total
+                                # For daily periods (8+): already per day, add directly
+                                if period_type == 'fixed':
+                                    # Fixed period: insurance × days (e.g., 5 days × €3/day = €15 total)
+                                    insurance_total = insurance_price * int(day_key)
+                                    adjusted_price += insurance_total
+                                    print(f"[BACKEND] {category} - {sipp_code} - {period_str} (fixed): base={adjusted_price-insurance_total:.2f}, insurance={insurance_price:.2f}/day × {day_key} days = {insurance_total:.2f}, total={adjusted_price:.2f}", flush=True)
+                                else:
+                                    # Daily period: insurance is already per day, add directly
+                                    adjusted_price += insurance_price
+                                    print(f"[BACKEND] {category} - {sipp_code} - {period_str} (daily): base={adjusted_price-insurance_price:.2f}/day, insurance={insurance_price:.2f}/day, total={adjusted_price:.2f}/day", flush=True)
                         
                         # Round to 2 decimal places
                         adjusted_price = round(adjusted_price, 2)
