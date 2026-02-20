@@ -399,22 +399,10 @@
           'Low': 'Baixa'
         };
         
-        let html = '<div class="overflow-x-auto">';
-        html += '<table class="min-w-full divide-y divide-gray-200 border border-gray-200 rounded-lg">';
-        html += '<thead class="bg-gray-50">';
-        html += '<tr>';
-        html += '<th class="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Grupo Veículo</th>';
-        html += '<th class="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Período</th>';
-        html += '<th class="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Temporada</th>';
-        html += '<th class="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Preço/dia</th>';
-        html += '<th class="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Ações</th>';
-        html += '</tr>';
-        html += '</thead>';
-        html += '<tbody class="bg-white divide-y divide-gray-200">';
+        let html = '<div class="grid grid-cols-1 gap-3">';
         
-        prices.forEach((p, index) => {
+        prices.forEach((p) => {
           const seasonDisplay = p.season ? seasonNames[p.season] || p.season : 'Ano todo';
-          const rowClass = index % 2 === 0 ? 'bg-white' : 'bg-gray-50';
           
           // Remove ' dias' from daily periods (8-10 dias -> 8-10)
           let periodDisplay = p.period || '-';
@@ -422,25 +410,37 @@
             periodDisplay = periodDisplay.replace(' dias', '');
           }
           
-          html += '<tr class="' + rowClass + ' hover:bg-blue-50 transition-colors">';
-          html += '<td class="px-3 py-3 whitespace-nowrap">';
-          html += '<span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-[#009cb6] text-white">' + p.vehicle_group + '</span>';
-          html += '</td>';
-          html += '<td class="px-3 py-3 whitespace-nowrap text-sm text-gray-900">' + periodDisplay + '</td>';
-          html += '<td class="px-3 py-3 whitespace-nowrap text-sm text-gray-700">' + seasonDisplay + '</td>';
-          html += '<td class="px-3 py-3 whitespace-nowrap">';
-          html += '<span class="text-lg font-bold text-gray-900">€' + p.insurance_price.toFixed(2) + '</span>';
-          html += '</td>';
-          html += '<td class="px-3 py-3 whitespace-nowrap text-sm">';
-          html += '<button onclick="deletePricing(' + p.id + ')" class="text-red-600 hover:text-red-900 hover:bg-red-50 p-2 rounded transition-colors" title="Eliminar">';
-          html += '<svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>';
+          html += '<div class="flex items-center justify-between p-4 bg-white border border-gray-200 rounded-lg hover:shadow-md transition-shadow">';
+          
+          // Left side: Vehicle group, period, season
+          html += '<div class="flex items-center gap-4 flex-1">';
+          html += '<div class="flex flex-col">';
+          html += '<span class="inline-flex items-center px-3 py-1 rounded-md text-sm font-semibold bg-[#009cb6] text-white">' + p.vehicle_group + '</span>';
+          html += '</div>';
+          html += '<div class="flex flex-col">';
+          html += '<span class="text-xs text-gray-500 uppercase">Período</span>';
+          html += '<span class="text-base font-medium text-gray-900">' + periodDisplay + '</span>';
+          html += '</div>';
+          html += '<div class="flex flex-col">';
+          html += '<span class="text-xs text-gray-500 uppercase">Temporada</span>';
+          html += '<span class="text-base font-medium text-gray-700">' + seasonDisplay + '</span>';
+          html += '</div>';
+          html += '</div>';
+          
+          // Right side: Price and delete button
+          html += '<div class="flex items-center gap-4">';
+          html += '<div class="flex flex-col items-end">';
+          html += '<span class="text-xs text-gray-500 uppercase">Preço/dia</span>';
+          html += '<span class="text-2xl font-bold text-[#009cb6]">€' + p.insurance_price.toFixed(2) + '</span>';
+          html += '</div>';
+          html += '<button onclick="deletePricing(' + p.id + ')" class="text-red-600 hover:text-red-900 hover:bg-red-50 p-2 rounded-lg transition-colors" title="Eliminar">';
+          html += '<svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>';
           html += '</button>';
-          html += '</td>';
-          html += '</tr>';
+          html += '</div>';
+          
+          html += '</div>';
         });
         
-        html += '</tbody>';
-        html += '</table>';
         html += '</div>';
         
         return html;
