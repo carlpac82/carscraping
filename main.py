@@ -40954,9 +40954,58 @@ async def export_caralliance_excel(request: Request):
         logging.error(f"Error exporting CarAlliance Excel: {e}\n{traceback.format_exc()}")
         return _no_store_json({"ok": False, "error": str(e)}, 500)
 
+def get_insurance_price_for_month_and_sipp(sipp_code, month_name, period, period_type, category):
+    """
+    Get insurance price for specific SIPP code, month, period, and category.
+    Returns daily insurance price or None if not found.
+    """
+    try:
+        conn = get_db_connection()
+        cur = conn.cursor()
+        
+        # Try with seasonal_month first
+        cur.execute("""
+            SELECT insurance_price 
+            FROM abbycar_insurance_pricing 
+            WHERE vehicle_group = %s 
+            AND category = %s 
+            AND period = %s 
+            AND period_type = %s
+            AND seasonal_month = %s
+        """, (sipp_code, category, period, period_type, month_name))
+        
+        result = cur.fetchone()
+        if result:
+            cur.close()
+            conn.close()
+            return float(result[0])
+        
+        # If not found with seasonal_month, try without (year-round price)
+        cur.execute("""
+            SELECT insurance_price 
+            FROM abbycar_insurance_pricing 
+            WHERE vehicle_group = %s 
+            AND category = %s 
+            AND period = %s 
+            AND period_type = %s
+            AND seasonal_month IS NULL
+        """, (sipp_code, category, period, period_type))
+        
+        result = cur.fetchone()
+        cur.close()
+        conn.close()
+        
+        if result:
+            return float(result[0])
+        
+        return None
+    except Exception as e:
+        print(f"[ERROR] Failed to get insurance price: {str(e)}", flush=True)
+        return None
+
 @app.post("/api/export-automated-prices-excel")
 async def export_automated_prices_excel(request: Request):
-    """Export automated prices to Excel (Abbycar format)"""
+    """Export automated prices to Excel (Abbycar format) with 4 sheets: Light, Standard, Comfort, Premium"""
     import sys
     print("[BACKEND] ========== EXPORT AUTOMATED PRICES EXCEL REQUEST RECEIVED ==========", flush=True)
     sys.stdout.flush()
@@ -41145,9 +41194,6 @@ async def export_automated_prices_excel(request: Request):
         # Get Abbycar price adjustment
         abbycar_adjustment = _get_abbycar_adjustment()
         
-        # Fill data rows - template already has formatting, just update values
-        print(f"[BACKEND] Filling {len(sipp_codes_order)} rows with prices...", flush=True)
-        
         # Calcular START DATE e END DATE no formato MM/DD/YYYY
         date_obj = datetime.strptime(date, '%Y-%m-%d')
         month = date_obj.month
@@ -41158,84 +41204,129 @@ async def export_automated_prices_excel(request: Request):
         end_date_str = f"{month:02d}/{day_end:02d}/{year}"
         print(f"[BACKEND] Period dates: START={start_date_str}, END={end_date_str}", flush=True)
         
-        row_num = 2
-        for sipp_code in sipp_codes_order:
-            # Get internal group from SIPP code
-            internal_group = car_group_mapping.get(sipp_code, sipp_code)
-            group_prices = prices.get(internal_group, {})
-            print(f"[BACKEND] Group {internal_group} (SIPP: {sipp_code})", flush=True)
+        # Map month number to English month name for insurance lookup
+        month_names_en = ['January', 'February', 'March', 'April', 'May', 'June',
+                          'July', 'August', 'September', 'October', 'November', 'December']
+        current_month_name = month_names_en[month - 1]
+        print(f"[BACKEND] Current month for insurance: {current_month_name}", flush=True)
+        
+        # Create 4 sheets: Light, Standard, Comfort, Premium
+        categories = ['Light', 'Standard', 'Comfort', 'Premium']
+        
+        # Remove default sheet and create 4 new sheets
+        wb.remove(ws)
+        
+        print(f"[BACKEND] Creating 4 sheets: {', '.join(categories)}", flush=True)
+        
+        for category_idx, category in enumerate(categories):
+            print(f"[BACKEND] Processing sheet: {category}", flush=True)
             
+            # Create new sheet
+            if category_idx == 0:
+                ws = wb.create_sheet(category, 0)
+            else:
+                ws = wb.create_sheet(category)
             
-            # Column 1: Stations (template already has formatting)
-            ws.cell(row_num, 1).value = station_code
+            # Copy headers from template (row 1)
+            # We need to recreate the template structure for each sheet
+            # Headers from template
+            headers = ['Stations', 'Start Date', 'End Date', 'Group', 'Model Example (optional)', 'CURRENCY',
+                      '1 day fixed', '2 days fixed', '3 days fixed', '4 days fixed', '5 days fixed',
+                      '6 days fixed', '7 days fixed', '8-10 daily', '11-12 daily', '13-14 daily',
+                      '15-21 daily', '22-28 daily']
             
-            # Column 2: Start Date (MM/DD/YYYY)
-            ws.cell(row_num, 2).value = start_date_str
+            for col_idx, header in enumerate(headers, start=1):
+                ws.cell(1, col_idx).value = header
             
-            # Column 3: End Date (MM/DD/YYYY)
-            ws.cell(row_num, 3).value = end_date_str
-            
-            # Columns 7-18: Prices (1 day fixed through 22-28 daily)
-            # Map frontend days to Excel columns
-            # Frontend: 1,2,3,4,5,6,7,8,9,14,22,28
-            # Excel cols: 7,8,9,10,11,12,13,14,15,16,17,18
-            price_columns = [
-                (1, 7),   # 1 day fixed → Col 7
-                (2, 8),   # 2 days fixed → Col 8
-                (3, 9),   # 3 days fixed → Col 9
-                (4, 10),  # 4 days fixed → Col 10
-                (5, 11),  # 5 days fixed → Col 11
-                (6, 12),  # 6 days fixed → Col 12
-                (7, 13),  # 7 days fixed → Col 13
-                (8, 14),  # 8 days → Col 14 (8-10 daily)
-                (9, 15),  # 9 days → Col 15 (11-12 daily) 
-                (14, 16), # 14 days → Col 16 (13-14 daily)
-                (22, 17), # 22 days → Col 17 (15-21 daily)
-                (28, 18)  # 28 days → Col 18 (22-28 daily)
-            ]
-            
-            for day_key, col_idx in price_columns:
-                price = calculate_price_for_day(group_prices, int(day_key))
+            # Fill data rows
+            row_num = 2
+            for sipp_code in sipp_codes_order:
+                # Get internal group from SIPP code
+                internal_group = car_group_mapping.get(sipp_code, sipp_code)
+                group_prices = prices.get(internal_group, {})
                 
-                if price:
-                    # Price from card is GROSS total (includes broker commission)
-                    # Step 1: Convert GROSS to NET: NET = GROSS / (1 + broker_commission/100)
-                    net_price = float(price) / (1 + broker_commission / 100)
-                    # Step 2: Apply Abbycar adjustment: NET * (1 + abbycar_pct/100)
-                    adjusted_price = net_price * (1 + abbycar_adjustment / 100)
+                # Column 1: Stations
+                ws.cell(row_num, 1).value = station_code
+                
+                # Column 2: Start Date (MM/DD/YYYY)
+                ws.cell(row_num, 2).value = start_date_str
+                
+                # Column 3: End Date (MM/DD/YYYY)
+                ws.cell(row_num, 3).value = end_date_str
+                
+                # Column 4: Group (SIPP code)
+                ws.cell(row_num, 4).value = sipp_code
+                
+                # Column 5: Model Example
+                ws.cell(row_num, 5).value = sipp_to_model.get(sipp_code, '')
+                
+                # Column 6: Currency
+                ws.cell(row_num, 6).value = 'EUR'
+                
+                # Columns 7-18: Prices (1 day fixed through 22-28 daily)
+                # Map frontend days to Excel columns
+                price_columns = [
+                    (1, 7, '1 day', 'fixed'),      # 1 day fixed → Col 7
+                    (2, 8, '2 days', 'fixed'),     # 2 days fixed → Col 8
+                    (3, 9, '3 days', 'fixed'),     # 3 days fixed → Col 9
+                    (4, 10, '4 days', 'fixed'),    # 4 days fixed → Col 10
+                    (5, 11, '5 days', 'fixed'),    # 5 days fixed → Col 11
+                    (6, 12, '6 days', 'fixed'),    # 6 days fixed → Col 12
+                    (7, 13, '7 days', 'fixed'),    # 7 days fixed → Col 13
+                    (8, 14, '8-10 days', 'daily'), # 8-10 daily → Col 14
+                    (9, 15, '11-12 days', 'daily'),# 11-12 daily → Col 15
+                    (14, 16, '13-14 days', 'daily'),# 13-14 daily → Col 16
+                    (22, 17, '15-21 days', 'daily'),# 15-21 daily → Col 17
+                    (28, 18, '22-28 days', 'daily') # 22-28 daily → Col 18
+                ]
+                
+                for day_key, col_idx, period_str, period_type in price_columns:
+                    price = calculate_price_for_day(group_prices, int(day_key))
                     
-                    # Days 8+: divide by days to get daily price
-                    if int(day_key) == 8:
-                        adjusted_price = adjusted_price / 8
-                    elif int(day_key) == 9:
-                        adjusted_price = adjusted_price / 9
-                    elif int(day_key) == 14:
-                        adjusted_price = adjusted_price / 14
-                    elif int(day_key) == 22:
-                        adjusted_price = adjusted_price / 22
-                    elif int(day_key) == 28:
-                        adjusted_price = adjusted_price / 28
-                    
-                    # Round to 2 decimal places
-                    adjusted_price = round(adjusted_price, 2)
-                    
-                    # Set cell value
-                    cell = ws.cell(row_num, col_idx)
-                    cell.value = adjusted_price
-                    
-                    # Format cell to 2 decimal places
-                    cell.number_format = '0.00'
-                else:
-                    ws.cell(row_num, col_idx).value = ''
+                    if price:
+                        # Price from card is GROSS total (includes broker commission)
+                        # Step 1: Convert GROSS to NET
+                        net_price = float(price) / (1 + broker_commission / 100)
+                        # Step 2: Apply Abbycar adjustment
+                        adjusted_price = net_price * (1 + abbycar_adjustment / 100)
+                        
+                        # Days 8+: divide by days to get daily price
+                        if int(day_key) == 8:
+                            adjusted_price = adjusted_price / 8
+                        elif int(day_key) == 9:
+                            adjusted_price = adjusted_price / 9
+                        elif int(day_key) == 14:
+                            adjusted_price = adjusted_price / 14
+                        elif int(day_key) == 22:
+                            adjusted_price = adjusted_price / 22
+                        elif int(day_key) == 28:
+                            adjusted_price = adjusted_price / 28
+                        
+                        # For Standard, Comfort, Premium: add insurance price
+                        if category != 'Light':
+                            insurance_price = get_insurance_price_for_month_and_sipp(
+                                sipp_code, current_month_name, period_str, period_type, category
+                            )
+                            if insurance_price:
+                                # Insurance price is per day, add it to the adjusted price
+                                adjusted_price += insurance_price
+                                print(f"[BACKEND] {category} - {sipp_code} - {period_str}: base={adjusted_price-insurance_price:.2f}, insurance={insurance_price:.2f}, total={adjusted_price:.2f}", flush=True)
+                        
+                        # Round to 2 decimal places
+                        adjusted_price = round(adjusted_price, 2)
+                        
+                        # Set cell value
+                        cell = ws.cell(row_num, col_idx)
+                        cell.value = adjusted_price
+                        cell.number_format = '0.00'
+                    else:
+                        ws.cell(row_num, col_idx).value = ''
+                
+                row_num += 1
             
-            row_num += 1
+            print(f"[BACKEND] Sheet {category}: Filled {row_num - 2} rows with prices", flush=True)
         
-        print(f"[BACKEND] Filled {row_num - 2} rows with prices", flush=True)
-        
-        # Delete extra rows from template (K groups that were removed)
-        if ws.max_row >= row_num:
-            ws.delete_rows(row_num, ws.max_row - row_num + 1)
-            print(f"[BACKEND] Deleted extra template rows from {row_num} to end", flush=True)
+        print(f"[BACKEND] All 4 sheets created successfully", flush=True)
         
         # Save workbook to BytesIO
         print("[BACKEND] Saving workbook to BytesIO...", flush=True)
