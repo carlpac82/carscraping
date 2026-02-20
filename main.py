@@ -40769,12 +40769,13 @@ async def download_export_history(request: Request, export_id: int):
 
 @app.post("/api/export-abbycar-excel")
 async def export_abbycar_excel(request: Request):
-    """Export Abbycar Excel with blue background for K groups"""
+    """Export Abbycar Excel with 4 sheets: Light, Standard, Comfort, Premium"""
     require_auth(request)
     try:
         from openpyxl import Workbook
         from openpyxl.styles import PatternFill
         from starlette.responses import Response
+        from datetime import datetime
         import io
         
         data_json = await request.json()
@@ -40783,52 +40784,102 @@ async def export_abbycar_excel(request: Request):
         start_date = data_json.get('startDate', '')
         end_date = data_json.get('endDate', '')
         
-        # Create workbook
-        wb = Workbook()
-        ws = wb.active
-        ws.title = "Abbycar"
+        # Extract month from start_date for insurance lookup
+        try:
+            date_parts = start_date.split('/')
+            month = int(date_parts[0])
+            month_names_en = ['January', 'February', 'March', 'April', 'May', 'June',
+                              'July', 'August', 'September', 'October', 'November', 'December']
+            current_month_name = month_names_en[month - 1]
+        except:
+            current_month_name = 'January'
         
         # Headers
         headers = ['Stations', 'Start Date', 'End Date', 'Group', 'Model Example (optional)', 'CURRENCY',
                    '1 day fixed', '2 days fixed', '3 days fixed', '4 days fixed', '5 days fixed',
                    '6 days fixed', '7 days fixed', '8-10 daily', '11-12 daily', '13-14 daily',
                    '15-21 daily', '22-28 daily']
-        ws.append(headers)
         
         # K groups SIPP codes for blue background
         k_group_sipps = ['MCMV', 'NDMR', 'HDMV', 'MDAV', 'EDAR', 'DFMR', 'DFMV', 'IWMV', 'CFAV', 'SVMV', 'SVAR', 'LVMR']
-        blue_fill = PatternFill(start_color='ADD8E6', end_color='ADD8E6', fill_type='solid')  # Light blue
+        blue_fill = PatternFill(start_color='ADD8E6', end_color='ADD8E6', fill_type='solid')
         
-        # Add data rows
-        for row_data in rows_data:
-            sipp_code = row_data.get('group', '')
-            row_values = [
-                row_data.get('station', ''),
-                row_data.get('startDate', ''),
-                row_data.get('endDate', ''),
-                sipp_code,
-                row_data.get('model', ''),
-                row_data.get('currency', 'EUR')
-            ]
+        # Create workbook and remove default sheet
+        wb = Workbook()
+        wb.remove(wb.active)
+        
+        # Create 4 sheets: Light, Standard, Comfort, Premium
+        categories = ['Light', 'Standard', 'Comfort', 'Premium']
+        
+        for category in categories:
+            ws = wb.create_sheet(category)
             
-            # Add prices
-            prices = row_data.get('prices', {})
-            for key in ['1_day_fixed', '2_day_fixed', '3_day_fixed', '4_day_fixed', '5_day_fixed',
-                       '6_day_fixed', '7_day_fixed', '8_10_daily', '11_12_daily', '13_14_daily',
-                       '15_21_daily', '22_28_daily']:
-                price_val = prices.get(key, '')
-                if price_val:
-                    row_values.append(str(price_val).replace('.', ','))
-                else:
-                    row_values.append('')
+            # Add headers
+            ws.append(headers)
             
-            ws.append(row_values)
-            
-            # Apply blue background if K group
-            if sipp_code in k_group_sipps:
-                row_idx = ws.max_row
-                for col_idx in range(1, len(headers) + 1):
-                    ws.cell(row_idx, col_idx).fill = blue_fill
+            # Add data rows
+            for row_data in rows_data:
+                sipp_code = row_data.get('group', '')
+                row_values = [
+                    row_data.get('station', ''),
+                    row_data.get('startDate', ''),
+                    row_data.get('endDate', ''),
+                    sipp_code,
+                    row_data.get('model', ''),
+                    row_data.get('currency', 'EUR')
+                ]
+                
+                # Add prices
+                prices = row_data.get('prices', {})
+                price_keys = ['1_day_fixed', '2_day_fixed', '3_day_fixed', '4_day_fixed', '5_day_fixed',
+                             '6_day_fixed', '7_day_fixed', '8_10_daily', '11_12_daily', '13_14_daily',
+                             '15_21_daily', '22_28_daily']
+                
+                for idx, key in enumerate(price_keys):
+                    price_val = prices.get(key, '')
+                    
+                    if price_val and category != 'Light':
+                        # For Standard, Comfort, Premium: add insurance
+                        base_price = float(str(price_val).replace(',', '.'))
+                        
+                        # Determine period and type
+                        if 'day_fixed' in key:
+                            days = int(key.split('_')[0])
+                            period = f"{days} day{'s' if days > 1 else ''}"
+                            period_type = 'fixed'
+                        else:
+                            period = key.replace('_', '-')
+                            period_type = 'daily'
+                        
+                        # Get insurance price
+                        insurance_price = get_insurance_price_for_month_and_sipp(
+                            sipp_code, current_month_name, period, period_type, category
+                        )
+                        
+                        if insurance_price:
+                            if period_type == 'fixed':
+                                # Fixed: multiply insurance by days
+                                insurance_total = insurance_price * days
+                                final_price = base_price + insurance_total
+                            else:
+                                # Daily: add insurance per day
+                                final_price = base_price + insurance_price
+                            
+                            row_values.append(str(round(final_price, 2)).replace('.', ','))
+                        else:
+                            row_values.append(str(price_val).replace('.', ','))
+                    elif price_val:
+                        row_values.append(str(price_val).replace('.', ','))
+                    else:
+                        row_values.append('')
+                
+                ws.append(row_values)
+                
+                # Apply blue background if K group
+                if sipp_code in k_group_sipps:
+                    row_idx = ws.max_row
+                    for col_idx in range(1, len(headers) + 1):
+                        ws.cell(row_idx, col_idx).fill = blue_fill
         
         # Save to bytes
         excel_bytes = io.BytesIO()
