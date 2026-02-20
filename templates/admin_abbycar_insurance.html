@@ -341,25 +341,55 @@
             const comfort = data.data.filter(p => p.category === 'Comfort');
             const premium = data.data.filter(p => p.category === 'Premium');
             
-            lightList.innerHTML = light.length ? light.map(p => createPriceCard(p)).join('') : '<p class="text-sm text-gray-500 italic">Nenhum grupo configurado</p>';
-            standardList.innerHTML = standard.length ? standard.map(p => createPriceCard(p)).join('') : '<p class="text-sm text-gray-500 italic">Nenhum grupo configurado</p>';
-            comfortList.innerHTML = comfort.length ? comfort.map(p => createPriceCard(p)).join('') : '<p class="text-sm text-gray-500 italic">Nenhum grupo configurado</p>';
-            premiumList.innerHTML = premium.length ? premium.map(p => createPriceCard(p)).join('') : '<p class="text-sm text-gray-500 italic">Nenhum grupo configurado</p>';
+            lightList.innerHTML = light.length ? createGroupedPriceTable(light) : '<p class="text-sm text-gray-500 italic">Nenhum grupo configurado</p>';
+            standardList.innerHTML = standard.length ? createGroupedPriceTable(standard) : '<p class="text-sm text-gray-500 italic">Nenhum grupo configurado</p>';
+            comfortList.innerHTML = comfort.length ? createGroupedPriceTable(comfort) : '<p class="text-sm text-gray-500 italic">Nenhum grupo configurado</p>';
+            premiumList.innerHTML = premium.length ? createGroupedPriceTable(premium) : '<p class="text-sm text-gray-500 italic">Nenhum grupo configurado</p>';
           }
         } catch (error) {
           console.error('Error loading pricing:', error);
           showAlert('Erro ao carregar preços', 'error');
         }
       }
-
-      function createPriceCard(pricing) {
-        const categoryColor = {
-          'Light': 'yellow',
-          'Standard': 'blue',
-          'Comfort': 'green',
-          'Premium': 'purple'
-        }[pricing.category];
+      
+      function createGroupedPriceTable(prices) {
+        // Group by vehicle_group
+        const grouped = {};
+        prices.forEach(p => {
+          if (!grouped[p.vehicle_group]) {
+            grouped[p.vehicle_group] = [];
+          }
+          grouped[p.vehicle_group].push(p);
+        });
         
+        // Create table for each vehicle group
+        return Object.keys(grouped).sort().map(group => {
+          const groupPrices = grouped[group];
+          
+          return `
+            <div class="border border-gray-200 rounded-lg p-4 mb-3">
+              <h5 class="font-semibold text-gray-800 mb-2">${group}</h5>
+              <div class="overflow-x-auto">
+                <table class="min-w-full text-sm">
+                  <thead class="bg-gray-50">
+                    <tr>
+                      <th class="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase">Período</th>
+                      <th class="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase">Mês</th>
+                      <th class="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase">Preço</th>
+                      <th class="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase">Ações</th>
+                    </tr>
+                  </thead>
+                  <tbody class="bg-white divide-y divide-gray-200">
+                    ${groupPrices.map(p => createPriceRow(p)).join('')}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          `;
+        }).join('');
+      }
+
+      function createPriceRow(pricing) {
         const monthNames = {
           'January': 'Janeiro', 'February': 'Fevereiro', 'March': 'Março',
           'April': 'Abril', 'May': 'Maio', 'June': 'Junho',
@@ -367,31 +397,23 @@
           'October': 'Outubro', 'November': 'Novembro', 'December': 'Dezembro'
         };
         
-        let periodLabel = '';
-        let typeLabel = '';
-        
-        if (pricing.seasonal_month) {
-          periodLabel = monthNames[pricing.seasonal_month] || pricing.seasonal_month;
-          typeLabel = 'Sazonal';
-        } else {
-          periodLabel = pricing.period;
-          typeLabel = pricing.period_type === 'fixed' ? 'Fixo' : 'Diária';
-        }
-        
-        const displayText = pricing.seasonal_month || pricing.period;
+        const periodDisplay = pricing.period || 'Ano todo';
+        const monthDisplay = pricing.seasonal_month ? (monthNames[pricing.seasonal_month] || pricing.seasonal_month) : 'Todos';
+        const displayText = pricing.seasonal_month || pricing.period || 'Ano todo';
         
         return `
-          <div class="border border-gray-200 rounded-lg p-3 flex items-center justify-between hover:border-${categoryColor}-300 transition-colors">
-            <div>
-              <p class="font-semibold text-gray-800">${pricing.vehicle_group} - ${periodLabel}</p>
-              <p class="text-sm text-gray-600">€${pricing.insurance_price.toFixed(2)}/dia <span class="text-xs text-gray-500">(${typeLabel})</span></p>
-            </div>
-            <button onclick="deletePricing(${pricing.id}, '${pricing.vehicle_group}', '${displayText}')" class="text-red-500 hover:text-red-700 p-1">
-              <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/>
-              </svg>
-            </button>
-          </div>
+          <tr class="hover:bg-gray-50">
+            <td class="px-3 py-2 whitespace-nowrap text-gray-800">${periodDisplay}</td>
+            <td class="px-3 py-2 whitespace-nowrap text-gray-600">${monthDisplay}</td>
+            <td class="px-3 py-2 whitespace-nowrap font-semibold text-gray-800">€${pricing.insurance_price.toFixed(2)}</td>
+            <td class="px-3 py-2 whitespace-nowrap">
+              <button onclick="deletePricing(${pricing.id}, '${pricing.vehicle_group}', '${displayText}')" class="text-red-500 hover:text-red-700 p-1">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/>
+                </svg>
+              </button>
+            </td>
+          </tr>
         `;
       }
 
