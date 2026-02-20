@@ -49805,6 +49805,87 @@ async def delete_without_pickup_date(request: Request):
         logging.error(f"❌ Error deleting entries without pickup_date: {str(e)}", exc_info=True)
         return JSONResponse({"ok": False, "error": str(e)}, status_code=500)
 
+@app.post("/api/abbycar-insurance/create-table")
+async def create_abbycar_insurance_table(request: Request):
+    """Create abbycar_insurance_pricing table in production PostgreSQL (migration)"""
+    # No auth for migration - temporary
+    try:
+        with _db_lock:
+            conn = _db_connect()
+            try:
+                is_postgres = _is_postgresql_connection(conn)
+                
+                if not is_postgres:
+                    return JSONResponse({"ok": False, "error": "This migration is for PostgreSQL only"}, status_code=400)
+                
+                logging.info("🔧 [MIGRATION] Starting abbycar_insurance_pricing table creation...")
+                
+                with conn.cursor() as cur:
+                    # Check if table exists
+                    cur.execute("""
+                        SELECT EXISTS (
+                            SELECT FROM information_schema.tables 
+                            WHERE table_name = 'abbycar_insurance_pricing'
+                        )
+                    """)
+                    table_exists = cur.fetchone()[0]
+                    
+                    if table_exists:
+                        logging.info("✅ [MIGRATION] Table abbycar_insurance_pricing already exists")
+                        
+                        # Check if it has the correct columns
+                        cur.execute("""
+                            SELECT column_name 
+                            FROM information_schema.columns 
+                            WHERE table_name='abbycar_insurance_pricing'
+                            ORDER BY ordinal_position
+                        """)
+                        columns = [row[0] for row in cur.fetchall()]
+                        logging.info(f"📋 [MIGRATION] Existing columns: {columns}")
+                        
+                        return JSONResponse({
+                            "ok": True, 
+                            "message": "Table already exists",
+                            "columns": columns
+                        })
+                    
+                    # Create table
+                    cur.execute("""
+                        CREATE TABLE abbycar_insurance_pricing (
+                            id SERIAL PRIMARY KEY,
+                            vehicle_group TEXT NOT NULL,
+                            period TEXT,
+                            period_type TEXT DEFAULT 'fixed',
+                            seasonal_month TEXT,
+                            insurance_price REAL NOT NULL DEFAULT 0.00,
+                            category TEXT NOT NULL DEFAULT 'Standard',
+                            created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+                            updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+                            UNIQUE(vehicle_group, period, seasonal_month)
+                        )
+                    """)
+                    
+                    # Create indexes
+                    cur.execute("CREATE INDEX IF NOT EXISTS idx_abbycar_insurance_group ON abbycar_insurance_pricing(vehicle_group)")
+                    cur.execute("CREATE INDEX IF NOT EXISTS idx_abbycar_insurance_category ON abbycar_insurance_pricing(category)")
+                    cur.execute("CREATE INDEX IF NOT EXISTS idx_abbycar_insurance_period ON abbycar_insurance_pricing(period)")
+                    cur.execute("CREATE INDEX IF NOT EXISTS idx_abbycar_insurance_seasonal ON abbycar_insurance_pricing(seasonal_month)")
+                    
+                    conn.commit()
+                    logging.info("✅ [MIGRATION] Created abbycar_insurance_pricing table with indexes")
+                    
+                    return JSONResponse({
+                        "ok": True, 
+                        "message": "Table abbycar_insurance_pricing created successfully"
+                    })
+                
+            finally:
+                conn.close()
+                
+    except Exception as e:
+        logging.error(f"❌ [MIGRATION] Error creating abbycar_insurance_pricing table: {str(e)}", exc_info=True)
+        return JSONResponse({"ok": False, "error": str(e)}, status_code=500)
+
 @app.post("/api/automated-search/fix-month-keys")
 async def fix_month_keys(request: Request):
     """Recalculate month_key for all searches based on pickup_date (fixes old wrong entries)"""
