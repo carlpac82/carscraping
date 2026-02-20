@@ -20311,8 +20311,8 @@ async def create_abbycar_insurance_pricing(request: Request):
         if not period:
             return JSONResponse({"ok": False, "error": "Period is required"}, status_code=400)
         
-        if category not in ["Standard", "Comfort", "Premium"]:
-            return JSONResponse({"ok": False, "error": "Category must be Standard, Comfort, or Premium"}, status_code=400)
+        if category not in ["Light", "Standard", "Comfort", "Premium"]:
+            return JSONResponse({"ok": False, "error": "Category must be Light, Standard, Comfort, or Premium"}, status_code=400)
         
         if period_type not in ["fixed", "daily"]:
             return JSONResponse({"ok": False, "error": "Period type must be fixed or daily"}, status_code=400)
