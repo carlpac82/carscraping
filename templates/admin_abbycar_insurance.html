@@ -129,7 +129,13 @@
             <label class="block text-sm font-medium text-gray-700 mb-2">Períodos</label>
             <div class="space-y-3">
               <div>
-                <p class="text-xs font-semibold text-gray-600 mb-2">Fixo (Fixed)</p>
+                <div class="flex items-center justify-between mb-2">
+                  <label class="block text-sm font-medium text-gray-700">Períodos</label>
+                  <div class="flex gap-2">
+                    <button type="button" onclick="selectAllPeriods()" class="text-xs text-[#009cb6] hover:underline">Selecionar Todos</button>
+                    <button type="button" onclick="deselectAllPeriods()" class="text-xs text-gray-500 hover:underline">Deselecionar</button>
+                  </div>
+                </div>
                 <div class="grid grid-cols-2 md:grid-cols-4 gap-2">
                   <label class="flex items-center space-x-2 p-2 border rounded hover:bg-gray-50 cursor-pointer">
                     <input type="checkbox" name="period" value="1 day" data-type="fixed" class="rounded text-[#009cb6] focus:ring-[#009cb6]">
@@ -190,7 +196,13 @@
           </div>
 
           <div>
-            <label class="block text-sm font-medium text-gray-700 mb-2">Meses Sazonais (opcional - vazio = ano todo)</label>
+            <div class="flex items-center justify-between mb-2">
+              <label class="block text-sm font-medium text-gray-700">Meses Sazonais (opcional - vazio = ano todo)</label>
+              <div class="flex gap-2">
+                <button type="button" onclick="selectAllMonths()" class="text-xs text-[#009cb6] hover:underline">Selecionar Todos</button>
+                <button type="button" onclick="deselectAllMonths()" class="text-xs text-gray-500 hover:underline">Deselecionar</button>
+              </div>
+            </div>
             <div class="grid grid-cols-2 md:grid-cols-4 gap-2">
               <label class="flex items-center space-x-2 p-2 border rounded hover:bg-gray-50 cursor-pointer">
                 <input type="checkbox" name="seasonalMonth" value="January" class="rounded text-[#009cb6] focus:ring-[#009cb6]">
@@ -257,43 +269,60 @@
       </div>
 
       <div class="bg-white rounded shadow p-6">
-        <h3 class="text-md font-semibold text-gray-800 mb-4">Preços Configurados</h3>
+        <div class="flex items-center justify-between mb-4">
+          <h3 class="text-md font-semibold text-gray-800">Preços Configurados</h3>
+          <button type="button" onclick="deleteSelectedPrices()" class="px-3 py-1 bg-red-500 text-white text-sm rounded hover:bg-red-600 transition-colors">
+            Eliminar Selecionados
+          </button>
+        </div>
         
         <div class="mb-6">
-          <h4 class="text-sm font-semibold text-gray-700 mb-2 flex items-center gap-2">
-            <span class="w-3 h-3 bg-yellow-500 rounded-full"></span>
-            Light
-          </h4>
+          <div class="flex items-center justify-between mb-2">
+            <h4 class="text-sm font-semibold text-gray-700 flex items-center gap-2">
+              <span class="w-3 h-3 bg-yellow-500 rounded-full"></span>
+              Light
+            </h4>
+            <button type="button" onclick="deleteAllInCategory('Light')" class="text-xs text-red-500 hover:underline">Eliminar Todos</button>
+          </div>
           <div id="lightList" class="grid grid-cols-1 md:grid-cols-3 gap-3">
             <p class="text-sm text-gray-500 italic">Nenhum grupo configurado</p>
           </div>
         </div>
 
         <div class="mb-6 border-t pt-4">
-          <h4 class="text-sm font-semibold text-gray-700 mb-2 flex items-center gap-2">
-            <span class="w-3 h-3 bg-blue-500 rounded-full"></span>
-            Standard
-          </h4>
+          <div class="flex items-center justify-between mb-2">
+            <h4 class="text-sm font-semibold text-gray-700 flex items-center gap-2">
+              <span class="w-3 h-3 bg-blue-500 rounded-full"></span>
+              Standard
+            </h4>
+            <button type="button" onclick="deleteAllInCategory('Standard')" class="text-xs text-red-500 hover:underline">Eliminar Todos</button>
+          </div>
           <div id="standardList" class="grid grid-cols-1 md:grid-cols-3 gap-3">
             <p class="text-sm text-gray-500 italic">Nenhum grupo configurado</p>
           </div>
         </div>
 
         <div class="mb-6 border-t pt-4">
-          <h4 class="text-sm font-semibold text-gray-700 mb-2 flex items-center gap-2">
-            <span class="w-3 h-3 bg-green-500 rounded-full"></span>
-            Comfort
-          </h4>
+          <div class="flex items-center justify-between mb-2">
+            <h4 class="text-sm font-semibold text-gray-700 flex items-center gap-2">
+              <span class="w-3 h-3 bg-green-500 rounded-full"></span>
+              Comfort
+            </h4>
+            <button type="button" onclick="deleteAllInCategory('Comfort')" class="text-xs text-red-500 hover:underline">Eliminar Todos</button>
+          </div>
           <div id="comfortList" class="grid grid-cols-1 md:grid-cols-3 gap-3">
             <p class="text-sm text-gray-500 italic">Nenhum grupo configurado</p>
           </div>
         </div>
 
         <div class="border-t pt-4">
-          <h4 class="text-sm font-semibold text-gray-700 mb-2 flex items-center gap-2">
-            <span class="w-3 h-3 bg-purple-500 rounded-full"></span>
-            Premium
-          </h4>
+          <div class="flex items-center justify-between mb-2">
+            <h4 class="text-sm font-semibold text-gray-700 flex items-center gap-2">
+              <span class="w-3 h-3 bg-purple-500 rounded-full"></span>
+              Premium
+            </h4>
+            <button type="button" onclick="deleteAllInCategory('Premium')" class="text-xs text-red-500 hover:underline">Eliminar Todos</button>
+          </div>
           <div id="premiumList" class="grid grid-cols-1 md:grid-cols-3 gap-3">
             <p class="text-sm text-gray-500 italic">Nenhum grupo configurado</p>
           </div>
@@ -373,6 +402,9 @@
                 <table class="min-w-full text-sm">
                   <thead class="bg-gray-50">
                     <tr>
+                      <th class="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase w-8">
+                        <input type="checkbox" onclick="toggleGroupCheckboxes(this, '${group}')" class="rounded text-[#009cb6] focus:ring-[#009cb6]">
+                      </th>
                       <th class="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase">Período</th>
                       <th class="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase">Mês</th>
                       <th class="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase">Preço</th>
@@ -403,6 +435,9 @@
         
         return `
           <tr class="hover:bg-gray-50">
+            <td class="px-3 py-2 whitespace-nowrap">
+              <input type="checkbox" class="price-checkbox rounded text-[#009cb6] focus:ring-[#009cb6]" data-id="${pricing.id}" data-group="${pricing.vehicle_group}">
+            </td>
             <td class="px-3 py-2 whitespace-nowrap text-gray-800">${periodDisplay}</td>
             <td class="px-3 py-2 whitespace-nowrap text-gray-600">${monthDisplay}</td>
             <td class="px-3 py-2 whitespace-nowrap font-semibold text-gray-800">€${pricing.insurance_price.toFixed(2)}</td>
@@ -562,6 +597,130 @@
           showAlert('Erro ao guardar preços', 'error');
         }
       });
+
+      // Select/Deselect all periods
+      function selectAllPeriods() {
+        document.querySelectorAll('input[name="period"]').forEach(cb => cb.checked = true);
+      }
+      
+      function deselectAllPeriods() {
+        document.querySelectorAll('input[name="period"]').forEach(cb => cb.checked = false);
+      }
+      
+      // Select/Deselect all months
+      function selectAllMonths() {
+        document.querySelectorAll('input[name="seasonalMonth"]').forEach(cb => cb.checked = true);
+      }
+      
+      function deselectAllMonths() {
+        document.querySelectorAll('input[name="seasonalMonth"]').forEach(cb => cb.checked = false);
+      }
+      
+      // Toggle all checkboxes in a group
+      function toggleGroupCheckboxes(headerCheckbox, group) {
+        const checkboxes = document.querySelectorAll(`.price-checkbox[data-group="${group}"]`);
+        checkboxes.forEach(cb => cb.checked = headerCheckbox.checked);
+      }
+      
+      // Delete selected prices
+      async function deleteSelectedPrices() {
+        const selectedCheckboxes = document.querySelectorAll('.price-checkbox:checked');
+        
+        if (selectedCheckboxes.length === 0) {
+          showAlert('Por favor, selecione pelo menos um preço para eliminar', 'error');
+          return;
+        }
+        
+        if (!confirm(`Tem certeza que deseja eliminar ${selectedCheckboxes.length} preço(s) selecionado(s)?`)) {
+          return;
+        }
+        
+        let successCount = 0;
+        let errorCount = 0;
+        
+        for (const checkbox of selectedCheckboxes) {
+          const id = checkbox.getAttribute('data-id');
+          
+          try {
+            const response = await fetch(`/api/abbycar-insurance-pricing/${id}`, {
+              method: 'DELETE'
+            });
+            const data = await response.json();
+            
+            if (data.ok) {
+              successCount++;
+            } else {
+              errorCount++;
+            }
+          } catch (error) {
+            console.error('Error deleting pricing:', error);
+            errorCount++;
+          }
+        }
+        
+        if (successCount > 0) {
+          showAlert(`${successCount} preço(s) eliminado(s) com sucesso!`, 'success');
+          loadPricing();
+        }
+        
+        if (errorCount > 0) {
+          showAlert(`${errorCount} erro(s) ao eliminar preços`, 'error');
+        }
+      }
+      
+      // Delete all prices in a category
+      async function deleteAllInCategory(category) {
+        if (!confirm(`Tem certeza que deseja eliminar TODOS os preços da categoria ${category}?`)) {
+          return;
+        }
+        
+        try {
+          const response = await fetch('/api/abbycar-insurance-pricing');
+          const data = await response.json();
+          
+          if (data.ok) {
+            const categoryPrices = data.data.filter(p => p.category === category);
+            
+            if (categoryPrices.length === 0) {
+              showAlert(`Nenhum preço encontrado na categoria ${category}`, 'error');
+              return;
+            }
+            
+            let successCount = 0;
+            let errorCount = 0;
+            
+            for (const pricing of categoryPrices) {
+              try {
+                const deleteResponse = await fetch(`/api/abbycar-insurance-pricing/${pricing.id}`, {
+                  method: 'DELETE'
+                });
+                const deleteData = await deleteResponse.json();
+                
+                if (deleteData.ok) {
+                  successCount++;
+                } else {
+                  errorCount++;
+                }
+              } catch (error) {
+                console.error('Error deleting pricing:', error);
+                errorCount++;
+              }
+            }
+            
+            if (successCount > 0) {
+              showAlert(`${successCount} preço(s) da categoria ${category} eliminado(s) com sucesso!`, 'success');
+              loadPricing();
+            }
+            
+            if (errorCount > 0) {
+              showAlert(`${errorCount} erro(s) ao eliminar preços`, 'error');
+            }
+          }
+        } catch (error) {
+          console.error('Error loading pricing:', error);
+          showAlert('Erro ao carregar preços', 'error');
+        }
+      }
 
       loadPricing();
     </script>
