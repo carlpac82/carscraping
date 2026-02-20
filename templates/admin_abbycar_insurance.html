@@ -288,9 +288,33 @@
       <div class="bg-white rounded shadow p-6">
         <div class="flex items-center justify-between mb-4">
           <h3 class="text-md font-semibold text-gray-800">Preços Configurados</h3>
-          <button type="button" onclick="deleteSelectedPrices()" class="px-3 py-1 bg-red-500 text-white text-sm rounded hover:bg-red-600 transition-colors">
-            Eliminar Selecionados
-          </button>
+          <div class="flex items-center gap-3">
+            <select id="sortBy" onchange="applySortAndFilter()" class="text-sm border-gray-300 rounded-md shadow-sm focus:border-[#009cb6] focus:ring-[#009cb6]" title="Ordenar por">
+              <option value="month">Ordenar por Mês</option>
+              <option value="price-asc">Preço (Menor → Maior)</option>
+              <option value="price-desc">Preço (Maior → Menor)</option>
+              <option value="period">Ordenar por Período</option>
+            </select>
+            <select id="filterMonth" onchange="applySortAndFilter()" class="text-sm border-gray-300 rounded-md shadow-sm focus:border-[#009cb6] focus:ring-[#009cb6]" title="Filtrar por mês">
+              <option value="">Todos os Meses</option>
+              <option value="January">Janeiro</option>
+              <option value="February">Fevereiro</option>
+              <option value="March">Março</option>
+              <option value="April">Abril</option>
+              <option value="May">Maio</option>
+              <option value="June">Junho</option>
+              <option value="July">Julho</option>
+              <option value="August">Agosto</option>
+              <option value="September">Setembro</option>
+              <option value="October">Outubro</option>
+              <option value="November">Novembro</option>
+              <option value="December">Dezembro</option>
+              <option value="Ano todo">Ano todo</option>
+            </select>
+            <button type="button" onclick="deleteSelectedPrices()" class="px-3 py-1 bg-red-500 text-white text-sm rounded hover:bg-red-600 transition-colors">
+              Eliminar Selecionados
+            </button>
+          </div>
         </div>
         
         <div class="mb-6">
@@ -371,31 +395,74 @@
         }, 5000);
       }
 
+      // Store raw pricing data globally
+      let allPricingData = [];
+      
       async function loadPricing() {
         try {
           const response = await fetch('/api/abbycar-insurance-pricing');
           const data = await response.json();
           
           if (data.ok) {
-            const lightList = document.getElementById('lightList');
-            const standardList = document.getElementById('standardList');
-            const comfortList = document.getElementById('comfortList');
-            const premiumList = document.getElementById('premiumList');
-            
-            const light = data.data.filter(p => p.category === 'Light');
-            const standard = data.data.filter(p => p.category === 'Standard');
-            const comfort = data.data.filter(p => p.category === 'Comfort');
-            const premium = data.data.filter(p => p.category === 'Premium');
-            
-            lightList.innerHTML = light.length ? createGroupedPriceTable(light) : '<p class="text-sm text-gray-500 italic">Nenhum grupo configurado</p>';
-            standardList.innerHTML = standard.length ? createGroupedPriceTable(standard) : '<p class="text-sm text-gray-500 italic">Nenhum grupo configurado</p>';
-            comfortList.innerHTML = comfort.length ? createGroupedPriceTable(comfort) : '<p class="text-sm text-gray-500 italic">Nenhum grupo configurado</p>';
-            premiumList.innerHTML = premium.length ? createGroupedPriceTable(premium) : '<p class="text-sm text-gray-500 italic">Nenhum grupo configurado</p>';
+            allPricingData = data.data;
+            applySortAndFilter();
           }
         } catch (error) {
           console.error('Error loading pricing:', error);
           showAlert('Erro ao carregar preços', 'error');
         }
+      }
+      
+      function applySortAndFilter() {
+        const sortBy = document.getElementById('sortBy')?.value || 'month';
+        const filterMonth = document.getElementById('filterMonth')?.value || '';
+        
+        let filteredData = [...allPricingData];
+        
+        // Apply month filter
+        if (filterMonth) {
+          filteredData = filteredData.filter(p => {
+            const month = p.seasonal_month || 'Ano todo';
+            return month === filterMonth;
+          });
+        }
+        
+        // Apply sorting
+        const monthOrder = ['January', 'February', 'March', 'April', 'May', 'June', 
+                           'July', 'August', 'September', 'October', 'November', 'December', 'Ano todo'];
+        
+        filteredData.sort((a, b) => {
+          if (sortBy === 'month') {
+            const monthA = a.seasonal_month || 'Ano todo';
+            const monthB = b.seasonal_month || 'Ano todo';
+            return monthOrder.indexOf(monthA) - monthOrder.indexOf(monthB);
+          } else if (sortBy === 'price-asc') {
+            return a.insurance_price - b.insurance_price;
+          } else if (sortBy === 'price-desc') {
+            return b.insurance_price - a.insurance_price;
+          } else if (sortBy === 'period') {
+            const periodA = a.period || '';
+            const periodB = b.period || '';
+            return periodA.localeCompare(periodB);
+          }
+          return 0;
+        });
+        
+        // Render filtered and sorted data
+        const lightList = document.getElementById('lightList');
+        const standardList = document.getElementById('standardList');
+        const comfortList = document.getElementById('comfortList');
+        const premiumList = document.getElementById('premiumList');
+        
+        const light = filteredData.filter(p => p.category === 'Light');
+        const standard = filteredData.filter(p => p.category === 'Standard');
+        const comfort = filteredData.filter(p => p.category === 'Comfort');
+        const premium = filteredData.filter(p => p.category === 'Premium');
+        
+        lightList.innerHTML = light.length ? createGroupedPriceTable(light) : '<p class="text-sm text-gray-500 italic">Nenhum grupo configurado</p>';
+        standardList.innerHTML = standard.length ? createGroupedPriceTable(standard) : '<p class="text-sm text-gray-500 italic">Nenhum grupo configurado</p>';
+        comfortList.innerHTML = comfort.length ? createGroupedPriceTable(comfort) : '<p class="text-sm text-gray-500 italic">Nenhum grupo configurado</p>';
+        premiumList.innerHTML = premium.length ? createGroupedPriceTable(premium) : '<p class="text-sm text-gray-500 italic">Nenhum grupo configurado</p>';
       }
       
       function createGroupedPriceTable(prices) {
