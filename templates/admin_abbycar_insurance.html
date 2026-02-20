@@ -214,60 +214,24 @@
 
           <div>
             <div class="flex items-center justify-between mb-2">
-              <label class="block text-sm font-medium text-gray-700">Meses Sazonais (opcional - vazio = ano todo)</label>
+              <label class="block text-sm font-medium text-gray-700">Temporadas (opcional - vazio = ano todo)</label>
               <div class="flex gap-2">
-                <button type="button" onclick="selectAllMonths()" class="text-xs text-[#009cb6] hover:underline">Selecionar Todos</button>
-                <button type="button" onclick="deselectAllMonths()" class="text-xs text-gray-500 hover:underline">Deselecionar</button>
+                <button type="button" onclick="selectAllSeasons()" class="text-xs text-[#009cb6] hover:underline">Selecionar Todos</button>
+                <button type="button" onclick="deselectAllSeasons()" class="text-xs text-gray-500 hover:underline">Deselecionar</button>
               </div>
             </div>
-            <div class="grid grid-cols-2 md:grid-cols-4 gap-2">
+            <div class="grid grid-cols-3 gap-2">
               <label class="flex items-center space-x-2 p-2 border rounded hover:bg-gray-50 cursor-pointer">
-                <input type="checkbox" name="seasonalMonth" value="January" class="rounded text-[#009cb6] focus:ring-[#009cb6]">
-                <span class="text-sm">Janeiro</span>
+                <input type="checkbox" name="season" value="High" class="rounded text-[#009cb6] focus:ring-[#009cb6]">
+                <span class="text-sm">Alta</span>
               </label>
               <label class="flex items-center space-x-2 p-2 border rounded hover:bg-gray-50 cursor-pointer">
-                <input type="checkbox" name="seasonalMonth" value="February" class="rounded text-[#009cb6] focus:ring-[#009cb6]">
-                <span class="text-sm">Fevereiro</span>
+                <input type="checkbox" name="season" value="Mid" class="rounded text-[#009cb6] focus:ring-[#009cb6]">
+                <span class="text-sm">Média</span>
               </label>
               <label class="flex items-center space-x-2 p-2 border rounded hover:bg-gray-50 cursor-pointer">
-                <input type="checkbox" name="seasonalMonth" value="March" class="rounded text-[#009cb6] focus:ring-[#009cb6]">
-                <span class="text-sm">Março</span>
-              </label>
-              <label class="flex items-center space-x-2 p-2 border rounded hover:bg-gray-50 cursor-pointer">
-                <input type="checkbox" name="seasonalMonth" value="April" class="rounded text-[#009cb6] focus:ring-[#009cb6]">
-                <span class="text-sm">Abril</span>
-              </label>
-              <label class="flex items-center space-x-2 p-2 border rounded hover:bg-gray-50 cursor-pointer">
-                <input type="checkbox" name="seasonalMonth" value="May" class="rounded text-[#009cb6] focus:ring-[#009cb6]">
-                <span class="text-sm">Maio</span>
-              </label>
-              <label class="flex items-center space-x-2 p-2 border rounded hover:bg-gray-50 cursor-pointer">
-                <input type="checkbox" name="seasonalMonth" value="June" class="rounded text-[#009cb6] focus:ring-[#009cb6]">
-                <span class="text-sm">Junho</span>
-              </label>
-              <label class="flex items-center space-x-2 p-2 border rounded hover:bg-gray-50 cursor-pointer">
-                <input type="checkbox" name="seasonalMonth" value="July" class="rounded text-[#009cb6] focus:ring-[#009cb6]">
-                <span class="text-sm">Julho</span>
-              </label>
-              <label class="flex items-center space-x-2 p-2 border rounded hover:bg-gray-50 cursor-pointer">
-                <input type="checkbox" name="seasonalMonth" value="August" class="rounded text-[#009cb6] focus:ring-[#009cb6]">
-                <span class="text-sm">Agosto</span>
-              </label>
-              <label class="flex items-center space-x-2 p-2 border rounded hover:bg-gray-50 cursor-pointer">
-                <input type="checkbox" name="seasonalMonth" value="September" class="rounded text-[#009cb6] focus:ring-[#009cb6]">
-                <span class="text-sm">Setembro</span>
-              </label>
-              <label class="flex items-center space-x-2 p-2 border rounded hover:bg-gray-50 cursor-pointer">
-                <input type="checkbox" name="seasonalMonth" value="October" class="rounded text-[#009cb6] focus:ring-[#009cb6]">
-                <span class="text-sm">Outubro</span>
-              </label>
-              <label class="flex items-center space-x-2 p-2 border rounded hover:bg-gray-50 cursor-pointer">
-                <input type="checkbox" name="seasonalMonth" value="November" class="rounded text-[#009cb6] focus:ring-[#009cb6]">
-                <span class="text-sm">Novembro</span>
-              </label>
-              <label class="flex items-center space-x-2 p-2 border rounded hover:bg-gray-50 cursor-pointer">
-                <input type="checkbox" name="seasonalMonth" value="December" class="rounded text-[#009cb6] focus:ring-[#009cb6]">
-                <span class="text-sm">Dezembro</span>
+                <input type="checkbox" name="season" value="Low" class="rounded text-[#009cb6] focus:ring-[#009cb6]">
+                <span class="text-sm">Baixa</span>
               </label>
             </div>
           </div>
@@ -290,25 +254,16 @@
           <h3 class="text-md font-semibold text-gray-800">Preços Configurados</h3>
           <div class="flex items-center gap-3">
             <select id="sortBy" onchange="applySortAndFilter()" class="text-sm border-gray-300 rounded-md shadow-sm focus:border-[#009cb6] focus:ring-[#009cb6]" title="Ordenar por">
-              <option value="month">Ordenar por Mês</option>
+              <option value="season">Ordenar por Temporada</option>
               <option value="price-asc">Preço (Menor → Maior)</option>
               <option value="price-desc">Preço (Maior → Menor)</option>
               <option value="period">Ordenar por Período</option>
             </select>
-            <select id="filterMonth" onchange="applySortAndFilter()" class="text-sm border-gray-300 rounded-md shadow-sm focus:border-[#009cb6] focus:ring-[#009cb6]" title="Filtrar por mês">
-              <option value="">Todos os Meses</option>
-              <option value="January">Janeiro</option>
-              <option value="February">Fevereiro</option>
-              <option value="March">Março</option>
-              <option value="April">Abril</option>
-              <option value="May">Maio</option>
-              <option value="June">Junho</option>
-              <option value="July">Julho</option>
-              <option value="August">Agosto</option>
-              <option value="September">Setembro</option>
-              <option value="October">Outubro</option>
-              <option value="November">Novembro</option>
-              <option value="December">Dezembro</option>
+            <select id="filterSeason" onchange="applySortAndFilter()" class="text-sm border-gray-300 rounded-md shadow-sm focus:border-[#009cb6] focus:ring-[#009cb6]" title="Filtrar por temporada">
+              <option value="">Todas as Temporadas</option>
+              <option value="High">Alta</option>
+              <option value="Mid">Média</option>
+              <option value="Low">Baixa</option>
               <option value="Ano todo">Ano todo</option>
             </select>
             <button type="button" onclick="deleteSelectedPrices()" class="px-3 py-1 bg-red-500 text-white text-sm rounded hover:bg-red-600 transition-colors">
@@ -414,28 +369,27 @@
       }
       
       function applySortAndFilter() {
-        const sortBy = document.getElementById('sortBy')?.value || 'month';
-        const filterMonth = document.getElementById('filterMonth')?.value || '';
+        const sortBy = document.getElementById('sortBy')?.value || 'season';
+        const filterSeason = document.getElementById('filterSeason')?.value || '';
         
         let filteredData = [...allPricingData];
         
-        // Apply month filter
-        if (filterMonth) {
+        // Apply season filter
+        if (filterSeason) {
           filteredData = filteredData.filter(p => {
-            const month = p.seasonal_month || 'Ano todo';
-            return month === filterMonth;
+            const season = p.season || 'Ano todo';
+            return season === filterSeason;
           });
         }
         
         // Apply sorting
-        const monthOrder = ['January', 'February', 'March', 'April', 'May', 'June', 
-                           'July', 'August', 'September', 'October', 'November', 'December', 'Ano todo'];
+        const seasonOrder = ['High', 'Mid', 'Low', 'Ano todo'];
         
         filteredData.sort((a, b) => {
-          if (sortBy === 'month') {
-            const monthA = a.seasonal_month || 'Ano todo';
-            const monthB = b.seasonal_month || 'Ano todo';
-            return monthOrder.indexOf(monthA) - monthOrder.indexOf(monthB);
+          if (sortBy === 'season') {
+            const seasonA = a.season || 'Ano todo';
+            const seasonB = b.season || 'Ano todo';
+            return seasonOrder.indexOf(seasonA) - seasonOrder.indexOf(seasonB);
           } else if (sortBy === 'price-asc') {
             return a.insurance_price - b.insurance_price;
           } else if (sortBy === 'price-desc') {
@@ -466,11 +420,10 @@
       }
       
       function createGroupedPriceTable(prices) {
-        const monthNames = {
-          'January': 'Janeiro', 'February': 'Fevereiro', 'March': 'Março',
-          'April': 'Abril', 'May': 'Maio', 'June': 'Junho',
-          'July': 'Julho', 'August': 'Agosto', 'September': 'Setembro',
-          'October': 'Outubro', 'November': 'Novembro', 'December': 'Dezembro'
+        const seasonNames = {
+          'High': 'Alta',
+          'Mid': 'Média',
+          'Low': 'Baixa'
         };
         
         let html = '<div class="overflow-x-auto">';
@@ -480,7 +433,7 @@
         html += '<th class="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"><input type="checkbox" onclick="toggleAllCheckboxes(this)" class="rounded" title="Selecionar todos"></th>';
         html += '<th class="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Grupo Veículo</th>';
         html += '<th class="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Período</th>';
-        html += '<th class="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Mês</th>';
+        html += '<th class="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Temporada</th>';
         html += '<th class="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Preço/dia</th>';
         html += '<th class="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Ações</th>';
         html += '</tr>';
@@ -488,8 +441,14 @@
         html += '<tbody class="bg-white divide-y divide-gray-200">';
         
         prices.forEach((p, index) => {
-          const monthDisplay = p.seasonal_month ? monthNames[p.seasonal_month] || p.seasonal_month : 'Ano todo';
+          const seasonDisplay = p.season ? seasonNames[p.season] || p.season : 'Ano todo';
           const rowClass = index % 2 === 0 ? 'bg-white' : 'bg-gray-50';
+          
+          // Remove ' dias' from daily periods (8-10 dias -> 8-10)
+          let periodDisplay = p.period || '-';
+          if (p.period_type === 'daily' && periodDisplay.includes(' dias')) {
+            periodDisplay = periodDisplay.replace(' dias', '');
+          }
           
           html += '<tr class="' + rowClass + ' hover:bg-blue-50 transition-colors">';
           html += '<td class="px-3 py-3 whitespace-nowrap">';
@@ -498,8 +457,8 @@
           html += '<td class="px-3 py-3 whitespace-nowrap">';
           html += '<span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-[#009cb6] text-white">' + p.vehicle_group + '</span>';
           html += '</td>';
-          html += '<td class="px-3 py-3 whitespace-nowrap text-sm text-gray-900">' + (p.period || '-') + '</td>';
-          html += '<td class="px-3 py-3 whitespace-nowrap text-sm text-gray-700">' + monthDisplay + '</td>';
+          html += '<td class="px-3 py-3 whitespace-nowrap text-sm text-gray-900">' + periodDisplay + '</td>';
+          html += '<td class="px-3 py-3 whitespace-nowrap text-sm text-gray-700">' + seasonDisplay + '</td>';
           html += '<td class="px-3 py-3 whitespace-nowrap">';
           html += '<span class="text-lg font-bold text-gray-900">€' + p.insurance_price.toFixed(2) + '</span>';
           html += '</td>';
@@ -603,8 +562,8 @@
             type: cb.getAttribute('data-type')
           }));
         
-        // Get selected seasonal months from checkboxes
-        const selectedMonths = Array.from(document.querySelectorAll('input[name="seasonalMonth"]:checked'))
+        // Get selected seasons from checkboxes
+        const selectedSeasons = Array.from(document.querySelectorAll('input[name="season"]:checked'))
           .map(cb => cb.value);
         
         if (selectedGroups.length === 0) {
@@ -634,25 +593,25 @@
           
           for (const vehicleGroup of selectedGroups) {
             for (const period of selectedPeriods) {
-              if (selectedMonths.length === 0) {
-                // No months selected = applies to all year
+              if (selectedSeasons.length === 0) {
+                // No seasons selected = applies to all year
                 prices.push({
                   category,
                   vehicle_group: vehicleGroup,
                   period: period.value,
                   period_type: period.type,
-                  seasonal_month: null,
+                  season: null,
                   insurance_price: insurancePrice
                 });
               } else {
-                // Create one entry for each selected month
-                for (const month of selectedMonths) {
+                // Create one entry for each selected season
+                for (const season of selectedSeasons) {
                   prices.push({
                     category,
                     vehicle_group: vehicleGroup,
                     period: period.value,
                     period_type: period.type,
-                    seasonal_month: month,
+                    season: season,
                     insurance_price: insurancePrice
                   });
                 }
@@ -676,7 +635,7 @@
             // Clear all checkboxes
             document.querySelectorAll('input[name="vehicleGroup"]').forEach(cb => cb.checked = false);
             document.querySelectorAll('input[name="period"]').forEach(cb => cb.checked = false);
-            document.querySelectorAll('input[name="seasonalMonth"]').forEach(cb => cb.checked = false);
+            document.querySelectorAll('input[name="season"]').forEach(cb => cb.checked = false);
             document.getElementById('insurancePrice').value = '';
             loadPricing();
             
@@ -705,13 +664,13 @@
         document.querySelectorAll('input[name="period"]').forEach(cb => cb.checked = false);
       }
       
-      // Select/Deselect all months
-      function selectAllMonths() {
-        document.querySelectorAll('input[name="seasonalMonth"]').forEach(cb => cb.checked = true);
+      // Select/Deselect all seasons
+      function selectAllSeasons() {
+        document.querySelectorAll('input[name="season"]').forEach(cb => cb.checked = true);
       }
       
-      function deselectAllMonths() {
-        document.querySelectorAll('input[name="seasonalMonth"]').forEach(cb => cb.checked = false);
+      function deselectAllSeasons() {
+        document.querySelectorAll('input[name="season"]').forEach(cb => cb.checked = false);
       }
       
       // Toggle all checkboxes in a table
