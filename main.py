@@ -40820,6 +40820,8 @@ async def export_abbycar_excel(request: Request):
             # Add data rows
             for row_data in rows_data:
                 sipp_code = row_data.get('group', '')
+                
+                # Build row values - must be fresh for each row
                 row_values = [
                     row_data.get('station', ''),
                     row_data.get('startDate', ''),
@@ -40835,7 +40837,7 @@ async def export_abbycar_excel(request: Request):
                              '6_day_fixed', '7_day_fixed', '8_10_daily', '11_12_daily', '13_14_daily',
                              '15_21_daily', '22_28_daily']
                 
-                for idx, key in enumerate(price_keys):
+                for key in price_keys:
                     price_val = prices.get(key, '')
                     
                     if price_val and category != 'Light':
