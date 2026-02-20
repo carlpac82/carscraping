@@ -797,6 +797,11 @@
           return;
         }
         
+        if (!confirm('Importar preços do Excel?\n\nNOTA: Os preços existentes serão atualizados/substituídos pelos valores do ficheiro.')) {
+          event.target.value = '';
+          return;
+        }
+        
         if (!file.name.endsWith('.xlsx') && !file.name.endsWith('.xls')) {
           showAlert('Por favor, selecione um ficheiro Excel (.xlsx ou .xls)', 'error');
           return;

@@ -20460,20 +20460,63 @@ async def export_insurance_pricing_template(request: Request):
             cell.fill = PatternFill(start_color="009cb6", end_color="009cb6", fill_type="solid")
             cell.alignment = Alignment(horizontal="center", vertical="center")
         
-        # Example rows
-        examples = [
-            ["Standard", "MDMR", "1 day", "fixed", "", "5.00"],
-            ["Standard", "MDMR", "2 days", "fixed", "", "5.00"],
-            ["Standard", "MDMR", "8-10 days", "daily", "", "4.50"],
-            ["Standard", "MDMR", "1 day", "fixed", "July", "7.00"],
-            ["Standard", "MDMR", "1 day", "fixed", "August", "7.00"],
-        ]
+        # Load existing prices from database
+        conn = _db_connect()
+        is_postgres = _is_postgresql_connection(conn)
         
-        for row_idx, example in enumerate(examples, 2):
-            for col_idx, value in enumerate(example, 1):
+        try:
+            if is_postgres:
+                with conn.cursor() as cur:
+                    cur.execute("""
+                        SELECT category, vehicle_group, period, 
+                               CASE 
+                                   WHEN period IN ('1 day', '2 days', '3 days', '4 days', '5 days', '6 days', '7 days') THEN 'fixed'
+                                   ELSE 'daily'
+                               END as period_type,
+                               seasonal_month, insurance_price
+                        FROM abbycar_insurance_pricing
+                        ORDER BY category, vehicle_group, 
+                                 CASE period
+                                     WHEN '1 day' THEN 1
+                                     WHEN '2 days' THEN 2
+                                     WHEN '3 days' THEN 3
+                                     WHEN '4 days' THEN 4
+                                     WHEN '5 days' THEN 5
+                                     WHEN '6 days' THEN 6
+                                     WHEN '7 days' THEN 7
+                                     WHEN '8-10 days' THEN 8
+                                     WHEN '11-12 days' THEN 11
+                                     WHEN '13-14 days' THEN 13
+                                     WHEN '15-21 days' THEN 15
+                                     WHEN '22-28 days' THEN 22
+                                     ELSE 99
+                                 END,
+                                 seasonal_month NULLS LAST
+                    """)
+                    existing_prices = cur.fetchall()
+            else:
+                cur = conn.cursor()
+                cur.execute("""
+                    SELECT category, vehicle_group, period, 
+                           CASE 
+                               WHEN period IN ('1 day', '2 days', '3 days', '4 days', '5 days', '6 days', '7 days') THEN 'fixed'
+                               ELSE 'daily'
+                           END as period_type,
+                           seasonal_month, insurance_price
+                    FROM abbycar_insurance_pricing
+                    ORDER BY category, vehicle_group, period, seasonal_month
+                """)
+                existing_prices = cur.fetchall()
+        finally:
+            conn.close()
+        
+        # Add existing prices to sheet
+        for row_idx, price_row in enumerate(existing_prices, 2):
+            for col_idx, value in enumerate(price_row, 1):
                 cell = ws_pricing.cell(row=row_idx, column=col_idx)
-                cell.value = value
-                cell.fill = PatternFill(start_color="E8F4F8", end_color="E8F4F8", fill_type="solid")
+                cell.value = value if value is not None else ""
+                if row_idx % 2 == 0:
+                    cell.fill = PatternFill(start_color="F9F9F9", end_color="F9F9F9", fill_type="solid")
         
         # Set column widths
         ws_pricing.column_dimensions['A'].width = 15
