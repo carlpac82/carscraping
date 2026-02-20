@@ -57438,7 +57438,7 @@ async def copy_inspection_data(request: Request):
             
             # 3. Copy all photos including croqui from inspection_photos table
             cur.execute("""
-                SELECT image_data, photo_type, photo_order, damage_id
+                SELECT image_data, photo_type, photo_order
                 FROM inspection_photos
                 WHERE inspection_id = %s
                 ORDER BY photo_order
@@ -57453,9 +57453,9 @@ async def copy_inspection_data(request: Request):
                 # Insert copied photos
                 for photo in photos:
                     cur.execute("""
-                        INSERT INTO inspection_photos (inspection_id, image_data, photo_type, photo_order, damage_id)
-                        VALUES (%s, %s, %s, %s, %s)
-                    """, (target_id, photo[0], photo[1], photo[2], photo[3]))
+                        INSERT INTO inspection_photos (inspection_id, image_data, photo_type, photo_order)
+                        VALUES (%s, %s, %s, %s)
+                    """, (target_id, photo[0], photo[1], photo[2]))
                 
                 logging.info(f"✅ Copied {len(photos)} photos from {source_number} to {target_number}")
                 
