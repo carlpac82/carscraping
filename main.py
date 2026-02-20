@@ -41281,28 +41281,14 @@ async def export_automated_prices_excel(request: Request):
                 ]
                 
                 for day_key, col_idx, period_str, period_type in price_columns:
+                    # Get the price exactly as it exists in Abbycar system (already has all adjustments)
                     price = calculate_price_for_day(group_prices, int(day_key))
                     
                     if price:
-                        # Price from card is GROSS total (includes broker commission)
-                        # Step 1: Convert GROSS to NET
-                        net_price = float(price) / (1 + broker_commission / 100)
-                        # Step 2: Apply Abbycar adjustment
-                        adjusted_price = net_price * (1 + abbycar_adjustment / 100)
+                        # Use price as-is from Abbycar (no conversions, no adjustments)
+                        final_price = float(price)
                         
-                        # Days 8+: divide by days to get daily price
-                        if int(day_key) == 8:
-                            adjusted_price = adjusted_price / 8
-                        elif int(day_key) == 9:
-                            adjusted_price = adjusted_price / 9
-                        elif int(day_key) == 14:
-                            adjusted_price = adjusted_price / 14
-                        elif int(day_key) == 22:
-                            adjusted_price = adjusted_price / 22
-                        elif int(day_key) == 28:
-                            adjusted_price = adjusted_price / 28
-                        
-                        # For Standard, Comfort, Premium: add insurance price
+                        # For Standard, Comfort, Premium: add insurance price only
                         if category != 'Light':
                             insurance_price = get_insurance_price_for_month_and_sipp(
                                 sipp_code, current_month_name, period_str, period_type, category
@@ -41314,19 +41300,19 @@ async def export_automated_prices_excel(request: Request):
                                 if period_type == 'fixed':
                                     # Fixed period: insurance × days (e.g., 5 days × €3/day = €15 total)
                                     insurance_total = insurance_price * int(day_key)
-                                    adjusted_price += insurance_total
-                                    print(f"[BACKEND] {category} - {sipp_code} - {period_str} (fixed): base={adjusted_price-insurance_total:.2f}, insurance={insurance_price:.2f}/day × {day_key} days = {insurance_total:.2f}, total={adjusted_price:.2f}", flush=True)
+                                    final_price += insurance_total
+                                    print(f"[BACKEND] {category} - {sipp_code} - {period_str} (fixed): base={price}, insurance={insurance_price:.2f}/day × {day_key} days = {insurance_total:.2f}, total={final_price:.2f}", flush=True)
                                 else:
                                     # Daily period: insurance is already per day, add directly
-                                    adjusted_price += insurance_price
-                                    print(f"[BACKEND] {category} - {sipp_code} - {period_str} (daily): base={adjusted_price-insurance_price:.2f}/day, insurance={insurance_price:.2f}/day, total={adjusted_price:.2f}/day", flush=True)
+                                    final_price += insurance_price
+                                    print(f"[BACKEND] {category} - {sipp_code} - {period_str} (daily): base={price}/day, insurance={insurance_price:.2f}/day, total={final_price:.2f}/day", flush=True)
                         
                         # Round to 2 decimal places
-                        adjusted_price = round(adjusted_price, 2)
+                        final_price = round(final_price, 2)
                         
                         # Set cell value
                         cell = ws.cell(row_num, col_idx)
-                        cell.value = adjusted_price
+                        cell.value = final_price
                         cell.number_format = '0.00'
                     else:
                         ws.cell(row_num, col_idx).value = ''
