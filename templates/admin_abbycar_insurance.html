@@ -467,98 +467,55 @@
       
       function createGroupedPriceTable(prices) {
         const monthNames = {
-          'January': 'Jan', 'February': 'Fev', 'March': 'Mar',
-          'April': 'Abr', 'May': 'Mai', 'June': 'Jun',
-          'July': 'Jul', 'August': 'Ago', 'September': 'Set',
-          'October': 'Out', 'November': 'Nov', 'December': 'Dez'
+          'January': 'Janeiro', 'February': 'Fevereiro', 'March': 'Março',
+          'April': 'Abril', 'May': 'Maio', 'June': 'Junho',
+          'July': 'Julho', 'August': 'Agosto', 'September': 'Setembro',
+          'October': 'Outubro', 'November': 'Novembro', 'December': 'Dezembro'
         };
         
-        // Group by vehicle_group
-        const byVehicle = {};
-        prices.forEach(p => {
-          if (!byVehicle[p.vehicle_group]) byVehicle[p.vehicle_group] = [];
-          byVehicle[p.vehicle_group].push(p);
+        let html = '<div class="overflow-x-auto">';
+        html += '<table class="min-w-full divide-y divide-gray-200 border border-gray-200 rounded-lg">';
+        html += '<thead class="bg-gray-50">';
+        html += '<tr>';
+        html += '<th class="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"><input type="checkbox" onclick="toggleAllCheckboxes(this)" class="rounded" title="Selecionar todos"></th>';
+        html += '<th class="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Grupo Veículo</th>';
+        html += '<th class="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Período</th>';
+        html += '<th class="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Mês</th>';
+        html += '<th class="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Preço/dia</th>';
+        html += '<th class="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Ações</th>';
+        html += '</tr>';
+        html += '</thead>';
+        html += '<tbody class="bg-white divide-y divide-gray-200">';
+        
+        prices.forEach((p, index) => {
+          const monthDisplay = p.seasonal_month ? monthNames[p.seasonal_month] || p.seasonal_month : 'Ano todo';
+          const rowClass = index % 2 === 0 ? 'bg-white' : 'bg-gray-50';
+          
+          html += '<tr class="' + rowClass + ' hover:bg-blue-50 transition-colors">';
+          html += '<td class="px-3 py-3 whitespace-nowrap">';
+          html += '<input type="checkbox" class="price-checkbox rounded text-[#009cb6] focus:ring-[#009cb6]" data-id="' + p.id + '" data-group="' + p.vehicle_group + '">';
+          html += '</td>';
+          html += '<td class="px-3 py-3 whitespace-nowrap">';
+          html += '<span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-[#009cb6] text-white">' + p.vehicle_group + '</span>';
+          html += '</td>';
+          html += '<td class="px-3 py-3 whitespace-nowrap text-sm text-gray-900">' + (p.period || '-') + '</td>';
+          html += '<td class="px-3 py-3 whitespace-nowrap text-sm text-gray-700">' + monthDisplay + '</td>';
+          html += '<td class="px-3 py-3 whitespace-nowrap">';
+          html += '<span class="text-lg font-bold text-gray-900">€' + p.insurance_price.toFixed(2) + '</span>';
+          html += '</td>';
+          html += '<td class="px-3 py-3 whitespace-nowrap text-sm">';
+          html += '<button onclick="deletePricing(' + p.id + ')" class="text-red-600 hover:text-red-900 hover:bg-red-50 p-2 rounded transition-colors" title="Eliminar">';
+          html += '<svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>';
+          html += '</button>';
+          html += '</td>';
+          html += '</tr>';
         });
         
-        return Object.keys(byVehicle).sort().map(group => {
-          const groupPrices = byVehicle[group];
-          
-          // Group by month and price to consolidate periods
-          const byMonthPrice = {};
-          groupPrices.forEach(p => {
-            const month = p.seasonal_month || 'Ano todo';
-            const price = p.insurance_price.toFixed(2);
-            const key = month + '_' + price;
-            if (!byMonthPrice[key]) {
-              byMonthPrice[key] = { month, price, periods: [], ids: [] };
-            }
-            byMonthPrice[key].periods.push(p.period || 'Ano todo');
-            byMonthPrice[key].ids.push(p.id);
-          });
-          
-          // Sort by month
-          const monthOrder = ['January', 'February', 'March', 'April', 'May', 'June', 
-                             'July', 'August', 'September', 'October', 'November', 'December', 'Ano todo'];
-          const sorted = Object.values(byMonthPrice).sort((a, b) => 
-            monthOrder.indexOf(a.month) - monthOrder.indexOf(b.month)
-          );
-          
-          let html = '<div class="bg-white border border-gray-200 rounded-xl shadow-sm mb-4 overflow-hidden hover:shadow-md transition-shadow">';
-          html += '<div class="bg-gradient-to-r from-[#009cb6] to-[#00b8d4] px-4 py-3 flex items-center justify-between">';
-          html += '<div class="flex items-center gap-2">';
-          html += '<svg class="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>';
-          html += '<h5 class="font-bold text-white text-base">' + group + '</h5>';
-          html += '</div>';
-          html += '<input type="checkbox" onclick="toggleGroupCheckboxes(this, \'' + group + '\')" class="rounded text-white bg-white/20 border-white/40 focus:ring-white/50" title="Selecionar todos">';
-          html += '</div>';
-          html += '<div class="p-4"><div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">';
-          
-          sorted.forEach(entry => {
-            const monthDisplay = entry.month === 'Ano todo' ? 'Ano todo' : (monthNames[entry.month] || entry.month);
-            
-            // Better period display
-            let periodDisplay = '';
-            if (entry.periods.length > 1) {
-              const first = entry.periods[0].replace(' days', '').replace(' day', '');
-              const last = entry.periods[entry.periods.length-1].replace(' days', '').replace(' day', '');
-              periodDisplay = first + ' - ' + last + ' dias';
-            } else {
-              periodDisplay = entry.periods[0];
-            }
-            
-            html += '<div class="relative bg-white rounded-lg p-4 border-2 border-gray-200 hover:border-[#009cb6] hover:shadow-lg transition-all group">';
-            
-            // Header with checkbox and delete
-            html += '<div class="flex items-center justify-between mb-3">';
-            html += '<input type="checkbox" class="price-checkbox rounded text-[#009cb6] focus:ring-[#009cb6] w-4 h-4" data-id="' + entry.ids.join(',') + '" data-group="' + group + '">';
-            html += '<button onclick="deleteMultiple([' + entry.ids.join(',') + '], \'' + group + '\', \'' + monthDisplay + '\')" class="opacity-0 group-hover:opacity-100 transition-opacity text-gray-400 hover:text-red-600 p-1.5 rounded hover:bg-red-50">';
-            html += '<svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>';
-            html += '</button></div>';
-            
-            // Month badge
-            html += '<div class="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-semibold bg-[#009cb6]/10 text-[#009cb6] mb-3">';
-            html += monthDisplay;
-            html += '</div>';
-            
-            // Period info
-            html += '<div class="mb-3">';
-            html += '<div class="text-xs text-gray-500 uppercase tracking-wider mb-1">Período</div>';
-            html += '<div class="text-sm font-medium text-gray-900">' + periodDisplay + '</div>';
-            html += '</div>';
-            
-            // Price - prominent
-            html += '<div class="pt-3 border-t border-gray-100">';
-            html += '<div class="flex items-baseline gap-1">';
-            html += '<span class="text-3xl font-bold text-gray-900">€' + entry.price + '</span>';
-            html += '<span class="text-sm text-gray-500 font-medium">/dia</span>';
-            html += '</div></div>';
-            
-            html += '</div>';
-          });
-          
-          html += '</div></div></div>';
-          return html;
-        }).join('');
+        html += '</tbody>';
+        html += '</table>';
+        html += '</div>';
+        
+        return html;
       }
       
       async function deleteMultiple(ids, group, month) {
@@ -755,6 +712,12 @@
       
       function deselectAllMonths() {
         document.querySelectorAll('input[name="seasonalMonth"]').forEach(cb => cb.checked = false);
+      }
+      
+      // Toggle all checkboxes in a table
+      function toggleAllCheckboxes(headerCheckbox) {
+        const checkboxes = document.querySelectorAll('.price-checkbox');
+        checkboxes.forEach(cb => cb.checked = headerCheckbox.checked);
       }
       
       // Toggle all checkboxes in a group
