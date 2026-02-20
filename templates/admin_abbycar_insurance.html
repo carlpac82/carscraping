@@ -65,7 +65,7 @@
       <div class="bg-white rounded shadow p-6 mb-6">
         <h3 class="text-md font-semibold text-gray-800 mb-4">Adicionar/Editar Preço de Seguro</h3>
         <form id="insuranceForm" class="space-y-4">
-          <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
               <label class="block text-sm font-medium text-gray-700 mb-1">Categoria</label>
               <select id="category" class="w-full rounded-md border-gray-300 shadow-sm focus:border-[#009cb6] focus:ring-2 focus:ring-[#009cb6] p-2 border">
@@ -78,9 +78,33 @@
               <label class="block text-sm font-medium text-gray-700 mb-1">Grupo do Veículo</label>
               <input type="text" id="vehicleGroup" placeholder="Ex: A, B, C1, D..." class="w-full rounded-md border-gray-300 shadow-sm focus:border-[#009cb6] focus:ring-2 focus:ring-[#009cb6] p-2 border uppercase" required />
             </div>
+          </div>
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
-              <label class="block text-sm font-medium text-gray-700 mb-1">Preço do Seguro (€)</label>
+              <label class="block text-sm font-medium text-gray-700 mb-1">Período</label>
+              <select id="period" class="w-full rounded-md border-gray-300 shadow-sm focus:border-[#009cb6] focus:ring-2 focus:ring-[#009cb6] p-2 border" required>
+                <optgroup label="Fixo (Fixed)">
+                  <option value="1 day" data-type="fixed">1 dia</option>
+                  <option value="2 days" data-type="fixed">2 dias</option>
+                  <option value="3 days" data-type="fixed">3 dias</option>
+                  <option value="4 days" data-type="fixed">4 dias</option>
+                  <option value="5 days" data-type="fixed">5 dias</option>
+                  <option value="6 days" data-type="fixed">6 dias</option>
+                  <option value="7 days" data-type="fixed">7 dias</option>
+                </optgroup>
+                <optgroup label="Diária (Daily)">
+                  <option value="8-10 days" data-type="daily">8-10 dias</option>
+                  <option value="11-12 days" data-type="daily">11-12 dias</option>
+                  <option value="13-14 days" data-type="daily">13-14 dias</option>
+                  <option value="15-21 days" data-type="daily">15-21 dias</option>
+                  <option value="22-28 days" data-type="daily">22-28 dias</option>
+                </optgroup>
+              </select>
+            </div>
+            <div>
+              <label class="block text-sm font-medium text-gray-700 mb-1">Preço Diário (€)</label>
               <input type="number" id="insurancePrice" placeholder="0.00" step="0.01" min="0" class="w-full rounded-md border-gray-300 shadow-sm focus:border-[#009cb6] focus:ring-2 focus:ring-[#009cb6] p-2 border" required />
+              <p class="text-xs text-gray-500 mt-1">Para períodos fixos: multiplica pelo nº de dias. Para diária: multiplica pelo máximo do intervalo.</p>
             </div>
           </div>
           <button type="submit" class="px-4 py-2 bg-[#009cb6] text-white rounded hover:bg-[#0086a1] transition-colors">
@@ -179,13 +203,15 @@
           'Premium': 'purple'
         }[pricing.category];
         
+        const periodTypeLabel = pricing.period_type === 'fixed' ? 'Fixo' : 'Diária';
+        
         return `
           <div class="border border-gray-200 rounded-lg p-3 flex items-center justify-between hover:border-${categoryColor}-300 transition-colors">
             <div>
-              <p class="font-semibold text-gray-800">${pricing.vehicle_group}</p>
-              <p class="text-sm text-gray-600">€${pricing.insurance_price.toFixed(2)}</p>
+              <p class="font-semibold text-gray-800">${pricing.vehicle_group} - ${pricing.period}</p>
+              <p class="text-sm text-gray-600">€${pricing.insurance_price.toFixed(2)}/dia <span class="text-xs text-gray-500">(${periodTypeLabel})</span></p>
             </div>
-            <button onclick="deletePricing(${pricing.id}, '${pricing.vehicle_group}')" class="text-red-500 hover:text-red-700 p-1">
+            <button onclick="deletePricing(${pricing.id}, '${pricing.vehicle_group}', '${pricing.period}')" class="text-red-500 hover:text-red-700 p-1">
               <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/>
               </svg>
@@ -194,8 +220,8 @@
         `;
       }
 
-      async function deletePricing(id, group) {
-        if (!confirm(`Tem certeza que deseja eliminar o preço para o grupo ${group}?`)) {
+      async function deletePricing(id, group, period) {
+        if (!confirm(`Tem certeza que deseja eliminar o preço para o grupo ${group} (${period})?`)) {
           return;
         }
         
@@ -222,10 +248,18 @@
         
         const category = document.getElementById('category').value;
         const vehicleGroup = document.getElementById('vehicleGroup').value.trim().toUpperCase();
+        const periodSelect = document.getElementById('period');
+        const period = periodSelect.value;
+        const periodType = periodSelect.options[periodSelect.selectedIndex].getAttribute('data-type');
         const insurancePrice = parseFloat(document.getElementById('insurancePrice').value);
         
         if (!vehicleGroup) {
           showAlert('Por favor, insira o grupo do veículo', 'error');
+          return;
+        }
+        
+        if (!period) {
+          showAlert('Por favor, selecione o período', 'error');
           return;
         }
         
@@ -243,6 +277,8 @@
             body: JSON.stringify({
               category,
               vehicle_group: vehicleGroup,
+              period,
+              period_type: periodType,
               insurance_price: insurancePrice
             })
           });
@@ -250,7 +286,7 @@
           const data = await response.json();
           
           if (data.ok) {
-            showAlert(`Preço do grupo ${vehicleGroup} guardado com sucesso!`, 'success');
+            showAlert(`Preço do grupo ${vehicleGroup} (${period}) guardado com sucesso!`, 'success');
             document.getElementById('vehicleGroup').value = '';
             document.getElementById('insurancePrice').value = '';
             loadPricing();

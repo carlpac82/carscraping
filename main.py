@@ -4031,16 +4031,20 @@ def init_db():
                 """
                 CREATE TABLE IF NOT EXISTS abbycar_insurance_pricing (
                   id SERIAL PRIMARY KEY,
-                  vehicle_group TEXT NOT NULL UNIQUE,
+                  vehicle_group TEXT NOT NULL,
+                  period TEXT NOT NULL,
+                  period_type TEXT NOT NULL DEFAULT 'fixed',
                   insurance_price REAL NOT NULL DEFAULT 0.00,
                   category TEXT NOT NULL DEFAULT 'Standard',
                   created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
-                  updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
+                  updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+                  UNIQUE(vehicle_group, period)
                 )
                 """
             )
             safe_create_index(conn, "CREATE INDEX IF NOT EXISTS idx_abbycar_insurance_group ON abbycar_insurance_pricing(vehicle_group)", "idx_abbycar_insurance_group")
             safe_create_index(conn, "CREATE INDEX IF NOT EXISTS idx_abbycar_insurance_category ON abbycar_insurance_pricing(category)", "idx_abbycar_insurance_category")
+            safe_create_index(conn, "CREATE INDEX IF NOT EXISTS idx_abbycar_insurance_period ON abbycar_insurance_pricing(period)", "idx_abbycar_insurance_period")
             
             # Tabela para OAuth Tokens (Gmail, etc)
             conn.execute(
@@ -20256,16 +20260,16 @@ async def get_abbycar_insurance_pricing(request: Request):
         if is_postgres:
             with conn.cursor() as cur:
                 cur.execute("""
-                    SELECT id, vehicle_group, insurance_price, category, created_at, updated_at
+                    SELECT id, vehicle_group, period, period_type, insurance_price, category, created_at, updated_at
                     FROM abbycar_insurance_pricing
-                    ORDER BY category, vehicle_group
+                    ORDER BY category, vehicle_group, period
                 """)
                 rows = cur.fetchall()
         else:
             cursor = conn.execute("""
-                SELECT id, vehicle_group, insurance_price, category, created_at, updated_at
+                SELECT id, vehicle_group, period, period_type, insurance_price, category, created_at, updated_at
                 FROM abbycar_insurance_pricing
-                ORDER BY category, vehicle_group
+                ORDER BY category, vehicle_group, period
             """)
             rows = cursor.fetchall()
         
@@ -20274,10 +20278,12 @@ async def get_abbycar_insurance_pricing(request: Request):
             pricing_data.append({
                 "id": row[0],
                 "vehicle_group": row[1],
-                "insurance_price": row[2],
-                "category": row[3],
-                "created_at": row[4],
-                "updated_at": row[5]
+                "period": row[2],
+                "period_type": row[3],
+                "insurance_price": row[4],
+                "category": row[5],
+                "created_at": row[6],
+                "updated_at": row[7]
             })
         
         conn.close()
@@ -20288,20 +20294,28 @@ async def get_abbycar_insurance_pricing(request: Request):
 
 @app.post("/api/abbycar-insurance-pricing")
 async def create_abbycar_insurance_pricing(request: Request):
-    """Create or update ABBYCAR insurance pricing for a vehicle group"""
+    """Create or update ABBYCAR insurance pricing for a vehicle group and period"""
     try:
         require_auth(request)
         data = await request.json()
         
         vehicle_group = data.get("vehicle_group", "").strip().upper()
+        period = data.get("period", "").strip()
+        period_type = data.get("period_type", "fixed")
         insurance_price = float(data.get("insurance_price", 0))
         category = data.get("category", "Standard")
         
         if not vehicle_group:
             return JSONResponse({"ok": False, "error": "Vehicle group is required"}, status_code=400)
         
+        if not period:
+            return JSONResponse({"ok": False, "error": "Period is required"}, status_code=400)
+        
         if category not in ["Standard", "Comfort", "Premium"]:
             return JSONResponse({"ok": False, "error": "Category must be Standard, Comfort, or Premium"}, status_code=400)
+        
+        if period_type not in ["fixed", "daily"]:
+            return JSONResponse({"ok": False, "error": "Period type must be fixed or daily"}, status_code=400)
         
         conn = _db_connect()
         is_postgres = _is_postgresql_connection(conn)
@@ -20309,28 +20323,29 @@ async def create_abbycar_insurance_pricing(request: Request):
         if is_postgres:
             with conn.cursor() as cur:
                 cur.execute("""
-                    INSERT INTO abbycar_insurance_pricing (vehicle_group, insurance_price, category, updated_at)
-                    VALUES (%s, %s, %s, NOW())
-                    ON CONFLICT (vehicle_group) 
+                    INSERT INTO abbycar_insurance_pricing (vehicle_group, period, period_type, insurance_price, category, updated_at)
+                    VALUES (%s, %s, %s, %s, %s, NOW())
+                    ON CONFLICT (vehicle_group, period) 
                     DO UPDATE SET 
+                        period_type = EXCLUDED.period_type,
                         insurance_price = EXCLUDED.insurance_price,
                         category = EXCLUDED.category,
                         updated_at = NOW()
                     RETURNING id
-                """, (vehicle_group, insurance_price, category))
+                """, (vehicle_group, period, period_type, insurance_price, category))
                 result = cur.fetchone()
                 pricing_id = result[0] if result else None
             conn.commit()
         else:
             cursor = conn.execute("""
-                INSERT OR REPLACE INTO abbycar_insurance_pricing (vehicle_group, insurance_price, category, updated_at)
-                VALUES (?, ?, ?, datetime('now'))
-            """, (vehicle_group, insurance_price, category))
+                INSERT OR REPLACE INTO abbycar_insurance_pricing (vehicle_group, period, period_type, insurance_price, category, updated_at)
+                VALUES (?, ?, ?, ?, ?, datetime('now'))
+            """, (vehicle_group, period, period_type, insurance_price, category))
             pricing_id = cursor.lastrowid
             conn.commit()
         
         conn.close()
-        logging.info(f"✅ ABBYCAR insurance pricing saved: {vehicle_group} = €{insurance_price} ({category})")
+        logging.info(f"✅ ABBYCAR insurance pricing saved: {vehicle_group} / {period} ({period_type}) = €{insurance_price} ({category})")
         return JSONResponse({"ok": True, "id": pricing_id, "message": "Insurance pricing saved successfully"})
     except Exception as e:
         logging.error(f"Error saving ABBYCAR insurance pricing: {e}")
@@ -20360,8 +20375,8 @@ async def delete_abbycar_insurance_pricing(pricing_id: int, request: Request):
         return JSONResponse({"ok": False, "error": str(e)}, status_code=500)
 
 @app.get("/api/abbycar-insurance-pricing/by-group/{vehicle_group}")
-async def get_insurance_price_by_group(vehicle_group: str, request: Request):
-    """Get insurance price for a specific vehicle group"""
+async def get_insurance_price_by_group(vehicle_group: str, days: int, request: Request):
+    """Get insurance price for a specific vehicle group and number of days"""
     try:
         require_auth(request)
         conn = _db_connect()
@@ -20369,29 +20384,88 @@ async def get_insurance_price_by_group(vehicle_group: str, request: Request):
         
         normalized_group = vehicle_group.strip().upper()
         
+        # Determine which period applies based on number of days
+        period = None
+        if days == 1:
+            period = "1 day"
+        elif days == 2:
+            period = "2 days"
+        elif days == 3:
+            period = "3 days"
+        elif days == 4:
+            period = "4 days"
+        elif days == 5:
+            period = "5 days"
+        elif days == 6:
+            period = "6 days"
+        elif days == 7:
+            period = "7 days"
+        elif 8 <= days <= 10:
+            period = "8-10 days"
+        elif 11 <= days <= 12:
+            period = "11-12 days"
+        elif 13 <= days <= 14:
+            period = "13-14 days"
+        elif 15 <= days <= 21:
+            period = "15-21 days"
+        elif 22 <= days <= 28:
+            period = "22-28 days"
+        else:
+            return JSONResponse({
+                "ok": False,
+                "error": f"No pricing available for {days} days"
+            }, status_code=404)
+        
         if is_postgres:
             with conn.cursor() as cur:
                 cur.execute("""
-                    SELECT insurance_price, category
+                    SELECT insurance_price, category, period_type
                     FROM abbycar_insurance_pricing
-                    WHERE vehicle_group = %s
-                """, (normalized_group,))
+                    WHERE vehicle_group = %s AND period = %s
+                """, (normalized_group, period))
                 row = cur.fetchone()
         else:
             cursor = conn.execute("""
-                SELECT insurance_price, category
+                SELECT insurance_price, category, period_type
                 FROM abbycar_insurance_pricing
-                WHERE vehicle_group = ?
-            """, (normalized_group,))
+                WHERE vehicle_group = ? AND period = ?
+            """, (normalized_group, period))
             row = cursor.fetchone()
         
         conn.close()
         
         if row:
+            daily_price = row[0]
+            category = row[1]
+            period_type = row[2]
+            
+            # Calculate total price based on period type
+            if period_type == "fixed":
+                # Fixed price for the exact number of days
+                total_price = daily_price * days
+            else:  # daily
+                # Daily rate multiplied by max days in range
+                if period == "8-10 days":
+                    total_price = daily_price * 10
+                elif period == "11-12 days":
+                    total_price = daily_price * 12
+                elif period == "13-14 days":
+                    total_price = daily_price * 14
+                elif period == "15-21 days":
+                    total_price = daily_price * 21
+                elif period == "22-28 days":
+                    total_price = daily_price * 28
+                else:
+                    total_price = daily_price * days
+            
             return JSONResponse({
                 "ok": True,
-                "insurance_price": row[0],
-                "category": row[1]
+                "daily_price": daily_price,
+                "total_price": total_price,
+                "category": category,
+                "period": period,
+                "period_type": period_type,
+                "days": days
             })
         else:
             return JSONResponse({
