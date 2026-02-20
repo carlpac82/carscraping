@@ -57438,12 +57438,16 @@ async def copy_inspection_data(request: Request):
             
             # 3. Copy all photos including croqui from inspection_photos table
             cur.execute("""
-                SELECT image_data, photo_type, photo_order
+                SELECT image_data, photo_type, COALESCE(photo_order, 0) as photo_order
                 FROM inspection_photos
                 WHERE inspection_id = %s
-                ORDER BY photo_order
+                ORDER BY COALESCE(photo_order, 999), id
             """, (source_id,))
             photos = cur.fetchall()
+            
+            logging.info(f"📸 Found {len(photos)} photos in source inspection")
+            for idx, photo in enumerate(photos):
+                logging.info(f"  Photo {idx+1}: type={photo[1]}, order={photo[2]}, data_len={len(photo[0]) if photo[0] else 0}")
             
             if photos:
                 # Delete existing photos from target
@@ -57451,17 +57455,21 @@ async def copy_inspection_data(request: Request):
                 logging.info(f"🗑️ Deleted existing photos from target inspection")
                 
                 # Insert copied photos
-                for photo in photos:
+                for idx, photo in enumerate(photos):
+                    image_data, photo_type, photo_order = photo
                     cur.execute("""
                         INSERT INTO inspection_photos (inspection_id, image_data, photo_type, photo_order)
                         VALUES (%s, %s, %s, %s)
-                    """, (target_id, photo[0], photo[1], photo[2]))
+                    """, (target_id, image_data, photo_type, photo_order))
+                    logging.info(f"  ✅ Inserted photo {idx+1}: {photo_type}")
                 
                 logging.info(f"✅ Copied {len(photos)} photos from {source_number} to {target_number}")
                 
                 # Check if croqui was copied
                 croqui_copied = any(photo[1] == 'damage_croqui' for photo in photos)
+                logging.info(f"🎨 Croqui copied: {croqui_copied}")
             else:
+                logging.warning(f"⚠️ No photos found in source inspection")
                 croqui_copied = False
             
             # 5. Update inspector name and time
