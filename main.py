@@ -20305,18 +20305,17 @@ async def create_abbycar_insurance_pricing(request: Request):
         vehicle_group = data.get("vehicle_group", "").strip().upper()
         period = data.get("period", "").strip() if data.get("period") else None
         period_type = data.get("period_type", "fixed") if period else None
-        seasonal_month = data.get("seasonal_month", "").strip() if data.get("seasonal_month") else None
+        # Handle seasonal_month - can be null, empty string, or a valid month
+        seasonal_month_raw = data.get("seasonal_month")
+        seasonal_month = seasonal_month_raw.strip() if seasonal_month_raw and isinstance(seasonal_month_raw, str) else None
         insurance_price = float(data.get("insurance_price", 0))
         category = data.get("category", "Standard")
         
         if not vehicle_group:
             return JSONResponse({"ok": False, "error": "Vehicle group is required"}, status_code=400)
         
-        if not period and not seasonal_month:
-            return JSONResponse({"ok": False, "error": "Either period or seasonal_month is required"}, status_code=400)
-        
-        if period and seasonal_month:
-            return JSONResponse({"ok": False, "error": "Cannot set both period and seasonal_month"}, status_code=400)
+        if not period:
+            return JSONResponse({"ok": False, "error": "Period is required"}, status_code=400)
         
         if category not in ["Light", "Standard", "Comfort", "Premium"]:
             return JSONResponse({"ok": False, "error": "Category must be Light, Standard, Comfort, or Premium"}, status_code=400)
