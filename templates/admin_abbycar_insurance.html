@@ -109,53 +109,130 @@
               </label>
             </div>
           </div>
-          <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div id="periodContainer">
-              <label class="block text-sm font-medium text-gray-700 mb-1">Período</label>
-              <select id="period" class="w-full rounded-md border-gray-300 shadow-sm focus:border-[#009cb6] focus:ring-2 focus:ring-[#009cb6] p-2 border">
-                <optgroup label="Fixo (Fixed)">
-                  <option value="1 day" data-type="fixed">1 dia</option>
-                  <option value="2 days" data-type="fixed">2 dias</option>
-                  <option value="3 days" data-type="fixed">3 dias</option>
-                  <option value="4 days" data-type="fixed">4 dias</option>
-                  <option value="5 days" data-type="fixed">5 dias</option>
-                  <option value="6 days" data-type="fixed">6 dias</option>
-                  <option value="7 days" data-type="fixed">7 dias</option>
-                </optgroup>
-                <optgroup label="Diária (Daily)">
-                  <option value="8-10 days" data-type="daily">8-10 dias</option>
-                  <option value="11-12 days" data-type="daily">11-12 dias</option>
-                  <option value="13-14 days" data-type="daily">13-14 dias</option>
-                  <option value="15-21 days" data-type="daily">15-21 dias</option>
-                  <option value="22-28 days" data-type="daily">22-28 dias</option>
-                </optgroup>
-              </select>
+          <div id="periodContainer">
+            <label class="block text-sm font-medium text-gray-700 mb-2">Períodos (selecione um ou mais)</label>
+            <div class="border border-gray-300 rounded-md p-3 max-h-64 overflow-y-auto">
+              <div class="mb-3">
+                <p class="text-xs font-semibold text-gray-600 mb-2">Fixo (Fixed)</p>
+                <div class="grid grid-cols-2 md:grid-cols-3 gap-2">
+                  <label class="flex items-center cursor-pointer hover:bg-gray-50 p-1 rounded">
+                    <input type="checkbox" name="periods" value="1 day" data-type="fixed" class="mr-2">
+                    <span class="text-sm">1 dia</span>
+                  </label>
+                  <label class="flex items-center cursor-pointer hover:bg-gray-50 p-1 rounded">
+                    <input type="checkbox" name="periods" value="2 days" data-type="fixed" class="mr-2">
+                    <span class="text-sm">2 dias</span>
+                  </label>
+                  <label class="flex items-center cursor-pointer hover:bg-gray-50 p-1 rounded">
+                    <input type="checkbox" name="periods" value="3 days" data-type="fixed" class="mr-2">
+                    <span class="text-sm">3 dias</span>
+                  </label>
+                  <label class="flex items-center cursor-pointer hover:bg-gray-50 p-1 rounded">
+                    <input type="checkbox" name="periods" value="4 days" data-type="fixed" class="mr-2">
+                    <span class="text-sm">4 dias</span>
+                  </label>
+                  <label class="flex items-center cursor-pointer hover:bg-gray-50 p-1 rounded">
+                    <input type="checkbox" name="periods" value="5 days" data-type="fixed" class="mr-2">
+                    <span class="text-sm">5 dias</span>
+                  </label>
+                  <label class="flex items-center cursor-pointer hover:bg-gray-50 p-1 rounded">
+                    <input type="checkbox" name="periods" value="6 days" data-type="fixed" class="mr-2">
+                    <span class="text-sm">6 dias</span>
+                  </label>
+                  <label class="flex items-center cursor-pointer hover:bg-gray-50 p-1 rounded">
+                    <input type="checkbox" name="periods" value="7 days" data-type="fixed" class="mr-2">
+                    <span class="text-sm">7 dias</span>
+                  </label>
+                </div>
+              </div>
+              <div class="border-t pt-3">
+                <p class="text-xs font-semibold text-gray-600 mb-2">Diária (Daily)</p>
+                <div class="grid grid-cols-2 md:grid-cols-3 gap-2">
+                  <label class="flex items-center cursor-pointer hover:bg-gray-50 p-1 rounded">
+                    <input type="checkbox" name="periods" value="8-10 days" data-type="daily" class="mr-2">
+                    <span class="text-sm">8-10 dias</span>
+                  </label>
+                  <label class="flex items-center cursor-pointer hover:bg-gray-50 p-1 rounded">
+                    <input type="checkbox" name="periods" value="11-12 days" data-type="daily" class="mr-2">
+                    <span class="text-sm">11-12 dias</span>
+                  </label>
+                  <label class="flex items-center cursor-pointer hover:bg-gray-50 p-1 rounded">
+                    <input type="checkbox" name="periods" value="13-14 days" data-type="daily" class="mr-2">
+                    <span class="text-sm">13-14 dias</span>
+                  </label>
+                  <label class="flex items-center cursor-pointer hover:bg-gray-50 p-1 rounded">
+                    <input type="checkbox" name="periods" value="15-21 days" data-type="daily" class="mr-2">
+                    <span class="text-sm">15-21 dias</span>
+                  </label>
+                  <label class="flex items-center cursor-pointer hover:bg-gray-50 p-1 rounded">
+                    <input type="checkbox" name="periods" value="22-28 days" data-type="daily" class="mr-2">
+                    <span class="text-sm">22-28 dias</span>
+                  </label>
+                </div>
+              </div>
             </div>
-            <div id="seasonalContainer" style="display: none;">
-              <label class="block text-sm font-medium text-gray-700 mb-1">Mês Sazonal</label>
-              <select id="seasonalMonth" class="w-full rounded-md border-gray-300 shadow-sm focus:border-[#009cb6] focus:ring-2 focus:ring-[#009cb6] p-2 border">
-                <option value="">Selecione o mês...</option>
-                <option value="January">Janeiro</option>
-                <option value="February">Fevereiro</option>
-                <option value="March">Março</option>
-                <option value="April">Abril</option>
-                <option value="May">Maio</option>
-                <option value="June">Junho</option>
-                <option value="July">Julho</option>
-                <option value="August">Agosto</option>
-                <option value="September">Setembro</option>
-                <option value="October">Outubro</option>
-                <option value="November">Novembro</option>
-                <option value="December">Dezembro</option>
-              </select>
+          </div>
+          <div id="seasonalContainer" style="display: none;">
+            <label class="block text-sm font-medium text-gray-700 mb-2">Meses Sazonais (selecione um ou mais)</label>
+            <div class="border border-gray-300 rounded-md p-3 max-h-64 overflow-y-auto">
+              <div class="grid grid-cols-2 md:grid-cols-3 gap-2">
+                <label class="flex items-center cursor-pointer hover:bg-gray-50 p-1 rounded">
+                  <input type="checkbox" name="seasonalMonths" value="January" class="mr-2">
+                  <span class="text-sm">Janeiro</span>
+                </label>
+                <label class="flex items-center cursor-pointer hover:bg-gray-50 p-1 rounded">
+                  <input type="checkbox" name="seasonalMonths" value="February" class="mr-2">
+                  <span class="text-sm">Fevereiro</span>
+                </label>
+                <label class="flex items-center cursor-pointer hover:bg-gray-50 p-1 rounded">
+                  <input type="checkbox" name="seasonalMonths" value="March" class="mr-2">
+                  <span class="text-sm">Março</span>
+                </label>
+                <label class="flex items-center cursor-pointer hover:bg-gray-50 p-1 rounded">
+                  <input type="checkbox" name="seasonalMonths" value="April" class="mr-2">
+                  <span class="text-sm">Abril</span>
+                </label>
+                <label class="flex items-center cursor-pointer hover:bg-gray-50 p-1 rounded">
+                  <input type="checkbox" name="seasonalMonths" value="May" class="mr-2">
+                  <span class="text-sm">Maio</span>
+                </label>
+                <label class="flex items-center cursor-pointer hover:bg-gray-50 p-1 rounded">
+                  <input type="checkbox" name="seasonalMonths" value="June" class="mr-2">
+                  <span class="text-sm">Junho</span>
+                </label>
+                <label class="flex items-center cursor-pointer hover:bg-gray-50 p-1 rounded">
+                  <input type="checkbox" name="seasonalMonths" value="July" class="mr-2">
+                  <span class="text-sm">Julho</span>
+                </label>
+                <label class="flex items-center cursor-pointer hover:bg-gray-50 p-1 rounded">
+                  <input type="checkbox" name="seasonalMonths" value="August" class="mr-2">
+                  <span class="text-sm">Agosto</span>
+                </label>
+                <label class="flex items-center cursor-pointer hover:bg-gray-50 p-1 rounded">
+                  <input type="checkbox" name="seasonalMonths" value="September" class="mr-2">
+                  <span class="text-sm">Setembro</span>
+                </label>
+                <label class="flex items-center cursor-pointer hover:bg-gray-50 p-1 rounded">
+                  <input type="checkbox" name="seasonalMonths" value="October" class="mr-2">
+                  <span class="text-sm">Outubro</span>
+                </label>
+                <label class="flex items-center cursor-pointer hover:bg-gray-50 p-1 rounded">
+                  <input type="checkbox" name="seasonalMonths" value="November" class="mr-2">
+                  <span class="text-sm">Novembro</span>
+                </label>
+                <label class="flex items-center cursor-pointer hover:bg-gray-50 p-1 rounded">
+                  <input type="checkbox" name="seasonalMonths" value="December" class="mr-2">
+                  <span class="text-sm">Dezembro</span>
+                </label>
+              </div>
             </div>
           </div>
           <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
               <label class="block text-sm font-medium text-gray-700 mb-1">Preço Diário (€)</label>
               <input type="number" id="insurancePrice" placeholder="0.00" step="0.01" min="0" class="w-full rounded-md border-gray-300 shadow-sm focus:border-[#009cb6] focus:ring-2 focus:ring-[#009cb6] p-2 border" required />
-              <p id="priceHintPeriod" class="text-xs text-gray-500 mt-1">Para períodos fixos: multiplica pelo nº de dias. Para diária: multiplica pelo máximo do intervalo.</p>
-              <p id="priceHintSeasonal" class="text-xs text-gray-500 mt-1" style="display: none;">Preço diário aplicado durante todo o mês selecionado.</p>
+              <p id="priceHintPeriod" class="text-xs text-gray-500 mt-1">Selecione um ou mais períodos acima. Para períodos fixos: multiplica pelo nº de dias. Para diária: multiplica pelo máximo do intervalo.</p>
+              <p id="priceHintSeasonal" class="text-xs text-gray-500 mt-1" style="display: none;">Selecione um ou mais meses acima. Preço diário aplicado durante todo o mês selecionado.</p>
             </div>
           </div>
           <button type="submit" class="px-4 py-2 bg-[#009cb6] text-white rounded hover:bg-[#0086a1] transition-colors">
@@ -222,15 +299,11 @@
           seasonalContainer.style.display = 'none';
           priceHintPeriod.style.display = 'block';
           priceHintSeasonal.style.display = 'none';
-          document.getElementById('period').required = true;
-          document.getElementById('seasonalMonth').required = false;
         } else {
           periodContainer.style.display = 'none';
           seasonalContainer.style.display = 'block';
           priceHintPeriod.style.display = 'none';
           priceHintSeasonal.style.display = 'block';
-          document.getElementById('period').required = false;
-          document.getElementById('seasonalMonth').required = true;
         }
       }
 
@@ -358,28 +431,6 @@
         const pricingType = document.querySelector('input[name="pricingType"]:checked').value;
         const insurancePrice = parseFloat(document.getElementById('insurancePrice').value);
         
-        let period = null;
-        let periodType = null;
-        let seasonalMonth = null;
-        
-        if (pricingType === 'period') {
-          const periodSelect = document.getElementById('period');
-          period = periodSelect.value;
-          periodType = periodSelect.options[periodSelect.selectedIndex].getAttribute('data-type');
-          
-          if (!period) {
-            showAlert('Por favor, selecione o período', 'error');
-            return;
-          }
-        } else {
-          seasonalMonth = document.getElementById('seasonalMonth').value;
-          
-          if (!seasonalMonth) {
-            showAlert('Por favor, selecione o mês sazonal', 'error');
-            return;
-          }
-        }
-        
         if (!vehicleGroup) {
           showAlert('Por favor, selecione o grupo do veículo', 'error');
           return;
@@ -390,41 +441,85 @@
           return;
         }
         
-        const requestBody = {
-          category,
-          vehicle_group: vehicleGroup,
-          insurance_price: insurancePrice
-        };
+        let selectedItems = [];
         
         if (pricingType === 'period') {
-          requestBody.period = period;
-          requestBody.period_type = periodType;
+          const checkedPeriods = document.querySelectorAll('input[name="periods"]:checked');
+          
+          if (checkedPeriods.length === 0) {
+            showAlert('Por favor, selecione pelo menos um período', 'error');
+            return;
+          }
+          
+          checkedPeriods.forEach(checkbox => {
+            selectedItems.push({
+              period: checkbox.value,
+              period_type: checkbox.getAttribute('data-type'),
+              seasonal_month: null
+            });
+          });
         } else {
-          requestBody.seasonal_month = seasonalMonth;
+          const checkedMonths = document.querySelectorAll('input[name="seasonalMonths"]:checked');
+          
+          if (checkedMonths.length === 0) {
+            showAlert('Por favor, selecione pelo menos um mês', 'error');
+            return;
+          }
+          
+          checkedMonths.forEach(checkbox => {
+            selectedItems.push({
+              period: null,
+              period_type: null,
+              seasonal_month: checkbox.value
+            });
+          });
         }
         
         try {
-          const response = await fetch('/api/abbycar-insurance-pricing', {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json'
-            },
-            body: JSON.stringify(requestBody)
-          });
+          let successCount = 0;
+          let errorCount = 0;
           
-          const data = await response.json();
+          for (const item of selectedItems) {
+            const requestBody = {
+              category,
+              vehicle_group: vehicleGroup,
+              insurance_price: insurancePrice,
+              ...item
+            };
+            
+            const response = await fetch('/api/abbycar-insurance-pricing', {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json'
+              },
+              body: JSON.stringify(requestBody)
+            });
+            
+            const data = await response.json();
+            
+            if (data.ok) {
+              successCount++;
+            } else {
+              errorCount++;
+              console.error('Error saving:', item, data.error);
+            }
+          }
           
-          if (data.ok) {
-            showAlert(`Preço do grupo ${vehicleGroup} (${period}) guardado com sucesso!`, 'success');
+          if (successCount > 0) {
+            showAlert(`${successCount} preço(s) guardado(s) com sucesso!`, 'success');
             document.getElementById('vehicleGroup').value = '';
             document.getElementById('insurancePrice').value = '';
+            document.querySelectorAll('input[name="periods"]:checked').forEach(cb => cb.checked = false);
+            document.querySelectorAll('input[name="seasonalMonths"]:checked').forEach(cb => cb.checked = false);
             loadPricing();
-          } else {
-            showAlert(data.error || 'Erro ao guardar preço', 'error');
+          }
+          
+          if (errorCount > 0) {
+            showAlert(`${errorCount} erro(s) ao guardar preços`, 'error');
           }
         } catch (error) {
           console.error('Error saving pricing:', error);
-          showAlert('Erro ao guardar preço', 'error');
+          showAlert('Erro ao guardar preços', 'error');
         }
       });
 
