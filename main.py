@@ -20251,6 +20251,101 @@ async def get_caralliance_commission(request: Request):
         logging.error(f"Error getting CarAlliance commission: {e}")
         return JSONResponse({"ok": False, "error": str(e)}, status_code=500)
 
+@app.post("/api/abbycar-insurance-pricing/migrate-to-seasons")
+async def migrate_abbycar_insurance_to_seasons(request: Request):
+    """Migrate abbycar_insurance_pricing from seasonal_month to season field"""
+    try:
+        require_auth(request)
+        conn = _db_connect()
+        is_postgres = _is_postgresql_connection(conn)
+        
+        # Month to season mapping
+        # Época Baixa: Nov-Mar (November, December, January, February, March)
+        # Época Média: Apr-Jun, Oct (April, May, June, October)
+        # Época Alta: Jul-Sep (July, August, September)
+        month_to_season = {
+            'November': 'Época Baixa',
+            'December': 'Época Baixa',
+            'January': 'Época Baixa',
+            'February': 'Época Baixa',
+            'March': 'Época Baixa',
+            'April': 'Época Média',
+            'May': 'Época Média',
+            'June': 'Época Média',
+            'October': 'Época Média',
+            'July': 'Época Alta',
+            'August': 'Época Alta',
+            'September': 'Época Alta'
+        }
+        
+        try:
+            if is_postgres:
+                with conn.cursor() as cur:
+                    # Add season column if it doesn't exist
+                    cur.execute("""
+                        ALTER TABLE abbycar_insurance_pricing 
+                        ADD COLUMN IF NOT EXISTS season TEXT
+                    """)
+                    
+                    # Migrate data from seasonal_month to season
+                    for month, season in month_to_season.items():
+                        cur.execute("""
+                            UPDATE abbycar_insurance_pricing 
+                            SET season = %s 
+                            WHERE seasonal_month = %s AND season IS NULL
+                        """, (season, month))
+                    
+                    # Set season to NULL for entries where seasonal_month was NULL (year-round prices)
+                    cur.execute("""
+                        UPDATE abbycar_insurance_pricing 
+                        SET season = NULL 
+                        WHERE seasonal_month IS NULL AND season IS NULL
+                    """)
+                    
+                    # Drop old constraint and create new one with season
+                    cur.execute("""
+                        ALTER TABLE abbycar_insurance_pricing 
+                        DROP CONSTRAINT IF EXISTS abbycar_insurance_pricing_vehicle_group_period_seasonal_m_key
+                    """)
+                    
+                    cur.execute("""
+                        ALTER TABLE abbycar_insurance_pricing 
+                        DROP CONSTRAINT IF EXISTS abbycar_insurance_pricing_vehicle_group_period_season_ca_key
+                    """)
+                    
+                    cur.execute("""
+                        ALTER TABLE abbycar_insurance_pricing 
+                        ADD CONSTRAINT abbycar_insurance_pricing_vehicle_group_period_season_ca_key 
+                        UNIQUE (vehicle_group, period, season, category)
+                    """)
+                    
+            else:
+                # SQLite migration
+                conn.execute("ALTER TABLE abbycar_insurance_pricing ADD COLUMN season TEXT")
+                
+                for month, season in month_to_season.items():
+                    conn.execute("""
+                        UPDATE abbycar_insurance_pricing 
+                        SET season = ? 
+                        WHERE seasonal_month = ? AND season IS NULL
+                    """, (season, month))
+                
+                conn.execute("""
+                    UPDATE abbycar_insurance_pricing 
+                    SET season = NULL 
+                    WHERE seasonal_month IS NULL AND season IS NULL
+                """)
+            
+            conn.commit()
+            logging.info("✅ Migration to seasons completed successfully")
+            return JSONResponse({"ok": True, "message": "Migration completed successfully"})
+        finally:
+            conn.close()
+            
+    except Exception as e:
+        logging.error(f"Error migrating to seasons: {e}")
+        return JSONResponse({"ok": False, "error": str(e)}, status_code=500)
+
 @app.get("/api/abbycar-insurance-pricing")
 async def get_abbycar_insurance_pricing(request: Request):
     """Get all ABBYCAR insurance pricing configurations"""
@@ -20262,16 +20357,16 @@ async def get_abbycar_insurance_pricing(request: Request):
         if is_postgres:
             with conn.cursor() as cur:
                 cur.execute("""
-                    SELECT id, vehicle_group, period, period_type, seasonal_month, insurance_price, category, created_at, updated_at
+                    SELECT id, vehicle_group, period, period_type, season, insurance_price, category, created_at, updated_at
                     FROM abbycar_insurance_pricing
-                    ORDER BY category, vehicle_group, period, seasonal_month
+                    ORDER BY category, vehicle_group, period, season
                 """)
                 rows = cur.fetchall()
         else:
             cursor = conn.execute("""
-                SELECT id, vehicle_group, period, period_type, seasonal_month, insurance_price, category, created_at, updated_at
+                SELECT id, vehicle_group, period, period_type, season, insurance_price, category, created_at, updated_at
                 FROM abbycar_insurance_pricing
-                ORDER BY category, vehicle_group, period, seasonal_month
+                ORDER BY category, vehicle_group, period, season
             """)
             rows = cursor.fetchall()
         
@@ -20282,7 +20377,7 @@ async def get_abbycar_insurance_pricing(request: Request):
                 "vehicle_group": row[1],
                 "period": row[2],
                 "period_type": row[3],
-                "seasonal_month": row[4],
+                "season": row[4],
                 "insurance_price": row[5],
                 "category": row[6],
                 "created_at": row[7],
@@ -20318,8 +20413,8 @@ async def create_abbycar_insurance_pricing_batch(request: Request):
                 vehicle_group = price_data.get("vehicle_group", "").strip().upper()
                 period = price_data.get("period", "").strip() if price_data.get("period") else None
                 period_type = price_data.get("period_type", "fixed") if period else None
-                seasonal_month_raw = price_data.get("seasonal_month")
-                seasonal_month = seasonal_month_raw.strip() if seasonal_month_raw and isinstance(seasonal_month_raw, str) else None
+                season_raw = price_data.get("season")
+                season = season_raw.strip() if season_raw and isinstance(season_raw, str) else None
                 insurance_price = float(price_data.get("insurance_price", 0))
                 category = price_data.get("category", "Standard")
                 
@@ -20338,19 +20433,19 @@ async def create_abbycar_insurance_pricing_batch(request: Request):
                     if is_postgres:
                         with conn.cursor() as cur:
                             cur.execute("""
-                                INSERT INTO abbycar_insurance_pricing (vehicle_group, period, period_type, seasonal_month, insurance_price, category, updated_at)
+                                INSERT INTO abbycar_insurance_pricing (vehicle_group, period, period_type, season, insurance_price, category, updated_at)
                                 VALUES (%s, %s, %s, %s, %s, %s, NOW())
-                                ON CONFLICT (vehicle_group, period, seasonal_month, category) 
+                                ON CONFLICT (vehicle_group, period, season, category) 
                                 DO UPDATE SET 
                                     period_type = EXCLUDED.period_type,
                                     insurance_price = EXCLUDED.insurance_price,
                                     updated_at = NOW()
-                            """, (vehicle_group, period, period_type, seasonal_month, insurance_price, category))
+                            """, (vehicle_group, period, period_type, season, insurance_price, category))
                     else:
                         conn.execute("""
-                            INSERT OR REPLACE INTO abbycar_insurance_pricing (vehicle_group, period, period_type, seasonal_month, insurance_price, category, updated_at)
+                            INSERT OR REPLACE INTO abbycar_insurance_pricing (vehicle_group, period, period_type, season, insurance_price, category, updated_at)
                             VALUES (?, ?, ?, ?, ?, ?, datetime('now'))
-                        """, (vehicle_group, period, period_type, seasonal_month, insurance_price, category))
+                        """, (vehicle_group, period, period_type, season, insurance_price, category))
                     
                     success_count += 1
                 except Exception as e:
@@ -20383,9 +20478,9 @@ async def create_abbycar_insurance_pricing(request: Request):
         vehicle_group = data.get("vehicle_group", "").strip().upper()
         period = data.get("period", "").strip() if data.get("period") else None
         period_type = data.get("period_type", "fixed") if period else None
-        # Handle seasonal_month - can be null, empty string, or a valid month
-        seasonal_month_raw = data.get("seasonal_month")
-        seasonal_month = seasonal_month_raw.strip() if seasonal_month_raw and isinstance(seasonal_month_raw, str) else None
+        # Handle season - can be null, empty string, or a valid season
+        season_raw = data.get("season")
+        season = season_raw.strip() if season_raw and isinstance(season_raw, str) else None
         insurance_price = float(data.get("insurance_price", 0))
         category = data.get("category", "Standard")
         
@@ -20401,8 +20496,8 @@ async def create_abbycar_insurance_pricing(request: Request):
         if period_type and period_type not in ["fixed", "daily"]:
             return JSONResponse({"ok": False, "error": "Period type must be fixed or daily"}, status_code=400)
         
-        if seasonal_month and seasonal_month not in ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"]:
-            return JSONResponse({"ok": False, "error": "Invalid seasonal month"}, status_code=400)
+        if season and season not in ["High", "Mid", "Low"]:
+            return JSONResponse({"ok": False, "error": "Invalid season"}, status_code=400)
         
         conn = _db_connect()
         is_postgres = _is_postgresql_connection(conn)
@@ -20410,28 +20505,28 @@ async def create_abbycar_insurance_pricing(request: Request):
         if is_postgres:
             with conn.cursor() as cur:
                 cur.execute("""
-                    INSERT INTO abbycar_insurance_pricing (vehicle_group, period, period_type, seasonal_month, insurance_price, category, updated_at)
+                    INSERT INTO abbycar_insurance_pricing (vehicle_group, period, period_type, season, insurance_price, category, updated_at)
                     VALUES (%s, %s, %s, %s, %s, %s, NOW())
-                    ON CONFLICT (vehicle_group, period, seasonal_month, category) 
+                    ON CONFLICT (vehicle_group, period, season, category) 
                     DO UPDATE SET 
                         period_type = EXCLUDED.period_type,
                         insurance_price = EXCLUDED.insurance_price,
                         updated_at = NOW()
                     RETURNING id
-                """, (vehicle_group, period, period_type, seasonal_month, insurance_price, category))
+                """, (vehicle_group, period, period_type, season, insurance_price, category))
                 result = cur.fetchone()
                 pricing_id = result[0] if result else None
             conn.commit()
         else:
             cursor = conn.execute("""
-                INSERT OR REPLACE INTO abbycar_insurance_pricing (vehicle_group, period, period_type, seasonal_month, insurance_price, category, updated_at)
+                INSERT OR REPLACE INTO abbycar_insurance_pricing (vehicle_group, period, period_type, season, insurance_price, category, updated_at)
                 VALUES (?, ?, ?, ?, ?, ?, datetime('now'))
-            """, (vehicle_group, period, period_type, seasonal_month, insurance_price, category))
+            """, (vehicle_group, period, period_type, season, insurance_price, category))
             pricing_id = cursor.lastrowid
             conn.commit()
         
         conn.close()
-        log_msg = f"✅ ABBYCAR insurance pricing saved: {vehicle_group} / {period or seasonal_month} ({period_type or 'seasonal'}) = €{insurance_price} ({category})"
+        log_msg = f"✅ ABBYCAR insurance pricing saved: {vehicle_group} / {period or season} ({period_type or 'seasonal'}) = €{insurance_price} ({category})"
         logging.info(log_msg)
         return JSONResponse({"ok": True, "id": pricing_id, "message": "Insurance pricing saved successfully"})
     except Exception as e:
@@ -20499,26 +20594,25 @@ async def export_insurance_pricing_template(request: Request):
             ("", ""),
             ("4. TIPO DE PERÍODO", "fixed (para 1-7 dias) ou daily (para 8+ dias)"),
             ("", ""),
-            ("5. MESES SAZONAIS (opcional)", ""),
+            ("5. TEMPORADA (opcional)", ""),
             ("   Deixe vazio para preço ano todo", ""),
-            ("   Meses por ordem:", "January, February, March, April, May, June"),
-            ("", "July, August, September, October, November, December"),
+            ("   Temporadas disponíveis:", "High, Mid, Low"),
             ("", ""),
             ("6. PREÇO DIÁRIO", "Valor em euros (ex: 5.00)"),
             ("", ""),
-            ("COMO PREENCHER MÚLTIPLOS MESES:", ""),
-            ("   Para aplicar o mesmo preço em vários meses:", "Crie UMA LINHA para CADA MÊS"),
-            ("   Exemplo: 1 day a €7 em Julho e Agosto:", ""),
-            ("   Linha 1:", "Standard | MDMR | 1 day | fixed | July | 7.00"),
-            ("   Linha 2:", "Standard | MDMR | 1 day | fixed | August | 7.00"),
+            ("COMO PREENCHER MÚLTIPLAS TEMPORADAS:", ""),
+            ("   Para aplicar o mesmo preço em várias temporadas:", "Crie UMA LINHA para CADA TEMPORADA"),
+            ("   Exemplo: 1 day a €7 em High e Mid:", ""),
+            ("   Linha 1:", "Standard | MDMR | 1 day | fixed | High | 7.00"),
+            ("   Linha 2:", "Standard | MDMR | 1 day | fixed | Mid | 7.00"),
             ("", ""),
             ("IMPORTANTE:", ""),
             ("- Preencha a aba 'Preços' com os dados", ""),
             ("- Não altere os cabeçalhos das colunas", ""),
             ("- Use os valores EXATOS listados acima", ""),
-            ("- Para preços ano todo, deixe 'Mês Sazonal' vazio", ""),
-            ("- Para múltiplos meses, crie uma linha por mês", ""),
-            ("- Os meses devem estar em inglês", ""),
+            ("- Para preços ano todo, deixe 'Temporada' vazio", ""),
+            ("- Para múltiplas temporadas, crie uma linha por temporada", ""),
+            ("- As temporadas devem ser: High, Mid ou Low", ""),
         ]
         
         row = 3
@@ -20535,8 +20629,8 @@ async def export_insurance_pricing_template(request: Request):
         # Pricing sheet
         ws_pricing = wb.create_sheet("Preços")
         
-        headers = ['category', 'vehicle_group', 'period', 'period_type', 'seasonal_month', 'insurance_price']
-        header_names = ['Categoria', 'Grupo Veículo', 'Período', 'Tipo Período', 'Mês Sazonal', 'Preço Diário (€)']
+        headers = ['category', 'vehicle_group', 'period', 'period_type', 'season', 'insurance_price']
+        header_names = ['Categoria', 'Grupo Veículo', 'Período', 'Tipo Período', 'Temporada', 'Preço Diário (€)']
         
         for col, (header, name) in enumerate(zip(headers, header_names), 1):
             cell = ws_pricing.cell(row=1, column=col)
@@ -20558,7 +20652,7 @@ async def export_insurance_pricing_template(request: Request):
                                    WHEN period IN ('1 day', '2 days', '3 days', '4 days', '5 days', '6 days', '7 days') THEN 'fixed'
                                    ELSE 'daily'
                                END as period_type,
-                               seasonal_month, insurance_price
+                               season, insurance_price
                         FROM abbycar_insurance_pricing
                         ORDER BY category, vehicle_group, 
                                  CASE period
@@ -20576,7 +20670,7 @@ async def export_insurance_pricing_template(request: Request):
                                      WHEN '22-28 days' THEN 22
                                      ELSE 99
                                  END,
-                                 seasonal_month NULLS LAST
+                                 season NULLS LAST
                     """)
                     existing_prices = cur.fetchall()
             else:
@@ -20587,9 +20681,9 @@ async def export_insurance_pricing_template(request: Request):
                                WHEN period IN ('1 day', '2 days', '3 days', '4 days', '5 days', '6 days', '7 days') THEN 'fixed'
                                ELSE 'daily'
                            END as period_type,
-                           seasonal_month, insurance_price
+                           season, insurance_price
                     FROM abbycar_insurance_pricing
-                    ORDER BY category, vehicle_group, period, seasonal_month
+                    ORDER BY category, vehicle_group, period, season
                 """)
                 existing_prices = cur.fetchall()
         finally:
@@ -20610,12 +20704,12 @@ async def export_insurance_pricing_template(request: Request):
                 ["Standard", "MDMR", "2 days", "fixed", "", "5.00"],
                 ["Standard", "MDMR", "3 days", "fixed", "", "5.00"],
                 ["Standard", "MDMR", "8-10 days", "daily", "", "4.50"],
-                ["Standard", "MDMR", "1 day", "fixed", "July", "7.00"],
-                ["Standard", "MDMR", "1 day", "fixed", "August", "7.00"],
-                ["Standard", "MDMR", "2 days", "fixed", "July", "7.00"],
-                ["Standard", "MDMR", "2 days", "fixed", "August", "7.00"],
+                ["Standard", "MDMR", "1 day", "fixed", "High", "7.00"],
+                ["Standard", "MDMR", "1 day", "fixed", "Mid", "6.00"],
+                ["Standard", "MDMR", "2 days", "fixed", "High", "7.00"],
+                ["Standard", "MDMR", "2 days", "fixed", "Low", "5.50"],
                 ["Comfort", "CDMR", "1 day", "fixed", "", "6.00"],
-                ["Comfort", "CDMR", "1 day", "fixed", "December", "8.00"],
+                ["Comfort", "CDMR", "1 day", "fixed", "High", "8.00"],
             ]
             
             for row_idx, example in enumerate(examples, 2):
@@ -20671,7 +20765,7 @@ async def import_insurance_pricing(request: Request):
         ws = wb['Preços']
         
         # Validate headers
-        expected_headers = ['Categoria', 'Grupo Veículo', 'Período', 'Tipo Período', 'Mês Sazonal', 'Preço Diário (€)']
+        expected_headers = ['Categoria', 'Grupo Veículo', 'Período', 'Tipo Período', 'Temporada', 'Preço Diário (€)']
         actual_headers = [cell.value for cell in ws[1]]
         
         if actual_headers != expected_headers:
@@ -20685,7 +20779,7 @@ async def import_insurance_pricing(request: Request):
         errors = []
         
         for row_idx, row in enumerate(ws.iter_rows(min_row=2, values_only=True), 2):
-            category, vehicle_group, period, period_type, seasonal_month, insurance_price = row
+            category, vehicle_group, period, period_type, season, insurance_price = row
             
             # Skip empty rows
             if not category or not vehicle_group or not insurance_price:
@@ -20693,7 +20787,7 @@ async def import_insurance_pricing(request: Request):
             
             # Convert empty strings to None
             period = period if period else None
-            seasonal_month = seasonal_month if seasonal_month else None
+            season = season if season else None
             
             try:
                 insurance_price = float(insurance_price)
@@ -20702,20 +20796,20 @@ async def import_insurance_pricing(request: Request):
                     with conn.cursor() as cur:
                         cur.execute("""
                             INSERT INTO abbycar_insurance_pricing 
-                            (vehicle_group, period, period_type, seasonal_month, insurance_price, category, created_at, updated_at)
+                            (vehicle_group, period, period_type, season, insurance_price, category, created_at, updated_at)
                             VALUES (%s, %s, %s, %s, %s, %s, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
-                            ON CONFLICT (vehicle_group, period, seasonal_month, category)
+                            ON CONFLICT (vehicle_group, period, season, category)
                             DO UPDATE SET 
                                 insurance_price = EXCLUDED.insurance_price,
                                 period_type = EXCLUDED.period_type,
                                 updated_at = CURRENT_TIMESTAMP
-                        """, (vehicle_group, period, period_type, seasonal_month, insurance_price, category))
+                        """, (vehicle_group, period, period_type, season, insurance_price, category))
                 else:
                     conn.execute("""
                         INSERT OR REPLACE INTO abbycar_insurance_pricing 
-                        (vehicle_group, period, period_type, seasonal_month, insurance_price, category, created_at, updated_at)
+                        (vehicle_group, period, period_type, season, insurance_price, category, created_at, updated_at)
                         VALUES (?, ?, ?, ?, ?, ?, datetime('now'), datetime('now'))
-                    """, (vehicle_group, period, period_type, seasonal_month, insurance_price, category))
+                    """, (vehicle_group, period, period_type, season, insurance_price, category))
                 
                 success_count += 1
             except Exception as e:
