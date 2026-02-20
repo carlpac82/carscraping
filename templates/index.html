@@ -1945,10 +1945,10 @@
             return data;
         }
 
-        // Enviar dados para backend gerar Excel com formatação
+        // Enviar dados para backend gerar Excel com formatação (4 sheets: Light, Standard, Comfort, Premium)
         async function downloadAbbycarExcel(data, location, startDate, endDate, month, lastDay) {
             try {
-                const response = await fetch('/api/export-abbycar-excel', {
+                const response = await fetch('/api/export-automated-prices-excel', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({
