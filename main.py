@@ -52286,6 +52286,11 @@ async def _save_rental_agreement_to_db(result: dict, pdf_bytes: bytes, pdf_filen
         if result["license_plate"]:
             conn = _db_connect()
             is_postgres = _is_postgresql_connection(conn)
+            
+            # Normalize plate for comparison (remove spaces and hyphens)
+            normalized_plate = result["license_plate"].replace(" ", "").replace("-", "").upper()
+            logging.info(f"🔍 Looking for plate: '{result['license_plate']}' (normalized: '{normalized_plate}')")
+            
             try:
                 if is_postgres:
                     with conn.cursor() as cur:
@@ -52293,16 +52298,16 @@ async def _save_rental_agreement_to_db(result: dict, pdf_bytes: bytes, pdf_filen
                             SELECT id, matricula, grupo, marca, modelo, tipo_combustivel, 
                                    nivel_combustivel, km_atual, status
                             FROM vehicles
-                            WHERE UPPER(matricula) = UPPER(%s)
-                        """, (result["license_plate"],))
+                            WHERE REPLACE(REPLACE(UPPER(matricula), ' ', ''), '-', '') = %s
+                        """, (normalized_plate,))
                         vehicle_row = cur.fetchone()
                 else:
                     cursor = conn.execute("""
                         SELECT id, matricula, grupo, marca, modelo, tipo_combustivel, 
                                nivel_combustivel, km_atual, status
                         FROM vehicles
-                        WHERE UPPER(matricula) = UPPER(?)
-                    """, (result["license_plate"],))
+                        WHERE REPLACE(REPLACE(UPPER(matricula), ' ', ''), '-', '') = ?
+                    """, (normalized_plate,))
                     vehicle_row = cursor.fetchone()
                 
                 if vehicle_row:
