@@ -49975,17 +49975,17 @@ async def add_abbycar_insurance_unique_constraint(request: Request):
                     constraints = [row[0] for row in cur.fetchall()]
                     logging.info(f"📋 [MIGRATION] Existing constraints: {constraints}")
                     
-                    # Drop old constraint if exists (without category)
-                    if 'abbycar_insurance_unique' in constraints:
+                    # Drop ALL old constraints
+                    for constraint in constraints:
                         try:
-                            cur.execute("ALTER TABLE abbycar_insurance_pricing DROP CONSTRAINT abbycar_insurance_unique")
+                            cur.execute(f"ALTER TABLE abbycar_insurance_pricing DROP CONSTRAINT {constraint}")
                             conn.commit()
-                            logging.info("🗑️ [MIGRATION] Dropped old UNIQUE constraint")
+                            logging.info(f"🗑️ [MIGRATION] Dropped constraint: {constraint}")
                         except Exception as e:
-                            logging.warning(f"⚠️ [MIGRATION] Could not drop old constraint: {e}")
+                            logging.warning(f"⚠️ [MIGRATION] Could not drop constraint {constraint}: {e}")
                             conn.rollback()
                     
-                    # Try to add the new constraint with category
+                    # Try to add the new constraint with all columns
                     try:
                         cur.execute("""
                             ALTER TABLE abbycar_insurance_pricing 
@@ -49993,10 +49993,10 @@ async def add_abbycar_insurance_unique_constraint(request: Request):
                             UNIQUE (vehicle_group, period, seasonal_month, category)
                         """)
                         conn.commit()
-                        logging.info("✅ [MIGRATION] Added UNIQUE constraint with category")
+                        logging.info("✅ [MIGRATION] Added UNIQUE constraint with all columns")
                         return JSONResponse({
                             "ok": True,
-                            "message": "UNIQUE constraint added successfully (with category)"
+                            "message": "UNIQUE constraint added successfully (vehicle_group, period, seasonal_month, category)"
                         })
                     except Exception as e:
                         if "already exists" in str(e).lower():
