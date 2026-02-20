@@ -448,25 +448,45 @@
           
           sorted.forEach(entry => {
             const monthDisplay = entry.month === 'Ano todo' ? 'Ano todo' : (monthNames[entry.month] || entry.month);
-            const periodDisplay = entry.periods.length > 1 ? 
-              entry.periods[0].replace(' days', '').replace(' day', '') + ' - ' + entry.periods[entry.periods.length-1].replace(' days', '').replace(' day', '') + ' dias' :
-              entry.periods[0];
             
-            html += '<div class="relative bg-gradient-to-br from-gray-50 to-gray-100 rounded-lg p-4 border border-gray-200 hover:border-[#009cb6] transition-all group">';
-            html += '<div class="flex items-start justify-between mb-2">';
-            html += '<div class="flex items-center gap-2">';
-            html += '<input type="checkbox" class="price-checkbox rounded text-[#009cb6] focus:ring-[#009cb6]" data-id="' + entry.ids.join(',') + '" data-group="' + group + '">';
-            html += '<div>';
-            html += '<div class="text-xs font-medium text-gray-500 uppercase tracking-wide">' + monthDisplay + '</div>';
-            html += '<div class="text-sm text-gray-600 mt-0.5">' + periodDisplay + '</div>';
-            html += '</div></div>';
-            html += '<button onclick="deleteMultiple([' + entry.ids.join(',') + '], \'' + group + '\', \'' + monthDisplay + '\')" class="opacity-0 group-hover:opacity-100 transition-opacity text-red-500 hover:text-red-700 p-1">';
+            // Better period display
+            let periodDisplay = '';
+            if (entry.periods.length > 1) {
+              const first = entry.periods[0].replace(' days', '').replace(' day', '');
+              const last = entry.periods[entry.periods.length-1].replace(' days', '').replace(' day', '');
+              periodDisplay = first + ' - ' + last + ' dias';
+            } else {
+              periodDisplay = entry.periods[0];
+            }
+            
+            html += '<div class="relative bg-white rounded-lg p-4 border-2 border-gray-200 hover:border-[#009cb6] hover:shadow-lg transition-all group">';
+            
+            // Header with checkbox and delete
+            html += '<div class="flex items-center justify-between mb-3">';
+            html += '<input type="checkbox" class="price-checkbox rounded text-[#009cb6] focus:ring-[#009cb6] w-4 h-4" data-id="' + entry.ids.join(',') + '" data-group="' + group + '">';
+            html += '<button onclick="deleteMultiple([' + entry.ids.join(',') + '], \'' + group + '\', \'' + monthDisplay + '\')" class="opacity-0 group-hover:opacity-100 transition-opacity text-gray-400 hover:text-red-600 p-1.5 rounded hover:bg-red-50">';
             html += '<svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>';
             html += '</button></div>';
-            html += '<div class="flex items-baseline gap-1 mt-3">';
-            html += '<span class="text-3xl font-bold text-[#009cb6]">€' + entry.price + '</span>';
-            html += '<span class="text-sm text-gray-500">/dia</span>';
+            
+            // Month badge
+            html += '<div class="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-semibold bg-[#009cb6]/10 text-[#009cb6] mb-3">';
+            html += monthDisplay;
+            html += '</div>';
+            
+            // Period info
+            html += '<div class="mb-3">';
+            html += '<div class="text-xs text-gray-500 uppercase tracking-wider mb-1">Período</div>';
+            html += '<div class="text-sm font-medium text-gray-900">' + periodDisplay + '</div>';
+            html += '</div>';
+            
+            // Price - prominent
+            html += '<div class="pt-3 border-t border-gray-100">';
+            html += '<div class="flex items-baseline gap-1">';
+            html += '<span class="text-3xl font-bold text-gray-900">€' + entry.price + '</span>';
+            html += '<span class="text-sm text-gray-500 font-medium">/dia</span>';
             html += '</div></div>';
+            
+            html += '</div>';
           });
           
           html += '</div></div></div>';
@@ -582,7 +602,7 @@
         const submitBtn = document.querySelector('button[type="submit"]');
         const originalBtnText = submitBtn.innerHTML;
         submitBtn.disabled = true;
-        submitBtn.innerHTML = '<svg class="animate-spin h-5 w-5 inline mr-2" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>A guardar...';
+        submitBtn.innerHTML = '<svg class="animate-spin h-4 w-4 inline mr-2" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor"><circle class="opacity-25" cx="12" cy="12" r="10" stroke-width="3"></circle><path class="opacity-75" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" fill="currentColor"></path></svg>A guardar...';
         
         try {
           // Build array of all price entries to insert
