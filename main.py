@@ -57398,7 +57398,7 @@ async def copy_inspection_data(request: Request):
         # 1. Find source inspection (RA 06850 check-in)
         with conn.cursor() as cur:
             cur.execute("""
-                SELECT id, inspection_number, damage_croqui_base64
+                SELECT id, inspection_number
                 FROM vehicle_inspections
                 WHERE contract_number LIKE '06850%'
                   AND inspection_type = 'checkin'
@@ -57414,7 +57414,7 @@ async def copy_inspection_data(request: Request):
                     "error": "Source inspection (RA 06850 check-in) not found"
                 }, status_code=404)
             
-            source_id, source_number, source_croqui = source_inspection
+            source_id, source_number = source_inspection
             logging.info(f"✅ Found source inspection: {source_number} (ID: {source_id})")
             
             # 2. Find target inspection (RA 06876-09 latest)
@@ -57436,18 +57436,9 @@ async def copy_inspection_data(request: Request):
             target_id, target_number = target_inspection
             logging.info(f"✅ Found target inspection: {target_number} (ID: {target_id})")
             
-            # 3. Copy croqui
-            if source_croqui:
-                cur.execute("""
-                    UPDATE vehicle_inspections
-                    SET damage_croqui_base64 = %s
-                    WHERE id = %s
-                """, (source_croqui, target_id))
-                logging.info(f"✅ Copied croqui from {source_number} to {target_number}")
-            
-            # 4. Copy photos
+            # 3. Copy all photos including croqui from inspection_photos table
             cur.execute("""
-                SELECT photo_base64, photo_type, photo_order, damage_id
+                SELECT image_data, photo_type, photo_order, damage_id
                 FROM inspection_photos
                 WHERE inspection_id = %s
                 ORDER BY photo_order
@@ -57462,11 +57453,16 @@ async def copy_inspection_data(request: Request):
                 # Insert copied photos
                 for photo in photos:
                     cur.execute("""
-                        INSERT INTO inspection_photos (inspection_id, photo_base64, photo_type, photo_order, damage_id)
+                        INSERT INTO inspection_photos (inspection_id, image_data, photo_type, photo_order, damage_id)
                         VALUES (%s, %s, %s, %s, %s)
                     """, (target_id, photo[0], photo[1], photo[2], photo[3]))
                 
                 logging.info(f"✅ Copied {len(photos)} photos from {source_number} to {target_number}")
+                
+                # Check if croqui was copied
+                croqui_copied = any(photo[1] == 'damage_croqui' for photo in photos)
+            else:
+                croqui_copied = False
             
             # 5. Update inspector name and time
             cur.execute("""
@@ -57495,7 +57491,7 @@ async def copy_inspection_data(request: Request):
             "source_inspection": source_number,
             "target_inspection": target_number,
             "photos_copied": len(photos) if photos else 0,
-            "croqui_copied": bool(source_croqui)
+            "croqui_copied": croqui_copied
         })
         
     except Exception as e:
