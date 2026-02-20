@@ -96,10 +96,23 @@
               </select>
             </div>
           </div>
+          <div class="mb-4">
+            <label class="block text-sm font-medium text-gray-700 mb-2">Tipo de Preço</label>
+            <div class="flex gap-4">
+              <label class="flex items-center cursor-pointer">
+                <input type="radio" name="pricingType" value="period" class="mr-2" checked onchange="togglePricingType()">
+                <span class="text-sm">Por Período de Dias</span>
+              </label>
+              <label class="flex items-center cursor-pointer">
+                <input type="radio" name="pricingType" value="seasonal" class="mr-2" onchange="togglePricingType()">
+                <span class="text-sm">Por Mês Sazonal</span>
+              </label>
+            </div>
+          </div>
           <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div>
+            <div id="periodContainer">
               <label class="block text-sm font-medium text-gray-700 mb-1">Período</label>
-              <select id="period" class="w-full rounded-md border-gray-300 shadow-sm focus:border-[#009cb6] focus:ring-2 focus:ring-[#009cb6] p-2 border" required>
+              <select id="period" class="w-full rounded-md border-gray-300 shadow-sm focus:border-[#009cb6] focus:ring-2 focus:ring-[#009cb6] p-2 border">
                 <optgroup label="Fixo (Fixed)">
                   <option value="1 day" data-type="fixed">1 dia</option>
                   <option value="2 days" data-type="fixed">2 dias</option>
@@ -118,10 +131,31 @@
                 </optgroup>
               </select>
             </div>
+            <div id="seasonalContainer" style="display: none;">
+              <label class="block text-sm font-medium text-gray-700 mb-1">Mês Sazonal</label>
+              <select id="seasonalMonth" class="w-full rounded-md border-gray-300 shadow-sm focus:border-[#009cb6] focus:ring-2 focus:ring-[#009cb6] p-2 border">
+                <option value="">Selecione o mês...</option>
+                <option value="January">Janeiro</option>
+                <option value="February">Fevereiro</option>
+                <option value="March">Março</option>
+                <option value="April">Abril</option>
+                <option value="May">Maio</option>
+                <option value="June">Junho</option>
+                <option value="July">Julho</option>
+                <option value="August">Agosto</option>
+                <option value="September">Setembro</option>
+                <option value="October">Outubro</option>
+                <option value="November">Novembro</option>
+                <option value="December">Dezembro</option>
+              </select>
+            </div>
+          </div>
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
               <label class="block text-sm font-medium text-gray-700 mb-1">Preço Diário (€)</label>
               <input type="number" id="insurancePrice" placeholder="0.00" step="0.01" min="0" class="w-full rounded-md border-gray-300 shadow-sm focus:border-[#009cb6] focus:ring-2 focus:ring-[#009cb6] p-2 border" required />
-              <p class="text-xs text-gray-500 mt-1">Para períodos fixos: multiplica pelo nº de dias. Para diária: multiplica pelo máximo do intervalo.</p>
+              <p id="priceHintPeriod" class="text-xs text-gray-500 mt-1">Para períodos fixos: multiplica pelo nº de dias. Para diária: multiplica pelo máximo do intervalo.</p>
+              <p id="priceHintSeasonal" class="text-xs text-gray-500 mt-1" style="display: none;">Preço diário aplicado durante todo o mês selecionado.</p>
             </div>
           </div>
           <button type="submit" class="px-4 py-2 bg-[#009cb6] text-white rounded hover:bg-[#0086a1] transition-colors">
@@ -176,6 +210,30 @@
     </main>
 
     <script>
+      function togglePricingType() {
+        const pricingType = document.querySelector('input[name="pricingType"]:checked').value;
+        const periodContainer = document.getElementById('periodContainer');
+        const seasonalContainer = document.getElementById('seasonalContainer');
+        const priceHintPeriod = document.getElementById('priceHintPeriod');
+        const priceHintSeasonal = document.getElementById('priceHintSeasonal');
+        
+        if (pricingType === 'period') {
+          periodContainer.style.display = 'block';
+          seasonalContainer.style.display = 'none';
+          priceHintPeriod.style.display = 'block';
+          priceHintSeasonal.style.display = 'none';
+          document.getElementById('period').required = true;
+          document.getElementById('seasonalMonth').required = false;
+        } else {
+          periodContainer.style.display = 'none';
+          seasonalContainer.style.display = 'block';
+          priceHintPeriod.style.display = 'none';
+          priceHintSeasonal.style.display = 'block';
+          document.getElementById('period').required = false;
+          document.getElementById('seasonalMonth').required = true;
+        }
+      }
+
       function showAlert(message, type = 'success') {
         const alertContainer = document.getElementById('alertContainer');
         const alertClass = type === 'success' ? 'alert-success' : 'alert-error';
@@ -234,15 +292,33 @@
           'Premium': 'purple'
         }[pricing.category];
         
-        const periodTypeLabel = pricing.period_type === 'fixed' ? 'Fixo' : 'Diária';
+        const monthNames = {
+          'January': 'Janeiro', 'February': 'Fevereiro', 'March': 'Março',
+          'April': 'Abril', 'May': 'Maio', 'June': 'Junho',
+          'July': 'Julho', 'August': 'Agosto', 'September': 'Setembro',
+          'October': 'Outubro', 'November': 'Novembro', 'December': 'Dezembro'
+        };
+        
+        let periodLabel = '';
+        let typeLabel = '';
+        
+        if (pricing.seasonal_month) {
+          periodLabel = monthNames[pricing.seasonal_month] || pricing.seasonal_month;
+          typeLabel = 'Sazonal';
+        } else {
+          periodLabel = pricing.period;
+          typeLabel = pricing.period_type === 'fixed' ? 'Fixo' : 'Diária';
+        }
+        
+        const displayText = pricing.seasonal_month || pricing.period;
         
         return `
           <div class="border border-gray-200 rounded-lg p-3 flex items-center justify-between hover:border-${categoryColor}-300 transition-colors">
             <div>
-              <p class="font-semibold text-gray-800">${pricing.vehicle_group} - ${pricing.period}</p>
-              <p class="text-sm text-gray-600">€${pricing.insurance_price.toFixed(2)}/dia <span class="text-xs text-gray-500">(${periodTypeLabel})</span></p>
+              <p class="font-semibold text-gray-800">${pricing.vehicle_group} - ${periodLabel}</p>
+              <p class="text-sm text-gray-600">€${pricing.insurance_price.toFixed(2)}/dia <span class="text-xs text-gray-500">(${typeLabel})</span></p>
             </div>
-            <button onclick="deletePricing(${pricing.id}, '${pricing.vehicle_group}', '${pricing.period}')" class="text-red-500 hover:text-red-700 p-1">
+            <button onclick="deletePricing(${pricing.id}, '${pricing.vehicle_group}', '${displayText}')" class="text-red-500 hover:text-red-700 p-1">
               <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/>
               </svg>
@@ -279,18 +355,33 @@
         
         const category = document.getElementById('category').value;
         const vehicleGroup = document.getElementById('vehicleGroup').value;
-        const periodSelect = document.getElementById('period');
-        const period = periodSelect.value;
-        const periodType = periodSelect.options[periodSelect.selectedIndex].getAttribute('data-type');
+        const pricingType = document.querySelector('input[name="pricingType"]:checked').value;
         const insurancePrice = parseFloat(document.getElementById('insurancePrice').value);
+        
+        let period = null;
+        let periodType = null;
+        let seasonalMonth = null;
+        
+        if (pricingType === 'period') {
+          const periodSelect = document.getElementById('period');
+          period = periodSelect.value;
+          periodType = periodSelect.options[periodSelect.selectedIndex].getAttribute('data-type');
+          
+          if (!period) {
+            showAlert('Por favor, selecione o período', 'error');
+            return;
+          }
+        } else {
+          seasonalMonth = document.getElementById('seasonalMonth').value;
+          
+          if (!seasonalMonth) {
+            showAlert('Por favor, selecione o mês sazonal', 'error');
+            return;
+          }
+        }
         
         if (!vehicleGroup) {
           showAlert('Por favor, selecione o grupo do veículo', 'error');
-          return;
-        }
-        
-        if (!period) {
-          showAlert('Por favor, selecione o período', 'error');
           return;
         }
         
@@ -299,19 +390,26 @@
           return;
         }
         
+        const requestBody = {
+          category,
+          vehicle_group: vehicleGroup,
+          insurance_price: insurancePrice
+        };
+        
+        if (pricingType === 'period') {
+          requestBody.period = period;
+          requestBody.period_type = periodType;
+        } else {
+          requestBody.seasonal_month = seasonalMonth;
+        }
+        
         try {
           const response = await fetch('/api/abbycar-insurance-pricing', {
             method: 'POST',
             headers: {
               'Content-Type': 'application/json'
             },
-            body: JSON.stringify({
-              category,
-              vehicle_group: vehicleGroup,
-              period,
-              period_type: periodType,
-              insurance_price: insurancePrice
-            })
+            body: JSON.stringify(requestBody)
           });
           
           const data = await response.json();

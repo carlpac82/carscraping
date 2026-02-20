@@ -4032,19 +4032,21 @@ def init_db():
                 CREATE TABLE IF NOT EXISTS abbycar_insurance_pricing (
                   id SERIAL PRIMARY KEY,
                   vehicle_group TEXT NOT NULL,
-                  period TEXT NOT NULL,
-                  period_type TEXT NOT NULL DEFAULT 'fixed',
+                  period TEXT,
+                  period_type TEXT DEFAULT 'fixed',
+                  seasonal_month TEXT,
                   insurance_price REAL NOT NULL DEFAULT 0.00,
                   category TEXT NOT NULL DEFAULT 'Standard',
                   created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
                   updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
-                  UNIQUE(vehicle_group, period)
+                  UNIQUE(vehicle_group, period, seasonal_month)
                 )
                 """
             )
             safe_create_index(conn, "CREATE INDEX IF NOT EXISTS idx_abbycar_insurance_group ON abbycar_insurance_pricing(vehicle_group)", "idx_abbycar_insurance_group")
             safe_create_index(conn, "CREATE INDEX IF NOT EXISTS idx_abbycar_insurance_category ON abbycar_insurance_pricing(category)", "idx_abbycar_insurance_category")
             safe_create_index(conn, "CREATE INDEX IF NOT EXISTS idx_abbycar_insurance_period ON abbycar_insurance_pricing(period)", "idx_abbycar_insurance_period")
+            safe_create_index(conn, "CREATE INDEX IF NOT EXISTS idx_abbycar_insurance_seasonal ON abbycar_insurance_pricing(seasonal_month)", "idx_abbycar_insurance_seasonal")
             
             # Tabela para OAuth Tokens (Gmail, etc)
             conn.execute(
@@ -20260,16 +20262,16 @@ async def get_abbycar_insurance_pricing(request: Request):
         if is_postgres:
             with conn.cursor() as cur:
                 cur.execute("""
-                    SELECT id, vehicle_group, period, period_type, insurance_price, category, created_at, updated_at
+                    SELECT id, vehicle_group, period, period_type, seasonal_month, insurance_price, category, created_at, updated_at
                     FROM abbycar_insurance_pricing
-                    ORDER BY category, vehicle_group, period
+                    ORDER BY category, vehicle_group, period, seasonal_month
                 """)
                 rows = cur.fetchall()
         else:
             cursor = conn.execute("""
-                SELECT id, vehicle_group, period, period_type, insurance_price, category, created_at, updated_at
+                SELECT id, vehicle_group, period, period_type, seasonal_month, insurance_price, category, created_at, updated_at
                 FROM abbycar_insurance_pricing
-                ORDER BY category, vehicle_group, period
+                ORDER BY category, vehicle_group, period, seasonal_month
             """)
             rows = cursor.fetchall()
         
@@ -20280,10 +20282,11 @@ async def get_abbycar_insurance_pricing(request: Request):
                 "vehicle_group": row[1],
                 "period": row[2],
                 "period_type": row[3],
-                "insurance_price": row[4],
-                "category": row[5],
-                "created_at": row[6],
-                "updated_at": row[7]
+                "seasonal_month": row[4],
+                "insurance_price": row[5],
+                "category": row[6],
+                "created_at": row[7],
+                "updated_at": row[8]
             })
         
         conn.close()
@@ -20300,22 +20303,29 @@ async def create_abbycar_insurance_pricing(request: Request):
         data = await request.json()
         
         vehicle_group = data.get("vehicle_group", "").strip().upper()
-        period = data.get("period", "").strip()
-        period_type = data.get("period_type", "fixed")
+        period = data.get("period", "").strip() if data.get("period") else None
+        period_type = data.get("period_type", "fixed") if period else None
+        seasonal_month = data.get("seasonal_month", "").strip() if data.get("seasonal_month") else None
         insurance_price = float(data.get("insurance_price", 0))
         category = data.get("category", "Standard")
         
         if not vehicle_group:
             return JSONResponse({"ok": False, "error": "Vehicle group is required"}, status_code=400)
         
-        if not period:
-            return JSONResponse({"ok": False, "error": "Period is required"}, status_code=400)
+        if not period and not seasonal_month:
+            return JSONResponse({"ok": False, "error": "Either period or seasonal_month is required"}, status_code=400)
+        
+        if period and seasonal_month:
+            return JSONResponse({"ok": False, "error": "Cannot set both period and seasonal_month"}, status_code=400)
         
         if category not in ["Light", "Standard", "Comfort", "Premium"]:
             return JSONResponse({"ok": False, "error": "Category must be Light, Standard, Comfort, or Premium"}, status_code=400)
         
-        if period_type not in ["fixed", "daily"]:
+        if period_type and period_type not in ["fixed", "daily"]:
             return JSONResponse({"ok": False, "error": "Period type must be fixed or daily"}, status_code=400)
+        
+        if seasonal_month and seasonal_month not in ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"]:
+            return JSONResponse({"ok": False, "error": "Invalid seasonal month"}, status_code=400)
         
         conn = _db_connect()
         is_postgres = _is_postgresql_connection(conn)
@@ -20323,29 +20333,30 @@ async def create_abbycar_insurance_pricing(request: Request):
         if is_postgres:
             with conn.cursor() as cur:
                 cur.execute("""
-                    INSERT INTO abbycar_insurance_pricing (vehicle_group, period, period_type, insurance_price, category, updated_at)
-                    VALUES (%s, %s, %s, %s, %s, NOW())
-                    ON CONFLICT (vehicle_group, period) 
+                    INSERT INTO abbycar_insurance_pricing (vehicle_group, period, period_type, seasonal_month, insurance_price, category, updated_at)
+                    VALUES (%s, %s, %s, %s, %s, %s, NOW())
+                    ON CONFLICT (vehicle_group, period, seasonal_month) 
                     DO UPDATE SET 
                         period_type = EXCLUDED.period_type,
                         insurance_price = EXCLUDED.insurance_price,
                         category = EXCLUDED.category,
                         updated_at = NOW()
                     RETURNING id
-                """, (vehicle_group, period, period_type, insurance_price, category))
+                """, (vehicle_group, period, period_type, seasonal_month, insurance_price, category))
                 result = cur.fetchone()
                 pricing_id = result[0] if result else None
             conn.commit()
         else:
             cursor = conn.execute("""
-                INSERT OR REPLACE INTO abbycar_insurance_pricing (vehicle_group, period, period_type, insurance_price, category, updated_at)
-                VALUES (?, ?, ?, ?, ?, datetime('now'))
-            """, (vehicle_group, period, period_type, insurance_price, category))
+                INSERT OR REPLACE INTO abbycar_insurance_pricing (vehicle_group, period, period_type, seasonal_month, insurance_price, category, updated_at)
+                VALUES (?, ?, ?, ?, ?, ?, datetime('now'))
+            """, (vehicle_group, period, period_type, seasonal_month, insurance_price, category))
             pricing_id = cursor.lastrowid
             conn.commit()
         
         conn.close()
-        logging.info(f"✅ ABBYCAR insurance pricing saved: {vehicle_group} / {period} ({period_type}) = €{insurance_price} ({category})")
+        log_msg = f"✅ ABBYCAR insurance pricing saved: {vehicle_group} / {period or seasonal_month} ({period_type or 'seasonal'}) = €{insurance_price} ({category})"
+        logging.info(log_msg)
         return JSONResponse({"ok": True, "id": pricing_id, "message": "Insurance pricing saved successfully"})
     except Exception as e:
         logging.error(f"Error saving ABBYCAR insurance pricing: {e}")
