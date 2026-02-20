@@ -20383,6 +20383,208 @@ async def delete_abbycar_insurance_pricing(pricing_id: int, request: Request):
         logging.error(f"Error deleting ABBYCAR insurance pricing: {e}")
         return JSONResponse({"ok": False, "error": str(e)}, status_code=500)
 
+@app.get("/api/abbycar-insurance-pricing/export-template")
+async def export_insurance_pricing_template(request: Request):
+    """Export Excel template for insurance pricing with instructions"""
+    require_auth(request)
+    try:
+        from openpyxl import Workbook
+        from openpyxl.styles import Font, PatternFill, Alignment, Border, Side
+        from starlette.responses import Response
+        import io
+        
+        wb = Workbook()
+        
+        # Instructions sheet
+        ws_instructions = wb.active
+        ws_instructions.title = "Instruções"
+        
+        # Header
+        ws_instructions['A1'] = "INSTRUÇÕES PARA PREENCHIMENTO"
+        ws_instructions['A1'].font = Font(size=16, bold=True, color="FFFFFF")
+        ws_instructions['A1'].fill = PatternFill(start_color="009cb6", end_color="009cb6", fill_type="solid")
+        ws_instructions['A1'].alignment = Alignment(horizontal="center", vertical="center")
+        ws_instructions.merge_cells('A1:D1')
+        ws_instructions.row_dimensions[1].height = 30
+        
+        instructions = [
+            ("", ""),
+            ("1. CATEGORIAS", "Light, Standard, Comfort, Premium"),
+            ("", ""),
+            ("2. GRUPOS DE VEÍCULOS (SIPP)", "ECMR, EDMR, CDMR, IDAR, CDAR, MDMR, MDMV, MDAV, EDAR, DFMR, DFMV, IWMV, CFAV, SVMV, SVAR, LVMR, LVMD"),
+            ("", ""),
+            ("3. PERÍODOS", "1 day, 2 days, 3 days, 4 days, 5 days, 6 days, 7 days, 8-10 days, 11-12 days, 13-14 days, 15-21 days, 22-28 days"),
+            ("", ""),
+            ("4. TIPO DE PERÍODO", "fixed (para 1-7 dias) ou daily (para 8+ dias)"),
+            ("", ""),
+            ("5. MESES SAZONAIS (opcional)", "January, February, March, April, May, June, July, August, September, October, November, December"),
+            ("   Deixe vazio para preço ano todo", ""),
+            ("", ""),
+            ("6. PREÇO DIÁRIO", "Valor em euros (ex: 5.00)"),
+            ("", ""),
+            ("IMPORTANTE:", ""),
+            ("- Preencha a aba 'Preços' com os dados", ""),
+            ("- Não altere os cabeçalhos das colunas", ""),
+            ("- Use os valores exatos listados acima", ""),
+            ("- Para preços ano todo, deixe 'seasonal_month' vazio", ""),
+        ]
+        
+        row = 3
+        for label, value in instructions:
+            ws_instructions[f'A{row}'] = label
+            ws_instructions[f'B{row}'] = value
+            if label.startswith(("1.", "2.", "3.", "4.", "5.", "6.", "IMPORTANTE:")):
+                ws_instructions[f'A{row}'].font = Font(bold=True, color="009cb6")
+            row += 1
+        
+        ws_instructions.column_dimensions['A'].width = 35
+        ws_instructions.column_dimensions['B'].width = 80
+        
+        # Pricing sheet
+        ws_pricing = wb.create_sheet("Preços")
+        
+        headers = ['category', 'vehicle_group', 'period', 'period_type', 'seasonal_month', 'insurance_price']
+        header_names = ['Categoria', 'Grupo Veículo', 'Período', 'Tipo Período', 'Mês Sazonal', 'Preço Diário (€)']
+        
+        for col, (header, name) in enumerate(zip(headers, header_names), 1):
+            cell = ws_pricing.cell(row=1, column=col)
+            cell.value = name
+            cell.font = Font(bold=True, color="FFFFFF")
+            cell.fill = PatternFill(start_color="009cb6", end_color="009cb6", fill_type="solid")
+            cell.alignment = Alignment(horizontal="center", vertical="center")
+        
+        # Example rows
+        examples = [
+            ["Standard", "MDMR", "1 day", "fixed", "", "5.00"],
+            ["Standard", "MDMR", "2 days", "fixed", "", "5.00"],
+            ["Standard", "MDMR", "8-10 days", "daily", "", "4.50"],
+            ["Standard", "MDMR", "1 day", "fixed", "July", "7.00"],
+            ["Standard", "MDMR", "1 day", "fixed", "August", "7.00"],
+        ]
+        
+        for row_idx, example in enumerate(examples, 2):
+            for col_idx, value in enumerate(example, 1):
+                cell = ws_pricing.cell(row=row_idx, column=col_idx)
+                cell.value = value
+                cell.fill = PatternFill(start_color="E8F4F8", end_color="E8F4F8", fill_type="solid")
+        
+        # Set column widths
+        ws_pricing.column_dimensions['A'].width = 15
+        ws_pricing.column_dimensions['B'].width = 18
+        ws_pricing.column_dimensions['C'].width = 15
+        ws_pricing.column_dimensions['D'].width = 15
+        ws_pricing.column_dimensions['E'].width = 18
+        ws_pricing.column_dimensions['F'].width = 18
+        
+        # Save to bytes
+        excel_bytes = io.BytesIO()
+        wb.save(excel_bytes)
+        excel_bytes.seek(0)
+        
+        return Response(
+            content=excel_bytes.getvalue(),
+            media_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+            headers={'Content-Disposition': 'attachment; filename="abbycar_insurance_template.xlsx"'}
+        )
+    except Exception as e:
+        import traceback
+        logging.error(f"Error exporting template: {e}")
+        return JSONResponse({"ok": False, "error": str(e), "traceback": traceback.format_exc()}, status_code=500)
+
+@app.post("/api/abbycar-insurance-pricing/import")
+async def import_insurance_pricing(request: Request):
+    """Import insurance pricing from Excel file"""
+    require_auth(request)
+    try:
+        from openpyxl import load_workbook
+        import io
+        
+        form = await request.form()
+        file = form.get('file')
+        
+        if not file:
+            return JSONResponse({"ok": False, "error": "No file provided"}, status_code=400)
+        
+        # Read Excel file
+        contents = await file.read()
+        wb = load_workbook(io.BytesIO(contents))
+        
+        if 'Preços' not in wb.sheetnames:
+            return JSONResponse({"ok": False, "error": "Sheet 'Preços' not found in Excel file"}, status_code=400)
+        
+        ws = wb['Preços']
+        
+        # Validate headers
+        expected_headers = ['Categoria', 'Grupo Veículo', 'Período', 'Tipo Período', 'Mês Sazonal', 'Preço Diário (€)']
+        actual_headers = [cell.value for cell in ws[1]]
+        
+        if actual_headers != expected_headers:
+            return JSONResponse({"ok": False, "error": "Invalid headers. Please use the template."}, status_code=400)
+        
+        conn = _db_connect()
+        is_postgres = _is_postgresql_connection(conn)
+        
+        success_count = 0
+        error_count = 0
+        errors = []
+        
+        for row_idx, row in enumerate(ws.iter_rows(min_row=2, values_only=True), 2):
+            category, vehicle_group, period, period_type, seasonal_month, insurance_price = row
+            
+            # Skip empty rows
+            if not category or not vehicle_group or not insurance_price:
+                continue
+            
+            # Convert empty strings to None
+            period = period if period else None
+            seasonal_month = seasonal_month if seasonal_month else None
+            
+            try:
+                insurance_price = float(insurance_price)
+                
+                if is_postgres:
+                    with conn.cursor() as cur:
+                        cur.execute("""
+                            INSERT INTO abbycar_insurance_pricing 
+                            (vehicle_group, period, period_type, seasonal_month, insurance_price, category, created_at, updated_at)
+                            VALUES (%s, %s, %s, %s, %s, %s, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
+                            ON CONFLICT (vehicle_group, period, seasonal_month, category)
+                            DO UPDATE SET 
+                                insurance_price = EXCLUDED.insurance_price,
+                                period_type = EXCLUDED.period_type,
+                                updated_at = CURRENT_TIMESTAMP
+                        """, (vehicle_group, period, period_type, seasonal_month, insurance_price, category))
+                else:
+                    conn.execute("""
+                        INSERT OR REPLACE INTO abbycar_insurance_pricing 
+                        (vehicle_group, period, period_type, seasonal_month, insurance_price, category, created_at, updated_at)
+                        VALUES (?, ?, ?, ?, ?, ?, datetime('now'), datetime('now'))
+                    """, (vehicle_group, period, period_type, seasonal_month, insurance_price, category))
+                
+                success_count += 1
+            except Exception as e:
+                error_count += 1
+                errors.append(f"Row {row_idx}: {str(e)}")
+                logging.error(f"Error importing row {row_idx}: {e}")
+        
+        conn.commit()
+        conn.close()
+        
+        result = {
+            "ok": True,
+            "success_count": success_count,
+            "error_count": error_count,
+            "errors": errors[:10]  # Limit to first 10 errors
+        }
+        
+        logging.info(f"✅ Insurance pricing imported: {success_count} success, {error_count} errors")
+        return JSONResponse(result)
+        
+    except Exception as e:
+        import traceback
+        logging.error(f"Error importing insurance pricing: {e}")
+        return JSONResponse({"ok": False, "error": str(e), "traceback": traceback.format_exc()}, status_code=500)
+
 @app.get("/api/abbycar-insurance-pricing/by-group/{vehicle_group}")
 async def get_insurance_price_by_group(vehicle_group: str, days: int, request: Request):
     """Get insurance price for a specific vehicle group and number of days"""
