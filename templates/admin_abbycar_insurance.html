@@ -1,0 +1,277 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Admin • ABBYCAR Insurance Pricing</title>
+    <link rel="icon" type="image/png" href="/static/autoprudente-favicon.png?v=2" />
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="/static/i18n.js"></script>
+    <script src="/static/auto-sync.js"></script>
+    <style>
+      img[alt="Profile"], img[src*="profile"], .profile-picture {
+        border-radius: 50% !important;
+      }
+      
+      .alert-success {
+        padding: 1rem;
+        border-radius: 0.5rem;
+        border-left: 4px solid #2563eb;
+        background-color: #eff6ff;
+        display: flex;
+        align-items: flex-start;
+        gap: 0.75rem;
+      }
+      .alert-error {
+        padding: 1rem;
+        border-radius: 0.5rem;
+        border-left: 4px solid #ef4444;
+        background-color: #fef2f2;
+        display: flex;
+        align-items: flex-start;
+        gap: 0.75rem;
+      }
+    </style>
+  </head>
+  <body class="min-h-screen bg-gray-50">
+    <header class="bg-[#009cb6] border-b">
+      <div class="mx-auto max-w-6xl px-4 py-3 flex items-center justify-between">
+        <div class="flex items-center gap-3">
+          <a href="/"><img src="/static/ap-heather.png" alt="Car Rental Tracker" class="h-12 w-auto" /></a>
+        </div>
+        <nav class="flex items-center gap-3">
+          <a href="/" class="p-2 text-white/90 hover:text-white hover:bg-white/10 transition-all rounded" title="Home">
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"/>
+            </svg>
+          </a>
+          <a href="/admin" class="p-2 text-white/90 hover:text-white hover:bg-white/10 transition-all rounded" title="Admin Settings">
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"/>
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/>
+            </svg>
+          </a>
+        </nav>
+      </div>
+    </header>
+    
+    <main class="mx-auto max-w-6xl px-4 py-6">
+      <div class="flex items-center justify-between mb-4">
+        <h2 class="text-lg font-semibold">ABBYCAR Insurance Pricing</h2>
+        <div class="flex items-center gap-2">
+          <a href="/admin/settings" class="px-3 py-2 rounded border border-[#009cb6] text-[#009cb6] text-sm bg-white hover:bg-[#f6b511] hover:border-[#f6b511] hover:text-white transition-colors">Price Adjustment</a>
+          <a href="/admin/abbycar-insurance" class="px-3 py-2 rounded bg-[#009cb6] text-white text-sm border border-[#009cb6] hover:bg-[#0086a1] transition-colors">ABBYCAR</a>
+          <a href="/admin/whatsapp" class="px-3 py-2 rounded border border-[#009cb6] text-[#009cb6] text-sm bg-white hover:bg-[#f6b511] hover:border-[#f6b511] hover:text-white transition-colors">WhatsApp</a>
+          <a href="/admin/users" class="px-3 py-2 rounded border border-[#009cb6] text-[#009cb6] text-sm bg-white hover:bg-[#f6b511] hover:border-[#f6b511] hover:text-white transition-colors">Users</a>
+          <a href="/admin/vehicles" class="px-3 py-2 rounded border border-[#009cb6] text-[#009cb6] text-sm bg-white hover:bg-[#f6b511] hover:border-[#f6b511] hover:text-white transition-colors">Veículos</a>
+          <a href="/admin/contracts" class="px-3 py-2 rounded border border-[#009cb6] text-[#009cb6] text-sm bg-white hover:bg-[#f6b511] hover:border-[#f6b511] hover:text-white transition-colors">Inspeções</a>
+        </div>
+      </div>
+
+      <div id="alertContainer"></div>
+
+      <div class="bg-white rounded shadow p-6 mb-6">
+        <h3 class="text-md font-semibold text-gray-800 mb-4">Adicionar/Editar Preço de Seguro</h3>
+        <form id="insuranceForm" class="space-y-4">
+          <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div>
+              <label class="block text-sm font-medium text-gray-700 mb-1">Categoria</label>
+              <select id="category" class="w-full rounded-md border-gray-300 shadow-sm focus:border-[#009cb6] focus:ring-2 focus:ring-[#009cb6] p-2 border">
+                <option value="Standard">Standard</option>
+                <option value="Comfort">Comfort</option>
+                <option value="Premium">Premium</option>
+              </select>
+            </div>
+            <div>
+              <label class="block text-sm font-medium text-gray-700 mb-1">Grupo do Veículo</label>
+              <input type="text" id="vehicleGroup" placeholder="Ex: A, B, C1, D..." class="w-full rounded-md border-gray-300 shadow-sm focus:border-[#009cb6] focus:ring-2 focus:ring-[#009cb6] p-2 border uppercase" required />
+            </div>
+            <div>
+              <label class="block text-sm font-medium text-gray-700 mb-1">Preço do Seguro (€)</label>
+              <input type="number" id="insurancePrice" placeholder="0.00" step="0.01" min="0" class="w-full rounded-md border-gray-300 shadow-sm focus:border-[#009cb6] focus:ring-2 focus:ring-[#009cb6] p-2 border" required />
+            </div>
+          </div>
+          <button type="submit" class="px-4 py-2 bg-[#009cb6] text-white rounded hover:bg-[#0086a1] transition-colors">
+            Guardar Preço
+          </button>
+        </form>
+      </div>
+
+      <div class="bg-white rounded shadow p-6">
+        <h3 class="text-md font-semibold text-gray-800 mb-4">Preços Configurados</h3>
+        
+        <div class="mb-6">
+          <h4 class="text-sm font-semibold text-gray-700 mb-2 flex items-center gap-2">
+            <span class="w-3 h-3 bg-blue-500 rounded-full"></span>
+            Standard
+          </h4>
+          <div id="standardList" class="grid grid-cols-1 md:grid-cols-3 gap-3">
+            <p class="text-sm text-gray-500 italic">Nenhum grupo configurado</p>
+          </div>
+        </div>
+
+        <div class="mb-6 border-t pt-4">
+          <h4 class="text-sm font-semibold text-gray-700 mb-2 flex items-center gap-2">
+            <span class="w-3 h-3 bg-green-500 rounded-full"></span>
+            Comfort
+          </h4>
+          <div id="comfortList" class="grid grid-cols-1 md:grid-cols-3 gap-3">
+            <p class="text-sm text-gray-500 italic">Nenhum grupo configurado</p>
+          </div>
+        </div>
+
+        <div class="border-t pt-4">
+          <h4 class="text-sm font-semibold text-gray-700 mb-2 flex items-center gap-2">
+            <span class="w-3 h-3 bg-purple-500 rounded-full"></span>
+            Premium
+          </h4>
+          <div id="premiumList" class="grid grid-cols-1 md:grid-cols-3 gap-3">
+            <p class="text-sm text-gray-500 italic">Nenhum grupo configurado</p>
+          </div>
+        </div>
+      </div>
+    </main>
+
+    <script>
+      function showAlert(message, type = 'success') {
+        const alertContainer = document.getElementById('alertContainer');
+        const alertClass = type === 'success' ? 'alert-success' : 'alert-error';
+        const iconPath = type === 'success' 
+          ? 'M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z'
+          : 'M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z';
+        
+        alertContainer.innerHTML = `
+          <div class="${alertClass} mb-4">
+            <svg class="w-5 h-5 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="${iconPath}"/>
+            </svg>
+            <div>
+              <p class="font-semibold">${message}</p>
+            </div>
+          </div>
+        `;
+        
+        setTimeout(() => {
+          alertContainer.innerHTML = '';
+        }, 5000);
+      }
+
+      async function loadPricing() {
+        try {
+          const response = await fetch('/api/abbycar-insurance-pricing');
+          const data = await response.json();
+          
+          if (data.ok) {
+            const standardList = document.getElementById('standardList');
+            const comfortList = document.getElementById('comfortList');
+            const premiumList = document.getElementById('premiumList');
+            
+            const standard = data.data.filter(p => p.category === 'Standard');
+            const comfort = data.data.filter(p => p.category === 'Comfort');
+            const premium = data.data.filter(p => p.category === 'Premium');
+            
+            standardList.innerHTML = standard.length ? standard.map(p => createPriceCard(p)).join('') : '<p class="text-sm text-gray-500 italic">Nenhum grupo configurado</p>';
+            comfortList.innerHTML = comfort.length ? comfort.map(p => createPriceCard(p)).join('') : '<p class="text-sm text-gray-500 italic">Nenhum grupo configurado</p>';
+            premiumList.innerHTML = premium.length ? premium.map(p => createPriceCard(p)).join('') : '<p class="text-sm text-gray-500 italic">Nenhum grupo configurado</p>';
+          }
+        } catch (error) {
+          console.error('Error loading pricing:', error);
+          showAlert('Erro ao carregar preços', 'error');
+        }
+      }
+
+      function createPriceCard(pricing) {
+        const categoryColor = {
+          'Standard': 'blue',
+          'Comfort': 'green',
+          'Premium': 'purple'
+        }[pricing.category];
+        
+        return `
+          <div class="border border-gray-200 rounded-lg p-3 flex items-center justify-between hover:border-${categoryColor}-300 transition-colors">
+            <div>
+              <p class="font-semibold text-gray-800">${pricing.vehicle_group}</p>
+              <p class="text-sm text-gray-600">€${pricing.insurance_price.toFixed(2)}</p>
+            </div>
+            <button onclick="deletePricing(${pricing.id}, '${pricing.vehicle_group}')" class="text-red-500 hover:text-red-700 p-1">
+              <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/>
+              </svg>
+            </button>
+          </div>
+        `;
+      }
+
+      async function deletePricing(id, group) {
+        if (!confirm(`Tem certeza que deseja eliminar o preço para o grupo ${group}?`)) {
+          return;
+        }
+        
+        try {
+          const response = await fetch(`/api/abbycar-insurance-pricing/${id}`, {
+            method: 'DELETE'
+          });
+          const data = await response.json();
+          
+          if (data.ok) {
+            showAlert(`Preço do grupo ${group} eliminado com sucesso!`, 'success');
+            loadPricing();
+          } else {
+            showAlert(data.error || 'Erro ao eliminar preço', 'error');
+          }
+        } catch (error) {
+          console.error('Error deleting pricing:', error);
+          showAlert('Erro ao eliminar preço', 'error');
+        }
+      }
+
+      document.getElementById('insuranceForm').addEventListener('submit', async (e) => {
+        e.preventDefault();
+        
+        const category = document.getElementById('category').value;
+        const vehicleGroup = document.getElementById('vehicleGroup').value.trim().toUpperCase();
+        const insurancePrice = parseFloat(document.getElementById('insurancePrice').value);
+        
+        if (!vehicleGroup) {
+          showAlert('Por favor, insira o grupo do veículo', 'error');
+          return;
+        }
+        
+        if (isNaN(insurancePrice) || insurancePrice < 0) {
+          showAlert('Por favor, insira um preço válido', 'error');
+          return;
+        }
+        
+        try {
+          const response = await fetch('/api/abbycar-insurance-pricing', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+              category,
+              vehicle_group: vehicleGroup,
+              insurance_price: insurancePrice
+            })
+          });
+          
+          const data = await response.json();
+          
+          if (data.ok) {
+            showAlert(`Preço do grupo ${vehicleGroup} guardado com sucesso!`, 'success');
+            document.getElementById('vehicleGroup').value = '';
+            document.getElementById('insurancePrice').value = '';
+            loadPricing();
+          } else {
+            showAlert(data.error || 'Erro ao guardar preço', 'error');
+          }
+        } catch (error) {
+          console.error('Error saving pricing:', error);
+          showAlert('Erro ao guardar preço', 'error');
+        }
+      });
+
+      loadPricing();
+    </script>
+  </body>
+</html>

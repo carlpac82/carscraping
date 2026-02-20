@@ -4026,6 +4026,22 @@ def init_db():
                 """
             )
             
+            # Tabela para ABBYCAR Insurance Pricing
+            conn.execute(
+                """
+                CREATE TABLE IF NOT EXISTS abbycar_insurance_pricing (
+                  id SERIAL PRIMARY KEY,
+                  vehicle_group TEXT NOT NULL UNIQUE,
+                  insurance_price REAL NOT NULL DEFAULT 0.00,
+                  category TEXT NOT NULL DEFAULT 'Standard',
+                  created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+                  updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
+                )
+                """
+            )
+            safe_create_index(conn, "CREATE INDEX IF NOT EXISTS idx_abbycar_insurance_group ON abbycar_insurance_pricing(vehicle_group)", "idx_abbycar_insurance_group")
+            safe_create_index(conn, "CREATE INDEX IF NOT EXISTS idx_abbycar_insurance_category ON abbycar_insurance_pricing(category)", "idx_abbycar_insurance_category")
+            
             # Tabela para OAuth Tokens (Gmail, etc)
             conn.execute(
                 """
@@ -6011,6 +6027,18 @@ async def admin_root(request: Request, section: str = None):
         "request": request,
         "current_user": current_user,
         "section": section or "users"
+    })
+
+@app.get("/admin/abbycar-insurance", response_class=HTMLResponse)
+async def admin_abbycar_insurance_page(request: Request):
+    """ABBYCAR Insurance Pricing Configuration Page"""
+    try:
+        require_admin(request)
+    except HTTPException:
+        return RedirectResponse(url="/login", status_code=HTTP_303_SEE_OTHER)
+    
+    return templates.TemplateResponse("admin_abbycar_insurance.html", {
+        "request": request
     })
 
 @app.get("/admin/whatsapp", response_class=HTMLResponse)
@@ -20215,6 +20243,165 @@ async def get_caralliance_commission(request: Request):
         })
     except Exception as e:
         logging.error(f"Error getting CarAlliance commission: {e}")
+        return JSONResponse({"ok": False, "error": str(e)}, status_code=500)
+
+@app.get("/api/abbycar-insurance-pricing")
+async def get_abbycar_insurance_pricing(request: Request):
+    """Get all ABBYCAR insurance pricing configurations"""
+    try:
+        require_auth(request)
+        conn = _db_connect()
+        is_postgres = _is_postgresql_connection(conn)
+        
+        if is_postgres:
+            with conn.cursor() as cur:
+                cur.execute("""
+                    SELECT id, vehicle_group, insurance_price, category, created_at, updated_at
+                    FROM abbycar_insurance_pricing
+                    ORDER BY category, vehicle_group
+                """)
+                rows = cur.fetchall()
+        else:
+            cursor = conn.execute("""
+                SELECT id, vehicle_group, insurance_price, category, created_at, updated_at
+                FROM abbycar_insurance_pricing
+                ORDER BY category, vehicle_group
+            """)
+            rows = cursor.fetchall()
+        
+        pricing_data = []
+        for row in rows:
+            pricing_data.append({
+                "id": row[0],
+                "vehicle_group": row[1],
+                "insurance_price": row[2],
+                "category": row[3],
+                "created_at": row[4],
+                "updated_at": row[5]
+            })
+        
+        conn.close()
+        return JSONResponse({"ok": True, "data": pricing_data})
+    except Exception as e:
+        logging.error(f"Error getting ABBYCAR insurance pricing: {e}")
+        return JSONResponse({"ok": False, "error": str(e)}, status_code=500)
+
+@app.post("/api/abbycar-insurance-pricing")
+async def create_abbycar_insurance_pricing(request: Request):
+    """Create or update ABBYCAR insurance pricing for a vehicle group"""
+    try:
+        require_auth(request)
+        data = await request.json()
+        
+        vehicle_group = data.get("vehicle_group", "").strip().upper()
+        insurance_price = float(data.get("insurance_price", 0))
+        category = data.get("category", "Standard")
+        
+        if not vehicle_group:
+            return JSONResponse({"ok": False, "error": "Vehicle group is required"}, status_code=400)
+        
+        if category not in ["Standard", "Comfort", "Premium"]:
+            return JSONResponse({"ok": False, "error": "Category must be Standard, Comfort, or Premium"}, status_code=400)
+        
+        conn = _db_connect()
+        is_postgres = _is_postgresql_connection(conn)
+        
+        if is_postgres:
+            with conn.cursor() as cur:
+                cur.execute("""
+                    INSERT INTO abbycar_insurance_pricing (vehicle_group, insurance_price, category, updated_at)
+                    VALUES (%s, %s, %s, NOW())
+                    ON CONFLICT (vehicle_group) 
+                    DO UPDATE SET 
+                        insurance_price = EXCLUDED.insurance_price,
+                        category = EXCLUDED.category,
+                        updated_at = NOW()
+                    RETURNING id
+                """, (vehicle_group, insurance_price, category))
+                result = cur.fetchone()
+                pricing_id = result[0] if result else None
+            conn.commit()
+        else:
+            cursor = conn.execute("""
+                INSERT OR REPLACE INTO abbycar_insurance_pricing (vehicle_group, insurance_price, category, updated_at)
+                VALUES (?, ?, ?, datetime('now'))
+            """, (vehicle_group, insurance_price, category))
+            pricing_id = cursor.lastrowid
+            conn.commit()
+        
+        conn.close()
+        logging.info(f"✅ ABBYCAR insurance pricing saved: {vehicle_group} = €{insurance_price} ({category})")
+        return JSONResponse({"ok": True, "id": pricing_id, "message": "Insurance pricing saved successfully"})
+    except Exception as e:
+        logging.error(f"Error saving ABBYCAR insurance pricing: {e}")
+        return JSONResponse({"ok": False, "error": str(e)}, status_code=500)
+
+@app.delete("/api/abbycar-insurance-pricing/{pricing_id}")
+async def delete_abbycar_insurance_pricing(pricing_id: int, request: Request):
+    """Delete ABBYCAR insurance pricing configuration"""
+    try:
+        require_auth(request)
+        conn = _db_connect()
+        is_postgres = _is_postgresql_connection(conn)
+        
+        if is_postgres:
+            with conn.cursor() as cur:
+                cur.execute("DELETE FROM abbycar_insurance_pricing WHERE id = %s", (pricing_id,))
+            conn.commit()
+        else:
+            conn.execute("DELETE FROM abbycar_insurance_pricing WHERE id = ?", (pricing_id,))
+            conn.commit()
+        
+        conn.close()
+        logging.info(f"✅ ABBYCAR insurance pricing deleted: ID {pricing_id}")
+        return JSONResponse({"ok": True, "message": "Insurance pricing deleted successfully"})
+    except Exception as e:
+        logging.error(f"Error deleting ABBYCAR insurance pricing: {e}")
+        return JSONResponse({"ok": False, "error": str(e)}, status_code=500)
+
+@app.get("/api/abbycar-insurance-pricing/by-group/{vehicle_group}")
+async def get_insurance_price_by_group(vehicle_group: str, request: Request):
+    """Get insurance price for a specific vehicle group"""
+    try:
+        require_auth(request)
+        conn = _db_connect()
+        is_postgres = _is_postgresql_connection(conn)
+        
+        normalized_group = vehicle_group.strip().upper()
+        
+        if is_postgres:
+            with conn.cursor() as cur:
+                cur.execute("""
+                    SELECT insurance_price, category
+                    FROM abbycar_insurance_pricing
+                    WHERE vehicle_group = %s
+                """, (normalized_group,))
+                row = cur.fetchone()
+        else:
+            cursor = conn.execute("""
+                SELECT insurance_price, category
+                FROM abbycar_insurance_pricing
+                WHERE vehicle_group = ?
+            """, (normalized_group,))
+            row = cursor.fetchone()
+        
+        conn.close()
+        
+        if row:
+            return JSONResponse({
+                "ok": True,
+                "insurance_price": row[0],
+                "category": row[1]
+            })
+        else:
+            return JSONResponse({
+                "ok": True,
+                "insurance_price": 0.0,
+                "category": "Standard",
+                "message": "No pricing configured for this group"
+            })
+    except Exception as e:
+        logging.error(f"Error getting insurance price by group: {e}")
         return JSONResponse({"ok": False, "error": str(e)}, status_code=500)
 
 @app.get("/api/debug/ra/{ra_number}")
