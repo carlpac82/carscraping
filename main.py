@@ -41851,18 +41851,18 @@ async def export_automated_prices_excel(request: Request):
                 # Columns 7-18: Prices (1 day fixed through 22-28 daily)
                 # Map frontend days to Excel columns
                 price_columns = [
-                    (1, 7, '1 day', 'fixed'),      # 1 day fixed → Col 7
-                    (2, 8, '2 days', 'fixed'),     # 2 days fixed → Col 8
-                    (3, 9, '3 days', 'fixed'),     # 3 days fixed → Col 9
-                    (4, 10, '4 days', 'fixed'),    # 4 days fixed → Col 10
-                    (5, 11, '5 days', 'fixed'),    # 5 days fixed → Col 11
-                    (6, 12, '6 days', 'fixed'),    # 6 days fixed → Col 12
-                    (7, 13, '7 days', 'fixed'),    # 7 days fixed → Col 13
-                    (8, 14, '8-10 days', 'daily'), # 8-10 daily → Col 14
-                    (9, 15, '11-12 days', 'daily'),# 11-12 daily → Col 15
-                    (14, 16, '13-14 days', 'daily'),# 13-14 daily → Col 16
-                    (22, 17, '15-21 days', 'daily'),# 15-21 daily → Col 17
-                    (28, 18, '22-28 days', 'daily') # 22-28 daily → Col 18
+                    (1, 7, '1 dia', 'fixed'),      # 1 day fixed → Col 7
+                    (2, 8, '2 dias', 'fixed'),     # 2 days fixed → Col 8
+                    (3, 9, '3 dias', 'fixed'),     # 3 days fixed → Col 9
+                    (4, 10, '4 dias', 'fixed'),    # 4 days fixed → Col 10
+                    (5, 11, '5 dias', 'fixed'),    # 5 days fixed → Col 11
+                    (6, 12, '6 dias', 'fixed'),    # 6 days fixed → Col 12
+                    (7, 13, '7 dias', 'fixed'),    # 7 days fixed → Col 13
+                    (8, 14, '8-10 dias', 'daily'), # 8-10 daily → Col 14
+                    (9, 15, '11-12 dias', 'daily'),# 11-12 daily → Col 15
+                    (14, 16, '13-14 dias', 'daily'),# 13-14 daily → Col 16
+                    (22, 17, '15-21 dias', 'daily'),# 15-21 daily → Col 17
+                    (28, 18, '22-28 dias', 'daily') # 22-28 daily → Col 18
                 ]
                 
                 for day_key, col_idx, period_str, period_type in price_columns:
