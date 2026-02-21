@@ -564,6 +564,11 @@
           return;
         }
         
+        if (selectedSeasons.length === 0) {
+          showAlert('Por favor, selecione pelo menos uma temporada', 'error');
+          return;
+        }
+        
         if (isNaN(insurancePrice) || insurancePrice < 0) {
           showAlert('Por favor, insira um preço válido', 'error');
           return;
@@ -581,28 +586,16 @@
           
           for (const vehicleGroup of selectedGroups) {
             for (const period of selectedPeriods) {
-              if (selectedSeasons.length === 0) {
-                // No seasons selected = applies to all year
+              // Create one entry for each selected season
+              for (const season of selectedSeasons) {
                 prices.push({
                   category,
                   vehicle_group: vehicleGroup,
                   period: period.value,
                   period_type: period.type,
-                  season: null,
+                  season: season,
                   insurance_price: insurancePrice
                 });
-              } else {
-                // Create one entry for each selected season
-                for (const season of selectedSeasons) {
-                  prices.push({
-                    category,
-                    vehicle_group: vehicleGroup,
-                    period: period.value,
-                    period_type: period.type,
-                    season: season,
-                    insurance_price: insurancePrice
-                  });
-                }
               }
             }
           }
