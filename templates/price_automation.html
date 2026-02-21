@@ -3065,11 +3065,16 @@
             const icon = document.getElementById('abbycarIcon');
             const spinner = document.getElementById('abbycarSpinner');
             
+            console.log('[ABBYCAR] Loading spinner elements:', { btn, icon, spinner });
+            
             if (btn && icon && spinner) {
                 btn.disabled = true;
                 btn.classList.add('opacity-50', 'cursor-not-allowed');
                 icon.classList.add('hidden');
                 spinner.classList.remove('hidden');
+                console.log('[ABBYCAR] Loading spinner activated');
+            } else {
+                console.error('[ABBYCAR] Loading spinner elements not found!');
             }
             
             try {
