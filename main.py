@@ -41500,47 +41500,92 @@ def get_insurance_price_for_month_and_sipp(sipp_code, month_name, period, period
     Returns daily insurance price or None if not found.
     """
     try:
-        conn = get_db_connection()
-        cur = conn.cursor()
+        # Map month to season
+        month_to_season = {
+            'January': 'Low', 'February': 'Low', 'March': 'Mid',
+            'April': 'Mid', 'May': 'High', 'June': 'High',
+            'July': 'High', 'August': 'High', 'September': 'Mid',
+            'October': 'Mid', 'November': 'Low', 'December': 'Low'
+        }
+        season = month_to_season.get(month_name)
         
-        # Try with seasonal_month first
-        cur.execute("""
-            SELECT insurance_price 
-            FROM abbycar_insurance_pricing 
-            WHERE vehicle_group = %s 
-            AND category = %s 
-            AND period = %s 
-            AND period_type = %s
-            AND seasonal_month = %s
-        """, (sipp_code, category, period, period_type, month_name))
+        conn = _db_connect()
+        is_postgres = _is_postgresql_connection(conn)
         
-        result = cur.fetchone()
-        if result:
-            cur.close()
+        if is_postgres:
+            with conn.cursor() as cur:
+                # Try with season first
+                cur.execute("""
+                    SELECT insurance_price 
+                    FROM abbycar_insurance_pricing 
+                    WHERE vehicle_group = %s 
+                    AND category = %s 
+                    AND period = %s 
+                    AND period_type = %s
+                    AND season = %s
+                """, (sipp_code, category, period, period_type, season))
+                
+                result = cur.fetchone()
+                if result:
+                    conn.close()
+                    return float(result[0])
+                
+                # If not found with season, try without (year-round price)
+                cur.execute("""
+                    SELECT insurance_price 
+                    FROM abbycar_insurance_pricing 
+                    WHERE vehicle_group = %s 
+                    AND category = %s 
+                    AND period = %s 
+                    AND period_type = %s
+                    AND season IS NULL
+                """, (sipp_code, category, period, period_type))
+                
+                result = cur.fetchone()
+                conn.close()
+                
+                if result:
+                    return float(result[0])
+        else:
+            cur = conn.cursor()
+            # Try with season first
+            cur.execute("""
+                SELECT insurance_price 
+                FROM abbycar_insurance_pricing 
+                WHERE vehicle_group = ? 
+                AND category = ? 
+                AND period = ? 
+                AND period_type = ?
+                AND season = ?
+            """, (sipp_code, category, period, period_type, season))
+            
+            result = cur.fetchone()
+            if result:
+                conn.close()
+                return float(result[0])
+            
+            # If not found with season, try without (year-round price)
+            cur.execute("""
+                SELECT insurance_price 
+                FROM abbycar_insurance_pricing 
+                WHERE vehicle_group = ? 
+                AND category = ? 
+                AND period = ? 
+                AND period_type = ?
+                AND season IS NULL
+            """, (sipp_code, category, period, period_type))
+            
+            result = cur.fetchone()
             conn.close()
-            return float(result[0])
-        
-        # If not found with seasonal_month, try without (year-round price)
-        cur.execute("""
-            SELECT insurance_price 
-            FROM abbycar_insurance_pricing 
-            WHERE vehicle_group = %s 
-            AND category = %s 
-            AND period = %s 
-            AND period_type = %s
-            AND seasonal_month IS NULL
-        """, (sipp_code, category, period, period_type))
-        
-        result = cur.fetchone()
-        cur.close()
-        conn.close()
-        
-        if result:
-            return float(result[0])
+            
+            if result:
+                return float(result[0])
         
         return None
     except Exception as e:
         print(f"[ERROR] Failed to get insurance price: {str(e)}", flush=True)
+        import traceback
+        print(traceback.format_exc(), flush=True)
         return None
 
 @app.post("/api/export-automated-prices-excel")
