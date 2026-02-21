@@ -41509,12 +41509,15 @@ def get_insurance_price_for_month_and_sipp(sipp_code, month_name, period, period
         }
         season = month_to_season.get(month_name)
         
+        print(f"[INSURANCE_LOOKUP] Searching for: vehicle_group={sipp_code}, category={category}, period={period}, period_type={period_type}, season={season}", flush=True)
+        
         conn = _db_connect()
         is_postgres = _is_postgresql_connection(conn)
         
         if is_postgres:
             with conn.cursor() as cur:
                 # Try with season first
+                print(f"[INSURANCE_LOOKUP] Query 1: WITH season={season}", flush=True)
                 cur.execute("""
                     SELECT insurance_price 
                     FROM abbycar_insurance_pricing 
@@ -41527,10 +41530,12 @@ def get_insurance_price_for_month_and_sipp(sipp_code, month_name, period, period
                 
                 result = cur.fetchone()
                 if result:
+                    print(f"[INSURANCE_LOOKUP] Found with season: {result[0]}", flush=True)
                     conn.close()
                     return float(result[0])
                 
                 # If not found with season, try without (year-round price)
+                print(f"[INSURANCE_LOOKUP] Query 2: WITHOUT season (year-round)", flush=True)
                 cur.execute("""
                     SELECT insurance_price 
                     FROM abbycar_insurance_pricing 
@@ -41545,7 +41550,10 @@ def get_insurance_price_for_month_and_sipp(sipp_code, month_name, period, period
                 conn.close()
                 
                 if result:
+                    print(f"[INSURANCE_LOOKUP] Found year-round: {result[0]}", flush=True)
                     return float(result[0])
+                else:
+                    print(f"[INSURANCE_LOOKUP] NOT FOUND in database", flush=True)
         else:
             cur = conn.cursor()
             # Try with season first
@@ -41587,6 +41595,82 @@ def get_insurance_price_for_month_and_sipp(sipp_code, month_name, period, period
         import traceback
         print(traceback.format_exc(), flush=True)
         return None
+
+@app.get("/api/debug-insurance-db")
+async def debug_insurance_db():
+    """Debug endpoint to check insurance table contents"""
+    try:
+        conn = _db_connect()
+        is_postgres = _is_postgresql_connection(conn)
+        
+        result = {"status": "ok", "records": []}
+        
+        if is_postgres:
+            with conn.cursor() as cur:
+                cur.execute("SELECT COUNT(*) FROM abbycar_insurance_pricing")
+                total = cur.fetchone()[0]
+                result["total_count"] = total
+                
+                cur.execute("SELECT vehicle_group, category, period, period_type, season, insurance_price FROM abbycar_insurance_pricing LIMIT 20")
+                rows = cur.fetchall()
+                result["records"] = [
+                    {
+                        "vehicle_group": r[0],
+                        "category": r[1],
+                        "period": r[2],
+                        "period_type": r[3],
+                        "season": r[4],
+                        "insurance_price": float(r[5])
+                    }
+                    for r in rows
+                ]
+        
+        conn.close()
+        return result
+    except Exception as e:
+        return {"status": "error", "error": str(e)}
+
+@app.get("/api/test-insurance-lookup")
+async def test_insurance_lookup(request: Request):
+    """Test endpoint to check insurance prices in database"""
+    require_auth(request)
+    
+    logs = []
+    
+    # Test a few lookups
+    test_cases = [
+        ('MDMV', 'February', '1 dia', 'fixed', 'Standard'),
+        ('MDMV', 'February', '7 dias', 'fixed', 'Standard'),
+        ('MDMV', 'February', '8-10 dias', 'daily', 'Premium'),
+        ('CFMR', 'February', '1 dia', 'fixed', 'Comfort'),
+    ]
+    
+    for sipp, month, period, ptype, category in test_cases:
+        logs.append(f"\n=== Testing: {sipp}, {month}, {period}, {ptype}, {category} ===")
+        price = get_insurance_price_for_month_and_sipp(sipp, month, period, ptype, category)
+        logs.append(f"Result: {price}")
+    
+    # Also check what's actually in the database
+    logs.append("\n=== Database contents ===")
+    conn = _db_connect()
+    is_postgres = _is_postgresql_connection(conn)
+    
+    if is_postgres:
+        with conn.cursor() as cur:
+            cur.execute("SELECT vehicle_group, category, period, period_type, season, insurance_price FROM abbycar_insurance_pricing LIMIT 20")
+            rows = cur.fetchall()
+            for row in rows:
+                logs.append(f"DB: {row}")
+    else:
+        cur = conn.cursor()
+        cur.execute("SELECT vehicle_group, category, period, period_type, season, insurance_price FROM abbycar_insurance_pricing LIMIT 20")
+        rows = cur.fetchall()
+        for row in rows:
+            logs.append(f"DB: {row}")
+    
+    conn.close()
+    
+    return {"logs": logs}
 
 @app.post("/api/export-automated-prices-excel")
 async def export_automated_prices_excel(request: Request):
@@ -41795,6 +41879,25 @@ async def export_automated_prices_excel(request: Request):
         current_month_name = month_names_en[month - 1]
         print(f"[BACKEND] Current month for insurance: {current_month_name}", flush=True)
         
+        # DEBUG: Check if insurance table has any data
+        try:
+            conn = _db_connect()
+            is_postgres = _is_postgresql_connection(conn)
+            if is_postgres:
+                with conn.cursor() as cur:
+                    cur.execute("SELECT COUNT(*) FROM abbycar_insurance_pricing")
+                    total_count = cur.fetchone()[0]
+                    print(f"[BACKEND DEBUG] Total insurance records in DB: {total_count}", flush=True)
+                    
+                    cur.execute("SELECT vehicle_group, category, period, period_type, season, insurance_price FROM abbycar_insurance_pricing LIMIT 5")
+                    sample_rows = cur.fetchall()
+                    print(f"[BACKEND DEBUG] Sample insurance records:", flush=True)
+                    for row in sample_rows:
+                        print(f"[BACKEND DEBUG]   {row}", flush=True)
+            conn.close()
+        except Exception as e:
+            print(f"[BACKEND DEBUG] Error checking insurance table: {e}", flush=True)
+        
         # Create 4 sheets: Light, Standard, Comfort, Premium
         categories = ['Light', 'Standard', 'Comfort', 'Premium']
         
@@ -41869,29 +41972,32 @@ async def export_automated_prices_excel(request: Request):
                     # Get the price exactly as it exists in Abbycar system (already has all adjustments)
                     price = calculate_price_for_day(group_prices, int(day_key))
                     
-                    if price:
-                        # Use price as-is from Abbycar (no conversions, no adjustments)
-                        final_price = float(price)
-                        
-                        # For Standard, Comfort, Premium: add insurance price only
-                        if category != 'Light':
-                            insurance_price = get_insurance_price_for_month_and_sipp(
-                                sipp_code, current_month_name, period_str, period_type, category
-                            )
-                            if insurance_price:
-                                # Insurance price from DB is per day
-                                # For fixed periods (1-7 days): multiply by number of days to get total
-                                # For daily periods (8+): already per day, add directly
-                                if period_type == 'fixed':
-                                    # Fixed period: insurance × days (e.g., 5 days × €3/day = €15 total)
-                                    insurance_total = insurance_price * int(day_key)
-                                    final_price += insurance_total
-                                    print(f"[BACKEND] {category} - {sipp_code} - {period_str} (fixed): base={price}, insurance={insurance_price:.2f}/day × {day_key} days = {insurance_total:.2f}, total={final_price:.2f}", flush=True)
-                                else:
-                                    # Daily period: insurance is already per day, add directly
-                                    final_price += insurance_price
-                                    print(f"[BACKEND] {category} - {sipp_code} - {period_str} (daily): base={price}/day, insurance={insurance_price:.2f}/day, total={final_price:.2f}/day", flush=True)
-                        
+                    # Start with base price (0 if no price)
+                    final_price = float(price) if price else 0.0
+                    
+                    # For Standard, Comfort, Premium: ALWAYS add insurance price
+                    if category != 'Light':
+                        print(f"[BACKEND] Looking up insurance: sipp={sipp_code}, month={current_month_name}, period={period_str}, type={period_type}, category={category}", flush=True)
+                        insurance_price = get_insurance_price_for_month_and_sipp(
+                            sipp_code, current_month_name, period_str, period_type, category
+                        )
+                        print(f"[BACKEND] Insurance price found: {insurance_price}", flush=True)
+                        if insurance_price:
+                            # Insurance price from DB is per day
+                            # For fixed periods (1-7 days): multiply by number of days to get total
+                            # For daily periods (8+): already per day, add directly
+                            if period_type == 'fixed':
+                                # Fixed period: insurance × days (e.g., 5 days × €3/day = €15 total)
+                                insurance_total = insurance_price * int(day_key)
+                                final_price += insurance_total
+                                print(f"[BACKEND] {category} - {sipp_code} - {period_str} (fixed): base={price or 0}, insurance={insurance_price:.2f}/day × {day_key} days = {insurance_total:.2f}, total={final_price:.2f}", flush=True)
+                            else:
+                                # Daily period: insurance is already per day, add directly
+                                final_price += insurance_price
+                                print(f"[BACKEND] {category} - {sipp_code} - {period_str} (daily): base={price or 0}/day, insurance={insurance_price:.2f}/day, total={final_price:.2f}/day", flush=True)
+                    
+                    # Only write to Excel if we have a value (either base price or insurance)
+                    if final_price > 0:
                         # Round to 2 decimal places
                         final_price = round(final_price, 2)
                         
@@ -41900,6 +42006,7 @@ async def export_automated_prices_excel(request: Request):
                         cell.value = final_price
                         cell.number_format = '0.00'
                     else:
+                        # No price and no insurance - leave empty
                         ws.cell(row_num, col_idx).value = ''
                 
                 row_num += 1
