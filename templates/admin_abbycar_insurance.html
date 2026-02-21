@@ -426,6 +426,16 @@
           bySeasons[group.season].push(group);
         });
         
+        // Sort by vehicle group order
+        const vehicleGroupOrder = ['MDMV', 'MDMR', 'EDMV', 'MDAR', 'EDAV', 'CFMR', 'MTMR', 'CFMV', 'IWMR', 'CFAR', 'CGAR', 'SVMR', 'SVMD', 'SVAD', 'LVMD'];
+        Object.keys(bySeasons).forEach(season => {
+          bySeasons[season].sort((a, b) => {
+            const aIndex = vehicleGroupOrder.indexOf(a.vehicle_group);
+            const bIndex = vehicleGroupOrder.indexOf(b.vehicle_group);
+            return (aIndex === -1 ? 999 : aIndex) - (bIndex === -1 ? 999 : bIndex);
+          });
+        });
+        
         let html = '<div class="space-y-6">';
         
         // Render each season
@@ -438,17 +448,20 @@
           else if (season === 'Mid') seasonBadgeClass = 'bg-yellow-100 text-yellow-800';
           else if (season === 'Low') seasonBadgeClass = 'bg-green-100 text-green-800';
           
-          html += '<div class="border border-gray-200 rounded-lg overflow-hidden">';
-          html += '<div class="bg-gray-50 px-4 py-3 border-b border-gray-200">';
+          html += '<div class="border border-gray-200 rounded-lg overflow-hidden" data-season="' + season + '">';
+          html += '<div class="bg-gray-50 px-4 py-3 border-b border-gray-200 flex items-center justify-between">';
           html += '<span class="inline-flex items-center px-3 py-1 rounded-full text-sm font-semibold ' + seasonBadgeClass + '">' + seasonDisplay + '</span>';
+          html += '<div class="flex gap-2">';
+          html += '<button onclick="deleteAllPricesInSeason(\'' + season + '\')" class="text-xs px-3 py-1 bg-red-500 text-white rounded hover:bg-red-600 transition-colors">Eliminar Todos</button>';
+          html += '</div>';
           html += '</div>';
           
           html += '<div class="overflow-x-auto">';
-          html += '<table class="min-w-full divide-y divide-gray-200">';
+          html += '<table class="min-w-full divide-y divide-gray-200" id="table-' + season + '">';
           html += '<thead class="bg-white">';
           html += '<tr>';
-          html += '<th class="px-4 py-3 text-left text-xs font-semibold text-gray-700 uppercase">Grupo</th>';
-          html += '<th class="px-4 py-3 text-left text-xs font-semibold text-gray-700 uppercase">Período</th>';
+          html += '<th onclick="sortTable(\'' + season + '\', \'grupo\')" class="px-4 py-3 text-left text-xs font-semibold text-gray-700 uppercase cursor-pointer hover:bg-gray-100">Grupo ↕</th>';
+          html += '<th onclick="sortTable(\'' + season + '\', \'periodo\')" class="px-4 py-3 text-left text-xs font-semibold text-gray-700 uppercase cursor-pointer hover:bg-gray-100">Período ↕</th>';
           html += '<th class="px-4 py-3 text-center text-xs font-semibold text-gray-700 uppercase">Light</th>';
           html += '<th class="px-4 py-3 text-center text-xs font-semibold text-gray-700 uppercase">Standard</th>';
           html += '<th class="px-4 py-3 text-center text-xs font-semibold text-gray-700 uppercase">Comfort</th>';
@@ -726,6 +739,93 @@
       
       function deselectAllSeasons() {
         document.querySelectorAll('input[name="season"]').forEach(cb => cb.checked = false);
+      }
+      
+      // Sort table by column
+      let sortState = {};
+      function sortTable(season, column) {
+        const table = document.getElementById('table-' + season);
+        const tbody = table.querySelector('tbody');
+        const rows = Array.from(tbody.querySelectorAll('tr'));
+        
+        // Toggle sort direction
+        const key = season + '-' + column;
+        sortState[key] = sortState[key] === 'asc' ? 'desc' : 'asc';
+        const direction = sortState[key];
+        
+        rows.sort((a, b) => {
+          let aVal, bVal;
+          
+          if (column === 'grupo') {
+            aVal = a.querySelector('td:nth-child(1)').textContent.trim();
+            bVal = b.querySelector('td:nth-child(1)').textContent.trim();
+          } else if (column === 'periodo') {
+            aVal = a.querySelector('td:nth-child(2)').textContent.trim();
+            bVal = b.querySelector('td:nth-child(2)').textContent.trim();
+          }
+          
+          if (direction === 'asc') {
+            return aVal.localeCompare(bVal);
+          } else {
+            return bVal.localeCompare(aVal);
+          }
+        });
+        
+        // Re-append rows in new order
+        rows.forEach(row => tbody.appendChild(row));
+      }
+      
+      // Delete all prices in a season
+      async function deleteAllPricesInSeason(season) {
+        // Collect all IDs from this season
+        const allIds = [];
+        allPricingData.forEach(p => {
+          const pSeason = p.season || 'all';
+          if (pSeason === season) {
+            allIds.push(p.id);
+          }
+        });
+        
+        if (allIds.length === 0) {
+          showAlert('Nenhum preço para eliminar', 'error');
+          return;
+        }
+        
+        const seasonNames = { 'High': 'Alta', 'Mid': 'Média', 'Low': 'Baixa', 'all': 'Ano todo' };
+        const seasonDisplay = seasonNames[season] || season;
+        
+        if (!confirm(`Tem certeza que deseja eliminar TODOS os ${allIds.length} preço(s) da época ${seasonDisplay}?`)) {
+          return;
+        }
+        
+        let success = 0;
+        let errors = 0;
+        
+        try {
+          for (const id of allIds) {
+            const response = await fetch(`/api/abbycar-insurance-pricing/${id}`, {
+              method: 'DELETE'
+            });
+            const data = await response.json();
+            
+            if (data.ok) {
+              success++;
+            } else {
+              errors++;
+            }
+          }
+          
+          if (success > 0) {
+            showAlert(`${success} preço(s) eliminado(s) com sucesso!`, 'success');
+            loadPricing();
+          }
+          if (errors > 0) {
+            showAlert(`${errors} erro(s) ao eliminar`, 'error');
+          }
+        } catch (error) {
+          console.error('Error deleting all prices:', error);
+          showAlert('Erro ao eliminar preços', 'error');
+        }
       }
       
       // Toggle all checkboxes in a table
