@@ -20626,20 +20626,19 @@ async def export_insurance_pricing_template(request: Request):
         ws_instructions.column_dimensions['A'].width = 35
         ws_instructions.column_dimensions['B'].width = 80
         
-        # Pricing sheet
-        ws_pricing = wb.create_sheet("Preços")
+        from openpyxl import Workbook
+        from openpyxl.styles import Font, PatternFill, Alignment, Border, Side
         
-        headers = ['category', 'vehicle_group', 'period', 'period_type', 'season', 'insurance_price']
-        header_names = ['Categoria', 'Grupo Veículo', 'Período', 'Tipo Período', 'Temporada', 'Preço Diário (€)']
+        wb = Workbook()
         
-        for col, (header, name) in enumerate(zip(headers, header_names), 1):
-            cell = ws_pricing.cell(row=1, column=col)
-            cell.value = name
-            cell.font = Font(bold=True, color="FFFFFF")
-            cell.fill = PatternFill(start_color="009cb6", end_color="009cb6", fill_type="solid")
-            cell.alignment = Alignment(horizontal="center", vertical="center")
+        # Create sheets for each season
+        seasons = [
+            ('Alta', 'High', 'FFCDD2'),
+            ('Média', 'Mid', 'FFF9C4'),
+            ('Baixa', 'Low', 'C8E6C9'),
+            ('Ano Todo', None, 'E0E0E0')
+        ]
         
-        # Load existing prices from database
         conn = _db_connect()
         is_postgres = _is_postgresql_connection(conn)
         
@@ -20647,84 +20646,99 @@ async def export_insurance_pricing_template(request: Request):
             if is_postgres:
                 with conn.cursor() as cur:
                     cur.execute("""
-                        SELECT category, vehicle_group, period, 
-                               CASE 
-                                   WHEN period IN ('1 day', '2 days', '3 days', '4 days', '5 days', '6 days', '7 days') THEN 'fixed'
-                                   ELSE 'daily'
-                               END as period_type,
-                               season, insurance_price
+                        SELECT vehicle_group, period, season, category, insurance_price
                         FROM abbycar_insurance_pricing
-                        ORDER BY category, vehicle_group, 
-                                 CASE period
-                                     WHEN '1 day' THEN 1
-                                     WHEN '2 days' THEN 2
-                                     WHEN '3 days' THEN 3
-                                     WHEN '4 days' THEN 4
-                                     WHEN '5 days' THEN 5
-                                     WHEN '6 days' THEN 6
-                                     WHEN '7 days' THEN 7
-                                     WHEN '8-10 days' THEN 8
-                                     WHEN '11-12 days' THEN 11
-                                     WHEN '13-14 days' THEN 13
-                                     WHEN '15-21 days' THEN 15
-                                     WHEN '22-28 days' THEN 22
-                                     ELSE 99
-                                 END,
-                                 season NULLS LAST
+                        ORDER BY 
+                            CASE season WHEN 'High' THEN 1 WHEN 'Mid' THEN 2 WHEN 'Low' THEN 3 ELSE 4 END,
+                            CASE period
+                                WHEN '1 day' THEN 1 WHEN '2 days' THEN 2 WHEN '3 days' THEN 3
+                                WHEN '4 days' THEN 4 WHEN '5 days' THEN 5 WHEN '6 days' THEN 6
+                                WHEN '7 days' THEN 7 WHEN '8-10 days' THEN 8 WHEN '11-12 days' THEN 11
+                                WHEN '13-14 days' THEN 13 WHEN '15-21 days' THEN 15 WHEN '22-28 days' THEN 22
+                                ELSE 99
+                            END,
+                            vehicle_group
                     """)
-                    existing_prices = cur.fetchall()
+                    all_prices = cur.fetchall()
             else:
                 cur = conn.cursor()
                 cur.execute("""
-                    SELECT category, vehicle_group, period, 
-                           CASE 
-                               WHEN period IN ('1 day', '2 days', '3 days', '4 days', '5 days', '6 days', '7 days') THEN 'fixed'
-                               ELSE 'daily'
-                           END as period_type,
-                           season, insurance_price
+                    SELECT vehicle_group, period, season, category, insurance_price
                     FROM abbycar_insurance_pricing
-                    ORDER BY category, vehicle_group, period, season
+                    ORDER BY season, period, vehicle_group
                 """)
-                existing_prices = cur.fetchall()
+                all_prices = cur.fetchall()
         finally:
             conn.close()
         
-        # Add existing prices to sheet, or examples if empty
-        if existing_prices:
-            for row_idx, price_row in enumerate(existing_prices, 2):
-                for col_idx, value in enumerate(price_row, 1):
-                    cell = ws_pricing.cell(row=row_idx, column=col_idx)
-                    cell.value = value if value is not None else ""
-                    if row_idx % 2 == 0:
-                        cell.fill = PatternFill(start_color="F9F9F9", end_color="F9F9F9", fill_type="solid")
-        else:
-            # Add example rows showing different scenarios
-            examples = [
-                ["Standard", "MDMR", "1 day", "fixed", "", "5.00"],
-                ["Standard", "MDMR", "2 days", "fixed", "", "5.00"],
-                ["Standard", "MDMR", "3 days", "fixed", "", "5.00"],
-                ["Standard", "MDMR", "8-10 days", "daily", "", "4.50"],
-                ["Standard", "MDMR", "1 day", "fixed", "High", "7.00"],
-                ["Standard", "MDMR", "1 day", "fixed", "Mid", "6.00"],
-                ["Standard", "MDMR", "2 days", "fixed", "High", "7.00"],
-                ["Standard", "MDMR", "2 days", "fixed", "Low", "5.50"],
-                ["Comfort", "CDMR", "1 day", "fixed", "", "6.00"],
-                ["Comfort", "CDMR", "1 day", "fixed", "High", "8.00"],
-            ]
-            
-            for row_idx, example in enumerate(examples, 2):
-                for col_idx, value in enumerate(example, 1):
-                    cell = ws_pricing.cell(row=row_idx, column=col_idx)
-                    cell.value = value
-                    cell.fill = PatternFill(start_color="FFF4E6", end_color="FFF4E6", fill_type="solid")
+        # Group prices by season
+        prices_by_season = {}
+        for vehicle_group, period, season, category, price in all_prices:
+            season_key = season if season else 'all'
+            if season_key not in prices_by_season:
+                prices_by_season[season_key] = {}
+            key = f"{vehicle_group}|{period}"
+            if key not in prices_by_season[season_key]:
+                prices_by_season[season_key][key] = {'vehicle_group': vehicle_group, 'period': period, 'categories': {}}
+            prices_by_season[season_key][key]['categories'][category] = price
         
-        # Set column widths
-        ws_pricing.column_dimensions['A'].width = 15
-        ws_pricing.column_dimensions['B'].width = 18
-        ws_pricing.column_dimensions['C'].width = 15
-        ws_pricing.column_dimensions['D'].width = 15
-        ws_pricing.column_dimensions['E'].width = 18
-        ws_pricing.column_dimensions['F'].width = 18
+        # Create a sheet for each season
+        for idx, (season_name, season_code, color) in enumerate(seasons):
+            if idx == 0:
+                ws = wb.active
+                ws.title = season_name
+            else:
+                ws = wb.create_sheet(title=season_name)
+            
+            # Headers
+            headers = ['Grupo Veículo', 'Período', 'Light (€)', 'Standard (€)', 'Comfort (€)', 'Premium (€)']
+            for col_idx, header in enumerate(headers, 1):
+                cell = ws.cell(row=1, column=col_idx)
+                cell.value = header
+                cell.font = Font(bold=True, size=12, color="FFFFFF")
+                cell.fill = PatternFill(start_color="009cb6", end_color="009cb6", fill_type="solid")
+                cell.alignment = Alignment(horizontal='center', vertical='center')
+            
+            # Get data for this season
+            season_key = season_code if season_code else 'all'
+            season_data = prices_by_season.get(season_key, {})
+            
+            if season_data:
+                row_idx = 2
+                for key, data in sorted(season_data.items()):
+                    ws.cell(row=row_idx, column=1).value = data['vehicle_group']
+                    ws.cell(row=row_idx, column=2).value = data['period']
+                    ws.cell(row=row_idx, column=3).value = data['categories'].get('Light', '')
+                    ws.cell(row=row_idx, column=4).value = data['categories'].get('Standard', '')
+                    ws.cell(row=row_idx, column=5).value = data['categories'].get('Comfort', '')
+                    ws.cell(row=row_idx, column=6).value = data['categories'].get('Premium', '')
+                    
+                    # Alternate row colors
+                    fill_color = "FFFFFF" if row_idx % 2 == 0 else "F5F5F5"
+                    for col in range(1, 7):
+                        ws.cell(row=row_idx, column=col).fill = PatternFill(start_color=fill_color, end_color=fill_color, fill_type="solid")
+                    
+                    row_idx += 1
+            else:
+                # Add example data
+                examples = [
+                    ['MDMR', '1 day', '4.00', '5.00', '6.00', '7.00'],
+                    ['MDMR', '2 days', '4.00', '5.00', '6.00', '7.00'],
+                    ['CDMR', '1 day', '5.00', '6.00', '7.00', '8.00'],
+                ]
+                for row_idx, example in enumerate(examples, 2):
+                    for col_idx, value in enumerate(example, 1):
+                        cell = ws.cell(row=row_idx, column=col_idx)
+                        cell.value = value
+                        cell.fill = PatternFill(start_color="FFF4E6", end_color="FFF4E6", fill_type="solid")
+            
+            # Set column widths
+            ws.column_dimensions['A'].width = 18
+            ws.column_dimensions['B'].width = 15
+            ws.column_dimensions['C'].width = 12
+            ws.column_dimensions['D'].width = 14
+            ws.column_dimensions['E'].width = 13
+            ws.column_dimensions['F'].width = 14
         
         # Save to bytes
         excel_bytes = io.BytesIO()
@@ -20759,17 +20773,13 @@ async def import_insurance_pricing(request: Request):
         contents = await file.read()
         wb = load_workbook(io.BytesIO(contents))
         
-        if 'Preços' not in wb.sheetnames:
-            return JSONResponse({"ok": False, "error": "Sheet 'Preços' not found in Excel file"}, status_code=400)
-        
-        ws = wb['Preços']
-        
-        # Validate headers
-        expected_headers = ['Categoria', 'Grupo Veículo', 'Período', 'Tipo Período', 'Temporada', 'Preço Diário (€)']
-        actual_headers = [cell.value for cell in ws[1]]
-        
-        if actual_headers != expected_headers:
-            return JSONResponse({"ok": False, "error": "Invalid headers. Please use the template."}, status_code=400)
+        # Map sheet names to season codes
+        season_map = {
+            'Alta': 'High',
+            'Média': 'Mid',
+            'Baixa': 'Low',
+            'Ano Todo': None
+        }
         
         conn = _db_connect()
         is_postgres = _is_postgresql_connection(conn)
@@ -20778,44 +20788,71 @@ async def import_insurance_pricing(request: Request):
         error_count = 0
         errors = []
         
-        for row_idx, row in enumerate(ws.iter_rows(min_row=2, values_only=True), 2):
-            category, vehicle_group, period, period_type, season, insurance_price = row
-            
-            # Skip empty rows
-            if not category or not vehicle_group or not insurance_price:
+        # Process each season sheet
+        for sheet_name, season_code in season_map.items():
+            if sheet_name not in wb.sheetnames:
                 continue
             
-            # Convert empty strings to None
-            period = period if period else None
-            season = season if season else None
+            ws = wb[sheet_name]
             
-            try:
-                insurance_price = float(insurance_price)
+            # Validate headers
+            expected_headers = ['Grupo Veículo', 'Período', 'Light (€)', 'Standard (€)', 'Comfort (€)', 'Premium (€)']
+            actual_headers = [cell.value for cell in ws[1]]
+            
+            if actual_headers != expected_headers:
+                errors.append(f"Sheet '{sheet_name}': Invalid headers")
+                continue
+            
+            # Process each row
+            for row_idx, row in enumerate(ws.iter_rows(min_row=2, values_only=True), 2):
+                vehicle_group, period, light_price, standard_price, comfort_price, premium_price = row
                 
-                if is_postgres:
-                    with conn.cursor() as cur:
-                        cur.execute("""
-                            INSERT INTO abbycar_insurance_pricing 
-                            (vehicle_group, period, period_type, season, insurance_price, category, created_at, updated_at)
-                            VALUES (%s, %s, %s, %s, %s, %s, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
-                            ON CONFLICT (vehicle_group, period, season, category)
-                            DO UPDATE SET 
-                                insurance_price = EXCLUDED.insurance_price,
-                                period_type = EXCLUDED.period_type,
-                                updated_at = CURRENT_TIMESTAMP
-                        """, (vehicle_group, period, period_type, season, insurance_price, category))
-                else:
-                    conn.execute("""
-                        INSERT OR REPLACE INTO abbycar_insurance_pricing 
-                        (vehicle_group, period, period_type, season, insurance_price, category, created_at, updated_at)
-                        VALUES (?, ?, ?, ?, ?, ?, datetime('now'), datetime('now'))
-                    """, (vehicle_group, period, period_type, season, insurance_price, category))
+                # Skip empty rows
+                if not vehicle_group or not period:
+                    continue
                 
-                success_count += 1
-            except Exception as e:
-                error_count += 1
-                errors.append(f"Row {row_idx}: {str(e)}")
-                logging.error(f"Error importing row {row_idx}: {e}")
+                # Determine period type
+                period_type = 'fixed' if period in ['1 day', '2 days', '3 days', '4 days', '5 days', '6 days', '7 days'] else 'daily'
+                
+                # Process each category
+                categories = {
+                    'Light': light_price,
+                    'Standard': standard_price,
+                    'Comfort': comfort_price,
+                    'Premium': premium_price
+                }
+                
+                for category, price in categories.items():
+                    if not price or price == '':
+                        continue
+                    
+                    try:
+                        insurance_price = float(price)
+                        
+                        if is_postgres:
+                            with conn.cursor() as cur:
+                                cur.execute("""
+                                    INSERT INTO abbycar_insurance_pricing 
+                                    (vehicle_group, period, period_type, season, insurance_price, category, created_at, updated_at)
+                                    VALUES (%s, %s, %s, %s, %s, %s, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
+                                    ON CONFLICT (vehicle_group, period, season, category)
+                                    DO UPDATE SET 
+                                        insurance_price = EXCLUDED.insurance_price,
+                                        period_type = EXCLUDED.period_type,
+                                        updated_at = CURRENT_TIMESTAMP
+                                """, (vehicle_group, period, period_type, season_code, insurance_price, category))
+                        else:
+                            conn.execute("""
+                                INSERT OR REPLACE INTO abbycar_insurance_pricing 
+                                (vehicle_group, period, period_type, season, insurance_price, category, created_at, updated_at)
+                                VALUES (?, ?, ?, ?, ?, ?, datetime('now'), datetime('now'))
+                            """, (vehicle_group, period, period_type, season_code, insurance_price, category))
+                        
+                        success_count += 1
+                    except Exception as e:
+                        error_count += 1
+                        errors.append(f"Sheet '{sheet_name}' Row {row_idx} {category}: {str(e)}")
+                        logging.error(f"Error importing {sheet_name} row {row_idx} {category}: {e}")
         
         conn.commit()
         conn.close()
