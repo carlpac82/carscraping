@@ -41337,7 +41337,8 @@ async def export_abbycar_excel(request: Request):
                             period = f"{days} day{'s' if days > 1 else ''}"
                             period_type = 'fixed'
                         else:
-                            period = key.replace('_', '-')
+                            # Convert "8_10_daily" to "8-10 days" to match database format
+                            period = key.replace('_daily', ' days').replace('_', '-')
                             period_type = 'daily'
                         
                         # Get insurance price
