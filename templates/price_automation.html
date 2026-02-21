@@ -590,9 +590,13 @@
                             <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z"/>
                         </svg>
                     </button>
-                    <button onclick="downloadExcelAuto('abbycar')" class="p-2 hover:bg-gray-100 rounded transition-colors" title="Download Abbycar">
-                        <svg class="w-6 h-6 text-[#009cb6]" fill="currentColor" viewBox="0 0 24 24">
+                    <button id="abbycarDownloadBtn" onclick="downloadExcelAuto('abbycar')" class="p-2 hover:bg-gray-100 rounded transition-colors relative" title="Download Abbycar">
+                        <svg id="abbycarIcon" class="w-6 h-6 text-[#009cb6]" fill="currentColor" viewBox="0 0 24 24">
                             <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z"/>
+                        </svg>
+                        <svg id="abbycarSpinner" class="hidden w-6 h-6 text-[#009cb6] animate-spin" fill="none" viewBox="0 0 24 24">
+                            <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                            <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
                         </svg>
                     </button>
                     <button onclick="downloadExcelAuto('caralliance')" class="p-2 hover:bg-gray-100 rounded transition-colors" title="Download CarAlliance">
@@ -3056,44 +3060,55 @@
         // ===== DOWNLOAD EXCEL (ABBYCAR FORMAT) =====
         
         async function downloadAutomatedPricesExcel() {
-            // Tenta backend Excel (formato correto Abbycar), fallback para CSV
-            showNotification('Generating Excel file...', 'info');
+            // Show loading spinner
+            const btn = document.getElementById('abbycarDownloadBtn');
+            const icon = document.getElementById('abbycarIcon');
+            const spinner = document.getElementById('abbycarSpinner');
             
-            const location = document.getElementById('locationAuto')?.value || 'Faro';
-            const date = document.getElementById('pickupDateAuto')?.value || new Date().toISOString().split('T')[0];
+            if (btn && icon && spinner) {
+                btn.disabled = true;
+                btn.classList.add('opacity-50', 'cursor-not-allowed');
+                icon.classList.add('hidden');
+                spinner.classList.remove('hidden');
+            }
             
-            // Extrair mês e ano da data para determinar período
-            const dateObj = new Date(date);
-            const month = dateObj.getMonth() + 1; // 1-12
-            const year = dateObj.getFullYear();
-            
-            // Determinar último dia do mês
-            const lastDayOfMonth = new Date(year, month, 0).getDate();
-            
-            // Período padrão: mês inteiro (pode ser ajustado se houver múltiplos períodos)
-            const day_start = 1;
-            const day_end = lastDayOfMonth;
-            
-            // Abbycar: apenas grupos base (sem K groups, sem C3, C4, C5, X)
-            const groups = ['B1', 'B2', 'C', 'D', 
-                           'E1', 'E2', 'F', 'G', 'J1', 'J2', 
-                           'L1', 'M1', 'M2', 'N'];
-            const days = [1, 2, 3, 4, 5, 6, 7, 8, 9, 14, 22, 28];
-            
-            // Collect prices
-            const prices = {};
-            groups.forEach(group => {
-                prices[group] = {};
-                days.forEach(day => {
-                    const inputAuto = document.querySelector(`#pricesTableAuto input[data-grupo="${group}"][data-dias="${day}"][data-type="auto"]`);
-                    if (inputAuto && inputAuto.value && inputAuto.value !== '' && inputAuto.value !== '-') {
-                        prices[group][day] = parseFloat(inputAuto.value);
-                    }
-                });
-            });
-            
-            // Try backend Excel (60 second timeout - Excel generation can be slow)
             try {
+                showNotification('A gerar ficheiro Excel...', 'info');
+                
+                const location = document.getElementById('locationAuto')?.value || 'Faro';
+                const date = document.getElementById('pickupDateAuto')?.value || new Date().toISOString().split('T')[0];
+                
+                // Extrair mês e ano da data para determinar período
+                const dateObj = new Date(date);
+                const month = dateObj.getMonth() + 1; // 1-12
+                const year = dateObj.getFullYear();
+                
+                // Determinar último dia do mês
+                const lastDayOfMonth = new Date(year, month, 0).getDate();
+                
+                // Período padrão: mês inteiro (pode ser ajustado se houver múltiplos períodos)
+                const day_start = 1;
+                const day_end = lastDayOfMonth;
+                
+                // Abbycar: apenas grupos base (sem K groups, sem C3, C4, C5, X)
+                const groups = ['B1', 'B2', 'C', 'D', 
+                               'E1', 'E2', 'F', 'G', 'J1', 'J2', 
+                               'L1', 'M1', 'M2', 'N'];
+                const days = [1, 2, 3, 4, 5, 6, 7, 8, 9, 14, 22, 28];
+                
+                // Collect prices
+                const prices = {};
+                groups.forEach(group => {
+                    prices[group] = {};
+                    days.forEach(day => {
+                        const inputAuto = document.querySelector(`#pricesTableAuto input[data-grupo="${group}"][data-dias="${day}"][data-type="auto"]`);
+                        if (inputAuto && inputAuto.value && inputAuto.value !== '' && inputAuto.value !== '-') {
+                            prices[group][day] = parseFloat(inputAuto.value);
+                        }
+                    });
+                });
+                
+                // Try backend Excel (60 second timeout - Excel generation can be slow)
                 console.log('[ABBYCAR] Sending request to backend...', { location, date, day_start, day_end, priceCount: Object.keys(prices).length });
                 
                 const controller = new AbortController();
@@ -3140,6 +3155,14 @@
             } catch (error) {
                 console.error('[ABBYCAR] Excel download failed:', error.message, error);
                 showNotification('Failed to download Excel file: ' + error.message, 'error');
+            } finally {
+                // Restore button state
+                if (btn && icon && spinner) {
+                    btn.disabled = false;
+                    btn.classList.remove('opacity-50', 'cursor-not-allowed');
+                    icon.classList.remove('hidden');
+                    spinner.classList.add('hidden');
+                }
             }
         }
         
