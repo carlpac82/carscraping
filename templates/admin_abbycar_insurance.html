@@ -354,23 +354,64 @@
           'Low': 'Baixa'
         };
         
-        // Group by vehicle_group and period
-        const grouped = {};
+        // Group by vehicle_group, season, and category to find same prices across periods
+        const byVehicleSeasonCategory = {};
         prices.forEach(p => {
-          const key = `${p.vehicle_group}|${p.period}`;
-          if (!grouped[key]) {
-            grouped[key] = {
-              vehicle_group: p.vehicle_group,
-              period: p.period,
-              period_type: p.period_type,
-              seasons: {}
-            };
-          }
           const season = p.season || 'all';
-          if (!grouped[key].seasons[season]) {
-            grouped[key].seasons[season] = {};
+          const key = `${p.vehicle_group}|${season}|${p.category}`;
+          if (!byVehicleSeasonCategory[key]) {
+            byVehicleSeasonCategory[key] = [];
           }
-          grouped[key].seasons[season][p.category] = p;
+          byVehicleSeasonCategory[key].push(p);
+        });
+        
+        // Group consecutive periods with same price
+        const compactGroups = {};
+        Object.keys(byVehicleSeasonCategory).forEach(key => {
+          const [vehicle_group, season, category] = key.split('|');
+          const items = byVehicleSeasonCategory[key];
+          
+          // Sort by period order
+          const periodOrder = ['1 day', '2 days', '3 days', '4 days', '5 days', '6 days', '7 days', 
+                              '8-10 days', '11-12 days', '13-14 days', '15-21 days', '22-28 days'];
+          items.sort((a, b) => periodOrder.indexOf(a.period) - periodOrder.indexOf(b.period));
+          
+          // Group by price
+          const priceGroups = {};
+          items.forEach(item => {
+            const price = item.insurance_price;
+            if (!priceGroups[price]) {
+              priceGroups[price] = [];
+            }
+            priceGroups[price].push(item);
+          });
+          
+          // Create compact representation
+          Object.keys(priceGroups).forEach(price => {
+            const groupItems = priceGroups[price];
+            const periods = groupItems.map(g => g.period);
+            const periodDisplay = periods.length > 1 ? `${periods[0]} - ${periods[periods.length - 1]}` : periods[0];
+            const ids = groupItems.map(g => g.id);
+            
+            const groupKey = `${vehicle_group}|${season}|${periodDisplay}`;
+            if (!compactGroups[groupKey]) {
+              compactGroups[groupKey] = {
+                vehicle_group,
+                season,
+                period: periodDisplay,
+                periods: periods,
+                period_type: groupItems[0].period_type,
+                categories: {},
+                ids: {}
+              };
+            }
+            compactGroups[groupKey].categories[category] = {
+              insurance_price: parseFloat(price),
+              id: ids[0],
+              ids: ids
+            };
+            compactGroups[groupKey].ids[category] = ids;
+          });
         });
         
         // Group by season
@@ -381,15 +422,8 @@
           'all': []
         };
         
-        Object.values(grouped).forEach(group => {
-          Object.keys(group.seasons).forEach(season => {
-            bySeasons[season].push({
-              vehicle_group: group.vehicle_group,
-              period: group.period,
-              period_type: group.period_type,
-              categories: group.seasons[season]
-            });
-          });
+        Object.values(compactGroups).forEach(group => {
+          bySeasons[group.season].push(group);
         });
         
         let html = '<div class="space-y-6">';
@@ -425,22 +459,27 @@
           
           bySeasons[season].forEach((row, idx) => {
             let periodDisplay = row.period || '-';
-            if (row.period_type === 'daily' && periodDisplay.includes(' dias')) {
-              periodDisplay = periodDisplay.replace(' dias', '');
+            
+            // Show individual periods if grouped
+            if (row.periods && row.periods.length > 1) {
+              const periodsText = row.periods.join(', ').replace(/ days/g, '').replace(/ day/g, '');
+              periodDisplay = periodsText;
             }
             
             const rowClass = idx % 2 === 0 ? 'bg-white' : 'bg-gray-50';
             html += '<tr class="' + rowClass + ' hover:bg-blue-50">';
             html += '<td class="px-4 py-3 whitespace-nowrap"><span class="inline-flex items-center px-2.5 py-1 rounded text-xs font-semibold bg-[#009cb6] text-white">' + row.vehicle_group + '</span></td>';
-            html += '<td class="px-4 py-3 whitespace-nowrap text-sm font-medium text-gray-900">' + periodDisplay + '</td>';
+            html += '<td class="px-4 py-3 text-sm font-medium text-gray-900">' + periodDisplay + '</td>';
             
             ['Light', 'Standard', 'Comfort', 'Premium'].forEach(cat => {
               if (row.categories[cat]) {
                 const p = row.categories[cat];
+                const ids = p.ids || [p.id];
+                const idsJson = JSON.stringify(ids).replace(/"/g, '&quot;');
                 html += '<td class="px-4 py-3 whitespace-nowrap text-center">';
                 html += '<div class="flex items-center justify-center gap-2">';
                 html += '<span class="text-base font-bold text-[#009cb6]">€' + p.insurance_price.toFixed(2) + '</span>';
-                html += '<button onclick="deletePricing(' + p.id + ')" class="text-red-600 hover:text-red-900 p-1 rounded transition-colors" title="Eliminar">';
+                html += '<button onclick=\'deleteMultiplePricing(' + idsJson + ', "' + row.vehicle_group + '", "' + cat + '")\' class="text-red-600 hover:text-red-900 p-1 rounded transition-colors" title="Eliminar ' + ids.length + ' período(s)">';
                 html += '<svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>';
                 html += '</button>';
                 html += '</div>';
@@ -529,6 +568,42 @@
         } catch (error) {
           console.error('Error deleting pricing:', error);
           showAlert('Erro ao eliminar preço', 'error');
+        }
+      }
+      
+      async function deleteMultiplePricing(ids, group, category) {
+        const count = ids.length;
+        if (!confirm(`Tem certeza que deseja eliminar ${count} período(s) de ${group} - ${category}?`)) {
+          return;
+        }
+        
+        let success = 0;
+        let errors = 0;
+        
+        try {
+          for (const id of ids) {
+            const response = await fetch(`/api/abbycar-insurance-pricing/${id}`, {
+              method: 'DELETE'
+            });
+            const data = await response.json();
+            
+            if (data.ok) {
+              success++;
+            } else {
+              errors++;
+            }
+          }
+          
+          if (success > 0) {
+            showAlert(`${success} período(s) eliminado(s) com sucesso!`, 'success');
+            loadPricing();
+          }
+          if (errors > 0) {
+            showAlert(`${errors} erro(s) ao eliminar`, 'error');
+          }
+        } catch (error) {
+          console.error('Error deleting multiple pricing:', error);
+          showAlert('Erro ao eliminar preços', 'error');
         }
       }
 
