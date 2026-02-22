@@ -41378,7 +41378,9 @@ async def export_abbycar_excel(request: Request):
         categories = ['Light', 'Standard', 'Comfort', 'Premium']
         
         # If exporting all periods, we need to fetch data from database for each period
+        # Otherwise, use the rows_data from frontend (selected period)
         if all_periods:
+            print(f"[BACKEND ABBYCAR] Exporting all periods - will fetch from database", flush=True)
             # Define all SIPP codes we need to export
             all_sipp_codes = {
                 'MCMR': 'Peugeot 208', 'EDMR': 'Renault Clio', 'CDMR': 'Opel Corsa',
@@ -41475,6 +41477,9 @@ async def export_abbycar_excel(request: Request):
                             })
             
             print(f"[BACKEND ABBYCAR] Generated {len(rows_data)} rows for {len(all_periods)} periods", flush=True)
+        else:
+            # Using rows_data from frontend (selected period)
+            print(f"[BACKEND ABBYCAR] Using {len(rows_data)} rows from frontend for selected period", flush=True)
         
         for category in categories:
             ws = wb.create_sheet(category)
