@@ -41396,7 +41396,24 @@ async def export_abbycar_excel(request: Request):
             
             rows_data = []
             
-            # For each period, fetch prices from database
+            # Map grupo to SIPP codes (same as frontend)
+            grupo_sipp_map = {
+                'B1': [('MDMV', 'Peugeot 108')],
+                'B2': [('MDMR', 'Fiat Panda')],
+                'D': [('EDMV', 'Opel Corsa')],
+                'E1': [('MDAR', 'Kia Picanto')],
+                'E2': [('EDAV', 'Citroen C3/Opel Corsa')],
+                'F': [('CFMR', 'Seat Arona')],
+                'G': [('MTMR', 'Fiat 500 Cabrio')],
+                'J1': [('CFMV', 'Peugeot 2008')],
+                'J2': [('IWMR', 'Peugeot 308 SW')],
+                'L1': [('CFAR', 'Seat Arona'), ('CGAR', 'Citroen C3 Aircross')],
+                'M1': [('SVMR', 'Dacia Jogger SL Extreme'), ('SVMD', 'Citroen Grand C4')],
+                'M2': [('SVAD', 'Citroen Grand C4 Automatic')],
+                'N': [('LVMD', 'Fiat Talento')]
+            }
+            
+            # For each period, fetch prices from current_prices table
             for period_tuple in all_periods:
                 period_month, period_year, period_day_start, period_day_end = period_tuple
                 period_start_date = f"{period_month}/{str(period_day_start).zfill(2)}/{period_year}"
@@ -41404,91 +41421,66 @@ async def export_abbycar_excel(request: Request):
                 
                 print(f"[BACKEND ABBYCAR] Fetching prices for period: {period_start_date} - {period_end_date}", flush=True)
                 
-                # Fetch prices for this period from current_prices table
-                from current_prices_module import load_prices_from_db
-                conn = _db_connect()
-                
-                # Load prices for this specific period
-                prices_data, _ = load_prices_from_db(conn, location, period_month, period_year, period_day_start, period_day_end)
-                conn.close()
-                
-                # Check if prices_data is a dict (single period) or list (multiple periods)
-                if isinstance(prices_data, dict):
-                    # It's a dict with 'grupos_minhas' key containing the actual prices array
-                    print(f"[BACKEND ABBYCAR] Dict keys: {list(prices_data.keys())}", flush=True)
-                    if 'grupos_minhas' in prices_data:
-                        actual_prices = prices_data['grupos_minhas']
-                    elif 'grupos' in prices_data:
-                        actual_prices = prices_data['grupos']
-                    else:
-                        # It might be the prices dict itself, skip this period
-                        print(f"[BACKEND ABBYCAR] Unexpected dict structure for period {period_start_date}", flush=True)
-                        print(f"[BACKEND ABBYCAR] Available keys: {list(prices_data.keys())}", flush=True)
-                        continue
-                elif isinstance(prices_data, list):
-                    actual_prices = prices_data
-                else:
-                    print(f"[BACKEND ABBYCAR] No prices found for period {period_start_date} - {period_end_date}", flush=True)
-                    continue
-                
-                print(f"[BACKEND ABBYCAR] Loaded {len(actual_prices) if actual_prices else 0} price groups for this period", flush=True)
-                
-                if not actual_prices:
-                    print(f"[BACKEND ABBYCAR] No prices found for period {period_start_date} - {period_end_date}", flush=True)
-                    continue
-                
-                # Process each vehicle group in the prices data
                 try:
-                    for grupo_data in actual_prices:
-                        if not grupo_data:
-                            continue
-                            
-                        grupo = grupo_data.get('grupo', '')
+                    # Query current_prices directly
+                    conn = _db_connect()
+                    is_postgres = _is_postgresql_connection(conn)
+                    
+                    if is_postgres:
+                        with conn.cursor() as cur:
+                            cur.execute("""
+                                SELECT grupo, precos_json
+                                FROM current_prices
+                                WHERE location = %s AND month = %s AND year = %s 
+                                AND day_start = %s AND day_end = %s
+                            """, (location, period_month, period_year, period_day_start, period_day_end))
+                            price_rows = cur.fetchall()
+                    else:
+                        cur = conn.cursor()
+                        cur.execute("""
+                            SELECT grupo, precos_json
+                            FROM current_prices
+                            WHERE location = ? AND month = ? AND year = ? 
+                            AND day_start = ? AND day_end = ?
+                        """, (location, period_month, period_year, period_day_start, period_day_end))
+                        price_rows = cur.fetchall()
+                    
+                    conn.close()
+                    
+                    print(f"[BACKEND ABBYCAR] Found {len(price_rows)} grupos for this period", flush=True)
+                    
+                    # Process each grupo
+                    for row in price_rows:
+                        grupo, precos_json = row
                         
-                        # Map grupo to SIPP codes
-                        grupo_sipp_map = {
-                            'B1': [('MDMV', 'Peugeot 108')],
-                            'B2': [('MDMR', 'Fiat Panda')],
-                            'D': [('EDMV', 'Opel Corsa')],
-                            'E1': [('MDAR', 'Kia Picanto')],
-                            'E2': [('EDAV', 'Citroen C3/Opel Corsa')],
-                            'F': [('CFMR', 'Seat Arona')],
-                            'G': [('MTMR', 'Fiat 500 Cabrio')],
-                            'J1': [('CFMV', 'Peugeot 2008')],
-                            'J2': [('IWMR', 'Peugeot 308 SW')],
-                            'L1': [('CFAR', 'Seat Arona'), ('CGAR', 'Citroen C3 Aircross')],
-                            'M1': [('SVMR', 'Dacia Jogger SL Extreme'), ('SVMD', 'Citroen Grand C4')],
-                            'M2': [('SVAD', 'Citroen Grand C4 Automatic')],
-                            'N': [('LVMD', 'Fiat Talento')]
-                        }
+                        # Parse precos_json
+                        import json
+                        precos = json.loads(precos_json) if isinstance(precos_json, str) else precos_json
                         
                         sipp_models = grupo_sipp_map.get(grupo, [])
                         if not sipp_models:
                             continue
                         
-                        # Get prices for each day period
+                        # Build prices dict (same structure as frontend)
                         prices = {}
-                        for day in [1, 2, 3, 4, 5, 6, 7]:
-                            price_val = grupo_data.get(f'{day}d')
-                            if price_val:
-                                prices[f'{day}_day_fixed'] = price_val
-                        
-                        # Daily prices
-                        daily_map = {
-                            '8_10_daily': '9d',
-                            '11_12_daily': '14d',
-                            '13_14_daily': '14d',
-                            '15_21_daily': '22d',
-                            '22_28_daily': '28d'
+                        dias_map = {
+                            1: '1_day_fixed', 2: '2_day_fixed', 3: '3_day_fixed',
+                            4: '4_day_fixed', 5: '5_day_fixed', 6: '6_day_fixed',
+                            7: '7_day_fixed', 8: '8_10_daily', 9: '11_12_daily',
+                            14: '13_14_daily', 22: '15_21_daily', 28: '22_28_daily'
                         }
-                        for key, day_key in daily_map.items():
-                            price_val = grupo_data.get(day_key)
-                            if price_val:
-                                # Convert to daily rate
-                                days = int(day_key.replace('d', ''))
-                                prices[key] = round(price_val / days, 2)
                         
-                        # Add row for each SIPP code
+                        for day, key in dias_map.items():
+                            price = precos.get(str(day), 0)
+                            if price and float(price) > 0:
+                                if day <= 7:
+                                    # Fixed price
+                                    prices[key] = str(price)
+                                else:
+                                    # Daily price (divide total by days)
+                                    prices[key] = str(round(float(price) / day, 2))
+                        
+                        # Add row for each SIPP code in this grupo
                         for sipp_code, model in sipp_models:
                             if prices:
                                 rows_data.append({
@@ -41500,6 +41492,7 @@ async def export_abbycar_excel(request: Request):
                                     'currency': 'EUR',
                                     'prices': prices.copy()
                                 })
+                
                 except Exception as e:
                     print(f"[BACKEND ABBYCAR] Error processing period {period_start_date}: {str(e)}", flush=True)
                     import traceback
