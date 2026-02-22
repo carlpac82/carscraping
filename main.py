@@ -41590,10 +41590,10 @@ async def export_abbycar_excel(request: Request):
                 # Build row values - must be fresh for each row
                 # Convert location names to airport codes
                 station = row_data.get('station', '')
-                if station == 'Albufeira':
-                    station = 'ABF'
-                elif station == 'Faro':
-                    station = 'FAO'
+                if station == 'Albufeira' or station == 'ABF':
+                    station = 'Albufeira - ABF'
+                elif station == 'Faro' or station == 'FAO':
+                    station = 'Aeroporto de Faro - FAO'
                 
                 row_values = [
                     station,
@@ -41611,9 +41611,40 @@ async def export_abbycar_excel(request: Request):
                              '6_day_fixed', '7_day_fixed', '8_10_daily', '11_12_daily', '13_14_daily',
                              '15_21_daily', '22_28_daily']
                 
+                # Default prices for Faro (same as in export_all_periods logic)
+                default_prices_faro_by_sipp = {
+                    'MDMV': {1: 250.00, 2: 200.00, 3: 400.00, 4: 450.00},
+                    'MDMR': {1: 250.00, 2: 200.00, 3: 400.00, 4: 450.00},
+                    'EDMV': {1: 250.00, 2: 200.00, 3: 400.00, 4: 450.00},
+                    'MDAR': {1: 250.00, 2: 200.00, 3: 400.00, 4: 450.00},
+                    'EDAV': {1: 250.00, 2: 200.00, 3: 400.00, 4: 500.00},
+                    'CFMR': {1: 250.00, 2: 200.00, 3: 400.00, 4: 500.00},
+                    'MTMR': {1: 250.00, 2: 250.00, 3: 500.00, 4: 550.00},
+                    'CFMV': {1: 250.00, 2: 250.00, 3: 500.00, 4: 550.00},
+                    'IWMR': {1: 250.00, 2: 250.00, 3: 500.00, 4: 550.00},
+                    'CFAR': {1: 250.00, 2: 250.00, 3: 500.00, 4: 550.00},
+                    'CGAR': {1: 250.00, 2: 270.00, 3: 550.00, 4: 600.00},
+                    'SVMR': {1: 297.00, 2: 450.00, 3: 750.00, 4: 800.00},
+                    'SVMD': {1: 315.00, 2: 475.00, 3: 800.00, 4: 850.00},
+                    'SVAD': {1: 342.00, 2: 500.00, 3: 850.00, 4: 900.00},
+                    'LVMD': {1: 342.00, 2: 500.00, 3: 850.00, 4: 900.00}
+                }
+                
                 for key in price_keys:
                     # Base price from Standard (always the same source)
                     base_price_val = prices.get(key, '')
+                    use_fixed_price = False
+                    
+                    # Apply Faro defaults if price is empty and location is Faro/FAO
+                    if (not base_price_val or (isinstance(base_price_val, str) and base_price_val.strip() == '') or 
+                        (isinstance(base_price_val, (int, float)) and float(base_price_val) == 0)):
+                        if station in ['FAO', 'Faro', 'Aeroporto de Faro - FAO']:
+                            if sipp_code in default_prices_faro_by_sipp:
+                                if 'day_fixed' in key:
+                                    day = int(key.split('_')[0])
+                                    if day in default_prices_faro_by_sipp[sipp_code]:
+                                        base_price_val = default_prices_faro_by_sipp[sipp_code][day]
+                                        use_fixed_price = True
                     
                     if category == 'Standard':
                         # Standard: just show base price (no insurance)
@@ -41639,23 +41670,40 @@ async def export_abbycar_excel(request: Request):
                                     period_type = 'daily'
                                 
                                 # Get insurance price using the correct month for this row
-                                insurance_price = get_insurance_price_for_month_and_sipp(
-                                    sipp_code, row_month_name, period, period_type, category
-                                )
-                                
-                                if insurance_price:
-                                    if period_type == 'fixed':
-                                        # Fixed: multiply insurance by days
-                                        insurance_total = insurance_price * days
-                                        final_price = base_price + insurance_total
-                                    else:
-                                        # Daily: add insurance per day
-                                        final_price = base_price + insurance_price
+                                # Only add insurance if NOT using fixed Faro prices
+                                if use_fixed_price:
+                                    # Fixed Faro prices: only add insurance, no commission
+                                    insurance_price = get_insurance_price_for_month_and_sipp(
+                                        sipp_code, row_month_name, period, period_type, category
+                                    )
                                     
-                                    row_values.append(str(round(final_price, 2)).replace('.', ','))
+                                    if insurance_price:
+                                        if period_type == 'fixed':
+                                            insurance_total = insurance_price * days
+                                            final_price = base_price + insurance_total
+                                        else:
+                                            final_price = base_price + insurance_price
+                                        row_values.append(str(round(final_price, 2)).replace('.', ','))
+                                    else:
+                                        # No insurance, just show fixed price
+                                        row_values.append(str(base_price).replace('.', ','))
                                 else:
-                                    # No insurance configured, just show base price
-                                    row_values.append(str(base_price_val).replace('.', ','))
+                                    # Regular prices from DB: add insurance
+                                    insurance_price = get_insurance_price_for_month_and_sipp(
+                                        sipp_code, row_month_name, period, period_type, category
+                                    )
+                                    
+                                    if insurance_price:
+                                        if period_type == 'fixed':
+                                            insurance_total = insurance_price * days
+                                            final_price = base_price + insurance_total
+                                        else:
+                                            final_price = base_price + insurance_price
+                                        
+                                        row_values.append(str(round(final_price, 2)).replace('.', ','))
+                                    else:
+                                        # No insurance configured, just show base price
+                                        row_values.append(str(base_price_val).replace('.', ','))
                             else:
                                 # Base price is 0, don't add insurance
                                 row_values.append('')
