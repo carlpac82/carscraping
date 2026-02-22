@@ -41521,9 +41521,10 @@ async def export_abbycar_excel(request: Request):
                     traceback.print_exc()
                     continue
         
-        # Define light blue fill for alternating periods
-        from openpyxl.styles import PatternFill
-        light_blue_fill = PatternFill(start_color="E3F2FD", end_color="E3F2FD", fill_type="solid")
+        # Define darker cyan fill for alternating periods (like in Google Sheets image)
+        from openpyxl.styles import PatternFill, Border, Side
+        cyan_fill = PatternFill(start_color="4DD0E1", end_color="4DD0E1", fill_type="solid")
+        no_border = Border()  # Empty border (no lines)
         
         for category in categories:
             ws = wb.create_sheet(category)
@@ -41621,11 +41622,13 @@ async def export_abbycar_excel(request: Request):
                 
                 ws.append(row_values)
                 
-                # Apply alternating colors by period (all rows of same period get same color)
+                # Apply alternating colors by period and remove borders
                 row_idx = ws.max_row
-                if period_counter % 2 == 1:  # Odd periods get light blue
-                    for col_idx in range(1, len(headers) + 1):
-                        ws.cell(row_idx, col_idx).fill = light_blue_fill
+                for col_idx in range(1, len(headers) + 1):
+                    cell = ws.cell(row_idx, col_idx)
+                    cell.border = no_border  # Remove borders for all cells
+                    if period_counter % 2 == 1:  # Odd periods get cyan
+                        cell.fill = cyan_fill
         
         # Save to bytes
         excel_bytes = io.BytesIO()
