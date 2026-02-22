@@ -1974,6 +1974,7 @@
             const data = [];
             const station = location === 'Aeroporto de Faro' ? 'FAO' : 'ABF';
             
+            console.log('[COLLECT] Location:', location, 'Station:', station);
             
             // Primeiro, coletar todos os preços dos cards
             const cardPrices = {};
@@ -1990,6 +1991,7 @@
                         cardPrices[grupo][dias[idx]] = parseFloat(input.value) || 0;
                     }
                 });
+                console.log(`[COLLECT] Grupo ${grupo}:`, cardPrices[grupo]);
             });
             
             // Agora processar cada grupo e gerar linhas

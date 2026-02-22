@@ -41326,6 +41326,10 @@ async def export_abbycar_excel(request: Request):
         
         # If export_all_periods is True, fetch all periods from database
         if export_all_periods:
+            import time
+            print(f"[PERF] Starting to fetch all periods from database...", flush=True)
+            period_start_time = time.time()
+            
             conn = _db_connect()
             is_postgres = _is_postgresql_connection(conn)
             
@@ -41355,6 +41359,8 @@ async def export_abbycar_excel(request: Request):
                 all_periods = cur.fetchall()
             
             conn.close()
+            elapsed = time.time() - period_start_time
+            print(f"[PERF] Fetched {len(all_periods)} periods in {elapsed:.2f}s", flush=True)
         else:
             all_periods = None
         
@@ -41388,6 +41394,10 @@ async def export_abbycar_excel(request: Request):
         # If exporting all periods, we need to fetch data from database for each period
         # Otherwise, use the rows_data from frontend (selected period)
         if all_periods:
+            import time
+            print(f"[PERF] Starting to process {len(all_periods)} periods for location: {location}", flush=True)
+            period_start_time = time.time()
+            
             # Define all SIPP codes we need to export
             all_sipp_codes = {
                 'MCMR': 'Peugeot 208', 'EDMR': 'Renault Clio', 'CDMR': 'Opel Corsa',
@@ -41421,7 +41431,12 @@ async def export_abbycar_excel(request: Request):
             }
             
             # For each period, fetch prices from current_prices table
+            processed_count = 0
             for period_tuple in all_periods:
+                processed_count += 1
+                if processed_count % 5 == 0:
+                    elapsed = time.time() - period_start_time
+                    print(f"[PERF] Processed {processed_count}/{len(all_periods)} periods in {elapsed:.2f}s", flush=True)
                 period_month, period_year, period_day_start, period_day_end = period_tuple
                 period_start_date = f"{period_month}/{str(period_day_start).zfill(2)}/{period_year}"
                 period_end_date = f"{period_month}/{str(period_day_end).zfill(2)}/{period_year}"
@@ -41541,15 +41556,19 @@ async def export_abbycar_excel(request: Request):
                 
                 except Exception as e:
                     print(f"[BACKEND ABBYCAR] Error processing period {period_start_date}: {str(e)}", flush=True)
-                    import traceback
-                    traceback.print_exc()
-                    continue
+            
+            total_elapsed = time.time() - period_start_time
+            print(f"[PERF] Finished processing all {len(all_periods)} periods in {total_elapsed:.2f}s. Total rows: {len(rows_data)}", flush=True)
         
         # Define darker cyan fill for alternating periods (like in Google Sheets image)
         from openpyxl.styles import PatternFill, Border, Side, Alignment
         cyan_fill = PatternFill(start_color="4DD0E1", end_color="4DD0E1", fill_type="solid")
         no_border = Border()  # Empty border (no lines)
         center_alignment = Alignment(horizontal='center', vertical='center')
+        
+        import time
+        print(f"[PERF] Starting Excel generation with {len(rows_data)} rows across {len(categories)} categories", flush=True)
+        excel_start_time = time.time()
         
         for category in categories:
             ws = wb.create_sheet(category)
