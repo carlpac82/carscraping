@@ -41429,33 +41429,40 @@ async def export_abbycar_excel(request: Request):
                     if is_postgres:
                         with conn.cursor() as cur:
                             cur.execute("""
-                                SELECT grupo, precos_json
+                                SELECT prices_data
                                 FROM current_prices
                                 WHERE location = %s AND month = %s AND year = %s 
                                 AND day_start = %s AND day_end = %s
                             """, (location, period_month, period_year, period_day_start, period_day_end))
-                            price_rows = cur.fetchall()
+                            result = cur.fetchone()
                     else:
                         cur = conn.cursor()
                         cur.execute("""
-                            SELECT grupo, precos_json
+                            SELECT prices_data
                             FROM current_prices
                             WHERE location = ? AND month = ? AND year = ? 
                             AND day_start = ? AND day_end = ?
                         """, (location, period_month, period_year, period_day_start, period_day_end))
-                        price_rows = cur.fetchall()
+                        result = cur.fetchone()
                     
                     conn.close()
                     
-                    print(f"[BACKEND ABBYCAR] Found {len(price_rows)} grupos for this period", flush=True)
+                    if not result:
+                        print(f"[BACKEND ABBYCAR] No data found for this period", flush=True)
+                        continue
+                    
+                    # Parse prices_data JSON
+                    import json
+                    prices_data = json.loads(result[0]) if isinstance(result[0], str) else result[0]
+                    
+                    # Extract grupos array from prices_data
+                    grupos = prices_data.get('grupos', [])
+                    print(f"[BACKEND ABBYCAR] Found {len(grupos)} grupos for this period", flush=True)
                     
                     # Process each grupo
-                    for row in price_rows:
-                        grupo, precos_json = row
-                        
-                        # Parse precos_json
-                        import json
-                        precos = json.loads(precos_json) if isinstance(precos_json, str) else precos_json
+                    for grupo_data in grupos:
+                        grupo = grupo_data.get('grupo', '')
+                        precos = grupo_data.get('precos', {})
                         
                         sipp_models = grupo_sipp_map.get(grupo, [])
                         if not sipp_models:
