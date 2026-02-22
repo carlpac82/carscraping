@@ -3113,21 +3113,9 @@
                 // Determinar último dia do mês
                 const lastDayOfMonth = new Date(year, month, 0).getDate();
                 
-                // Get period from inputs (use selected period, not full month)
-                const startDayInput = document.getElementById('wr_start_day');
-                const endDayInput = document.getElementById('wr_end_day');
-                
-                console.log('[ABBYCAR DEBUG] Period inputs:', {
-                    startDayInput: startDayInput,
-                    endDayInput: endDayInput,
-                    startValue: startDayInput?.value,
-                    endValue: endDayInput?.value
-                });
-                
-                const day_start = startDayInput?.value ? parseInt(startDayInput.value) : 1;
-                const day_end = endDayInput?.value ? parseInt(endDayInput.value) : lastDayOfMonth;
-                
-                console.log('[ABBYCAR DEBUG] Final period values:', { day_start, day_end, lastDayOfMonth });
+                // Período padrão: mês inteiro (períodos são atualizados na homepage)
+                const day_start = 1;
+                const day_end = lastDayOfMonth;
                 
                 // Abbycar: apenas grupos base (sem K groups, sem C3, C4, C5, X)
                 const groups = ['B1', 'B2', 'C', 'D', 
