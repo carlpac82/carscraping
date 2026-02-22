@@ -41495,6 +41495,10 @@ async def export_abbycar_excel(request: Request):
                                 # Apply Abbycar commission to NET price (same as frontend does)
                                 price_with_commission = float(net_price) * (1 + abbycar_commission / 100)
                                 
+                                # DEBUG: Log first price calculation to verify commission is applied
+                                if grupo == 'B1' and day == 1:
+                                    print(f"[DEBUG ABBYCAR] Grupo {grupo}, Day {day}: NET={net_price}, Commission={abbycar_commission}%, WITH_COMM={price_with_commission}", flush=True)
+                                
                                 if day <= 7:
                                     # Fixed price with commission
                                     prices[key] = str(round(price_with_commission, 2))
