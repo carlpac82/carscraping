@@ -20251,6 +20251,54 @@ async def get_caralliance_commission(request: Request):
         logging.error(f"Error getting CarAlliance commission: {e}")
         return JSONResponse({"ok": False, "error": str(e)}, status_code=500)
 
+@app.get("/api/get-all-saved-periods")
+async def get_all_saved_periods(request: Request):
+    """Get all saved periods from automated_prices table"""
+    try:
+        require_auth(request)
+        conn = _db_connect()
+        is_postgres = _is_postgresql_connection(conn)
+        
+        if is_postgres:
+            with conn.cursor() as cur:
+                cur.execute("""
+                    SELECT DISTINCT month, year, day_start, day_end 
+                    FROM automated_prices 
+                    ORDER BY year, month, day_start
+                """)
+                periods = cur.fetchall()
+        else:
+            cur = conn.cursor()
+            cur.execute("""
+                SELECT DISTINCT month, year, day_start, day_end 
+                FROM automated_prices 
+                ORDER BY year, month, day_start
+            """)
+            periods = cur.fetchall()
+        
+        conn.close()
+        
+        # Convert to list of dicts
+        periods_list = [
+            {
+                'month': p[0],
+                'year': p[1],
+                'day_start': p[2],
+                'day_end': p[3]
+            }
+            for p in periods
+        ]
+        
+        print(f"[API] Found {len(periods_list)} saved periods", flush=True)
+        
+        return JSONResponse({
+            "ok": True,
+            "periods": periods_list
+        })
+    except Exception as e:
+        logging.error(f"Error getting all saved periods: {e}")
+        return JSONResponse({"ok": False, "error": str(e)}, status_code=500)
+
 @app.post("/api/abbycar-insurance-pricing/migrate-to-seasons")
 async def migrate_abbycar_insurance_to_seasons(request: Request):
     """Migrate abbycar_insurance_pricing from seasonal_month to season field"""
@@ -41270,6 +41318,37 @@ async def export_abbycar_excel(request: Request):
         location = data_json.get('location', 'Albufeira')
         start_date = data_json.get('startDate', '')
         end_date = data_json.get('endDate', '')
+        export_all_periods = data_json.get('exportAllPeriods', False)
+        
+        print(f"[BACKEND ABBYCAR] Export all periods: {export_all_periods}, Start: {start_date}, End: {end_date}", flush=True)
+        
+        # If export_all_periods is True, fetch all periods from database
+        if export_all_periods:
+            print("[BACKEND ABBYCAR] Fetching all saved periods from database...", flush=True)
+            conn = _db_connect()
+            is_postgres = _is_postgresql_connection(conn)
+            
+            if is_postgres:
+                with conn.cursor() as cur:
+                    cur.execute("""
+                        SELECT DISTINCT month, year, day_start, day_end 
+                        FROM automated_prices 
+                        ORDER BY year, month, day_start
+                    """)
+                    all_periods = cur.fetchall()
+            else:
+                cur = conn.cursor()
+                cur.execute("""
+                    SELECT DISTINCT month, year, day_start, day_end 
+                    FROM automated_prices 
+                    ORDER BY year, month, day_start
+                """)
+                all_periods = cur.fetchall()
+            
+            conn.close()
+            print(f"[BACKEND ABBYCAR] Found {len(all_periods)} periods in database", flush=True)
+        else:
+            all_periods = None
         
         # Extract month from start_date for insurance lookup
         try:
@@ -41297,6 +41376,83 @@ async def export_abbycar_excel(request: Request):
         
         # Create 4 sheets: Light, Standard, Comfort, Premium
         categories = ['Light', 'Standard', 'Comfort', 'Premium']
+        
+        # If exporting all periods, we need to fetch data from database for each period
+        if all_periods:
+            # Define all SIPP codes we need to export
+            all_sipp_codes = {
+                'MCMR': 'Peugeot 208', 'EDMR': 'Renault Clio', 'CDMR': 'Opel Corsa',
+                'MCMV': 'Peugeot 208', 'NDMR': 'Renault Clio', 'HDMV': 'Opel Corsa',
+                'MDAV': 'Opel Corsa Automatic', 'EDAR': 'Renault Clio Automatic',
+                'DFMR': 'Seat Ibiza', 'DFMV': 'Seat Ibiza', 'IWMR': 'Peugeot 308',
+                'IWMV': 'Peugeot 308', 'CFMR': 'Seat Arona', 'CFAV': 'Seat Arona Automatic',
+                'MTMR': 'Fiat 500 Cabrio', 'CFMV': 'Peugeot 2008', 'SVMR': 'Dacia Jogger',
+                'SVMD': 'Citroen Grand C4', 'SVMV': 'Citroen Grand C4', 'SVAR': 'Citroen Grand C4 Automatic',
+                'SVAD': 'Citroen Grand C4 Automatic', 'LVMD': 'Fiat Talento', 'LVMR': 'Fiat Talento',
+                'CGAR': 'Citroen C3 Aircross'
+            }
+            
+            rows_data = []
+            
+            # For each period, fetch prices from database
+            for period_tuple in all_periods:
+                period_month, period_year, period_day_start, period_day_end = period_tuple
+                period_start_date = f"{period_month}/{str(period_day_start).zfill(2)}/{period_year}"
+                period_end_date = f"{period_month}/{str(period_day_end).zfill(2)}/{period_year}"
+                
+                print(f"[BACKEND ABBYCAR] Fetching prices for period: {period_start_date} - {period_end_date}", flush=True)
+                
+                # Fetch prices for this period from database
+                conn = _db_connect()
+                is_postgres = _is_postgresql_connection(conn)
+                
+                for sipp_code, model in all_sipp_codes.items():
+                    # Fetch all price periods for this SIPP code
+                    if is_postgres:
+                        with conn.cursor() as cur:
+                            cur.execute("""
+                                SELECT period, price 
+                                FROM automated_prices 
+                                WHERE sipp_code = %s AND month = %s AND year = %s 
+                                  AND day_start = %s AND day_end = %s
+                            """, (sipp_code, period_month, period_year, period_day_start, period_day_end))
+                            price_rows = cur.fetchall()
+                    else:
+                        cur = conn.cursor()
+                        cur.execute("""
+                            SELECT period, price 
+                            FROM automated_prices 
+                            WHERE sipp_code = ? AND month = ? AND year = ? 
+                              AND day_start = ? AND day_end = ?
+                        """, (sipp_code, period_month, period_year, period_day_start, period_day_end))
+                        price_rows = cur.fetchall()
+                    
+                    # Build prices dict
+                    prices = {}
+                    for period_str, price in price_rows:
+                        # Convert period format: "1 day" -> "1_day_fixed", "8-10 days" -> "8_10_daily"
+                        if ' day' in period_str and '-' not in period_str:
+                            days = period_str.split()[0]
+                            prices[f"{days}_day_fixed"] = price
+                        elif '-' in period_str:
+                            period_range = period_str.replace(' days', '').replace('-', '_')
+                            prices[f"{period_range}_daily"] = price
+                    
+                    # Only add row if we have prices for this SIPP code
+                    if prices:
+                        rows_data.append({
+                            'station': location,
+                            'startDate': period_start_date,
+                            'endDate': period_end_date,
+                            'group': sipp_code,
+                            'model': model,
+                            'currency': 'EUR',
+                            'prices': prices
+                        })
+                
+                conn.close()
+            
+            print(f"[BACKEND ABBYCAR] Generated {len(rows_data)} rows for {len(all_periods)} periods", flush=True)
         
         for category in categories:
             ws = wb.create_sheet(category)
@@ -41390,7 +41546,28 @@ async def export_abbycar_excel(request: Request):
         wb.save(excel_bytes)
         excel_bytes.seek(0)
         
-        filename = f"ABBYCAR-{location}-{start_date.replace('/', '-')}.xlsx"
+        # Generate filename
+        if export_all_periods and all_periods:
+            # Use first and last period for filename
+            first_period = all_periods[0]
+            last_period = all_periods[-1]
+            first_month, first_year, first_day_start, _ = first_period
+            last_month, last_year, _, last_day_end = last_period
+            
+            # Month names in Portuguese (abbreviated)
+            month_names_pt = ['JAN', 'FEV', 'MAR', 'ABR', 'MAI', 'JUN', 
+                             'JUL', 'AGO', 'SET', 'OUT', 'NOV', 'DEZ']
+            
+            if first_month == last_month and first_year == last_year:
+                # Same month: ABBYCAR-Location-DD-DD-MMM-YYYY
+                month_abbr = month_names_pt[first_month - 1]
+                filename = f"ABBYCAR-{location}-{first_day_start:02d}-{last_day_end:02d}-{month_abbr}-{first_year}.xlsx"
+            else:
+                # Different months: ABBYCAR-Location-AllPeriods-YYYY
+                filename = f"ABBYCAR-{location}-AllPeriods-{first_year}.xlsx"
+        else:
+            # Single period
+            filename = f"ABBYCAR-{location}-{start_date.replace('/', '-')}.xlsx"
         
         return Response(
             content=excel_bytes.getvalue(),
@@ -41710,8 +41887,9 @@ async def export_automated_prices_excel(request: Request):
         prices = data.get('prices', {})
         day_start = data.get('day_start', 1)
         day_end = data.get('day_end', 31)
+        export_all_periods = data.get('exportAllPeriods', False)
         broker_commission = data.get('broker_commission', 13.66)  # Default 13.66%
-        print(f"[BACKEND] Location: {location}, Date: {date}, Period: {day_start}-{day_end}, Prices groups: {len(prices)}, Broker commission: {broker_commission}%", flush=True)
+        print(f"[BACKEND] Location: {location}, Date: {date}, Period: {day_start}-{day_end}, Export All Periods: {export_all_periods}, Prices groups: {len(prices)}, Broker commission: {broker_commission}%", flush=True)
         
         # Car group mapping (SIPP codes to groups)
         car_group_mapping = {
@@ -41883,33 +42061,56 @@ async def export_automated_prices_excel(request: Request):
         month = date_obj.month
         year = date_obj.year
         
-        # Fetch saved periods from database for this month/year, filtered by selected range
+        # Fetch saved periods from database for this month/year
         saved_periods = []
         try:
             conn = _db_connect()
             is_postgres = _is_postgresql_connection(conn)
-            if is_postgres:
-                with conn.cursor() as cur:
+            if export_all_periods:
+                # Export ALL periods for this month/year
+                if is_postgres:
+                    with conn.cursor() as cur:
+                        cur.execute("""
+                            SELECT DISTINCT day_start, day_end 
+                            FROM automated_prices 
+                            WHERE month = %s AND year = %s
+                            ORDER BY day_start
+                        """, (month, year))
+                        saved_periods = cur.fetchall()
+                else:
+                    cur = conn.cursor()
                     cur.execute("""
                         SELECT DISTINCT day_start, day_end 
                         FROM automated_prices 
-                        WHERE month = %s AND year = %s
-                          AND day_start >= %s AND day_end <= %s
+                        WHERE month = ? AND year = ?
+                        ORDER BY day_start
+                    """, (month, year))
+                    saved_periods = cur.fetchall()
+                print(f"[BACKEND] Export ALL periods mode: Found {len(saved_periods)} saved periods in database", flush=True)
+            else:
+                # Export only selected period range
+                if is_postgres:
+                    with conn.cursor() as cur:
+                        cur.execute("""
+                            SELECT DISTINCT day_start, day_end 
+                            FROM automated_prices 
+                            WHERE month = %s AND year = %s
+                              AND day_start >= %s AND day_end <= %s
+                            ORDER BY day_start
+                        """, (month, year, day_start, day_end))
+                        saved_periods = cur.fetchall()
+                else:
+                    cur = conn.cursor()
+                    cur.execute("""
+                        SELECT DISTINCT day_start, day_end 
+                        FROM automated_prices 
+                        WHERE month = ? AND year = ?
+                          AND day_start >= ? AND day_end <= ?
                         ORDER BY day_start
                     """, (month, year, day_start, day_end))
                     saved_periods = cur.fetchall()
-            else:
-                cur = conn.cursor()
-                cur.execute("""
-                    SELECT DISTINCT day_start, day_end 
-                    FROM automated_prices 
-                    WHERE month = ? AND year = ?
-                      AND day_start >= ? AND day_end <= ?
-                    ORDER BY day_start
-                """, (month, year, day_start, day_end))
-                saved_periods = cur.fetchall()
+                print(f"[BACKEND] Found {len(saved_periods)} saved periods in database for range {day_start}-{day_end}", flush=True)
             conn.close()
-            print(f"[BACKEND] Found {len(saved_periods)} saved periods in database for range {day_start}-{day_end}", flush=True)
         except Exception as e:
             print(f"[BACKEND] Error fetching saved periods: {e}", flush=True)
         
@@ -41918,7 +42119,7 @@ async def export_automated_prices_excel(request: Request):
             saved_periods = [(day_start, day_end)]
             print(f"[BACKEND] No saved periods found, using provided period: {day_start}-{day_end}", flush=True)
         else:
-            print(f"[BACKEND] Using saved periods within range: {saved_periods}", flush=True)
+            print(f"[BACKEND] Using saved periods: {saved_periods}", flush=True)
         
         # Map month number to English month name for insurance lookup
         month_names_en = ['January', 'February', 'March', 'April', 'May', 'June',
@@ -41975,11 +42176,28 @@ async def export_automated_prices_excel(request: Request):
             
             # Fill data rows - one row per SIPP code per period
             row_num = 2
-            for period_start, period_end in saved_periods:
+            
+            # Define alternating colors for periods (pastel colors)
+            period_colors = [
+                'E3F2FD',  # Light Blue
+                'F3E5F5',  # Light Purple
+                'E8F5E9',  # Light Green
+                'FFF3E0',  # Light Orange
+                'FCE4EC',  # Light Pink
+                'E0F2F1',  # Light Teal
+                'FFF9C4',  # Light Yellow
+                'F1F8E9',  # Light Lime
+            ]
+            
+            for period_idx, (period_start, period_end) in enumerate(saved_periods):
                 # Format dates for this period
                 period_start_date_str = f"{month:02d}/{period_start:02d}/{year}"
                 period_end_date_str = f"{month:02d}/{period_end:02d}/{year}"
                 print(f"[BACKEND] Creating rows for period: {period_start_date_str} - {period_end_date_str}", flush=True)
+                
+                # Get color for this period (cycle through colors if more than 8 periods)
+                period_color = period_colors[period_idx % len(period_colors)]
+                period_fill = PatternFill(start_color=period_color, end_color=period_color, fill_type='solid')
                 
                 for sipp_code in sipp_codes_order:
                     # Get internal group from SIPP code
@@ -42061,6 +42279,10 @@ async def export_automated_prices_excel(request: Request):
                         else:
                             # No price and no insurance - leave empty
                             ws.cell(row_num, col_idx).value = ''
+                    
+                    # Apply period background color to all cells in this row
+                    for col_idx in range(1, len(headers) + 1):
+                        ws.cell(row_num, col_idx).fill = period_fill
                     
                     row_num += 1
             

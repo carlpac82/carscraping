@@ -532,18 +532,18 @@
             <p style="margin: 0 0 24px 0; font-size: 14px; color: #6b7280;">Escolha qual período deseja exportar:</p>
             
             <div style="display: flex; flex-direction: column; gap: 12px; margin-bottom: 24px;">
-                <button onclick="confirmAbbycarDownload('selected')" style="padding: 16px 20px; background: #009cb6; color: white; border: none; border-radius: 8px; font-size: 15px; font-weight: 600; cursor: pointer; transition: all 0.2s; display: flex; align-items: center; justify-content: space-between;" onmouseover="this.style.background='#007a94'; this.style.transform='translateY(-2px)'; this.style.boxShadow='0 4px 12px rgba(0,156,182,0.3)'" onmouseout="this.style.background='#009cb6'; this.style.transform='translateY(0)'; this.style.boxShadow='none'">
-                    <span>Período Selecionado</span>
-                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" style="width: 20px; height: 20px;">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/>
-                    </svg>
+                <button onclick="confirmAbbycarDownload('selected')" style="padding: 16px 20px; background: #009cb6; color: white; border: none; border-radius: 8px; font-size: 15px; font-weight: 600; cursor: pointer; transition: all 0.2s;" onmouseover="this.style.background='#007a94'; this.style.transform='translateY(-2px)'; this.style.boxShadow='0 4px 12px rgba(0,156,182,0.3)'" onmouseout="this.style.background='#009cb6'; this.style.transform='translateY(0)'; this.style.boxShadow='none'">
+                    <div style="display: flex; flex-direction: column; align-items: flex-start; gap: 4px;">
+                        <span>Período Selecionado</span>
+                        <span id="selectedPeriodDates" style="font-size: 13px; font-weight: 400; opacity: 0.9;"></span>
+                    </div>
                 </button>
                 
-                <button onclick="confirmAbbycarDownload('all')" style="padding: 16px 20px; background: #f3f4f6; color: #374151; border: 2px solid #e5e7eb; border-radius: 8px; font-size: 15px; font-weight: 600; cursor: pointer; transition: all 0.2s; display: flex; align-items: center; justify-content: space-between;" onmouseover="this.style.background='#e5e7eb'; this.style.borderColor='#d1d5db'; this.style.transform='translateY(-2px)'; this.style.boxShadow='0 4px 12px rgba(0,0,0,0.1)'" onmouseout="this.style.background='#f3f4f6'; this.style.borderColor='#e5e7eb'; this.style.transform='translateY(0)'; this.style.boxShadow='none'">
-                    <span>Todos os Períodos</span>
-                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" style="width: 20px; height: 20px;">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/>
-                    </svg>
+                <button onclick="confirmAbbycarDownload('all')" style="padding: 16px 20px; background: #f3f4f6; color: #374151; border: 2px solid #e5e7eb; border-radius: 8px; font-size: 15px; font-weight: 600; cursor: pointer; transition: all 0.2s;" onmouseover="this.style.background='#e5e7eb'; this.style.borderColor='#d1d5db'; this.style.transform='translateY(-2px)'; this.style.boxShadow='0 4px 12px rgba(0,0,0,0.1)'" onmouseout="this.style.background='#f3f4f6'; this.style.borderColor='#e5e7eb'; this.style.transform='translateY(0)'; this.style.boxShadow='none'">
+                    <div style="display: flex; flex-direction: column; align-items: flex-start; gap: 4px;">
+                        <span>Todos os Períodos</span>
+                        <span id="allPeriodsDates" style="font-size: 13px; font-weight: 400; color: #6b7280;"></span>
+                    </div>
                 </button>
             </div>
             
@@ -1788,6 +1788,36 @@
 
         // Show Abbycar download modal
         function downloadAbbycar() {
+            const month = document.querySelector('#monthSelect').value;
+            const year = document.querySelector('#yearSelect').value;
+            const monthNames = ['JAN', 'FEV', 'MAR', 'ABR', 'MAI', 'JUN', 'JUL', 'AGO', 'SET', 'OUT', 'NOV', 'DEZ'];
+            const monthName = monthNames[parseInt(month) - 1];
+            
+            // Get selected period dates
+            let selectedPeriodText = '';
+            if (allPeriods.length > 0 && currentPeriodIndex >= 0 && currentPeriodIndex < allPeriods.length) {
+                const dayStart = allPeriods[currentPeriodIndex].day_start;
+                const dayEnd = allPeriods[currentPeriodIndex].day_end;
+                selectedPeriodText = `${dayStart}-${dayEnd} ${monthName}`;
+            } else {
+                selectedPeriodText = 'Nenhum período selecionado';
+            }
+            
+            // Get all periods range
+            let allPeriodsText = '';
+            if (allPeriods.length > 0) {
+                const firstDay = allPeriods[0].day_start;
+                const lastDay = allPeriods[allPeriods.length - 1].day_end;
+                allPeriodsText = `${firstDay}-${lastDay} ${monthName}`;
+            } else {
+                const lastDayOfMonth = new Date(year, month, 0).getDate();
+                allPeriodsText = `1-${lastDayOfMonth} ${monthName}`;
+            }
+            
+            // Update modal text
+            document.getElementById('selectedPeriodDates').textContent = selectedPeriodText;
+            document.getElementById('allPeriodsDates').textContent = allPeriodsText;
+            
             document.getElementById('abbycarDownloadModal').style.display = 'flex';
         }
         
@@ -1834,11 +1864,14 @@
                     }
                 }
                 
-                console.log('Período selecionado:', { dayStart, dayEnd });
+                console.log('Período selecionado:', { dayStart, dayEnd, periodOption, allPeriodsCount: allPeriods.length });
+                console.log('Todos os períodos disponíveis:', allPeriods);
                 
                 // Calculate start and end dates for the selected period (MM/DD/YYYY format)
                 const startDate = `${month}/${String(dayStart).padStart(2, '0')}/${year}`;
                 const endDate = `${month}/${String(dayEnd).padStart(2, '0')}/${year}`;
+                
+                console.log('Datas calculadas:', { startDate, endDate });
                 
                 // Fetch Abbycar commission from Admin Settings
                 const abbycarCommissionResponse = await fetch('/api/admin-settings/abbycar-commission');
@@ -1868,11 +1901,13 @@
                 'N': [{sipp: 'LVMD', model: 'Fiat Talento'}]
             };
             
-            const data = collectAbbycarData(abbycarCommission, groupToSipp, startDate, endDate, showGroupsK);
-                console.log('Dados coletados:', data.length, 'grupos');
+            // For 'all' periods, backend will fetch data from database
+                // For 'selected' period, we send current visible data
+                const data = periodOption === 'all' ? [] : collectAbbycarData(abbycarCommission, groupToSipp, startDate, endDate, showGroupsK);
+                console.log('Dados coletados:', data.length, 'grupos/linhas');
                 
                 // Enviar para backend para gerar Excel com formatação
-                await downloadAbbycarExcel(data, location, startDate, endDate, month, dayEnd);
+                await downloadAbbycarExcel(data, location, startDate, endDate, month, dayEnd, periodOption);
                 console.log('Download Abbycar concluído!');
             } catch (error) {
                 console.error('Erro no download Abbycar:', error);
@@ -2016,8 +2051,9 @@
         }
 
         // Enviar dados para backend gerar Excel com formatação (4 sheets: Light, Standard, Comfort, Premium)
-        async function downloadAbbycarExcel(data, location, startDate, endDate, month, lastDay) {
+        async function downloadAbbycarExcel(data, location, startDate, endDate, month, lastDay, periodOption) {
             try {
+                console.log('[ABBYCAR EXCEL] Enviando para backend:', { periodOption, startDate, endDate });
                 const response = await fetch('/api/export-abbycar-excel', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
@@ -2025,7 +2061,8 @@
                         data: data,
                         location: location,
                         startDate: startDate,
-                        endDate: endDate
+                        endDate: endDate,
+                        exportAllPeriods: periodOption === 'all'
                     })
                 });
                 

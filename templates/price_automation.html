@@ -579,6 +579,10 @@
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/>
                         </svg>
                     </button>
+                    <label class="flex items-center gap-2 text-sm text-gray-700 mr-3">
+                        <input type="checkbox" id="exportAllPeriodsAbbycar" class="rounded border-gray-300 text-[#009cb6] focus:ring-[#009cb6]">
+                        <span class="whitespace-nowrap">Exportar Todos os Períodos</span>
+                    </label>
                     <span class="text-sm text-gray-600 mr-2" data-i18n="automation.downloadExcel">Download Excel:</span>
                     <button onclick="downloadExcelAuto('website')" class="p-2 hover:bg-gray-100 rounded transition-colors" title="Download Website">
                         <svg class="w-6 h-6 text-green-600" fill="currentColor" viewBox="0 0 24 24">
@@ -3113,9 +3117,18 @@
                 // Determinar último dia do mês
                 const lastDayOfMonth = new Date(year, month, 0).getDate();
                 
-                // Período padrão: mês inteiro (períodos são atualizados na homepage)
-                const day_start = 1;
-                const day_end = lastDayOfMonth;
+                // Check if user wants to export all periods
+                const exportAllPeriods = document.getElementById('exportAllPeriodsAbbycar')?.checked || false;
+                console.log('[ABBYCAR DEBUG] Export all periods:', exportAllPeriods);
+                
+                // Get period from inputs (use selected period, not full month)
+                const startDayInput = document.getElementById('wr_start_day');
+                const endDayInput = document.getElementById('wr_end_day');
+                
+                const day_start = startDayInput?.value ? parseInt(startDayInput.value) : 1;
+                const day_end = endDayInput?.value ? parseInt(endDayInput.value) : lastDayOfMonth;
+                
+                console.log('[ABBYCAR DEBUG] Period values:', { day_start, day_end, exportAllPeriods });
                 
                 // Abbycar: apenas grupos base (sem K groups, sem C3, C4, C5, X)
                 const groups = ['B1', 'B2', 'C', 'D', 
@@ -3135,16 +3148,24 @@
                     });
                 });
                 
-                // Try backend Excel (60 second timeout - Excel generation can be slow)
-                console.log('[ABBYCAR] Sending request to backend...', { location, date, day_start, day_end, priceCount: Object.keys(prices).length });
+                // Try backend Excel (120 second timeout - Excel generation can be slow when exporting all periods)
+                console.log('[ABBYCAR] Sending request to backend...', { location, date, day_start, day_end, exportAllPeriods, priceCount: Object.keys(prices).length });
                 
                 const controller = new AbortController();
-                const timeoutId = setTimeout(() => controller.abort(), 60000);
+                const timeoutId = setTimeout(() => controller.abort(), 120000); // 2 minutes for all periods
                 
                 const response = await fetch('/api/export-automated-prices-excel', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ location, date, prices, day_start, day_end, broker_commission: getComissao() * 100 }),
+                    body: JSON.stringify({ 
+                        location, 
+                        date, 
+                        prices, 
+                        day_start, 
+                        day_end, 
+                        exportAllPeriods,
+                        broker_commission: getComissao() * 100 
+                    }),
                     signal: controller.signal
                 });
                 
