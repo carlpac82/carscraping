@@ -2019,7 +2019,10 @@
                         
                         // Mapear para colunas do Abbycar
                         if (day <= 7) {
-                            row.prices[`${day}_day_fixed`] = finalPrice.toFixed(2);
+                            // Don't send 0 prices for days 1-4 so backend can apply Faro defaults
+                            if (finalPrice > 0 || day > 4) {
+                                row.prices[`${day}_day_fixed`] = finalPrice.toFixed(2);
+                            }
                         } else if (day === 8) {
                             row.prices['8_10_daily'] = (finalPrice / 8).toFixed(2); // Daily price
                         } else if (day === 9) {

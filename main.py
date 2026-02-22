@@ -41323,6 +41323,7 @@ async def export_abbycar_excel(request: Request):
         # Get Abbycar commission from app_settings (using existing helper function)
         abbycar_commission = _get_abbycar_adjustment()
         print(f"[BACKEND ABBYCAR] Commission from settings: {abbycar_commission}%", flush=True)
+        print(f"[BACKEND ABBYCAR] Location received: '{location}' (exportAllPeriods={export_all_periods})", flush=True)
         
         # If export_all_periods is True, fetch all periods from database
         if export_all_periods:
