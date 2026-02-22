@@ -42085,7 +42085,7 @@ async def export_automated_prices_excel(request: Request):
         
         excel_file.seek(0)
         
-        # Generate filename: ABBYCAR-FARO-01-31-NOV or ABBYCAR-ALBUFEIRA-01-31-NOV
+        # Generate filename: ABBYCAR-FARO-01-21-FEV (using actual selected period)
         # Extract month name from date
         from datetime import datetime
         date_obj = datetime.strptime(date, '%Y-%m-%d')
@@ -42095,8 +42095,12 @@ async def export_automated_prices_excel(request: Request):
         # Location name (uppercase)
         location_name = location.upper().replace(' ', '-')
         
-        # Filename format: ABBYCAR-LOCATION-01-31-MONTH
-        filename = f"ABBYCAR-{location_name}-01-31-{month_name}.xlsx"
+        # Use actual period dates from saved_periods (first period start, last period end)
+        first_period_start = saved_periods[0][0]
+        last_period_end = saved_periods[-1][1]
+        
+        # Filename format: ABBYCAR-LOCATION-DD-DD-MONTH
+        filename = f"ABBYCAR-{location_name}-{first_period_start:02d}-{last_period_end:02d}-{month_name}.xlsx"
         print(f"[BACKEND] Excel file ready: {filename} ({len(excel_bytes)} bytes)", flush=True)
         
         # SALVAR NA BASE DE DADOS (persistente)
