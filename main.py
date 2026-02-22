@@ -41319,24 +41319,24 @@ async def export_abbycar_excel(request: Request):
                 ]
                 
                 # Add prices
-                # Base prices are ALWAYS from the prices object (Light category prices)
+                # Base prices are ALWAYS from the prices object (Standard category prices)
                 prices = row_data.get('prices', {})
                 price_keys = ['1_day_fixed', '2_day_fixed', '3_day_fixed', '4_day_fixed', '5_day_fixed',
                              '6_day_fixed', '7_day_fixed', '8_10_daily', '11_12_daily', '13_14_daily',
                              '15_21_daily', '22_28_daily']
                 
                 for key in price_keys:
-                    # Base price from Light (always the same source)
+                    # Base price from Standard (always the same source)
                     base_price_val = prices.get(key, '')
                     
-                    if category == 'Light':
-                        # Light: just show base price
+                    if category == 'Standard':
+                        # Standard: just show base price (no insurance)
                         if base_price_val:
                             row_values.append(str(base_price_val).replace('.', ','))
                         else:
                             row_values.append('')
                     else:
-                        # Standard, Comfort, Premium: base price + insurance
+                        # Light, Comfort, Premium: base price + insurance
                         if base_price_val:
                             base_price = float(str(base_price_val).replace(',', '.'))
                             
