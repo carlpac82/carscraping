@@ -42019,46 +42019,46 @@ async def export_automated_prices_excel(request: Request):
                         (28, 18, '22-28 dias', 'daily') # 22-28 daily → Col 18
                     ]
                     
-                        for day_key, col_idx, period_str, period_type in price_columns:
-                            # Get the price exactly as it exists in Abbycar system (already has all adjustments)
-                            price = calculate_price_for_day(group_prices, int(day_key))
+                    for day_key, col_idx, period_str, period_type in price_columns:
+                        # Get the price exactly as it exists in Abbycar system (already has all adjustments)
+                        price = calculate_price_for_day(group_prices, int(day_key))
+                        
+                        # Start with base price (0 if no price)
+                        final_price = float(price) if price else 0.0
+                        
+                        # For Standard, Comfort, Premium: ALWAYS add insurance price
+                        if category != 'Light':
+                            print(f"[BACKEND] Looking up insurance: sipp={sipp_code}, month={current_month_name}, period={period_str}, type={period_type}, category={category}", flush=True)
+                            insurance_price = get_insurance_price_for_month_and_sipp(
+                                sipp_code, current_month_name, period_str, period_type, category
+                            )
+                            print(f"[BACKEND] Insurance price found: {insurance_price}", flush=True)
+                            if insurance_price:
+                                # Insurance price from DB is per day
+                                # For fixed periods (1-7 days): multiply by number of days to get total
+                                # For daily periods (8+): already per day, add directly
+                                if period_type == 'fixed':
+                                    # Fixed period: insurance × days (e.g., 5 days × €3/day = €15 total)
+                                    insurance_total = insurance_price * int(day_key)
+                                    final_price += insurance_total
+                                    print(f"[BACKEND] {category} - {sipp_code} - {period_str} (fixed): base={price or 0}, insurance={insurance_price:.2f}/day × {day_key} days = {insurance_total:.2f}, total={final_price:.2f}", flush=True)
+                                else:
+                                    # Daily period: insurance is already per day, add directly
+                                    final_price += insurance_price
+                                    print(f"[BACKEND] {category} - {sipp_code} - {period_str} (daily): base={price or 0}/day, insurance={insurance_price:.2f}/day, total={final_price:.2f}/day", flush=True)
+                        
+                        # Only write to Excel if we have a value (either base price or insurance)
+                        if final_price > 0:
+                            # Round to 2 decimal places
+                            final_price = round(final_price, 2)
                             
-                            # Start with base price (0 if no price)
-                            final_price = float(price) if price else 0.0
-                            
-                            # For Standard, Comfort, Premium: ALWAYS add insurance price
-                            if category != 'Light':
-                                print(f"[BACKEND] Looking up insurance: sipp={sipp_code}, month={current_month_name}, period={period_str}, type={period_type}, category={category}", flush=True)
-                                insurance_price = get_insurance_price_for_month_and_sipp(
-                                    sipp_code, current_month_name, period_str, period_type, category
-                                )
-                                print(f"[BACKEND] Insurance price found: {insurance_price}", flush=True)
-                                if insurance_price:
-                                    # Insurance price from DB is per day
-                                    # For fixed periods (1-7 days): multiply by number of days to get total
-                                    # For daily periods (8+): already per day, add directly
-                                    if period_type == 'fixed':
-                                        # Fixed period: insurance × days (e.g., 5 days × €3/day = €15 total)
-                                        insurance_total = insurance_price * int(day_key)
-                                        final_price += insurance_total
-                                        print(f"[BACKEND] {category} - {sipp_code} - {period_str} (fixed): base={price or 0}, insurance={insurance_price:.2f}/day × {day_key} days = {insurance_total:.2f}, total={final_price:.2f}", flush=True)
-                                    else:
-                                        # Daily period: insurance is already per day, add directly
-                                        final_price += insurance_price
-                                        print(f"[BACKEND] {category} - {sipp_code} - {period_str} (daily): base={price or 0}/day, insurance={insurance_price:.2f}/day, total={final_price:.2f}/day", flush=True)
-                            
-                            # Only write to Excel if we have a value (either base price or insurance)
-                            if final_price > 0:
-                                # Round to 2 decimal places
-                                final_price = round(final_price, 2)
-                                
-                                # Set cell value
-                                cell = ws.cell(row_num, col_idx)
-                                cell.value = final_price
-                                cell.number_format = '0.00'
-                            else:
-                                # No price and no insurance - leave empty
-                                ws.cell(row_num, col_idx).value = ''
+                            # Set cell value
+                            cell = ws.cell(row_num, col_idx)
+                            cell.value = final_price
+                            cell.number_format = '0.00'
+                        else:
+                            # No price and no insurance - leave empty
+                            ws.cell(row_num, col_idx).value = ''
                     
                     row_num += 1
             
