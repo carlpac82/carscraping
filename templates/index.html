@@ -1907,7 +1907,7 @@
                 console.log('Dados coletados:', data.length, 'grupos/linhas');
                 
                 // Enviar para backend para gerar Excel com formatação
-                await downloadAbbycarExcel(data, location, startDate, endDate, month, dayEnd, periodOption);
+                await downloadAbbycarExcel(data, location, startDate, endDate, month, year, periodOption);
                 console.log('Download Abbycar concluído!');
             } catch (error) {
                 console.error('Erro no download Abbycar:', error);
@@ -2051,22 +2051,31 @@
         }
 
         // Enviar dados para backend gerar Excel com formatação (4 sheets: Light, Standard, Comfort, Premium)
-        async function downloadAbbycarExcel(data, location, startDate, endDate, month, lastDay, periodOption) {
+        async function downloadAbbycarExcel(data, location, startDate, endDate, month, year, periodOption) {
             try {
                 console.log('[ABBYCAR EXCEL] Enviando para backend:', { periodOption, startDate, endDate });
-                const response = await fetch('/api/export-abbycar-excel', {
+                
+                // Extract day_start and day_end from startDate and endDate
+                const dayStart = parseInt(startDate.split('/')[1]);
+                const dayEnd = parseInt(endDate.split('/')[1]);
+                
+                const response = await fetch('/api/export-automated-prices-excel', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({
-                        data: data,
                         location: location,
-                        startDate: startDate,
-                        endDate: endDate,
-                        exportAllPeriods: periodOption === 'all'
+                        date: `${year}-${String(month).padStart(2, '0')}-01`,
+                        prices: {},
+                        day_start: dayStart,
+                        day_end: dayEnd,
+                        exportAllPeriods: periodOption === 'all',
+                        broker_commission: 13.66
                     })
                 });
                 
                 if (!response.ok) {
+                    const errorText = await response.text();
+                    console.error('[ABBYCAR EXCEL] Backend error:', errorText);
                     throw new Error('Erro ao gerar Excel');
                 }
                 
@@ -2074,10 +2083,23 @@
                 const url = window.URL.createObjectURL(blob);
                 const a = document.createElement('a');
                 a.href = url;
-                const _abxMonthNames = ['JAN','FEV','MAR','ABR','MAI','JUN','JUL','AGO','SET','OUT','NOV','DEZ'];
-                const _abxMon = _abxMonthNames[parseInt(month) - 1];
-                const _abxLoc = location.toUpperCase().replace(/\s+/g, '-');
-                a.download = `ABBYCAR-${_abxLoc}-01-${String(lastDay).padStart(2,'0')}-${_abxMon}.xlsx`;
+                
+                // Get filename from Content-Disposition header or generate it
+                const contentDisposition = response.headers.get('Content-Disposition');
+                let filename;
+                if (contentDisposition) {
+                    const filenameMatch = contentDisposition.match(/filename="?(.+?)"?$/i);
+                    filename = filenameMatch ? filenameMatch[1] : null;
+                }
+                
+                if (!filename) {
+                    const _abxMonthNames = ['JAN','FEV','MAR','ABR','MAI','JUN','JUL','AGO','SET','OUT','NOV','DEZ'];
+                    const _abxMon = _abxMonthNames[parseInt(month) - 1];
+                    const _abxLoc = location.toUpperCase().replace(/\s+/g, '-');
+                    filename = `ABBYCAR-${_abxLoc}-${String(dayStart).padStart(2,'0')}-${String(dayEnd).padStart(2,'0')}-${_abxMon}.xlsx`;
+                }
+                
+                a.download = filename;
                 document.body.appendChild(a);
                 a.click();
                 window.URL.revokeObjectURL(url);
