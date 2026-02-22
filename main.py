@@ -41319,54 +41319,63 @@ async def export_abbycar_excel(request: Request):
                 ]
                 
                 # Add prices
+                # Base prices are ALWAYS from the prices object (Light category prices)
                 prices = row_data.get('prices', {})
                 price_keys = ['1_day_fixed', '2_day_fixed', '3_day_fixed', '4_day_fixed', '5_day_fixed',
                              '6_day_fixed', '7_day_fixed', '8_10_daily', '11_12_daily', '13_14_daily',
                              '15_21_daily', '22_28_daily']
                 
                 for key in price_keys:
-                    price_val = prices.get(key, '')
+                    # Base price from Light (always the same source)
+                    base_price_val = prices.get(key, '')
                     
-                    if price_val and category != 'Light':
-                        # For Standard, Comfort, Premium: add insurance ONLY if base price > 0
-                        base_price = float(str(price_val).replace(',', '.'))
-                        
-                        # Only process insurance if there's a valid base price
-                        if base_price > 0:
-                            # Determine period and type
-                            if 'day_fixed' in key:
-                                days = int(key.split('_')[0])
-                                period = f"{days} day{'s' if days > 1 else ''}"
-                                period_type = 'fixed'
-                            else:
-                                # Convert "8_10_daily" to "8-10 days" to match database format
-                                period = key.replace('_daily', ' days').replace('_', '-')
-                                period_type = 'daily'
-                            
-                            # Get insurance price
-                            insurance_price = get_insurance_price_for_month_and_sipp(
-                                sipp_code, current_month_name, period, period_type, category
-                            )
-                            
-                            if insurance_price:
-                                if period_type == 'fixed':
-                                    # Fixed: multiply insurance by days
-                                    insurance_total = insurance_price * days
-                                    final_price = base_price + insurance_total
-                                else:
-                                    # Daily: add insurance per day
-                                    final_price = base_price + insurance_price
-                                
-                                row_values.append(str(round(final_price, 2)).replace('.', ','))
-                            else:
-                                row_values.append(str(price_val).replace('.', ','))
+                    if category == 'Light':
+                        # Light: just show base price
+                        if base_price_val:
+                            row_values.append(str(base_price_val).replace('.', ','))
                         else:
-                            # No base price, don't add insurance
                             row_values.append('')
-                    elif price_val:
-                        row_values.append(str(price_val).replace('.', ','))
                     else:
-                        row_values.append('')
+                        # Standard, Comfort, Premium: base price + insurance
+                        if base_price_val:
+                            base_price = float(str(base_price_val).replace(',', '.'))
+                            
+                            # Only add insurance if base price > 0
+                            if base_price > 0:
+                                # Determine period and type
+                                if 'day_fixed' in key:
+                                    days = int(key.split('_')[0])
+                                    period = f"{days} day{'s' if days > 1 else ''}"
+                                    period_type = 'fixed'
+                                else:
+                                    # Convert "8_10_daily" to "8-10 days" to match database format
+                                    period = key.replace('_daily', ' days').replace('_', '-')
+                                    period_type = 'daily'
+                                
+                                # Get insurance price
+                                insurance_price = get_insurance_price_for_month_and_sipp(
+                                    sipp_code, current_month_name, period, period_type, category
+                                )
+                                
+                                if insurance_price:
+                                    if period_type == 'fixed':
+                                        # Fixed: multiply insurance by days
+                                        insurance_total = insurance_price * days
+                                        final_price = base_price + insurance_total
+                                    else:
+                                        # Daily: add insurance per day
+                                        final_price = base_price + insurance_price
+                                    
+                                    row_values.append(str(round(final_price, 2)).replace('.', ','))
+                                else:
+                                    # No insurance configured, just show base price
+                                    row_values.append(str(base_price_val).replace('.', ','))
+                            else:
+                                # Base price is 0, don't add insurance
+                                row_values.append('')
+                        else:
+                            # No base price, leave empty
+                            row_values.append('')
                 
                 ws.append(row_values)
                 
