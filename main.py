@@ -41745,9 +41745,12 @@ async def export_abbycar_excel(request: Request):
                         cell.fill = cyan_fill
         
         # Save to bytes
+        excel_start = time.time()
         excel_bytes = io.BytesIO()
         wb.save(excel_bytes)
         excel_bytes.seek(0)
+        excel_time = time.time() - excel_start
+        print(f"[PERF] Excel file saved in {excel_time:.2f}s", flush=True)
         
         # Generate filename
         if export_all_periods and all_periods:
