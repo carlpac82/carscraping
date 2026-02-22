@@ -1836,8 +1836,6 @@
         // Download Abbycar: Formato específico com SIPP codes e daily prices
         async function downloadAbbycarPeriod(periodOption) {
             try {
-                console.log('Iniciando download Abbycar...', periodOption);
-                
                 // Show loading spinner
                 showLoading();
                 
@@ -1857,24 +1855,17 @@
                 }
                 // For 'all' option, backend will fetch ALL periods from ALL months
                 
-                console.log('Período selecionado:', { dayStart, dayEnd, periodOption, allPeriodsCount: allPeriods.length });
-                console.log('Todos os períodos disponíveis:', allPeriods);
-                
                 // Calculate start and end dates for the selected period (MM/DD/YYYY format)
                 const startDate = `${month}/${String(dayStart).padStart(2, '0')}/${year}`;
                 const endDate = `${month}/${String(dayEnd).padStart(2, '0')}/${year}`;
-                
-                console.log('Datas calculadas:', { startDate, endDate });
                 
                 // Fetch Abbycar commission from Admin Settings
                 const abbycarCommissionResponse = await fetch('/api/admin-settings/abbycar-commission');
                 const abbycarCommissionData = await abbycarCommissionResponse.json();
                 const abbycarCommission = abbycarCommissionData.ok ? abbycarCommissionData.abbycar_commission_pct : 0;
-                console.log('Comissão Abbycar:', abbycarCommission);
             
             // Check if "Grupo K" checkbox is checked
             const showGroupsK = document.getElementById('showGroupsK')?.checked || false;
-            console.log('Show Grupos K:', showGroupsK);
             
             // Mapear grupos para SIPP codes e modelos (conforme backend main.py)
             // Alguns grupos aparecem 2x com SIPP codes diferentes (L1, M1)
@@ -1897,11 +1888,9 @@
             // For 'all' periods, backend will fetch data from database
                 // For 'selected' period, we send current visible data
                 const data = periodOption === 'all' ? [] : collectAbbycarData(abbycarCommission, groupToSipp, startDate, endDate, showGroupsK);
-                console.log('Dados coletados:', data.length, 'grupos/linhas');
                 
                 // Enviar para backend para gerar Excel com formatação
                 await downloadAbbycarExcel(data, location, startDate, endDate, month, year, periodOption);
-                console.log('Download Abbycar concluído!');
             } catch (error) {
                 console.error('Erro no download Abbycar:', error);
                 alert('Erro ao gerar ficheiro Abbycar: ' + error.message);
@@ -2049,8 +2038,6 @@
         // Enviar dados para backend gerar Excel com formatação (4 sheets: Light, Standard, Comfort, Premium)
         async function downloadAbbycarExcel(data, location, startDate, endDate, month, year, periodOption) {
             try {
-                console.log('[ABBYCAR EXCEL] Enviando para backend:', { periodOption, startDate, endDate });
-                
                 // Extract day_start and day_end from startDate and endDate
                 const dayStart = parseInt(startDate.split('/')[1]);
                 const dayEnd = parseInt(endDate.split('/')[1]);
@@ -2071,8 +2058,6 @@
                 });
                 
                 if (!response.ok) {
-                    const errorText = await response.text();
-                    console.error('[ABBYCAR EXCEL] Backend error:', errorText);
                     throw new Error('Erro ao gerar Excel');
                 }
                 

@@ -41339,11 +41339,8 @@ async def export_abbycar_excel(request: Request):
         except Exception as e:
             print(f"[BACKEND ABBYCAR] Error fetching commission: {e}", flush=True)
         
-        print(f"[BACKEND ABBYCAR] Export all periods: {export_all_periods}, Start: {start_date}, End: {end_date}, Commission: {abbycar_commission}%", flush=True)
-        
         # If export_all_periods is True, fetch all periods from database
         if export_all_periods:
-            print("[BACKEND ABBYCAR] Fetching all saved periods from database...", flush=True)
             conn = _db_connect()
             is_postgres = _is_postgresql_connection(conn)
             
@@ -41373,7 +41370,6 @@ async def export_abbycar_excel(request: Request):
                 all_periods = cur.fetchall()
             
             conn.close()
-            print(f"[BACKEND ABBYCAR] Found {len(all_periods)} periods in database", flush=True)
         else:
             all_periods = None
         
@@ -41407,7 +41403,6 @@ async def export_abbycar_excel(request: Request):
         # If exporting all periods, we need to fetch data from database for each period
         # Otherwise, use the rows_data from frontend (selected period)
         if all_periods:
-            print(f"[BACKEND ABBYCAR] Exporting all periods - will fetch from database", flush=True)
             # Define all SIPP codes we need to export
             all_sipp_codes = {
                 'MCMR': 'Peugeot 208', 'EDMR': 'Renault Clio', 'CDMR': 'Opel Corsa',
@@ -41446,8 +41441,6 @@ async def export_abbycar_excel(request: Request):
                 period_start_date = f"{period_month}/{str(period_day_start).zfill(2)}/{period_year}"
                 period_end_date = f"{period_month}/{str(period_day_end).zfill(2)}/{period_year}"
                 
-                print(f"[BACKEND ABBYCAR] Fetching prices for period: {period_start_date} - {period_end_date}", flush=True)
-                
                 try:
                     # Query current_prices directly
                     conn = _db_connect()
@@ -41475,15 +41468,11 @@ async def export_abbycar_excel(request: Request):
                     conn.close()
                     
                     if not result:
-                        print(f"[BACKEND ABBYCAR] No data found for this period", flush=True)
                         continue
                     
                     # Parse prices_data JSON
                     import json
                     prices_data = json.loads(result[0]) if isinstance(result[0], str) else result[0]
-                    
-                    # prices_data structure: { "B1": {"1": 50, "2": 100, ...}, "B2": {...}, ... }
-                    print(f"[BACKEND ABBYCAR] Found {len(prices_data)} grupos for this period", flush=True)
                     
                     # Process each grupo
                     for grupo, precos in prices_data.items():
@@ -41531,11 +41520,6 @@ async def export_abbycar_excel(request: Request):
                     import traceback
                     traceback.print_exc()
                     continue
-            
-            print(f"[BACKEND ABBYCAR] Generated {len(rows_data)} rows for {len(all_periods)} periods", flush=True)
-        else:
-            # Using rows_data from frontend (selected period)
-            print(f"[BACKEND ABBYCAR] Using {len(rows_data)} rows from frontend for selected period", flush=True)
         
         # Define light blue fill for alternating periods
         from openpyxl.styles import PatternFill
