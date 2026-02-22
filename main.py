@@ -41336,6 +41336,7 @@ async def export_abbycar_excel(request: Request):
             conn.close()
             if result:
                 abbycar_commission = float(result[0])
+                print(f"[BACKEND ABBYCAR] Commission from DB: {abbycar_commission}%", flush=True)
         except Exception as e:
             print(f"[BACKEND ABBYCAR] Error fetching commission: {e}", flush=True)
         
