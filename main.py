@@ -41320,7 +41320,26 @@ async def export_abbycar_excel(request: Request):
         end_date = data_json.get('endDate', '')
         export_all_periods = data_json.get('exportAllPeriods', False)
         
-        print(f"[BACKEND ABBYCAR] Export all periods: {export_all_periods}, Start: {start_date}, End: {end_date}", flush=True)
+        # Get Abbycar commission from admin settings
+        abbycar_commission = 0
+        try:
+            conn = _db_connect()
+            is_postgres = _is_postgresql_connection(conn)
+            if is_postgres:
+                with conn.cursor() as cur:
+                    cur.execute("SELECT abbycar_commission_pct FROM admin_settings LIMIT 1")
+                    result = cur.fetchone()
+            else:
+                cur = conn.cursor()
+                cur.execute("SELECT abbycar_commission_pct FROM admin_settings LIMIT 1")
+                result = cur.fetchone()
+            conn.close()
+            if result:
+                abbycar_commission = float(result[0])
+        except Exception as e:
+            print(f"[BACKEND ABBYCAR] Error fetching commission: {e}", flush=True)
+        
+        print(f"[BACKEND ABBYCAR] Export all periods: {export_all_periods}, Start: {start_date}, End: {end_date}, Commission: {abbycar_commission}%", flush=True)
         
         # If export_all_periods is True, fetch all periods from database
         if export_all_periods:
@@ -41474,14 +41493,17 @@ async def export_abbycar_excel(request: Request):
                         }
                         
                         for day, key in dias_map.items():
-                            price = precos.get(str(day), 0)
-                            if price and float(price) > 0:
+                            net_price = precos.get(str(day), 0)
+                            if net_price and float(net_price) > 0:
+                                # Apply Abbycar commission to NET price (same as frontend does)
+                                price_with_commission = float(net_price) * (1 + abbycar_commission / 100)
+                                
                                 if day <= 7:
-                                    # Fixed price
-                                    prices[key] = str(price)
+                                    # Fixed price with commission
+                                    prices[key] = str(round(price_with_commission, 2))
                                 else:
-                                    # Daily price (divide total by days)
-                                    prices[key] = str(round(float(price) / day, 2))
+                                    # Daily price (divide total by days) with commission
+                                    prices[key] = str(round(price_with_commission / day, 2))
                         
                         # Add row for each SIPP code in this grupo
                         for sipp_code, model in sipp_models:
