@@ -41883,10 +41883,40 @@ async def export_automated_prices_excel(request: Request):
         month = date_obj.month
         year = date_obj.year
         
-        # Formato: MM/DD/YYYY (ex: 01/01/2025, 01/31/2025)
-        start_date_str = f"{month:02d}/{day_start:02d}/{year}"
-        end_date_str = f"{month:02d}/{day_end:02d}/{year}"
-        print(f"[BACKEND] Period dates: START={start_date_str}, END={end_date_str}", flush=True)
+        # Fetch saved periods from database for this month/year
+        saved_periods = []
+        try:
+            conn = _db_connect()
+            is_postgres = _is_postgresql_connection(conn)
+            if is_postgres:
+                with conn.cursor() as cur:
+                    cur.execute("""
+                        SELECT DISTINCT day_start, day_end 
+                        FROM automated_prices 
+                        WHERE month = %s AND year = %s
+                        ORDER BY day_start
+                    """, (month, year))
+                    saved_periods = cur.fetchall()
+            else:
+                cur = conn.cursor()
+                cur.execute("""
+                    SELECT DISTINCT day_start, day_end 
+                    FROM automated_prices 
+                    WHERE month = ? AND year = ?
+                    ORDER BY day_start
+                """, (month, year))
+                saved_periods = cur.fetchall()
+            conn.close()
+            print(f"[BACKEND] Found {len(saved_periods)} saved periods in database", flush=True)
+        except Exception as e:
+            print(f"[BACKEND] Error fetching saved periods: {e}", flush=True)
+        
+        # If no saved periods found, use the provided day_start/day_end
+        if not saved_periods:
+            saved_periods = [(day_start, day_end)]
+            print(f"[BACKEND] No saved periods found, using provided period: {day_start}-{day_end}", flush=True)
+        else:
+            print(f"[BACKEND] Using saved periods: {saved_periods}", flush=True)
         
         # Map month number to English month name for insurance lookup
         month_names_en = ['January', 'February', 'March', 'April', 'May', 'June',
@@ -41941,90 +41971,96 @@ async def export_automated_prices_excel(request: Request):
             for col_idx, header in enumerate(headers, start=1):
                 ws.cell(1, col_idx).value = header
             
-            # Fill data rows
+            # Fill data rows - one row per SIPP code per period
             row_num = 2
-            for sipp_code in sipp_codes_order:
-                # Get internal group from SIPP code
-                internal_group = car_group_mapping.get(sipp_code, sipp_code)
-                group_prices = prices.get(internal_group, {})
+            for period_start, period_end in saved_periods:
+                # Format dates for this period
+                period_start_date_str = f"{month:02d}/{period_start:02d}/{year}"
+                period_end_date_str = f"{month:02d}/{period_end:02d}/{year}"
+                print(f"[BACKEND] Creating rows for period: {period_start_date_str} - {period_end_date_str}", flush=True)
                 
-                # Column 1: Stations
-                ws.cell(row_num, 1).value = station_code
-                
-                # Column 2: Start Date (MM/DD/YYYY)
-                ws.cell(row_num, 2).value = start_date_str
-                
-                # Column 3: End Date (MM/DD/YYYY)
-                ws.cell(row_num, 3).value = end_date_str
-                
-                # Column 4: Group (SIPP code)
-                ws.cell(row_num, 4).value = sipp_code
-                
-                # Column 5: Model Example
-                ws.cell(row_num, 5).value = sipp_to_model.get(sipp_code, '')
-                
-                # Column 6: Currency
-                ws.cell(row_num, 6).value = 'EUR'
-                
-                # Columns 7-18: Prices (1 day fixed through 22-28 daily)
-                # Map frontend days to Excel columns
-                price_columns = [
-                    (1, 7, '1 dia', 'fixed'),      # 1 day fixed → Col 7
-                    (2, 8, '2 dias', 'fixed'),     # 2 days fixed → Col 8
-                    (3, 9, '3 dias', 'fixed'),     # 3 days fixed → Col 9
-                    (4, 10, '4 dias', 'fixed'),    # 4 days fixed → Col 10
-                    (5, 11, '5 dias', 'fixed'),    # 5 days fixed → Col 11
-                    (6, 12, '6 dias', 'fixed'),    # 6 days fixed → Col 12
-                    (7, 13, '7 dias', 'fixed'),    # 7 days fixed → Col 13
-                    (8, 14, '8-10 dias', 'daily'), # 8-10 daily → Col 14
-                    (9, 15, '11-12 dias', 'daily'),# 11-12 daily → Col 15
-                    (14, 16, '13-14 dias', 'daily'),# 13-14 daily → Col 16
-                    (22, 17, '15-21 dias', 'daily'),# 15-21 daily → Col 17
-                    (28, 18, '22-28 dias', 'daily') # 22-28 daily → Col 18
-                ]
-                
-                for day_key, col_idx, period_str, period_type in price_columns:
-                    # Get the price exactly as it exists in Abbycar system (already has all adjustments)
-                    price = calculate_price_for_day(group_prices, int(day_key))
+                for sipp_code in sipp_codes_order:
+                    # Get internal group from SIPP code
+                    internal_group = car_group_mapping.get(sipp_code, sipp_code)
+                    group_prices = prices.get(internal_group, {})
                     
-                    # Start with base price (0 if no price)
-                    final_price = float(price) if price else 0.0
+                    # Column 1: Stations
+                    ws.cell(row_num, 1).value = station_code
                     
-                    # For Standard, Comfort, Premium: ALWAYS add insurance price
-                    if category != 'Light':
-                        print(f"[BACKEND] Looking up insurance: sipp={sipp_code}, month={current_month_name}, period={period_str}, type={period_type}, category={category}", flush=True)
-                        insurance_price = get_insurance_price_for_month_and_sipp(
-                            sipp_code, current_month_name, period_str, period_type, category
-                        )
-                        print(f"[BACKEND] Insurance price found: {insurance_price}", flush=True)
-                        if insurance_price:
-                            # Insurance price from DB is per day
-                            # For fixed periods (1-7 days): multiply by number of days to get total
-                            # For daily periods (8+): already per day, add directly
-                            if period_type == 'fixed':
-                                # Fixed period: insurance × days (e.g., 5 days × €3/day = €15 total)
-                                insurance_total = insurance_price * int(day_key)
-                                final_price += insurance_total
-                                print(f"[BACKEND] {category} - {sipp_code} - {period_str} (fixed): base={price or 0}, insurance={insurance_price:.2f}/day × {day_key} days = {insurance_total:.2f}, total={final_price:.2f}", flush=True)
+                    # Column 2: Start Date (MM/DD/YYYY) - use period-specific dates
+                    ws.cell(row_num, 2).value = period_start_date_str
+                    
+                    # Column 3: End Date (MM/DD/YYYY) - use period-specific dates
+                    ws.cell(row_num, 3).value = period_end_date_str
+                    
+                    # Column 4: Group (SIPP code)
+                    ws.cell(row_num, 4).value = sipp_code
+                    
+                    # Column 5: Model Example
+                    ws.cell(row_num, 5).value = sipp_to_model.get(sipp_code, '')
+                    
+                    # Column 6: Currency
+                    ws.cell(row_num, 6).value = 'EUR'
+                    
+                    # Columns 7-18: Prices (1 day fixed through 22-28 daily)
+                    # Map frontend days to Excel columns
+                    price_columns = [
+                        (1, 7, '1 dia', 'fixed'),      # 1 day fixed → Col 7
+                        (2, 8, '2 dias', 'fixed'),     # 2 days fixed → Col 8
+                        (3, 9, '3 dias', 'fixed'),     # 3 days fixed → Col 9
+                        (4, 10, '4 dias', 'fixed'),    # 4 days fixed → Col 10
+                        (5, 11, '5 dias', 'fixed'),    # 5 days fixed → Col 11
+                        (6, 12, '6 dias', 'fixed'),    # 6 days fixed → Col 12
+                        (7, 13, '7 dias', 'fixed'),    # 7 days fixed → Col 13
+                        (8, 14, '8-10 dias', 'daily'), # 8-10 daily → Col 14
+                        (9, 15, '11-12 dias', 'daily'),# 11-12 daily → Col 15
+                        (14, 16, '13-14 dias', 'daily'),# 13-14 daily → Col 16
+                        (22, 17, '15-21 dias', 'daily'),# 15-21 daily → Col 17
+                        (28, 18, '22-28 dias', 'daily') # 22-28 daily → Col 18
+                    ]
+                    
+                        for day_key, col_idx, period_str, period_type in price_columns:
+                            # Get the price exactly as it exists in Abbycar system (already has all adjustments)
+                            price = calculate_price_for_day(group_prices, int(day_key))
+                            
+                            # Start with base price (0 if no price)
+                            final_price = float(price) if price else 0.0
+                            
+                            # For Standard, Comfort, Premium: ALWAYS add insurance price
+                            if category != 'Light':
+                                print(f"[BACKEND] Looking up insurance: sipp={sipp_code}, month={current_month_name}, period={period_str}, type={period_type}, category={category}", flush=True)
+                                insurance_price = get_insurance_price_for_month_and_sipp(
+                                    sipp_code, current_month_name, period_str, period_type, category
+                                )
+                                print(f"[BACKEND] Insurance price found: {insurance_price}", flush=True)
+                                if insurance_price:
+                                    # Insurance price from DB is per day
+                                    # For fixed periods (1-7 days): multiply by number of days to get total
+                                    # For daily periods (8+): already per day, add directly
+                                    if period_type == 'fixed':
+                                        # Fixed period: insurance × days (e.g., 5 days × €3/day = €15 total)
+                                        insurance_total = insurance_price * int(day_key)
+                                        final_price += insurance_total
+                                        print(f"[BACKEND] {category} - {sipp_code} - {period_str} (fixed): base={price or 0}, insurance={insurance_price:.2f}/day × {day_key} days = {insurance_total:.2f}, total={final_price:.2f}", flush=True)
+                                    else:
+                                        # Daily period: insurance is already per day, add directly
+                                        final_price += insurance_price
+                                        print(f"[BACKEND] {category} - {sipp_code} - {period_str} (daily): base={price or 0}/day, insurance={insurance_price:.2f}/day, total={final_price:.2f}/day", flush=True)
+                            
+                            # Only write to Excel if we have a value (either base price or insurance)
+                            if final_price > 0:
+                                # Round to 2 decimal places
+                                final_price = round(final_price, 2)
+                                
+                                # Set cell value
+                                cell = ws.cell(row_num, col_idx)
+                                cell.value = final_price
+                                cell.number_format = '0.00'
                             else:
-                                # Daily period: insurance is already per day, add directly
-                                final_price += insurance_price
-                                print(f"[BACKEND] {category} - {sipp_code} - {period_str} (daily): base={price or 0}/day, insurance={insurance_price:.2f}/day, total={final_price:.2f}/day", flush=True)
+                                # No price and no insurance - leave empty
+                                ws.cell(row_num, col_idx).value = ''
                     
-                    # Only write to Excel if we have a value (either base price or insurance)
-                    if final_price > 0:
-                        # Round to 2 decimal places
-                        final_price = round(final_price, 2)
-                        
-                        # Set cell value
-                        cell = ws.cell(row_num, col_idx)
-                        cell.value = final_price
-                        cell.number_format = '0.00'
-                    else:
-                        # No price and no insurance - leave empty
-                        ws.cell(row_num, col_idx).value = ''
-                
-                row_num += 1
+                    row_num += 1
             
             print(f"[BACKEND] Sheet {category}: Filled {row_num - 2} rows with prices", flush=True)
         
