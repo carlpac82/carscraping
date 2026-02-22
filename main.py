@@ -41415,11 +41415,15 @@ async def export_abbycar_excel(request: Request):
                 # Check if prices_data is a dict (single period) or list (multiple periods)
                 if isinstance(prices_data, dict):
                     # It's a dict with 'grupos_minhas' key containing the actual prices array
+                    print(f"[BACKEND ABBYCAR] Dict keys: {list(prices_data.keys())}", flush=True)
                     if 'grupos_minhas' in prices_data:
                         actual_prices = prices_data['grupos_minhas']
+                    elif 'grupos' in prices_data:
+                        actual_prices = prices_data['grupos']
                     else:
                         # It might be the prices dict itself, skip this period
                         print(f"[BACKEND ABBYCAR] Unexpected dict structure for period {period_start_date}", flush=True)
+                        print(f"[BACKEND ABBYCAR] Available keys: {list(prices_data.keys())}", flush=True)
                         continue
                 elif isinstance(prices_data, list):
                     actual_prices = prices_data
