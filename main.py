@@ -41410,6 +41410,7 @@ async def export_abbycar_excel(request: Request):
                 
                 # Load prices for this specific period
                 prices_data, _ = load_prices_from_db(conn, location, period_month, period_year, period_day_start, period_day_end)
+                print(f"[BACKEND ABBYCAR] Loaded {len(prices_data) if prices_data else 0} price groups for this period", flush=True)
                 conn.close()
                 
                 if not prices_data:
@@ -41489,6 +41490,10 @@ async def export_abbycar_excel(request: Request):
             
             # Add data rows
             for row_data in rows_data:
+                # Skip if row_data is None
+                if not row_data:
+                    continue
+                    
                 sipp_code = row_data.get('group', '')
                 
                 # Build row values - must be fresh for each row
