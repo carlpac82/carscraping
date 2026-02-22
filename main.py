@@ -51767,6 +51767,7 @@ async def check_active_inspection(request: Request, plate: str, ra: str):
                 WHERE vehicle_plate = %s 
                   AND inspection_type = 'checkin'
                   AND SPLIT_PART(contract_number, '-', 1) != %s
+                  AND created_at > NOW() - INTERVAL '30 days'
                   AND NOT EXISTS (
                       SELECT 1 FROM vehicle_inspections ci 
                       WHERE ci.vehicle_plate = vehicle_inspections.vehicle_plate 
@@ -51786,6 +51787,7 @@ async def check_active_inspection(request: Request, plate: str, ra: str):
                         THEN SUBSTR(contract_number, 1, INSTR(contract_number, '-') - 1)
                         ELSE contract_number 
                       END) != ?
+                  AND created_at > datetime('now', '-30 days')
                   AND NOT EXISTS (
                       SELECT 1 FROM vehicle_inspections ci 
                       WHERE ci.vehicle_plate = vehicle_inspections.vehicle_plate 
