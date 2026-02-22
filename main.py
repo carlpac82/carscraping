@@ -41455,20 +41455,11 @@ async def export_abbycar_excel(request: Request):
                     import json
                     prices_data = json.loads(result[0]) if isinstance(result[0], str) else result[0]
                     
-                    # Debug: show structure
-                    print(f"[BACKEND ABBYCAR] prices_data type: {type(prices_data)}", flush=True)
-                    if isinstance(prices_data, dict):
-                        print(f"[BACKEND ABBYCAR] prices_data keys: {list(prices_data.keys())}", flush=True)
-                    
-                    # Extract grupos array from prices_data
-                    grupos = prices_data.get('grupos', [])
-                    print(f"[BACKEND ABBYCAR] Found {len(grupos)} grupos for this period", flush=True)
+                    # prices_data structure: { "B1": {"1": 50, "2": 100, ...}, "B2": {...}, ... }
+                    print(f"[BACKEND ABBYCAR] Found {len(prices_data)} grupos for this period", flush=True)
                     
                     # Process each grupo
-                    for grupo_data in grupos:
-                        grupo = grupo_data.get('grupo', '')
-                        precos = grupo_data.get('precos', {})
-                        
+                    for grupo, precos in prices_data.items():
                         sipp_models = grupo_sipp_map.get(grupo, [])
                         if not sipp_models:
                             continue
