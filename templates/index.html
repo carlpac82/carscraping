@@ -560,6 +560,11 @@
         let loadingInterval;
         
         function showLoading() {
+            // Clear any existing interval first
+            if (loadingInterval) {
+                clearInterval(loadingInterval);
+            }
+            
             document.getElementById('loadingOverlay').classList.add('active');
             
             // Animar percentagem de 0 a 100% de forma mais gradual
@@ -1888,7 +1893,7 @@
             
             // For 'all' periods, backend will fetch data from database
                 // For 'selected' period, we send current visible data
-                const data = periodOption === 'all' ? [] : collectAbbycarData(abbycarCommission, groupToSipp, startDate, endDate, showGroupsK);
+                const data = periodOption === 'all' ? [] : collectAbbycarData(abbycarCommission, groupToSipp, startDate, endDate, showGroupsK, location);
                 
                 // Enviar para backend para gerar Excel com formatação
                 await downloadAbbycarExcel(data, location, startDate, endDate, month, year, periodOption);
@@ -1965,9 +1970,9 @@
         }
 
         // Coletar dados para Abbycar (formato específico)
-        function collectAbbycarData(commission, groupToSipp, startDate, endDate, showGroupsK) {
+        function collectAbbycarData(commission, groupToSipp, startDate, endDate, showGroupsK, location) {
             const data = [];
-            const station = 'ABF'; // Albufeira
+            const station = location === 'Aeroporto de Faro' ? 'FAO' : 'ABF';
             
             
             // Primeiro, coletar todos os preços dos cards

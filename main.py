@@ -41474,32 +41474,57 @@ async def export_abbycar_excel(request: Request):
                             14: '13_14_daily', 22: '15_21_daily', 28: '22_28_daily'
                         }
                         
-                        # Default prices for 1-4 days in Faro only (without commission, will be applied below)
-                        default_prices_faro = {
-                            1: 250.00,
-                            2: 200.00,
-                            3: 400.00,
-                            4: 450.00
+                        # Default prices for 1-4 days in Faro only (fixed prices, no commission applied)
+                        # These are final prices - only insurance will be added later
+                        default_prices_faro_by_sipp = {
+                            'MDMV': {1: 250.00, 2: 200.00, 3: 400.00, 4: 450.00},  # Peugeot 108
+                            'MDMR': {1: 250.00, 2: 200.00, 3: 400.00, 4: 450.00},  # Fiat Panda
+                            'EDMV': {1: 250.00, 2: 200.00, 3: 400.00, 4: 450.00},  # Opel Corsa
+                            'MDAR': {1: 250.00, 2: 200.00, 3: 400.00, 4: 450.00},  # Kia Picanto
+                            'EDAV': {1: 250.00, 2: 200.00, 3: 400.00, 4: 500.00},  # Citroen C3/Opel Corsa
+                            'CFMR': {1: 250.00, 2: 200.00, 3: 400.00, 4: 500.00},  # Seat Arona
+                            'MTMR': {1: 250.00, 2: 250.00, 3: 500.00, 4: 550.00},  # Fiat 500 Cabrio
+                            'CFMV': {1: 250.00, 2: 250.00, 3: 500.00, 4: 550.00},  # Peugeot 2008
+                            'IWMR': {1: 250.00, 2: 250.00, 3: 500.00, 4: 550.00},  # Peugeot 308 SW
+                            'CFAR': {1: 250.00, 2: 250.00, 3: 500.00, 4: 550.00},  # Seat Arona
+                            'CGAR': {1: 250.00, 2: 270.00, 3: 550.00, 4: 600.00},  # Citroen C3 Aircross
+                            'SVMR': {1: 297.00, 2: 450.00, 3: 750.00, 4: 800.00},  # Dacia Jogger SL Extreme
+                            'SVMD': {1: 315.00, 2: 475.00, 3: 800.00, 4: 850.00},  # Citroen Grand C4
+                            'SVAD': {1: 342.00, 2: 500.00, 3: 850.00, 4: 900.00},  # Citroen Grand C4 Automatic
+                            'LVMD': {1: 342.00, 2: 500.00, 3: 850.00, 4: 900.00}   # Fiat Talento
                         }
                         
                         for day, key in dias_map.items():
                             net_price = precos.get(str(day), 0)
+                            use_fixed_price = False
                             
                             # Use default price if no price in database for days 1-4 and location is Aeroporto de Faro
-                            if not net_price or float(net_price) <= 0:
-                                if location == 'Aeroporto de Faro' and day in default_prices_faro:
-                                    net_price = default_prices_faro[day]
+                            if (not net_price or float(net_price) <= 0) and location == 'Aeroporto de Faro':
+                                # Get first SIPP code from this grupo
+                                first_sipp = sipp_models[0][0] if sipp_models else None
+                                if first_sipp and first_sipp in default_prices_faro_by_sipp:
+                                    sipp_defaults = default_prices_faro_by_sipp[first_sipp]
+                                    if day in sipp_defaults:
+                                        net_price = sipp_defaults[day]
+                                        use_fixed_price = True  # Don't apply commission to fixed prices
                             
                             if net_price and float(net_price) > 0:
-                                # Apply Abbycar commission to NET price (same as frontend does)
-                                price_with_commission = float(net_price) * (1 + abbycar_commission / 100)
-                                
-                                if day <= 7:
-                                    # Fixed price with commission
-                                    prices[key] = str(round(price_with_commission, 2))
+                                if use_fixed_price:
+                                    # Fixed price - no commission, just use as is
+                                    if day <= 7:
+                                        prices[key] = str(round(float(net_price), 2))
+                                    else:
+                                        prices[key] = str(round(float(net_price) / day, 2))
                                 else:
-                                    # Daily price (divide total by days) with commission
-                                    prices[key] = str(round(price_with_commission / day, 2))
+                                    # Apply Abbycar commission to NET price (same as frontend does)
+                                    price_with_commission = float(net_price) * (1 + abbycar_commission / 100)
+                                    
+                                    if day <= 7:
+                                        # Fixed price with commission
+                                        prices[key] = str(round(price_with_commission, 2))
+                                    else:
+                                        # Daily price (divide total by days) with commission
+                                        prices[key] = str(round(price_with_commission / day, 2))
                         
                         # Add row for each SIPP code in this grupo
                         for sipp_code, model in sipp_models:
