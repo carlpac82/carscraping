@@ -41410,20 +41410,32 @@ async def export_abbycar_excel(request: Request):
                 
                 # Load prices for this specific period
                 prices_data, _ = load_prices_from_db(conn, location, period_month, period_year, period_day_start, period_day_end)
-                print(f"[BACKEND ABBYCAR] Loaded {len(prices_data) if prices_data else 0} price groups for this period", flush=True)
-                print(f"[BACKEND ABBYCAR] prices_data type: {type(prices_data)}", flush=True)
-                if prices_data and len(prices_data) > 0:
-                    print(f"[BACKEND ABBYCAR] First element type: {type(prices_data[0])}", flush=True)
-                    print(f"[BACKEND ABBYCAR] First element: {prices_data[0]}", flush=True)
                 conn.close()
                 
-                if not prices_data:
+                # Check if prices_data is a dict (single period) or list (multiple periods)
+                if isinstance(prices_data, dict):
+                    # It's a dict with 'grupos_minhas' key containing the actual prices array
+                    if 'grupos_minhas' in prices_data:
+                        actual_prices = prices_data['grupos_minhas']
+                    else:
+                        # It might be the prices dict itself, skip this period
+                        print(f"[BACKEND ABBYCAR] Unexpected dict structure for period {period_start_date}", flush=True)
+                        continue
+                elif isinstance(prices_data, list):
+                    actual_prices = prices_data
+                else:
+                    print(f"[BACKEND ABBYCAR] No prices found for period {period_start_date} - {period_end_date}", flush=True)
+                    continue
+                
+                print(f"[BACKEND ABBYCAR] Loaded {len(actual_prices) if actual_prices else 0} price groups for this period", flush=True)
+                
+                if not actual_prices:
                     print(f"[BACKEND ABBYCAR] No prices found for period {period_start_date} - {period_end_date}", flush=True)
                     continue
                 
                 # Process each vehicle group in the prices data
                 try:
-                    for grupo_data in prices_data:
+                    for grupo_data in actual_prices:
                         if not grupo_data:
                             continue
                             
