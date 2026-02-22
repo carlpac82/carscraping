@@ -41411,6 +41411,10 @@ async def export_abbycar_excel(request: Request):
                 # Load prices for this specific period
                 prices_data, _ = load_prices_from_db(conn, location, period_month, period_year, period_day_start, period_day_end)
                 print(f"[BACKEND ABBYCAR] Loaded {len(prices_data) if prices_data else 0} price groups for this period", flush=True)
+                print(f"[BACKEND ABBYCAR] prices_data type: {type(prices_data)}", flush=True)
+                if prices_data and len(prices_data) > 0:
+                    print(f"[BACKEND ABBYCAR] First element type: {type(prices_data[0])}", flush=True)
+                    print(f"[BACKEND ABBYCAR] First element: {prices_data[0]}", flush=True)
                 conn.close()
                 
                 if not prices_data:
