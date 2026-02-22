@@ -562,16 +562,20 @@
         function showLoading() {
             document.getElementById('loadingOverlay').classList.add('active');
             
-            // Animar percentagem de 0 a 100%
+            // Animar percentagem de 0 a 100% de forma mais gradual
             let percentage = 0;
             const percentageElement = document.getElementById('loadingPercentage');
             percentageElement.textContent = '0%';
             
             loadingInterval = setInterval(() => {
-                percentage += Math.random() * 15; // Incremento aleatório para parecer mais real
+                // Incremento mais lento e progressivamente menor
+                const increment = percentage < 50 ? Math.random() * 3 : 
+                                 percentage < 80 ? Math.random() * 1.5 : 
+                                 Math.random() * 0.5;
+                percentage += increment;
                 if (percentage > 95) percentage = 95; // Parar em 95% até terminar
                 percentageElement.textContent = Math.floor(percentage) + '%';
-            }, 150);
+            }, 300); // Intervalo maior (300ms em vez de 150ms)
         }
         
         function hideLoading() {
