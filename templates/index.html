@@ -1803,16 +1803,8 @@
                 selectedPeriodText = 'Nenhum período selecionado';
             }
             
-            // Get all periods range
-            let allPeriodsText = '';
-            if (allPeriods.length > 0) {
-                const firstDay = allPeriods[0].day_start;
-                const lastDay = allPeriods[allPeriods.length - 1].day_end;
-                allPeriodsText = `${firstDay}-${lastDay} ${monthName}`;
-            } else {
-                const lastDayOfMonth = new Date(year, month, 0).getDate();
-                allPeriodsText = `1-${lastDayOfMonth} ${monthName}`;
-            }
+            // "All periods" means all periods from ALL MONTHS in the database
+            const allPeriodsText = 'Todos os períodos de todos os meses guardados';
             
             // Update modal text
             document.getElementById('selectedPeriodDates').textContent = selectedPeriodText;
@@ -1842,11 +1834,13 @@
             try {
                 console.log('Iniciando download Abbycar...', periodOption);
                 
+                // Show loading spinner
+                showLoading();
+                
                 const location = document.querySelector('#locationSelect').value;
                 const month = document.querySelector('#monthSelect').value;
                 const year = document.querySelector('#yearSelect').value;
                 
-                // Get selected period from allPeriods (use current period, not full month)
                 let dayStart = 1;
                 let dayEnd = new Date(year, month, 0).getDate(); // Last day of the month
                 
@@ -1856,13 +1850,8 @@
                         dayStart = allPeriods[currentPeriodIndex].day_start || 1;
                         dayEnd = allPeriods[currentPeriodIndex].day_end || dayEnd;
                     }
-                } else if (periodOption === 'all') {
-                    // Use all periods (first to last)
-                    if (allPeriods.length > 0) {
-                        dayStart = allPeriods[0].day_start || 1;
-                        dayEnd = allPeriods[allPeriods.length - 1].day_end || dayEnd;
-                    }
                 }
+                // For 'all' option, backend will fetch ALL periods from ALL months
                 
                 console.log('Período selecionado:', { dayStart, dayEnd, periodOption, allPeriodsCount: allPeriods.length });
                 console.log('Todos os períodos disponíveis:', allPeriods);
@@ -1912,6 +1901,9 @@
             } catch (error) {
                 console.error('Erro no download Abbycar:', error);
                 alert('Erro ao gerar ficheiro Abbycar: ' + error.message);
+            } finally {
+                // Hide loading spinner
+                hideLoading();
             }
         }
 

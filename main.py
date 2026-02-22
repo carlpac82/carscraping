@@ -42061,38 +42061,36 @@ async def export_automated_prices_excel(request: Request):
         month = date_obj.month
         year = date_obj.year
         
-        # Fetch saved periods from database for this month/year
+        # Fetch saved periods from database
         saved_periods = []
         try:
             conn = _db_connect()
             is_postgres = _is_postgresql_connection(conn)
             if export_all_periods:
-                # Export ALL periods for this month/year
+                # Export ALL periods from ALL months/years in the database
                 if is_postgres:
                     with conn.cursor() as cur:
                         cur.execute("""
-                            SELECT DISTINCT day_start, day_end 
+                            SELECT DISTINCT month, year, day_start, day_end 
                             FROM automated_prices 
-                            WHERE month = %s AND year = %s
-                            ORDER BY day_start
-                        """, (month, year))
+                            ORDER BY year, month, day_start
+                        """)
                         saved_periods = cur.fetchall()
                 else:
                     cur = conn.cursor()
                     cur.execute("""
-                        SELECT DISTINCT day_start, day_end 
+                        SELECT DISTINCT month, year, day_start, day_end 
                         FROM automated_prices 
-                        WHERE month = ? AND year = ?
-                        ORDER BY day_start
-                    """, (month, year))
+                        ORDER BY year, month, day_start
+                    """)
                     saved_periods = cur.fetchall()
-                print(f"[BACKEND] Export ALL periods mode: Found {len(saved_periods)} saved periods in database", flush=True)
+                print(f"[BACKEND] Export ALL periods mode: Found {len(saved_periods)} saved periods from ALL months in database", flush=True)
             else:
-                # Export only selected period range
+                # Export only selected period range for this month/year
                 if is_postgres:
                     with conn.cursor() as cur:
                         cur.execute("""
-                            SELECT DISTINCT day_start, day_end 
+                            SELECT DISTINCT month, year, day_start, day_end 
                             FROM automated_prices 
                             WHERE month = %s AND year = %s
                               AND day_start >= %s AND day_end <= %s
@@ -42102,7 +42100,7 @@ async def export_automated_prices_excel(request: Request):
                 else:
                     cur = conn.cursor()
                     cur.execute("""
-                        SELECT DISTINCT day_start, day_end 
+                        SELECT DISTINCT month, year, day_start, day_end 
                         FROM automated_prices 
                         WHERE month = ? AND year = ?
                           AND day_start >= ? AND day_end <= ?
@@ -42116,10 +42114,10 @@ async def export_automated_prices_excel(request: Request):
         
         # If no saved periods found, use the provided day_start/day_end
         if not saved_periods:
-            saved_periods = [(day_start, day_end)]
+            saved_periods = [(month, year, day_start, day_end)]
             print(f"[BACKEND] No saved periods found, using provided period: {day_start}-{day_end}", flush=True)
         else:
-            print(f"[BACKEND] Using saved periods: {saved_periods}", flush=True)
+            print(f"[BACKEND] Using {len(saved_periods)} saved periods", flush=True)
         
         # Map month number to English month name for insurance lookup
         month_names_en = ['January', 'February', 'March', 'April', 'May', 'June',
@@ -42189,20 +42187,62 @@ async def export_automated_prices_excel(request: Request):
                 'F1F8E9',  # Light Lime
             ]
             
-            for period_idx, (period_start, period_end) in enumerate(saved_periods):
+            for period_idx, period_tuple in enumerate(saved_periods):
+                # Extract month, year, day_start, day_end from tuple
+                period_month, period_year, period_start, period_end = period_tuple
+                
                 # Format dates for this period
-                period_start_date_str = f"{month:02d}/{period_start:02d}/{year}"
-                period_end_date_str = f"{month:02d}/{period_end:02d}/{year}"
+                period_start_date_str = f"{period_month:02d}/{period_start:02d}/{period_year}"
+                period_end_date_str = f"{period_month:02d}/{period_end:02d}/{period_year}"
                 print(f"[BACKEND] Creating rows for period: {period_start_date_str} - {period_end_date_str}", flush=True)
+                
+                # Get month name for insurance lookup
+                period_month_name = month_names_en[period_month - 1]
                 
                 # Get color for this period (cycle through colors if more than 8 periods)
                 period_color = period_colors[period_idx % len(period_colors)]
                 period_fill = PatternFill(start_color=period_color, end_color=period_color, fill_type='solid')
                 
+                # Fetch prices from database for this specific period
+                period_prices = {}
+                try:
+                    conn = _db_connect()
+                    is_postgres = _is_postgresql_connection(conn)
+                    if is_postgres:
+                        with conn.cursor() as cur:
+                            cur.execute("""
+                                SELECT vehicle_group, period, price 
+                                FROM automated_prices 
+                                WHERE month = %s AND year = %s 
+                                  AND day_start = %s AND day_end = %s
+                            """, (period_month, period_year, period_start, period_end))
+                            rows = cur.fetchall()
+                    else:
+                        cur = conn.cursor()
+                        cur.execute("""
+                            SELECT vehicle_group, period, price 
+                            FROM automated_prices 
+                            WHERE month = ? AND year = ? 
+                              AND day_start = ? AND day_end = ?
+                        """, (period_month, period_year, period_start, period_end))
+                        rows = cur.fetchall()
+                    
+                    # Organize prices by group
+                    for row in rows:
+                        vehicle_group, period, price = row
+                        if vehicle_group not in period_prices:
+                            period_prices[vehicle_group] = {}
+                        period_prices[vehicle_group][period] = price
+                    
+                    conn.close()
+                    print(f"[BACKEND] Loaded {len(rows)} prices for period {period_start}-{period_end}", flush=True)
+                except Exception as e:
+                    print(f"[BACKEND] Error loading prices for period: {e}", flush=True)
+                
                 for sipp_code in sipp_codes_order:
                     # Get internal group from SIPP code
                     internal_group = car_group_mapping.get(sipp_code, sipp_code)
-                    group_prices = prices.get(internal_group, {})
+                    group_prices = period_prices.get(internal_group, {})
                     
                     # Column 1: Stations
                     ws.cell(row_num, 1).value = station_code
@@ -42248,9 +42288,9 @@ async def export_automated_prices_excel(request: Request):
                         
                         # For Standard, Comfort, Premium: ALWAYS add insurance price
                         if category != 'Light':
-                            print(f"[BACKEND] Looking up insurance: sipp={sipp_code}, month={current_month_name}, period={period_str}, type={period_type}, category={category}", flush=True)
+                            print(f"[BACKEND] Looking up insurance: sipp={sipp_code}, month={period_month_name}, period={period_str}, type={period_type}, category={category}", flush=True)
                             insurance_price = get_insurance_price_for_month_and_sipp(
-                                sipp_code, current_month_name, period_str, period_type, category
+                                sipp_code, period_month_name, period_str, period_type, category
                             )
                             print(f"[BACKEND] Insurance price found: {insurance_price}", flush=True)
                             if insurance_price:
