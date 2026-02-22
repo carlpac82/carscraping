@@ -41521,9 +41521,10 @@ async def export_abbycar_excel(request: Request):
                     continue
         
         # Define darker cyan fill for alternating periods (like in Google Sheets image)
-        from openpyxl.styles import PatternFill, Border, Side
+        from openpyxl.styles import PatternFill, Border, Side, Alignment
         cyan_fill = PatternFill(start_color="4DD0E1", end_color="4DD0E1", fill_type="solid")
         no_border = Border()  # Empty border (no lines)
+        center_alignment = Alignment(horizontal='center', vertical='center')
         
         for category in categories:
             ws = wb.create_sheet(category)
@@ -41644,6 +41645,7 @@ async def export_abbycar_excel(request: Request):
                 for col_idx in range(1, len(headers) + 1):
                     cell = ws.cell(row_idx, col_idx)
                     cell.border = no_border  # Remove borders for all cells
+                    cell.alignment = center_alignment  # Center align all cells
                     if period_counter % 2 == 1:  # Odd periods get cyan
                         cell.fill = cyan_fill
         
