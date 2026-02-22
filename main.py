@@ -41564,9 +41564,8 @@ async def export_abbycar_excel(request: Request):
             print(f"[PERF] Finished processing all {len(all_periods)} periods in {total_elapsed:.2f}s. Total rows: {len(rows_data)}", flush=True)
         
         # Define darker cyan fill for alternating periods (like in Google Sheets image)
-        from openpyxl.styles import PatternFill, Border, Side
+        from openpyxl.styles import PatternFill
         cyan_fill = PatternFill(start_color="4DD0E1", end_color="4DD0E1", fill_type="solid")
-        no_border = Border()  # Empty border (no lines)
         
         import time
         print(f"[PERF] Starting Excel generation with {len(rows_data)} rows across {len(categories)} categories", flush=True)
@@ -41734,11 +41733,10 @@ async def export_abbycar_excel(request: Request):
                 
                 ws.append(row_values)
                 
-                # Apply alternating colors by period and remove borders
+                # Apply alternating colors by period
                 row_idx = ws.max_row
                 for col_idx in range(1, len(headers) + 1):
                     cell = ws.cell(row_idx, col_idx)
-                    cell.border = no_border  # Remove borders for all cells
                     if period_counter % 2 == 1:  # Odd periods get cyan
                         cell.fill = cyan_fill
         
