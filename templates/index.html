@@ -1812,7 +1812,7 @@
                 console.log('Dados coletados:', data.length, 'grupos');
                 
                 // Enviar para backend para gerar Excel com formatação
-                await downloadAbbycarExcel(data, location, startDate, endDate, month, lastDay);
+                await downloadAbbycarExcel(data, location, startDate, endDate, month, dayEnd);
                 console.log('Download Abbycar concluído!');
             } catch (error) {
                 console.error('Erro no download Abbycar:', error);
