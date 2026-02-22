@@ -41588,12 +41588,12 @@ async def export_abbycar_excel(request: Request):
                     pass
                 
                 # Build row values - must be fresh for each row
-                # Convert location names to airport codes
+                # Convert location names to airport codes (only ABF or FAO)
                 station = row_data.get('station', '')
                 if station == 'Albufeira' or station == 'ABF':
-                    station = 'Albufeira - ABF'
-                elif station == 'Faro' or station == 'FAO':
-                    station = 'Aeroporto de Faro - FAO'
+                    station = 'ABF'
+                elif station == 'Faro' or station == 'FAO' or station == 'Aeroporto de Faro':
+                    station = 'FAO'
                 
                 row_values = [
                     station,
