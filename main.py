@@ -41801,15 +41801,12 @@ def get_insurance_price_for_month_and_sipp(sipp_code, month_name, period, period
         }
         season = month_to_season.get(month_name)
         
-        print(f"[INSURANCE_LOOKUP] Searching for: vehicle_group={sipp_code}, category={category}, period={period}, period_type={period_type}, season={season}", flush=True)
-        
         conn = _db_connect()
         is_postgres = _is_postgresql_connection(conn)
         
         if is_postgres:
             with conn.cursor() as cur:
                 # Try with season first
-                print(f"[INSURANCE_LOOKUP] Query 1: WITH season={season}", flush=True)
                 cur.execute("""
                     SELECT insurance_price 
                     FROM abbycar_insurance_pricing 
@@ -41822,12 +41819,10 @@ def get_insurance_price_for_month_and_sipp(sipp_code, month_name, period, period
                 
                 result = cur.fetchone()
                 if result:
-                    print(f"[INSURANCE_LOOKUP] Found with season: {result[0]}", flush=True)
                     conn.close()
                     return float(result[0])
                 
                 # If not found with season, try without (year-round price)
-                print(f"[INSURANCE_LOOKUP] Query 2: WITHOUT season (year-round)", flush=True)
                 cur.execute("""
                     SELECT insurance_price 
                     FROM abbycar_insurance_pricing 
@@ -41842,10 +41837,7 @@ def get_insurance_price_for_month_and_sipp(sipp_code, month_name, period, period
                 conn.close()
                 
                 if result:
-                    print(f"[INSURANCE_LOOKUP] Found year-round: {result[0]}", flush=True)
                     return float(result[0])
-                else:
-                    print(f"[INSURANCE_LOOKUP] NOT FOUND in database", flush=True)
         else:
             cur = conn.cursor()
             # Try with season first
