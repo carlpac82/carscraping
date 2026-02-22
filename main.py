@@ -41347,21 +41347,29 @@ async def export_abbycar_excel(request: Request):
             conn = _db_connect()
             is_postgres = _is_postgresql_connection(conn)
             
+            # Get current date to filter only current/future periods
+            from datetime import datetime
+            now = datetime.now()
+            current_year = now.year
+            current_month = now.month
+            
             if is_postgres:
                 with conn.cursor() as cur:
                     cur.execute("""
                         SELECT DISTINCT month, year, day_start, day_end 
                         FROM current_prices 
+                        WHERE (year > %s) OR (year = %s AND month >= %s)
                         ORDER BY year, month, day_start
-                    """)
+                    """, (current_year, current_year, current_month))
                     all_periods = cur.fetchall()
             else:
                 cur = conn.cursor()
                 cur.execute("""
                     SELECT DISTINCT month, year, day_start, day_end 
                     FROM current_prices 
+                    WHERE (year > ?) OR (year = ? AND month >= ?)
                     ORDER BY year, month, day_start
-                """)
+                """, (current_year, current_year, current_month))
                 all_periods = cur.fetchall()
             
             conn.close()
@@ -41529,13 +41537,18 @@ async def export_abbycar_excel(request: Request):
             # Using rows_data from frontend (selected period)
             print(f"[BACKEND ABBYCAR] Using {len(rows_data)} rows from frontend for selected period", flush=True)
         
+        # Define light blue fill for alternating rows
+        from openpyxl.styles import PatternFill
+        light_blue_fill = PatternFill(start_color="E3F2FD", end_color="E3F2FD", fill_type="solid")
+        
         for category in categories:
             ws = wb.create_sheet(category)
             
             # Add headers
             ws.append(headers)
             
-            # Add data rows
+            # Add data rows with alternating colors
+            row_counter = 0
             for row_data in rows_data:
                 # Skip if row_data is None
                 if not row_data:
@@ -41614,11 +41627,13 @@ async def export_abbycar_excel(request: Request):
                 
                 ws.append(row_values)
                 
-                # Apply blue background if K group
-                if sipp_code in k_group_sipps:
-                    row_idx = ws.max_row
+                # Apply alternating row colors (white, light blue, white, light blue...)
+                row_idx = ws.max_row
+                if row_counter % 2 == 1:  # Odd rows get light blue
                     for col_idx in range(1, len(headers) + 1):
-                        ws.cell(row_idx, col_idx).fill = blue_fill
+                        ws.cell(row_idx, col_idx).fill = light_blue_fill
+                
+                row_counter += 1
         
         # Save to bytes
         excel_bytes = io.BytesIO()
