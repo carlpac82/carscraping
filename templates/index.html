@@ -568,13 +568,12 @@
             percentageElement.textContent = '0%';
             
             loadingInterval = setInterval(() => {
-                // Incremento mais lento e progressivamente menor
-                const increment = percentage < 50 ? Math.random() * 3 : 
-                                 percentage < 80 ? Math.random() * 1.5 : 
-                                 Math.random() * 0.5;
-                percentage += increment;
-                if (percentage > 95) percentage = 95; // Parar em 95% até terminar
-                percentageElement.textContent = Math.floor(percentage) + '%';
+                percentage += 5; // Incremento fixo
+                if (percentage <= 95) { // Parar antes de 100% para dar a sensação de que está a carregar
+                    percentageElement.textContent = `${percentage}%`;
+                } else {
+                    clearInterval(loadingInterval);
+                }
             }, 300); // Intervalo maior (300ms em vez de 150ms)
         }
         
