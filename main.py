@@ -51766,13 +51766,14 @@ async def check_active_inspection(request: Request, plate: str, ra: str):
                 FROM vehicle_inspections 
                 WHERE vehicle_plate = %s 
                   AND inspection_type = 'checkin'
+                  AND COALESCE(status, '') != 'replaced'
                   AND SPLIT_PART(contract_number, '-', 1) != %s
-                  AND created_at > NOW() - INTERVAL '30 days'
                   AND NOT EXISTS (
                       SELECT 1 FROM vehicle_inspections ci 
                       WHERE ci.vehicle_plate = vehicle_inspections.vehicle_plate 
                         AND SPLIT_PART(ci.contract_number, '-', 1) = SPLIT_PART(vehicle_inspections.contract_number, '-', 1)
                         AND ci.inspection_type = 'checkout'
+                        AND COALESCE(ci.status, '') != 'replaced'
                   )
                 LIMIT 1
             """, (plate, ra_base))
