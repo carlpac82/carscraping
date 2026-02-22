@@ -41537,7 +41537,7 @@ async def export_abbycar_excel(request: Request):
             # Using rows_data from frontend (selected period)
             print(f"[BACKEND ABBYCAR] Using {len(rows_data)} rows from frontend for selected period", flush=True)
         
-        # Define light blue fill for alternating rows
+        # Define light blue fill for alternating periods
         from openpyxl.styles import PatternFill
         light_blue_fill = PatternFill(start_color="E3F2FD", end_color="E3F2FD", fill_type="solid")
         
@@ -41547,20 +41547,30 @@ async def export_abbycar_excel(request: Request):
             # Add headers
             ws.append(headers)
             
-            # Add data rows with alternating colors
-            row_counter = 0
+            # Track current period for alternating colors
+            current_period = None
+            period_counter = 0
+            
             for row_data in rows_data:
                 # Skip if row_data is None
                 if not row_data:
                     continue
                     
                 sipp_code = row_data.get('group', '')
+                start_date = row_data.get('startDate', '')
+                end_date = row_data.get('endDate', '')
+                
+                # Check if we're in a new period
+                period_key = f"{start_date}_{end_date}"
+                if period_key != current_period:
+                    current_period = period_key
+                    period_counter += 1
                 
                 # Build row values - must be fresh for each row
                 row_values = [
                     row_data.get('station', ''),
-                    row_data.get('startDate', ''),
-                    row_data.get('endDate', ''),
+                    start_date,
+                    end_date,
                     sipp_code,
                     row_data.get('model', ''),
                     row_data.get('currency', 'EUR')
@@ -41627,13 +41637,11 @@ async def export_abbycar_excel(request: Request):
                 
                 ws.append(row_values)
                 
-                # Apply alternating row colors (white, light blue, white, light blue...)
+                # Apply alternating colors by period (all rows of same period get same color)
                 row_idx = ws.max_row
-                if row_counter % 2 == 1:  # Odd rows get light blue
+                if period_counter % 2 == 1:  # Odd periods get light blue
                     for col_idx in range(1, len(headers) + 1):
                         ws.cell(row_idx, col_idx).fill = light_blue_fill
-                
-                row_counter += 1
         
         # Save to bytes
         excel_bytes = io.BytesIO()
