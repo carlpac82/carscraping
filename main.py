@@ -41331,7 +41331,7 @@ async def export_abbycar_excel(request: Request):
                     
                     if category == 'Standard':
                         # Standard: just show base price (no insurance)
-                        if base_price_val:
+                        if base_price_val and float(str(base_price_val).replace(',', '.')) > 0:
                             row_values.append(str(base_price_val).replace('.', ','))
                         else:
                             row_values.append('')
