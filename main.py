@@ -41332,7 +41332,7 @@ async def export_abbycar_excel(request: Request):
                 with conn.cursor() as cur:
                     cur.execute("""
                         SELECT DISTINCT month, year, day_start, day_end 
-                        FROM automated_prices 
+                        FROM current_prices 
                         ORDER BY year, month, day_start
                     """)
                     all_periods = cur.fetchall()
@@ -41340,7 +41340,7 @@ async def export_abbycar_excel(request: Request):
                 cur = conn.cursor()
                 cur.execute("""
                     SELECT DISTINCT month, year, day_start, day_end 
-                    FROM automated_prices 
+                    FROM current_prices 
                     ORDER BY year, month, day_start
                 """)
                 all_periods = cur.fetchall()
@@ -41402,55 +41402,77 @@ async def export_abbycar_excel(request: Request):
                 
                 print(f"[BACKEND ABBYCAR] Fetching prices for period: {period_start_date} - {period_end_date}", flush=True)
                 
-                # Fetch prices for this period from database
+                # Fetch prices for this period from current_prices table
+                from current_prices_module import load_prices_from_db
                 conn = _db_connect()
-                is_postgres = _is_postgresql_connection(conn)
                 
-                for sipp_code, model in all_sipp_codes.items():
-                    # Fetch all price periods for this SIPP code
-                    if is_postgres:
-                        with conn.cursor() as cur:
-                            cur.execute("""
-                                SELECT period, price 
-                                FROM automated_prices 
-                                WHERE sipp_code = %s AND month = %s AND year = %s 
-                                  AND day_start = %s AND day_end = %s
-                            """, (sipp_code, period_month, period_year, period_day_start, period_day_end))
-                            price_rows = cur.fetchall()
-                    else:
-                        cur = conn.cursor()
-                        cur.execute("""
-                            SELECT period, price 
-                            FROM automated_prices 
-                            WHERE sipp_code = ? AND month = ? AND year = ? 
-                              AND day_start = ? AND day_end = ?
-                        """, (sipp_code, period_month, period_year, period_day_start, period_day_end))
-                        price_rows = cur.fetchall()
-                    
-                    # Build prices dict
-                    prices = {}
-                    for period_str, price in price_rows:
-                        # Convert period format: "1 day" -> "1_day_fixed", "8-10 days" -> "8_10_daily"
-                        if ' day' in period_str and '-' not in period_str:
-                            days = period_str.split()[0]
-                            prices[f"{days}_day_fixed"] = price
-                        elif '-' in period_str:
-                            period_range = period_str.replace(' days', '').replace('-', '_')
-                            prices[f"{period_range}_daily"] = price
-                    
-                    # Only add row if we have prices for this SIPP code
-                    if prices:
-                        rows_data.append({
-                            'station': location,
-                            'startDate': period_start_date,
-                            'endDate': period_end_date,
-                            'group': sipp_code,
-                            'model': model,
-                            'currency': 'EUR',
-                            'prices': prices
-                        })
-                
+                # Load prices for this specific period
+                prices_data, _ = load_prices_from_db(conn, location, period_month, period_year, period_day_start, period_day_end)
                 conn.close()
+                
+                if not prices_data:
+                    print(f"[BACKEND ABBYCAR] No prices found for period {period_start_date} - {period_end_date}", flush=True)
+                    continue
+                
+                # Process each vehicle group in the prices data
+                for grupo_data in prices_data:
+                    grupo = grupo_data.get('grupo', '')
+                    
+                    # Map grupo to SIPP codes
+                    grupo_sipp_map = {
+                        'B1': [('MDMV', 'Peugeot 108')],
+                        'B2': [('MDMR', 'Fiat Panda')],
+                        'D': [('EDMV', 'Opel Corsa')],
+                        'E1': [('MDAR', 'Kia Picanto')],
+                        'E2': [('EDAV', 'Citroen C3/Opel Corsa')],
+                        'F': [('CFMR', 'Seat Arona')],
+                        'G': [('MTMR', 'Fiat 500 Cabrio')],
+                        'J1': [('CFMV', 'Peugeot 2008')],
+                        'J2': [('IWMR', 'Peugeot 308 SW')],
+                        'L1': [('CFAR', 'Seat Arona'), ('CGAR', 'Citroen C3 Aircross')],
+                        'M1': [('SVMR', 'Dacia Jogger SL Extreme'), ('SVMD', 'Citroen Grand C4')],
+                        'M2': [('SVAD', 'Citroen Grand C4 Automatic')],
+                        'N': [('LVMD', 'Fiat Talento')]
+                    }
+                    
+                    sipp_models = grupo_sipp_map.get(grupo, [])
+                    if not sipp_models:
+                        continue
+                    
+                    # Get prices for each day period
+                    prices = {}
+                    for day in [1, 2, 3, 4, 5, 6, 7]:
+                        price_val = grupo_data.get(f'{day}d')
+                        if price_val:
+                            prices[f'{day}_day_fixed'] = price_val
+                    
+                    # Daily prices
+                    daily_map = {
+                        '8_10_daily': '9d',
+                        '11_12_daily': '14d',
+                        '13_14_daily': '14d',
+                        '15_21_daily': '22d',
+                        '22_28_daily': '28d'
+                    }
+                    for key, day_key in daily_map.items():
+                        price_val = grupo_data.get(day_key)
+                        if price_val:
+                            # Convert to daily rate
+                            days = int(day_key.replace('d', ''))
+                            prices[key] = round(price_val / days, 2)
+                    
+                    # Add row for each SIPP code
+                    for sipp_code, model in sipp_models:
+                        if prices:
+                            rows_data.append({
+                                'station': location,
+                                'startDate': period_start_date,
+                                'endDate': period_end_date,
+                                'group': sipp_code,
+                                'model': model,
+                                'currency': 'EUR',
+                                'prices': prices
+                            })
             
             print(f"[BACKEND ABBYCAR] Generated {len(rows_data)} rows for {len(all_periods)} periods", flush=True)
         
