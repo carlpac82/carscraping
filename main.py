@@ -41474,8 +41474,8 @@ async def export_abbycar_excel(request: Request):
                             14: '13_14_daily', 22: '15_21_daily', 28: '22_28_daily'
                         }
                         
-                        # Default prices for 1-4 days (without commission, will be applied below)
-                        default_prices = {
+                        # Default prices for 1-4 days in Faro only (without commission, will be applied below)
+                        default_prices_faro = {
                             1: 250.00,
                             2: 200.00,
                             3: 400.00,
@@ -41485,10 +41485,10 @@ async def export_abbycar_excel(request: Request):
                         for day, key in dias_map.items():
                             net_price = precos.get(str(day), 0)
                             
-                            # Use default price if no price in database for days 1-4
+                            # Use default price if no price in database for days 1-4 and location is Faro
                             if not net_price or float(net_price) <= 0:
-                                if day in default_prices:
-                                    net_price = default_prices[day]
+                                if location == 'Faro' and day in default_prices_faro:
+                                    net_price = default_prices_faro[day]
                             
                             if net_price and float(net_price) > 0:
                                 # Apply Abbycar commission to NET price (same as frontend does)
