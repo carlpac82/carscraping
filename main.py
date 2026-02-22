@@ -41883,7 +41883,7 @@ async def export_automated_prices_excel(request: Request):
         month = date_obj.month
         year = date_obj.year
         
-        # Fetch saved periods from database for this month/year
+        # Fetch saved periods from database for this month/year, filtered by selected range
         saved_periods = []
         try:
             conn = _db_connect()
@@ -41894,8 +41894,9 @@ async def export_automated_prices_excel(request: Request):
                         SELECT DISTINCT day_start, day_end 
                         FROM automated_prices 
                         WHERE month = %s AND year = %s
+                          AND day_start >= %s AND day_end <= %s
                         ORDER BY day_start
-                    """, (month, year))
+                    """, (month, year, day_start, day_end))
                     saved_periods = cur.fetchall()
             else:
                 cur = conn.cursor()
@@ -41903,11 +41904,12 @@ async def export_automated_prices_excel(request: Request):
                     SELECT DISTINCT day_start, day_end 
                     FROM automated_prices 
                     WHERE month = ? AND year = ?
+                      AND day_start >= ? AND day_end <= ?
                     ORDER BY day_start
-                """, (month, year))
+                """, (month, year, day_start, day_end))
                 saved_periods = cur.fetchall()
             conn.close()
-            print(f"[BACKEND] Found {len(saved_periods)} saved periods in database", flush=True)
+            print(f"[BACKEND] Found {len(saved_periods)} saved periods in database for range {day_start}-{day_end}", flush=True)
         except Exception as e:
             print(f"[BACKEND] Error fetching saved periods: {e}", flush=True)
         
@@ -41916,7 +41918,7 @@ async def export_automated_prices_excel(request: Request):
             saved_periods = [(day_start, day_end)]
             print(f"[BACKEND] No saved periods found, using provided period: {day_start}-{day_end}", flush=True)
         else:
-            print(f"[BACKEND] Using saved periods: {saved_periods}", flush=True)
+            print(f"[BACKEND] Using saved periods within range: {saved_periods}", flush=True)
         
         # Map month number to English month name for insurance lookup
         month_names_en = ['January', 'February', 'March', 'April', 'May', 'June',
