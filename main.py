@@ -41551,6 +41551,17 @@ async def export_abbycar_excel(request: Request):
                     current_period = period_key
                     period_counter += 1
                 
+                # Extract month name from this row's start_date for correct insurance lookup
+                row_month_name = current_month_name  # Default fallback
+                try:
+                    row_date_parts = start_date.split('/')
+                    row_month = int(row_date_parts[0])
+                    month_names_en = ['January', 'February', 'March', 'April', 'May', 'June',
+                                      'July', 'August', 'September', 'October', 'November', 'December']
+                    row_month_name = month_names_en[row_month - 1]
+                except:
+                    pass
+                
                 # Build row values - must be fresh for each row
                 row_values = [
                     row_data.get('station', ''),
@@ -41595,9 +41606,9 @@ async def export_abbycar_excel(request: Request):
                                     period = key.replace('_daily', ' days').replace('_', '-')
                                     period_type = 'daily'
                                 
-                                # Get insurance price
+                                # Get insurance price using the correct month for this row
                                 insurance_price = get_insurance_price_for_month_and_sipp(
-                                    sipp_code, current_month_name, period, period_type, category
+                                    sipp_code, row_month_name, period, period_type, category
                                 )
                                 
                                 if insurance_price:
