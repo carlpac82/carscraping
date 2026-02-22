@@ -41474,8 +41474,22 @@ async def export_abbycar_excel(request: Request):
                             14: '13_14_daily', 22: '15_21_daily', 28: '22_28_daily'
                         }
                         
+                        # Default prices for 1-4 days (without commission, will be applied below)
+                        default_prices = {
+                            1: 250.00,
+                            2: 200.00,
+                            3: 400.00,
+                            4: 450.00
+                        }
+                        
                         for day, key in dias_map.items():
                             net_price = precos.get(str(day), 0)
+                            
+                            # Use default price if no price in database for days 1-4
+                            if not net_price or float(net_price) <= 0:
+                                if day in default_prices:
+                                    net_price = default_prices[day]
+                            
                             if net_price and float(net_price) > 0:
                                 # Apply Abbycar commission to NET price (same as frontend does)
                                 price_with_commission = float(net_price) * (1 + abbycar_commission / 100)
