@@ -41340,18 +41340,18 @@ async def export_abbycar_excel(request: Request):
                     cur.execute("""
                         SELECT DISTINCT month, year, day_start, day_end 
                         FROM current_prices 
-                        WHERE location = %s AND ((year > %s) OR (year = %s AND month >= %s))
+                        WHERE (year > %s) OR (year = %s AND month >= %s)
                         ORDER BY year, month, day_start
-                    """, (location, current_year, current_year, current_month))
+                    """, (current_year, current_year, current_month))
                     all_periods = cur.fetchall()
             else:
                 cur = conn.cursor()
                 cur.execute("""
                     SELECT DISTINCT month, year, day_start, day_end 
                     FROM current_prices 
-                    WHERE location = ? AND ((year > ?) OR (year = ? AND month >= ?))
+                    WHERE (year > ?) OR (year = ? AND month >= ?)
                     ORDER BY year, month, day_start
-                """, (location, current_year, current_year, current_month))
+                """, (current_year, current_year, current_month))
                 all_periods = cur.fetchall()
             
             conn.close()
@@ -41588,9 +41588,21 @@ async def export_abbycar_excel(request: Request):
                     pass
                 
                 # Build row values - must be fresh for each row
-                # Get original station name for logic checks
+                # Convert location names to airport codes
                 station = row_data.get('station', '')
-                original_station = station
+                if station == 'Albufeira' or station == 'ABF':
+                    station = 'Albufeira - ABF'
+                elif station == 'Faro' or station == 'FAO':
+                    station = 'Aeroporto de Faro - FAO'
+                
+                row_values = [
+                    station,
+                    start_date,
+                    end_date,
+                    sipp_code,
+                    row_data.get('model', ''),
+                    row_data.get('currency', 'EUR')
+                ]
                 
                 # Add prices
                 # Base prices are ALWAYS from the prices object (Standard category prices)
@@ -41618,31 +41630,15 @@ async def export_abbycar_excel(request: Request):
                     'LVMD': {1: 342.00, 2: 500.00, 3: 850.00, 4: 900.00}
                 }
                 
-                # Transform station name for display AFTER checking for Faro defaults
-                if station == 'Albufeira' or station == 'ABF':
-                    station = 'Albufeira - ABF'
-                elif station == 'Faro' or station == 'FAO':
-                    station = 'Aeroporto de Faro - FAO'
-                
-                # Initialize row_values with transformed station name
-                row_values = [
-                    station,
-                    start_date,
-                    end_date,
-                    sipp_code,
-                    row_data.get('model', ''),
-                    row_data.get('currency', 'EUR')
-                ]
-                
                 for key in price_keys:
                     # Base price from Standard (always the same source)
                     base_price_val = prices.get(key, '')
                     use_fixed_price = False
                     
-                    # Apply Faro defaults if price is empty and location is Faro/FAO (check ORIGINAL station name)
+                    # Apply Faro defaults if price is empty and location is Faro/FAO
                     if (not base_price_val or (isinstance(base_price_val, str) and base_price_val.strip() == '') or 
                         (isinstance(base_price_val, (int, float)) and float(base_price_val) == 0)):
-                        if original_station in ['FAO', 'Faro', 'Aeroporto de Faro']:
+                        if station in ['FAO', 'Faro', 'Aeroporto de Faro - FAO']:
                             if sipp_code in default_prices_faro_by_sipp:
                                 if 'day_fixed' in key:
                                     day = int(key.split('_')[0])
