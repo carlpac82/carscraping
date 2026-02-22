@@ -2055,6 +2055,7 @@
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({
+                        data: data,
                         location: location,
                         date: `${year}-${String(month).padStart(2, '0')}-01`,
                         prices: {},
