@@ -3117,8 +3117,17 @@
                 const startDayInput = document.getElementById('wr_start_day');
                 const endDayInput = document.getElementById('wr_end_day');
                 
+                console.log('[ABBYCAR DEBUG] Period inputs:', {
+                    startDayInput: startDayInput,
+                    endDayInput: endDayInput,
+                    startValue: startDayInput?.value,
+                    endValue: endDayInput?.value
+                });
+                
                 const day_start = startDayInput?.value ? parseInt(startDayInput.value) : 1;
                 const day_end = endDayInput?.value ? parseInt(endDayInput.value) : lastDayOfMonth;
+                
+                console.log('[ABBYCAR DEBUG] Final period values:', { day_start, day_end, lastDayOfMonth });
                 
                 // Abbycar: apenas grupos base (sem K groups, sem C3, C4, C5, X)
                 const groups = ['B1', 'B2', 'C', 'D', 
