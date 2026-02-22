@@ -1272,6 +1272,7 @@
                     updatePeriodSelector();
                     // Manter período atual se existir, senão carregar o primeiro
                     const indexToLoad = (currentPeriodIndex >= 0 && currentPeriodIndex < allPeriods.length) ? currentPeriodIndex : 0;
+                    hideLoading(); // Hide loading before calling loadPeriodByIndex
                     loadPeriodByIndex(indexToLoad);
                     return; // Usar a função loadPeriodByIndex para renderizar
                 } else if (result.ok && result.prices) {
@@ -1293,6 +1294,7 @@
                         day_end: lastDay
                     }];
                     updatePeriodSelector();
+                    hideLoading(); // Hide loading before calling loadPeriodByIndex
                     loadPeriodByIndex(0);
                     return; // Usar a função loadPeriodByIndex para renderizar
                 }
