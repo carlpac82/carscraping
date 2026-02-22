@@ -2051,7 +2051,7 @@
                 const dayStart = parseInt(startDate.split('/')[1]);
                 const dayEnd = parseInt(endDate.split('/')[1]);
                 
-                const response = await fetch('/api/export-automated-prices-excel', {
+                const response = await fetch('/api/export-abbycar-excel', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({
