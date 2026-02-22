@@ -41430,11 +41430,15 @@ async def export_abbycar_excel(request: Request):
                 'N': [('LVMD', 'Fiat Talento')]
             }
             
+            # Open single connection for all periods
+            conn = _db_connect()
+            is_postgres = _is_postgresql_connection(conn)
+            
             # For each period, fetch prices from current_prices table
             processed_count = 0
             for period_tuple in all_periods:
                 processed_count += 1
-                if processed_count % 5 == 0:
+                if processed_count % 10 == 0:
                     elapsed = time.time() - period_start_time
                     print(f"[PERF] Processed {processed_count}/{len(all_periods)} periods in {elapsed:.2f}s", flush=True)
                 period_month, period_year, period_day_start, period_day_end = period_tuple
@@ -41442,10 +41446,7 @@ async def export_abbycar_excel(request: Request):
                 period_end_date = f"{period_month}/{str(period_day_end).zfill(2)}/{period_year}"
                 
                 try:
-                    # Query current_prices directly
-                    conn = _db_connect()
-                    is_postgres = _is_postgresql_connection(conn)
-                    
+                    # Query current_prices directly using shared connection
                     if is_postgres:
                         with conn.cursor() as cur:
                             cur.execute("""
@@ -41464,8 +41465,6 @@ async def export_abbycar_excel(request: Request):
                             AND day_start = ? AND day_end = ?
                         """, (location, period_month, period_year, period_day_start, period_day_end))
                         result = cur.fetchone()
-                    
-                    conn.close()
                     
                     if not result:
                         continue
@@ -41556,6 +41555,9 @@ async def export_abbycar_excel(request: Request):
                 
                 except Exception as e:
                     print(f"[BACKEND ABBYCAR] Error processing period {period_start_date}: {str(e)}", flush=True)
+            
+            # Close connection after processing all periods
+            conn.close()
             
             total_elapsed = time.time() - period_start_time
             print(f"[PERF] Finished processing all {len(all_periods)} periods in {total_elapsed:.2f}s. Total rows: {len(rows_data)}", flush=True)
