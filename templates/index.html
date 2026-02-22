@@ -525,6 +525,36 @@
         </div>
     </div>
 
+    <!-- Modal para opções de download Abbycar -->
+    <div id="abbycarDownloadModal" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.6); z-index: 9998; align-items: center; justify-content: center; backdrop-filter: blur(4px);">
+        <div style="background: white; padding: 32px; border-radius: 12px; max-width: 450px; width: 90%; box-shadow: 0 20px 25px -5px rgba(0,0,0,0.1);">
+            <h3 style="margin: 0 0 8px 0; font-size: 20px; font-weight: 700; color: #009cb6;">Download Abbycar</h3>
+            <p style="margin: 0 0 24px 0; font-size: 14px; color: #6b7280;">Escolha qual período deseja exportar:</p>
+            
+            <div style="display: flex; flex-direction: column; gap: 12px; margin-bottom: 24px;">
+                <button onclick="confirmAbbycarDownload('selected')" style="padding: 16px 20px; background: #009cb6; color: white; border: none; border-radius: 8px; font-size: 15px; font-weight: 600; cursor: pointer; transition: all 0.2s; display: flex; align-items: center; justify-content: space-between;" onmouseover="this.style.background='#007a94'; this.style.transform='translateY(-2px)'; this.style.boxShadow='0 4px 12px rgba(0,156,182,0.3)'" onmouseout="this.style.background='#009cb6'; this.style.transform='translateY(0)'; this.style.boxShadow='none'">
+                    <span>Período Selecionado</span>
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" style="width: 20px; height: 20px;">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/>
+                    </svg>
+                </button>
+                
+                <button onclick="confirmAbbycarDownload('all')" style="padding: 16px 20px; background: #f3f4f6; color: #374151; border: 2px solid #e5e7eb; border-radius: 8px; font-size: 15px; font-weight: 600; cursor: pointer; transition: all 0.2s; display: flex; align-items: center; justify-content: space-between;" onmouseover="this.style.background='#e5e7eb'; this.style.borderColor='#d1d5db'; this.style.transform='translateY(-2px)'; this.style.boxShadow='0 4px 12px rgba(0,0,0,0.1)'" onmouseout="this.style.background='#f3f4f6'; this.style.borderColor='#e5e7eb'; this.style.transform='translateY(0)'; this.style.boxShadow='none'">
+                    <span>Todos os Períodos</span>
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" style="width: 20px; height: 20px;">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/>
+                    </svg>
+                </button>
+            </div>
+            
+            <div style="display: flex; justify-content: flex-end;">
+                <button onclick="closeAbbycarDownloadModal()" style="padding: 10px 20px; background: transparent; color: #6b7280; border: none; font-size: 14px; font-weight: 600; cursor: pointer; transition: color 0.2s;" onmouseover="this.style.color='#374151'" onmouseout="this.style.color='#6b7280'">
+                    Cancelar
+                </button>
+            </div>
+        </div>
+    </div>
+
     <script>
         // Funções para mostrar/esconder loading com percentagem animada
         let loadingInterval;
@@ -1756,10 +1786,31 @@
             generateCSV(data, `WEBSITE_${_wLoc}_1-31-${_wMon}.csv`);
         }
 
+        // Show Abbycar download modal
+        function downloadAbbycar() {
+            document.getElementById('abbycarDownloadModal').style.display = 'flex';
+        }
+        
+        // Close Abbycar download modal
+        function closeAbbycarDownloadModal() {
+            document.getElementById('abbycarDownloadModal').style.display = 'none';
+        }
+        
+        // Confirm Abbycar download with selected option
+        async function confirmAbbycarDownload(option) {
+            closeAbbycarDownloadModal();
+            
+            if (option === 'selected') {
+                await downloadAbbycarPeriod('selected');
+            } else if (option === 'all') {
+                await downloadAbbycarPeriod('all');
+            }
+        }
+        
         // Download Abbycar: Formato específico com SIPP codes e daily prices
-        async function downloadAbbycar() {
+        async function downloadAbbycarPeriod(periodOption) {
             try {
-                console.log('Iniciando download Abbycar...');
+                console.log('Iniciando download Abbycar...', periodOption);
                 
                 const location = document.querySelector('#locationSelect').value;
                 const month = document.querySelector('#monthSelect').value;
@@ -1769,9 +1820,18 @@
                 let dayStart = 1;
                 let dayEnd = new Date(year, month, 0).getDate(); // Last day of the month
                 
-                if (allPeriods.length > 0 && currentPeriodIndex >= 0 && currentPeriodIndex < allPeriods.length) {
-                    dayStart = allPeriods[currentPeriodIndex].day_start || 1;
-                    dayEnd = allPeriods[currentPeriodIndex].day_end || dayEnd;
+                if (periodOption === 'selected') {
+                    // Use only the currently selected period
+                    if (allPeriods.length > 0 && currentPeriodIndex >= 0 && currentPeriodIndex < allPeriods.length) {
+                        dayStart = allPeriods[currentPeriodIndex].day_start || 1;
+                        dayEnd = allPeriods[currentPeriodIndex].day_end || dayEnd;
+                    }
+                } else if (periodOption === 'all') {
+                    // Use all periods (first to last)
+                    if (allPeriods.length > 0) {
+                        dayStart = allPeriods[0].day_start || 1;
+                        dayEnd = allPeriods[allPeriods.length - 1].day_end || dayEnd;
+                    }
                 }
                 
                 console.log('Período selecionado:', { dayStart, dayEnd });
