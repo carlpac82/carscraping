@@ -52064,7 +52064,9 @@ async def debug_inspections(request: Request, plate: str):
 async def get_inspections_history(request: Request):
     """Get vehicle inspections history grouped by plate+RA"""
     try:
-        logging.info("📋 Loading inspections history...")
+        # Get search parameter from query string
+        search_term = request.query_params.get('search', '').strip()
+        logging.info(f"📋 Loading inspections history... (search: '{search_term}')")
         conn = _db_connect()
         try:
             # Detect database type
@@ -52096,47 +52098,146 @@ async def get_inspections_history(request: Request):
             # Use different JOIN strategy based on database type
             if is_postgres:
                 # PostgreSQL: Match RA by removing suffix from contract_number
-                cursor.execute("""
-                    SELECT vi.inspection_number, vi.vehicle_plate, vi.contract_number, 
-                           vi.inspection_type, vi.inspector_name, vi.created_at, 
-                           vi.fuel_level, vi.odometer_reading, vi.damage_count, vi.status, vi.id,
-                           vi.is_self_checkin,
-                           ra.extracted_data, ra.self_checkin_email,
-                           vi.has_damage,
-                           ra.status, ra.inspection_completed,
-                           ra.return_date
-                    FROM vehicle_inspections vi
-                    LEFT JOIN rental_agreements ra ON (
-                        ra.rental_agreement_number = vi.contract_number 
-                        OR ra.rental_agreement_number = SPLIT_PART(vi.contract_number, '-', 1)
-                    )
-                    WHERE COALESCE(vi.status, '') != 'replaced'
-                    ORDER BY vi.created_at DESC
-                    LIMIT 200
-                """)
+                if search_term:
+                    # If searching, load ALL contracts matching search term
+                    cursor.execute("""
+                        SELECT vi.inspection_number, vi.vehicle_plate, vi.contract_number, 
+                               vi.inspection_type, vi.inspector_name, vi.created_at, 
+                               vi.fuel_level, vi.odometer_reading, vi.damage_count, vi.status, vi.id,
+                               vi.is_self_checkin,
+                               ra.extracted_data, ra.self_checkin_email,
+                               vi.has_damage,
+                               ra.status, ra.inspection_completed,
+                               ra.return_date
+                        FROM vehicle_inspections vi
+                        LEFT JOIN rental_agreements ra ON (
+                            ra.rental_agreement_number = vi.contract_number 
+                            OR ra.rental_agreement_number = SPLIT_PART(vi.contract_number, '-', 1)
+                        )
+                        WHERE COALESCE(vi.status, '') != 'replaced'
+                        AND (
+                            vi.vehicle_plate ILIKE %s
+                            OR vi.contract_number ILIKE %s
+                            OR SPLIT_PART(vi.contract_number, '-', 1) ILIKE %s
+                        )
+                        ORDER BY vi.created_at DESC
+                        LIMIT 200
+                    """, (f'%{search_term}%', f'%{search_term}%', f'%{search_term}%'))
+                else:
+                    # No search: load only active contracts + today's inspections
+                    cursor.execute("""
+                        SELECT vi.inspection_number, vi.vehicle_plate, vi.contract_number, 
+                               vi.inspection_type, vi.inspector_name, vi.created_at, 
+                               vi.fuel_level, vi.odometer_reading, vi.damage_count, vi.status, vi.id,
+                               vi.is_self_checkin,
+                               ra.extracted_data, ra.self_checkin_email,
+                               vi.has_damage,
+                               ra.status, ra.inspection_completed,
+                               ra.return_date
+                        FROM vehicle_inspections vi
+                        LEFT JOIN rental_agreements ra ON (
+                            ra.rental_agreement_number = vi.contract_number 
+                            OR ra.rental_agreement_number = SPLIT_PART(vi.contract_number, '-', 1)
+                        )
+                        WHERE COALESCE(vi.status, '') != 'replaced'
+                        AND (
+                            DATE(vi.created_at) = CURRENT_DATE
+                            OR (
+                                vi.inspection_type = 'checkin'
+                                AND NOT EXISTS (
+                                    SELECT 1 FROM vehicle_inspections vi2
+                                    WHERE (
+                                        vi2.contract_number = vi.contract_number
+                                        OR SPLIT_PART(vi2.contract_number, '-', 1) = SPLIT_PART(vi.contract_number, '-', 1)
+                                    )
+                                    AND vi2.inspection_type IN ('checkout', 'self_checkout')
+                                    AND vi2.created_at > vi.created_at
+                                    AND COALESCE(vi2.status, '') != 'replaced'
+                                )
+                            )
+                        )
+                        ORDER BY vi.created_at DESC
+                        LIMIT 200
+                    """)
             else:
                 # SQLite: Match RA by removing suffix from contract_number
-                cursor.execute("""
-                    SELECT vi.inspection_number, vi.vehicle_plate, vi.contract_number, 
-                           vi.inspection_type, vi.inspector_name, vi.created_at, 
-                           vi.fuel_level, vi.odometer_reading, vi.damage_count, vi.status, vi.id,
-                           vi.is_self_checkin,
-                           ra.extracted_data, ra.self_checkin_email,
-                           vi.has_damage,
-                           ra.status, ra.inspection_completed,
-                           ra.return_date
-                    FROM vehicle_inspections vi
-                    LEFT JOIN rental_agreements ra ON (
-                        ra.rental_agreement_number = vi.contract_number 
-                        OR ra.rental_agreement_number = SUBSTR(vi.contract_number, 1, 
-                            CASE WHEN INSTR(vi.contract_number, '-') > 0 
-                            THEN INSTR(vi.contract_number, '-') - 1 
-                            ELSE LENGTH(vi.contract_number) END)
-                    )
-                    WHERE COALESCE(vi.status, '') != 'replaced'
-                    ORDER BY vi.created_at DESC
-                    LIMIT 200
-                """)
+                if search_term:
+                    # If searching, load ALL contracts matching search term
+                    cursor.execute("""
+                        SELECT vi.inspection_number, vi.vehicle_plate, vi.contract_number, 
+                               vi.inspection_type, vi.inspector_name, vi.created_at, 
+                               vi.fuel_level, vi.odometer_reading, vi.damage_count, vi.status, vi.id,
+                               vi.is_self_checkin,
+                               ra.extracted_data, ra.self_checkin_email,
+                               vi.has_damage,
+                               ra.status, ra.inspection_completed,
+                               ra.return_date
+                        FROM vehicle_inspections vi
+                        LEFT JOIN rental_agreements ra ON (
+                            ra.rental_agreement_number = vi.contract_number 
+                            OR ra.rental_agreement_number = SUBSTR(vi.contract_number, 1, 
+                                CASE WHEN INSTR(vi.contract_number, '-') > 0 
+                                THEN INSTR(vi.contract_number, '-') - 1 
+                                ELSE LENGTH(vi.contract_number) END)
+                        )
+                        WHERE COALESCE(vi.status, '') != 'replaced'
+                        AND (
+                            vi.vehicle_plate LIKE ?
+                            OR vi.contract_number LIKE ?
+                            OR SUBSTR(vi.contract_number, 1, 
+                                CASE WHEN INSTR(vi.contract_number, '-') > 0 
+                                THEN INSTR(vi.contract_number, '-') - 1 
+                                ELSE LENGTH(vi.contract_number) END) LIKE ?
+                        )
+                        ORDER BY vi.created_at DESC
+                        LIMIT 200
+                    """, (f'%{search_term}%', f'%{search_term}%', f'%{search_term}%'))
+                else:
+                    # No search: load only active contracts + today's inspections
+                    cursor.execute("""
+                        SELECT vi.inspection_number, vi.vehicle_plate, vi.contract_number, 
+                               vi.inspection_type, vi.inspector_name, vi.created_at, 
+                               vi.fuel_level, vi.odometer_reading, vi.damage_count, vi.status, vi.id,
+                               vi.is_self_checkin,
+                               ra.extracted_data, ra.self_checkin_email,
+                               vi.has_damage,
+                               ra.status, ra.inspection_completed,
+                               ra.return_date
+                        FROM vehicle_inspections vi
+                        LEFT JOIN rental_agreements ra ON (
+                            ra.rental_agreement_number = vi.contract_number 
+                            OR ra.rental_agreement_number = SUBSTR(vi.contract_number, 1, 
+                                CASE WHEN INSTR(vi.contract_number, '-') > 0 
+                                THEN INSTR(vi.contract_number, '-') - 1 
+                                ELSE LENGTH(vi.contract_number) END)
+                        )
+                        WHERE COALESCE(vi.status, '') != 'replaced'
+                        AND (
+                            DATE(vi.created_at) = DATE('now')
+                            OR (
+                                vi.inspection_type = 'checkin'
+                                AND NOT EXISTS (
+                                    SELECT 1 FROM vehicle_inspections vi2
+                                    WHERE (
+                                        vi2.contract_number = vi.contract_number
+                                        OR SUBSTR(vi2.contract_number, 1, 
+                                            CASE WHEN INSTR(vi2.contract_number, '-') > 0 
+                                            THEN INSTR(vi2.contract_number, '-') - 1 
+                                            ELSE LENGTH(vi2.contract_number) END) = 
+                                        SUBSTR(vi.contract_number, 1, 
+                                            CASE WHEN INSTR(vi.contract_number, '-') > 0 
+                                            THEN INSTR(vi.contract_number, '-') - 1 
+                                            ELSE LENGTH(vi.contract_number) END)
+                                    )
+                                    AND vi2.inspection_type IN ('checkout', 'self_checkout')
+                                    AND vi2.created_at > vi.created_at
+                                    AND COALESCE(vi2.status, '') != 'replaced'
+                                )
+                            )
+                        )
+                        ORDER BY vi.created_at DESC
+                        LIMIT 200
+                    """)
             
             rows = cursor.fetchall()
             
@@ -52273,6 +52374,7 @@ async def get_inspections_history(request: Request):
                     grouped[key] = {
                         "vehicle_plate": plate,
                         "contract_number": ra_base,  # Use RA base for grouping
+                        "ra": ra_base,  # Add ra field for frontend
                         "client_name": client_name,
                         "client_email": client_email,
                         "vehicle_brand": vehicle_brand,

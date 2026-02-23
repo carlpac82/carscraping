@@ -491,15 +491,18 @@
             });
         }
 
-        async function loadHistory(forceRefresh = false) {
+        async function loadHistory(forceRefresh = false, searchTerm = '') {
             try {
                 // If forceRefresh is an Event object, convert to boolean
                 if (forceRefresh && typeof forceRefresh === 'object' && forceRefresh.type) {
                     forceRefresh = false;
                 }
                 
-                // Add timestamp to prevent browser caching
+                // Build URL with search parameter if provided
                 let url = `/api/inspections/history?t=${Date.now()}`;
+                if (searchTerm) {
+                    url += `&search=${encodeURIComponent(searchTerm)}`;
+                }
                 
                 // If force refresh, add additional cache busting headers
                 const fetchOptions = forceRefresh ? {
@@ -510,7 +513,7 @@
                     }
                 } : {};
                 
-                console.log(`📡 Fetching history (forceRefresh: ${forceRefresh})...`);
+                console.log(`📡 Fetching history (forceRefresh: ${forceRefresh}, search: '${searchTerm}')...`);
                 const response = await fetch(url, fetchOptions);
                 const data = await response.json();
                 
@@ -700,6 +703,9 @@
             renderHistory(filtered);
         }
 
+        // Debounce timer for search
+        let searchDebounceTimer = null;
+        
         function filterInspections() {
             const searchPlate = document.getElementById('searchPlate')?.value?.trim().toUpperCase() || '';
             const searchRA = document.getElementById('searchRA')?.value?.trim().toUpperCase() || '';
@@ -716,34 +722,34 @@
                 totalContracts: contracts.length
             });
             
-            // Debug: mostrar todos os contratos e seus campos relevantes
-            console.log('📋 All contracts data:');
-            contracts.forEach((c, idx) => {
-                console.log(`  Contract ${idx + 1}:`, {
-                    vehicle_plate: c.vehicle_plate,
-                    ra: c.contract_number,
-                    has_checkin: !!c.checkin,
-                    has_checkout: !!c.checkout,
-                    has_self_checkout: !!c.self_checkout,
-                    expected_return_date: c.expected_return_date
-                });
-            });
-
+            // If user is searching by plate or RA, call backend with search parameter
+            const searchTerm = searchPlate || searchRA;
+            if (searchTerm) {
+                // Clear previous debounce timer
+                if (searchDebounceTimer) {
+                    clearTimeout(searchDebounceTimer);
+                }
+                
+                // Debounce search to avoid too many API calls
+                searchDebounceTimer = setTimeout(async () => {
+                    console.log('🔍 Searching backend for:', searchTerm);
+                    await loadHistory(false, searchTerm);
+                    // After loading, apply local filters (date, type, status)
+                    applyLocalFilters();
+                }, 500);
+                return;
+            }
+            
+            // No search term: apply local filters only
+            applyLocalFilters();
+        }
+        
+        function applyLocalFilters() {
+            const searchDate = document.getElementById('searchDate')?.value || '';
+            const filterInspectionType = document.getElementById('filterInspectionType')?.value || 'all';
+            const filterStatus = document.getElementById('filterStatus')?.value || 'all';
+            
             let filtered = contracts;
-
-            // Filter by plate
-            if (searchPlate) {
-                filtered = filtered.filter(c => 
-                    c.vehicle_plate && c.vehicle_plate.toUpperCase().includes(searchPlate)
-                );
-            }
-
-            // Filter by RA
-            if (searchRA) {
-                filtered = filtered.filter(c => 
-                    c.contract_number && c.contract_number.toUpperCase().includes(searchRA)
-                );
-            }
 
             // Filter by inspection type (Entrega/Recolha)
             if (filterInspectionType !== 'all') {
@@ -769,7 +775,6 @@
                         return checkinDate === searchDate;
                     } else if (filterInspectionType === 'checkout') {
                         // Filtrar por data de check-out/self-checkout (Recolha)
-                        // Incluir data real de recolha OU data prevista (se ainda não foi feita)
                         const checkoutDate = c.checkout ? new Date(c.checkout.created_at).toISOString().split('T')[0] : null;
                         const selfCheckoutDate = c.self_checkout ? new Date(c.self_checkout.created_at).toISOString().split('T')[0] : null;
                         
@@ -780,30 +785,18 @@
                         
                         // Se ainda não foi feita, verificar data prevista de recolha
                         if (!c.checkout && !c.self_checkout && c.expected_return_date) {
-                            console.log('🔍 Checking expected return date for:', c.vehicle_plate);
-                            console.log('   expected_return_date:', c.expected_return_date);
-                            console.log('   searchDate:', searchDate);
-                            
                             let expectedDate = c.expected_return_date;
                             
                             // Se já está no formato YYYY-MM-DD, usar diretamente
                             if (/^\d{4}-\d{2}-\d{2}$/.test(expectedDate)) {
-                                console.log('   Already in YYYY-MM-DD format');
-                                console.log('   Match?', expectedDate === searchDate);
                                 return expectedDate === searchDate;
                             }
                             
                             // Caso contrário, converter de DD/MM/YYYY ou DD - MM - YYYY
                             const dateStr = expectedDate.replace(/\s+/g, '').replace(/-/g, '/');
-                            console.log('   dateStr after normalization:', dateStr);
-                            
                             const parts = dateStr.split('/');
-                            console.log('   parts:', parts);
-                            
                             if (parts.length === 3) {
                                 expectedDate = `${parts[2]}-${parts[1].padStart(2, '0')}-${parts[0].padStart(2, '0')}`;
-                                console.log('   expectedDate formatted:', expectedDate);
-                                console.log('   Match?', expectedDate === searchDate);
                                 return expectedDate === searchDate;
                             }
                         }
@@ -884,7 +877,8 @@
             document.getElementById('searchDate').value = '';
             document.getElementById('filterInspectionType').value = 'all';
             document.getElementById('filterStatus').value = 'all';
-            filterInspections();
+            // Reload without search to get active contracts + today's inspections
+            loadHistory(false, '');
         }
 
         function renderHistory(data) {
