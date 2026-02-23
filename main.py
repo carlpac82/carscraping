@@ -52124,7 +52124,7 @@ async def get_inspections_history(request: Request):
                         LIMIT 200
                     """, (f'%{search_term}%', f'%{search_term}%', f'%{search_term}%'))
                 else:
-                    # No search: load only active contracts + today's inspections
+                    # No search: load ONLY today's inspections
                     cursor.execute("""
                         SELECT vi.inspection_number, vi.vehicle_plate, vi.contract_number, 
                                vi.inspection_type, vi.inspector_name, vi.created_at, 
@@ -52140,22 +52140,7 @@ async def get_inspections_history(request: Request):
                             OR ra.rental_agreement_number = SPLIT_PART(vi.contract_number, '-', 1)
                         )
                         WHERE COALESCE(vi.status, '') != 'replaced'
-                        AND (
-                            DATE(vi.created_at) = CURRENT_DATE
-                            OR (
-                                vi.inspection_type = 'checkin'
-                                AND NOT EXISTS (
-                                    SELECT 1 FROM vehicle_inspections vi2
-                                    WHERE (
-                                        vi2.contract_number = vi.contract_number
-                                        OR SPLIT_PART(vi2.contract_number, '-', 1) = SPLIT_PART(vi.contract_number, '-', 1)
-                                    )
-                                    AND vi2.inspection_type IN ('checkout', 'self_checkout')
-                                    AND vi2.created_at > vi.created_at
-                                    AND COALESCE(vi2.status, '') != 'replaced'
-                                )
-                            )
-                        )
+                        AND DATE(vi.created_at) = CURRENT_DATE
                         ORDER BY vi.created_at DESC
                         LIMIT 200
                     """)
@@ -52193,7 +52178,7 @@ async def get_inspections_history(request: Request):
                         LIMIT 200
                     """, (f'%{search_term}%', f'%{search_term}%', f'%{search_term}%'))
                 else:
-                    # No search: load only active contracts + today's inspections
+                    # No search: load ONLY today's inspections
                     cursor.execute("""
                         SELECT vi.inspection_number, vi.vehicle_plate, vi.contract_number, 
                                vi.inspection_type, vi.inspector_name, vi.created_at, 
@@ -52206,35 +52191,13 @@ async def get_inspections_history(request: Request):
                         FROM vehicle_inspections vi
                         LEFT JOIN rental_agreements ra ON (
                             ra.rental_agreement_number = vi.contract_number 
-                            OR ra.rental_agreement_number = SUBSTR(vi.contract_number, 1, 
+                            OR ra.rental_agreement_number = SUBSTR(vi.contract_number, 1,
                                 CASE WHEN INSTR(vi.contract_number, '-') > 0 
                                 THEN INSTR(vi.contract_number, '-') - 1 
                                 ELSE LENGTH(vi.contract_number) END)
                         )
                         WHERE COALESCE(vi.status, '') != 'replaced'
-                        AND (
-                            DATE(vi.created_at) = DATE('now')
-                            OR (
-                                vi.inspection_type = 'checkin'
-                                AND NOT EXISTS (
-                                    SELECT 1 FROM vehicle_inspections vi2
-                                    WHERE (
-                                        vi2.contract_number = vi.contract_number
-                                        OR SUBSTR(vi2.contract_number, 1, 
-                                            CASE WHEN INSTR(vi2.contract_number, '-') > 0 
-                                            THEN INSTR(vi2.contract_number, '-') - 1 
-                                            ELSE LENGTH(vi2.contract_number) END) = 
-                                        SUBSTR(vi.contract_number, 1, 
-                                            CASE WHEN INSTR(vi.contract_number, '-') > 0 
-                                            THEN INSTR(vi.contract_number, '-') - 1 
-                                            ELSE LENGTH(vi.contract_number) END)
-                                    )
-                                    AND vi2.inspection_type IN ('checkout', 'self_checkout')
-                                    AND vi2.created_at > vi.created_at
-                                    AND COALESCE(vi2.status, '') != 'replaced'
-                                )
-                            )
-                        )
+                        AND DATE(vi.created_at) = DATE('now')
                         ORDER BY vi.created_at DESC
                         LIMIT 200
                     """)
