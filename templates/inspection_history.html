@@ -551,7 +551,7 @@
                     if (checkinDate === today) checkinCount++;
                 }
                 
-                // Count check-outs: checkouts feitos hoje OU self-checkouts de hoje OU contratos com data esperada <= hoje
+                // Count check-outs: checkouts feitos hoje OU self-checkouts VALIDADOS de hoje OU contratos com data esperada <= hoje
                 let shouldCountCheckout = false;
                 
                 // 1. Checkouts já feitos hoje
@@ -559,26 +559,30 @@
                     const checkoutDate = new Date(contract.checkout.created_at).toISOString().split('T')[0];
                     if (checkoutDate === today) shouldCountCheckout = true;
                 }
-                // 2. Self-checkouts feitos hoje
-                else if (contract.self_checkout) {
+                // 2. Self-checkouts VALIDADOS feitos hoje (só conta se status = 'validated')
+                else if (contract.self_checkout && contract.self_checkout.status === 'validated') {
                     const selfCheckoutDate = new Date(contract.self_checkout.created_at).toISOString().split('T')[0];
                     if (selfCheckoutDate === today) shouldCountCheckout = true;
                 }
                 // 3. Contratos abertos com data esperada <= hoje (overdue ou hoje)
-                else if (contract.checkin && !contract.checkout && !contract.self_checkout && contract.expected_return_date) {
-                    let expectedDate;
-                    if (contract.expected_return_date.includes('/')) {
-                        const parts = contract.expected_return_date.split('/');
-                        expectedDate = new Date(parts[2], parts[1] - 1, parts[0]);
-                    } else if (contract.expected_return_date.includes(' - ')) {
-                        const parts = contract.expected_return_date.split(' - ');
-                        expectedDate = new Date(parts[2], parts[1] - 1, parts[0]);
-                    } else {
-                        expectedDate = new Date(contract.expected_return_date);
+                else if (contract.checkin && !contract.checkout && contract.expected_return_date) {
+                    // Só conta se não tem self-checkout pendente
+                    const hasPendingSelfCheckout = contract.self_checkout && contract.self_checkout.status !== 'validated' && contract.self_checkout.status !== 'invalidated';
+                    if (!hasPendingSelfCheckout) {
+                        let expectedDate;
+                        if (contract.expected_return_date.includes('/')) {
+                            const parts = contract.expected_return_date.split('/');
+                            expectedDate = new Date(parts[2], parts[1] - 1, parts[0]);
+                        } else if (contract.expected_return_date.includes(' - ')) {
+                            const parts = contract.expected_return_date.split(' - ');
+                            expectedDate = new Date(parts[2], parts[1] - 1, parts[0]);
+                        } else {
+                            expectedDate = new Date(contract.expected_return_date);
+                        }
+                        expectedDate.setHours(0, 0, 0, 0);
+                        
+                        if (expectedDate <= todayDate) shouldCountCheckout = true;
                     }
-                    expectedDate.setHours(0, 0, 0, 0);
-                    
-                    if (expectedDate <= todayDate) shouldCountCheckout = true;
                 }
                 
                 if (shouldCountCheckout) checkoutCount++;
