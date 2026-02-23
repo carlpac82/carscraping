@@ -491,15 +491,21 @@
             });
         }
 
-        async function loadHistory(forceRefresh = false) {
+        async function loadHistory(forceRefresh = false, searchTerm = '', filterDate = '') {
             try {
                 // If forceRefresh is an Event object, convert to boolean
                 if (forceRefresh && typeof forceRefresh === 'object' && forceRefresh.type) {
                     forceRefresh = false;
                 }
                 
-                // Always load ALL contracts from database
+                // Build URL with search and date parameters if provided
                 let url = `/api/inspections/history?t=${Date.now()}`;
+                if (searchTerm) {
+                    url += `&search=${encodeURIComponent(searchTerm)}`;
+                }
+                if (filterDate) {
+                    url += `&date=${encodeURIComponent(filterDate)}`;
+                }
                 
                 // If force refresh, add additional cache busting headers
                 const fetchOptions = forceRefresh ? {
@@ -510,7 +516,7 @@
                     }
                 } : {};
                 
-                console.log(`📡 Fetching ALL history from database...`);
+                console.log(`📡 Fetching history (forceRefresh: ${forceRefresh}, search: '${searchTerm}', date: '${filterDate}')...`);
                 const response = await fetch(url, fetchOptions);
                 const data = await response.json();
                 
@@ -700,7 +706,10 @@
             renderHistory(filtered);
         }
 
-        function filterInspections() {
+        // Debounce timer for search
+        let searchDebounceTimer = null;
+        
+        async function filterInspections() {
             const searchPlate = document.getElementById('searchPlate')?.value?.trim().toUpperCase() || '';
             const searchRA = document.getElementById('searchRA')?.value?.trim().toUpperCase() || '';
             const searchDate = document.getElementById('searchDate')?.value || '';
@@ -716,7 +725,34 @@
                 totalContracts: contracts.length
             });
             
-            // Apply all filters locally on the loaded contracts
+            // If user is searching by plate or RA, call backend with search parameter
+            const searchTerm = searchPlate || searchRA;
+            if (searchTerm) {
+                // Clear previous debounce timer
+                if (searchDebounceTimer) {
+                    clearTimeout(searchDebounceTimer);
+                }
+                
+                // Debounce search to avoid too many API calls
+                searchDebounceTimer = setTimeout(async () => {
+                    console.log('🔍 Searching backend for:', searchTerm);
+                    await loadHistory(false, searchTerm, searchDate);
+                    // After loading, apply local filters (type, status)
+                    applyLocalFilters();
+                }, 500);
+                return;
+            }
+            
+            // If user selected a date filter, call backend with date parameter
+            if (searchDate && !searchTerm) {
+                console.log('📅 Loading inspections for date:', searchDate);
+                await loadHistory(false, '', searchDate);
+                // After loading from backend, apply local filters (type, status)
+                applyLocalFilters();
+                return;
+            }
+            
+            // No search term or date: apply local filters only
             applyLocalFilters();
         }
         
