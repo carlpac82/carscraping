@@ -52124,8 +52124,16 @@ async def get_inspections_history(request: Request):
                         LIMIT 200
                     """, (f'%{search_term}%', f'%{search_term}%', f'%{search_term}%'))
                 else:
-                    # No search: load today's inspections + check-ins for contracts with check-outs today
+                    # No search: load today's inspections + ALL check-ins for contracts with check-outs today
+                    # This ensures contracts with check-outs show as FECHADO instead of EM PROGRESSO
                     cursor.execute("""
+                        WITH todays_checkouts AS (
+                            SELECT DISTINCT SPLIT_PART(contract_number, '-', 1) as ra_base
+                            FROM vehicle_inspections
+                            WHERE COALESCE(status, '') != 'replaced'
+                            AND inspection_type IN ('checkout', 'self_checkout')
+                            AND DATE(created_at) = CURRENT_DATE
+                        )
                         SELECT vi.inspection_number, vi.vehicle_plate, vi.contract_number, 
                                vi.inspection_type, vi.inspector_name, vi.created_at, 
                                vi.fuel_level, vi.odometer_reading, vi.damage_count, vi.status, vi.id,
@@ -52144,16 +52152,7 @@ async def get_inspections_history(request: Request):
                             DATE(vi.created_at) = CURRENT_DATE
                             OR (
                                 vi.inspection_type = 'checkin'
-                                AND EXISTS (
-                                    SELECT 1 FROM vehicle_inspections vi2
-                                    WHERE (
-                                        vi2.contract_number = vi.contract_number
-                                        OR SPLIT_PART(vi2.contract_number, '-', 1) = SPLIT_PART(vi.contract_number, '-', 1)
-                                    )
-                                    AND vi2.inspection_type IN ('checkout', 'self_checkout')
-                                    AND DATE(vi2.created_at) = CURRENT_DATE
-                                    AND COALESCE(vi2.status, '') != 'replaced'
-                                )
+                                AND SPLIT_PART(vi.contract_number, '-', 1) IN (SELECT ra_base FROM todays_checkouts)
                             )
                         )
                         ORDER BY vi.created_at DESC
@@ -52193,8 +52192,20 @@ async def get_inspections_history(request: Request):
                         LIMIT 200
                     """, (f'%{search_term}%', f'%{search_term}%', f'%{search_term}%'))
                 else:
-                    # No search: load today's inspections + check-ins for contracts with check-outs today
+                    # No search: load today's inspections + ALL check-ins for contracts with check-outs today
+                    # This ensures contracts with check-outs show as FECHADO instead of EM PROGRESSO
                     cursor.execute("""
+                        WITH todays_checkouts AS (
+                            SELECT DISTINCT 
+                                SUBSTR(contract_number, 1,
+                                    CASE WHEN INSTR(contract_number, '-') > 0 
+                                    THEN INSTR(contract_number, '-') - 1 
+                                    ELSE LENGTH(contract_number) END) as ra_base
+                            FROM vehicle_inspections
+                            WHERE COALESCE(status, '') != 'replaced'
+                            AND inspection_type IN ('checkout', 'self_checkout')
+                            AND DATE(created_at) = DATE('now')
+                        )
                         SELECT vi.inspection_number, vi.vehicle_plate, vi.contract_number, 
                                vi.inspection_type, vi.inspector_name, vi.created_at, 
                                vi.fuel_level, vi.odometer_reading, vi.damage_count, vi.status, vi.id,
@@ -52216,23 +52227,10 @@ async def get_inspections_history(request: Request):
                             DATE(vi.created_at) = DATE('now')
                             OR (
                                 vi.inspection_type = 'checkin'
-                                AND EXISTS (
-                                    SELECT 1 FROM vehicle_inspections vi2
-                                    WHERE (
-                                        vi2.contract_number = vi.contract_number
-                                        OR SUBSTR(vi2.contract_number, 1, 
-                                            CASE WHEN INSTR(vi2.contract_number, '-') > 0 
-                                            THEN INSTR(vi2.contract_number, '-') - 1 
-                                            ELSE LENGTH(vi2.contract_number) END) = 
-                                        SUBSTR(vi.contract_number, 1, 
-                                            CASE WHEN INSTR(vi.contract_number, '-') > 0 
-                                            THEN INSTR(vi.contract_number, '-') - 1 
-                                            ELSE LENGTH(vi.contract_number) END)
-                                    )
-                                    AND vi2.inspection_type IN ('checkout', 'self_checkout')
-                                    AND DATE(vi2.created_at) = DATE('now')
-                                    AND COALESCE(vi2.status, '') != 'replaced'
-                                )
+                                AND SUBSTR(vi.contract_number, 1,
+                                    CASE WHEN INSTR(vi.contract_number, '-') > 0 
+                                    THEN INSTR(vi.contract_number, '-') - 1 
+                                    ELSE LENGTH(vi.contract_number) END) IN (SELECT ra_base FROM todays_checkouts)
                             )
                         )
                         ORDER BY vi.created_at DESC
