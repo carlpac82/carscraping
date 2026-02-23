@@ -551,7 +551,7 @@
                     if (checkinDate === today) checkinCount++;
                 }
                 
-                // Count check-outs: checkouts feitos hoje OU contratos com data esperada <= hoje
+                // Count check-outs: checkouts feitos hoje OU self-checkouts de hoje OU contratos com data esperada <= hoje
                 let shouldCountCheckout = false;
                 
                 // 1. Checkouts já feitos hoje
@@ -559,8 +559,13 @@
                     const checkoutDate = new Date(contract.checkout.created_at).toISOString().split('T')[0];
                     if (checkoutDate === today) shouldCountCheckout = true;
                 }
-                // 2. Contratos abertos com data esperada <= hoje (overdue ou hoje)
-                else if (contract.checkin && !contract.checkout && contract.expected_return_date) {
+                // 2. Self-checkouts feitos hoje
+                else if (contract.self_checkout) {
+                    const selfCheckoutDate = new Date(contract.self_checkout.created_at).toISOString().split('T')[0];
+                    if (selfCheckoutDate === today) shouldCountCheckout = true;
+                }
+                // 3. Contratos abertos com data esperada <= hoje (overdue ou hoje)
+                else if (contract.checkin && !contract.checkout && !contract.self_checkout && contract.expected_return_date) {
                     let expectedDate;
                     if (contract.expected_return_date.includes('/')) {
                         const parts = contract.expected_return_date.split('/');
