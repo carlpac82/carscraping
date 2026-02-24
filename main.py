@@ -52632,8 +52632,27 @@ async def get_inspections_history(request: Request):
                         filtered_contracts.append(contract)
                         continue
                     
-                    # For active contracts (checkin only), check expected_return_date
+                    # For active contracts (checkin only)
                     if contract.get("checkin") and not contract.get("checkout"):
+                        checkin_date_str = contract["checkin"].get("created_at", "")
+                        checkin_date = None
+                        
+                        # Parse checkin date
+                        try:
+                            if 'T' in checkin_date_str:
+                                checkin_date = datetime.fromisoformat(checkin_date_str.replace('Z', '+00:00')).date()
+                            else:
+                                checkin_date = datetime.strptime(checkin_date_str.split()[0], '%Y-%m-%d').date()
+                        except:
+                            pass
+                        
+                        # Always include if check-in is today
+                        if checkin_date == today:
+                            filtered_contracts.append(contract)
+                            logging.info(f"✅ Including contract {contract['contract_number']} - check-in today")
+                            continue
+                        
+                        # For older check-ins, only include if expected_return_date <= today
                         expected_date_str = contract.get("expected_return_date")
                         if expected_date_str:
                             try:
