@@ -51447,18 +51447,27 @@ def _safe_float_from_price(price_value):
     """
     Converte preço para float de forma segura
     Aceita: 123.45, "123.45", "123,45 €", "€ 123,45", etc.
+    Se o valor for > 1000, assume que está em cêntimos e divide por 100
     """
     if price_value is None:
         return 0.0
     
     if isinstance(price_value, (int, float)):
-        return float(price_value)
+        price = float(price_value)
+        # Se preço > 1000€, provavelmente está em cêntimos
+        if price > 1000:
+            price = price / 100.0
+        return price
     
     if isinstance(price_value, str):
         # Remover símbolo de euro, espaços, e trocar vírgula por ponto
         clean = price_value.replace('€', '').replace(' ', '').replace(',', '.').strip()
         try:
-            return float(clean)
+            price = float(clean)
+            # Se preço > 1000€, provavelmente está em cêntimos
+            if price > 1000:
+                price = price / 100.0
+            return price
         except (ValueError, TypeError):
             return 0.0
     
