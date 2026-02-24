@@ -52159,7 +52159,7 @@ async def get_inspections_history(request: Request):
                         LIMIT 200
                     """, (filter_date, filter_date))
                 else:
-                    # No search or date: load today's inspections + ALL check-ins for contracts with check-outs today
+                    # No search or date: load today's inspections + check-ins for contracts with check-outs today + active check-ins
                     cursor.execute("""
                         WITH todays_checkouts AS (
                             SELECT DISTINCT SPLIT_PART(contract_number, '-', 1) as ra_base
@@ -52167,6 +52167,18 @@ async def get_inspections_history(request: Request):
                             WHERE COALESCE(status, '') != 'replaced'
                             AND inspection_type IN ('checkout', 'self_checkout')
                             AND DATE(created_at) = CURRENT_DATE
+                        ),
+                        active_checkins AS (
+                            SELECT DISTINCT SPLIT_PART(contract_number, '-', 1) as ra_base
+                            FROM vehicle_inspections
+                            WHERE COALESCE(status, '') != 'replaced'
+                            AND inspection_type = 'checkin'
+                            AND NOT EXISTS (
+                                SELECT 1 FROM vehicle_inspections vi2
+                                WHERE SPLIT_PART(vi2.contract_number, '-', 1) = SPLIT_PART(vehicle_inspections.contract_number, '-', 1)
+                                AND vi2.inspection_type IN ('checkout', 'self_checkout')
+                                AND COALESCE(vi2.status, '') != 'replaced'
+                            )
                         )
                         SELECT vi.inspection_number, vi.vehicle_plate, vi.contract_number, 
                                vi.inspection_type, vi.inspector_name, vi.created_at, 
@@ -52188,9 +52200,13 @@ async def get_inspections_history(request: Request):
                                 vi.inspection_type = 'checkin'
                                 AND SPLIT_PART(vi.contract_number, '-', 1) IN (SELECT ra_base FROM todays_checkouts)
                             )
+                            OR (
+                                vi.inspection_type = 'checkin'
+                                AND SPLIT_PART(vi.contract_number, '-', 1) IN (SELECT ra_base FROM active_checkins)
+                            )
                         )
                         ORDER BY vi.created_at DESC
-                        LIMIT 200
+                        LIMIT 500
                     """)
             else:
                 # SQLite: Match RA by removing suffix from contract_number
@@ -52270,7 +52286,7 @@ async def get_inspections_history(request: Request):
                         LIMIT 200
                     """, (filter_date, filter_date))
                 else:
-                    # No search or date: load today's inspections + ALL check-ins for contracts with check-outs today
+                    # No search or date: load today's inspections + check-ins for contracts with check-outs today + active check-ins
                     cursor.execute("""
                         WITH todays_checkouts AS (
                             SELECT DISTINCT 
@@ -52282,6 +52298,29 @@ async def get_inspections_history(request: Request):
                             WHERE COALESCE(status, '') != 'replaced'
                             AND inspection_type IN ('checkout', 'self_checkout')
                             AND DATE(created_at) = DATE('now')
+                        ),
+                        active_checkins AS (
+                            SELECT DISTINCT 
+                                SUBSTR(contract_number, 1,
+                                    CASE WHEN INSTR(contract_number, '-') > 0 
+                                    THEN INSTR(contract_number, '-') - 1 
+                                    ELSE LENGTH(contract_number) END) as ra_base
+                            FROM vehicle_inspections
+                            WHERE COALESCE(status, '') != 'replaced'
+                            AND inspection_type = 'checkin'
+                            AND NOT EXISTS (
+                                SELECT 1 FROM vehicle_inspections vi2
+                                WHERE SUBSTR(vi2.contract_number, 1,
+                                    CASE WHEN INSTR(vi2.contract_number, '-') > 0 
+                                    THEN INSTR(vi2.contract_number, '-') - 1 
+                                    ELSE LENGTH(vi2.contract_number) END) = 
+                                    SUBSTR(vehicle_inspections.contract_number, 1,
+                                    CASE WHEN INSTR(vehicle_inspections.contract_number, '-') > 0 
+                                    THEN INSTR(vehicle_inspections.contract_number, '-') - 1 
+                                    ELSE LENGTH(vehicle_inspections.contract_number) END)
+                                AND vi2.inspection_type IN ('checkout', 'self_checkout')
+                                AND COALESCE(vi2.status, '') != 'replaced'
+                            )
                         )
                         SELECT vi.inspection_number, vi.vehicle_plate, vi.contract_number, 
                                vi.inspection_type, vi.inspector_name, vi.created_at, 
@@ -52309,9 +52348,16 @@ async def get_inspections_history(request: Request):
                                     THEN INSTR(vi.contract_number, '-') - 1 
                                     ELSE LENGTH(vi.contract_number) END) IN (SELECT ra_base FROM todays_checkouts)
                             )
+                            OR (
+                                vi.inspection_type = 'checkin'
+                                AND SUBSTR(vi.contract_number, 1,
+                                    CASE WHEN INSTR(vi.contract_number, '-') > 0 
+                                    THEN INSTR(vi.contract_number, '-') - 1 
+                                    ELSE LENGTH(vi.contract_number) END) IN (SELECT ra_base FROM active_checkins)
+                            )
                         )
                         ORDER BY vi.created_at DESC
-                        LIMIT 200
+                        LIMIT 500
                     """)
             
             rows = cursor.fetchall()
@@ -52573,6 +52619,56 @@ async def get_inspections_history(request: Request):
             
             # Convert to list and sort by latest date
             contracts = list(grouped.values())
+            
+            # Filter active contracts: only show if expected_return_date <= today (unless search/date filter active)
+            if not search_term and not filter_date:
+                from datetime import datetime, date
+                today = date.today()
+                
+                filtered_contracts = []
+                for contract in contracts:
+                    # Always include if has checkout or self_checkout
+                    if contract.get("checkout") or contract.get("self_checkout"):
+                        filtered_contracts.append(contract)
+                        continue
+                    
+                    # For active contracts (checkin only), check expected_return_date
+                    if contract.get("checkin") and not contract.get("checkout"):
+                        expected_date_str = contract.get("expected_return_date")
+                        if expected_date_str:
+                            try:
+                                # Parse date in various formats
+                                expected_date = None
+                                if '/' in expected_date_str:
+                                    parts = expected_date_str.split('/')
+                                    expected_date = date(int(parts[2]), int(parts[1]), int(parts[0]))
+                                elif ' - ' in expected_date_str:
+                                    parts = expected_date_str.split(' - ')
+                                    expected_date = date(int(parts[2]), int(parts[1]), int(parts[0]))
+                                elif '-' in expected_date_str:
+                                    parts = expected_date_str.split('-')
+                                    if len(parts[0]) == 4:  # YYYY-MM-DD
+                                        expected_date = date(int(parts[0]), int(parts[1]), int(parts[2]))
+                                    else:  # DD-MM-YYYY
+                                        expected_date = date(int(parts[2]), int(parts[1]), int(parts[0]))
+                                
+                                # Only include if expected return is today or earlier
+                                if expected_date and expected_date <= today:
+                                    filtered_contracts.append(contract)
+                                    logging.info(f"✅ Including active contract {contract['contract_number']} - return date {expected_date_str} <= today")
+                                else:
+                                    logging.info(f"⏭️ Skipping active contract {contract['contract_number']} - return date {expected_date_str} > today")
+                            except Exception as e:
+                                logging.error(f"Error parsing date {expected_date_str} for RA {contract['contract_number']}: {e}")
+                                # If can't parse, include it to be safe
+                                filtered_contracts.append(contract)
+                        else:
+                            # No expected date, include it
+                            filtered_contracts.append(contract)
+                
+                contracts = filtered_contracts
+                logging.info(f"📊 After filtering by expected_return_date: {len(contracts)} contracts")
+            
             contracts.sort(key=lambda x: x["latest_date"] if x["latest_date"] else "", reverse=True)
             
             logging.info(f"✅ Returning {len(contracts)} grouped contracts")
