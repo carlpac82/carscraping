@@ -1550,10 +1550,7 @@
                 canvas.height = video.videoHeight;
                 
                 const ctx = canvas.getContext('2d');
-                // Espelhar horizontalmente para corresponder à visualização da câmera
-                ctx.translate(canvas.width, 0);
-                ctx.scale(-1, 1);
-                ctx.drawImage(video, 0, 0);
+                ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
                 
                 const dataUrl = canvas.toDataURL('image/jpeg', 0.9);
                 photos[currentPhotoType] = dataUrl;
@@ -1681,10 +1678,7 @@
             canvas.height = video.videoHeight;
             
             const ctx = canvas.getContext('2d');
-            // Espelhar horizontalmente para corresponder à visualização da câmera
-            ctx.translate(canvas.width, 0);
-            ctx.scale(-1, 1);
-            ctx.drawImage(video, 0, 0);
+            ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
             
             const dataUrl = canvas.toDataURL('image/jpeg', 0.9);
             damagePhotos[currentDamageIndex].photo = dataUrl;
