@@ -7512,7 +7512,31 @@
         }
 
         // Load on page load
-        document.addEventListener('DOMContentLoaded', loadHistory);
+        document.addEventListener('DOMContentLoaded', function() {
+            // Auto-format license plate search field: AA-03-AA
+            const plateSearchField = document.getElementById('searchPlate');
+            if (plateSearchField) {
+                plateSearchField.addEventListener('input', function(e) {
+                    let value = e.target.value.replace(/[^A-Za-z0-9]/g, '').toUpperCase(); // Only letters and numbers
+                    
+                    // Limit to 6 characters
+                    if (value.length > 6) {
+                        value = value.substring(0, 6);
+                    }
+                    
+                    // Auto-format with dashes: AA-03-AA (2-2-2 format)
+                    if (value.length >= 5) {
+                        value = value.substring(0, 2) + '-' + value.substring(2, 4) + '-' + value.substring(4);
+                    } else if (value.length >= 3) {
+                        value = value.substring(0, 2) + '-' + value.substring(2);
+                    }
+                    
+                    e.target.value = value;
+                });
+            }
+            
+            loadHistory();
+        });
     </script>
 </body>
 </html>
