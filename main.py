@@ -15,6 +15,7 @@ import traceback as _tb
 import logging
 import json
 import base64
+from contextlib import asynccontextmanager
 
 # Configure logging level based on environment
 # WARNING in production (Railway), INFO in development
@@ -1227,9 +1228,134 @@ def combine_croqui_with_damages(delivery_croqui_base64=None, pickup_damages=None
         logging.error(traceback.format_exc())
         return delivery_croqui_base64
 
+# ============================================================
+# LIFESPAN CONTEXT MANAGER (replaces deprecated @app.on_event)
+# ============================================================
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    """Manage application startup and shutdown events"""
+    # STARTUP EVENTS
+    import datetime
+    logging.info(f"APPLICATION STARTED - VERSION 3.0 - {datetime.datetime.now().isoformat()}")
+    
+    # Initialize database tables
+    try:
+        logging.info("Initializing database tables...")
+        _ensure_users_table()
+        logging.info("users table created/exists")
+        init_db()
+        logging.info("All tables created/verified (19 tables total)")
+    except Exception as e:
+        logging.error(f"Database initialization error: {e}")
+        import traceback
+        traceback.print_exc()
+    
+    # Pre-load promotional images cache
+    try:
+        logging.info("Pre-loading promotional images cache...")
+        _preload_promotional_images()
+        logging.info("Promotional images cached")
+    except Exception as e:
+        logging.warning(f"Promotional images cache error: {e}")
+    
+    # Fix PostgreSQL schema
+    if _USE_NEW_DB and USE_POSTGRES:
+        try:
+            logging.info("Fixing PostgreSQL schema...")
+            from fix_postgres_schema import fix_users_table, fix_system_logs_table
+            if fix_users_table():
+                logging.info("users schema fixed")
+            if fix_system_logs_table():
+                logging.info("system_logs schema fixed")
+        except Exception as e:
+            logging.warning(f"Schema fix error: {e}")
+    
+    # Create default users
+    try:
+        logging.info("Creating default users...")
+        _ensure_default_users()
+        logging.info("Default users ready (admin/admin)")
+    except Exception as e:
+        logging.warning(f"Default users error: {e}")
+    
+    # Create tables
+    try:
+        _ensure_damage_reports_tables()
+        _ensure_rental_agreement_tables()
+        _ensure_vehicle_photos_table()
+        _ensure_vehicle_name_overrides_table()
+        _ensure_vehicle_images_table()
+        _ensure_vehicle_inspections_table()
+    except Exception as e:
+        logging.error(f"Error creating tables: {e}")
+    
+    # WhatsApp token refresh
+    global _whatsapp_token_refresh_task
+    try:
+        with _db_lock:
+            conn = _db_connect()
+            try:
+                is_postgres = str(conn.__class__).find('psycopg') >= 0
+                _ensure_whatsapp_config_token_column(conn, is_postgres)
+            finally:
+                conn.close()
+    except Exception as e:
+        logging.error(f"[WHATSAPP] Error ensuring database schema: {str(e)}")
+    
+    if _whatsapp_token_refresh_task is None:
+        logging.info("[WHATSAPP] Starting token refresh worker")
+        _whatsapp_token_refresh_task = asyncio.create_task(_whatsapp_token_refresh_worker())
+    
+    # Background jobs
+    try:
+        background_jobs.start_job_manager()
+        logging.info("✅ Background Jobs Manager initialized")
+    except Exception as e:
+        logging.error(f"❌ Background Jobs Manager initialization failed: {e}")
+    
+    # Automated scheduler
+    try:
+        from automated_scheduler import setup_scheduled_tasks
+        setup_scheduled_tasks()
+        logging.info("✅ Automated scheduler initialized")
+    except Exception as e:
+        logging.error(f"❌ Failed to initialize automated scheduler: {str(e)}")
+    
+    # Load AI models
+    try:
+        import vehicle_damage_ai
+        vehicle_damage_ai.load_damage_detection_model()
+        logging.debug("✅ AI models loaded at startup")
+    except Exception as e:
+        logging.debug(f"⚠️ Could not load AI models: {e}")
+    
+    yield
+    
+    # SHUTDOWN EVENTS
+    if _whatsapp_token_refresh_task:
+        _whatsapp_token_refresh_task.cancel()
+        try:
+            await _whatsapp_token_refresh_task
+        except asyncio.CancelledError:
+            pass
+    
+    try:
+        background_jobs.stop_job_manager()
+        logging.info("✅ Background Jobs Manager stopped")
+    except Exception as e:
+        logging.error(f"❌ Error stopping Background Jobs Manager: {e}")
+    
+    try:
+        from automated_scheduler import shutdown_scheduler
+        shutdown_scheduler()
+        logging.info("✅ Automated scheduler stopped")
+    except Exception as e:
+        logging.error(f"❌ Error stopping scheduler: {str(e)}")
+
 # Aumentar limite de payload para permitir dados completos (284 carros × ~2KB = ~568KB)
 app = FastAPI(
     title="Rental Price Tracker",
+    lifespan=lifespan,
     # Aumentar limite de upload para 10MB (dados completos de pesquisas)
     # Default é 1MB - insuficiente para 284 carros completos
 )
@@ -1513,139 +1639,6 @@ def _ensure_rental_agreement_tables():
                 conn.close()
     except Exception as e:
         logging.error(f"Error creating RA tables: {e}")
-
-@app.on_event("startup")
-async def startup_event():
-    """Initialize database and create default users on startup"""
-    import datetime
-    logging.info(f"APPLICATION STARTED - VERSION 3.0 - {datetime.datetime.now().isoformat()}")
-    
-    # Initialize database tables FIRST
-    try:
-        logging.info("Initializing database tables...")
-        _ensure_users_table()
-        logging.info("users table created/exists")
-        
-        # Initialize ALL other tables (price_snapshots, ai_learning_data, etc.)
-        init_db()
-        logging.info("All tables created/verified (19 tables total)")
-    except Exception as e:
-        logging.error(f"Database initialization error: {e}")
-        import traceback
-        traceback.print_exc()
-    
-    # Pre-load promotional images cache
-    try:
-        logging.info("Pre-loading promotional images cache...")
-        _preload_promotional_images()
-        logging.info("Promotional images cached")
-    except Exception as e:
-        logging.warning(f"Promotional images cache error: {e}")
-        import traceback
-        traceback.print_exc()
-    
-    # Fix PostgreSQL schema AFTER tables exist
-    if _USE_NEW_DB and USE_POSTGRES:
-        try:
-            logging.info("Fixing PostgreSQL schema...")
-            # Run inline instead of subprocess for better error handling
-            from fix_postgres_schema import fix_users_table, fix_system_logs_table
-            
-            if fix_users_table():
-                logging.info("users schema fixed")
-            else:
-                logging.warning("users schema warnings")
-            
-            if fix_system_logs_table():
-                logging.info("system_logs schema fixed")
-            else:
-                logging.warning("system_logs schema warnings")
-        except Exception as e:
-            logging.warning(f"Schema fix error: {e}")
-            import traceback
-            traceback.print_exc()
-    
-    # Create default users AFTER schema is fixed
-    try:
-        logging.info("Creating default users...")
-        _ensure_default_users()
-        logging.info("Default users ready (admin/admin)")
-    except Exception as e:
-        logging.warning(f"Default users error: {e}")
-    
-    # Create Damage Reports tables
-    try:
-        logging.info("Creating Damage Reports tables...")
-        _ensure_damage_reports_tables()
-        logging.info("Damage Reports tables ready")
-    except Exception as e:
-        logging.error(f"Error with DR tables: {e}")
-    
-    # Create Rental Agreement tables
-    try:
-        logging.info("Creating Rental Agreement tables...")
-        _ensure_rental_agreement_tables()
-        logging.info("Rental Agreement tables ready")
-    except Exception as e:
-        logging.error(f"Error with RA tables: {e}")
-    
-    # Migrations
-    try:
-        # Migration: Add vehicle_damage_image column
-        try:
-            if USE_POSTGRES:
-                import psycopg2
-                import os
-                database_url = os.getenv("DATABASE_URL")
-                if not database_url:
-                    logging.warning("DATABASE_URL not found, skipping PostgreSQL migration")
-                else:
-                    conn = psycopg2.connect(database_url)
-                    try:
-                        with conn.cursor() as cur:
-                            cur.execute("ALTER TABLE damage_reports ADD COLUMN vehicle_damage_image BYTEA")
-                            conn.commit()
-                        logging.info("Added vehicle_damage_image column (PostgreSQL)")
-                    except Exception as e:
-                        conn.rollback()  # CRITICAL for PostgreSQL
-                        error_msg = str(e).lower()
-                        if 'already exists' not in error_msg and 'duplicate column' not in error_msg:
-                            logging.warning(f"Could not add vehicle_damage_image: {e}")
-                    finally:
-                        conn.close()
-            else:
-                conn = _db_connect()
-                try:
-                    conn.execute("ALTER TABLE damage_reports ADD COLUMN vehicle_damage_image BYTEA")
-                    conn.commit()
-                    logging.info("Added vehicle_damage_image column (SQLite)")
-                except Exception as e:
-                    conn.rollback()  # CRITICAL for SQLite
-                    error_msg = str(e).lower()
-                    if 'already exists' not in error_msg and 'duplicate column' not in error_msg:
-                        logging.warning(f"Could not add vehicle_damage_image: {e}")
-                finally:
-                    conn.close()
-        except Exception as e:
-            logging.warning(f"Migration error: {e}")
-    except Exception as e:
-        logging.error(f"Damage Reports tables error: {e}")
-    
-    # Create Recent Searches table
-    try:
-        logging.info("Creating Recent Searches table...")
-        _ensure_recent_searches_table()
-        logging.info("Recent Searches table ready")
-    except Exception as e:
-        logging.warning(f"Recent Searches table error: {e}")
-    
-    # Ensure all missing tables/columns
-    try:
-        logging.info("Ensuring missing tables/columns...")
-        _ensure_missing_tables()
-        logging.info("All missing tables/columns ready")
-    except Exception as e:
-        logging.warning(f"Missing tables error: {e}")
 
 @app.exception_handler(HTTPException)
 async def http_exception_handler(request: Request, exc: HTTPException):
@@ -3851,17 +3844,18 @@ def init_db():
                 """
                 CREATE TABLE IF NOT EXISTS system_logs (
                   id SERIAL PRIMARY KEY,
+                  timestamp TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
                   level TEXT NOT NULL,
                   message TEXT NOT NULL,
                   module TEXT,
                   function TEXT,
                   line_number INTEGER,
-                  exception TEXT,
-                  created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
+                  exception TEXT
                 )
                 """
             )
-            safe_create_index(conn, "CREATE INDEX IF NOT EXISTS idx_system_logs ON system_logs(level, created_at)", "idx_system_logs")
+            # Index on level only
+            safe_create_index(conn, "CREATE INDEX IF NOT EXISTS idx_system_logs_level ON system_logs(level)", "idx_system_logs_level")
             
             # Tabela para cache de dados (evitar perda em disco efêmero)
             conn.execute(
@@ -7017,39 +7011,6 @@ async def _whatsapp_token_refresh_worker():
         except Exception as exc:
             logging.debug(f"[WHATSAPP] Token refresh worker failure: {str(exc)}")
         await asyncio.sleep(WHATSAPP_TOKEN_REFRESH_INTERVAL_SECONDS)
-
-@app.on_event("startup")
-async def startup_whatsapp_token_refresher():
-    """Initialize WhatsApp token refresh worker and ensure database schema is up to date"""
-    global _whatsapp_token_refresh_task
-    
-    # Ensure token_expires_at column exists before starting worker
-    try:
-        with _db_lock:
-            conn = _db_connect()
-            try:
-                is_postgres = str(conn.__class__).find('psycopg') >= 0
-                _ensure_whatsapp_config_token_column(conn, is_postgres)
-            finally:
-                conn.close()
-    except Exception as e:
-        logging.error(f"[WHATSAPP] Error ensuring database schema: {str(e)}")
-    
-    # Start token refresh worker
-    if _whatsapp_token_refresh_task is None:
-        logging.info("[WHATSAPP] Starting token refresh worker")
-        _whatsapp_token_refresh_task = asyncio.create_task(_whatsapp_token_refresh_worker())
-
-@app.on_event("shutdown")
-async def shutdown_whatsapp_token_refresher():
-    global _whatsapp_token_refresh_task
-    if _whatsapp_token_refresh_task:
-        _whatsapp_token_refresh_task.cancel()
-        try:
-            await _whatsapp_token_refresh_task
-        except asyncio.CancelledError:
-            pass
-        _whatsapp_token_refresh_task = None
 
 @app.post("/api/admin/whatsapp/refresh-token")
 async def refresh_whatsapp_token_endpoint(request: Request):
@@ -22254,15 +22215,7 @@ def _ensure_vehicle_images_table():
     except Exception as e:
         print(f"Erro ao criar tabela vehicle_images: {e}")
 
-@app.on_event("startup")
-async def startup_vehicle_photos():
-    """Inicializar tabelas de veículos na startup"""
-    _ensure_vehicle_photos_table()
-    _ensure_vehicle_name_overrides_table()
-    _ensure_vehicle_images_table()
-
-@app.on_event("startup")
-async def startup_vehicle_inspections():
+def _ensure_vehicle_inspections_table():
     """Create vehicle inspection tables on startup"""
     try:
         conn = _db_connect()
@@ -22434,8 +22387,7 @@ async def startup_vehicle_inspections():
     except Exception as e:
         logging.error(f"Error creating vehicle inspection tables: {e}")
 
-@app.on_event("startup")
-async def startup_migrate_automated_reports():
+def _migrate_automated_reports():
     """Migrate automated reports settings from user_settings to price_automation_settings"""
     try:
         with _db_lock:
@@ -22491,8 +22443,7 @@ async def startup_migrate_automated_reports():
 #     # FUNÇÃO DESATIVADA - Numeração gerida manualmente
 #     pass
 
-@app.on_event("startup")
-async def startup_background_jobs():
+def _start_background_jobs():
     """🔄 Iniciar sistema de background jobs para scraping assíncrono"""
     try:
         print("🔄 Starting Background Jobs Manager...", flush=True)
@@ -22503,8 +22454,7 @@ async def startup_background_jobs():
         print(f"❌ Failed to start Background Jobs Manager: {e}", flush=True)
         logging.error(f"❌ Background Jobs Manager initialization failed: {e}")
 
-@app.on_event("startup")
-async def startup_automated_scheduler():
+def _start_automated_scheduler():
     """🤖 Iniciar sistema de agendamento automático de relatórios"""
     print("="*80, flush=True)
     print("🤖 INITIALIZING AUTOMATED SCHEDULER", flush=True)
@@ -22537,26 +22487,6 @@ async def startup_automated_scheduler():
         print(traceback_str, flush=True)
         logging.error(traceback_str)
 
-@app.on_event("shutdown")
-async def shutdown_background_jobs():
-    """🛑 Desligar sistema de background jobs"""
-    try:
-        logging.info("🛑 Shutting down Background Jobs Manager...")
-        background_jobs.stop_job_manager()
-        logging.info("✅ Background Jobs Manager stopped")
-    except Exception as e:
-        logging.error(f"❌ Error stopping Background Jobs Manager: {e}")
-
-@app.on_event("shutdown")
-async def shutdown_automated_scheduler():
-    """🛑 Desligar scheduler ao parar aplicação"""
-    try:
-        logging.info("🛑 Shutting down automated scheduler...")
-        from automated_scheduler import shutdown_scheduler
-        shutdown_scheduler()
-        logging.info("✅ Automated scheduler stopped")
-    except Exception as e:
-        logging.error(f"❌ Error stopping scheduler: {str(e)}")
 
 @app.post("/api/scheduler/reload")
 async def reload_scheduler(request: Request):
@@ -30729,15 +30659,6 @@ async def detect_vehicle_damage(request: Request, file: UploadFile = File(...)):
             "error": str(e)
         }, status_code=500)
 
-@app.on_event("startup")
-async def load_ai_models():
-    """Load AI models at startup"""
-    try:
-        import vehicle_damage_ai
-        vehicle_damage_ai.load_damage_detection_model()
-        logging.debug("✅ AI models loaded at startup")
-    except Exception as e:
-        logging.debug(f"⚠️ Could not load AI models: {e}")
 
 # ============================================================
 # CHECK-OUT/CHECK-IN PDF MAPPING APIs
