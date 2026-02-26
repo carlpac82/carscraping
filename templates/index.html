@@ -1036,14 +1036,15 @@
             document.getElementById('periodSelect').value = index;
             
             // Renderizar preços deste período
-            renderPricesForPeriod(period.prices, period.updated_at);
+            renderPricesForPeriod(period.prices, period.updated_at, period.updated_by);
         }
         
-        function renderPricesForPeriod(pricesByGroup, updatedAt) {
+        function renderPricesForPeriod(pricesByGroup, updatedAt, updatedBy) {
             console.log('🎨 renderPricesForPeriod chamada com:', { 
                 grupos: Object.keys(pricesByGroup || {}), 
                 totalGrupos: Object.keys(pricesByGroup || {}).length,
-                updatedAt 
+                updatedAt,
+                updatedBy
             });
             
             // Atualizar data/hora
@@ -1056,7 +1057,8 @@
                     hour: '2-digit',
                     minute: '2-digit'
                 });
-                document.getElementById('lastUpdated').textContent = `Última alteração: ${formattedDate}`;
+                const userInfo = updatedBy ? ` - ${updatedBy}` : '';
+                document.getElementById('lastUpdated').textContent = `Última alteração: ${formattedDate}${userInfo}`;
             } else {
                 document.getElementById('lastUpdated').textContent = '';
             }

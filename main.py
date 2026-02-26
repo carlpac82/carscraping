@@ -1246,6 +1246,11 @@ async def lifespan(app: FastAPI):
         logging.info("users table created/exists")
         init_db()
         logging.info("All tables created/verified (19 tables total)")
+        
+        # Setup current_prices table with updated_by column
+        from current_prices_module import setup_db
+        setup_db()
+        logging.info("current_prices table setup completed")
     except Exception as e:
         logging.error(f"Database initialization error: {e}")
         import traceback
@@ -48440,16 +48445,21 @@ async def load_current_prices(request: Request, location: str, month: int, year:
             try:
                 # Carregar preços e data da última alteração
                 try:
-                    prices, updated_at = load_prices_from_db(conn, location, month, year, day_start, day_end)
-                except (ValueError, TypeError) as ve:
-                    logging.warning(f"ValueError/TypeError in load_prices_from_db: {ve}")
-                    # Se a função retornar apenas um valor (compatibilidade com código antigo)
                     result = load_prices_from_db(conn, location, month, year, day_start, day_end)
-                    if isinstance(result, tuple) and len(result) == 2:
-                        prices, updated_at = result
+                    if isinstance(result, tuple):
+                        if len(result) == 3:
+                            prices, updated_at, updated_by = result
+                        elif len(result) == 2:
+                            prices, updated_at = result
+                            updated_by = None
+                        else:
+                            prices = result[0]
+                            updated_at = None
+                            updated_by = None
                     else:
                         prices = result
                         updated_at = None
+                        updated_by = None
                 except Exception as load_error:
                     logging.error(f"Error in load_prices_from_db: {load_error}")
                     import traceback
@@ -48471,13 +48481,14 @@ async def load_current_prices(request: Request, location: str, month: int, year:
                         periods = [{
                             'prices': prices,
                             'updated_at': updated_at,
+                            'updated_by': updated_by,
                             'day_start': 1,
                             'day_end': 31
                         }]
                         return JSONResponse({"ok": True, "periods": periods})
                     else:
                         # Período específico solicitado
-                        return JSONResponse({"ok": True, "prices": prices, "updated_at": updated_at})
+                        return JSONResponse({"ok": True, "prices": prices, "updated_at": updated_at, "updated_by": updated_by})
                 else:
                     return JSONResponse({"ok": True, "periods": []})
             finally:
@@ -49035,6 +49046,38 @@ async def save_current_prices(request: Request):
         day_start = data.get('day_start', 1)
         day_end = data.get('day_end', 31)
         
+        # Obter nome completo do utilizador
+        username = request.session.get('username', 'unknown')
+        user_full_name = username
+        logging.info(f"🔍 Username from session: {username}")
+        try:
+            with _db_lock:
+                temp_conn = _db_connect()
+                try:
+                    is_pg = hasattr(temp_conn, '_conn')
+                    logging.info(f"🔍 Database type: {'PostgreSQL' if is_pg else 'SQLite'}")
+                    if is_pg:
+                        with temp_conn._conn.cursor() as cur:
+                            cur.execute("SELECT first_name, last_name FROM users WHERE username = %s", (username,))
+                            user_row = cur.fetchone()
+                            logging.info(f"🔍 Query result: {user_row}")
+                            if user_row and user_row[0]:
+                                user_full_name = f"{user_row[0]} {user_row[1]}".strip()
+                                logging.info(f"✅ User full name: {user_full_name}")
+                    else:
+                        cur = temp_conn.execute("SELECT first_name, last_name FROM users WHERE username = ?", (username,))
+                        user_row = cur.fetchone()
+                        logging.info(f"🔍 Query result: {user_row}")
+                        if user_row and user_row[0]:
+                            user_full_name = f"{user_row[0]} {user_row[1]}".strip()
+                            logging.info(f"✅ User full name: {user_full_name}")
+                finally:
+                    temp_conn.close()
+        except Exception as e:
+            logging.warning(f"Could not get user full name: {e}")
+            import traceback
+            logging.warning(traceback.format_exc())
+        
         logging.info(f"💾 SAVE VERSION 2026-01-11-16:30 - Location: {location}, Month: {month}/{year}, Days: {day_start}-{day_end}")
         
         # DEBUG: Mostrar estrutura dos preços recebidos
@@ -49102,10 +49145,10 @@ async def save_current_prices(request: Request):
                             logging.info(f"🔄 Updating existing period (id={existing[0]})")
                             cur.execute("""
                                 UPDATE current_prices 
-                                SET prices_data = %s, updated_at = CURRENT_TIMESTAMP
+                                SET prices_data = %s, updated_at = CURRENT_TIMESTAMP, updated_by = %s
                                 WHERE location = %s AND month = %s AND year = %s 
                                   AND day_start = %s AND day_end = %s
-                            """, (prices_json, location, month, year, day_start, day_end))
+                            """, (prices_json, user_full_name, location, month, year, day_start, day_end))
                         else:
                             # Shrink or delete overlapping periods before inserting
                             cur.execute("""
@@ -49140,9 +49183,9 @@ async def save_current_prices(request: Request):
                             
                             logging.info(f"➕ Inserting new period {day_start}-{day_end}")
                             cur.execute("""
-                                INSERT INTO current_prices (location, month, year, day_start, day_end, prices_data, updated_at)
-                                VALUES (%s, %s, %s, %s, %s, %s, CURRENT_TIMESTAMP)
-                            """, (location, month, year, day_start, day_end, prices_json))
+                                INSERT INTO current_prices (location, month, year, day_start, day_end, prices_data, updated_at, updated_by)
+                                VALUES (%s, %s, %s, %s, %s, %s, CURRENT_TIMESTAMP, %s)
+                            """, (location, month, year, day_start, day_end, prices_json, user_full_name))
                     
                     real_conn.commit()
                     logging.info(f"✅ PostgreSQL save successful")
@@ -49163,10 +49206,10 @@ async def save_current_prices(request: Request):
                         logging.info(f"🔄 Updating existing period (id={existing[0]})")
                         cursor.execute("""
                             UPDATE current_prices 
-                            SET prices_data = ?, updated_at = CURRENT_TIMESTAMP
+                            SET prices_data = ?, updated_at = CURRENT_TIMESTAMP, updated_by = ?
                             WHERE location = ? AND month = ? AND year = ? 
                               AND day_start = ? AND day_end = ?
-                        """, (prices_json, location, month, year, day_start, day_end))
+                        """, (prices_json, user_full_name, location, month, year, day_start, day_end))
                     else:
                         # Shrink or delete overlapping periods before inserting
                         cursor.execute("""
@@ -49191,9 +49234,9 @@ async def save_current_prices(request: Request):
                         
                         logging.info(f"➕ Inserting new period {day_start}-{day_end}")
                         cursor.execute("""
-                            INSERT INTO current_prices (location, month, year, day_start, day_end, prices_data, updated_at)
-                            VALUES (?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP)
-                        """, (location, month, year, day_start, day_end, prices_json))
+                            INSERT INTO current_prices (location, month, year, day_start, day_end, prices_data, updated_at, updated_by)
+                            VALUES (?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP, ?)
+                        """, (location, month, year, day_start, day_end, prices_json, user_full_name))
                     
                     conn.commit()
                     logging.info(f"✅ SQLite save successful")

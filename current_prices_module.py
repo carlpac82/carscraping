@@ -37,7 +37,7 @@ def load_prices_from_db(conn, location, month, year, day_start=None, day_end=Non
                 if day_start is not None and day_end is not None:
                     # Carregar período específico
                     cur.execute("""
-                        SELECT prices_data, updated_at, day_start, day_end
+                        SELECT prices_data, updated_at, day_start, day_end, updated_by
                         FROM current_prices 
                         WHERE location = %s AND month = %s AND year = %s 
                           AND day_start = %s AND day_end = %s
@@ -47,16 +47,17 @@ def load_prices_from_db(conn, location, month, year, day_start=None, day_end=Non
                     if row and row[0]:
                         prices = json.loads(row[0])
                         updated_at = row[1].isoformat() if row[1] else None
+                        updated_by = row[4] if len(row) > 4 else None
                         logging.info(f"✅ Preços carregados: {location}, mês {month}/{year}, dias {day_start}-{day_end}")
-                        return prices, updated_at
+                        return prices, updated_at, updated_by
                     else:
                         logging.info(f"ℹ️ Sem preços para: {location}, mês {month}/{year}, dias {day_start}-{day_end}")
-                        return [], None
+                        return [], None, None
                 else:
                     # Carregar todos os períodos do mês
                     logging.info(f"Loading all periods for {location}, month={month}, year={year}")
                     cur.execute("""
-                        SELECT prices_data, updated_at, day_start, day_end
+                        SELECT prices_data, updated_at, day_start, day_end, updated_by
                         FROM current_prices 
                         WHERE location = %s AND month = %s AND year = %s
                         ORDER BY day_start
@@ -79,7 +80,8 @@ def load_prices_from_db(conn, location, month, year, day_start=None, day_end=Non
                             'prices': json.loads(row[0]),
                             'updated_at': updated_at_str,
                             'day_start': row[2] if row[2] is not None else 1,
-                            'day_end': row[3] if row[3] is not None else 31
+                            'day_end': row[3] if row[3] is not None else 31,
+                            'updated_by': row[4] if len(row) > 4 else None
                         })
                     
                     if periods:
@@ -93,7 +95,7 @@ def load_prices_from_db(conn, location, month, year, day_start=None, day_end=Non
             if day_start is not None and day_end is not None:
                 # Carregar período específico
                 cursor = conn.execute("""
-                    SELECT prices_data, updated_at, day_start, day_end
+                    SELECT prices_data, updated_at, day_start, day_end, updated_by
                     FROM current_prices 
                     WHERE location = ? AND month = ? AND year = ? 
                       AND day_start = ? AND day_end = ?
@@ -103,15 +105,16 @@ def load_prices_from_db(conn, location, month, year, day_start=None, day_end=Non
                 if row and row[0]:
                     prices = json.loads(row[0])
                     updated_at = row[1] if row[1] else None
+                    updated_by = row[4] if len(row) > 4 else None
                     logging.info(f"✅ Preços carregados: {location}, mês {month}/{year}, dias {day_start}-{day_end}")
-                    return prices, updated_at
+                    return prices, updated_at, updated_by
                 else:
                     logging.info(f"ℹ️ Sem preços para: {location}, mês {month}/{year}, dias {day_start}-{day_end}")
-                    return [], None
+                    return [], None, None
             else:
                 # Carregar todos os períodos do mês
                 cursor = conn.execute("""
-                    SELECT prices_data, updated_at, day_start, day_end
+                    SELECT prices_data, updated_at, day_start, day_end, updated_by
                     FROM current_prices 
                     WHERE location = ? AND month = ? AND year = ?
                     ORDER BY day_start
@@ -133,7 +136,8 @@ def load_prices_from_db(conn, location, month, year, day_start=None, day_end=Non
                         'prices': json.loads(row[0]),
                         'updated_at': updated_at_str,
                         'day_start': row[2] if row[2] is not None else 1,
-                        'day_end': row[3] if row[3] is not None else 31
+                        'day_end': row[3] if row[3] is not None else 31,
+                        'updated_by': row[4] if len(row) > 4 else None
                     })
                 
                 if periods:
@@ -541,12 +545,12 @@ def create_current_prices_table(conn):
                     )
                 """)
                 
-                # Verificar se colunas day_start e day_end existem
+                # Verificar se colunas day_start, day_end e updated_by existem
                 cur.execute("""
                     SELECT column_name 
                     FROM information_schema.columns 
                     WHERE table_name = 'current_prices' 
-                    AND column_name IN ('day_start', 'day_end')
+                    AND column_name IN ('day_start', 'day_end', 'updated_by')
                 """)
                 existing_cols = [row[0] for row in cur.fetchall()]
                 
@@ -570,6 +574,16 @@ def create_current_prices_table(conn):
                         conn.rollback()  # Rollback em caso de erro
                         if "already exists" not in str(e).lower():
                             logging.error(f"Erro ao adicionar day_end: {e}")
+                
+                if 'updated_by' not in existing_cols:
+                    try:
+                        cur.execute("ALTER TABLE current_prices ADD COLUMN updated_by TEXT")
+                        conn.commit()
+                        logging.info("Coluna updated_by adicionada")
+                    except Exception as e:
+                        conn.rollback()
+                        if "already exists" not in str(e).lower():
+                            logging.error(f"Erro ao adicionar updated_by: {e}")
                 
                 # Atualizar registos antigos sem day_start/day_end
                 cur.execute("""
@@ -641,8 +655,18 @@ def create_current_prices_table(conn):
                 conn.execute("ALTER TABLE current_prices ADD COLUMN day_end INTEGER DEFAULT 31")
             except:
                 pass
+            try:
+                conn.execute("ALTER TABLE current_prices ADD COLUMN updated_by TEXT")
+            except:
+                pass
             conn.commit()
         
         logging.info("Tabela current_prices criada/verificada com sucesso")
     except Exception as e:
         logging.error(f"Erro ao criar tabela current_prices: {e}")
+
+def setup_db():
+    """Setup da tabela current_prices com coluna updated_by"""
+    from database import get_db_connection
+    with get_db_connection() as conn:
+        create_current_prices_table(conn)
