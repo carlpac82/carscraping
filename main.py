@@ -41648,15 +41648,12 @@ async def export_abbycar_excel(request: Request):
                 
                 ws.append(row_values)
                 
-                # Apply alternating colors by period and format date columns as text
+                # Apply alternating colors by period
                 row_idx = ws.max_row
                 for col_idx in range(1, len(headers) + 1):
                     cell = ws.cell(row_idx, col_idx)
                     if period_counter % 2 == 1:  # Odd periods get cyan
                         cell.fill = cyan_fill
-                    # Force columns 2 and 3 (Start Date and End Date) to be text format
-                    if col_idx in [2, 3]:
-                        cell.number_format = '@'  # @ is Excel's text format
         
         # Save to bytes
         excel_start = time.time()
@@ -42361,11 +42358,9 @@ async def export_automated_prices_excel(request: Request):
                     
                     # Column 2: Start Date (DD/MM/YYYY) - use period-specific dates
                     ws.cell(row_num, 2).value = period_start_date_str
-                    ws.cell(row_num, 2).number_format = '@'  # Force text format
                     
                     # Column 3: End Date (DD/MM/YYYY) - use period-specific dates
                     ws.cell(row_num, 3).value = period_end_date_str
-                    ws.cell(row_num, 3).number_format = '@'  # Force text format
                     
                     # Column 4: Group (SIPP code)
                     ws.cell(row_num, 4).value = sipp_code
