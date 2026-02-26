@@ -11,6 +11,7 @@ from urllib.parse import urljoin
 from typing import List, Dict, Any, Optional, Tuple
 import asyncio
 from datetime import datetime, timezone, timedelta
+import calendar
 import traceback as _tb
 import logging
 import json
@@ -41358,6 +41359,13 @@ async def export_abbycar_excel(request: Request):
                     elapsed = time.time() - period_start_time
                     print(f"[PERF] Processed {processed_count}/{len(all_periods)} periods in {elapsed:.2f}s", flush=True)
                 period_month, period_year, period_day_start, period_day_end = period_tuple
+                
+                # Validate and correct day_end if it exceeds the actual days in the month
+                max_days_in_month = calendar.monthrange(period_year, period_month)[1]
+                if period_day_end > max_days_in_month:
+                    print(f"[BACKEND WARNING] Period end day {period_day_end} exceeds max days {max_days_in_month} for {period_month}/{period_year}, correcting to {max_days_in_month}", flush=True)
+                    period_day_end = max_days_in_month
+                
                 period_start_date = f"{str(period_day_start).zfill(2)}/{str(period_month).zfill(2)}/{period_year}"
                 period_end_date = f"{str(period_day_end).zfill(2)}/{str(period_month).zfill(2)}/{period_year}"
                 
@@ -42299,6 +42307,12 @@ async def export_automated_prices_excel(request: Request):
             for period_idx, period_tuple in enumerate(saved_periods):
                 # Extract month, year, day_start, day_end from tuple
                 period_month, period_year, period_start, period_end = period_tuple
+                
+                # Validate and correct period_end if it exceeds the actual days in the month
+                max_days_in_month = calendar.monthrange(period_year, period_month)[1]
+                if period_end > max_days_in_month:
+                    print(f"[BACKEND WARNING] Period end day {period_end} exceeds max days {max_days_in_month} for {period_month}/{period_year}, correcting to {max_days_in_month}", flush=True)
+                    period_end = max_days_in_month
                 
                 # Format dates for this period
                 period_start_date_str = f"{period_start:02d}/{period_month:02d}/{period_year}"
