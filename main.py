@@ -20433,7 +20433,7 @@ async def create_abbycar_insurance_pricing_batch(request: Request):
                     errors.append(f"Missing vehicle_group or period")
                     continue
                 
-                if category not in ["Light", "Standard", "Comfort", "Premium"]:
+                if category not in ["Standard", "Comfort", "Premium"]:
                     error_count += 1
                     errors.append(f"Invalid category: {category}")
                     continue
@@ -20499,8 +20499,8 @@ async def create_abbycar_insurance_pricing(request: Request):
         if not period:
             return JSONResponse({"ok": False, "error": "Period is required"}, status_code=400)
         
-        if category not in ["Light", "Standard", "Comfort", "Premium"]:
-            return JSONResponse({"ok": False, "error": "Category must be Light, Standard, Comfort, or Premium"}, status_code=400)
+        if category not in ["Standard", "Comfort", "Premium"]:
+            return JSONResponse({"ok": False, "error": "Category must be Standard, Comfort, or Premium"}, status_code=400)
         
         if period_type and period_type not in ["fixed", "daily"]:
             return JSONResponse({"ok": False, "error": "Period type must be fixed or daily"}, status_code=400)
@@ -20591,7 +20591,7 @@ async def export_insurance_pricing_template(request: Request):
         
         instructions = [
             ("", ""),
-            ("1. CATEGORIAS", "Light, Standard, Comfort, Premium"),
+            ("1. CATEGORIAS", "Standard, Comfort, Premium"),
             ("", ""),
             ("2. GRUPOS DE VEÍCULOS (SIPP)", ""),
             ("   Grupos disponíveis:", "ECMR, EDMR, CDMR, IDAR, CDAR, MDMR, MDMV, MDAV"),
@@ -20700,7 +20700,7 @@ async def export_insurance_pricing_template(request: Request):
                 ws = wb.create_sheet(title=season_name)
             
             # Headers
-            headers = ['Grupo Veículo', 'Período', 'Light (€)', 'Standard (€)', 'Comfort (€)', 'Premium (€)']
+            headers = ['Grupo Veículo', 'Período', 'Comfort (€)', 'Premium (€)']
             for col_idx, header in enumerate(headers, 1):
                 cell = ws.cell(row=1, column=col_idx)
                 cell.value = header
@@ -20717,23 +20717,21 @@ async def export_insurance_pricing_template(request: Request):
                 for key, data in sorted(season_data.items()):
                     ws.cell(row=row_idx, column=1).value = data['vehicle_group']
                     ws.cell(row=row_idx, column=2).value = data['period']
-                    ws.cell(row=row_idx, column=3).value = data['categories'].get('Light', '')
-                    ws.cell(row=row_idx, column=4).value = data['categories'].get('Standard', '')
-                    ws.cell(row=row_idx, column=5).value = data['categories'].get('Comfort', '')
-                    ws.cell(row=row_idx, column=6).value = data['categories'].get('Premium', '')
+                    ws.cell(row=row_idx, column=3).value = data['categories'].get('Comfort', '')
+                    ws.cell(row=row_idx, column=4).value = data['categories'].get('Premium', '')
                     
                     # Alternate row colors
                     fill_color = "FFFFFF" if row_idx % 2 == 0 else "F5F5F5"
-                    for col in range(1, 7):
+                    for col in range(1, 5):
                         ws.cell(row=row_idx, column=col).fill = PatternFill(start_color=fill_color, end_color=fill_color, fill_type="solid")
                     
                     row_idx += 1
             else:
                 # Add example data
                 examples = [
-                    ['MDMR', '1 day', '4.00', '5.00', '6.00', '7.00'],
-                    ['MDMR', '2 days', '4.00', '5.00', '6.00', '7.00'],
-                    ['CDMR', '1 day', '5.00', '6.00', '7.00', '8.00'],
+                    ['MDMR', '1 day', '6.00', '7.00'],
+                    ['MDMR', '2 days', '6.00', '7.00'],
+                    ['CDMR', '1 day', '7.00', '8.00'],
                 ]
                 for row_idx, example in enumerate(examples, 2):
                     for col_idx, value in enumerate(example, 1):
@@ -20744,10 +20742,8 @@ async def export_insurance_pricing_template(request: Request):
             # Set column widths
             ws.column_dimensions['A'].width = 18
             ws.column_dimensions['B'].width = 15
-            ws.column_dimensions['C'].width = 12
+            ws.column_dimensions['C'].width = 13
             ws.column_dimensions['D'].width = 14
-            ws.column_dimensions['E'].width = 13
-            ws.column_dimensions['F'].width = 14
         
         # Save to bytes
         excel_bytes = io.BytesIO()
@@ -20805,7 +20801,7 @@ async def import_insurance_pricing(request: Request):
             ws = wb[sheet_name]
             
             # Validate headers
-            expected_headers = ['Grupo Veículo', 'Período', 'Light (€)', 'Standard (€)', 'Comfort (€)', 'Premium (€)']
+            expected_headers = ['Grupo Veículo', 'Período', 'Comfort (€)', 'Premium (€)']
             actual_headers = [cell.value for cell in ws[1]]
             
             if actual_headers != expected_headers:
@@ -20814,7 +20810,7 @@ async def import_insurance_pricing(request: Request):
             
             # Process each row
             for row_idx, row in enumerate(ws.iter_rows(min_row=2, values_only=True), 2):
-                vehicle_group, period, light_price, standard_price, comfort_price, premium_price = row
+                vehicle_group, period, comfort_price, premium_price = row
                 
                 # Skip empty rows
                 if not vehicle_group or not period:
@@ -20825,8 +20821,6 @@ async def import_insurance_pricing(request: Request):
                 
                 # Process each category
                 categories = {
-                    'Light': light_price,
-                    'Standard': standard_price,
                     'Comfort': comfort_price,
                     'Premium': premium_price
                 }
@@ -41310,8 +41304,8 @@ async def export_abbycar_excel(request: Request):
         wb = Workbook()
         wb.remove(wb.active)
         
-        # Create 4 sheets: Light, Standard, Comfort, Premium
-        categories = ['Light', 'Standard', 'Comfort', 'Premium']
+        # Create 3 sheets: Standard, Comfort, Premium
+        categories = ['Standard', 'Comfort', 'Premium']
         
         # If exporting all periods, we need to fetch data from database for each period
         # Otherwise, use the rows_data from frontend (selected period)
@@ -41364,8 +41358,8 @@ async def export_abbycar_excel(request: Request):
                     elapsed = time.time() - period_start_time
                     print(f"[PERF] Processed {processed_count}/{len(all_periods)} periods in {elapsed:.2f}s", flush=True)
                 period_month, period_year, period_day_start, period_day_end = period_tuple
-                period_start_date = f"{period_month}/{str(period_day_start).zfill(2)}/{period_year}"
-                period_end_date = f"{period_month}/{str(period_day_end).zfill(2)}/{period_year}"
+                period_start_date = f"{str(period_day_start).zfill(2)}/{period_month}/{period_year}"
+                period_end_date = f"{str(period_day_end).zfill(2)}/{period_month}/{period_year}"
                 
                 try:
                     # Query current_prices directly using shared connection
@@ -42259,13 +42253,13 @@ async def export_automated_prices_excel(request: Request):
         except Exception as e:
             print(f"[BACKEND DEBUG] Error checking insurance table: {e}", flush=True)
         
-        # Create 4 sheets: Light, Standard, Comfort, Premium
-        categories = ['Light', 'Standard', 'Comfort', 'Premium']
+        # Create 3 sheets: Standard, Comfort, Premium
+        categories = ['Standard', 'Comfort', 'Premium']
         
-        # Remove default sheet and create 4 new sheets
+        # Remove default sheet and create 3 new sheets
         wb.remove(ws)
         
-        print(f"[BACKEND] Creating 4 sheets: {', '.join(categories)}", flush=True)
+        print(f"[BACKEND] Creating 3 sheets: {', '.join(categories)}", flush=True)
         
         for category_idx, category in enumerate(categories):
             print(f"[BACKEND] Processing sheet: {category}", flush=True)
@@ -42307,8 +42301,8 @@ async def export_automated_prices_excel(request: Request):
                 period_month, period_year, period_start, period_end = period_tuple
                 
                 # Format dates for this period
-                period_start_date_str = f"{period_month:02d}/{period_start:02d}/{period_year}"
-                period_end_date_str = f"{period_month:02d}/{period_end:02d}/{period_year}"
+                period_start_date_str = f"{period_start:02d}/{period_month:02d}/{period_year}"
+                period_end_date_str = f"{period_end:02d}/{period_month:02d}/{period_year}"
                 print(f"[BACKEND] Creating rows for period: {period_start_date_str} - {period_end_date_str}", flush=True)
                 
                 # Get month name for insurance lookup
