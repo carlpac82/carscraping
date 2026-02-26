@@ -1861,9 +1861,9 @@
                 }
                 // For 'all' option, backend will fetch ALL periods from ALL months
                 
-                // Calculate start and end dates for the selected period (MM/DD/YYYY format)
-                const startDate = `${month}/${String(dayStart).padStart(2, '0')}/${year}`;
-                const endDate = `${month}/${String(dayEnd).padStart(2, '0')}/${year}`;
+                // Calculate start and end dates for the selected period (DD/MM/YYYY format)
+                const startDate = `${String(dayStart).padStart(2, '0')}/${String(month).padStart(2, '0')}/${year}`;
+                const endDate = `${String(dayEnd).padStart(2, '0')}/${String(month).padStart(2, '0')}/${year}`;
                 
                 // Fetch Abbycar commission from Admin Settings
                 const abbycarCommissionResponse = await fetch('/api/admin-settings/abbycar-commission');
