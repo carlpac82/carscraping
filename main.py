@@ -41360,17 +41360,21 @@ async def export_abbycar_excel(request: Request):
                     print(f"[PERF] Processed {processed_count}/{len(all_periods)} periods in {elapsed:.2f}s", flush=True)
                 period_month, period_year, period_day_start, period_day_end = period_tuple
                 
-                # Validate and correct day_end if it exceeds the actual days in the month
+                # Store original values for database query
+                original_day_end = period_day_end
+                
+                # Validate and correct day_end if it exceeds the actual days in the month (for display only)
                 max_days_in_month = calendar.monthrange(period_year, period_month)[1]
+                corrected_day_end = period_day_end
                 if period_day_end > max_days_in_month:
                     print(f"[BACKEND WARNING] Period end day {period_day_end} exceeds max days {max_days_in_month} for {period_month}/{period_year}, correcting to {max_days_in_month}", flush=True)
-                    period_day_end = max_days_in_month
+                    corrected_day_end = max_days_in_month
                 
                 period_start_date = f"{str(period_day_start).zfill(2)}/{str(period_month).zfill(2)}/{period_year}"
-                period_end_date = f"{str(period_day_end).zfill(2)}/{str(period_month).zfill(2)}/{period_year}"
+                period_end_date = f"{str(corrected_day_end).zfill(2)}/{str(period_month).zfill(2)}/{period_year}"
                 
                 try:
-                    # Query current_prices directly using shared connection
+                    # Query current_prices directly using shared connection with ORIGINAL values
                     if is_postgres:
                         with conn.cursor() as cur:
                             cur.execute("""
@@ -41378,7 +41382,7 @@ async def export_abbycar_excel(request: Request):
                                 FROM current_prices
                                 WHERE location = %s AND month = %s AND year = %s 
                                 AND day_start = %s AND day_end = %s
-                            """, (location, period_month, period_year, period_day_start, period_day_end))
+                            """, (location, period_month, period_year, period_day_start, original_day_end))
                             result = cur.fetchone()
                     else:
                         cur = conn.cursor()
@@ -41387,7 +41391,7 @@ async def export_abbycar_excel(request: Request):
                             FROM current_prices
                             WHERE location = ? AND month = ? AND year = ? 
                             AND day_start = ? AND day_end = ?
-                        """, (location, period_month, period_year, period_day_start, period_day_end))
+                        """, (location, period_month, period_year, period_day_start, original_day_end))
                         result = cur.fetchone()
                     
                     if not result:
