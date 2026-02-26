@@ -41358,8 +41358,8 @@ async def export_abbycar_excel(request: Request):
                     elapsed = time.time() - period_start_time
                     print(f"[PERF] Processed {processed_count}/{len(all_periods)} periods in {elapsed:.2f}s", flush=True)
                 period_month, period_year, period_day_start, period_day_end = period_tuple
-                period_start_date = f"{str(period_day_start).zfill(2)}/{period_month}/{period_year}"
-                period_end_date = f"{str(period_day_end).zfill(2)}/{period_month}/{period_year}"
+                period_start_date = f"{str(period_day_start).zfill(2)}/{str(period_month).zfill(2)}/{period_year}"
+                period_end_date = f"{str(period_day_end).zfill(2)}/{str(period_month).zfill(2)}/{period_year}"
                 
                 try:
                     # Query current_prices directly using shared connection
