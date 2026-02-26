@@ -816,9 +816,19 @@
         async function createNewPeriod() {
             const dayStart = parseInt(document.getElementById('newDayStart').value);
             const dayEnd = parseInt(document.getElementById('newDayEnd').value);
+            const month = parseInt(document.getElementById('month').value);
+            const year = parseInt(document.getElementById('year').value);
 
-            if (dayStart < 1 || dayStart > 31 || dayEnd < 1 || dayEnd > 31) {
-                showToast('Erro', 'Dias devem estar entre 1 e 31', 'error');
+            // Get actual number of days in the selected month
+            const daysInMonth = new Date(year, month, 0).getDate();
+
+            if (dayStart < 1 || dayStart > daysInMonth) {
+                showToast('Erro', `Dia início deve estar entre 1 e ${daysInMonth}`, 'error');
+                return;
+            }
+
+            if (dayEnd < 1 || dayEnd > daysInMonth) {
+                showToast('Erro', `Dia fim deve estar entre 1 e ${daysInMonth} (${daysInMonth} dias neste mês)`, 'error');
                 return;
             }
 
@@ -831,8 +841,6 @@
             initializeEmptyPrices();
             
             const location = document.getElementById('location').value;
-            const month = parseInt(document.getElementById('month').value);
-            const year = parseInt(document.getElementById('year').value);
 
             try {
                 const response = await fetch('/api/current-prices/save', {
