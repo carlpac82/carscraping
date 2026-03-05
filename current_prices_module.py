@@ -134,6 +134,46 @@ def load_prices_from_db(conn, location, month, year, day_start=None, day_end=Non
                     
                     if periods:
                         logging.info(f"✅ {len(periods)} período(s) carregado(s): {location}, mês {month}/{year}")
+                        
+                        # Add vans pricing to ALL periods AFTER loading
+                        logging.info(f"[VANS-AFTER] Processing {len(periods)} periods for location '{location}'")
+                        if location != 'Faro Airport' and 'Faro' not in location:
+                            logging.info("[VANS-AFTER] ✅ Adding vans pricing to all periods...")
+                            try:
+                                vans_is_postgres = conn.__class__.__module__ in ['psycopg2.extensions', 'psycopg2._psycopg']
+                                if vans_is_postgres:
+                                    with conn.cursor() as vans_cur:
+                                        vans_cur.execute("SELECT * FROM vans_pricing ORDER BY id DESC LIMIT 1")
+                                        vans_row = vans_cur.fetchone()
+                                        logging.info(f"[VANS-AFTER] Query result: {vans_row}")
+                                        if vans_row:
+                                            for period in periods:
+                                                prices_data = period['prices']
+                                                for grupo_idx, grupo in enumerate(['C3', 'C4', 'C5']):
+                                                    if grupo not in prices_data:
+                                                        prices_data[grupo] = {}
+                                                    
+                                                    base_idx = 1 + (grupo_idx * 3)
+                                                    day1_price = vans_row[base_idx]
+                                                    day2_price = vans_row[base_idx + 1]
+                                                    day3_price = vans_row[base_idx + 2]
+                                                    
+                                                    prices_data[grupo]['1'] = {'net': day1_price, 'commission': day1_price}
+                                                    prices_data[grupo]['2'] = {'net': day2_price, 'commission': day2_price}
+                                                    prices_data[grupo]['3'] = {'net': day3_price, 'commission': day3_price}
+                                                    
+                                                    base_price = day3_price / 3
+                                                    for day in [4, 5, 6, 7, 8, 9, 14, 22, 28, 31, 60]:
+                                                        prices_data[grupo][str(day)] = {'net': base_price, 'commission': base_price}
+                                            
+                                            logging.info(f"[VANS-AFTER] ✅ Added C3, C4, C5 to {len(periods)} periods")
+                                            logging.info(f"[VANS-AFTER] First period groups: {list(periods[0]['prices'].keys())}")
+                                        else:
+                                            logging.warning("[VANS-AFTER] ⚠️ No vans_pricing row found")
+                            except Exception as e:
+                                logging.error(f"[VANS-AFTER] ❌ Error: {e}", exc_info=True)
+                        else:
+                            logging.info("[VANS-AFTER] ⏭️ Skipping (Faro Airport)")
                     else:
                         logging.info(f"ℹ️ Sem preços para: {location}, mês {month}/{year}")
                     
