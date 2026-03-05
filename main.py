@@ -48439,6 +48439,9 @@ async def load_current_prices(request: Request, location: str, month: int, year:
     """
     require_auth(request)
     try:
+        import importlib
+        import current_prices_module
+        importlib.reload(current_prices_module)
         from current_prices_module import load_prices_from_db
         
         with _db_lock:
