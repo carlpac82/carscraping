@@ -335,7 +335,11 @@ def generate_brokers_excel(location, month, year, prices_data):
     """Gera ficheiro Excel no formato Brokers"""
     try:
         # Add vans pricing (C3, C4, C5) from database if not Faro Airport
+        logging.info(f"[BROKERS-VANS] Location: '{location}'")
+        logging.info(f"[BROKERS-VANS] Condition check: '{location}' != 'Faro Airport' and 'Faro' not in '{location}' = {location != 'Faro Airport' and 'Faro' not in location}")
+        
         if location != 'Faro Airport' and 'Faro' not in location:
+            logging.info("[BROKERS-VANS] ✅ Loading vans pricing from database...")
             # Load vans pricing from database
             from database import _db_connect, _db_lock
             vans_pricing_db = None
@@ -344,37 +348,44 @@ def generate_brokers_excel(location, month, year, prices_data):
                 with _db_lock:
                     conn = _db_connect()
                     is_postgres = conn.__class__.__module__ in ['psycopg2.extensions', 'psycopg2._psycopg']
+                    logging.info(f"[BROKERS-VANS] Database: {'PostgreSQL' if is_postgres else 'SQLite'}")
                     
                     if is_postgres:
                         with conn.cursor() as cur:
                             cur.execute("SELECT * FROM vans_pricing ORDER BY id DESC LIMIT 1")
                             row = cur.fetchone()
+                            logging.info(f"[BROKERS-VANS] DB row: {row}")
                             if row:
                                 vans_pricing_db = {
                                     'C3': {'1': row[1], '2': row[2], '3': row[3]},
                                     'C4': {'1': row[4], '2': row[5], '3': row[6]},
                                     'C5': {'1': row[7], '2': row[8], '3': row[9]}
                                 }
+                                logging.info(f"[BROKERS-VANS] ✅ Loaded: {vans_pricing_db}")
                     else:
                         cursor = conn.execute("SELECT * FROM vans_pricing ORDER BY id DESC LIMIT 1")
                         row = cursor.fetchone()
+                        logging.info(f"[BROKERS-VANS] DB row: {row}")
                         if row:
                             vans_pricing_db = {
                                 'C3': {'1': row[1], '2': row[2], '3': row[3]},
                                 'C4': {'1': row[4], '2': row[5], '3': row[6]},
                                 'C5': {'1': row[7], '2': row[8], '3': row[9]}
                             }
+                            logging.info(f"[BROKERS-VANS] ✅ Loaded: {vans_pricing_db}")
             except Exception as e:
-                logging.warning(f"Could not load vans pricing from database: {e}")
+                logging.error(f"[BROKERS-VANS] ❌ Error: {e}", exc_info=True)
             
             # Fallback to default values if database load failed
             if not vans_pricing_db:
+                logging.warning("[BROKERS-VANS] Using fallback default values")
                 vans_pricing_db = {
                     'C3': {'1': 112, '2': 144, '3': 180},
                     'C4': {'1': 152, '2': 170, '3': 210},
                     'C5': {'1': 175, '2': 190, '3': 240}
                 }
             
+            logging.info(f"[BROKERS-VANS] Adding to prices_data...")
             for grupo, prices in vans_pricing_db.items():
                 if grupo not in prices_data:
                     prices_data[grupo] = {}
@@ -387,6 +398,12 @@ def generate_brokers_excel(location, month, year, prices_data):
                 base_price = prices['3'] / 3
                 for day in [4, 5, 6, 7, 8, 9, 14, 22, 28, 31, 60]:
                     prices_data[grupo][str(day)] = {'net': base_price, 'commission': base_price}
+            
+            logging.info(f"[BROKERS-VANS] ✅ C3 in prices_data: {'C3' in prices_data}")
+            logging.info(f"[BROKERS-VANS] ✅ C4 in prices_data: {'C4' in prices_data}")
+            logging.info(f"[BROKERS-VANS] ✅ C5 in prices_data: {'C5' in prices_data}")
+        else:
+            logging.info("[BROKERS-VANS] ⏭️ Skipping (Faro Airport)")
         
         wb = openpyxl.Workbook()
         ws = wb.active
