@@ -1092,13 +1092,56 @@
             console.log(`[DOWNLOAD] Sample B1 prices:`, currentPrices.B1);
             console.log(`[DOWNLOAD] currentPeriod:`, currentPeriod);
 
+            // Merge commercial vans pricing from localStorage (C3, C4, C5)
+            const pricesToSend = { ...currentPrices };
+            const vansPricing = JSON.parse(localStorage.getItem('vansPricing') || '{}');
+            
+            if (Object.keys(vansPricing).length > 0 && location !== 'Faro Airport') {
+                console.log('[DOWNLOAD] Adding vans pricing from localStorage:', vansPricing);
+                
+                // C3 pricing
+                if (!pricesToSend.C3) pricesToSend.C3 = {};
+                pricesToSend.C3['1'] = { net: vansPricing.c3_1day || 112, commission: vansPricing.c3_1day || 112 };
+                pricesToSend.C3['2'] = { net: vansPricing.c3_2days || 144, commission: vansPricing.c3_2days || 144 };
+                pricesToSend.C3['3'] = { net: vansPricing.c3_3days || 180, commission: vansPricing.c3_3days || 180 };
+                // Days 4+: use 3-day price / 3
+                const c3_base = (vansPricing.c3_3days || 180) / 3;
+                [4, 5, 6, 7, 8, 9, 14, 22, 28, 31, 60].forEach(day => {
+                    pricesToSend.C3[day.toString()] = { net: c3_base, commission: c3_base };
+                });
+                
+                // C4 pricing
+                if (!pricesToSend.C4) pricesToSend.C4 = {};
+                pricesToSend.C4['1'] = { net: vansPricing.c4_1day || 152, commission: vansPricing.c4_1day || 152 };
+                pricesToSend.C4['2'] = { net: vansPricing.c4_2days || 170, commission: vansPricing.c4_2days || 170 };
+                pricesToSend.C4['3'] = { net: vansPricing.c4_3days || 210, commission: vansPricing.c4_3days || 210 };
+                const c4_base = (vansPricing.c4_3days || 210) / 3;
+                [4, 5, 6, 7, 8, 9, 14, 22, 28, 31, 60].forEach(day => {
+                    pricesToSend.C4[day.toString()] = { net: c4_base, commission: c4_base };
+                });
+                
+                // C5 pricing
+                if (!pricesToSend.C5) pricesToSend.C5 = {};
+                pricesToSend.C5['1'] = { net: vansPricing.c5_1day || 175, commission: vansPricing.c5_1day || 175 };
+                pricesToSend.C5['2'] = { net: vansPricing.c5_2days || 190, commission: vansPricing.c5_2days || 190 };
+                pricesToSend.C5['3'] = { net: vansPricing.c5_3days || 240, commission: vansPricing.c5_3days || 240 };
+                const c5_base = (vansPricing.c5_3days || 240) / 3;
+                [4, 5, 6, 7, 8, 9, 14, 22, 28, 31, 60].forEach(day => {
+                    pricesToSend.C5[day.toString()] = { net: c5_base, commission: c5_base };
+                });
+                
+                console.log('[DOWNLOAD] C3 prices added:', pricesToSend.C3);
+                console.log('[DOWNLOAD] C4 prices added:', pricesToSend.C4);
+                console.log('[DOWNLOAD] C5 prices added:', pricesToSend.C5);
+            }
+
             try {
                 const response = await fetch(`${endpoint}?location=${location}&month=${month}&year=${year}`, {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json'
                     },
-                    body: JSON.stringify({ prices: currentPrices })
+                    body: JSON.stringify({ prices: pricesToSend })
                 });
 
                 if (response.ok) {
