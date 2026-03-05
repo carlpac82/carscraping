@@ -56669,24 +56669,13 @@ async def fix_ra_6932(request: Request):
             photos_copied = cur.rowcount
             logging.info(f"✅ Copied {photos_copied} photo(s)")
             
-            # Copy damages
-            cur.execute("SELECT COUNT(*) FROM inspection_damages WHERE inspection_id = %s", (old_inspection_id,))
-            damage_count = cur.fetchone()[0]
-            
-            damages_copied = 0
-            if damage_count > 0:
-                cur.execute("""
-                    INSERT INTO inspection_damages
-                    (inspection_id, damage_type, damage_position_x, damage_position_y,
-                     damage_description, damage_severity, photo_reference)
-                    SELECT %s, damage_type, damage_position_x, damage_position_y,
-                           damage_description, damage_severity, photo_reference
-                    FROM inspection_damages
-                    WHERE inspection_id = %s
-                """, (new_inspection_id, old_inspection_id))
-                
-                damages_copied = cur.rowcount
-                logging.info(f"✅ Copied {damages_copied} damage(s)")
+            # Count damage photos (croqui + damage markers)
+            cur.execute("""
+                SELECT COUNT(*) FROM inspection_photos 
+                WHERE inspection_id = %s AND photo_type LIKE 'damage%%'
+            """, (new_inspection_id,))
+            damages_copied = cur.fetchone()[0]
+            logging.info(f"✅ Copied {damages_copied} damage photo(s)")
             
             conn.commit()
             cur.close()
