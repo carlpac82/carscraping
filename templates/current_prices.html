@@ -1087,7 +1087,7 @@
             const month = document.getElementById('month').value;
             const year = document.getElementById('year').value;
 
-            console.log(`[DOWNLOAD] ${type} - Location: ${location}, Month: ${month}, Year: ${year}`);
+            console.log(`[DOWNLOAD] ${type} - Location: "${location}", Month: ${month}, Year: ${year}`);
             console.log(`[DOWNLOAD] currentPrices keys:`, Object.keys(currentPrices));
             console.log(`[DOWNLOAD] Sample B1 prices:`, currentPrices.B1);
             console.log(`[DOWNLOAD] currentPeriod:`, currentPeriod);
@@ -1096,8 +1096,9 @@
             const pricesToSend = { ...currentPrices };
             
             // Skip vans pricing for Faro Airport
+            console.log(`[DOWNLOAD] Location check: "${location}" !== "Faro Airport" = ${location !== 'Faro Airport'}`);
             if (location !== 'Faro Airport') {
-                console.log('[DOWNLOAD] Adding fixed vans pricing for C3, C4, C5');
+                console.log('[DOWNLOAD] ✅ Adding fixed vans pricing for C3, C4, C5');
                 
                 // Fixed vans pricing (same as Automated Prices)
                 const vansPricing = {
