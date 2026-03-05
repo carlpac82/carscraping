@@ -4,6 +4,8 @@ Permite visualizar, editar, importar e exportar preços nos formatos:
 - Abbycar
 - Brokers (Albufeira e Faro)
 - Website
+
+LAST UPDATED: 2026-03-05 13:08:00
 """
 import json
 import os
