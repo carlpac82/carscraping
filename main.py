@@ -56524,6 +56524,197 @@ async def fix_replaced_inspections(request: Request):
             "error": str(e)
         }, status_code=500)
 
+@app.post("/api/admin/fix-ra-6932")
+async def fix_ra_6932(request: Request):
+    """Temporary endpoint to fix RA 6932 - copy inspection from AS-78-RH to AT-28-NX"""
+    require_admin(request)
+    
+    try:
+        with _db_lock:
+            conn = _db_connect()
+            is_postgres = _is_postgresql_connection(conn)
+            
+            if not is_postgres:
+                return JSONResponse({
+                    "success": False,
+                    "error": "This fix is only for PostgreSQL (production)"
+                }, status_code=400)
+            
+            cur = conn.cursor()
+            
+            # Check if new inspection already exists
+            cur.execute("""
+                SELECT id FROM vehicle_inspections
+                WHERE contract_number LIKE '6932%'
+                  AND vehicle_plate = 'AT-28-NX'
+                  AND inspection_type = 'checkin'
+            """)
+            
+            existing = cur.fetchone()
+            if existing:
+                cur.close()
+                conn.close()
+                return JSONResponse({
+                    "success": False,
+                    "message": f"New inspection already exists (ID: {existing[0]}), skipping creation"
+                })
+            
+            # Get swap data for new vehicle kms and fuel
+            cur.execute("""
+                SELECT new_kms, new_fuel
+                FROM vehicle_swaps
+                WHERE rental_agreement_number = '6932'
+                  AND old_plate = 'AS-78-RH'
+                  AND new_plate = 'AT-28-NX'
+                ORDER BY swap_datetime DESC
+                LIMIT 1
+            """)
+            
+            swap_data = cur.fetchone()
+            if swap_data:
+                new_kms = swap_data[0]
+                new_fuel = swap_data[1]
+                logging.info(f"✅ Found swap: new_kms={new_kms}, new_fuel={new_fuel}")
+            else:
+                new_kms = 0
+                new_fuel = 'N/A'
+                logging.warning("⚠️ No swap data found, using defaults")
+            
+            # Get old inspection data
+            cur.execute("""
+                SELECT id, inspection_number, vehicle_brand, vehicle_model, customer_name, 
+                       customer_email, customer_phone, inspector_name, inspector_notes,
+                       has_damage, damage_count, damage_severity, ai_analysis_complete,
+                       ai_confidence_avg, ai_damages_detected, fuel_level
+                FROM vehicle_inspections
+                WHERE contract_number LIKE '6932%'
+                  AND vehicle_plate = 'AS-78-RH'
+                  AND inspection_type = 'checkin'
+                ORDER BY created_at DESC
+                LIMIT 1
+            """)
+            
+            old_inspection = cur.fetchone()
+            
+            if not old_inspection:
+                cur.close()
+                conn.close()
+                return JSONResponse({
+                    "success": False,
+                    "error": "No old inspection found for AS-78-RH"
+                }, status_code=404)
+            
+            old_inspection_id = old_inspection[0]
+            logging.info(f"✅ Found old inspection ID: {old_inspection_id} ({old_inspection[1]})")
+            
+            # Count photos
+            cur.execute("SELECT COUNT(*) FROM inspection_photos WHERE inspection_id = %s", (old_inspection_id,))
+            photo_count = cur.fetchone()[0]
+            
+            # Generate new inspection number
+            import datetime
+            now = datetime.datetime.now()
+            new_inspection_number = f"VI-{now.strftime('%Y%m%d')}-{now.strftime('%H%M%S')}"
+            
+            # Create new inspection for AT-28-NX
+            cur.execute("""
+                INSERT INTO vehicle_inspections 
+                (inspection_number, inspection_type, vehicle_plate, vehicle_brand, vehicle_model,
+                 contract_number, customer_name, customer_email, customer_phone,
+                 inspector_name, inspector_notes, has_damage, damage_count, damage_severity,
+                 ai_analysis_complete, ai_confidence_avg, ai_damages_detected,
+                 odometer_reading, fuel_level, status, photo_count)
+                VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+                RETURNING id
+            """, (
+                new_inspection_number,
+                'checkin',
+                'AT-28-NX',
+                old_inspection[2],  # vehicle_brand
+                old_inspection[3],  # vehicle_model
+                '6932',
+                old_inspection[4],  # customer_name
+                old_inspection[5],  # customer_email
+                old_inspection[6],  # customer_phone
+                old_inspection[7],  # inspector_name
+                old_inspection[8],  # inspector_notes
+                old_inspection[9],  # has_damage
+                old_inspection[10], # damage_count
+                old_inspection[11], # damage_severity
+                old_inspection[12], # ai_analysis_complete
+                old_inspection[13], # ai_confidence_avg
+                old_inspection[14], # ai_damages_detected
+                new_kms,
+                new_fuel,
+                'completed',
+                photo_count
+            ))
+            
+            new_inspection_id = cur.fetchone()[0]
+            logging.info(f"✅ Created new inspection ID: {new_inspection_id} ({new_inspection_number})")
+            
+            # Copy photos
+            cur.execute("""
+                INSERT INTO inspection_photos
+                (inspection_id, photo_type, photo_order, image_data, image_filename,
+                 image_size, image_format, ai_analyzed, ai_has_damage, ai_damage_type,
+                 ai_confidence, ai_result)
+                SELECT %s, photo_type, photo_order, image_data, image_filename,
+                       image_size, image_format, ai_analyzed, ai_has_damage, ai_damage_type,
+                       ai_confidence, ai_result
+                FROM inspection_photos
+                WHERE inspection_id = %s
+            """, (new_inspection_id, old_inspection_id))
+            
+            photos_copied = cur.rowcount
+            logging.info(f"✅ Copied {photos_copied} photo(s)")
+            
+            # Copy damages
+            cur.execute("SELECT COUNT(*) FROM inspection_damages WHERE inspection_id = %s", (old_inspection_id,))
+            damage_count = cur.fetchone()[0]
+            
+            damages_copied = 0
+            if damage_count > 0:
+                cur.execute("""
+                    INSERT INTO inspection_damages
+                    (inspection_id, damage_type, damage_position_x, damage_position_y,
+                     damage_description, damage_severity, photo_reference)
+                    SELECT %s, damage_type, damage_position_x, damage_position_y,
+                           damage_description, damage_severity, photo_reference
+                    FROM inspection_damages
+                    WHERE inspection_id = %s
+                """, (new_inspection_id, old_inspection_id))
+                
+                damages_copied = cur.rowcount
+                logging.info(f"✅ Copied {damages_copied} damage(s)")
+            
+            conn.commit()
+            cur.close()
+            conn.close()
+            
+            return JSONResponse({
+                "success": True,
+                "message": "RA 6932 fixed successfully! You can now checkout AT-28-NX",
+                "details": {
+                    "old_inspection_id": old_inspection_id,
+                    "new_inspection_id": new_inspection_id,
+                    "new_inspection_number": new_inspection_number,
+                    "photos_copied": photos_copied,
+                    "damages_copied": damages_copied,
+                    "new_kms": new_kms,
+                    "new_fuel": new_fuel
+                }
+            })
+    
+    except Exception as e:
+        logging.error(f"Error fixing RA 6932: {e}")
+        import traceback
+        logging.error(traceback.format_exc())
+        return JSONResponse({
+            "success": False,
+            "error": str(e)
+        }, status_code=500)
+
 @app.get("/api/admin/debug-vehicle-availability/{plate}")
 async def debug_vehicle_availability(request: Request, plate: str):
     """Debug endpoint to investigate why a vehicle is not available"""
