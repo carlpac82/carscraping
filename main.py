@@ -56704,6 +56704,78 @@ async def fix_ra_6932(request: Request):
             "error": str(e)
         }, status_code=500)
 
+@app.get("/api/admin/check-inspection-384")
+async def check_inspection_384(request: Request):
+    """Check what's in inspection ID 384"""
+    require_admin(request)
+    
+    try:
+        conn = _db_connect()
+        is_postgres = _USE_NEW_DB
+        
+        if not is_postgres:
+            return JSONResponse({"error": "PostgreSQL only"}, status_code=400)
+        
+        cur = conn.cursor()
+        
+        # Get inspection 384 details
+        cur.execute("""
+            SELECT id, inspection_number, inspection_type, vehicle_plate, contract_number,
+                   status, odometer_reading, fuel_level, created_at, photo_count
+            FROM vehicle_inspections
+            WHERE id = 384
+        """)
+        
+        inspection = cur.fetchone()
+        
+        if not inspection:
+            return JSONResponse({"error": "Inspection 384 not found"})
+        
+        # Try the same query that /api/get_inspection uses
+        cur.execute("""
+            SELECT id, inspection_number, inspection_type, vehicle_plate, contract_number
+            FROM vehicle_inspections
+            WHERE UPPER(vehicle_plate) = UPPER(%s)
+              AND contract_number LIKE %s
+              AND inspection_type = %s
+            ORDER BY created_at DESC
+            LIMIT 1
+        """, ('AT-28-NX', '6932%', 'checkin'))
+        
+        found_by_query = cur.fetchone()
+        
+        cur.close()
+        conn.close()
+        
+        return JSONResponse({
+            "inspection_384": {
+                "id": inspection[0],
+                "inspection_number": inspection[1],
+                "inspection_type": inspection[2],
+                "vehicle_plate": inspection[3],
+                "contract_number": inspection[4],
+                "status": inspection[5],
+                "odometer_reading": inspection[6],
+                "fuel_level": inspection[7],
+                "created_at": str(inspection[8]),
+                "photo_count": inspection[9]
+            },
+            "found_by_get_inspection_query": found_by_query is not None,
+            "found_inspection": {
+                "id": found_by_query[0],
+                "inspection_number": found_by_query[1],
+                "inspection_type": found_by_query[2],
+                "vehicle_plate": found_by_query[3],
+                "contract_number": found_by_query[4]
+            } if found_by_query else None
+        })
+    except Exception as e:
+        import traceback
+        return JSONResponse({
+            "error": str(e),
+            "traceback": traceback.format_exc()
+        }, status_code=500)
+
 @app.get("/api/admin/debug-vehicle-availability/{plate}")
 async def debug_vehicle_availability(request: Request, plate: str):
     """Debug endpoint to investigate why a vehicle is not available"""
