@@ -56580,16 +56580,16 @@ async def fix_ra_6932(request: Request):
                 new_fuel = 'N/A'
                 logging.warning("⚠️ No swap data found, using defaults")
             
-            # Get old inspection data
+            # Get old inspection data (search by plate only, not RA, since it might have been created with different RA)
             cur.execute("""
                 SELECT id, inspection_number, vehicle_brand, vehicle_model, customer_name, 
                        customer_email, customer_phone, inspector_name, inspector_notes,
                        has_damage, damage_count, damage_severity, ai_analysis_complete,
-                       ai_confidence_avg, ai_damages_detected, fuel_level
+                       ai_confidence_avg, ai_damages_detected, fuel_level, contract_number
                 FROM vehicle_inspections
-                WHERE contract_number LIKE '6932%'
-                  AND vehicle_plate = 'AS-78-RH'
+                WHERE vehicle_plate = 'AS-78-RH'
                   AND inspection_type = 'checkin'
+                  AND COALESCE(status, '') != 'replaced'
                 ORDER BY created_at DESC
                 LIMIT 1
             """)

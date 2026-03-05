@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Debug RA 6932</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 1200px;
+            margin: 50px auto;
+            padding: 20px;
+        }
+        .button {
+            background-color: #2196F3;
+            border: none;
+            color: white;
+            padding: 15px 32px;
+            text-align: center;
+            text-decoration: none;
+            display: inline-block;
+            font-size: 16px;
+            margin: 4px 2px;
+            cursor: pointer;
+            border-radius: 4px;
+        }
+        .button:hover {
+            background-color: #0b7dda;
+        }
+        pre {
+            background-color: #f4f4f4;
+            padding: 10px;
+            border-radius: 4px;
+            overflow-x: auto;
+        }
+        #result {
+            margin-top: 20px;
+        }
+    </style>
+</head>
+<body>
+    <h1>Debug RA 6932</h1>
+    
+    <button class="button" onclick="debugRA()">Ver dados do RA 6932</button>
+    
+    <div id="result"></div>
+
+    <script>
+        async function debugRA() {
+            const resultDiv = document.getElementById('result');
+            resultDiv.innerHTML = '<p>A carregar...</p>';
+            
+            try {
+                // Get inspections
+                const inspResp = await fetch('/api/get_inspection?ra=6932', {
+                    credentials: 'include'
+                });
+                const inspData = await inspResp.json();
+                
+                // Get swap data
+                const swapResp = await fetch('/api/vehicle-swaps?ra=6932', {
+                    credentials: 'include'
+                });
+                const swapData = await swapResp.json();
+                
+                resultDiv.innerHTML = `
+                    <h2>Inspeções encontradas:</h2>
+                    <pre>${JSON.stringify(inspData, null, 2)}</pre>
+                    
+                    <h2>Trocas de viatura:</h2>
+                    <pre>${JSON.stringify(swapData, null, 2)}</pre>
+                `;
+            } catch (error) {
+                resultDiv.innerHTML = `<p style="color: red;">Erro: ${error.message}</p>`;
+            }
+        }
+    </script>
+</body>
+</html>
