@@ -49321,6 +49321,15 @@ async def download_brokers_prices(request: Request, location: str, month: int, y
             if '7' in prices['B1']:
                 logging.info(f"[DOWNLOAD BROKERS] B1 dia 7: {prices['B1']['7']}")
         
+        # DEBUG: Check C3, C4, C5
+        for grupo in ['C3', 'C4', 'C5']:
+            if grupo in prices:
+                logging.info(f"[DOWNLOAD BROKERS] {grupo} recebido com {len(prices[grupo])} dias")
+                if '1' in prices[grupo]:
+                    logging.info(f"[DOWNLOAD BROKERS] {grupo} dia 1: {prices[grupo]['1']}")
+            else:
+                logging.warning(f"[DOWNLOAD BROKERS] ⚠️ {grupo} NÃO recebido!")
+        
         excel_file, filename = generate_brokers_excel(location, month, year, prices)
         
         logging.info(f"[DOWNLOAD BROKERS] Excel gerado: {filename}")
@@ -56894,7 +56903,7 @@ async def fix_inspection_384_photos(request: Request):
         
         # Get ALL data from inspection 363 (AS-78-RH with AT-28-NX data)
         cur.execute("""
-            SELECT odometer_reading, fuel_level, damage_croqui, created_at, 
+            SELECT odometer_reading, fuel_level, created_at, 
                    inspector_name, inspector_notes
             FROM vehicle_inspections
             WHERE id = 363
@@ -56905,7 +56914,7 @@ async def fix_inspection_384_photos(request: Request):
         if not source_inspection:
             return JSONResponse({"error": "Inspection 363 not found"}, status_code=404)
         
-        odometer, fuel, croqui, created_at, inspector, notes = source_inspection
+        odometer, fuel, created_at, inspector, notes = source_inspection
         
         # Get photos from inspection 363
         cur.execute("""
@@ -56931,18 +56940,16 @@ async def fix_inspection_384_photos(request: Request):
             """, (384, photo[0], photo[1], photo[2], photo[3]))
             inserted_count += 1
         
-        # Update ALL fields in inspection 384
+        # Update inspection 384 with ALL data from 363
         cur.execute("""
             UPDATE vehicle_inspections
-            SET photo_count = %s,
-                odometer_reading = %s,
+            SET odometer_reading = %s,
                 fuel_level = %s,
-                damage_croqui = %s,
                 created_at = %s,
                 inspector_name = %s,
                 inspector_notes = %s
             WHERE id = 384
-        """, (inserted_count, odometer, fuel, croqui, created_at, inspector, notes))
+        """, (odometer, fuel, created_at, inspector, notes))
         
         conn.commit()
         cur.close()
