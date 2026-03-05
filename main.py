@@ -56880,7 +56880,7 @@ async def check_inspection_384(request: Request):
 
 @app.post("/api/admin/fix-inspection-384-photos")
 async def fix_inspection_384_photos(request: Request):
-    """Copy photos from AS-78-RH inspection 363 to AT-28-NX inspection 384"""
+    """Copy ALL data from AS-78-RH inspection 363 to AT-28-NX inspection 384"""
     require_admin(request)
     
     try:
@@ -56892,7 +56892,22 @@ async def fix_inspection_384_photos(request: Request):
         
         cur = conn.cursor()
         
-        # Get photos from inspection 363 (AS-78-RH with AT-28-NX photos)
+        # Get ALL data from inspection 363 (AS-78-RH with AT-28-NX data)
+        cur.execute("""
+            SELECT odometer_reading, fuel_level, damage_croqui, created_at, 
+                   inspector_name, inspector_notes
+            FROM vehicle_inspections
+            WHERE id = 363
+        """)
+        
+        source_inspection = cur.fetchone()
+        
+        if not source_inspection:
+            return JSONResponse({"error": "Inspection 363 not found"}, status_code=404)
+        
+        odometer, fuel, croqui, created_at, inspector, notes = source_inspection
+        
+        # Get photos from inspection 363
         cur.execute("""
             SELECT photo_type, photo_order, image_data, image_filename
             FROM vehicle_inspection_photos
@@ -56901,9 +56916,6 @@ async def fix_inspection_384_photos(request: Request):
         """)
         
         source_photos = cur.fetchall()
-        
-        if not source_photos:
-            return JSONResponse({"error": "No photos found in inspection 363"}, status_code=404)
         
         # Delete existing photos from inspection 384
         cur.execute("DELETE FROM vehicle_inspection_photos WHERE inspection_id = 384")
@@ -56919,12 +56931,18 @@ async def fix_inspection_384_photos(request: Request):
             """, (384, photo[0], photo[1], photo[2], photo[3]))
             inserted_count += 1
         
-        # Update photo count in inspection 384
+        # Update ALL fields in inspection 384
         cur.execute("""
             UPDATE vehicle_inspections
-            SET photo_count = %s
+            SET photo_count = %s,
+                odometer_reading = %s,
+                fuel_level = %s,
+                damage_croqui = %s,
+                created_at = %s,
+                inspector_name = %s,
+                inspector_notes = %s
             WHERE id = 384
-        """, (inserted_count,))
+        """, (inserted_count, odometer, fuel, croqui, created_at, inspector, notes))
         
         conn.commit()
         cur.close()
@@ -56932,9 +56950,16 @@ async def fix_inspection_384_photos(request: Request):
         
         return JSONResponse({
             "success": True,
-            "message": f"Copied {inserted_count} photos from inspection 363 to 384",
+            "message": f"Copied ALL data from inspection 363 to 384",
             "deleted_old_photos": deleted_count,
-            "inserted_new_photos": inserted_count
+            "inserted_new_photos": inserted_count,
+            "copied_data": {
+                "odometer_reading": odometer,
+                "fuel_level": fuel,
+                "created_at": str(created_at),
+                "inspector_name": inspector,
+                "has_damage_croqui": croqui is not None
+            }
         })
     except Exception as e:
         import traceback
