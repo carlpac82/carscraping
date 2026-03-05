@@ -56704,6 +56704,57 @@ async def fix_ra_6932(request: Request):
             "error": str(e)
         }, status_code=500)
 
+@app.get("/api/admin/check-all-inspections-at28nx")
+async def check_all_inspections_at28nx(request: Request):
+    """Check all inspections for AT-28-NX"""
+    require_admin(request)
+    
+    try:
+        conn = _db_connect()
+        is_postgres = _USE_NEW_DB
+        
+        if not is_postgres:
+            return JSONResponse({"error": "PostgreSQL only"}, status_code=400)
+        
+        cur = conn.cursor()
+        
+        # Get ALL inspections for AT-28-NX
+        cur.execute("""
+            SELECT id, inspection_number, inspection_type, contract_number, 
+                   odometer_reading, fuel_level, created_at, photo_count, status
+            FROM vehicle_inspections
+            WHERE UPPER(vehicle_plate) = 'AT-28-NX'
+            ORDER BY created_at DESC
+        """)
+        
+        inspections = []
+        for row in cur.fetchall():
+            inspections.append({
+                "id": row[0],
+                "inspection_number": row[1],
+                "inspection_type": row[2],
+                "contract_number": row[3],
+                "odometer_reading": row[4],
+                "fuel_level": row[5],
+                "created_at": str(row[6]),
+                "photo_count": row[7],
+                "status": row[8]
+            })
+        
+        cur.close()
+        conn.close()
+        
+        return JSONResponse({
+            "total_inspections": len(inspections),
+            "inspections": inspections
+        })
+    except Exception as e:
+        import traceback
+        return JSONResponse({
+            "error": str(e),
+            "traceback": traceback.format_exc()
+        }, status_code=500)
+
 @app.get("/api/admin/check-inspection-384")
 async def check_inspection_384(request: Request):
     """Check what's in inspection ID 384"""
