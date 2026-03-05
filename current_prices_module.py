@@ -334,6 +334,27 @@ def generate_abbycar_excel(location, month, year, prices_data):
 def generate_brokers_excel(location, month, year, prices_data):
     """Gera ficheiro Excel no formato Brokers"""
     try:
+        # Add fixed vans pricing (C3, C4, C5) if not Faro Airport
+        if location != 'Faro Airport' and 'Faro' not in location:
+            vans_pricing = {
+                'C3': {'1': 112, '2': 144, '3': 180},
+                'C4': {'1': 152, '2': 170, '3': 210},
+                'C5': {'1': 175, '2': 190, '3': 240}
+            }
+            
+            for grupo, prices in vans_pricing.items():
+                if grupo not in prices_data:
+                    prices_data[grupo] = {}
+                
+                # Add 1, 2, 3 day prices
+                for day, price in prices.items():
+                    prices_data[grupo][day] = {'net': price, 'commission': price}
+                
+                # Add 4+ day prices (3-day price / 3)
+                base_price = prices['3'] / 3
+                for day in [4, 5, 6, 7, 8, 9, 14, 22, 28, 31, 60]:
+                    prices_data[grupo][str(day)] = {'net': base_price, 'commission': base_price}
+        
         wb = openpyxl.Workbook()
         ws = wb.active
         ws.title = "PREÇOS"
@@ -438,6 +459,27 @@ def generate_brokers_excel(location, month, year, prices_data):
 def generate_website_excel(location, month, year, prices_data):
     """Gera ficheiro Excel no formato Website"""
     try:
+        # Add fixed vans pricing (C3, C4, C5) if not Faro Airport
+        if location != 'Faro Airport' and 'Faro' not in location:
+            vans_pricing = {
+                'C3': {'1': 112, '2': 144, '3': 180},
+                'C4': {'1': 152, '2': 170, '3': 210},
+                'C5': {'1': 175, '2': 190, '3': 240}
+            }
+            
+            for grupo, prices in vans_pricing.items():
+                if grupo not in prices_data:
+                    prices_data[grupo] = {}
+                
+                # Add 1, 2, 3 day prices
+                for day, price in prices.items():
+                    prices_data[grupo][day] = {'net': price, 'commission': price}
+                
+                # Add 4+ day prices (3-day price / 3)
+                base_price = prices['3'] / 3
+                for day in [4, 5, 6, 7, 8, 9, 14, 22, 28, 31, 60]:
+                    prices_data[grupo][str(day)] = {'net': base_price, 'commission': base_price}
+        
         wb = openpyxl.Workbook()
         ws = wb.active
         ws.title = "Preços Website"
