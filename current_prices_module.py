@@ -334,15 +334,48 @@ def generate_abbycar_excel(location, month, year, prices_data):
 def generate_brokers_excel(location, month, year, prices_data):
     """Gera ficheiro Excel no formato Brokers"""
     try:
-        # Add fixed vans pricing (C3, C4, C5) if not Faro Airport
+        # Add vans pricing (C3, C4, C5) from database if not Faro Airport
         if location != 'Faro Airport' and 'Faro' not in location:
-            vans_pricing = {
-                'C3': {'1': 112, '2': 144, '3': 180},
-                'C4': {'1': 152, '2': 170, '3': 210},
-                'C5': {'1': 175, '2': 190, '3': 240}
-            }
+            # Load vans pricing from database
+            from database import _db_connect, _db_lock
+            vans_pricing_db = None
             
-            for grupo, prices in vans_pricing.items():
+            try:
+                with _db_lock:
+                    conn = _db_connect()
+                    is_postgres = conn.__class__.__module__ in ['psycopg2.extensions', 'psycopg2._psycopg']
+                    
+                    if is_postgres:
+                        with conn.cursor() as cur:
+                            cur.execute("SELECT * FROM vans_pricing ORDER BY id DESC LIMIT 1")
+                            row = cur.fetchone()
+                            if row:
+                                vans_pricing_db = {
+                                    'C3': {'1': row[1], '2': row[2], '3': row[3]},
+                                    'C4': {'1': row[4], '2': row[5], '3': row[6]},
+                                    'C5': {'1': row[7], '2': row[8], '3': row[9]}
+                                }
+                    else:
+                        cursor = conn.execute("SELECT * FROM vans_pricing ORDER BY id DESC LIMIT 1")
+                        row = cursor.fetchone()
+                        if row:
+                            vans_pricing_db = {
+                                'C3': {'1': row[1], '2': row[2], '3': row[3]},
+                                'C4': {'1': row[4], '2': row[5], '3': row[6]},
+                                'C5': {'1': row[7], '2': row[8], '3': row[9]}
+                            }
+            except Exception as e:
+                logging.warning(f"Could not load vans pricing from database: {e}")
+            
+            # Fallback to default values if database load failed
+            if not vans_pricing_db:
+                vans_pricing_db = {
+                    'C3': {'1': 112, '2': 144, '3': 180},
+                    'C4': {'1': 152, '2': 170, '3': 210},
+                    'C5': {'1': 175, '2': 190, '3': 240}
+                }
+            
+            for grupo, prices in vans_pricing_db.items():
                 if grupo not in prices_data:
                     prices_data[grupo] = {}
                 
@@ -459,15 +492,48 @@ def generate_brokers_excel(location, month, year, prices_data):
 def generate_website_excel(location, month, year, prices_data):
     """Gera ficheiro Excel no formato Website"""
     try:
-        # Add fixed vans pricing (C3, C4, C5) if not Faro Airport
+        # Add vans pricing (C3, C4, C5) from database if not Faro Airport
         if location != 'Faro Airport' and 'Faro' not in location:
-            vans_pricing = {
-                'C3': {'1': 112, '2': 144, '3': 180},
-                'C4': {'1': 152, '2': 170, '3': 210},
-                'C5': {'1': 175, '2': 190, '3': 240}
-            }
+            # Load vans pricing from database
+            from database import _db_connect, _db_lock
+            vans_pricing_db = None
             
-            for grupo, prices in vans_pricing.items():
+            try:
+                with _db_lock:
+                    conn = _db_connect()
+                    is_postgres = conn.__class__.__module__ in ['psycopg2.extensions', 'psycopg2._psycopg']
+                    
+                    if is_postgres:
+                        with conn.cursor() as cur:
+                            cur.execute("SELECT * FROM vans_pricing ORDER BY id DESC LIMIT 1")
+                            row = cur.fetchone()
+                            if row:
+                                vans_pricing_db = {
+                                    'C3': {'1': row[1], '2': row[2], '3': row[3]},
+                                    'C4': {'1': row[4], '2': row[5], '3': row[6]},
+                                    'C5': {'1': row[7], '2': row[8], '3': row[9]}
+                                }
+                    else:
+                        cursor = conn.execute("SELECT * FROM vans_pricing ORDER BY id DESC LIMIT 1")
+                        row = cursor.fetchone()
+                        if row:
+                            vans_pricing_db = {
+                                'C3': {'1': row[1], '2': row[2], '3': row[3]},
+                                'C4': {'1': row[4], '2': row[5], '3': row[6]},
+                                'C5': {'1': row[7], '2': row[8], '3': row[9]}
+                            }
+            except Exception as e:
+                logging.warning(f"Could not load vans pricing from database: {e}")
+            
+            # Fallback to default values if database load failed
+            if not vans_pricing_db:
+                vans_pricing_db = {
+                    'C3': {'1': 112, '2': 144, '3': 180},
+                    'C4': {'1': 152, '2': 170, '3': 210},
+                    'C5': {'1': 175, '2': 190, '3': 240}
+                }
+            
+            for grupo, prices in vans_pricing_db.items():
                 if grupo not in prices_data:
                     prices_data[grupo] = {}
                 
