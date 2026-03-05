@@ -341,12 +341,12 @@ def generate_brokers_excel(location, month, year, prices_data):
         if location != 'Faro Airport' and 'Faro' not in location:
             logging.info("[BROKERS-VANS] ✅ Loading vans pricing from database...")
             # Load vans pricing from database
-            from database import _db_connect, _db_lock
+            import main
             vans_pricing_db = None
             
             try:
-                with _db_lock:
-                    conn = _db_connect()
+                with main._db_lock:
+                    conn = main._db_connect()
                     is_postgres = conn.__class__.__module__ in ['psycopg2.extensions', 'psycopg2._psycopg']
                     logging.info(f"[BROKERS-VANS] Database: {'PostgreSQL' if is_postgres else 'SQLite'}")
                     
@@ -512,12 +512,12 @@ def generate_website_excel(location, month, year, prices_data):
         # Add vans pricing (C3, C4, C5) from database if not Faro Airport
         if location != 'Faro Airport' and 'Faro' not in location:
             # Load vans pricing from database
-            from database import _db_connect, _db_lock
+            import main
             vans_pricing_db = None
             
             try:
-                with _db_lock:
-                    conn = _db_connect()
+                with main._db_lock:
+                    conn = main._db_connect()
                     is_postgres = conn.__class__.__module__ in ['psycopg2.extensions', 'psycopg2._psycopg']
                     
                     if is_postgres:
