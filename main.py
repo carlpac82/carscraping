@@ -56878,6 +56878,71 @@ async def check_inspection_384(request: Request):
             "traceback": traceback.format_exc()
         }, status_code=500)
 
+@app.post("/api/admin/fix-inspection-384-photos")
+async def fix_inspection_384_photos(request: Request):
+    """Copy photos from AS-78-RH inspection 363 to AT-28-NX inspection 384"""
+    require_admin(request)
+    
+    try:
+        conn = _db_connect()
+        is_postgres = _USE_NEW_DB
+        
+        if not is_postgres:
+            return JSONResponse({"error": "PostgreSQL only"}, status_code=400)
+        
+        cur = conn.cursor()
+        
+        # Get photos from inspection 363 (AS-78-RH with AT-28-NX photos)
+        cur.execute("""
+            SELECT photo_type, photo_order, image_data, image_filename
+            FROM vehicle_inspection_photos
+            WHERE inspection_id = 363
+            ORDER BY photo_order
+        """)
+        
+        source_photos = cur.fetchall()
+        
+        if not source_photos:
+            return JSONResponse({"error": "No photos found in inspection 363"}, status_code=404)
+        
+        # Delete existing photos from inspection 384
+        cur.execute("DELETE FROM vehicle_inspection_photos WHERE inspection_id = 384")
+        deleted_count = cur.rowcount
+        
+        # Copy photos to inspection 384
+        inserted_count = 0
+        for photo in source_photos:
+            cur.execute("""
+                INSERT INTO vehicle_inspection_photos 
+                (inspection_id, photo_type, photo_order, image_data, image_filename)
+                VALUES (%s, %s, %s, %s, %s)
+            """, (384, photo[0], photo[1], photo[2], photo[3]))
+            inserted_count += 1
+        
+        # Update photo count in inspection 384
+        cur.execute("""
+            UPDATE vehicle_inspections
+            SET photo_count = %s
+            WHERE id = 384
+        """, (inserted_count,))
+        
+        conn.commit()
+        cur.close()
+        conn.close()
+        
+        return JSONResponse({
+            "success": True,
+            "message": f"Copied {inserted_count} photos from inspection 363 to 384",
+            "deleted_old_photos": deleted_count,
+            "inserted_new_photos": inserted_count
+        })
+    except Exception as e:
+        import traceback
+        return JSONResponse({
+            "error": str(e),
+            "traceback": traceback.format_exc()
+        }, status_code=500)
+
 @app.get("/api/admin/debug-vehicle-availability/{plate}")
 async def debug_vehicle_availability(request: Request, plate: str):
     """Debug endpoint to investigate why a vehicle is not available"""
