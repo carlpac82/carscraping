@@ -1125,7 +1125,8 @@
                     <div>`;
                 
                 diasMap.forEach(dia => {
-                    const netPrice = groupPrices[dia] || 0;
+                    const priceData = groupPrices[dia];
+                    const netPrice = (priceData && typeof priceData === 'object') ? (priceData.net || 0) : (priceData || 0);
                     const commPrice = isCommercial ? (netPrice === 0 ? '0.00' : netPrice.toFixed(2)) : (netPrice > 0 ? (netPrice * 1.1366).toFixed(2) : '0.00');
                     html += `<div class="price-row">
                         <span class="text-[9px] font-medium text-gray-600 w-8">${dia}d</span>
