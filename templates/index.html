@@ -1916,12 +1916,23 @@
             // Ordem fixa dos grupos (mesma ordem do CSV original)
             const gruposOrdem = ['B1', 'B2', 'BK1', 'BK2', 'C', 'C3', 'C4', 'C5', 'D', 'DK', 'E1', 'E2', 'EK1', 'EK2', 'F', 'FK', 'G', 'J1', 'J2', 'JK1', 'JK2', 'L1', 'L2', 'LK1', 'M1', 'M2', 'MK1', 'MK2', 'N', 'NK', 'X'];
             
-            // Vans pricing FIXO (igual ao price_automation.html)
-            const vansPricing = {
+            // Vans pricing - carregar do localStorage (mesmo que price_automation.html)
+            let vansPricing = {
                 c3_1day: 112, c3_2days: 144, c3_3days: 180,
                 c4_1day: 152, c4_2days: 170, c4_3days: 210,
                 c5_1day: 175, c5_2days: 190, c5_3days: 240
             };
+            
+            // Tentar carregar do localStorage
+            const savedVansPricing = localStorage.getItem('vansPricing');
+            if (savedVansPricing) {
+                try {
+                    vansPricing = JSON.parse(savedVansPricing);
+                    console.log('✅ Vans pricing loaded from localStorage:', vansPricing);
+                } catch (e) {
+                    console.warn('⚠️ Failed to parse vansPricing from localStorage:', e);
+                }
+            }
             
             // Get location to check if Faro Airport
             const location = document.getElementById('locationSelect')?.value || '';
