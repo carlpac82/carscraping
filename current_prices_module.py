@@ -65,9 +65,11 @@ def load_prices_from_db(conn, location, month, year, day_start=None, day_end=Non
                     
                     rows = cur.fetchall()
                     logging.info(f"Found {len(rows)} rows for {location}, {month}/{year}")
+                    logging.info(f"[DEBUG] About to loop through {len(rows)} rows")
                     
                     periods = []
                     for row in rows:
+                        logging.info(f"[DEBUG] Processing row {rows.index(row) + 1}/{len(rows)}")
                         # Converter datetime para string se necessário
                         updated_at_str = None
                         if row[1]:
