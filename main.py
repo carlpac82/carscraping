@@ -47866,13 +47866,14 @@ try:
     log_to_db("INFO", "ℹ️ Daily report scheduling managed by automated_scheduler.py (dynamic config)", "main", "scheduler")
     
     # Weekly search on Monday at 7 AM (2h before report) - searches next 3 months
-    scheduler.add_job(
-        run_weekly_report_search,
-        CronTrigger(day_of_week='mon', hour=7, minute=0),
-        id='weekly_report_search',
-        replace_existing=True
-    )
-    log_to_db("INFO", "✅ Weekly report search scheduler configured (Monday at 7 AM - next 3 months)", "main", "scheduler")
+    # TEMPORARIAMENTE DESATIVADO - Selenium a crashar no Railway
+    # scheduler.add_job(
+    #     run_weekly_report_search,
+    #     CronTrigger(day_of_week='mon', hour=7, minute=0),
+    #     id='weekly_report_search',
+    #     replace_existing=True
+    # )
+    log_to_db("INFO", "⚠️ Weekly report search DESATIVADO temporariamente (Selenium issues)", "main", "scheduler")
     
     # Weekly report on Monday at 9 AM (default time)
     scheduler.add_job(
@@ -55815,6 +55816,114 @@ async def vehicle_swap(request: Request):
                     inspections_updated = cur.rowcount
                     logging.info(f"✅ Marked {inspections_updated} check-in inspection(s) as replaced")
                     
+                    # If NOT creating new inspection, copy old inspection to new vehicle
+                    if not create_inspection:
+                        logging.info(f"📋 [SWAP COPY] No new inspection requested - copying old inspection to new vehicle")
+                        
+                        # Get old vehicle's check-in inspection
+                        cur.execute("""
+                            SELECT id, inspection_number, vehicle_brand, vehicle_model, customer_name, 
+                                   customer_email, customer_phone, inspector_name, inspector_notes,
+                                   has_damage, damage_count, damage_severity, ai_analysis_complete,
+                                   ai_confidence_avg, ai_damages_detected, fuel_level
+                            FROM vehicle_inspections
+                            WHERE contract_number LIKE %s
+                              AND vehicle_plate = %s
+                              AND inspection_type = 'checkin'
+                              AND status = 'replaced'
+                            ORDER BY created_at DESC
+                            LIMIT 1
+                        """, (f"{ra}%", old_plate))
+                        
+                        old_inspection = cur.fetchone()
+                        
+                        if old_inspection:
+                            old_inspection_id = old_inspection[0]
+                            logging.info(f"✅ [SWAP COPY] Found old inspection ID: {old_inspection_id}")
+                            
+                            # Generate new inspection number
+                            import datetime
+                            now = datetime.datetime.now()
+                            new_inspection_number = f"VI-{now.strftime('%Y%m%d')}-{now.strftime('%H%M%S')}"
+                            
+                            # Create new inspection for new vehicle with old data
+                            cur.execute("""
+                                INSERT INTO vehicle_inspections 
+                                (inspection_number, inspection_type, vehicle_plate, vehicle_brand, vehicle_model,
+                                 contract_number, customer_name, customer_email, customer_phone,
+                                 inspector_name, inspector_notes, has_damage, damage_count, damage_severity,
+                                 ai_analysis_complete, ai_confidence_avg, ai_damages_detected,
+                                 odometer_reading, fuel_level, status, photo_count)
+                                VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, 
+                                        (SELECT COUNT(*) FROM inspection_photos WHERE inspection_id = %s))
+                                RETURNING id
+                            """, (
+                                new_inspection_number,
+                                'checkin',
+                                new_plate,
+                                old_inspection[2],  # vehicle_brand
+                                old_inspection[3],  # vehicle_model
+                                ra,
+                                old_inspection[4],  # customer_name
+                                old_inspection[5],  # customer_email
+                                old_inspection[6],  # customer_phone
+                                old_inspection[7],  # inspector_name
+                                old_inspection[8],  # inspector_notes
+                                old_inspection[9],  # has_damage
+                                old_inspection[10], # damage_count
+                                old_inspection[11], # damage_severity
+                                old_inspection[12], # ai_analysis_complete
+                                old_inspection[13], # ai_confidence_avg
+                                old_inspection[14], # ai_damages_detected
+                                new_kms,            # NEW odometer_reading
+                                new_fuel,           # NEW fuel_level
+                                'completed',
+                                old_inspection_id
+                            ))
+                            
+                            new_inspection_id = cur.fetchone()[0]
+                            logging.info(f"✅ [SWAP COPY] Created new inspection ID: {new_inspection_id} ({new_inspection_number})")
+                            
+                            # Copy all photos from old inspection to new inspection
+                            cur.execute("""
+                                INSERT INTO inspection_photos
+                                (inspection_id, photo_type, photo_order, image_data, image_filename,
+                                 image_size, image_format, ai_analyzed, ai_has_damage, ai_damage_type,
+                                 ai_confidence, ai_result)
+                                SELECT %s, photo_type, photo_order, image_data, image_filename,
+                                       image_size, image_format, ai_analyzed, ai_has_damage, ai_damage_type,
+                                       ai_confidence, ai_result
+                                FROM inspection_photos
+                                WHERE inspection_id = %s
+                            """, (new_inspection_id, old_inspection_id))
+                            
+                            photos_copied = cur.rowcount
+                            logging.info(f"✅ [SWAP COPY] Copied {photos_copied} photo(s) to new inspection")
+                            
+                            # Copy damages/croqui if they exist
+                            cur.execute("""
+                                SELECT COUNT(*) FROM inspection_damages WHERE inspection_id = %s
+                            """, (old_inspection_id,))
+                            damage_count = cur.fetchone()[0]
+                            
+                            if damage_count > 0:
+                                cur.execute("""
+                                    INSERT INTO inspection_damages
+                                    (inspection_id, damage_type, damage_position_x, damage_position_y,
+                                     damage_description, damage_severity, photo_reference)
+                                    SELECT %s, damage_type, damage_position_x, damage_position_y,
+                                           damage_description, damage_severity, photo_reference
+                                    FROM inspection_damages
+                                    WHERE inspection_id = %s
+                                """, (new_inspection_id, old_inspection_id))
+                                
+                                damages_copied = cur.rowcount
+                                logging.info(f"✅ [SWAP COPY] Copied {damages_copied} damage(s) to new inspection")
+                            
+                            logging.info(f"✅ [SWAP COPY] Inspection copy completed successfully")
+                        else:
+                            logging.warning(f"⚠️ [SWAP COPY] No old inspection found to copy for RA {ra}, plate {old_plate}")
+                    
                     # Record swap in history
                     logging.info(f"🔄 [SWAP INSERT - PostgreSQL] About to insert swap record for RA '{ra}' (type: {type(ra).__name__}, length: {len(ra) if ra else 0})")
                     # Build employee name with fallback to username
@@ -55917,6 +56026,116 @@ async def vehicle_swap(request: Request):
                     """, (f"{ra}%", old_plate))
                     inspections_updated = cur.rowcount
                     logging.info(f"✅ Marked {inspections_updated} check-in inspection(s) as replaced")
+                    
+                    # If NOT creating new inspection, copy old inspection to new vehicle
+                    if not create_inspection:
+                        logging.info(f"📋 [SWAP COPY] No new inspection requested - copying old inspection to new vehicle")
+                        
+                        # Get old vehicle's check-in inspection
+                        cur.execute("""
+                            SELECT id, inspection_number, vehicle_brand, vehicle_model, customer_name, 
+                                   customer_email, customer_phone, inspector_name, inspector_notes,
+                                   has_damage, damage_count, damage_severity, ai_analysis_complete,
+                                   ai_confidence_avg, ai_damages_detected, fuel_level
+                            FROM vehicle_inspections
+                            WHERE contract_number LIKE ?
+                              AND vehicle_plate = ?
+                              AND inspection_type = 'checkin'
+                              AND status = 'replaced'
+                            ORDER BY created_at DESC
+                            LIMIT 1
+                        """, (f"{ra}%", old_plate))
+                        
+                        old_inspection = cur.fetchone()
+                        
+                        if old_inspection:
+                            old_inspection_id = old_inspection[0]
+                            logging.info(f"✅ [SWAP COPY] Found old inspection ID: {old_inspection_id}")
+                            
+                            # Generate new inspection number
+                            import datetime
+                            now = datetime.datetime.now()
+                            new_inspection_number = f"VI-{now.strftime('%Y%m%d')}-{now.strftime('%H%M%S')}"
+                            
+                            # Count photos for photo_count
+                            cur.execute("SELECT COUNT(*) FROM inspection_photos WHERE inspection_id = ?", (old_inspection_id,))
+                            photo_count = cur.fetchone()[0]
+                            
+                            # Create new inspection for new vehicle with old data
+                            cur.execute("""
+                                INSERT INTO vehicle_inspections 
+                                (inspection_number, inspection_type, vehicle_plate, vehicle_brand, vehicle_model,
+                                 contract_number, customer_name, customer_email, customer_phone,
+                                 inspector_name, inspector_notes, has_damage, damage_count, damage_severity,
+                                 ai_analysis_complete, ai_confidence_avg, ai_damages_detected,
+                                 odometer_reading, fuel_level, status, photo_count)
+                                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                            """, (
+                                new_inspection_number,
+                                'checkin',
+                                new_plate,
+                                old_inspection[2],  # vehicle_brand
+                                old_inspection[3],  # vehicle_model
+                                ra,
+                                old_inspection[4],  # customer_name
+                                old_inspection[5],  # customer_email
+                                old_inspection[6],  # customer_phone
+                                old_inspection[7],  # inspector_name
+                                old_inspection[8],  # inspector_notes
+                                old_inspection[9],  # has_damage
+                                old_inspection[10], # damage_count
+                                old_inspection[11], # damage_severity
+                                old_inspection[12], # ai_analysis_complete
+                                old_inspection[13], # ai_confidence_avg
+                                old_inspection[14], # ai_damages_detected
+                                new_kms,            # NEW odometer_reading
+                                new_fuel,           # NEW fuel_level
+                                'completed',
+                                photo_count
+                            ))
+                            
+                            new_inspection_id = cur.lastrowid
+                            logging.info(f"✅ [SWAP COPY] Created new inspection ID: {new_inspection_id} ({new_inspection_number})")
+                            
+                            # Copy all photos from old inspection to new inspection
+                            cur.execute("""
+                                INSERT INTO inspection_photos
+                                (inspection_id, photo_type, photo_order, image_data, image_filename,
+                                 image_size, image_format, ai_analyzed, ai_has_damage, ai_damage_type,
+                                 ai_confidence, ai_result)
+                                SELECT ?, photo_type, photo_order, image_data, image_filename,
+                                       image_size, image_format, ai_analyzed, ai_has_damage, ai_damage_type,
+                                       ai_confidence, ai_result
+                                FROM inspection_photos
+                                WHERE inspection_id = ?
+                            """, (new_inspection_id, old_inspection_id))
+                            
+                            photos_copied = cur.rowcount
+                            logging.info(f"✅ [SWAP COPY] Copied {photos_copied} photo(s) to new inspection")
+                            
+                            # Copy damages/croqui if they exist
+                            cur.execute("""
+                                SELECT COUNT(*) FROM inspection_damages WHERE inspection_id = ?
+                            """, (old_inspection_id,))
+                            damage_count = cur.fetchone()[0]
+                            
+                            if damage_count > 0:
+                                cur.execute("""
+                                    INSERT INTO inspection_damages
+                                    (inspection_id, damage_type, damage_position_x, damage_position_y,
+                                     damage_description, damage_severity, photo_reference)
+                                    SELECT ?, damage_type, damage_position_x, damage_position_y,
+                                           damage_description, damage_severity, photo_reference
+                                    FROM inspection_damages
+                                    WHERE inspection_id = ?
+                                """, (new_inspection_id, old_inspection_id))
+                                
+                                damages_copied = cur.rowcount
+                                logging.info(f"✅ [SWAP COPY] Copied {damages_copied} damage(s) to new inspection")
+                            
+                            logging.info(f"✅ [SWAP COPY] Inspection copy completed successfully")
+                        else:
+                            logging.warning(f"⚠️ [SWAP COPY] No old inspection found to copy for RA {ra}, plate {old_plate}")
                     
                     # Record swap in history
                     logging.info(f"🔄 [SWAP INSERT - SQLite] About to insert swap record for RA '{ra}' (type: {type(ra).__name__}, length: {len(ra) if ra else 0})")
