@@ -76,8 +76,44 @@ def load_prices_from_db(conn, location, month, year, day_start=None, day_end=Non
                             else:
                                 updated_at_str = str(row[1])
                         
+                        prices_data = json.loads(row[0])
+                        
+                        # Add vans pricing (C3, C4, C5) if not Faro Airport
+                        if location != 'Faro Airport' and 'Faro' not in location:
+                            import main
+                            try:
+                                with main._db_lock:
+                                    vans_conn = main._db_connect()
+                                    vans_is_postgres = vans_conn.__class__.__module__ in ['psycopg2.extensions', 'psycopg2._psycopg']
+                                    
+                                    if vans_is_postgres:
+                                        with vans_conn.cursor() as vans_cur:
+                                            vans_cur.execute("SELECT * FROM vans_pricing ORDER BY id DESC LIMIT 1")
+                                            vans_row = vans_cur.fetchone()
+                                            if vans_row:
+                                                # Add C3, C4, C5 pricing
+                                                for grupo_idx, grupo in enumerate(['C3', 'C4', 'C5']):
+                                                    if grupo not in prices_data:
+                                                        prices_data[grupo] = {}
+                                                    
+                                                    base_idx = 1 + (grupo_idx * 3)
+                                                    day1_price = vans_row[base_idx]
+                                                    day2_price = vans_row[base_idx + 1]
+                                                    day3_price = vans_row[base_idx + 2]
+                                                    
+                                                    prices_data[grupo]['1'] = {'net': day1_price, 'commission': day1_price}
+                                                    prices_data[grupo]['2'] = {'net': day2_price, 'commission': day2_price}
+                                                    prices_data[grupo]['3'] = {'net': day3_price, 'commission': day3_price}
+                                                    
+                                                    base_price = day3_price / 3
+                                                    for day in [4, 5, 6, 7, 8, 9, 14, 22, 28, 31, 60]:
+                                                        prices_data[grupo][str(day)] = {'net': base_price, 'commission': base_price}
+                                    vans_conn.close()
+                            except Exception as e:
+                                logging.warning(f"Could not load vans pricing: {e}")
+                        
                         periods.append({
-                            'prices': json.loads(row[0]),
+                            'prices': prices_data,
                             'updated_at': updated_at_str,
                             'day_start': row[2] if row[2] is not None else 1,
                             'day_end': row[3] if row[3] is not None else 31,
