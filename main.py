@@ -17,6 +17,8 @@ import logging
 import json
 import base64
 from contextlib import asynccontextmanager
+from concurrent.futures import ThreadPoolExecutor
+import threading
 
 # Configure logging level based on environment
 # WARNING in production (Railway), INFO in development
@@ -134,6 +136,24 @@ try:
     _HTTPX_CLIENT = httpx.Client(timeout=httpx.Timeout(10.0, connect=4.0), headers={"Connection": "keep-alive"})
 except ImportError:
     _HTTPX_CLIENT = None
+
+# ============================================================
+# THREAD POOL EXECUTOR - Limitar threads para evitar "can't start new thread"
+# ============================================================
+# Criar thread pool global com limite máximo de 50 threads
+# Isto evita criar threads ilimitadas via asyncio.to_thread()
+_THREAD_POOL = ThreadPoolExecutor(max_workers=50, thread_name_prefix="app_worker")
+_THREAD_POOL_LOCK = threading.Lock()
+
+def run_in_thread_pool(func, *args, **kwargs):
+    """Executar função no thread pool em vez de criar nova thread"""
+    return _THREAD_POOL.submit(func, *args, **kwargs)
+
+async def async_run_in_thread_pool(func, *args, **kwargs):
+    """Executar função no thread pool de forma async (substitui asyncio.to_thread)"""
+    loop = asyncio.get_event_loop()
+    future = _THREAD_POOL.submit(func, *args, **kwargs)
+    return await loop.run_in_executor(None, future.result)
 
 # ============================================================
 # HELPER FUNCTIONS (movidas do início do arquivo)
@@ -1737,7 +1757,7 @@ async def _compute_prices_for(url: str) -> Dict[str, Any]:
     r.raise_for_status()
     html = r.text
     # Parse HTML off the main loop
-    items = await asyncio.to_thread(parse_prices, html, url)
+    items = await async_run_in_thread_pool(parse_prices, html, url)
     items = convert_items_gbp_to_eur(items)
     items = apply_price_adjustments(items, url)
     # schedule image prefetch (best-effort)
@@ -17194,7 +17214,7 @@ async def async_fetch_with_optional_proxy(url: str, headers: Dict[str, str]):
             if _HTTPX_ASYNC:
                 return await _HTTPX_ASYNC.get(url, headers=h2)
             # fallback to sync in thread
-            return await asyncio.to_thread(requests.get, url, headers=h2, timeout=30)
+            return await async_run_in_thread_pool(requests.get, url, headers=h2, timeout=30)
     except Exception:
         pass
     if SCRAPER_SERVICE.lower() == "scrapeops" and SCRAPER_API_KEY:
@@ -17207,25 +17227,25 @@ async def async_fetch_with_optional_proxy(url: str, headers: Dict[str, str]):
             if SCRAPER_COUNTRY:
                 params["country"] = SCRAPER_COUNTRY
             # httpx doesn't proxy this conveniently; use requests in a thread
-            r = await asyncio.to_thread(requests.get, "https://proxy.scrapeops.io/v1/", params=params, headers=headers, timeout=30)
+            r = await async_run_in_thread_pool(requests.get, "https://proxy.scrapeops.io/v1/", params=params, headers=headers, timeout=30)
         except TypeError:
             # Fallback: direct fetch
             if _HTTPX_ASYNC:
                 return await _HTTPX_ASYNC.get(url, headers=headers)
-            return await asyncio.to_thread(requests.get, url, headers=headers, timeout=30)
+            return await async_run_in_thread_pool(requests.get, url, headers=headers, timeout=30)
         try:
             if r.status_code in (401, 403):
                 if _HTTPX_ASYNC:
                     return await _HTTPX_ASYNC.get(url, headers=headers)
-                return await asyncio.to_thread(requests.get, url, headers=headers, timeout=30)
+                return await async_run_in_thread_pool(requests.get, url, headers=headers, timeout=30)
             return r
         except Exception:
             if _HTTPX_ASYNC:
                 return await _HTTPX_ASYNC.get(url, headers=headers)
-            return await asyncio.to_thread(requests.get, url, headers=headers, timeout=30)
+            return await async_run_in_thread_pool(requests.get, url, headers=headers, timeout=30)
     if _HTTPX_ASYNC:
         return await _HTTPX_ASYNC.get(url, headers=headers)
-    return await asyncio.to_thread(requests.get, url, headers=headers, timeout=20)
+    return await async_run_in_thread_pool(requests.get, url, headers=headers, timeout=20)
 
 
 def post_with_optional_proxy(url: str, data: Dict[str, Any], headers: Dict[str, str]):
@@ -17306,7 +17326,7 @@ async def bulk_prices(request: Request):
                 html = r.text
                 t_fetch = int((time.time() - t0) * 1000)
                 t1 = time.time()
-                items = await asyncio.to_thread(parse_prices, html, url)
+                items = await async_run_in_thread_pool(parse_prices, html, url)
                 items = convert_items_gbp_to_eur(items)
                 items = apply_price_adjustments(items, url)
                 items = normalize_and_sort(items, supplier_priority)
@@ -17416,10 +17436,10 @@ async def track_by_url(request: Request):
             try:
                 fast_headers = dict(headers)
                 fast_headers["Cookie"] = "monedaForzada=EUR; moneda=EUR; currency=EUR; country=PT; idioma=PT; lang=pt"
-                r_fast = await asyncio.to_thread(requests.get, url, headers=fast_headers, timeout=(6,20))
+                r_fast = await async_run_in_thread_pool(requests.get, url, headers=fast_headers, timeout=(6,20))
                 r_fast.raise_for_status()
                 html_fast = r_fast.text
-                items_fast = await asyncio.to_thread(parse_prices, html_fast, url)
+                items_fast = await async_run_in_thread_pool(parse_prices, html_fast, url)
                 # If homepage-like or empty, quickly try /pt variant as a second shot
                 homepage_like_fast = False
                 try:
@@ -17432,10 +17452,10 @@ async def track_by_url(request: Request):
                         prx = _uparse(url)
                         if prx.path.startswith('/do/list/') and not prx.path.startswith('/do/list/pt'):
                             pt_url = _uunparse((prx.scheme, prx.netloc, '/do/list/pt', prx.params, prx.query, prx.fragment))
-                            r_fast2 = await asyncio.to_thread(requests.get, pt_url, headers=fast_headers, timeout=(6,20))
+                            r_fast2 = await async_run_in_thread_pool(requests.get, pt_url, headers=fast_headers, timeout=(6,20))
                             r_fast2.raise_for_status()
                             html_fast2 = r_fast2.text
-                            items_fast2 = await asyncio.to_thread(parse_prices, html_fast2, pt_url)
+                            items_fast2 = await async_run_in_thread_pool(parse_prices, html_fast2, pt_url)
                             if items_fast2:
                                 html_fast = html_fast2
                                 items_fast = items_fast2
@@ -17509,7 +17529,7 @@ async def track_by_url(request: Request):
                     r = await async_fetch_with_optional_proxy(u, direct_headers)
                     r.raise_for_status()
                     h = r.text
-                    its = await asyncio.to_thread(parse_prices, h, u)
+                    its = await async_run_in_thread_pool(parse_prices, h, u)
                     hp = False
                     try:
                         hp = ("Pesquisando em mais de 1000 locadoras" in h) or (re.search(r"Pesquisando\s+em\s+mais\s+de\s+1000", h) is not None)
@@ -17559,7 +17579,7 @@ async def track_by_url(request: Request):
             resp = await async_fetch_with_optional_proxy(url, headers=headers)
             resp.raise_for_status()
             html = resp.text
-            items = await asyncio.to_thread(parse_prices, html, url)
+            items = await async_run_in_thread_pool(parse_prices, html, url)
         # Determine if we only captured provider summaries (no car names) or wrong currency
         gbp_seen = any(("£" in (it.get("price") or "")) or re.search(r"\bGBP\b", (it.get("price") or ""), re.I) for it in (items or []))
         homepage_like = False
@@ -17623,7 +17643,7 @@ async def track_by_url(request: Request):
                         r2 = await async_fetch_with_optional_proxy(u2, headers=eur_headers)
                         r2.raise_for_status()
                         html2 = r2.text
-                        items2 = await asyncio.to_thread(parse_prices, html2, u2)
+                        items2 = await async_run_in_thread_pool(parse_prices, html2, u2)
                         gbp2 = any((("£" in (it.get("price") or "")) or re.search(r"\bGBP\b", (it.get("price") or ""), re.I)) for it in (items2 or []))
                         dt2 = int((time.time() - t1) * 1000)
                         try:
@@ -41716,15 +41736,34 @@ async def export_abbycar_excel(request: Request):
 async def export_caralliance_excel(request: Request):
     """Export CarAlliance Excel with specific formatting"""
     require_auth(request)
-    try:
-        from openpyxl import Workbook
-        from openpyxl.styles import Font, PatternFill, Alignment, Border, Side
-        from openpyxl.utils import get_column_letter
-        from starlette.responses import Response
-        import io
+    import time
+    import uuid
+    from collections import defaultdict
+    from io import BytesIO
+    import csv
+    import openpyxl
+    from openpyxl.styles import Font, Alignment, PatternFill
+    from openpyxl.utils import get_column_letter
+
+    # ============================================================
+    # THREAD POOL EXECUTOR - Limitar threads para evitar "can't start new thread"
+    # ============================================================
+    # Criar thread pool global com limite máximo de 50 threads
+    # Isto evita criar threads ilimitadas via asyncio.to_thread()
+    _THREAD_POOL = ThreadPoolExecutor(max_workers=50, thread_name_prefix="app_worker")
+    _THREAD_POOL_LOCK = threading.Lock()
+
+    def run_in_thread_pool(func, *args, **kwargs):
+        """Executar função no thread pool em vez de criar nova thread"""
+        return _THREAD_POOL.submit(func, *args, **kwargs)
+    from starlette.responses import Response
+    import io
         
-        data_json = await request.json()
-        rows_data = data_json.get('data', [])
+    data_json = await request.json()
+    rows_data = data_json.get('data', [])
+    location = data_json.get('location', 'Albufeira')
+    start_date = data_json.get('startDate', '')
+    end_date = data_json.get('endDate', '')
         location = data_json.get('location', 'Albufeira')
         start_date = data_json.get('startDate', '')
         end_date = data_json.get('endDate', '')
@@ -55910,27 +55949,7 @@ async def vehicle_swap(request: Request):
                             """, (new_inspection_id, old_inspection_id))
                             
                             photos_copied = cur.rowcount
-                            logging.info(f"✅ [SWAP COPY] Copied {photos_copied} photo(s) to new inspection")
-                            
-                            # Copy damages/croqui if they exist
-                            cur.execute("""
-                                SELECT COUNT(*) FROM inspection_damages WHERE inspection_id = %s
-                            """, (old_inspection_id,))
-                            damage_count = cur.fetchone()[0]
-                            
-                            if damage_count > 0:
-                                cur.execute("""
-                                    INSERT INTO inspection_damages
-                                    (inspection_id, damage_type, damage_position_x, damage_position_y,
-                                     damage_description, damage_severity, photo_reference)
-                                    SELECT %s, damage_type, damage_position_x, damage_position_y,
-                                           damage_description, damage_severity, photo_reference
-                                    FROM inspection_damages
-                                    WHERE inspection_id = %s
-                                """, (new_inspection_id, old_inspection_id))
-                                
-                                damages_copied = cur.rowcount
-                                logging.info(f"✅ [SWAP COPY] Copied {damages_copied} damage(s) to new inspection")
+                            logging.info(f"✅ [SWAP COPY] Copied {photos_copied} photo(s) including damage_croqui to new inspection")
                             
                             logging.info(f"✅ [SWAP COPY] Inspection copy completed successfully")
                         else:
@@ -56123,27 +56142,7 @@ async def vehicle_swap(request: Request):
                             """, (new_inspection_id, old_inspection_id))
                             
                             photos_copied = cur.rowcount
-                            logging.info(f"✅ [SWAP COPY] Copied {photos_copied} photo(s) to new inspection")
-                            
-                            # Copy damages/croqui if they exist
-                            cur.execute("""
-                                SELECT COUNT(*) FROM inspection_damages WHERE inspection_id = ?
-                            """, (old_inspection_id,))
-                            damage_count = cur.fetchone()[0]
-                            
-                            if damage_count > 0:
-                                cur.execute("""
-                                    INSERT INTO inspection_damages
-                                    (inspection_id, damage_type, damage_position_x, damage_position_y,
-                                     damage_description, damage_severity, photo_reference)
-                                    SELECT ?, damage_type, damage_position_x, damage_position_y,
-                                           damage_description, damage_severity, photo_reference
-                                    FROM inspection_damages
-                                    WHERE inspection_id = ?
-                                """, (new_inspection_id, old_inspection_id))
-                                
-                                damages_copied = cur.rowcount
-                                logging.info(f"✅ [SWAP COPY] Copied {damages_copied} damage(s) to new inspection")
+                            logging.info(f"✅ [SWAP COPY] Copied {photos_copied} photo(s) including damage_croqui to new inspection")
                             
                             logging.info(f"✅ [SWAP COPY] Inspection copy completed successfully")
                         else:
