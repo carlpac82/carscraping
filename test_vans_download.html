@@ -1,0 +1,121 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Test Vans Pricing Download</title>
+</head>
+<body>
+    <h1>Test Vans Pricing in collectPriceData</h1>
+    <button onclick="testCollectPriceData()">Test Download Function</button>
+    <pre id="output"></pre>
+
+    <script>
+        // Simular localStorage
+        localStorage.setItem('vansPricing', JSON.stringify({
+            c3_1day: 112, c3_2days: 144, c3_3days: 180,
+            c4_1day: 152, c4_2days: 170, c4_3days: 210,
+            c5_1day: 175, c5_2days: 190, c5_3days: 240
+        }));
+
+        // Copiar a função collectPriceData da homepage
+        function collectPriceData(type, commission = 0) {
+            const dias = [1, 2, 3, 4, 5, 6, 7, 8, 9, 14, 22, 28, 31, 60];
+            
+            const gruposOrdem = ['B1', 'B2', 'BK1', 'BK2', 'C', 'C3', 'C4', 'C5', 'D', 'DK', 'E1', 'E2', 'EK1', 'EK2', 'F', 'FK', 'G', 'J1', 'J2', 'JK1', 'JK2', 'L1', 'L2', 'LK1', 'M1', 'M2', 'MK1', 'MK2', 'N', 'NK', 'X'];
+            
+            // Vans pricing - carregar do localStorage
+            let vansPricing = {
+                c3_1day: 112, c3_2days: 144, c3_3days: 180,
+                c4_1day: 152, c4_2days: 170, c4_3days: 210,
+                c5_1day: 175, c5_2days: 190, c5_3days: 240
+            };
+            
+            const savedVansPricing = localStorage.getItem('vansPricing');
+            if (savedVansPricing) {
+                try {
+                    vansPricing = JSON.parse(savedVansPricing);
+                    console.log('✅ Vans pricing loaded from localStorage:', vansPricing);
+                } catch (e) {
+                    console.warn('⚠️ Failed to parse vansPricing from localStorage:', e);
+                }
+            }
+            
+            const location = '';
+            const isFaroAirport = location.toLowerCase().includes('faro');
+            
+            const data = [['Dias', ...gruposOrdem]];
+            
+            dias.forEach((dia, diaIdx) => {
+                const row = [dia];
+                
+                gruposOrdem.forEach(grupo => {
+                    // Special handling for C3, C4, C5
+                    if (['C3', 'C4', 'C5'].includes(grupo)) {
+                        if (isFaroAirport) {
+                            row.push(0);
+                            return;
+                        }
+                        
+                        let price = 0;
+                        if (grupo === 'C3') {
+                            if (dia === 1) price = vansPricing.c3_1day;
+                            else if (dia === 2) price = vansPricing.c3_2days;
+                            else if (dia === 3) price = vansPricing.c3_3days;
+                            else price = vansPricing.c3_3days / 3;
+                        } else if (grupo === 'C4') {
+                            if (dia === 1) price = vansPricing.c4_1day;
+                            else if (dia === 2) price = vansPricing.c4_2days;
+                            else if (dia === 3) price = vansPricing.c4_3days;
+                            else price = vansPricing.c4_3days / 3;
+                        } else if (grupo === 'C5') {
+                            if (dia === 1) price = vansPricing.c5_1day;
+                            else if (dia === 2) price = vansPricing.c5_2days;
+                            else if (dia === 3) price = vansPricing.c5_3days;
+                            else price = vansPricing.c5_3days / 3;
+                        }
+                        
+                        row.push(parseFloat(price.toFixed(2)));
+                        return;
+                    }
+                    
+                    // Outros grupos: 0 (não temos cards)
+                    row.push(0);
+                });
+                
+                data.push(row);
+            });
+            
+            return data;
+        }
+
+        function testCollectPriceData() {
+            const data = collectPriceData('brokers');
+            
+            // Encontrar índices de C3, C4, C5
+            const header = data[0];
+            const c3_idx = header.indexOf('C3');
+            const c4_idx = header.indexOf('C4');
+            const c5_idx = header.indexOf('C5');
+            
+            let output = '=== TESTE COLLECTPRICEDATA ===\n\n';
+            output += `C3 index: ${c3_idx}\n`;
+            output += `C4 index: ${c4_idx}\n`;
+            output += `C5 index: ${c5_idx}\n\n`;
+            
+            output += 'Valores de C3, C4, C5 por dia:\n\n';
+            
+            for (let i = 1; i < data.length; i++) {
+                const row = data[i];
+                const dia = row[0];
+                const c3_val = row[c3_idx];
+                const c4_val = row[c4_idx];
+                const c5_val = row[c5_idx];
+                
+                output += `Dia ${dia}: C3=${c3_val}, C4=${c4_val}, C5=${c5_val}\n`;
+            }
+            
+            document.getElementById('output').textContent = output;
+            console.log(output);
+        }
+    </script>
+</body>
+</html>
