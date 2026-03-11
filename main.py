@@ -41742,7 +41742,8 @@ async def export_caralliance_excel(request: Request):
     from io import BytesIO
     import csv
     import openpyxl
-    from openpyxl.styles import Font, Alignment, PatternFill
+    from openpyxl import Workbook
+    from openpyxl.styles import Font, Alignment, PatternFill, Border, Side
     from openpyxl.utils import get_column_letter
     from starlette.responses import Response
     import io
