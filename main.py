@@ -41954,10 +41954,42 @@ async def export_caralliance_excel(request: Request):
             rows_data = await fetch_all_caralliance_periods_from_db(location)
             logging.info(f"[CARALLIANCE] Fetched {len(rows_data)} rows from database")
         
-        # Create workbook
+        # Create workbook with 2 sheets
         wb = Workbook()
-        ws = wb.active
-        ws.title = "CarAlliance"
+        
+        # === SHEET 1: Pricelist POA (Metadata) ===
+        ws_meta = wb.active
+        ws_meta.title = "Pricelist POA"
+        
+        # Get current date in DD.MM.YYYY. format
+        from datetime import datetime
+        current_date = datetime.now().strftime('%d.%m.%Y.')
+        
+        # Populate metadata sheet
+        ws_meta['A2'] = 'Date'
+        ws_meta['B2'] = current_date
+        ws_meta['A4'] = 'Name'
+        ws_meta['B4'] = 'Pay on Arrival'
+        ws_meta['D4'] = 'Code'
+        ws_meta['E4'] = 'POA'
+        ws_meta['A5'] = 'Prices with VAT'
+        ws_meta['B5'] = 'False'
+        ws_meta['A6'] = 'Date from'
+        ws_meta['B6'] = current_date
+        ws_meta['D6'] = 'Active from'
+        ws_meta['G6'] = 'Pickup from'
+        ws_meta['A7'] = 'Date to'
+        ws_meta['D7'] = 'Active to'
+        ws_meta['G7'] = 'Pickup to'
+        ws_meta['A9'] = 'Currency'
+        ws_meta['B9'] = 'EUR'
+        ws_meta['A10'] = 'Duration measuring unit'
+        ws_meta['B10'] = 'Day'
+        ws_meta['A11'] = 'Pricelist delay rule'
+        ws_meta['B11'] = 'Agency Rule'
+        
+        # === SHEET 2: Prices (Data) ===
+        ws = wb.create_sheet(title="Prices")
         
         # Headers
         headers = ['ServiceName', 'Office', 'DateFrom', 'DateTo',
