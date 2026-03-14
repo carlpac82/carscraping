@@ -12299,6 +12299,20 @@ async def track_by_params_batch_progress(batch_id: str):
 
 @app.post("/api/track-by-params")
 async def track_by_params(request: Request):
+    # LOG DETALHADO: Identificar origem do pedido
+    import sys
+    client_ip = request.client.host if request.client else "unknown"
+    user_agent = request.headers.get("user-agent", "unknown")
+    referer = request.headers.get("referer", "none")
+    x_internal = request.headers.get("X-Internal-Request", "none")
+    print(f"\n{'='*80}", file=sys.stderr, flush=True)
+    print(f"🔍 [TRACK-BY-PARAMS] REQUEST RECEIVED", file=sys.stderr, flush=True)
+    print(f"   IP: {client_ip}", file=sys.stderr, flush=True)
+    print(f"   User-Agent: {user_agent}", file=sys.stderr, flush=True)
+    print(f"   Referer: {referer}", file=sys.stderr, flush=True)
+    print(f"   X-Internal-Request: {x_internal}", file=sys.stderr, flush=True)
+    print(f"{'='*80}\n", file=sys.stderr, flush=True)
+    
     try:
         if not bool(str(os.getenv("DEV_NO_AUTH", "")).strip().lower() in ("1","true","yes","on")):
             require_auth(request)
