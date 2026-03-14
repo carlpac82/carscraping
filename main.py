@@ -41836,6 +41836,11 @@ async def fetch_all_caralliance_periods_from_db(location: str):
         day_start = period_tuple[2]
         day_end = period_tuple[3]
         
+        # Validate and correct day_end if it exceeds the actual days in the month
+        max_days_in_month = calendar.monthrange(year, month)[1]
+        if day_end > max_days_in_month:
+            day_end = max_days_in_month
+        
         # Format dates (DD/MM/YYYY) - Excel will format as DD.MM.YYYY. visually
         start_date = f"{str(day_start).zfill(2)}/{str(month).zfill(2)}/{year}"
         end_date = f"{str(day_end).zfill(2)}/{str(month).zfill(2)}/{year}"
@@ -42061,8 +42066,12 @@ async def export_caralliance_excel(request: Request):
             ws_meta[cell_ref].font = bold_font
             ws_meta[cell_ref].border = thin_border_meta
         
-        # Apply borders to all data cells (without blue background)
-        for cell_ref in ['A2', 'B2', 'A4', 'B4', 'A5', 'B5', 'B6', 'B7', 'B9', 'B10', 'B11', 'F6', 'F7']:
+        # Apply borders to ALL cells in the metadata structure (including empty cells)
+        all_meta_cells = ['A2', 'B2', 'A4', 'B4', 'D4', 'E4', 'G4', 'H4', 
+                          'A5', 'B5', 'A6', 'B6', 'D6', 'E6', 'F6', 'G6', 'H6',
+                          'A7', 'B7', 'D7', 'E7', 'F7', 'G7', 'H7',
+                          'A9', 'B9', 'A10', 'B10', 'A11', 'B11']
+        for cell_ref in all_meta_cells:
             ws_meta[cell_ref].border = thin_border_meta
         
         # === SHEET 2: Prices (Data) ===
