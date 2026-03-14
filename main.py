@@ -41781,6 +41781,8 @@ async def fetch_all_caralliance_periods_from_db(location: str):
             cur.close()
     except Exception as e:
         logging.warning(f"Could not fetch CarAlliance commission: {e}")
+        if is_postgres:
+            conn.rollback()
     
     # Fetch all periods from database
     try:
