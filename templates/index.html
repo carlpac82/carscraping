@@ -2519,6 +2519,14 @@
             
             console.log('💾 Guardando alterações manuais:', { location, month, year, dayStart, dayEnd, grupos: Object.keys(pricesByGroup).length });
             
+            // DEBUG: Mostrar L2 se existir
+            if (pricesByGroup.L2) {
+                console.log('🔍 [DEBUG-FRONTEND] GRUPO L2 A ENVIAR:');
+                console.log('🔍 [DEBUG-FRONTEND] Todas as chaves:', Object.keys(pricesByGroup.L2));
+                console.log('🔍 [DEBUG-FRONTEND] Valor de 2 dias:', pricesByGroup.L2[2]);
+                console.log('🔍 [DEBUG-FRONTEND] L2 completo:', JSON.stringify(pricesByGroup.L2));
+            }
+            
             try {
                 const response = await fetch('/api/current-prices/save', {
                     method: 'POST',

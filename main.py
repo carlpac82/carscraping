@@ -49501,6 +49501,13 @@ async def save_current_prices(request: Request):
                 logging.info(f"🔍 [DEBUG-BACKEND] Grupo {first_group} tem preços para dias: {dias_com_precos}")
                 for dia in list(dias_com_precos)[:3]:
                     logging.info(f"🔍 [DEBUG-BACKEND]   Dia {dia}: {prices[first_group][dia]}")
+            
+            # DEBUG ESPECÍFICO: Mostrar L2 completo se existir
+            if 'L2' in prices:
+                logging.info(f"🔍 [DEBUG-L2] GRUPO L2 RECEBIDO:")
+                for dia, preco in prices['L2'].items():
+                    logging.info(f"🔍 [DEBUG-L2]   Dia {dia}: {preco}")
+                logging.info(f"🔍 [DEBUG-L2] Valor de 2 dias: {prices['L2'].get('2', 'NÃO ENCONTRADO')}")
         
         with _db_lock:
             conn = _db_connect()
