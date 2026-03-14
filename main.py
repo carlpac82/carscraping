@@ -509,13 +509,13 @@ def _get_caralliance_commission() -> float:
     """
     Get CarAlliance commission percentage for price calculation
     Returns: Commission percentage (e.g., 3.0 for 3%)
-    Default: 3.0%
+    Default: 0.0%
     """
     try:
-        val = _get_setting("caralliance_commission_pct")
-        return float(val) if val else 3.0
+        val = _get_setting("caralliance_pct")
+        return float(val) if val else 0.0
     except Exception:
-        return 3.0
+        return 0.0
 
 
 def apply_price_adjustments(items: List[Dict[str, Any]], base_url: str) -> List[Dict[str, Any]]:
