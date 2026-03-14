@@ -42050,23 +42050,19 @@ async def export_caralliance_excel(request: Request):
             ws_meta[cell_ref].border = thin_border_meta
         
         # Apply blue background to specific cells in row 6 and 7
-        for cell_ref in ['D6', 'G6', 'D7', 'G7']:
+        for cell_ref in ['D6', 'E6', 'G6', 'H6', 'D7', 'E7', 'G7', 'H7']:
             ws_meta[cell_ref].fill = blue_fill
             ws_meta[cell_ref].font = bold_font
             ws_meta[cell_ref].border = thin_border_meta
         
-        # Apply blue background to D4 and E4
-        for cell_ref in ['D4', 'E4']:
+        # Apply blue background to D4, E4, G4, H4
+        for cell_ref in ['D4', 'E4', 'G4', 'H4']:
             ws_meta[cell_ref].fill = blue_fill
             ws_meta[cell_ref].font = bold_font
             ws_meta[cell_ref].border = thin_border_meta
         
         # Apply borders to all data cells (without blue background)
-        for cell_ref in ['A2', 'B2', 'B4', 'B5', 'B6', 'B7', 'B9', 'B10', 'B11']:
-            ws_meta[cell_ref].border = thin_border_meta
-        
-        # Apply borders to cells in rows 6 and 7 (E6, E7, H6, H7 - these may be empty)
-        for cell_ref in ['E6', 'E7', 'H6', 'H7']:
+        for cell_ref in ['A2', 'B2', 'A4', 'B4', 'A5', 'B5', 'B6', 'B7', 'B9', 'B10', 'B11', 'F6', 'F7']:
             ws_meta[cell_ref].border = thin_border_meta
         
         # === SHEET 2: Prices (Data) ===
