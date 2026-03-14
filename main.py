@@ -42092,11 +42092,30 @@ async def export_caralliance_excel(request: Request):
             color_idx = period_counter % len(period_colors)
             period_fill = PatternFill(start_color=period_colors[color_idx], end_color=period_colors[color_idx], fill_type='solid')
             
+            # Convert date strings to datetime objects for proper Excel formatting
+            date_from_str = row_data.get('dateFrom', '')
+            date_to_str = row_data.get('dateTo', '')
+            
+            date_from_obj = None
+            date_to_obj = None
+            
+            if date_from_str:
+                try:
+                    date_from_obj = datetime.strptime(date_from_str, '%d/%m/%Y')
+                except:
+                    date_from_obj = date_from_str
+            
+            if date_to_str:
+                try:
+                    date_to_obj = datetime.strptime(date_to_str, '%d/%m/%Y')
+                except:
+                    date_to_obj = date_to_str
+            
             row_values = [
                 row_data.get('serviceName', ''),
                 row_data.get('office', ''),
-                row_data.get('dateFrom', ''),
-                row_data.get('dateTo', ''),
+                date_from_obj if date_from_obj else '',
+                date_to_obj if date_to_obj else '',
             ]
             
             # Add prices (with comma as decimal separator)
@@ -42117,8 +42136,12 @@ async def export_caralliance_excel(request: Request):
                 # Apply period color
                 cell.fill = period_fill
                 cell.border = thin_border
-                # Columns C (DateFrom), D (DateTo) and E onwards (prices) = right aligned
-                if col_idx >= 3:
+                # Columns C (DateFrom), D (DateTo) = date format dd.mm.yyyy.
+                if col_idx == 3 or col_idx == 4:
+                    cell.number_format = 'dd.mm.yyyy.'
+                    cell.alignment = right_align
+                # Columns E onwards (prices) = right aligned
+                elif col_idx >= 5:
                     cell.alignment = right_align
                 else:
                     cell.alignment = left_align
