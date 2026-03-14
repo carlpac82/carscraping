@@ -2297,8 +2297,8 @@
                     }
                 }
                 
-                const startDate = `${String(dayStart).padStart(2,'0')}.${String(month).padStart(2,'0')}.${year}.`;
-                const endDate = `${String(dayEnd).padStart(2,'0')}.${String(month).padStart(2,'0')}.${year}.`;
+                const startDate = `${year}-${String(month).padStart(2,'0')}-${String(dayStart).padStart(2,'0')}`;
+                const endDate = `${year}-${String(month).padStart(2,'0')}-${String(dayEnd).padStart(2,'0')}`;
                 
                 const commissionResponse = await fetch('/api/admin-settings/caralliance-commission');
                 const commissionData = await commissionResponse.json();
