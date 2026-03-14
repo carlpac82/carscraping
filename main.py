@@ -42026,15 +42026,48 @@ async def export_caralliance_excel(request: Request):
         blue_fill = PatternFill(start_color='B4C7E7', end_color='B4C7E7', fill_type='solid')
         bold_font = Font(bold=True)
         
+        # Define borders for all cells
+        thin_border_meta = Border(
+            left=Side(style='thin', color='000000'),
+            right=Side(style='thin', color='000000'),
+            top=Side(style='thin', color='000000'),
+            bottom=Side(style='thin', color='000000')
+        )
+        
+        # Set column widths to match original Excel
+        ws_meta.column_dimensions['A'].width = 20
+        ws_meta.column_dimensions['B'].width = 15
+        ws_meta.column_dimensions['C'].width = 10
+        ws_meta.column_dimensions['D'].width = 12
+        ws_meta.column_dimensions['E'].width = 12
+        ws_meta.column_dimensions['F'].width = 10
+        ws_meta.column_dimensions['G'].width = 12
+        
         # Apply blue background to label cells in column A
         for cell_ref in ['A4', 'A5', 'A6', 'A7', 'A9', 'A10', 'A11']:
             ws_meta[cell_ref].fill = blue_fill
             ws_meta[cell_ref].font = bold_font
+            ws_meta[cell_ref].border = thin_border_meta
         
-        # Apply blue background to specific cells in row 6
-        for cell_ref in ['D6', 'G6']:
+        # Apply blue background to specific cells in row 6 and 7
+        for cell_ref in ['D6', 'G6', 'D7', 'G7']:
             ws_meta[cell_ref].fill = blue_fill
             ws_meta[cell_ref].font = bold_font
+            ws_meta[cell_ref].border = thin_border_meta
+        
+        # Apply blue background to D4 and E4
+        for cell_ref in ['D4', 'E4']:
+            ws_meta[cell_ref].fill = blue_fill
+            ws_meta[cell_ref].font = bold_font
+            ws_meta[cell_ref].border = thin_border_meta
+        
+        # Apply borders to all data cells (without blue background)
+        for cell_ref in ['A2', 'B2', 'B4', 'B5', 'B6', 'B7', 'B9', 'B10', 'B11']:
+            ws_meta[cell_ref].border = thin_border_meta
+        
+        # Apply borders to cells in rows 6 and 7 (E6, E7, H6, H7 - these may be empty)
+        for cell_ref in ['E6', 'E7', 'H6', 'H7']:
+            ws_meta[cell_ref].border = thin_border_meta
         
         # === SHEET 2: Prices (Data) ===
         ws = wb.create_sheet(title="Prices")
