@@ -41836,9 +41836,9 @@ async def fetch_all_caralliance_periods_from_db(location: str):
         day_start = period_tuple[2]
         day_end = period_tuple[3]
         
-        # Format dates (DD.MM.YYYY.)
-        start_date = f"{str(day_start).zfill(2)}.{str(month).zfill(2)}.{year}."
-        end_date = f"{str(day_end).zfill(2)}.{str(month).zfill(2)}.{year}."
+        # Format dates (DD/MM/YYYY) - Excel will format as DD.MM.YYYY. visually
+        start_date = f"{str(day_start).zfill(2)}/{str(month).zfill(2)}/{year}"
+        end_date = f"{str(day_end).zfill(2)}/{str(month).zfill(2)}/{year}"
         
         # Process each SIPP code
         for sipp_info in caralliance_sipps:
