@@ -193,6 +193,13 @@ def send_daily_report_for_schedule(schedule, schedule_index):
     logging.info(f"   Days: {schedule.get('days')}")
     logging.info(f"   Locations: {schedule.get('locations')}")
     
+    # PROTEÇÃO: Verificar se daily reports ainda estão enabled
+    settings = load_advanced_settings()
+    if not settings or not settings.get('daily', {}).get('enabled'):
+        print(f"⚠️  ABORTED: Daily reports are DISABLED in database", flush=True)
+        logging.warning(f"⚠️  ABORTED: Daily reports are DISABLED in database")
+        return
+    
     try:
         from googleapiclient.discovery import build
         from google.oauth2.credentials import Credentials
@@ -448,6 +455,13 @@ def execute_search_for_schedule(schedule, schedule_index):
     print(f"   Search Time: {schedule.get('searchTime')}", flush=True)
     print(f"   Days: {schedule.get('days')}", flush=True)
     print(f"   Locations: {schedule.get('locations')}", flush=True)
+    
+    # PROTEÇÃO: Verificar se daily reports ainda estão enabled
+    settings = load_advanced_settings()
+    if not settings or not settings.get('daily', {}).get('enabled'):
+        print(f"⚠️  ABORTED: Daily reports are DISABLED in database", flush=True)
+        print(f"   Skipping search execution.", flush=True)
+        return
     
     try:
         from datetime import datetime, timedelta
@@ -746,15 +760,15 @@ def execute_weekly_search():
     print(f"🔍 EXECUTING WEEKLY SEARCH", flush=True)
     print(f"{'='*80}", flush=True)
     
+    # PROTEÇÃO: Verificar se weekly reports ainda estão enabled
+    settings = load_advanced_settings()
+    if not settings or not settings.get('weekly', {}).get('enabled'):
+        print("⚠️  ABORTED: Weekly search is DISABLED in database", flush=True)
+        return
+    
     try:
         import asyncio
         from datetime import datetime, timedelta
-        
-        # Load weekly settings
-        settings = load_advanced_settings()
-        if not settings or not settings.get('weekly', {}).get('enabled'):
-            print("⚠️ Weekly search not enabled", flush=True)
-            return
         
         weekly_config = settings['weekly']
         days = weekly_config.get('days', [7, 14, 30])  # Default durations
@@ -816,15 +830,15 @@ def execute_monthly_search():
     print(f"🔍 EXECUTING MONTHLY SEARCH", flush=True)
     print(f"{'='*80}", flush=True)
     
+    # PROTEÇÃO: Verificar se monthly reports ainda estão enabled
+    settings = load_advanced_settings()
+    if not settings or not settings.get('monthly', {}).get('enabled'):
+        print("⚠️  ABORTED: Monthly search is DISABLED in database", flush=True)
+        return
+    
     try:
         import asyncio
         from datetime import datetime, timedelta
-        
-        # Load monthly settings
-        settings = load_advanced_settings()
-        if not settings or not settings.get('monthly', {}).get('enabled'):
-            print("⚠️ Monthly search not enabled", flush=True)
-            return
         
         monthly_config = settings['monthly']
         days = monthly_config.get('days', [7, 14, 30, 60])
