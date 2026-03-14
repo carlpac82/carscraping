@@ -2278,38 +2278,32 @@
         // Download CarAlliance: Formato específico com SIPP codes e daily prices
         async function downloadCarAlliancePeriod(periodOption) {
             try {
-                console.log('Iniciando download CarAlliance...');
+                console.log('Iniciando download CarAlliance com opção:', periodOption);
                 
                 const location = document.querySelector('#locationSelect').value;
                 const month = document.querySelector('#monthSelect').value;
                 const year = document.querySelector('#yearSelect').value;
                 
                 let dayStart = 1;
-                let dayEnd = new Date(year, month, 0).getDate(); // Last day of the month
+                let dayEnd = new Date(year, month, 0).getDate();
                 
                 if (periodOption === 'selected') {
-                    // Use only the currently selected period
                     if (allPeriods.length > 0 && currentPeriodIndex >= 0 && currentPeriodIndex < allPeriods.length) {
                         dayStart = allPeriods[currentPeriodIndex].day_start || 1;
                         dayEnd = allPeriods[currentPeriodIndex].day_end || dayEnd;
                     }
                 }
-                // For 'all' option, backend will fetch ALL periods from ALL months
                 
-                // Calculate start and end dates (DD.MM.YYYY. format)
                 const startDate = `${String(dayStart).padStart(2,'0')}.${String(month).padStart(2,'0')}.${year}.`;
                 const endDate = `${String(dayEnd).padStart(2,'0')}.${String(month).padStart(2,'0')}.${year}.`;
                 
-                // Fetch CarAlliance commission from Admin Settings
                 const commissionResponse = await fetch('/api/admin-settings/caralliance-commission');
                 const commissionData = await commissionResponse.json();
                 const commission = commissionData.ok ? commissionData.caralliance_commission_pct : 0;
                 console.log('Comissão CarAlliance:', commission);
                 
-                // Office code based on location
                 const office = location === 'Aeroporto de Faro' ? 'FAO' : 'ABF';
                 
-                // CarAlliance SIPP codes (sem grupos K)
                 const carallianceSipps = [
                     {sipp: 'MDMV', grupo: 'B1'},
                     {sipp: 'MDMR', grupo: 'B2'},
@@ -2329,10 +2323,11 @@
                     {sipp: 'LVMD', grupo: 'N'}
                 ];
                 
-                // For 'all' periods, backend will fetch data from database
-                // For 'selected' period, we send current visible data
-                const data = periodOption === 'all' ? [] : collectCarAllianceData(commission, carallianceSipps, startDate, endDate, office);
-                console.log('Dados CarAlliance coletados:', data.length, 'linhas');
+                let data = [];
+                if (periodOption === 'selected') {
+                    data = collectCarAllianceData(commission, carallianceSipps, startDate, endDate, office);
+                    console.log('Dados CarAlliance coletados (período selecionado):', data.length, 'linhas');
+                }
                 
                 await downloadCarAllianceExcel(data, location, startDate, endDate, month, dayEnd, periodOption);
                 console.log('Download CarAlliance concluído!');

@@ -41761,24 +41761,62 @@ async def fetch_all_caralliance_periods_from_db(location: str):
     
     # Fetch CarAlliance commission
     commission_pct = 0
+    conn = _db_connect()
+    is_postgres = _is_postgresql_connection(conn)
+    
     try:
-        result = await db.fetch_one("SELECT caralliance_commission_pct FROM admin_settings LIMIT 1")
-        if result:
-            commission_pct = result['caralliance_commission_pct'] or 0
+        if is_postgres:
+            cur = conn.cursor()
+            cur.execute("SELECT caralliance_commission_pct FROM admin_settings LIMIT 1")
+            result = cur.fetchone()
+            if result:
+                commission_pct = result[0] or 0
+            cur.close()
+        else:
+            cur = conn.cursor()
+            cur.execute("SELECT caralliance_commission_pct FROM admin_settings LIMIT 1")
+            result = cur.fetchone()
+            if result:
+                commission_pct = result[0] or 0
+            cur.close()
     except Exception as e:
         logging.warning(f"Could not fetch CarAlliance commission: {e}")
     
     # Fetch all periods from database
-    query = """
-        SELECT location, month, year, day_start, day_end, grupo, 
-               day_1, day_2, day_3, day_4, day_5, day_6, day_7, 
-               day_8, day_9, day_14, day_22, day_28
-        FROM periods
-        WHERE location = :location
-        ORDER BY year, month, day_start
-    """
+    try:
+        if is_postgres:
+            cur = conn.cursor()
+            cur.execute("""
+                SELECT location, month, year, day_start, day_end, grupo, 
+                       day_1, day_2, day_3, day_4, day_5, day_6, day_7, 
+                       day_8, day_9, day_14, day_22, day_28
+                FROM periods
+                WHERE location = %s
+                ORDER BY year, month, day_start
+            """, (location,))
+            periods = cur.fetchall()
+            columns = [desc[0] for desc in cur.description]
+            cur.close()
+        else:
+            cur = conn.cursor()
+            cur.execute("""
+                SELECT location, month, year, day_start, day_end, grupo, 
+                       day_1, day_2, day_3, day_4, day_5, day_6, day_7, 
+                       day_8, day_9, day_14, day_22, day_28
+                FROM periods
+                WHERE location = ?
+                ORDER BY year, month, day_start
+            """, (location,))
+            periods = cur.fetchall()
+            columns = [desc[0] for desc in cur.description]
+            cur.close()
+    except Exception as e:
+        logging.error(f"Error fetching periods: {e}")
+        conn.close()
+        return []
     
-    periods = await db.fetch_all(query, {"location": location})
+    # Convert to list of dicts
+    periods = [dict(zip(columns, row)) for row in periods]
     
     all_rows = []
     
@@ -41845,6 +41883,7 @@ async def fetch_all_caralliance_periods_from_db(location: str):
             
             all_rows.append(row)
     
+    conn.close()
     return all_rows
 
 @app.post("/api/export-caralliance-excel")
