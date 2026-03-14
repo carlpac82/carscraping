@@ -41830,11 +41830,11 @@ async def fetch_all_caralliance_periods_from_db(location: str):
         {'key': '22_plus', 'sourceDays': 28, 'divideBy': 28}
     ]
     
-    for period in periods:
-        month = period['month']
-        year = period['year']
-        day_start = period['day_start']
-        day_end = period['day_end']
+    for period_tuple in all_periods:
+        month = period_tuple[0]
+        year = period_tuple[1]
+        day_start = period_tuple[2]
+        day_end = period_tuple[3]
         
         # Format dates (DD.MM.YYYY.)
         start_date = f"{str(day_start).zfill(2)}.{str(month).zfill(2)}.{year}."
@@ -41845,12 +41845,36 @@ async def fetch_all_caralliance_periods_from_db(location: str):
             grupo = sipp_info['grupo']
             sipp = sipp_info['sipp']
             
-            # Get prices for this group from this period
+            # Get prices for this group from this period from current_prices table
             grupo_prices = {}
-            for day_col in [1, 2, 3, 4, 5, 6, 7, 8, 9, 14, 22, 28]:
-                col_name = f'day_{day_col}'
-                if col_name in period and period[col_name] is not None:
-                    grupo_prices[day_col] = float(period[col_name])
+            try:
+                if is_postgres:
+                    with conn.cursor() as price_cur:
+                        price_cur.execute("""
+                            SELECT day_1, day_2, day_3, day_4, day_5, day_6, day_7, day_8, day_9, day_14, day_22, day_28
+                            FROM current_prices
+                            WHERE location = %s AND month = %s AND year = %s AND day_start = %s AND day_end = %s AND grupo = %s
+                            LIMIT 1
+                        """, (location, month, year, day_start, day_end, grupo))
+                        price_row = price_cur.fetchone()
+                else:
+                    price_cur = conn.cursor()
+                    price_cur.execute("""
+                        SELECT day_1, day_2, day_3, day_4, day_5, day_6, day_7, day_8, day_9, day_14, day_22, day_28
+                        FROM current_prices
+                        WHERE location = ? AND month = ? AND year = ? AND day_start = ? AND day_end = ? AND grupo = ?
+                        LIMIT 1
+                    """, (location, month, year, day_start, day_end, grupo))
+                    price_row = price_cur.fetchone()
+                    price_cur.close()
+                
+                if price_row:
+                    day_columns = [1, 2, 3, 4, 5, 6, 7, 8, 9, 14, 22, 28]
+                    for idx, day_col in enumerate(day_columns):
+                        if price_row[idx] is not None:
+                            grupo_prices[day_col] = float(price_row[idx])
+            except Exception as e:
+                logging.error(f"Error fetching prices for grupo {grupo}, period {month}/{year}: {e}")
             
             # Calculate CarAlliance prices using formula: (Net ÷ dias) × (1 + comissão%) ÷ 1.23
             prices = {}
