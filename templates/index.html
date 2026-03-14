@@ -1883,13 +1883,16 @@
                 const year = document.querySelector('#yearSelect').value;
                 
                 let dayStart = 1;
-                let dayEnd = new Date(year, month, 0).getDate(); // Last day of the month
+                let maxDaysInMonth = new Date(year, month, 0).getDate(); // Last day of the month
+                let dayEnd = maxDaysInMonth;
                 
                 if (periodOption === 'selected') {
                     // Use only the currently selected period
                     if (allPeriods.length > 0 && currentPeriodIndex >= 0 && currentPeriodIndex < allPeriods.length) {
                         dayStart = allPeriods[currentPeriodIndex].day_start || 1;
-                        dayEnd = allPeriods[currentPeriodIndex].day_end || dayEnd;
+                        let dayEndFromDB = allPeriods[currentPeriodIndex].day_end || dayEnd;
+                        // Validate and correct day_end if it exceeds the actual days in the month
+                        dayEnd = dayEndFromDB > maxDaysInMonth ? maxDaysInMonth : dayEndFromDB;
                     }
                 }
                 // For 'all' option, backend will fetch ALL periods from ALL months
@@ -2288,12 +2291,15 @@
                 const year = document.querySelector('#yearSelect').value;
                 
                 let dayStart = 1;
-                let dayEnd = new Date(year, month, 0).getDate();
+                let maxDaysInMonth = new Date(year, month, 0).getDate();
+                let dayEnd = maxDaysInMonth;
                 
                 if (periodOption === 'selected') {
                     if (allPeriods.length > 0 && currentPeriodIndex >= 0 && currentPeriodIndex < allPeriods.length) {
                         dayStart = allPeriods[currentPeriodIndex].day_start || 1;
-                        dayEnd = allPeriods[currentPeriodIndex].day_end || dayEnd;
+                        let dayEndFromDB = allPeriods[currentPeriodIndex].day_end || dayEnd;
+                        // Validate and correct day_end if it exceeds the actual days in the month
+                        dayEnd = dayEndFromDB > maxDaysInMonth ? maxDaysInMonth : dayEndFromDB;
                     }
                 }
                 

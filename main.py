@@ -41834,16 +41834,17 @@ async def fetch_all_caralliance_periods_from_db(location: str):
         month = period_tuple[0]
         year = period_tuple[1]
         day_start = period_tuple[2]
-        day_end = period_tuple[3]
+        day_end_original = period_tuple[3]
         
         # Validate and correct day_end if it exceeds the actual days in the month
         max_days_in_month = calendar.monthrange(year, month)[1]
-        if day_end > max_days_in_month:
-            day_end = max_days_in_month
+        day_end_corrected = day_end_original
+        if day_end_original > max_days_in_month:
+            day_end_corrected = max_days_in_month
         
         # Format dates (DD/MM/YYYY) - Excel will format as DD.MM.YYYY. visually
         start_date = f"{str(day_start).zfill(2)}/{str(month).zfill(2)}/{year}"
-        end_date = f"{str(day_end).zfill(2)}/{str(month).zfill(2)}/{year}"
+        end_date = f"{str(day_end_corrected).zfill(2)}/{str(month).zfill(2)}/{year}"
         
         # Process each SIPP code
         for sipp_info in caralliance_sipps:
@@ -41860,7 +41861,7 @@ async def fetch_all_caralliance_periods_from_db(location: str):
                             FROM current_prices
                             WHERE location = %s AND month = %s AND year = %s AND day_start = %s AND day_end = %s
                             LIMIT 1
-                        """, (location, month, year, day_start, day_end))
+                        """, (location, month, year, day_start, day_end_original))
                         result = price_cur.fetchone()
                 else:
                     price_cur = conn.cursor()
@@ -41869,7 +41870,7 @@ async def fetch_all_caralliance_periods_from_db(location: str):
                         FROM current_prices
                         WHERE location = ? AND month = ? AND year = ? AND day_start = ? AND day_end = ?
                         LIMIT 1
-                    """, (location, month, year, day_start, day_end))
+                    """, (location, month, year, day_start, day_end_original))
                     result = price_cur.fetchone()
                     price_cur.close()
                 
