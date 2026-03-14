@@ -41927,7 +41927,7 @@ async def fetch_all_caralliance_periods_from_db(location: str):
                 'M1': {1: 297.00, 2: 450.00, 3: 750.00, 4: 800.00},  # SVMR/SVMD - Dacia Jogger/Citroen Grand C4
                 'M2': {1: 342.00, 2: 500.00, 3: 850.00, 4: 900.00},  # SVAD - Citroen Grand C4 Automatic
                 'N': {1: 342.00, 2: 500.00, 3: 850.00, 4: 900.00},   # LVMD - Fiat Talento
-                'IWAR': {1: 297.00, 2: 450.00, 3: 750.00, 4: 800.00}  # IWAR - Mesmo que M1
+                'L2': {1: 297.00, 2: 450.00, 3: 750.00, 4: 800.00}   # IWAR - Mesmo que M1
             }
             
             # Calculate CarAlliance prices using formula: (Net ÷ dias) × (1 + comissão%) ÷ 1.23
