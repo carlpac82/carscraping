@@ -41851,28 +41851,41 @@ async def fetch_all_caralliance_periods_from_db(location: str):
                 if is_postgres:
                     with conn.cursor() as price_cur:
                         price_cur.execute("""
-                            SELECT day_1, day_2, day_3, day_4, day_5, day_6, day_7, day_8, day_9, day_14, day_22, day_28
+                            SELECT prices_data
                             FROM current_prices
-                            WHERE location = %s AND month = %s AND year = %s AND day_start = %s AND day_end = %s AND grupo = %s
+                            WHERE location = %s AND month = %s AND year = %s AND day_start = %s AND day_end = %s
                             LIMIT 1
-                        """, (location, month, year, day_start, day_end, grupo))
-                        price_row = price_cur.fetchone()
+                        """, (location, month, year, day_start, day_end))
+                        result = price_cur.fetchone()
                 else:
                     price_cur = conn.cursor()
                     price_cur.execute("""
-                        SELECT day_1, day_2, day_3, day_4, day_5, day_6, day_7, day_8, day_9, day_14, day_22, day_28
+                        SELECT prices_data
                         FROM current_prices
-                        WHERE location = ? AND month = ? AND year = ? AND day_start = ? AND day_end = ? AND grupo = ?
+                        WHERE location = ? AND month = ? AND year = ? AND day_start = ? AND day_end = ?
                         LIMIT 1
-                    """, (location, month, year, day_start, day_end, grupo))
-                    price_row = price_cur.fetchone()
+                    """, (location, month, year, day_start, day_end))
+                    result = price_cur.fetchone()
                     price_cur.close()
                 
-                if price_row:
-                    day_columns = [1, 2, 3, 4, 5, 6, 7, 8, 9, 14, 22, 28]
-                    for idx, day_col in enumerate(day_columns):
-                        if price_row[idx] is not None:
-                            grupo_prices[day_col] = float(price_row[idx])
+                if result:
+                    # Parse prices_data JSON
+                    import json
+                    prices_data = json.loads(result[0]) if isinstance(result[0], str) else result[0]
+                    
+                    # Get prices for this grupo
+                    if grupo in prices_data:
+                        precos = prices_data[grupo]
+                        dias_map = {
+                            1: '1_day_fixed', 2: '2_day_fixed', 3: '3_day_fixed',
+                            4: '4_day_fixed', 5: '5_day_fixed', 6: '6_day_fixed',
+                            7: '7_day_fixed', 8: '8_10_daily', 9: '11_12_daily',
+                            14: '13_14_daily', 22: '15_21_daily', 28: '22_28_daily'
+                        }
+                        
+                        for dias, key in dias_map.items():
+                            if key in precos and precos[key]:
+                                grupo_prices[dias] = float(precos[key])
             except Exception as e:
                 logging.error(f"Error fetching prices for grupo {grupo}, period {month}/{year}: {e}")
                 # Rollback transaction if PostgreSQL
@@ -41976,16 +41989,10 @@ async def export_caralliance_excel(request: Request):
         right_align = Alignment(horizontal='right', vertical='center')
         left_align = Alignment(horizontal='left', vertical='center')
         
-        # Define alternating colors for periods (pastel colors like Abbycar)
+        # Define alternating colors for periods (blue and white)
         period_colors = [
-            'E3F2FD',  # Light Blue
-            'F3E5F5',  # Light Purple
-            'E8F5E9',  # Light Green
-            'FFF3E0',  # Light Orange
-            'FCE4EC',  # Light Pink
-            'F1F8E9',  # Light Lime
-            'E0F2F1',  # Light Teal
-            'FFF9C4'   # Light Yellow
+            'D6EAF8',  # Light Blue
+            'FFFFFF'   # White
         ]
         
         # Track current period for alternating colors
