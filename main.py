@@ -42054,24 +42054,24 @@ async def export_caralliance_excel(request: Request):
             ws_meta[cell_ref].font = bold_font
             ws_meta[cell_ref].border = thin_border_meta
         
-        # Apply blue background to specific cells in row 6 and 7
-        for cell_ref in ['D6', 'E6', 'G6', 'H6', 'D7', 'E7', 'G7', 'H7']:
+        # Apply blue background to D4, E4 (G4 sem cor)
+        for cell_ref in ['D4', 'E4']:
             ws_meta[cell_ref].fill = blue_fill
             ws_meta[cell_ref].font = bold_font
             ws_meta[cell_ref].border = thin_border_meta
         
-        # Apply blue background to D4, E4, G4, H4
-        for cell_ref in ['D4', 'E4', 'G4', 'H4']:
+        # Apply blue background to specific cells in row 6 and 7 (F6, F7, G6, G7 sem cor)
+        for cell_ref in ['D6', 'E6', 'H6', 'D7', 'E7', 'H7']:
             ws_meta[cell_ref].fill = blue_fill
             ws_meta[cell_ref].font = bold_font
             ws_meta[cell_ref].border = thin_border_meta
         
-        # Apply borders to ALL cells in the metadata structure (including empty cells)
-        all_meta_cells = ['A2', 'B2', 'A4', 'B4', 'D4', 'E4', 'G4', 'H4', 
-                          'A5', 'B5', 'A6', 'B6', 'D6', 'E6', 'F6', 'G6', 'H6',
-                          'A7', 'B7', 'D7', 'E7', 'F7', 'G7', 'H7',
+        # Apply borders to cells WITH borders (G4, G5, F6, F7 sem bordas)
+        bordered_cells = ['A2', 'B2', 'A4', 'B4', 'D4', 'E4', 'H4', 
+                          'A5', 'B5', 'A6', 'B6', 'D6', 'E6', 'H6',
+                          'A7', 'B7', 'D7', 'E7', 'H7',
                           'A9', 'B9', 'A10', 'B10', 'A11', 'B11']
-        for cell_ref in all_meta_cells:
+        for cell_ref in bordered_cells:
             ws_meta[cell_ref].border = thin_border_meta
         
         # === SHEET 2: Prices (Data) ===
