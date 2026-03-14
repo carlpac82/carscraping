@@ -42022,6 +42022,20 @@ async def export_caralliance_excel(request: Request):
         ws_meta['A11'] = 'Pricelist delay rule'
         ws_meta['B11'] = 'Agency Rule'
         
+        # Apply formatting to metadata sheet (blue background and bold)
+        blue_fill = PatternFill(start_color='B4C7E7', end_color='B4C7E7', fill_type='solid')
+        bold_font = Font(bold=True)
+        
+        # Apply blue background to label cells in column A
+        for cell_ref in ['A4', 'A5', 'A6', 'A7', 'A9', 'A10', 'A11']:
+            ws_meta[cell_ref].fill = blue_fill
+            ws_meta[cell_ref].font = bold_font
+        
+        # Apply blue background to specific cells in row 6
+        for cell_ref in ['D6', 'G6']:
+            ws_meta[cell_ref].fill = blue_fill
+            ws_meta[cell_ref].font = bold_font
+        
         # === SHEET 2: Prices (Data) ===
         ws = wb.create_sheet(title="Prices")
         
