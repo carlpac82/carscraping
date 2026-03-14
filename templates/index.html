@@ -2278,6 +2278,9 @@
         // Download CarAlliance: Formato específico com SIPP codes e daily prices
         async function downloadCarAlliancePeriod(periodOption) {
             try {
+                // Show loading spinner
+                showLoading();
+                
                 console.log('Iniciando download CarAlliance com opção:', periodOption);
                 
                 const location = document.querySelector('#locationSelect').value;
@@ -2323,9 +2326,11 @@
                     {sipp: 'LVMD', grupo: 'N'}
                 ];
                 
-                let data = [];
+                // For 'all' periods, backend will fetch from database
+                // For 'selected' period, we send current visible data
+                const data = periodOption === 'all' ? [] : collectCarAllianceData(commission, carallianceSipps, startDate, endDate, office);
+                
                 if (periodOption === 'selected') {
-                    data = collectCarAllianceData(commission, carallianceSipps, startDate, endDate, office);
                     console.log('Dados CarAlliance coletados (período selecionado):', data.length, 'linhas');
                 }
                 
@@ -2334,6 +2339,9 @@
             } catch (error) {
                 console.error('Erro no download CarAlliance:', error);
                 alert('Erro ao gerar ficheiro CarAlliance: ' + error.message);
+            } finally {
+                // Hide loading spinner
+                hideLoading();
             }
         }
 

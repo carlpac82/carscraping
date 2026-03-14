@@ -41904,7 +41904,7 @@ async def fetch_all_caralliance_periods_from_db(location: str):
                 net_price = grupo_prices.get(source_days, 0)
                 if net_price > 0:
                     daily_price = net_price / divide_by
-                    with_commission = daily_price * (1 + commission_pct / 100)
+                    with_commission = daily_price * (1 + commission_pct / 100)  # Using commission_pct from line 41776
                     final_price = with_commission / 1.23
                     prices[col['key']] = round(final_price, 2)
                 else:
