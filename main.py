@@ -41896,6 +41896,24 @@ async def fetch_all_caralliance_periods_from_db(location: str):
                     except:
                         pass
             
+            # Default fixed prices for 1-4 days in Faro only (same as Abbycar)
+            # Map CarAlliance grupos to default prices
+            default_prices_faro_caralliance = {
+                'B1': {1: 250.00, 2: 200.00, 3: 400.00, 4: 450.00},  # MDMV - Peugeot 108
+                'B2': {1: 250.00, 2: 200.00, 3: 400.00, 4: 450.00},  # MDMR - Fiat Panda
+                'D': {1: 250.00, 2: 200.00, 3: 400.00, 4: 450.00},   # EDMV - Opel Corsa
+                'E1': {1: 250.00, 2: 200.00, 3: 400.00, 4: 450.00},  # MDAR - Kia Picanto
+                'E2': {1: 250.00, 2: 200.00, 3: 400.00, 4: 500.00},  # EDAV - Citroen C3/Opel Corsa
+                'F': {1: 250.00, 2: 200.00, 3: 400.00, 4: 500.00},   # CFMR - Seat Arona
+                'G': {1: 250.00, 2: 250.00, 3: 500.00, 4: 550.00},   # MTMR - Fiat 500 Cabrio
+                'J1': {1: 250.00, 2: 250.00, 3: 500.00, 4: 550.00},  # CFMV - Peugeot 2008
+                'J2': {1: 250.00, 2: 250.00, 3: 500.00, 4: 550.00},  # IWMR - Peugeot 308 SW
+                'L1': {1: 250.00, 2: 270.00, 3: 550.00, 4: 600.00},  # CFAR/CGAR - Seat Arona/Citroen C3 Aircross
+                'M1': {1: 297.00, 2: 450.00, 3: 750.00, 4: 800.00},  # SVMR/SVMD - Dacia Jogger/Citroen Grand C4
+                'M2': {1: 342.00, 2: 500.00, 3: 850.00, 4: 900.00},  # SVAD - Citroen Grand C4 Automatic
+                'N': {1: 342.00, 2: 500.00, 3: 850.00, 4: 900.00}    # LVMD - Fiat Talento
+            }
+            
             # Calculate CarAlliance prices using formula: (Net ÷ dias) × (1 + comissão%) ÷ 1.23
             prices = {}
             for col in column_mapping:
@@ -41903,11 +41921,27 @@ async def fetch_all_caralliance_periods_from_db(location: str):
                 divide_by = col['divideBy']
                 
                 net_price = grupo_prices.get(source_days, 0)
-                if net_price > 0:
-                    daily_price = net_price / divide_by
-                    with_commission = daily_price * (1 + commission_pct / 100)  # Using commission_pct from line 41776
-                    final_price = with_commission / 1.23
-                    prices[col['key']] = round(final_price, 2)
+                use_fixed_price = False
+                
+                # Use default price if no price in database for days 1-4 and location is Aeroporto de Faro
+                if (not net_price or float(net_price) <= 0) and location == 'Aeroporto de Faro' and source_days <= 4:
+                    if grupo in default_prices_faro_caralliance:
+                        grupo_defaults = default_prices_faro_caralliance[grupo]
+                        if source_days in grupo_defaults:
+                            net_price = grupo_defaults[source_days]
+                            use_fixed_price = True  # Don't apply commission to fixed prices
+                
+                if net_price and float(net_price) > 0:
+                    if use_fixed_price:
+                        # Fixed price - apply CarAlliance formula without commission: Net ÷ 1.23
+                        final_price = float(net_price) / 1.23
+                        prices[col['key']] = round(final_price, 2)
+                    else:
+                        # Apply commission to database prices
+                        daily_price = net_price / divide_by
+                        with_commission = daily_price * (1 + commission_pct / 100)
+                        final_price = with_commission / 1.23
+                        prices[col['key']] = round(final_price, 2)
                 else:
                     prices[col['key']] = ''
             
