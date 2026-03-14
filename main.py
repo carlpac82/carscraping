@@ -41879,6 +41879,11 @@ async def fetch_all_caralliance_periods_from_db(location: str):
                     import json
                     prices_data = json.loads(result[0]) if isinstance(result[0], str) else result[0]
                     
+                    # DEBUG: Log L2 data from database
+                    if grupo == 'L2':
+                        logging.info(f"🔍 [DEBUG-L2-DB] Período: {month}/{year} dias {day_start}-{day_end_original}")
+                        logging.info(f"🔍 [DEBUG-L2-DB] Dados L2 da BD: {prices_data.get('L2', 'NÃO ENCONTRADO')}")
+                    
                     # Get prices for this grupo
                     if grupo in prices_data:
                         precos = prices_data[grupo]
@@ -41894,6 +41899,9 @@ async def fetch_all_caralliance_periods_from_db(location: str):
                             net_price = precos.get(str(dias), precos.get(old_key, 0))
                             if net_price and float(net_price) > 0:
                                 grupo_prices[dias] = float(net_price)
+                                # DEBUG: Log L2 price extraction
+                                if grupo == 'L2' and dias == 2:
+                                    logging.info(f"🔍 [DEBUG-L2-DB] Extraído preço 2 dias: {net_price}")
             except Exception as e:
                 logging.error(f"Error fetching prices for grupo {grupo}, period {month}/{year}: {e}")
                 # Rollback transaction if PostgreSQL
