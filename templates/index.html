@@ -555,6 +555,36 @@
         </div>
     </div>
 
+    <!-- Modal para opções de download CarAlliance -->
+    <div id="carallianceDownloadModal" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.6); z-index: 9998; align-items: center; justify-content: center; backdrop-filter: blur(4px);">
+        <div style="background: white; padding: 32px; border-radius: 12px; max-width: 450px; width: 90%; box-shadow: 0 20px 25px -5px rgba(0,0,0,0.1);">
+            <h3 style="margin: 0 0 8px 0; font-size: 20px; font-weight: 700; color: #1e3a5f;">Download CarAlliance</h3>
+            <p style="margin: 0 0 24px 0; font-size: 14px; color: #6b7280;">Escolha qual período deseja exportar:</p>
+            
+            <div style="display: flex; flex-direction: column; gap: 12px; margin-bottom: 24px;">
+                <button onclick="confirmCarAllianceDownload('selected')" style="padding: 16px 20px; background: #1e3a5f; color: white; border: none; border-radius: 8px; font-size: 15px; font-weight: 600; cursor: pointer; transition: all 0.2s;" onmouseover="this.style.background='#152d4a'; this.style.transform='translateY(-2px)'; this.style.boxShadow='0 4px 12px rgba(30,58,95,0.3)'" onmouseout="this.style.background='#1e3a5f'; this.style.transform='translateY(0)'; this.style.boxShadow='none'">
+                    <div style="display: flex; flex-direction: column; align-items: flex-start; gap: 4px;">
+                        <span>Período Selecionado</span>
+                        <span id="selectedPeriodDatesCA" style="font-size: 13px; font-weight: 400; opacity: 0.9;"></span>
+                    </div>
+                </button>
+                
+                <button onclick="confirmCarAllianceDownload('all')" style="padding: 16px 20px; background: #f3f4f6; color: #374151; border: 2px solid #e5e7eb; border-radius: 8px; font-size: 15px; font-weight: 600; cursor: pointer; transition: all 0.2s;" onmouseover="this.style.background='#e5e7eb'; this.style.borderColor='#d1d5db'; this.style.transform='translateY(-2px)'; this.style.boxShadow='0 4px 12px rgba(0,0,0,0.1)'" onmouseout="this.style.background='#f3f4f6'; this.style.borderColor='#e5e7eb'; this.style.transform='translateY(0)'; this.style.boxShadow='none'">
+                    <div style="display: flex; flex-direction: column; align-items: flex-start; gap: 4px;">
+                        <span>Todos os Períodos</span>
+                        <span id="allPeriodsDatesCA" style="font-size: 13px; font-weight: 400; color: #6b7280;">Todos os períodos de todos os meses guardados</span>
+                    </div>
+                </button>
+            </div>
+            
+            <div style="display: flex; justify-content: flex-end;">
+                <button onclick="closeCarAllianceDownloadModal()" style="padding: 10px 20px; background: transparent; color: #6b7280; border: none; font-size: 14px; font-weight: 600; cursor: pointer; transition: color 0.2s;" onmouseover="this.style.color='#374151'" onmouseout="this.style.color='#6b7280'">
+                    Cancelar
+                </button>
+            </div>
+        </div>
+    </div>
+
     <script>
         // Funções para mostrar/esconder loading com percentagem animada
         let loadingInterval;
@@ -2206,8 +2236,47 @@
             document.body.removeChild(link);
         }
 
+        // Show CarAlliance download modal
+        function downloadCarAlliance() {
+            const month = document.querySelector('#monthSelect').value;
+            const year = document.querySelector('#yearSelect').value;
+            const monthNames = ['JAN', 'FEV', 'MAR', 'ABR', 'MAI', 'JUN', 'JUL', 'AGO', 'SET', 'OUT', 'NOV', 'DEZ'];
+            const monthName = monthNames[parseInt(month) - 1];
+            
+            // Get selected period dates
+            let selectedPeriodText = '';
+            if (allPeriods.length > 0 && currentPeriodIndex >= 0 && currentPeriodIndex < allPeriods.length) {
+                const dayStart = allPeriods[currentPeriodIndex].day_start;
+                const dayEnd = allPeriods[currentPeriodIndex].day_end;
+                selectedPeriodText = `${dayStart}-${dayEnd} ${monthName}`;
+            } else {
+                selectedPeriodText = 'Nenhum período selecionado';
+            }
+            
+            // Update modal text
+            document.getElementById('selectedPeriodDatesCA').textContent = selectedPeriodText;
+            
+            document.getElementById('carallianceDownloadModal').style.display = 'flex';
+        }
+        
+        // Close CarAlliance download modal
+        function closeCarAllianceDownloadModal() {
+            document.getElementById('carallianceDownloadModal').style.display = 'none';
+        }
+        
+        // Confirm CarAlliance download with selected option
+        async function confirmCarAllianceDownload(option) {
+            closeCarAllianceDownloadModal();
+            
+            if (option === 'selected') {
+                await downloadCarAlliancePeriod('selected');
+            } else if (option === 'all') {
+                await downloadCarAlliancePeriod('all');
+            }
+        }
+        
         // Download CarAlliance: Formato específico com SIPP codes e daily prices
-        async function downloadCarAlliance() {
+        async function downloadCarAlliancePeriod(periodOption) {
             try {
                 console.log('Iniciando download CarAlliance...');
                 
@@ -2215,10 +2284,21 @@
                 const month = document.querySelector('#monthSelect').value;
                 const year = document.querySelector('#yearSelect').value;
                 
-                // Calculate start and end dates for the month (DD.MM.YYYY. format)
-                const lastDay = new Date(year, month, 0).getDate();
-                const startDate = `${String(1).padStart(2,'0')}.${String(month).padStart(2,'0')}.${year}.`;
-                const endDate = `${String(lastDay).padStart(2,'0')}.${String(month).padStart(2,'0')}.${year}.`;
+                let dayStart = 1;
+                let dayEnd = new Date(year, month, 0).getDate(); // Last day of the month
+                
+                if (periodOption === 'selected') {
+                    // Use only the currently selected period
+                    if (allPeriods.length > 0 && currentPeriodIndex >= 0 && currentPeriodIndex < allPeriods.length) {
+                        dayStart = allPeriods[currentPeriodIndex].day_start || 1;
+                        dayEnd = allPeriods[currentPeriodIndex].day_end || dayEnd;
+                    }
+                }
+                // For 'all' option, backend will fetch ALL periods from ALL months
+                
+                // Calculate start and end dates (DD.MM.YYYY. format)
+                const startDate = `${String(dayStart).padStart(2,'0')}.${String(month).padStart(2,'0')}.${year}.`;
+                const endDate = `${String(dayEnd).padStart(2,'0')}.${String(month).padStart(2,'0')}.${year}.`;
                 
                 // Fetch CarAlliance commission from Admin Settings
                 const commissionResponse = await fetch('/api/admin-settings/caralliance-commission');
@@ -2249,10 +2329,12 @@
                     {sipp: 'LVMD', grupo: 'N'}
                 ];
                 
-                const data = collectCarAllianceData(commission, carallianceSipps, startDate, endDate, office);
+                // For 'all' periods, backend will fetch data from database
+                // For 'selected' period, we send current visible data
+                const data = periodOption === 'all' ? [] : collectCarAllianceData(commission, carallianceSipps, startDate, endDate, office);
                 console.log('Dados CarAlliance coletados:', data.length, 'linhas');
                 
-                await downloadCarAllianceExcel(data, location, startDate, endDate, month, lastDay);
+                await downloadCarAllianceExcel(data, location, startDate, endDate, month, dayEnd, periodOption);
                 console.log('Download CarAlliance concluído!');
             } catch (error) {
                 console.error('Erro no download CarAlliance:', error);
@@ -2326,7 +2408,7 @@
         }
 
         // Enviar dados para backend gerar Excel CarAlliance
-        async function downloadCarAllianceExcel(data, location, startDate, endDate, month, lastDay) {
+        async function downloadCarAllianceExcel(data, location, startDate, endDate, month, lastDay, periodOption) {
             try {
                 const response = await fetch('/api/export-caralliance-excel', {
                     method: 'POST',
@@ -2335,7 +2417,8 @@
                         data: data,
                         location: location,
                         startDate: startDate,
-                        endDate: endDate
+                        endDate: endDate,
+                        periodOption: periodOption || 'selected'
                     })
                 });
                 
@@ -2348,7 +2431,16 @@
                 const _caMonthNames = ['JAN','FEV','MAR','ABR','MAI','JUN','JUL','AGO','SET','OUT','NOV','DEZ'];
                 const _caMonth = _caMonthNames[parseInt(month) - 1];
                 const _caLoc = location.toUpperCase().replace(/\s+/g, '-');
-                a.download = `CARALLIANCE-${_caLoc}-01-${String(lastDay).padStart(2,'0')}-${_caMonth}.xlsx`;
+                
+                // Filename depends on period option
+                let filename;
+                if (periodOption === 'all') {
+                    filename = `CARALLIANCE-${_caLoc}-ALL-PERIODS.xlsx`;
+                } else {
+                    filename = `CARALLIANCE-${_caLoc}-01-${String(lastDay).padStart(2,'0')}-${_caMonth}.xlsx`;
+                }
+                
+                a.download = filename;
                 document.body.appendChild(a);
                 a.click();
                 window.URL.revokeObjectURL(url);

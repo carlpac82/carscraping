@@ -41732,6 +41732,121 @@ async def export_abbycar_excel(request: Request):
         import traceback
         return _no_store_json({"ok": False, "error": str(e), "traceback": traceback.format_exc()}, 500)
 
+async def fetch_all_caralliance_periods_from_db(location: str):
+    """Fetch all CarAlliance periods from database for all months"""
+    from datetime import datetime
+    
+    # CarAlliance SIPP codes (sem grupos K)
+    caralliance_sipps = [
+        {'sipp': 'MDMV', 'grupo': 'B1'},
+        {'sipp': 'MDMR', 'grupo': 'B2'},
+        {'sipp': 'EDMV', 'grupo': 'D'},
+        {'sipp': 'MDAR', 'grupo': 'E1'},
+        {'sipp': 'EDAV', 'grupo': 'E2'},
+        {'sipp': 'CFMR', 'grupo': 'F'},
+        {'sipp': 'MTMR', 'grupo': 'G'},
+        {'sipp': 'CFMV', 'grupo': 'J1'},
+        {'sipp': 'IWMR', 'grupo': 'J2'},
+        {'sipp': 'CFAR', 'grupo': 'L1'},
+        {'sipp': 'CGAR', 'grupo': 'L1'},
+        {'sipp': 'IWAR', 'grupo': 'L2'},
+        {'sipp': 'SVMD', 'grupo': 'M1'},
+        {'sipp': 'SVMR', 'grupo': 'M1'},
+        {'sipp': 'SVAD', 'grupo': 'M2'},
+        {'sipp': 'LVMD', 'grupo': 'N'}
+    ]
+    
+    # Office code based on location
+    office = 'FAO' if location == 'Aeroporto de Faro' else 'ABF'
+    
+    # Fetch CarAlliance commission
+    commission_pct = 0
+    try:
+        result = await db.fetch_one("SELECT caralliance_commission_pct FROM admin_settings LIMIT 1")
+        if result:
+            commission_pct = result['caralliance_commission_pct'] or 0
+    except Exception as e:
+        logging.warning(f"Could not fetch CarAlliance commission: {e}")
+    
+    # Fetch all periods from database
+    query = """
+        SELECT location, month, year, day_start, day_end, grupo, 
+               day_1, day_2, day_3, day_4, day_5, day_6, day_7, 
+               day_8, day_9, day_14, day_22, day_28
+        FROM periods
+        WHERE location = :location
+        ORDER BY year, month, day_start
+    """
+    
+    periods = await db.fetch_all(query, {"location": location})
+    
+    all_rows = []
+    
+    # Column mapping for CarAlliance
+    column_mapping = [
+        {'key': '1_1', 'sourceDays': 1, 'divideBy': 1},
+        {'key': '2_2', 'sourceDays': 2, 'divideBy': 2},
+        {'key': '3_3', 'sourceDays': 3, 'divideBy': 3},
+        {'key': '4_4', 'sourceDays': 4, 'divideBy': 4},
+        {'key': '5_5', 'sourceDays': 5, 'divideBy': 5},
+        {'key': '6_6', 'sourceDays': 6, 'divideBy': 6},
+        {'key': '7_7', 'sourceDays': 7, 'divideBy': 7},
+        {'key': '8_10', 'sourceDays': 8, 'divideBy': 8},
+        {'key': '11_12', 'sourceDays': 9, 'divideBy': 9},
+        {'key': '13_14', 'sourceDays': 14, 'divideBy': 14},
+        {'key': '15_21', 'sourceDays': 22, 'divideBy': 22},
+        {'key': '22_plus', 'sourceDays': 28, 'divideBy': 28}
+    ]
+    
+    for period in periods:
+        month = period['month']
+        year = period['year']
+        day_start = period['day_start']
+        day_end = period['day_end']
+        
+        # Format dates (DD.MM.YYYY.)
+        start_date = f"{str(day_start).zfill(2)}.{str(month).zfill(2)}.{year}."
+        end_date = f"{str(day_end).zfill(2)}.{str(month).zfill(2)}.{year}."
+        
+        # Process each SIPP code
+        for sipp_info in caralliance_sipps:
+            grupo = sipp_info['grupo']
+            sipp = sipp_info['sipp']
+            
+            # Get prices for this group from this period
+            grupo_prices = {}
+            for day_col in [1, 2, 3, 4, 5, 6, 7, 8, 9, 14, 22, 28]:
+                col_name = f'day_{day_col}'
+                if col_name in period and period[col_name] is not None:
+                    grupo_prices[day_col] = float(period[col_name])
+            
+            # Calculate CarAlliance prices using formula: (Net ÷ dias) × (1 + comissão%) ÷ 1.23
+            prices = {}
+            for col in column_mapping:
+                source_days = col['sourceDays']
+                divide_by = col['divideBy']
+                
+                net_price = grupo_prices.get(source_days, 0)
+                if net_price > 0:
+                    daily_price = net_price / divide_by
+                    with_commission = daily_price * (1 + commission_pct / 100)
+                    final_price = with_commission / 1.23
+                    prices[col['key']] = round(final_price, 2)
+                else:
+                    prices[col['key']] = ''
+            
+            row = {
+                'serviceName': sipp,
+                'office': office,
+                'dateFrom': start_date,
+                'dateTo': end_date,
+                'prices': prices
+            }
+            
+            all_rows.append(row)
+    
+    return all_rows
+
 @app.post("/api/export-caralliance-excel")
 async def export_caralliance_excel(request: Request):
     """Export CarAlliance Excel with specific formatting"""
@@ -41754,6 +41869,13 @@ async def export_caralliance_excel(request: Request):
         location = data_json.get('location', 'Albufeira')
         start_date = data_json.get('startDate', '')
         end_date = data_json.get('endDate', '')
+        period_option = data_json.get('periodOption', 'selected')
+        
+        # If 'all' periods, fetch from database
+        if period_option == 'all' and not rows_data:
+            logging.info("[CARALLIANCE] Fetching all periods from database...")
+            rows_data = await fetch_all_caralliance_periods_from_db(location)
+            logging.info(f"[CARALLIANCE] Fetched {len(rows_data)} rows from database")
         
         # Create workbook
         wb = Workbook()
@@ -41834,7 +41956,26 @@ async def export_caralliance_excel(request: Request):
         wb.save(excel_bytes)
         excel_bytes.seek(0)
         
-        filename = f"CARALLIANCE-{location}-{start_date.replace('/', '-').replace('.', '-')}.xlsx"
+        # Generate filename based on period option
+        if period_option == 'all':
+            # Extract year from first row if available
+            if rows_data and len(rows_data) > 0:
+                first_date = rows_data[0].get('dateFrom', '')
+                # Format: DD.MM.YYYY.
+                if '.' in first_date:
+                    parts = first_date.split('.')
+                    if len(parts) >= 3:
+                        first_year = parts[2]
+                    else:
+                        first_year = ''
+                else:
+                    first_year = ''
+                filename = f"CARALLIANCE-{location}-AllPeriods-{first_year}.xlsx"
+            else:
+                filename = f"CARALLIANCE-{location}-AllPeriods.xlsx"
+        else:
+            # Single period
+            filename = f"CARALLIANCE-{location}-{start_date.replace('/', '-').replace('.', '-')}.xlsx"
         
         return Response(
             content=excel_bytes.getvalue(),
@@ -60211,6 +60352,8 @@ async def copy_inspection_data(request: Request):
             "success": False,
             "error": str(e)
         }, status_code=500)
+
+
 
 if __name__ == "__main__":
     import uvicorn
