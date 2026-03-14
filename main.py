@@ -41875,6 +41875,12 @@ async def fetch_all_caralliance_periods_from_db(location: str):
                             grupo_prices[day_col] = float(price_row[idx])
             except Exception as e:
                 logging.error(f"Error fetching prices for grupo {grupo}, period {month}/{year}: {e}")
+                # Rollback transaction if PostgreSQL
+                if is_postgres:
+                    try:
+                        conn.rollback()
+                    except:
+                        pass
             
             # Calculate CarAlliance prices using formula: (Net ÷ dias) × (1 + comissão%) ÷ 1.23
             prices = {}
@@ -41970,8 +41976,34 @@ async def export_caralliance_excel(request: Request):
         right_align = Alignment(horizontal='right', vertical='center')
         left_align = Alignment(horizontal='left', vertical='center')
         
-        # Add data rows (white background)
+        # Define alternating colors for periods (pastel colors like Abbycar)
+        period_colors = [
+            'E3F2FD',  # Light Blue
+            'F3E5F5',  # Light Purple
+            'E8F5E9',  # Light Green
+            'FFF3E0',  # Light Orange
+            'FCE4EC',  # Light Pink
+            'F1F8E9',  # Light Lime
+            'E0F2F1',  # Light Teal
+            'FFF9C4'   # Light Yellow
+        ]
+        
+        # Track current period for alternating colors
+        current_period = None
+        period_counter = -1
+        
+        # Add data rows with alternating colors by period
         for row_idx, row_data in enumerate(rows_data, 2):
+            # Detect period change (based on dateFrom)
+            period_key = f"{row_data.get('dateFrom', '')}-{row_data.get('dateTo', '')}"
+            if period_key != current_period:
+                current_period = period_key
+                period_counter += 1
+            
+            # Get color for this period
+            color_idx = period_counter % len(period_colors)
+            period_fill = PatternFill(start_color=period_colors[color_idx], end_color=period_colors[color_idx], fill_type='solid')
+            
             row_values = [
                 row_data.get('serviceName', ''),
                 row_data.get('office', ''),
@@ -41994,6 +42026,9 @@ async def export_caralliance_excel(request: Request):
             
             for col_idx, val in enumerate(row_values, 1):
                 cell = ws.cell(row=row_idx, column=col_idx, value=val)
+                # Apply period color
+                cell.fill = period_fill
+                cell.border = thin_border
                 # Columns C (DateFrom), D (DateTo) and E onwards (prices) = right aligned
                 if col_idx >= 3:
                     cell.alignment = right_align
