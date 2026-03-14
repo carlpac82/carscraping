@@ -505,6 +505,19 @@ def _get_abbycar_adjustment() -> float:
         return 3.0
 
 
+def _get_caralliance_commission() -> float:
+    """
+    Get CarAlliance commission percentage for price calculation
+    Returns: Commission percentage (e.g., 3.0 for 3%)
+    Default: 3.0%
+    """
+    try:
+        val = _get_setting("caralliance_commission_pct")
+        return float(val) if val else 3.0
+    except Exception:
+        return 3.0
+
+
 def apply_price_adjustments(items: List[Dict[str, Any]], base_url: str) -> List[Dict[str, Any]]:
     try:
         if not items:
@@ -41759,66 +41772,45 @@ async def fetch_all_caralliance_periods_from_db(location: str):
     # Office code based on location
     office = 'FAO' if location == 'Aeroporto de Faro' else 'ABF'
     
-    # Fetch CarAlliance commission
-    commission_pct = 0
+    # Fetch CarAlliance commission using existing helper function
+    commission_pct = _get_caralliance_commission()
+    logging.info(f"[CARALLIANCE] Commission from settings: {commission_pct}%")
+    
+    # Fetch all periods from database (using current_prices table like Abbycar)
     conn = _db_connect()
     is_postgres = _is_postgresql_connection(conn)
     
-    try:
-        if is_postgres:
-            cur = conn.cursor()
-            cur.execute("SELECT caralliance_commission_pct FROM admin_settings LIMIT 1")
-            result = cur.fetchone()
-            if result:
-                commission_pct = result[0] or 0
-            cur.close()
-        else:
-            cur = conn.cursor()
-            cur.execute("SELECT caralliance_commission_pct FROM admin_settings LIMIT 1")
-            result = cur.fetchone()
-            if result:
-                commission_pct = result[0] or 0
-            cur.close()
-    except Exception as e:
-        logging.warning(f"Could not fetch CarAlliance commission: {e}")
-        if is_postgres:
-            conn.rollback()
+    # Get current date to filter only current/future periods
+    now = datetime.now()
+    current_year = now.year
+    current_month = now.month
     
-    # Fetch all periods from database
     try:
         if is_postgres:
-            cur = conn.cursor()
-            cur.execute("""
-                SELECT location, month, year, day_start, day_end, grupo, 
-                       day_1, day_2, day_3, day_4, day_5, day_6, day_7, 
-                       day_8, day_9, day_14, day_22, day_28
-                FROM periods
-                WHERE location = %s
-                ORDER BY year, month, day_start
-            """, (location,))
-            periods = cur.fetchall()
-            columns = [desc[0] for desc in cur.description]
-            cur.close()
+            with conn.cursor() as cur:
+                cur.execute("""
+                    SELECT DISTINCT month, year, day_start, day_end 
+                    FROM current_prices 
+                    WHERE location = %s AND ((year > %s) OR (year = %s AND month >= %s))
+                    ORDER BY year, month, day_start
+                """, (location, current_year, current_year, current_month))
+                all_periods = cur.fetchall()
         else:
             cur = conn.cursor()
             cur.execute("""
-                SELECT location, month, year, day_start, day_end, grupo, 
-                       day_1, day_2, day_3, day_4, day_5, day_6, day_7, 
-                       day_8, day_9, day_14, day_22, day_28
-                FROM periods
-                WHERE location = ?
+                SELECT DISTINCT month, year, day_start, day_end 
+                FROM current_prices 
+                WHERE location = ? AND ((year > ?) OR (year = ? AND month >= ?))
                 ORDER BY year, month, day_start
-            """, (location,))
-            periods = cur.fetchall()
-            columns = [desc[0] for desc in cur.description]
+            """, (location, current_year, current_year, current_month))
+            all_periods = cur.fetchall()
             cur.close()
     except Exception as e:
         logging.error(f"Error fetching periods: {e}")
         conn.close()
         return []
     
-    # Convert to list of dicts
-    periods = [dict(zip(columns, row)) for row in periods]
+    logging.info(f"[CARALLIANCE] Fetched {len(all_periods)} periods from database")
     
     all_rows = []
     
