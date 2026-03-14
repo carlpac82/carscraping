@@ -41884,8 +41884,9 @@ async def fetch_all_caralliance_periods_from_db(location: str):
                         }
                         
                         for dias, key in dias_map.items():
-                            if key in precos and precos[key]:
-                                grupo_prices[dias] = float(precos[key])
+                            net_price = precos.get(str(dias), 0)
+                            if net_price and float(net_price) > 0:
+                                grupo_prices[dias] = float(net_price)
             except Exception as e:
                 logging.error(f"Error fetching prices for grupo {grupo}, period {month}/{year}: {e}")
                 # Rollback transaction if PostgreSQL
