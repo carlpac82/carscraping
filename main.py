@@ -41889,8 +41889,9 @@ async def fetch_all_caralliance_periods_from_db(location: str):
                             14: '13_14_daily', 22: '15_21_daily', 28: '22_28_daily'
                         }
                         
-                        for dias, key in dias_map.items():
-                            net_price = precos.get(str(dias), 0)
+                        for dias, old_key in dias_map.items():
+                            # Try new format first (numeric string), then old format (key with underscores)
+                            net_price = precos.get(str(dias), precos.get(old_key, 0))
                             if net_price and float(net_price) > 0:
                                 grupo_prices[dias] = float(net_price)
             except Exception as e:
