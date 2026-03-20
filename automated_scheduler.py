@@ -1099,6 +1099,22 @@ def setup_scheduled_tasks():
     
     print(f"✅ Settings loaded successfully", flush=True)
     
+    # PROTEÇÃO CRÍTICA: Verificar se TUDO está disabled
+    daily_enabled = settings.get('daily', {}).get('enabled', False)
+    weekly_enabled = settings.get('weekly', {}).get('enabled', False)
+    monthly_enabled = settings.get('monthly', {}).get('enabled', False)
+    
+    print(f"\n🔍 VERIFICAÇÃO DE ESTADO:", flush=True)
+    print(f"   Daily enabled: {daily_enabled}", flush=True)
+    print(f"   Weekly enabled: {weekly_enabled}", flush=True)
+    print(f"   Monthly enabled: {monthly_enabled}", flush=True)
+    
+    if not daily_enabled and not weekly_enabled and not monthly_enabled:
+        print("\n⚠️  TODOS OS RELATÓRIOS ESTÃO DESATIVADOS", flush=True)
+        print("   Scheduler NÃO vai agendar pesquisas ao CarJet", flush=True)
+        print("   Apenas checkout emails continuam ativos\n", flush=True)
+        logging.warning("⚠️ All automated reports DISABLED - no CarJet searches will be scheduled")
+    
     # Initialize scheduler
     if scheduler is None:
         print("🆕 Creating new BackgroundScheduler...", flush=True)
@@ -1116,10 +1132,18 @@ def setup_scheduled_tasks():
     job_count = 0
     
     # Setup DAILY schedules
+    print(f"\n📅 Checking DAILY schedules...", flush=True)
+    print(f"   daily.enabled = {settings.get('daily', {}).get('enabled')}", flush=True)
+    
     if settings.get('daily', {}).get('enabled'):
         schedules = settings['daily'].get('schedules', [])
-        print(f"\n📅 DAILY REPORTS: {len(schedules)} schedules", flush=True)
+        print(f"\n📅 DAILY REPORTS ENABLED: {len(schedules)} schedules", flush=True)
         logging.info(f"\n📅 DAILY REPORTS: {len(schedules)} schedules")
+    else:
+        print(f"   ⏭️  DAILY DISABLED - Skipping all daily schedules", flush=True)
+        schedules = []
+    
+    if settings.get('daily', {}).get('enabled') and schedules:
         
         for idx, schedule in enumerate(schedules):
             search_time = schedule.get('searchTime', '08:55')
@@ -1152,6 +1176,14 @@ def setup_scheduled_tasks():
             logging.info(f"   ✅ Email job #{idx + 1}: {send_time}")
     
     # Setup WEEKLY schedule (search on fixed day of month + email)
+    print(f"\n📆 Checking WEEKLY schedule...", flush=True)
+    print(f"   weekly.enabled = {settings.get('weekly', {}).get('enabled')}", flush=True)
+    
+    if settings.get('weekly', {}).get('enabled'):
+        print(f"   ✅ WEEKLY ENABLED - Scheduling jobs", flush=True)
+    else:
+        print(f"   ⏭️  WEEKLY DISABLED - Skipping", flush=True)
+    
     if settings.get('weekly', {}).get('enabled'):
         day = settings['weekly'].get('day', 'saturday')  # Day of week OR day of month
         search_time = settings['weekly'].get('searchTime', '09:55')
@@ -1189,6 +1221,14 @@ def setup_scheduled_tasks():
         logging.info(f"   ✅ Email: {send_time}")
     
     # Setup MONTHLY schedule (search on fixed day of future month + email)
+    print(f"\n📊 Checking MONTHLY schedule...", flush=True)
+    print(f"   monthly.enabled = {settings.get('monthly', {}).get('enabled')}", flush=True)
+    
+    if settings.get('monthly', {}).get('enabled'):
+        print(f"   ✅ MONTHLY ENABLED - Scheduling jobs", flush=True)
+    else:
+        print(f"   ⏭️  MONTHLY DISABLED - Skipping", flush=True)
+    
     if settings.get('monthly', {}).get('enabled'):
         day = settings['monthly'].get('day', '1')
         search_time = settings['monthly'].get('searchTime', '09:55')
