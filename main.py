@@ -48276,14 +48276,18 @@ try:
     
     # === REPORTS JOBS ===
     # Daily search at 7 AM (2h before report)
-    scheduler.add_job(
-        run_daily_report_search,
-        CronTrigger(hour=7, minute=0),
-        id='daily_report_search',
-        name='Daily Report Search',
-        replace_existing=True
-    )
-    log_to_db("INFO", "✅ Daily report search scheduler configured (daily at 7 AM)", "main", "scheduler")
+    # DESATIVADO - Este scheduler ignorava as configurações do Admin Settings
+    # Causava pesquisas automáticas ao CarJet mesmo com relatórios desativados
+    # Usar apenas automated_scheduler.py que respeita as configurações do Admin
+    # scheduler.add_job(
+    #     run_daily_report_search,
+    #     CronTrigger(hour=7, minute=0),
+    #     id='daily_report_search',
+    #     name='Daily Report Search',
+    #     replace_existing=True
+    # )
+    # log_to_db("INFO", "✅ Daily report search scheduler configured (daily at 7 AM)", "main", "scheduler")
+    log_to_db("INFO", "⚠️ Daily report search DESATIVADO - usar automated_scheduler.py (respeita Admin Settings)", "main", "scheduler")
     
     # Daily report at 9 AM (default time)
     # DESATIVADO - automated_scheduler.py já gere os reports dinamicamente
@@ -48308,14 +48312,18 @@ try:
     log_to_db("INFO", "⚠️ Weekly report search DESATIVADO temporariamente (Selenium issues)", "main", "scheduler")
     
     # Weekly report on Monday at 9 AM (default time)
-    scheduler.add_job(
-        send_automatic_weekly_report,
-        CronTrigger(day_of_week='mon', hour=9, minute=0),
-        id='weekly_report',
-        name='Weekly Automatic Report',
-        replace_existing=True
-    )
-    log_to_db("INFO", "✅ Weekly report scheduler configured (Monday at 9 AM)", "main", "scheduler")
+    # DESATIVADO - Este scheduler lê de 'automatedReportsSettings' (tabela antiga)
+    # Admin Settings usa 'automatedReportsAdvanced' (tabela nova)
+    # Usar apenas automated_scheduler.py que respeita as configurações corretas
+    # scheduler.add_job(
+    #     send_automatic_weekly_report,
+    #     CronTrigger(day_of_week='mon', hour=9, minute=0),
+    #     id='weekly_report',
+    #     name='Weekly Automatic Report',
+    #     replace_existing=True
+    # )
+    # log_to_db("INFO", "✅ Weekly report scheduler configured (Monday at 9 AM)", "main", "scheduler")
+    log_to_db("INFO", "⚠️ Weekly report DESATIVADO - usar automated_scheduler.py (respeita Admin Settings)", "main", "scheduler")
     
     # Start scheduler
     scheduler.start()
