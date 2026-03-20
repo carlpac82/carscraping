@@ -54982,7 +54982,7 @@ async def _save_rental_agreement_to_db(result: dict, pdf_bytes: bytes, pdf_filen
         if result["rental_agreement"] and result["license_plate"]:
             try:
                 conn = _db_connect()
-                is_postgres = _is_postgrvvesql_connection(conn)
+                is_postgres = _is_postgresql_connection(conn)
                 
                 # Convert result to JSON string
                 import json
