@@ -936,6 +936,7 @@ def check_and_send_scheduled_checkout_emails():
             
             logging.info(f"📧 Sending self-checkout email for {inspection_number} to {client_email}")
             
+            conn = None
             try:
                 # Obter dados do check-in para gerar link de self-checkout
                 conn = _get_db_connection()
@@ -975,7 +976,6 @@ def check_and_send_scheduled_checkout_emails():
                     else:
                         logging.error(f"❌ No contract_number found for check-in {inspection_number} (plate: {vehicle_plate})")
                         mark_email_sent(inspection_number, success=False, error_message="Contract number not found")
-                        conn.close()
                         continue
                 
                 contract_number = checkin_row[0]
@@ -993,7 +993,6 @@ def check_and_send_scheduled_checkout_emails():
                 """, (f"{ra_base}%",))
                 
                 row = cursor.fetchone()
-                conn.close()
                 
                 if not row or not row[0]:
                     logging.error(f"❌ No self-checkout token found for RA {ra_base}")
@@ -1004,6 +1003,16 @@ def check_and_send_scheduled_checkout_emails():
                 ra_number = row[1]
                 extracted_data = row[2]
                 logging.info(f"✅ Found token for RA {ra_number}")
+            
+            finally:
+                # CRÍTICO: Sempre fechar conexão para evitar memory leak
+                if conn:
+                    try:
+                        conn.close()
+                    except:
+                        pass
+            
+            try:
                 
                 # Extrair país do cliente (mesma lógica do envio manual que funciona)
                 country = None
