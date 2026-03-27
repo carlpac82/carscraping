@@ -60898,6 +60898,114 @@ async def admin_migrate_add_voucher_prefix(request: Request):
         traceback.print_exc()
         return JSONResponse({"ok": False, "error": str(e)}, status_code=500)
 
+@app.get("/admin/migrate-complete-commissioners-schema")
+async def admin_migrate_complete_commissioners_schema(request: Request):
+    """Complete migration: Add missing columns (phone, voucher_prefix) and create commission_bookings table - Admin only"""
+    try:
+        require_admin(request)
+    except HTTPException:
+        return JSONResponse({"ok": False, "error": "Unauthorized"}, status_code=401)
+    
+    try:
+        with _db_lock:
+            con = _db_connect()
+            try:
+                cursor = con.cursor()
+                results = []
+                
+                # 1. Add phone column to commissioners
+                try:
+                    cursor.execute("""
+                        ALTER TABLE commissioners 
+                        ADD COLUMN IF NOT EXISTS phone VARCHAR(50)
+                    """)
+                    results.append("✅ Added phone column to commissioners")
+                except Exception as e:
+                    results.append(f"⚠️ Phone column: {str(e)}")
+                
+                # 2. Add voucher_prefix column to commissioners
+                try:
+                    cursor.execute("""
+                        ALTER TABLE commissioners 
+                        ADD COLUMN IF NOT EXISTS voucher_prefix VARCHAR(10)
+                    """)
+                    results.append("✅ Added voucher_prefix column to commissioners")
+                except Exception as e:
+                    results.append(f"⚠️ Voucher_prefix column: {str(e)}")
+                
+                # 3. Generate voucher_prefix for commissioners that don't have one
+                cursor.execute("SELECT id, name, voucher_prefix FROM commissioners")
+                commissioners = cursor.fetchall()
+                updated_prefixes = 0
+                for comm_id, name, current_prefix in commissioners:
+                    if not current_prefix:
+                        prefix = name[:3].upper().replace(" ", "") + str(comm_id).zfill(3)
+                        cursor.execute(
+                            "UPDATE commissioners SET voucher_prefix = %s WHERE id = %s",
+                            (prefix, comm_id)
+                        )
+                        updated_prefixes += 1
+                
+                if updated_prefixes > 0:
+                    results.append(f"✅ Generated {updated_prefixes} voucher prefixes")
+                
+                # 4. Create commission_bookings table if it doesn't exist
+                try:
+                    cursor.execute("""
+                        CREATE TABLE IF NOT EXISTS commission_bookings (
+                            id SERIAL PRIMARY KEY,
+                            commissioner_id INTEGER NOT NULL REFERENCES commissioners(id),
+                            voucher_number VARCHAR(50) NOT NULL UNIQUE,
+                            client_name VARCHAR(255) NOT NULL,
+                            client_email VARCHAR(255) NOT NULL,
+                            client_phone VARCHAR(50) NOT NULL,
+                            pickup_date DATE NOT NULL,
+                            pickup_time TIME NOT NULL,
+                            dropoff_date DATE NOT NULL,
+                            dropoff_time TIME NOT NULL,
+                            pickup_location TEXT NOT NULL,
+                            dropoff_location TEXT NOT NULL,
+                            vehicle_group VARCHAR(10) NOT NULL,
+                            extras JSONB DEFAULT '[]',
+                            flight_number VARCHAR(50),
+                            language VARCHAR(5) NOT NULL DEFAULT 'pt',
+                            observations TEXT,
+                            price DECIMAL(10, 2) NOT NULL,
+                            status VARCHAR(50) DEFAULT 'pending',
+                            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                            updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+                        )
+                    """)
+                    results.append("✅ Created commission_bookings table")
+                except Exception as e:
+                    results.append(f"⚠️ Commission_bookings table: {str(e)}")
+                
+                # 5. Create indexes
+                try:
+                    cursor.execute("CREATE INDEX IF NOT EXISTS idx_commissioner_bookings ON commission_bookings(commissioner_id)")
+                    cursor.execute("CREATE INDEX IF NOT EXISTS idx_booking_dates ON commission_bookings(pickup_date, dropoff_date)")
+                    cursor.execute("CREATE INDEX IF NOT EXISTS idx_voucher_number ON commission_bookings(voucher_number)")
+                    cursor.execute("CREATE INDEX IF NOT EXISTS idx_booking_status ON commission_bookings(status)")
+                    results.append("✅ Created indexes on commission_bookings")
+                except Exception as e:
+                    results.append(f"⚠️ Indexes: {str(e)}")
+                
+                con.commit()
+                
+                return JSONResponse({
+                    "ok": True,
+                    "message": "Migration completed successfully",
+                    "results": results
+                })
+                
+            finally:
+                con.close()
+                
+    except Exception as e:
+        print(f"Error in migration: {e}")
+        traceback.print_exc()
+        return JSONResponse({"ok": False, "error": str(e)}, status_code=500)
+
 
 # ============================================================
 # COMMISSIONERS API ROUTES
