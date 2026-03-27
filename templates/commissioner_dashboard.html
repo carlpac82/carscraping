@@ -959,13 +959,14 @@
                 if (data.ok && data.locations) {
                     commissionerLocations = data.locations;
                     console.log('Loaded locations:', commissionerLocations);
-                    populateLocationDropdowns();
-                } else {
-                    console.error('Failed to load locations:', data);
                 }
             } catch (error) {
                 console.error('Error loading locations:', error);
+                commissionerLocations = []; // Usar lista vazia se falhar
             }
+            
+            // SEMPRE popular os dropdowns, mesmo se API falhar
+            populateLocationDropdowns();
         }
         
         // Lista completa de locais/hotéis
