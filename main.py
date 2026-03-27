@@ -60711,7 +60711,7 @@ async def commissioner_dashboard_page(request: Request):
 
 @app.get("/admin/commissioners", response_class=HTMLResponse)
 async def admin_commissioners_page(request: Request):
-    """Admin commissioners management page"""
+    """Admin commissioners management page - Manage commissioners (add/edit/delete)"""
     try:
         require_admin(request)
     except HTTPException:
@@ -60719,6 +60719,17 @@ async def admin_commissioners_page(request: Request):
     
     user = request.session.get("user")
     return templates.TemplateResponse("admin_commissioners.html", {"request": request, "user": user})
+
+@app.get("/admin/commissioner-bookings", response_class=HTMLResponse)
+async def admin_commissioner_bookings_page(request: Request):
+    """Admin commissioner bookings page - Manage bookings made by commissioners"""
+    try:
+        require_admin(request)
+    except HTTPException:
+        return RedirectResponse(url="/login", status_code=HTTP_303_SEE_OTHER)
+    
+    user = request.session.get("user")
+    return templates.TemplateResponse("commissioner_bookings.html", {"request": request, "user": user})
 
 
 # ============================================================
@@ -60765,6 +60776,70 @@ async def api_get_commissioners(request: Request):
         print(f"Error getting commissioners: {e}")
         traceback.print_exc()
         return JSONResponse({"ok": False, "error": "Erro ao carregar comissionistas"}, status_code=500)
+
+@app.get("/api/commissioner-bookings")
+async def api_get_commissioner_bookings(request: Request):
+    """API endpoint to get all bookings made by commissioners"""
+    try:
+        require_admin(request)
+    except HTTPException:
+        return JSONResponse({"ok": False, "error": "Unauthorized"}, status_code=401)
+    
+    try:
+        with _db_lock:
+            con = _db_connect()
+            try:
+                cur = con.execute("""
+                    SELECT 
+                        b.id,
+                        b.customer_name,
+                        b.customer_email,
+                        b.customer_phone,
+                        b.pickup_date,
+                        b.return_date,
+                        b.pickup_location,
+                        b.return_location,
+                        b.car_name,
+                        b.total_price,
+                        b.status,
+                        b.created_at,
+                        c.name as commissioner_name,
+                        c.id as commissioner_id
+                    FROM bookings b
+                    LEFT JOIN commissioners c ON b.commissioner_id = c.id
+                    WHERE b.commissioner_id IS NOT NULL
+                    ORDER BY b.created_at DESC
+                """)
+                rows = cur.fetchall()
+                
+                bookings = []
+                for row in rows:
+                    bookings.append({
+                        "id": row[0],
+                        "customer_name": row[1],
+                        "customer_email": row[2],
+                        "customer_phone": row[3],
+                        "pickup_date": row[4],
+                        "return_date": row[5],
+                        "pickup_location": row[6],
+                        "return_location": row[7],
+                        "car_name": row[8],
+                        "total_price": row[9],
+                        "status": row[10],
+                        "created_at": row[11],
+                        "commissioner_name": row[12],
+                        "commissioner_id": row[13]
+                    })
+                
+                return JSONResponse({"ok": True, "bookings": bookings})
+                
+            finally:
+                con.close()
+                
+    except Exception as e:
+        print(f"Error getting commissioner bookings: {e}")
+        traceback.print_exc()
+        return JSONResponse({"ok": False, "error": "Erro ao carregar reservas"}, status_code=500)
 
 
 @app.post("/api/commissioners/login")

@@ -1,0 +1,723 @@
+<!DOCTYPE html>
+<html lang="pt">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Reservas de Comissionistas</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            background: #f5f7fa;
+            min-height: 100vh;
+        }
+
+        .header {
+            background: #009cb6;
+            color: white;
+            padding: 20px 30px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+        }
+
+        .header-content {
+            max-width: 1400px;
+            margin: 0 auto;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .header h1 {
+            font-size: 24px;
+        }
+
+        .btn-back {
+            background: rgba(255, 255, 255, 0.2);
+            color: white;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 14px;
+            text-decoration: none;
+            display: inline-block;
+            transition: background 0.3s;
+        }
+
+        .btn-back:hover {
+            background: rgba(255, 255, 255, 0.3);
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 30px auto;
+            padding: 0 30px;
+        }
+
+        .filters-bar {
+            background: white;
+            padding: 20px;
+            border-radius: 10px;
+            margin-bottom: 20px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
+        }
+
+        .filters-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+            align-items: end;
+        }
+
+        .filter-group {
+            display: flex;
+            flex-direction: column;
+        }
+
+        .filter-group label {
+            font-size: 13px;
+            color: #666;
+            margin-bottom: 5px;
+            font-weight: 500;
+        }
+
+        .filter-group select, .filter-group input {
+            padding: 10px;
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+            font-size: 14px;
+            transition: all 0.3s;
+        }
+
+        .filter-group select:focus, .filter-group input:focus {
+            outline: none;
+            border-color: #009cb6;
+        }
+
+        .bookings-table {
+            background: white;
+            border-radius: 10px;
+            overflow: hidden;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        thead {
+            background: #f8f9fa;
+        }
+
+        th {
+            padding: 15px;
+            text-align: left;
+            font-weight: 600;
+            color: #333;
+            font-size: 13px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        td {
+            padding: 15px;
+            border-top: 1px solid #f0f0f0;
+            font-size: 14px;
+            color: #555;
+        }
+
+        tbody tr:hover {
+            background: #f8f9fa;
+        }
+
+        .status-badge {
+            display: inline-block;
+            padding: 4px 12px;
+            border-radius: 12px;
+            font-size: 12px;
+            font-weight: 600;
+        }
+
+        .status-pending {
+            background: #fff3cd;
+            color: #856404;
+        }
+
+        .status-confirmed {
+            background: #d4edda;
+            color: #155724;
+        }
+
+        .status-cancelled {
+            background: #f8d7da;
+            color: #721c24;
+        }
+
+        .actions {
+            display: flex;
+            gap: 8px;
+        }
+
+        .btn-action {
+            padding: 6px 12px;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 12px;
+            font-weight: 600;
+            transition: all 0.2s;
+        }
+
+        .btn-confirm {
+            background: #d4edda;
+            color: #155724;
+        }
+
+        .btn-confirm:hover {
+            background: #c3e6cb;
+        }
+
+        .btn-edit {
+            background: #e3f2fd;
+            color: #1976d2;
+        }
+
+        .btn-edit:hover {
+            background: #bbdefb;
+        }
+
+        .btn-cancel {
+            background: #ffebee;
+            color: #c62828;
+        }
+
+        .btn-cancel:hover {
+            background: #ffcdd2;
+        }
+
+        .loading {
+            text-align: center;
+            padding: 40px;
+            color: #999;
+        }
+
+        .empty-state {
+            text-align: center;
+            padding: 60px 20px;
+            color: #999;
+        }
+
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.5);
+            z-index: 1000;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .modal.active {
+            display: flex;
+        }
+
+        .modal-content {
+            background: white;
+            border-radius: 20px;
+            padding: 30px;
+            width: 90%;
+            max-width: 600px;
+            max-height: 90vh;
+            overflow-y: auto;
+        }
+
+        .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+
+        .modal-header h2 {
+            font-size: 22px;
+            color: #333;
+        }
+
+        .btn-close {
+            background: none;
+            border: none;
+            font-size: 24px;
+            cursor: pointer;
+            color: #999;
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 8px;
+            color: #333;
+            font-weight: 500;
+            font-size: 14px;
+        }
+
+        .form-group input, .form-group select, .form-group textarea {
+            width: 100%;
+            padding: 12px 15px;
+            border: 2px solid #e0e0e0;
+            border-radius: 10px;
+            font-size: 15px;
+            transition: all 0.3s;
+        }
+
+        .form-group textarea {
+            min-height: 100px;
+            resize: vertical;
+        }
+
+        .form-group input:focus, .form-group select:focus, .form-group textarea:focus {
+            outline: none;
+            border-color: #009cb6;
+            box-shadow: 0 0 0 3px rgba(0, 156, 182, 0.1);
+        }
+
+        .form-actions {
+            display: flex;
+            gap: 10px;
+            margin-top: 25px;
+        }
+
+        .btn-modal-cancel {
+            flex: 1;
+            padding: 12px;
+            background: #f0f0f0;
+            color: #666;
+            border: none;
+            border-radius: 10px;
+            cursor: pointer;
+            font-size: 15px;
+            font-weight: 600;
+        }
+
+        .btn-submit {
+            flex: 2;
+            padding: 12px;
+            background: #009cb6;
+            color: white;
+            border: none;
+            border-radius: 10px;
+            cursor: pointer;
+            font-size: 15px;
+            font-weight: 600;
+            transition: all 0.2s;
+        }
+
+        .btn-submit:hover {
+            background: #008ba3;
+        }
+
+        .info-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 15px;
+            margin-bottom: 20px;
+        }
+
+        .info-item {
+            padding: 15px;
+            background: #f8f9fa;
+            border-radius: 8px;
+        }
+
+        .info-label {
+            font-size: 12px;
+            color: #666;
+            margin-bottom: 5px;
+        }
+
+        .info-value {
+            font-size: 15px;
+            color: #333;
+            font-weight: 500;
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <div class="header-content">
+            <h1>Reservas de Comissionistas</h1>
+            <a href="/admin" class="btn-back">← Voltar ao Admin</a>
+        </div>
+    </div>
+
+    <div class="container">
+        <div class="filters-bar">
+            <div class="filters-grid">
+                <div class="filter-group">
+                    <label>Status</label>
+                    <select id="filterStatus" onchange="filterBookings()">
+                        <option value="">Todos</option>
+                        <option value="pending">Pendente</option>
+                        <option value="confirmed">Confirmado</option>
+                        <option value="cancelled">Cancelado</option>
+                    </select>
+                </div>
+                <div class="filter-group">
+                    <label>Comissionista</label>
+                    <select id="filterCommissioner" onchange="filterBookings()">
+                        <option value="">Todos</option>
+                    </select>
+                </div>
+                <div class="filter-group">
+                    <label>Data Início</label>
+                    <input type="date" id="filterDateFrom" onchange="filterBookings()">
+                </div>
+                <div class="filter-group">
+                    <label>Data Fim</label>
+                    <input type="date" id="filterDateTo" onchange="filterBookings()">
+                </div>
+            </div>
+        </div>
+
+        <div id="bookingsContent">
+            <div class="loading">Carregando reservas...</div>
+        </div>
+    </div>
+
+    <!-- Modal Edit Booking -->
+    <div id="editModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>Editar Reserva</h2>
+                <button class="btn-close" onclick="closeEditModal()">&times;</button>
+            </div>
+
+            <form id="editForm">
+                <input type="hidden" id="editBookingId">
+                
+                <div class="info-grid">
+                    <div class="info-item">
+                        <div class="info-label">Comissionista</div>
+                        <div class="info-value" id="editCommissionerName"></div>
+                    </div>
+                    <div class="info-item">
+                        <div class="info-label">Veículo</div>
+                        <div class="info-value" id="editCarName"></div>
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label for="editCustomerName">Nome do Cliente</label>
+                    <input type="text" id="editCustomerName" required>
+                </div>
+
+                <div class="form-group">
+                    <label for="editCustomerEmail">Email</label>
+                    <input type="email" id="editCustomerEmail" required>
+                </div>
+
+                <div class="form-group">
+                    <label for="editCustomerPhone">Telefone</label>
+                    <input type="tel" id="editCustomerPhone" required>
+                </div>
+
+                <div class="form-group">
+                    <label for="editPickupDate">Data de Levantamento</label>
+                    <input type="date" id="editPickupDate" required>
+                </div>
+
+                <div class="form-group">
+                    <label for="editReturnDate">Data de Devolução</label>
+                    <input type="date" id="editReturnDate" required>
+                </div>
+
+                <div class="form-group">
+                    <label for="editPickupLocation">Local de Levantamento</label>
+                    <input type="text" id="editPickupLocation" required>
+                </div>
+
+                <div class="form-group">
+                    <label for="editReturnLocation">Local de Devolução</label>
+                    <input type="text" id="editReturnLocation" required>
+                </div>
+
+                <div class="form-group">
+                    <label for="editTotalPrice">Preço Total (€)</label>
+                    <input type="number" id="editTotalPrice" step="0.01" required>
+                </div>
+
+                <div class="form-actions">
+                    <button type="button" class="btn-modal-cancel" onclick="closeEditModal()">Cancelar</button>
+                    <button type="submit" class="btn-submit">Guardar Alterações</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <script>
+        let allBookings = [];
+        let commissioners = [];
+
+        async function loadData() {
+            try {
+                const [bookingsRes, commissRes] = await Promise.all([
+                    fetch('/api/commissioner-bookings'),
+                    fetch('/api/commissioners')
+                ]);
+
+                const bookingsData = await bookingsRes.json();
+                const commissData = await commissRes.json();
+
+                if (bookingsData.ok) {
+                    allBookings = bookingsData.bookings;
+                }
+
+                if (commissData.ok) {
+                    commissioners = commissData.commissioners;
+                    populateCommissionerFilter();
+                }
+
+                renderBookings(allBookings);
+            } catch (error) {
+                console.error('Error loading data:', error);
+            }
+        }
+
+        function populateCommissionerFilter() {
+            const select = document.getElementById('filterCommissioner');
+            commissioners.forEach(c => {
+                const option = document.createElement('option');
+                option.value = c.id;
+                option.textContent = c.name;
+                select.appendChild(option);
+            });
+        }
+
+        function filterBookings() {
+            const status = document.getElementById('filterStatus').value;
+            const commissioner = document.getElementById('filterCommissioner').value;
+            const dateFrom = document.getElementById('filterDateFrom').value;
+            const dateTo = document.getElementById('filterDateTo').value;
+
+            let filtered = allBookings.filter(b => {
+                if (status && b.status !== status) return false;
+                if (commissioner && b.commissioner_id != commissioner) return false;
+                if (dateFrom && b.pickup_date < dateFrom) return false;
+                if (dateTo && b.pickup_date > dateTo) return false;
+                return true;
+            });
+
+            renderBookings(filtered);
+        }
+
+        function renderBookings(bookings) {
+            const content = document.getElementById('bookingsContent');
+
+            if (bookings.length === 0) {
+                content.innerHTML = `
+                    <div class="bookings-table">
+                        <div class="empty-state">
+                            <p style="font-size: 18px; font-weight: 500;">Nenhuma reserva encontrada</p>
+                            <p style="margin-top: 10px; font-size: 14px;">As reservas feitas por comissionistas aparecerão aqui</p>
+                        </div>
+                    </div>
+                `;
+                return;
+            }
+
+            content.innerHTML = `
+                <div class="bookings-table">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>ID</th>
+                                <th>Cliente</th>
+                                <th>Comissionista</th>
+                                <th>Veículo</th>
+                                <th>Levantamento</th>
+                                <th>Devolução</th>
+                                <th>Preço</th>
+                                <th>Status</th>
+                                <th>Ações</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            ${bookings.map(b => `
+                                <tr>
+                                    <td>#${b.id}</td>
+                                    <td>
+                                        <div style="font-weight: 500;">${b.customer_name}</div>
+                                        <div style="font-size: 12px; color: #999;">${b.customer_phone}</div>
+                                    </td>
+                                    <td>${b.commissioner_name || 'N/A'}</td>
+                                    <td>${b.car_name}</td>
+                                    <td>
+                                        <div>${formatDate(b.pickup_date)}</div>
+                                        <div style="font-size: 12px; color: #999;">${b.pickup_location}</div>
+                                    </td>
+                                    <td>
+                                        <div>${formatDate(b.return_date)}</div>
+                                        <div style="font-size: 12px; color: #999;">${b.return_location}</div>
+                                    </td>
+                                    <td style="font-weight: 600;">€${b.total_price}</td>
+                                    <td>
+                                        <span class="status-badge status-${b.status}">
+                                            ${getStatusText(b.status)}
+                                        </span>
+                                    </td>
+                                    <td>
+                                        <div class="actions">
+                                            ${b.status === 'pending' ? `
+                                                <button class="btn-action btn-confirm" onclick="confirmBooking(${b.id})">
+                                                    Confirmar
+                                                </button>
+                                            ` : ''}
+                                            <button class="btn-action btn-edit" onclick="editBooking(${b.id})">
+                                                Editar
+                                            </button>
+                                            ${b.status !== 'cancelled' ? `
+                                                <button class="btn-action btn-cancel" onclick="cancelBooking(${b.id})">
+                                                    Cancelar
+                                                </button>
+                                            ` : ''}
+                                        </div>
+                                    </td>
+                                </tr>
+                            `).join('')}
+                        </tbody>
+                    </table>
+                </div>
+            `;
+        }
+
+        function formatDate(dateStr) {
+            const date = new Date(dateStr);
+            return date.toLocaleDateString('pt-PT');
+        }
+
+        function getStatusText(status) {
+            const texts = {
+                'pending': 'Pendente',
+                'confirmed': 'Confirmado',
+                'cancelled': 'Cancelado'
+            };
+            return texts[status] || status;
+        }
+
+        async function confirmBooking(id) {
+            if (!confirm('Confirmar esta reserva?')) return;
+
+            try {
+                const response = await fetch(`/api/bookings/${id}/status`, {
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ status: 'confirmed' })
+                });
+
+                const result = await response.json();
+                if (result.ok) {
+                    loadData();
+                } else {
+                    alert('Erro: ' + result.error);
+                }
+            } catch (error) {
+                console.error('Error confirming booking:', error);
+                alert('Erro ao confirmar reserva');
+            }
+        }
+
+        async function cancelBooking(id) {
+            if (!confirm('Tem certeza que deseja cancelar esta reserva?')) return;
+
+            try {
+                const response = await fetch(`/api/bookings/${id}/status`, {
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ status: 'cancelled' })
+                });
+
+                const result = await response.json();
+                if (result.ok) {
+                    loadData();
+                } else {
+                    alert('Erro: ' + result.error);
+                }
+            } catch (error) {
+                console.error('Error cancelling booking:', error);
+                alert('Erro ao cancelar reserva');
+            }
+        }
+
+        function editBooking(id) {
+            const booking = allBookings.find(b => b.id === id);
+            if (!booking) return;
+
+            document.getElementById('editBookingId').value = booking.id;
+            document.getElementById('editCommissionerName').textContent = booking.commissioner_name;
+            document.getElementById('editCarName').textContent = booking.car_name;
+            document.getElementById('editCustomerName').value = booking.customer_name;
+            document.getElementById('editCustomerEmail').value = booking.customer_email;
+            document.getElementById('editCustomerPhone').value = booking.customer_phone;
+            document.getElementById('editPickupDate').value = booking.pickup_date;
+            document.getElementById('editReturnDate').value = booking.return_date;
+            document.getElementById('editPickupLocation').value = booking.pickup_location;
+            document.getElementById('editReturnLocation').value = booking.return_location;
+            document.getElementById('editTotalPrice').value = booking.total_price;
+
+            document.getElementById('editModal').classList.add('active');
+        }
+
+        function closeEditModal() {
+            document.getElementById('editModal').classList.remove('active');
+        }
+
+        document.getElementById('editForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+
+            const id = document.getElementById('editBookingId').value;
+            const data = {
+                customer_name: document.getElementById('editCustomerName').value,
+                customer_email: document.getElementById('editCustomerEmail').value,
+                customer_phone: document.getElementById('editCustomerPhone').value,
+                pickup_date: document.getElementById('editPickupDate').value,
+                return_date: document.getElementById('editReturnDate').value,
+                pickup_location: document.getElementById('editPickupLocation').value,
+                return_location: document.getElementById('editReturnLocation').value,
+                total_price: parseFloat(document.getElementById('editTotalPrice').value)
+            };
+
+            try {
+                const response = await fetch(`/api/bookings/${id}`, {
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(data)
+                });
+
+                const result = await response.json();
+                if (result.ok) {
+                    closeEditModal();
+                    loadData();
+                } else {
+                    alert('Erro: ' + result.error);
+                }
+            } catch (error) {
+                console.error('Error updating booking:', error);
+                alert('Erro ao atualizar reserva');
+            }
+        });
+
+        loadData();
+    </script>
+</body>
+</html>
