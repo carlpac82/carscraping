@@ -209,8 +209,12 @@ async def get_current_commissioner_info(request: Request):
     
     return commissioner
 
+class EmailUpdate(BaseModel):
+    email: str
+    commissioner_id: Optional[int] = None
+
 @router.post("/api/commissioners/update-email")
-async def update_commissioner_email(email: str, request: Request):
+async def update_commissioner_email(data: EmailUpdate, request: Request):
     """Update commissioner email (for first login)"""
     commissioner_id = get_current_commissioner(request)
     
@@ -221,12 +225,12 @@ async def update_commissioner_email(email: str, request: Request):
         UPDATE commissioners
         SET email = %s
         WHERE id = %s
-    """, (email, commissioner_id))
+    """, (data.email, commissioner_id))
     
     conn.commit()
     conn.close()
     
-    return {"success": True}
+    return {"ok": True}
 
 # ============================================================
 # BOOKINGS
