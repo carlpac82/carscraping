@@ -60712,39 +60712,12 @@ async def commissioner_dashboard_page(request: Request):
 @app.get("/admin/commissioners", response_class=HTMLResponse)
 async def admin_commissioners_page(request: Request):
     """Admin commissioners management page"""
+    try:
+        require_admin(request)
+    except HTTPException:
+        return RedirectResponse(url="/login", status_code=HTTP_303_SEE_OTHER)
+    
     user = request.session.get("user")
-    if not user:
-        return RedirectResponse(url="/login", status_code=303)
-    
-    # Check if user has permission (admin or has_commissioner_access)
-    username = request.session.get("username")
-    with _db_lock:
-        con = _db_connect()
-        try:
-            # Try with has_commissioner_access column first
-            try:
-                cur = con.execute("SELECT is_admin, has_commissioner_access FROM users WHERE username=?", (username,))
-                row = cur.fetchone()
-                if not row:
-                    return RedirectResponse(url="/login", status_code=303)
-                
-                is_admin = bool(row[0])
-                has_commissioner_access = bool(row[1] if row[1] is not None else 0)
-            except Exception:
-                # Fallback: column doesn't exist yet
-                cur = con.execute("SELECT is_admin FROM users WHERE username=?", (username,))
-                row = cur.fetchone()
-                if not row:
-                    return RedirectResponse(url="/login", status_code=303)
-                
-                is_admin = bool(row[0])
-                has_commissioner_access = False
-            
-            if not (is_admin or has_commissioner_access):
-                raise HTTPException(status_code=403, detail="Access denied")
-        finally:
-            con.close()
-    
     return templates.TemplateResponse("admin_commissioners.html", {"request": request, "user": user})
 
 
