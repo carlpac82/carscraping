@@ -544,10 +544,16 @@
         }
 
         /* Garantir que selects tenham sempre a mesma largura */
-        .form-group select {
+        .form-group select,
+        select#pickupTime,
+        select#dropoffTime,
+        select#clientHotel,
+        select#pickupLocation,
+        select#dropoffLocation {
             width: 100% !important;
-            min-width: 100%;
-            max-width: 100%;
+            min-width: 100% !important;
+            max-width: 100% !important;
+            box-sizing: border-box !important;
         }
 
         .form-group input:hover,
@@ -1390,6 +1396,18 @@
                 await loadScheduleSettings();
             }
             
+            // Popular selects de hora com horários padrão (dia de semana)
+            if (scheduleSettings) {
+                const pickupDate = document.getElementById('pickupDate');
+                const dropoffDate = document.getElementById('dropoffDate');
+                const pickupTime = document.getElementById('pickupTime');
+                const dropoffTime = document.getElementById('dropoffTime');
+                
+                // Popular com horários de dia de semana por padrão
+                populateTimeSelectsDefault(pickupTime);
+                populateTimeSelectsDefault(dropoffTime);
+            }
+            
             // Carregar locais se ainda não foram carregados
             if (commissionerLocations.length === 0) {
                 await loadCommissionerLocations();
@@ -1399,6 +1417,36 @@
             }
             
             renderVehicleGrid();
+        }
+
+        // Popular selects de hora com horários padrão (dia de semana)
+        function populateTimeSelectsDefault(timeSelect) {
+            if (!scheduleSettings) return;
+            
+            const interval = scheduleSettings.time_interval_minutes || 15;
+            
+            // Usar horários de dia de semana por padrão
+            const morningSlots = generateTimeSlots(
+                scheduleSettings.weekday_start_morning,
+                scheduleSettings.weekday_end_morning,
+                interval
+            );
+            const afternoonSlots = generateTimeSlots(
+                scheduleSettings.weekday_start_afternoon,
+                scheduleSettings.weekday_end_afternoon,
+                interval
+            );
+            const timeSlots = [...morningSlots, ...afternoonSlots];
+            
+            // Limpar e popular select
+            timeSelect.innerHTML = '<option value="">Selecione a hora</option>';
+            
+            timeSlots.forEach(time => {
+                const option = document.createElement('option');
+                option.value = time;
+                option.textContent = time;
+                timeSelect.appendChild(option);
+            });
         }
 
         function closeNewBookingModal() {
