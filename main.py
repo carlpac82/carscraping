@@ -60748,6 +60748,110 @@ async def admin_commissioners_page(request: Request):
     return templates.TemplateResponse("admin_commissioners.html", {"request": request, "user": user})
 
 
+# ============================================================
+# COMMISSIONERS API ROUTES
+# ============================================================
+
+@app.post("/api/commissioners/login")
+async def api_commissioners_login(request: Request):
+    """API endpoint for commissioner login with username/password"""
+    try:
+        data = await request.json()
+        username = data.get("username", "").strip()
+        password = data.get("password", "")
+        
+        if not username or not password:
+            return JSONResponse({"ok": False, "error": "Utilizador e senha são obrigatórios"}, status_code=400)
+        
+        with _db_lock:
+            con = _db_connect()
+            try:
+                cur = con.execute(
+                    "SELECT id, name, email, password_hash FROM commissioners WHERE username=? AND enabled=1",
+                    (username,)
+                )
+                row = cur.fetchone()
+                
+                if not row:
+                    return JSONResponse({"ok": False, "error": "Utilizador ou senha incorretos"}, status_code=401)
+                
+                commissioner_id, name, email, password_hash = row
+                
+                # Verify password
+                if not _verify_password(password, password_hash):
+                    return JSONResponse({"ok": False, "error": "Utilizador ou senha incorretos"}, status_code=401)
+                
+                # Check if email exists
+                needs_email = not email or email.strip() == ""
+                
+                # Set session
+                request.session["commissioner_id"] = commissioner_id
+                request.session["commissioner_name"] = name
+                request.session["commissioner_username"] = username
+                
+                if needs_email:
+                    return JSONResponse({
+                        "ok": True,
+                        "needs_email": True,
+                        "commissioner_id": commissioner_id
+                    })
+                else:
+                    request.session["commissioner_email"] = email
+                    return JSONResponse({
+                        "ok": True,
+                        "needs_email": False
+                    })
+                    
+            finally:
+                con.close()
+                
+    except Exception as e:
+        print(f"Error in commissioner login: {e}")
+        traceback.print_exc()
+        return JSONResponse({"ok": False, "error": "Erro interno do servidor"}, status_code=500)
+
+
+@app.post("/api/commissioners/update-email")
+async def api_commissioners_update_email(request: Request):
+    """API endpoint to update commissioner email"""
+    try:
+        data = await request.json()
+        commissioner_id = data.get("commissioner_id")
+        email = data.get("email", "").strip()
+        
+        if not commissioner_id or not email:
+            return JSONResponse({"ok": False, "error": "ID e email são obrigatórios"}, status_code=400)
+        
+        # Validate email format
+        import re
+        email_pattern = r'^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$'
+        if not re.match(email_pattern, email):
+            return JSONResponse({"ok": False, "error": "Email inválido"}, status_code=400)
+        
+        with _db_lock:
+            con = _db_connect()
+            try:
+                # Update email
+                con.execute(
+                    "UPDATE commissioners SET email=? WHERE id=?",
+                    (email, commissioner_id)
+                )
+                con.commit()
+                
+                # Update session
+                request.session["commissioner_email"] = email
+                
+                return JSONResponse({"ok": True})
+                
+            finally:
+                con.close()
+                
+    except Exception as e:
+        print(f"Error updating commissioner email: {e}")
+        traceback.print_exc()
+        return JSONResponse({"ok": False, "error": "Erro ao guardar email"}, status_code=500)
+
+
 if __name__ == "__main__":
     import uvicorn
     uvicorn.run(app, host="0.0.0.0", port=8000)

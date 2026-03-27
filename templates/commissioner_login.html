@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Login - Comissionista</title>
+    <title>Login - Comissionista | Auto Prudente</title>
     <style>
         * {
             margin: 0;
@@ -13,7 +13,7 @@
 
         body {
             font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            background: linear-gradient(135deg, #009cb6 0%, #006d7e 100%);
             min-height: 100vh;
             display: flex;
             align-items: center;
@@ -27,17 +27,24 @@
             box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
             padding: 40px;
             width: 100%;
-            max-width: 400px;
+            max-width: 420px;
         }
 
         .logo {
             text-align: center;
-            margin-bottom: 30px;
+            margin-bottom: 35px;
         }
 
-        .logo h1 {
-            color: #667eea;
-            font-size: 28px;
+        .logo img {
+            max-width: 220px;
+            height: auto;
+            margin-bottom: 15px;
+        }
+
+        .logo h2 {
+            color: #333;
+            font-size: 22px;
+            font-weight: 600;
             margin-bottom: 5px;
         }
 
@@ -69,14 +76,14 @@
 
         input:focus {
             outline: none;
-            border-color: #667eea;
-            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+            border-color: #009cb6;
+            box-shadow: 0 0 0 3px rgba(0, 156, 182, 0.1);
         }
 
         .btn-login {
             width: 100%;
             padding: 14px;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            background: linear-gradient(135deg, #009cb6 0%, #006d7e 100%);
             color: white;
             border: none;
             border-radius: 10px;
@@ -88,7 +95,7 @@
 
         .btn-login:hover {
             transform: translateY(-2px);
-            box-shadow: 0 10px 20px rgba(102, 126, 234, 0.3);
+            box-shadow: 0 10px 20px rgba(0, 156, 182, 0.3);
         }
 
         .btn-login:active {
@@ -112,8 +119,18 @@
         }
 
         .success-message {
-            background: #efe;
-            color: #3c3;
+            background: #e8f5e9;
+            color: #2e7d32;
+            padding: 12px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            font-size: 14px;
+            display: none;
+        }
+
+        .info-message {
+            background: #e3f2fd;
+            color: #1565c0;
             padding: 12px;
             border-radius: 8px;
             margin-bottom: 20px;
@@ -123,26 +140,32 @@
 
         .footer {
             text-align: center;
-            margin-top: 20px;
+            margin-top: 25px;
             color: #999;
             font-size: 12px;
+        }
+
+        #emailForm {
+            display: none;
         }
     </style>
 </head>
 <body>
     <div class="login-container">
         <div class="logo">
-            <h1>🚗 Comissionista</h1>
-            <p>Rental Price Tracker</p>
+            <img src="/static/logo.png" alt="Auto Prudente" onerror="this.style.display='none'">
+            <h2>Portal de Comissionistas</h2>
+            <p>Auto Prudente Rent a Car</p>
         </div>
 
         <div id="errorMessage" class="error-message"></div>
         <div id="successMessage" class="success-message"></div>
+        <div id="infoMessage" class="info-message"></div>
 
         <form id="loginForm">
             <div class="form-group">
-                <label for="email">Email</label>
-                <input type="email" id="email" name="email" required autocomplete="email">
+                <label for="username">Utilizador</label>
+                <input type="text" id="username" name="username" required autocomplete="username">
             </div>
 
             <div class="form-group">
@@ -153,26 +176,43 @@
             <button type="submit" class="btn-login" id="loginBtn">Entrar</button>
         </form>
 
+        <form id="emailForm">
+            <div class="form-group">
+                <label for="email">Email</label>
+                <input type="email" id="email" name="email" required autocomplete="email" placeholder="seu.email@exemplo.com">
+            </div>
+
+            <button type="submit" class="btn-login" id="emailBtn">Guardar Email</button>
+            <button type="button" class="btn-login" id="cancelBtn" style="background: #999; margin-top: 10px;">Cancelar</button>
+        </form>
+
         <div class="footer">
-            © 2024 Rental Price Tracker
+            © 2024 Auto Prudente Rent a Car
         </div>
     </div>
 
     <script>
-        const form = document.getElementById('loginForm');
+        const loginForm = document.getElementById('loginForm');
+        const emailForm = document.getElementById('emailForm');
         const errorMessage = document.getElementById('errorMessage');
         const successMessage = document.getElementById('successMessage');
+        const infoMessage = document.getElementById('infoMessage');
         const loginBtn = document.getElementById('loginBtn');
+        const emailBtn = document.getElementById('emailBtn');
+        const cancelBtn = document.getElementById('cancelBtn');
+        
+        let currentCommissionerId = null;
 
-        form.addEventListener('submit', async (e) => {
+        loginForm.addEventListener('submit', async (e) => {
             e.preventDefault();
             
             errorMessage.style.display = 'none';
             successMessage.style.display = 'none';
+            infoMessage.style.display = 'none';
             loginBtn.disabled = true;
             loginBtn.textContent = 'Entrando...';
 
-            const email = document.getElementById('email').value;
+            const username = document.getElementById('username').value;
             const password = document.getElementById('password').value;
 
             try {
@@ -181,19 +221,29 @@
                     headers: {
                         'Content-Type': 'application/json',
                     },
-                    body: JSON.stringify({ email, password })
+                    body: JSON.stringify({ username, password })
                 });
 
                 const data = await response.json();
 
                 if (data.ok) {
-                    successMessage.textContent = 'Login realizado com sucesso! Redirecionando...';
-                    successMessage.style.display = 'block';
-                    setTimeout(() => {
-                        window.location.href = '/agentes/dashboard';
-                    }, 1000);
+                    if (data.needs_email) {
+                        currentCommissionerId = data.commissioner_id;
+                        infoMessage.textContent = 'Por favor, insira o seu email para continuar.';
+                        infoMessage.style.display = 'block';
+                        loginForm.style.display = 'none';
+                        emailForm.style.display = 'block';
+                        loginBtn.disabled = false;
+                        loginBtn.textContent = 'Entrar';
+                    } else {
+                        successMessage.textContent = 'Login realizado com sucesso! Redirecionando...';
+                        successMessage.style.display = 'block';
+                        setTimeout(() => {
+                            window.location.href = '/agentes/dashboard';
+                        }, 1000);
+                    }
                 } else {
-                    errorMessage.textContent = data.error || 'Erro ao fazer login';
+                    errorMessage.textContent = data.error || 'Utilizador ou senha incorretos';
                     errorMessage.style.display = 'block';
                     loginBtn.disabled = false;
                     loginBtn.textContent = 'Entrar';
@@ -204,6 +254,57 @@
                 loginBtn.disabled = false;
                 loginBtn.textContent = 'Entrar';
             }
+        });
+
+        emailForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            
+            errorMessage.style.display = 'none';
+            successMessage.style.display = 'none';
+            infoMessage.style.display = 'none';
+            emailBtn.disabled = true;
+            emailBtn.textContent = 'Guardando...';
+
+            const email = document.getElementById('email').value;
+
+            try {
+                const response = await fetch('/api/commissioners/update-email', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ commissioner_id: currentCommissionerId, email })
+                });
+
+                const data = await response.json();
+
+                if (data.ok) {
+                    successMessage.textContent = 'Email guardado! Redirecionando...';
+                    successMessage.style.display = 'block';
+                    setTimeout(() => {
+                        window.location.href = '/agentes/dashboard';
+                    }, 1000);
+                } else {
+                    errorMessage.textContent = data.error || 'Erro ao guardar email';
+                    errorMessage.style.display = 'block';
+                    emailBtn.disabled = false;
+                    emailBtn.textContent = 'Guardar Email';
+                }
+            } catch (error) {
+                errorMessage.textContent = 'Erro de conexão. Tente novamente.';
+                errorMessage.style.display = 'block';
+                emailBtn.disabled = false;
+                emailBtn.textContent = 'Guardar Email';
+            }
+        });
+
+        cancelBtn.addEventListener('click', () => {
+            loginForm.style.display = 'block';
+            emailForm.style.display = 'none';
+            errorMessage.style.display = 'none';
+            successMessage.style.display = 'none';
+            infoMessage.style.display = 'none';
+            currentCommissionerId = null;
         });
     </script>
 </body>
