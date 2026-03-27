@@ -60,13 +60,24 @@ class BookingCreate(BaseModel):
 # HELPER FUNCTIONS
 # ============================================================
 
-def hash_password(password: str) -> str:
-    """Hash password using SHA256"""
-    return hashlib.sha256(password.encode()).hexdigest()
+def hash_password(password: str, salt: str = "") -> str:
+    """Hash password using SHA256 with salt - same method as main.py"""
+    if not salt:
+        import secrets
+        salt = secrets.token_hex(8)
+    digest = hashlib.sha256((salt + ":" + password).encode("utf-8")).hexdigest()
+    return f"{salt}:{digest}"
 
 def verify_password(password: str, password_hash: str) -> bool:
-    """Verify password against hash"""
-    return hash_password(password) == password_hash
+    """Verify password against hash with salt"""
+    if ":" not in password_hash:
+        # Old format without salt
+        return hashlib.sha256(password.encode()).hexdigest() == password_hash
+    
+    # New format with salt
+    salt, stored_hash = password_hash.split(":", 1)
+    computed_hash = hashlib.sha256((salt + ":" + password).encode("utf-8")).hexdigest()
+    return computed_hash == stored_hash
 
 def get_current_commissioner(request: Request):
     """Get current logged in commissioner from session"""
