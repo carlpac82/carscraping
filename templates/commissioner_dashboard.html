@@ -717,7 +717,11 @@
                                 <textarea id="observations"></textarea>
                             </div>
                             <div class="form-group">
-                                <label>Preço (€) *</label>
+                                <label>Depósito (€)</label>
+                                <input type="number" id="deposit" step="0.01" min="0" value="0">
+                            </div>
+                            <div class="form-group">
+                                <label>Preço Total (€) *</label>
                                 <input type="number" id="price" step="0.01" min="0" required>
                             </div>
                         </div>
@@ -1005,6 +1009,7 @@
                 flight_number: document.getElementById('flightNumber').value || null,
                 language: document.getElementById('language').value,
                 observations: document.getElementById('observations').value || null,
+                deposit: parseFloat(document.getElementById('deposit').value) || 0,
                 price: parseFloat(document.getElementById('price').value),
                 extras: []
             };

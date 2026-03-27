@@ -46,6 +46,7 @@ CREATE TABLE IF NOT EXISTS commission_bookings (
     flight_number VARCHAR(50),
     language VARCHAR(5) NOT NULL DEFAULT 'pt',
     observations TEXT,
+    deposit DECIMAL(10, 2) DEFAULT 0.00,
     price DECIMAL(10, 2) NOT NULL,
     
     -- Status and tracking

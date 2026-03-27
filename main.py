@@ -60972,6 +60972,7 @@ async def admin_migrate_complete_commissioners_schema(request: Request):
                             flight_number VARCHAR(50),
                             language VARCHAR(5) NOT NULL DEFAULT 'pt',
                             observations TEXT,
+                            deposit DECIMAL(10, 2) DEFAULT 0.00,
                             price DECIMAL(10, 2) NOT NULL,
                             status VARCHAR(50) DEFAULT 'pending',
                             created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
@@ -60982,7 +60983,7 @@ async def admin_migrate_complete_commissioners_schema(request: Request):
                 except Exception as e:
                     results.append(f"⚠️ Commission_bookings table: {str(e)}")
                 
-                # 5. Add hotel and room_number columns if they don't exist
+                # 5. Add hotel, room_number and deposit columns if they don't exist
                 try:
                     cursor.execute("""
                         ALTER TABLE commission_bookings 
@@ -60992,9 +60993,13 @@ async def admin_migrate_complete_commissioners_schema(request: Request):
                         ALTER TABLE commission_bookings 
                         ADD COLUMN IF NOT EXISTS room_number VARCHAR(50)
                     """)
-                    results.append("✅ Added hotel and room_number columns to commission_bookings")
+                    cursor.execute("""
+                        ALTER TABLE commission_bookings 
+                        ADD COLUMN IF NOT EXISTS deposit DECIMAL(10, 2) DEFAULT 0.00
+                    """)
+                    results.append("✅ Added hotel, room_number and deposit columns to commission_bookings")
                 except Exception as e:
-                    results.append(f"⚠️ Hotel/room_number columns: {str(e)}")
+                    results.append(f"⚠️ Hotel/room_number/deposit columns: {str(e)}")
                 
                 # 6. Create indexes
                 try:

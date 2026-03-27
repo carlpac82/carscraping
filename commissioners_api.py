@@ -56,6 +56,7 @@ class BookingCreate(BaseModel):
     flight_number: Optional[str] = None
     language: str
     observations: Optional[str] = None
+    deposit: float = 0.0
     price: float
 
 # ============================================================
@@ -278,10 +279,10 @@ async def create_booking(booking: BookingCreate, request: Request):
             pickup_date, pickup_time, dropoff_date, dropoff_time,
             pickup_location, dropoff_location,
             vehicle_group, extras,
-            flight_number, language, observations, price,
+            flight_number, language, observations, deposit, price,
             status
         ) VALUES (
-            %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s
+            %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s
         ) RETURNING id
     """, (
         commissioner_id, voucher_number,
@@ -289,7 +290,7 @@ async def create_booking(booking: BookingCreate, request: Request):
         booking.pickup_date, booking.pickup_time, booking.dropoff_date, booking.dropoff_time,
         booking.pickup_location, booking.dropoff_location,
         booking.vehicle_group, json.dumps(booking.extras),
-        booking.flight_number, booking.language, booking.observations, booking.price,
+        booking.flight_number, booking.language, booking.observations, booking.deposit, booking.price,
         'confirmed'
     ))
     
