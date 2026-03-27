@@ -22,7 +22,7 @@ class CommissionerCreate(BaseModel):
     name: str
     email: Optional[str] = None
     phone: Optional[str] = None
-    voucher_prefix: str
+    voucher_prefix: Optional[str] = None
     username: str
     password: str
     active: bool = True
@@ -362,20 +362,35 @@ async def create_commissioner(commissioner: CommissionerCreate):
     password_hash = hash_password(commissioner.password)
     
     try:
+        # First insert without voucher_prefix to get the ID
         cursor.execute("""
-            INSERT INTO commissioners (name, email, phone, voucher_prefix, username, password_hash, active)
-            VALUES (%s, %s, %s, %s, %s, %s, %s)
+            INSERT INTO commissioners (name, email, phone, username, password_hash, active)
+            VALUES (%s, %s, %s, %s, %s, %s)
             RETURNING id
         """, (
             commissioner.name, commissioner.email, commissioner.phone,
-            commissioner.voucher_prefix, commissioner.username, password_hash, commissioner.active
+            commissioner.username, password_hash, commissioner.active
         ))
         
         commissioner_id = cursor.fetchone()[0]
+        
+        # Generate voucher_prefix if not provided
+        if commissioner.voucher_prefix:
+            voucher_prefix = commissioner.voucher_prefix
+        else:
+            # Generate prefix: first 3 letters of name + ID padded to 3 digits
+            prefix_base = commissioner.name[:3].upper().replace(" ", "")
+            voucher_prefix = prefix_base + str(commissioner_id).zfill(3)
+        
+        # Update with voucher_prefix
+        cursor.execute("""
+            UPDATE commissioners SET voucher_prefix = %s WHERE id = %s
+        """, (voucher_prefix, commissioner_id))
+        
         conn.commit()
         conn.close()
         
-        return {"success": True, "id": commissioner_id}
+        return {"success": True, "id": commissioner_id, "voucher_prefix": voucher_prefix}
     except Exception as e:
         conn.close()
         raise HTTPException(status_code=400, detail=str(e))
