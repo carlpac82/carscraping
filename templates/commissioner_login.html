@@ -16,9 +16,21 @@
             background: linear-gradient(135deg, #009cb6 0%, #006d7e 100%);
             min-height: 100vh;
             display: flex;
+            flex-direction: column;
             align-items: center;
             justify-content: center;
             padding: 20px;
+        }
+
+        .logo-outside {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+
+        .logo-outside img {
+            max-width: 280px;
+            height: auto;
+            filter: drop-shadow(0 4px 6px rgba(0, 0, 0, 0.2));
         }
 
         .login-container {
@@ -30,25 +42,19 @@
             max-width: 420px;
         }
 
-        .logo {
+        .login-header {
             text-align: center;
             margin-bottom: 35px;
         }
 
-        .logo img {
-            max-width: 220px;
-            height: auto;
-            margin-bottom: 15px;
-        }
-
-        .logo h2 {
+        .login-header h2 {
             color: #333;
             font-size: 22px;
             font-weight: 600;
             margin-bottom: 5px;
         }
 
-        .logo p {
+        .login-header p {
             color: #666;
             font-size: 14px;
         }
@@ -151,9 +157,12 @@
     </style>
 </head>
 <body>
+    <div class="logo-outside">
+        <img src="/static/logo_autoprudente 1.png" alt="Auto Prudente" onerror="this.style.display='none'">
+    </div>
+    
     <div class="login-container">
-        <div class="logo">
-            <img src="/static/logo_autoprudente 1.png" alt="Auto Prudente" onerror="this.style.display='none'">
+        <div class="login-header">
             <h2>Portal de Comissionistas</h2>
             <p>Auto Prudente Rent a Car</p>
         </div>
