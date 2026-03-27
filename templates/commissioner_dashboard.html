@@ -36,18 +36,11 @@
         .header-left {
             display: flex;
             align-items: center;
-            gap: 20px;
         }
 
         .header-logo {
             height: 48px;
             width: auto;
-        }
-
-        .welcome-message {
-            font-size: 16px;
-            font-weight: 500;
-            color: white;
         }
 
         .header-right {
@@ -89,9 +82,28 @@
             background: rgba(255, 255, 255, 0.25);
         }
 
+        .welcome-section {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 30px 30px 20px 30px;
+        }
+
+        .welcome-message {
+            font-family: 'Inter', 'Segoe UI', -apple-system, BlinkMacSystemFont, sans-serif;
+            font-size: 28px;
+            font-weight: 300;
+            color: #1f2937;
+            letter-spacing: -0.5px;
+        }
+
+        .welcome-message strong {
+            font-weight: 600;
+            color: #009cb6;
+        }
+
         .container {
             max-width: 1400px;
-            margin: 30px auto;
+            margin: 0 auto 30px auto;
             padding: 0 30px;
         }
 
@@ -249,13 +261,16 @@
         <div class="header-content">
             <div class="header-left">
                 <img src="/static/ap-heather.png" alt="Auto Prudente" class="header-logo" />
-                <span class="welcome-message" id="welcomeMessage">Bem-vindo</span>
             </div>
             <div class="header-right">
                 <button class="btn-new-booking" onclick="createNewBooking()">Nova Reserva</button>
                 <button class="btn-logout" onclick="logout()">Sair</button>
             </div>
         </div>
+    </div>
+
+    <div class="welcome-section">
+        <div class="welcome-message" id="welcomeMessage">Bem-vindo</div>
     </div>
 
     <div class="container">
@@ -314,7 +329,8 @@
                 }
 
                 const commissioner = data.commissioner;
-                document.getElementById('welcomeMessage').textContent = `Bem-vindo ${commissioner.name}`;
+                const firstName = commissioner.name.split(' ')[0];
+                document.getElementById('welcomeMessage').innerHTML = `Bem-vindo <strong>${firstName}</strong>`;
 
                 await loadBookings();
             } catch (error) {
