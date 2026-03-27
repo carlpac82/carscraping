@@ -60731,6 +60731,102 @@ async def admin_commissioner_bookings_page(request: Request):
     user = request.session.get("user")
     return templates.TemplateResponse("commissioner_bookings.html", {"request": request, "user": user})
 
+@app.get("/admin/init-commissioners-tables")
+async def admin_init_commissioners_tables(request: Request):
+    """Initialize commissioners and bookings tables - Admin only"""
+    try:
+        require_admin(request)
+    except HTTPException:
+        return JSONResponse({"ok": False, "error": "Unauthorized"}, status_code=401)
+    
+    try:
+        with _db_lock:
+            con = _db_connect()
+            try:
+                cursor = con.cursor()
+                
+                # Create commissioners table
+                cursor.execute("""
+                    CREATE TABLE IF NOT EXISTS commissioners (
+                        id SERIAL PRIMARY KEY,
+                        name VARCHAR(255) NOT NULL,
+                        email VARCHAR(255),
+                        username VARCHAR(100) NOT NULL UNIQUE,
+                        password_hash VARCHAR(255) NOT NULL,
+                        commission_rate DECIMAL(5, 2) DEFAULT 0.00,
+                        enabled BOOLEAN DEFAULT TRUE,
+                        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+                    )
+                """)
+                
+                # Create bookings table
+                cursor.execute("""
+                    CREATE TABLE IF NOT EXISTS bookings (
+                        id SERIAL PRIMARY KEY,
+                        customer_name VARCHAR(255) NOT NULL,
+                        customer_email VARCHAR(255) NOT NULL,
+                        customer_phone VARCHAR(50) NOT NULL,
+                        pickup_date DATE NOT NULL,
+                        return_date DATE NOT NULL,
+                        pickup_location VARCHAR(255) NOT NULL,
+                        return_location VARCHAR(255) NOT NULL,
+                        car_name VARCHAR(255) NOT NULL,
+                        total_price DECIMAL(10, 2) NOT NULL,
+                        status VARCHAR(50) DEFAULT 'pending',
+                        commissioner_id INTEGER REFERENCES commissioners(id) ON DELETE SET NULL,
+                        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+                    )
+                """)
+                
+                # Create indexes
+                cursor.execute("CREATE INDEX IF NOT EXISTS idx_bookings_commissioner ON bookings(commissioner_id)")
+                cursor.execute("CREATE INDEX IF NOT EXISTS idx_bookings_status ON bookings(status)")
+                cursor.execute("CREATE INDEX IF NOT EXISTS idx_bookings_dates ON bookings(pickup_date, return_date)")
+                
+                # Create trigger function
+                cursor.execute("""
+                    CREATE OR REPLACE FUNCTION update_updated_at_column()
+                    RETURNS TRIGGER AS $$
+                    BEGIN
+                        NEW.updated_at = CURRENT_TIMESTAMP;
+                        RETURN NEW;
+                    END;
+                    $$ language 'plpgsql'
+                """)
+                
+                # Create triggers
+                cursor.execute("DROP TRIGGER IF EXISTS update_commissioners_updated_at ON commissioners")
+                cursor.execute("""
+                    CREATE TRIGGER update_commissioners_updated_at 
+                    BEFORE UPDATE ON commissioners
+                    FOR EACH ROW EXECUTE FUNCTION update_updated_at_column()
+                """)
+                
+                cursor.execute("DROP TRIGGER IF EXISTS update_bookings_updated_at ON bookings")
+                cursor.execute("""
+                    CREATE TRIGGER update_bookings_updated_at 
+                    BEFORE UPDATE ON bookings
+                    FOR EACH ROW EXECUTE FUNCTION update_updated_at_column()
+                """)
+                
+                con.commit()
+                
+                return JSONResponse({
+                    "ok": True,
+                    "message": "Tables created successfully",
+                    "tables": ["commissioners", "bookings"]
+                })
+                
+            finally:
+                con.close()
+                
+    except Exception as e:
+        print(f"Error initializing tables: {e}")
+        traceback.print_exc()
+        return JSONResponse({"ok": False, "error": str(e)}, status_code=500)
+
 
 # ============================================================
 # COMMISSIONERS API ROUTES
