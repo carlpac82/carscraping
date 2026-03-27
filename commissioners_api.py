@@ -674,3 +674,70 @@ async def get_commissioner_locations(request: Request):
             "ok": False,
             "error": str(e)
         }, status_code=500)
+
+@router.get("/api/commissioners/schedule-settings")
+async def get_schedule_settings(request: Request):
+    """Get schedule settings for current commissioner"""
+    try:
+        commissioner_id = get_current_commissioner(request)
+        
+        conn = get_db()
+        cursor = conn.cursor()
+        
+        cursor.execute("""
+            SELECT 
+                weekday_start_morning, weekday_end_morning,
+                weekday_start_afternoon, weekday_end_afternoon,
+                sunday_start_morning, sunday_end_morning,
+                sunday_start_afternoon, sunday_end_afternoon,
+                time_interval_minutes
+            FROM commissioners
+            WHERE id = %s
+        """, (commissioner_id,))
+        
+        result = cursor.fetchone()
+        conn.close()
+        
+        if not result:
+            # Return defaults if not found
+            return JSONResponse({
+                "ok": True,
+                "settings": {
+                    "weekday_start_morning": "09:30",
+                    "weekday_end_morning": "12:30",
+                    "weekday_start_afternoon": "15:00",
+                    "weekday_end_afternoon": "17:00",
+                    "sunday_start_morning": "09:30",
+                    "sunday_end_morning": "12:30",
+                    "sunday_start_afternoon": "15:30",
+                    "sunday_end_afternoon": "17:00",
+                    "time_interval_minutes": 15
+                }
+            })
+        
+        # Convert time objects to strings
+        settings = {
+            "weekday_start_morning": str(result[0]) if result[0] else "09:30",
+            "weekday_end_morning": str(result[1]) if result[1] else "12:30",
+            "weekday_start_afternoon": str(result[2]) if result[2] else "15:00",
+            "weekday_end_afternoon": str(result[3]) if result[3] else "17:00",
+            "sunday_start_morning": str(result[4]) if result[4] else "09:30",
+            "sunday_end_morning": str(result[5]) if result[5] else "12:30",
+            "sunday_start_afternoon": str(result[6]) if result[6] else "15:30",
+            "sunday_end_afternoon": str(result[7]) if result[7] else "17:00",
+            "time_interval_minutes": result[8] if result[8] else 15
+        }
+        
+        return JSONResponse({
+            "ok": True,
+            "settings": settings
+        })
+        
+    except Exception as e:
+        import traceback
+        print(f"Error in get_schedule_settings: {e}")
+        print(traceback.format_exc())
+        return JSONResponse({
+            "ok": False,
+            "error": str(e)
+        }, status_code=500)

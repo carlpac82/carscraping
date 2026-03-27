@@ -719,7 +719,9 @@
                             </div>
                             <div class="form-group">
                                 <label>Hora Entrega *</label>
-                                <input type="time" id="pickupTime" required>
+                                <select id="pickupTime" required>
+                                    <option value="">Selecione a hora</option>
+                                </select>
                             </div>
                             <div class="form-group">
                                 <label>Data Recolha *</label>
@@ -727,7 +729,9 @@
                             </div>
                             <div class="form-group">
                                 <label>Hora Recolha *</label>
-                                <input type="time" id="dropoffTime" required>
+                                <select id="dropoffTime" required>
+                                    <option value="">Selecione a hora</option>
+                                </select>
                             </div>
                             <div class="form-group full-width">
                                 <label>Número de Dias</label>
@@ -1260,6 +1264,110 @@
 
         let currentCommissioner = null;
         let selectedVehicle = null;
+        let scheduleSettings = null;
+
+        // Função para gerar horários com intervalo de 15 minutos
+        function generateTimeSlots(startTime, endTime, interval = 15) {
+            const slots = [];
+            const [startHour, startMin] = startTime.split(':').map(Number);
+            const [endHour, endMin] = endTime.split(':').map(Number);
+            
+            let currentMinutes = startHour * 60 + startMin;
+            const endMinutes = endHour * 60 + endMin;
+            
+            while (currentMinutes <= endMinutes) {
+                const hours = Math.floor(currentMinutes / 60);
+                const minutes = currentMinutes % 60;
+                const timeStr = `${String(hours).padStart(2, '0')}:${String(minutes).padStart(2, '0')}`;
+                slots.push(timeStr);
+                currentMinutes += interval;
+            }
+            
+            return slots;
+        }
+
+        // Carregar configurações de horários
+        async function loadScheduleSettings() {
+            try {
+                const response = await fetch('/api/commissioners/schedule-settings');
+                const data = await response.json();
+                
+                if (data.ok) {
+                    scheduleSettings = data.settings;
+                    return true;
+                }
+            } catch (error) {
+                console.error('Error loading schedule settings:', error);
+                // Usar defaults
+                scheduleSettings = {
+                    weekday_start_morning: "09:30",
+                    weekday_end_morning: "12:30",
+                    weekday_start_afternoon: "15:00",
+                    weekday_end_afternoon: "17:00",
+                    sunday_start_morning: "09:30",
+                    sunday_end_morning: "12:30",
+                    sunday_start_afternoon: "15:30",
+                    sunday_end_afternoon: "17:00",
+                    time_interval_minutes: 15
+                };
+            }
+            return false;
+        }
+
+        // Popular selects de hora baseado na data selecionada
+        function populateTimeSelects(dateInput, timeSelect) {
+            if (!scheduleSettings) return;
+            
+            const selectedDate = new Date(dateInput.value + 'T00:00:00');
+            const isSunday = selectedDate.getDay() === 0;
+            
+            const interval = scheduleSettings.time_interval_minutes || 15;
+            let timeSlots = [];
+            
+            if (isSunday) {
+                // Domingo: manhã + tarde
+                const morningSlots = generateTimeSlots(
+                    scheduleSettings.sunday_start_morning,
+                    scheduleSettings.sunday_end_morning,
+                    interval
+                );
+                const afternoonSlots = generateTimeSlots(
+                    scheduleSettings.sunday_start_afternoon,
+                    scheduleSettings.sunday_end_afternoon,
+                    interval
+                );
+                timeSlots = [...morningSlots, ...afternoonSlots];
+            } else {
+                // Dia de semana: manhã + tarde
+                const morningSlots = generateTimeSlots(
+                    scheduleSettings.weekday_start_morning,
+                    scheduleSettings.weekday_end_morning,
+                    interval
+                );
+                const afternoonSlots = generateTimeSlots(
+                    scheduleSettings.weekday_start_afternoon,
+                    scheduleSettings.weekday_end_afternoon,
+                    interval
+                );
+                timeSlots = [...morningSlots, ...afternoonSlots];
+            }
+            
+            // Limpar e popular select
+            const currentValue = timeSelect.value;
+            timeSelect.innerHTML = '<option value="">Selecione a hora</option>';
+            
+            timeSlots.forEach(time => {
+                const option = document.createElement('option');
+                option.value = time;
+                option.textContent = time;
+                timeSelect.appendChild(option);
+            });
+            
+            // Restaurar valor se ainda existir
+            if (currentValue && timeSlots.includes(currentValue)) {
+                timeSelect.value = currentValue;
+            }
+        }
 
         async function createNewBooking() {
             const modal = document.getElementById('newBookingModal');
@@ -1268,6 +1376,11 @@
             // Carregar veículos se ainda não foram carregados
             if (vehicleGroups.length === 0) {
                 await loadVehicleGroups();
+            }
+            
+            // Carregar configurações de horários
+            if (!scheduleSettings) {
+                await loadScheduleSettings();
             }
             
             // Carregar locais se ainda não foram carregados
@@ -1369,10 +1482,27 @@
             document.getElementById('daysDisplay').textContent = `${days} dia${days !== 1 ? 's' : ''}`;
         }
 
+        // Event listeners para popular horários quando data muda
+        document.getElementById('pickupDate').addEventListener('change', function() {
+            const pickupDate = document.getElementById('pickupDate');
+            const pickupTime = document.getElementById('pickupTime');
+            if (pickupDate.value) {
+                populateTimeSelects(pickupDate, pickupTime);
+            }
+            calculateDays();
+        });
+        
+        document.getElementById('dropoffDate').addEventListener('change', function() {
+            const dropoffDate = document.getElementById('dropoffDate');
+            const dropoffTime = document.getElementById('dropoffTime');
+            if (dropoffDate.value) {
+                populateTimeSelects(dropoffDate, dropoffTime);
+            }
+            calculateDays();
+        });
+        
         // Event listeners para cálculo automático de dias
-        document.getElementById('pickupDate').addEventListener('change', calculateDays);
         document.getElementById('pickupTime').addEventListener('change', calculateDays);
-        document.getElementById('dropoffDate').addEventListener('change', calculateDays);
         document.getElementById('dropoffTime').addEventListener('change', calculateDays);
 
         async function submitNewBooking() {
