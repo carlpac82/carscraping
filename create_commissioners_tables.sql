@@ -7,12 +7,11 @@
 CREATE TABLE IF NOT EXISTS commissioners (
     id SERIAL PRIMARY KEY,
     name VARCHAR(255) NOT NULL,
-    email VARCHAR(255) NOT NULL UNIQUE,
-    phone VARCHAR(50),
-    voucher_prefix VARCHAR(10) NOT NULL UNIQUE,
+    email VARCHAR(255),
     username VARCHAR(100) NOT NULL UNIQUE,
     password_hash VARCHAR(255) NOT NULL,
-    active BOOLEAN DEFAULT TRUE,
+    commission_rate DECIMAL(5, 2) DEFAULT 0.00,
+    enabled BOOLEAN DEFAULT TRUE,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
