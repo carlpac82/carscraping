@@ -600,3 +600,36 @@ async def get_vehicle_groups_endpoint(request: Request):
             "ok": False,
             "error": str(e)
         }, status_code=500)
+
+@router.get("/api/commissioners/locations")
+async def get_commissioner_locations(request: Request):
+    """Get all commissioner locations (names) for dropdowns"""
+    try:
+        # Verificar se há sessão ativa
+        commissioner_id = request.session.get('commissioner_id')
+        if not commissioner_id:
+            return JSONResponse({"ok": False, "error": "Not authenticated"}, status_code=401)
+        
+        db_config = get_db()
+        conn = psycopg2.connect(**db_config)
+        cursor = conn.cursor()
+        
+        cursor.execute("""
+            SELECT DISTINCT name 
+            FROM commissioners 
+            WHERE enabled = TRUE 
+            ORDER BY name
+        """)
+        
+        locations = [row[0] for row in cursor.fetchall()]
+        conn.close()
+        
+        return JSONResponse({
+            "ok": True,
+            "locations": locations
+        })
+    except Exception as e:
+        return JSONResponse({
+            "ok": False,
+            "error": str(e)
+        }, status_code=500)

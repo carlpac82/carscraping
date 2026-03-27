@@ -684,18 +684,6 @@
                                 <label>Hotel</label>
                                 <select id="clientHotel">
                                     <option value="">Selecione...</option>
-                                    <option value="Aeroporto">Aeroporto</option>
-                                    <option value="Hotel Pestana CR7">Hotel Pestana CR7</option>
-                                    <option value="Hotel The Vine">Hotel The Vine</option>
-                                    <option value="Hotel Savoy Palace">Hotel Savoy Palace</option>
-                                    <option value="Hotel Belmond Reid's Palace">Hotel Belmond Reid's Palace</option>
-                                    <option value="Hotel Pestana Carlton">Hotel Pestana Carlton</option>
-                                    <option value="Hotel Meliá Madeira Mare">Hotel Meliá Madeira Mare</option>
-                                    <option value="Hotel Vidamar">Hotel Vidamar</option>
-                                    <option value="Hotel Pestana Grand">Hotel Pestana Grand</option>
-                                    <option value="Hotel Quinta da Casa Branca">Hotel Quinta da Casa Branca</option>
-                                    <option value="Porto">Porto</option>
-                                    <option value="Outro">Outro</option>
                                 </select>
                             </div>
                             <div class="form-group">
@@ -713,36 +701,12 @@
                                 <label>Local de Entrega *</label>
                                 <select id="pickupLocation" required>
                                     <option value="">Selecione...</option>
-                                    <option value="Aeroporto">Aeroporto</option>
-                                    <option value="Hotel Pestana CR7">Hotel Pestana CR7</option>
-                                    <option value="Hotel The Vine">Hotel The Vine</option>
-                                    <option value="Hotel Savoy Palace">Hotel Savoy Palace</option>
-                                    <option value="Hotel Belmond Reid's Palace">Hotel Belmond Reid's Palace</option>
-                                    <option value="Hotel Pestana Carlton">Hotel Pestana Carlton</option>
-                                    <option value="Hotel Meliá Madeira Mare">Hotel Meliá Madeira Mare</option>
-                                    <option value="Hotel Vidamar">Hotel Vidamar</option>
-                                    <option value="Hotel Pestana Grand">Hotel Pestana Grand</option>
-                                    <option value="Hotel Quinta da Casa Branca">Hotel Quinta da Casa Branca</option>
-                                    <option value="Porto">Porto</option>
-                                    <option value="Outro">Outro</option>
                                 </select>
                             </div>
                             <div class="form-group">
                                 <label>Local de Recolha *</label>
                                 <select id="dropoffLocation" required>
                                     <option value="">Selecione...</option>
-                                    <option value="Aeroporto">Aeroporto</option>
-                                    <option value="Hotel Pestana CR7">Hotel Pestana CR7</option>
-                                    <option value="Hotel The Vine">Hotel The Vine</option>
-                                    <option value="Hotel Savoy Palace">Hotel Savoy Palace</option>
-                                    <option value="Hotel Belmond Reid's Palace">Hotel Belmond Reid's Palace</option>
-                                    <option value="Hotel Pestana Carlton">Hotel Pestana Carlton</option>
-                                    <option value="Hotel Meliá Madeira Mare">Hotel Meliá Madeira Mare</option>
-                                    <option value="Hotel Vidamar">Hotel Vidamar</option>
-                                    <option value="Hotel Pestana Grand">Hotel Pestana Grand</option>
-                                    <option value="Hotel Quinta da Casa Branca">Hotel Quinta da Casa Branca</option>
-                                    <option value="Porto">Porto</option>
-                                    <option value="Outro">Outro</option>
                                 </select>
                             </div>
                         </div>
@@ -933,6 +897,7 @@
 
         // Dados dos grupos de veículos - será carregado da API
         let vehicleGroups = [];
+        let commissionerLocations = [];
         
         // Carregar veículos da base de dados
         async function loadVehicleGroups() {
@@ -941,44 +906,88 @@
                 const data = await response.json();
                 if (data.ok && data.groups) {
                     vehicleGroups = data.groups;
+                    console.log('Loaded vehicle groups:', vehicleGroups);
                 } else {
+                    console.error('Failed to load vehicle groups:', data);
                     // Fallback para grupos estáticos se API falhar
                     vehicleGroups = [
-                        { code: 'A', name: 'KIA PICANTO ou similar', image: '/api/vehicle-photo/kia picanto' },
-                        { code: 'B', name: 'FIAT PANDA ou similar', image: '/api/vehicle-photo/fiat panda' },
-                        { code: 'D', name: 'SEAT IBIZA ou similar', image: '/api/vehicle-photo/seat ibiza' },
-                        { code: 'E1', name: 'HYUNDAI i10 ou similar', image: '/api/vehicle-photo/hyundai i10' },
-                        { code: 'E2', name: 'CITROEN C3 ou similar', image: '/api/vehicle-photo/citroen c3' },
-                        { code: 'F', name: 'SEAT ARONA ou similar', image: '/api/vehicle-photo/seat arona' },
-                        { code: 'G', name: 'FIAT 500 cabrio', image: '/api/vehicle-photo/fiat 500' },
-                        { code: 'J1', name: 'PEUGEOT 2008 ou similar', image: '/api/vehicle-photo/peugeot 2008' },
-                        { code: 'J2', name: 'PEUGEOT 3008 SW', image: '/api/vehicle-photo/peugeot 3008' },
-                        { code: 'L1', name: 'CITROEN C4 ou similar', image: '/api/vehicle-photo/citroen c4' },
-                        { code: 'L2', name: 'PEUGEOT 308 SW', image: '/api/vehicle-photo/peugeot 308' },
-                        { code: 'M1', name: 'DACIA JOGGER ou similar', image: '/api/vehicle-photo/dacia jogger' },
-                        { code: 'M2', name: 'CITROEN C4 PICASSO', image: '/api/vehicle-photo/citroen c4 picasso' },
-                        { code: 'N', name: 'TOYOTA PROACE ou similar', image: '/api/vehicle-photo/toyota proace' }
+                        { code: 'A', name: 'KIA PICANTO ou similar', image: '/api/vehicle-photo/kia%20picanto' },
+                        { code: 'B', name: 'FIAT PANDA ou similar', image: '/api/vehicle-photo/fiat%20panda' },
+                        { code: 'D', name: 'SEAT IBIZA ou similar', image: '/api/vehicle-photo/seat%20ibiza' },
+                        { code: 'E1', name: 'HYUNDAI i10 ou similar', image: '/api/vehicle-photo/hyundai%20i10' },
+                        { code: 'E2', name: 'CITROEN C3 ou similar', image: '/api/vehicle-photo/citroen%20c3' },
+                        { code: 'F', name: 'SEAT ARONA ou similar', image: '/api/vehicle-photo/seat%20arona' },
+                        { code: 'G', name: 'FIAT 500 cabrio', image: '/api/vehicle-photo/fiat%20500' },
+                        { code: 'J1', name: 'PEUGEOT 2008 ou similar', image: '/api/vehicle-photo/peugeot%202008' },
+                        { code: 'J2', name: 'PEUGEOT 3008 SW', image: '/api/vehicle-photo/peugeot%203008' },
+                        { code: 'L1', name: 'CITROEN C4 ou similar', image: '/api/vehicle-photo/citroen%20c4' },
+                        { code: 'L2', name: 'PEUGEOT 308 SW', image: '/api/vehicle-photo/peugeot%20308' },
+                        { code: 'M1', name: 'DACIA JOGGER ou similar', image: '/api/vehicle-photo/dacia%20jogger' },
+                        { code: 'M2', name: 'CITROEN C4 PICASSO', image: '/api/vehicle-photo/citroen%20c4%20picasso' },
+                        { code: 'N', name: 'TOYOTA PROACE ou similar', image: '/api/vehicle-photo/toyota%20proace' }
                     ];
                 }
             } catch (error) {
                 console.error('Error loading vehicle groups:', error);
                 // Usar fallback
                 vehicleGroups = [
-                    { code: 'A', name: 'KIA PICANTO ou similar', image: '/api/vehicle-photo/kia picanto' },
-                    { code: 'B', name: 'FIAT PANDA ou similar', image: '/api/vehicle-photo/fiat panda' },
-                    { code: 'D', name: 'SEAT IBIZA ou similar', image: '/api/vehicle-photo/seat ibiza' },
-                    { code: 'E1', name: 'HYUNDAI i10 ou similar', image: '/api/vehicle-photo/hyundai i10' },
-                    { code: 'E2', name: 'CITROEN C3 ou similar', image: '/api/vehicle-photo/citroen c3' },
-                    { code: 'F', name: 'SEAT ARONA ou similar', image: '/api/vehicle-photo/seat arona' },
-                    { code: 'G', name: 'FIAT 500 cabrio', image: '/api/vehicle-photo/fiat 500' },
-                    { code: 'J1', name: 'PEUGEOT 2008 ou similar', image: '/api/vehicle-photo/peugeot 2008' },
-                    { code: 'J2', name: 'PEUGEOT 3008 SW', image: '/api/vehicle-photo/peugeot 3008' },
-                    { code: 'L1', name: 'CITROEN C4 ou similar', image: '/api/vehicle-photo/citroen c4' },
-                    { code: 'L2', name: 'PEUGEOT 308 SW', image: '/api/vehicle-photo/peugeot 308' },
-                    { code: 'M1', name: 'DACIA JOGGER ou similar', image: '/api/vehicle-photo/dacia jogger' },
-                    { code: 'M2', name: 'CITROEN C4 PICASSO', image: '/api/vehicle-photo/citroen c4 picasso' },
-                    { code: 'N', name: 'TOYOTA PROACE ou similar', image: '/api/vehicle-photo/toyota proace' }
+                    { code: 'A', name: 'KIA PICANTO ou similar', image: '/api/vehicle-photo/kia%20picanto' },
+                    { code: 'B', name: 'FIAT PANDA ou similar', image: '/api/vehicle-photo/fiat%20panda' },
+                    { code: 'D', name: 'SEAT IBIZA ou similar', image: '/api/vehicle-photo/seat%20ibiza' },
+                    { code: 'E1', name: 'HYUNDAI i10 ou similar', image: '/api/vehicle-photo/hyundai%20i10' },
+                    { code: 'E2', name: 'CITROEN C3 ou similar', image: '/api/vehicle-photo/citroen%20c3' },
+                    { code: 'F', name: 'SEAT ARONA ou similar', image: '/api/vehicle-photo/seat%20arona' },
+                    { code: 'G', name: 'FIAT 500 cabrio', image: '/api/vehicle-photo/fiat%20500' },
+                    { code: 'J1', name: 'PEUGEOT 2008 ou similar', image: '/api/vehicle-photo/peugeot%202008' },
+                    { code: 'J2', name: 'PEUGEOT 3008 SW', image: '/api/vehicle-photo/peugeot%203008' },
+                    { code: 'L1', name: 'CITROEN C4 ou similar', image: '/api/vehicle-photo/citroen%20c4' },
+                    { code: 'L2', name: 'PEUGEOT 308 SW', image: '/api/vehicle-photo/peugeot%20308' },
+                    { code: 'M1', name: 'DACIA JOGGER ou similar', image: '/api/vehicle-photo/dacia%20jogger' },
+                    { code: 'M2', name: 'CITROEN C4 PICASSO', image: '/api/vehicle-photo/citroen%20c4%20picasso' },
+                    { code: 'N', name: 'TOYOTA PROACE ou similar', image: '/api/vehicle-photo/toyota%20proace' }
                 ];
+            }
+        }
+        
+        // Carregar locais dos comissionistas
+        async function loadCommissionerLocations() {
+            try {
+                const response = await fetch('/api/commissioners/locations');
+                const data = await response.json();
+                if (data.ok && data.locations) {
+                    commissionerLocations = data.locations;
+                    console.log('Loaded locations:', commissionerLocations);
+                    populateLocationDropdowns();
+                } else {
+                    console.error('Failed to load locations:', data);
+                }
+            } catch (error) {
+                console.error('Error loading locations:', error);
+            }
+        }
+        
+        // Preencher dropdowns de locais
+        function populateLocationDropdowns() {
+            const pickupSelect = document.getElementById('pickupLocation');
+            const dropoffSelect = document.getElementById('dropoffLocation');
+            const hotelSelect = document.getElementById('clientHotel');
+            
+            // Limpar opções existentes (exceto a primeira)
+            pickupSelect.innerHTML = '<option value="">Selecione...</option>';
+            dropoffSelect.innerHTML = '<option value="">Selecione...</option>';
+            hotelSelect.innerHTML = '<option value="">Selecione...</option>';
+            
+            // Adicionar locais dos comissionistas
+            commissionerLocations.forEach(location => {
+                pickupSelect.innerHTML += `<option value="${location}">${location}</option>`;
+                dropoffSelect.innerHTML += `<option value="${location}">${location}</option>`;
+                hotelSelect.innerHTML += `<option value="${location}">${location}</option>`;
+            });
+            
+            // Preencher por defeito com o local do comissionista logado
+            if (currentCommissioner && currentCommissioner.name) {
+                pickupSelect.value = currentCommissioner.name;
+                dropoffSelect.value = currentCommissioner.name;
             }
         }
 
@@ -992,6 +1001,14 @@
             // Carregar veículos se ainda não foram carregados
             if (vehicleGroups.length === 0) {
                 await loadVehicleGroups();
+            }
+            
+            // Carregar locais se ainda não foram carregados
+            if (commissionerLocations.length === 0) {
+                await loadCommissionerLocations();
+            } else {
+                // Repreencher dropdowns com valor padrão
+                populateLocationDropdowns();
             }
             
             renderVehicleGrid();
