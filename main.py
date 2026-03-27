@@ -60879,9 +60879,9 @@ async def api_get_commissioners(request: Request):
                         "username": row[1],
                         "name": row[2],
                         "email": row[3] or "",
-                        "commission_rate": row[4],
+                        "commission_rate": float(row[4]) if row[4] is not None else 0.0,
                         "enabled": bool(row[5]),
-                        "created_at": row[6]
+                        "created_at": str(row[6]) if row[6] else ""
                     })
                 
                 return JSONResponse({"ok": True, "commissioners": commissioners})
