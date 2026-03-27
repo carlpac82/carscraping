@@ -10,6 +10,7 @@ from typing import Optional, List
 from datetime import datetime, date, time
 import hashlib
 import json
+import psycopg2
 from database import get_db
 
 router = APIRouter()
@@ -556,39 +557,40 @@ def get_vehicle_groups_with_photos(db_config: dict):
         print(f"Error loading car_groups: {e}")
         car_groups_data = {}
     
-    # Mapeamento de grupos para comissionistas
+    # Mapeamento de grupos para comissionistas com nomes de veículos para fallback
     # Grupo B junta B1 e B2, usa foto do B2
     # Grupo A usa foto do Kia Picanto
     group_mapping = {
-        'A': {'source': 'A', 'name': 'KIA PICANTO ou similar'},
-        'B': {'source': 'B2', 'name': 'FIAT PANDA ou similar'},  # B usa foto do B2
-        'D': {'source': 'D', 'name': 'SEAT IBIZA ou similar'},
-        'E1': {'source': 'E1', 'name': 'HYUNDAI i10 ou similar'},
-        'E2': {'source': 'E2', 'name': 'CITROEN C3 ou similar'},
-        'F': {'source': 'F', 'name': 'SEAT ARONA ou similar'},
-        'G': {'source': 'G', 'name': 'FIAT 500 cabrio'},
-        'J1': {'source': 'J1', 'name': 'PEUGEOT 2008 ou similar'},
-        'J2': {'source': 'J2', 'name': 'PEUGEOT 3008 SW'},
-        'L1': {'source': 'L1', 'name': 'CITROEN C4 ou similar'},
-        'L2': {'source': 'L2', 'name': 'PEUGEOT 308 SW'},
-        'M1': {'source': 'M1', 'name': 'DACIA JOGGER ou similar'},
-        'M2': {'source': 'M2', 'name': 'CITROEN C4 PICASSO'},
-        'N': {'source': 'N', 'name': 'TOYOTA PROACE ou similar'}
+        'A': {'source': 'A', 'name': 'KIA PICANTO ou similar', 'vehicle': 'kia picanto'},
+        'B': {'source': 'B2', 'name': 'FIAT PANDA ou similar', 'vehicle': 'fiat panda'},  # B usa foto do B2
+        'D': {'source': 'D', 'name': 'SEAT IBIZA ou similar', 'vehicle': 'seat ibiza'},
+        'E1': {'source': 'E1', 'name': 'HYUNDAI i10 ou similar', 'vehicle': 'hyundai i10'},
+        'E2': {'source': 'E2', 'name': 'CITROEN C3 ou similar', 'vehicle': 'citroen c3'},
+        'F': {'source': 'F', 'name': 'SEAT ARONA ou similar', 'vehicle': 'seat arona'},
+        'G': {'source': 'G', 'name': 'FIAT 500 cabrio', 'vehicle': 'fiat 500'},
+        'J1': {'source': 'J1', 'name': 'PEUGEOT 2008 ou similar', 'vehicle': 'peugeot 2008'},
+        'J2': {'source': 'J2', 'name': 'PEUGEOT 3008 SW', 'vehicle': 'peugeot 3008'},
+        'L1': {'source': 'L1', 'name': 'CITROEN C4 ou similar', 'vehicle': 'citroen c4'},
+        'L2': {'source': 'L2', 'name': 'PEUGEOT 308 SW', 'vehicle': 'peugeot 308'},
+        'M1': {'source': 'M1', 'name': 'DACIA JOGGER ou similar', 'vehicle': 'dacia jogger'},
+        'M2': {'source': 'M2', 'name': 'CITROEN C4 PICASSO', 'vehicle': 'citroen c4 picasso'},
+        'N': {'source': 'N', 'name': 'TOYOTA PROACE ou similar', 'vehicle': 'toyota proace'}
     }
     
     groups = []
     for code, mapping in group_mapping.items():
         source_code = mapping['source']
         name = mapping['name']
+        vehicle_name = mapping['vehicle']
         
         # Buscar foto do grupo correspondente em car_groups
         photo_url = ''
         if source_code in car_groups_data:
             photo_url = car_groups_data[source_code]['photo_url']
         
-        # Fallback se não houver foto
+        # Fallback: usar endpoint de fotos de veículos com nome completo
         if not photo_url:
-            photo_url = f'/api/vehicle-photo/{name.split(" ")[0].lower()}'
+            photo_url = f'/api/vehicle-photo/{vehicle_name}'
         
         groups.append({
             'code': code,
