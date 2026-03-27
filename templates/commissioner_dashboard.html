@@ -543,17 +543,32 @@
             box-sizing: border-box;
         }
 
-        /* Garantir que selects tenham sempre a mesma largura */
-        .form-group select,
-        select#pickupTime,
-        select#dropoffTime,
-        select#clientHotel,
-        select#pickupLocation,
-        select#dropoffLocation {
+        /* FORÇAR largura dos selects - ABSOLUTO */
+        select {
             width: 100% !important;
-            min-width: 100% !important;
-            max-width: 100% !important;
+            min-width: 0 !important;
+            max-width: none !important;
             box-sizing: border-box !important;
+            -webkit-appearance: none !important;
+            -moz-appearance: none !important;
+            appearance: none !important;
+            background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%23333' d='M6 9L1 4h10z'/%3E%3C/svg%3E") !important;
+            background-repeat: no-repeat !important;
+            background-position: right 12px center !important;
+            padding-right: 35px !important;
+        }
+        
+        .form-group select {
+            width: 100% !important;
+        }
+        
+        #pickupTime,
+        #dropoffTime,
+        #clientHotel,
+        #pickupLocation,
+        #dropoffLocation {
+            width: 100% !important;
+            display: block !important;
         }
 
         .form-group input:hover,
