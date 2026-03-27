@@ -274,18 +274,18 @@ async def create_booking(booking: BookingCreate, request: Request):
     cursor.execute("""
         INSERT INTO commission_bookings (
             commissioner_id, voucher_number,
-            client_name, client_email, client_phone,
+            client_name, client_email, client_phone, hotel, room_number,
             pickup_date, pickup_time, dropoff_date, dropoff_time,
             pickup_location, dropoff_location,
             vehicle_group, extras,
             flight_number, language, observations, price,
             status
         ) VALUES (
-            %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s
+            %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s
         ) RETURNING id
     """, (
         commissioner_id, voucher_number,
-        booking.client_name, booking.client_email, booking.client_phone,
+        booking.client_name, booking.client_email, booking.client_phone, booking.hotel, booking.room_number,
         booking.pickup_date, booking.pickup_time, booking.dropoff_date, booking.dropoff_time,
         booking.pickup_location, booking.dropoff_location,
         booking.vehicle_group, json.dumps(booking.extras),

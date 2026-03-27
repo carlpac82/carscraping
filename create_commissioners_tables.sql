@@ -27,6 +27,8 @@ CREATE TABLE IF NOT EXISTS commission_bookings (
     client_name VARCHAR(255) NOT NULL,
     client_email VARCHAR(255) NOT NULL,
     client_phone VARCHAR(50) NOT NULL,
+    hotel VARCHAR(255),
+    room_number VARCHAR(50),
     
     -- Booking details
     pickup_date DATE NOT NULL,

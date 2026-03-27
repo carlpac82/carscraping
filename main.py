@@ -60959,6 +60959,8 @@ async def admin_migrate_complete_commissioners_schema(request: Request):
                             client_name VARCHAR(255) NOT NULL,
                             client_email VARCHAR(255) NOT NULL,
                             client_phone VARCHAR(50) NOT NULL,
+                            hotel VARCHAR(255),
+                            room_number VARCHAR(50),
                             pickup_date DATE NOT NULL,
                             pickup_time TIME NOT NULL,
                             dropoff_date DATE NOT NULL,
@@ -60980,7 +60982,21 @@ async def admin_migrate_complete_commissioners_schema(request: Request):
                 except Exception as e:
                     results.append(f"⚠️ Commission_bookings table: {str(e)}")
                 
-                # 5. Create indexes
+                # 5. Add hotel and room_number columns if they don't exist
+                try:
+                    cursor.execute("""
+                        ALTER TABLE commission_bookings 
+                        ADD COLUMN IF NOT EXISTS hotel VARCHAR(255)
+                    """)
+                    cursor.execute("""
+                        ALTER TABLE commission_bookings 
+                        ADD COLUMN IF NOT EXISTS room_number VARCHAR(50)
+                    """)
+                    results.append("✅ Added hotel and room_number columns to commission_bookings")
+                except Exception as e:
+                    results.append(f"⚠️ Hotel/room_number columns: {str(e)}")
+                
+                # 6. Create indexes
                 try:
                     cursor.execute("CREATE INDEX IF NOT EXISTS idx_commissioner_bookings ON commission_bookings(commissioner_id)")
                     cursor.execute("CREATE INDEX IF NOT EXISTS idx_booking_dates ON commission_bookings(pickup_date, dropoff_date)")
