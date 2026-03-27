@@ -22,60 +22,70 @@
             padding: 20px;
         }
 
+        .header-section {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            max-width: 600px;
+            margin-bottom: 30px;
+            gap: 30px;
+        }
+
         .welcome-message {
-            text-align: center;
-            margin-bottom: 20px;
+            flex: 1;
+            text-align: left;
             color: white;
         }
 
         .welcome-message h1 {
-            font-size: 32px;
-            font-weight: 700;
-            margin-bottom: 8px;
-            text-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+            font-size: 22px;
+            font-weight: 600;
+            margin-bottom: 6px;
+            text-shadow: 0 2px 4px rgba(0, 0, 0, 0.15);
+            line-height: 1.3;
         }
 
         .welcome-message p {
-            font-size: 16px;
-            opacity: 0.95;
-            text-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
+            font-size: 13px;
+            opacity: 0.9;
+            text-shadow: 0 1px 2px rgba(0, 0, 0, 0.15);
+            line-height: 1.4;
         }
 
-        .logo-outside {
-            text-align: center;
-            margin-bottom: 30px;
+        .logo-section {
+            flex-shrink: 0;
         }
 
-        .logo-outside img {
-            max-width: 280px;
+        .logo-section img {
+            max-width: 160px;
             height: auto;
-            filter: drop-shadow(0 4px 6px rgba(0, 0, 0, 0.2));
+            filter: drop-shadow(0 3px 5px rgba(0, 0, 0, 0.2));
         }
 
         .login-container {
             background: white;
-            border-radius: 20px;
-            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
-            padding: 40px;
+            border-radius: 16px;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.2);
+            padding: 35px;
             width: 100%;
-            max-width: 420px;
+            max-width: 400px;
         }
 
         .login-header {
             text-align: center;
-            margin-bottom: 35px;
+            margin-bottom: 30px;
         }
 
         .login-header h2 {
             color: #333;
-            font-size: 22px;
+            font-size: 20px;
             font-weight: 600;
-            margin-bottom: 5px;
+            margin-bottom: 4px;
         }
 
         .login-header p {
             color: #666;
-            font-size: 14px;
+            font-size: 13px;
         }
 
         .form-group {
@@ -176,13 +186,14 @@
     </style>
 </head>
 <body>
-    <div class="welcome-message">
-        <h1>Bem-vindo à Auto Prudente Rent a Car</h1>
-        <p>Sistema de Gestão de Reservas para Comissionistas</p>
-    </div>
-    
-    <div class="logo-outside">
-        <img src="/static/logo_autoprudente 1.png" alt="Auto Prudente" onerror="this.style.display='none'">
+    <div class="header-section">
+        <div class="welcome-message">
+            <h1>Bem-vindo à Auto Prudente Rent a Car</h1>
+            <p>Sistema de Gestão de Reservas para Comissionistas</p>
+        </div>
+        <div class="logo-section">
+            <img src="/static/logo_autoprudente 1.png" alt="Auto Prudente" onerror="this.style.display='none'">
+        </div>
     </div>
     
     <div class="login-container">
