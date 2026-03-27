@@ -254,6 +254,236 @@
             font-size: 48px;
             margin-bottom: 15px;
         }
+
+        /* Modal de Nova Reserva */
+        .modal-overlay {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.7);
+            z-index: 1000;
+            overflow-y: auto;
+        }
+
+        .modal-overlay.active {
+            display: flex;
+            align-items: flex-start;
+            justify-content: center;
+            padding: 20px;
+        }
+
+        .modal-content {
+            background: white;
+            border-radius: 12px;
+            width: 100%;
+            max-width: 1200px;
+            margin: 20px auto;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.2);
+        }
+
+        .modal-header {
+            background: #009cb6;
+            color: white;
+            padding: 20px 30px;
+            border-radius: 12px 12px 0 0;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .modal-header h2 {
+            margin: 0;
+            font-size: 24px;
+            font-weight: 600;
+        }
+
+        .modal-close {
+            background: none;
+            border: none;
+            color: white;
+            font-size: 28px;
+            cursor: pointer;
+            padding: 0;
+            width: 32px;
+            height: 32px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 4px;
+            transition: background 0.3s;
+        }
+
+        .modal-close:hover {
+            background: rgba(255, 255, 255, 0.2);
+        }
+
+        .modal-body {
+            padding: 30px;
+            max-height: calc(100vh - 200px);
+            overflow-y: auto;
+        }
+
+        .form-section {
+            margin-bottom: 30px;
+        }
+
+        .form-section h3 {
+            color: #009cb6;
+            font-size: 18px;
+            margin-bottom: 20px;
+            padding-bottom: 10px;
+            border-bottom: 2px solid #e5e7eb;
+        }
+
+        .vehicle-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+            gap: 15px;
+            margin-bottom: 20px;
+        }
+
+        .vehicle-card {
+            border: 2px solid #e5e7eb;
+            border-radius: 8px;
+            padding: 12px;
+            cursor: pointer;
+            transition: all 0.3s;
+            text-align: center;
+        }
+
+        .vehicle-card:hover {
+            border-color: #009cb6;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(0, 156, 182, 0.2);
+        }
+
+        .vehicle-card.selected {
+            border-color: #009cb6;
+            background: #f0f9fb;
+        }
+
+        .vehicle-card img {
+            width: 100%;
+            height: 100px;
+            object-fit: contain;
+            margin-bottom: 8px;
+        }
+
+        .vehicle-group {
+            font-weight: 600;
+            color: #009cb6;
+            font-size: 16px;
+            margin-bottom: 4px;
+        }
+
+        .vehicle-model {
+            font-size: 12px;
+            color: #666;
+        }
+
+        .form-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 20px;
+        }
+
+        .form-group {
+            display: flex;
+            flex-direction: column;
+        }
+
+        .form-group.full-width {
+            grid-column: 1 / -1;
+        }
+
+        .form-group label {
+            font-size: 14px;
+            font-weight: 500;
+            color: #374151;
+            margin-bottom: 6px;
+        }
+
+        .form-group input,
+        .form-group select,
+        .form-group textarea {
+            padding: 10px 12px;
+            border: 1px solid #d1d5db;
+            border-radius: 6px;
+            font-size: 14px;
+            transition: border-color 0.3s;
+        }
+
+        .form-group input:focus,
+        .form-group select:focus,
+        .form-group textarea:focus {
+            outline: none;
+            border-color: #009cb6;
+        }
+
+        .form-group textarea {
+            resize: vertical;
+            min-height: 80px;
+        }
+
+        .days-display {
+            background: #f0f9fb;
+            padding: 12px;
+            border-radius: 6px;
+            text-align: center;
+            font-size: 18px;
+            font-weight: 600;
+            color: #009cb6;
+        }
+
+        .modal-footer {
+            padding: 20px 30px;
+            border-top: 1px solid #e5e7eb;
+            display: flex;
+            justify-content: flex-end;
+            gap: 10px;
+        }
+
+        .btn-cancel {
+            background: #f3f4f6;
+            color: #374151;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 500;
+            transition: background 0.3s;
+        }
+
+        .btn-cancel:hover {
+            background: #e5e7eb;
+        }
+
+        .btn-submit {
+            background: #009cb6;
+            color: white;
+            border: none;
+            padding: 10px 30px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 600;
+            transition: all 0.3s;
+        }
+
+        .btn-submit:hover {
+            background: #008299;
+            transform: translateY(-1px);
+        }
+
+        .btn-submit:disabled {
+            background: #9ca3af;
+            cursor: not-allowed;
+            transform: none;
+        }
     </style>
 </head>
 <body>
@@ -314,6 +544,120 @@
         </div>
     </div>
 
+    <!-- Modal Nova Reserva -->
+    <div id="newBookingModal" class="modal-overlay">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>Nova Reserva</h2>
+                <button class="modal-close" onclick="closeNewBookingModal()">&times;</button>
+            </div>
+            <div class="modal-body">
+                <form id="newBookingForm">
+                    <!-- Seleção de Veículo -->
+                    <div class="form-section">
+                        <h3>Selecione o Veículo</h3>
+                        <div class="vehicle-grid" id="vehicleGrid"></div>
+                        <input type="hidden" id="selectedVehicleGroup" required>
+                    </div>
+
+                    <!-- Datas e Duração -->
+                    <div class="form-section">
+                        <h3>Datas e Duração</h3>
+                        <div class="form-grid">
+                            <div class="form-group">
+                                <label>Data/Hora Entrega *</label>
+                                <input type="datetime-local" id="pickupDateTime" required>
+                            </div>
+                            <div class="form-group">
+                                <label>Data/Hora Recolha *</label>
+                                <input type="datetime-local" id="dropoffDateTime" required>
+                            </div>
+                            <div class="form-group full-width">
+                                <label>Número de Dias</label>
+                                <div class="days-display" id="daysDisplay">0 dias</div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Dados do Cliente -->
+                    <div class="form-section">
+                        <h3>Dados do Cliente</h3>
+                        <div class="form-grid">
+                            <div class="form-group">
+                                <label>Nome Completo *</label>
+                                <input type="text" id="clientName" required>
+                            </div>
+                            <div class="form-group">
+                                <label>Email *</label>
+                                <input type="email" id="clientEmail" required>
+                            </div>
+                            <div class="form-group">
+                                <label>Telefone *</label>
+                                <input type="tel" id="clientPhone" required>
+                            </div>
+                            <div class="form-group">
+                                <label>Hotel</label>
+                                <input type="text" id="clientHotel">
+                            </div>
+                            <div class="form-group">
+                                <label>Número do Quarto</label>
+                                <input type="text" id="clientRoom">
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Locais -->
+                    <div class="form-section">
+                        <h3>Locais de Entrega e Recolha</h3>
+                        <div class="form-grid">
+                            <div class="form-group">
+                                <label>Local de Entrega *</label>
+                                <input type="text" id="pickupLocation" required>
+                            </div>
+                            <div class="form-group">
+                                <label>Local de Recolha *</label>
+                                <input type="text" id="dropoffLocation" required>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Informações Adicionais -->
+                    <div class="form-section">
+                        <h3>Informações Adicionais</h3>
+                        <div class="form-grid">
+                            <div class="form-group">
+                                <label>Número do Voo</label>
+                                <input type="text" id="flightNumber">
+                            </div>
+                            <div class="form-group">
+                                <label>Idioma</label>
+                                <select id="language">
+                                    <option value="pt">Português</option>
+                                    <option value="en">English</option>
+                                    <option value="es">Español</option>
+                                    <option value="fr">Français</option>
+                                    <option value="de">Deutsch</option>
+                                </select>
+                            </div>
+                            <div class="form-group full-width">
+                                <label>Observações</label>
+                                <textarea id="observations"></textarea>
+                            </div>
+                            <div class="form-group">
+                                <label>Preço (€) *</label>
+                                <input type="number" id="price" step="0.01" min="0" required>
+                            </div>
+                        </div>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn-cancel" onclick="closeNewBookingModal()">Cancelar</button>
+                <button type="button" class="btn-submit" onclick="submitNewBooking()">Criar Reserva</button>
+            </div>
+        </div>
+    </div>
+
     <script>
         let allBookings = [];
         let currentFilter = 'all';
@@ -329,6 +673,7 @@
                 }
 
                 const commissioner = data.commissioner;
+                currentCommissioner = commissioner; // Guardar para usar no formulário
                 const firstName = commissioner.name.split(' ')[0];
                 document.getElementById('welcomeMessage').innerHTML = `Bem-vindo <strong>${firstName}</strong>`;
 
@@ -343,13 +688,20 @@
                 const response = await fetch('/api/commissioners/bookings');
                 const data = await response.json();
 
-                if (data.ok) {
+                if (data.ok && data.bookings) {
                     allBookings = data.bookings;
+                    updateStats();
+                    renderBookings();
+                } else {
+                    allBookings = [];
                     updateStats();
                     renderBookings();
                 }
             } catch (error) {
                 console.error('Error loading bookings:', error);
+                allBookings = [];
+                updateStats();
+                renderBookings();
             }
         }
 
@@ -448,9 +800,164 @@
             }
         }
 
+        // Dados dos grupos de veículos baseados na imagem fornecida
+        const vehicleGroups = [
+            { code: 'A', name: 'KIA PICANTO ou similar', image: 'https://images.rentalcars.com/car_images/kia_picanto.jpg' },
+            { code: 'B', name: 'FIAT PANDA ou similar', image: 'https://images.rentalcars.com/car_images/fiat_panda.jpg' },
+            { code: 'D', name: 'SEAT IBIZA ou similar', image: 'https://images.rentalcars.com/car_images/seat_ibiza.jpg' },
+            { code: 'E1', name: 'HYUNDAI i10 ou similar', image: 'https://images.rentalcars.com/car_images/hyundai_i10.jpg' },
+            { code: 'E2', name: 'CITROEN C3 ou similar', image: 'https://images.rentalcars.com/car_images/citroen_c3.jpg' },
+            { code: 'F', name: 'SEAT ARONA ou similar', image: 'https://images.rentalcars.com/car_images/seat_arona.jpg' },
+            { code: 'G', name: 'FIAT 500 cabrio', image: 'https://images.rentalcars.com/car_images/fiat_500.jpg' },
+            { code: 'J1', name: 'PEUGEOT 2008 ou similar', image: 'https://images.rentalcars.com/car_images/peugeot_2008.jpg' },
+            { code: 'J2', name: 'PEUGEOT 3008 SW', image: 'https://images.rentalcars.com/car_images/peugeot_3008.jpg' },
+            { code: 'L1', name: 'CITROEN C4 ou similar', image: 'https://images.rentalcars.com/car_images/citroen_c4.jpg' },
+            { code: 'L2', name: 'PEUGEOT 308 SW', image: 'https://images.rentalcars.com/car_images/peugeot_308.jpg' },
+            { code: 'M1', name: 'DACIA JOGGER ou similar', image: 'https://images.rentalcars.com/car_images/dacia_jogger.jpg' },
+            { code: 'M2', name: 'CITROEN C4 PICASSO', image: 'https://images.rentalcars.com/car_images/citroen_c4_picasso.jpg' },
+            { code: 'N', name: 'TOYOTA PROACE ou similar', image: 'https://images.rentalcars.com/car_images/toyota_proace.jpg' }
+        ];
+
+        let currentCommissioner = null;
+        let selectedVehicle = null;
+
         function createNewBooking() {
-            // TODO: Implementar formulário de nova reserva
-            alert('Funcionalidade de Nova Reserva em desenvolvimento');
+            const modal = document.getElementById('newBookingModal');
+            modal.classList.add('active');
+            renderVehicleGrid();
+            
+            // Preencher locais com nome do comissionista por defeito
+            if (currentCommissioner) {
+                document.getElementById('pickupLocation').value = currentCommissioner.name;
+                document.getElementById('dropoffLocation').value = currentCommissioner.name;
+            }
+        }
+
+        function closeNewBookingModal() {
+            const modal = document.getElementById('newBookingModal');
+            modal.classList.remove('active');
+            document.getElementById('newBookingForm').reset();
+            selectedVehicle = null;
+        }
+
+        function renderVehicleGrid() {
+            const grid = document.getElementById('vehicleGrid');
+            grid.innerHTML = vehicleGroups.map(vehicle => `
+                <div class="vehicle-card" onclick="selectVehicle('${vehicle.code}')">
+                    <img src="${vehicle.image}" alt="${vehicle.name}" onerror="this.src='data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 width=%22200%22 height=%22100%22><rect fill=%22%23e5e7eb%22 width=%22200%22 height=%22100%22/><text x=%2250%%22 y=%2250%%22 text-anchor=%22middle%22 dy=%22.3em%22 fill=%22%23666%22>Grupo ${vehicle.code}</text></svg>'">
+                    <div class="vehicle-group">GRUPO ${vehicle.code}</div>
+                    <div class="vehicle-model">${vehicle.name}</div>
+                </div>
+            `).join('');
+        }
+
+        function selectVehicle(code) {
+            selectedVehicle = code;
+            document.getElementById('selectedVehicleGroup').value = code;
+            
+            // Atualizar visual
+            document.querySelectorAll('.vehicle-card').forEach(card => {
+                card.classList.remove('selected');
+            });
+            event.target.closest('.vehicle-card').classList.add('selected');
+        }
+
+        // Cálculo de dias: 24h+1min = novo dia
+        function calculateDays() {
+            const pickup = document.getElementById('pickupDateTime').value;
+            const dropoff = document.getElementById('dropoffDateTime').value;
+            
+            if (!pickup || !dropoff) {
+                document.getElementById('daysDisplay').textContent = '0 dias';
+                return;
+            }
+
+            const pickupDate = new Date(pickup);
+            const dropoffDate = new Date(dropoff);
+            
+            // Diferença em milissegundos
+            const diffMs = dropoffDate - pickupDate;
+            
+            if (diffMs <= 0) {
+                document.getElementById('daysDisplay').textContent = '0 dias';
+                return;
+            }
+
+            // Calcular dias: cada período de 24h completo = 1 dia
+            // Se passar 1 minuto do múltiplo de 24h, conta como dia extra
+            const msPerDay = 24 * 60 * 60 * 1000;
+            let days = Math.floor(diffMs / msPerDay);
+            
+            // Se há resto (mesmo que 1 minuto), adiciona 1 dia
+            if (diffMs % msPerDay > 0) {
+                days += 1;
+            }
+
+            document.getElementById('daysDisplay').textContent = `${days} dia${days !== 1 ? 's' : ''}`;
+        }
+
+        // Event listeners para cálculo automático de dias
+        document.getElementById('pickupDateTime').addEventListener('change', calculateDays);
+        document.getElementById('dropoffDateTime').addEventListener('change', calculateDays);
+
+        async function submitNewBooking() {
+            const form = document.getElementById('newBookingForm');
+            
+            if (!selectedVehicle) {
+                alert('Por favor, selecione um veículo');
+                return;
+            }
+
+            if (!form.checkValidity()) {
+                form.reportValidity();
+                return;
+            }
+
+            const pickupDateTime = new Date(document.getElementById('pickupDateTime').value);
+            const dropoffDateTime = new Date(document.getElementById('dropoffDateTime').value);
+
+            const bookingData = {
+                vehicle_group: selectedVehicle,
+                client_name: document.getElementById('clientName').value,
+                client_email: document.getElementById('clientEmail').value,
+                client_phone: document.getElementById('clientPhone').value,
+                hotel: document.getElementById('clientHotel').value || null,
+                room_number: document.getElementById('clientRoom').value || null,
+                pickup_date: pickupDateTime.toISOString().split('T')[0],
+                pickup_time: pickupDateTime.toTimeString().slice(0, 5),
+                dropoff_date: dropoffDateTime.toISOString().split('T')[0],
+                dropoff_time: dropoffDateTime.toTimeString().slice(0, 5),
+                pickup_location: document.getElementById('pickupLocation').value,
+                dropoff_location: document.getElementById('dropoffLocation').value,
+                flight_number: document.getElementById('flightNumber').value || null,
+                language: document.getElementById('language').value,
+                observations: document.getElementById('observations').value || null,
+                price: parseFloat(document.getElementById('price').value),
+                extras: []
+            };
+
+            try {
+                const response = await fetch('/api/commissioners/bookings', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify(bookingData)
+                });
+
+                const data = await response.json();
+
+                if (data.ok) {
+                    alert('Reserva criada com sucesso!');
+                    closeNewBookingModal();
+                    await loadBookings();
+                } else {
+                    alert('Erro ao criar reserva: ' + (data.error || 'Erro desconhecido'));
+                }
+            } catch (error) {
+                console.error('Error creating booking:', error);
+                alert('Erro de conexão ao criar reserva');
+            }
         }
 
         loadDashboard();

@@ -43,6 +43,8 @@ class BookingCreate(BaseModel):
     client_name: str
     client_email: str
     client_phone: str
+    hotel: Optional[str] = None
+    room_number: Optional[str] = None
     pickup_date: str
     pickup_time: str
     dropoff_date: str
@@ -296,7 +298,7 @@ async def create_booking(booking: BookingCreate, request: Request):
     conn.close()
     
     return {
-        "success": True,
+        "ok": True,
         "booking_id": booking_id,
         "voucher_number": voucher_number,
         "commissioner_name": commissioner_data['name']
@@ -336,7 +338,7 @@ async def get_commissioner_bookings(request: Request):
             'created_at': str(booking[9])
         })
     
-    return result
+    return {"ok": True, "bookings": result}
 
 # ============================================================
 # ADMIN ENDPOINTS
