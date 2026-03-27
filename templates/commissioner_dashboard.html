@@ -459,12 +459,14 @@
         .form-group input,
         .form-group select,
         .form-group textarea {
+            width: 100%;
             padding: 12px 14px;
             border: 1.5px solid #e5e7eb;
             border-radius: 8px;
             font-size: 14px;
             transition: all 0.2s;
             background: #fafafa;
+            box-sizing: border-box;
         }
 
         .form-group input:hover,
@@ -682,9 +684,8 @@
                             </div>
                             <div class="form-group">
                                 <label>Hotel</label>
-                                <select id="clientHotel">
-                                    <option value="">Selecione...</option>
-                                </select>
+                                <input type="text" id="clientHotel" list="hotelList" placeholder="Digite ou selecione...">
+                                <datalist id="hotelList"></datalist>
                             </div>
                             <div class="form-group">
                                 <label>Número do Quarto</label>
@@ -699,15 +700,12 @@
                         <div class="form-grid">
                             <div class="form-group">
                                 <label>Local de Entrega *</label>
-                                <select id="pickupLocation" required>
-                                    <option value="">Selecione...</option>
-                                </select>
+                                <input type="text" id="pickupLocation" list="locationList" required placeholder="Digite ou selecione...">
+                                <datalist id="locationList"></datalist>
                             </div>
                             <div class="form-group">
                                 <label>Local de Recolha *</label>
-                                <select id="dropoffLocation" required>
-                                    <option value="">Selecione...</option>
-                                </select>
+                                <input type="text" id="dropoffLocation" list="locationList" required placeholder="Digite ou selecione...">
                             </div>
                         </div>
                     </div>
@@ -966,28 +964,217 @@
             }
         }
         
+        // Lista completa de locais/hotéis
+        const allLocations = [
+            'AUTO PRUDENTE',
+            'CLUBE ADRIANA',
+            'ALBUFEIRA JARDIM I',
+            'ALBUFEIRA SOL',
+            'ALDEIA DA FALESIA',
+            'ALFAGAR',
+            'ALFAMAR',
+            'ALGARVE & COMPANHIA',
+            'ALISIOS',
+            'ALL GALE',
+            'ALMAR',
+            'PATIO SUITE HOTEL',
+            'ALTO DA COLINA',
+            'ALTO MOINHO',
+            'AO RUBRO',
+            'APARTAMENTOS DA BALAIA',
+            'APARTAMENTOS DO PARQUE',
+            'AQUAMAR',
+            'AREIAS VILLAGE',
+            'AURAMAR',
+            'BALAIA ATLANTICO',
+            'BALAIA GOLF VILLAGE',
+            'BALAIA PLAZA',
+            'BALAIA SOL',
+            'BOAVISTA HOTEL',
+            'BORDA D\'AGUA',
+            'BRISA SOL',
+            'CAMPING ALBUFEIRA',
+            'CASA DO CANTO',
+            'CASA VELHA',
+            'CERRO MAR',
+            'CERRO MAR GARDEN',
+            'CERRO NOVO',
+            'CHOROMAR',
+            'CLUBE ALBUFEIRA',
+            'CLUBE MONACO',
+            'CLUBE OCEANO',
+            'COLINA MAR',
+            'NAU SÃO RAFAEL ATLANTICO',
+            'NAU DUNAS',
+            'NAU PALACIO DE CONGRESSOS',
+            'NAU PALMS VILLAGE',
+            'NAU SÃO RAFAEL',
+            'NAU VILAS LAGOAS',
+            'EDEN RESORT',
+            'EIRA SOL',
+            'EPIC SANA',
+            'EXPOSE I',
+            'EXPOSE II',
+            'FALESIA HOTEL',
+            'FALESIA MAR',
+            'FARM VILLAGE',
+            'FLIGHT LINK',
+            'FORTE DA OURA',
+            'FRENTE AO MAR',
+            'GALE HOLIDAYS I',
+            'GALE HOLIDAYS II',
+            'GUEST HOUSE SÃO RAFAEL',
+            'GOLDEN BEACH',
+            'HOTEL DA ALDEIA',
+            'HOTEL DA GALÉ',
+            'HOTEL DO CERRO',
+            'INATEL',
+            'INATEL PRAIA',
+            'JANELAS DO MAR',
+            'JARDINS DE VALE DE PARRA',
+            'JUPITER HOTEL',
+            'KAISER',
+            'KR HOTELS',
+            'MAR Á VISTA',
+            'CLUBE MARIA LUISA',
+            'MIRAMAR LUNA HOTEL',
+            'MONICA ISABEL',
+            'MONTRAMAR',
+            'NATURA',
+            'NELSON TOUR',
+            'LOJA MAR',
+            'NOVO CHORO',
+            'O LEANDRO',
+            'O.C. VILLAS',
+            'OCEANUS',
+            'ONDA MAR',
+            'APARTAMENTOS DA ORADA',
+            'OURA ATLANTICO',
+            'OURA BAY',
+            'OURA HOTEL',
+            'CPO',
+            'PALADIM',
+            'HOTEL PARAISO',
+            'PATEO VILLAGE',
+            'PINHEIROS DA BALAIA',
+            'POPILAR VILLAS',
+            'PORTO BAY',
+            'PORTUGAL GO',
+            'POSTO TURISMO ALBUFEIRA',
+            'PTO',
+            'QUINTA DA BALAIA',
+            'QUINTA DO SOL',
+            'QUINTA PEDRA DOS BICOS',
+            'RCM TRAVEL',
+            'REAL BELA VISTA',
+            'REAL SANTA EULALIA',
+            'AGUA MARINHA',
+            'RESIDENCIAL CAPRI',
+            'SANTA EULALIA PRAIA',
+            'RIU GUARANA',
+            'ROCAMAR',
+            'SANTOMERO',
+            'SEREIA DA OURA',
+            'SOL E MAR',
+            'SOLAR DO SOL',
+            'SOLAR DE SÃO JOÃO',
+            'SANTA EULALIA SPA',
+            'SUGAR TRAVEL',
+            'HAPPY TRAVEL',
+            'SUNSHINE',
+            'SOL E MIO',
+            'TOPAZIO',
+            'TORRE VELHA',
+            'TOURS N\'TRAKS',
+            'TRIPS FOR FUN',
+            'SON OF THE BEACH HOSTEL',
+            'TROPICAL SOL',
+            'TUI BLUE FALESIA',
+            'TTO ALFAMAR',
+            'TTO OLHOS DE AGUA',
+            'TTO FALESIA',
+            'TTO VELAMAR',
+            'VALE CARRO',
+            'VALMANGUDE',
+            'VAN KESTER',
+            'VARANDAS DO MAR',
+            'VARANDAS DE ALBUFEIRA',
+            'VELAMAR',
+            'VERDE INVESTE AVIS',
+            'VERDE INVESTE IGREJA I',
+            'VERDE INVESTE IGREJA II',
+            'VERDE INVESTE PESCADORES',
+            'VERDE INVESTE TUNEL I',
+            'APARTAMENTOS CABRITA',
+            'SILCHOURO',
+            'VIDAMAR',
+            'VILA BRANCA',
+            'VILA CASTELO',
+            'VILA GALE CERRO ALAGOA',
+            'VILA GALE PRAIA',
+            'VILA NOVA',
+            'VILA PETRA',
+            'VILA RECIFE',
+            'VILAS BARROCAL',
+            'VILAS SÃO VICENTE',
+            'VILLA CERRO',
+            'VILLAS D\'AGUA',
+            'VICTORIA',
+            'VILLAS BALAIA',
+            'AEROPORTO DE FARO',
+            'CLUBE MED',
+            'FORTE DO VALE',
+            'VILA GALE ATLANTICO',
+            'MIRACHORO CARVOEIRO',
+            'MIRACHORO',
+            'BAIA GRANDE',
+            'OCEAN VIEW',
+            'PINE CLIFS',
+            'MINICHORO',
+            'AEROMAR HOTEL',
+            'AQUA PEDRA DOS BICOS',
+            'VILA MIMOSA',
+            'VILA MARIA',
+            'BELA VISTA AVENIDA',
+            'VERDE INVESTE AVDA LIBERDADE',
+            'OLD TOWN - ALBUFEIRA',
+            'FALÉSIA - ALBUFEIRA',
+            'OLHOS D\'AGUA ALBUFEIRA',
+            'REGENCY',
+            'W ALGARVE',
+            'CLUBE ALGARVE',
+            'SÃO RAFAEL SUITES',
+            'OURA VIEW BEACH CLUB',
+            'MASANA',
+            'ALGARVE MOTORHOME PARK',
+            'PORTO BAY BLUE OCEAN',
+            'HOLIDAY IN ( REAL BELA VISTA)'
+        ];
+        
         // Preencher dropdowns de locais
         function populateLocationDropdowns() {
-            const pickupSelect = document.getElementById('pickupLocation');
-            const dropoffSelect = document.getElementById('dropoffLocation');
-            const hotelSelect = document.getElementById('clientHotel');
+            const locationDatalist = document.getElementById('locationList');
+            const hotelDatalist = document.getElementById('hotelList');
+            const pickupInput = document.getElementById('pickupLocation');
+            const dropoffInput = document.getElementById('dropoffLocation');
             
-            // Limpar opções existentes (exceto a primeira)
-            pickupSelect.innerHTML = '<option value="">Selecione...</option>';
-            dropoffSelect.innerHTML = '<option value="">Selecione...</option>';
-            hotelSelect.innerHTML = '<option value="">Selecione...</option>';
+            // Limpar datalists
+            locationDatalist.innerHTML = '';
+            hotelDatalist.innerHTML = '';
             
-            // Adicionar locais dos comissionistas
-            commissionerLocations.forEach(location => {
-                pickupSelect.innerHTML += `<option value="${location}">${location}</option>`;
-                dropoffSelect.innerHTML += `<option value="${location}">${location}</option>`;
-                hotelSelect.innerHTML += `<option value="${location}">${location}</option>`;
+            // Combinar locais dos comissionistas com a lista completa
+            const allLocationsCombined = [...new Set([...commissionerLocations, ...allLocations])].sort();
+            
+            // Adicionar todas as opções aos datalists
+            allLocationsCombined.forEach(location => {
+                locationDatalist.innerHTML += `<option value="${location}">`;
+                hotelDatalist.innerHTML += `<option value="${location}">`;
             });
             
             // Preencher por defeito com o local do comissionista logado
             if (currentCommissioner && currentCommissioner.name) {
-                pickupSelect.value = currentCommissioner.name;
-                dropoffSelect.value = currentCommissioner.name;
+                pickupInput.value = currentCommissioner.name;
+                dropoffInput.value = currentCommissioner.name;
             }
         }
 
