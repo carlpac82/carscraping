@@ -590,7 +590,7 @@ def get_vehicle_groups_with_photos(db_config: dict):
         
         # Fallback: usar endpoint de fotos de veículos com nome completo
         if not photo_url:
-            photo_url = f'/api/vehicle-photo/{vehicle_name}'
+            photo_url = f'/api/vehicles/{vehicle_name}/photo'
         
         groups.append({
             'code': code,

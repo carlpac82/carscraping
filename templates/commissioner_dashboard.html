@@ -913,40 +913,40 @@
                     console.error('Failed to load vehicle groups:', data);
                     // Fallback para grupos estáticos se API falhar
                     vehicleGroups = [
-                        { code: 'A', name: 'KIA PICANTO ou similar', image: '/api/vehicle-photo/kia%20picanto' },
-                        { code: 'B', name: 'FIAT PANDA ou similar', image: '/api/vehicle-photo/fiat%20panda' },
-                        { code: 'D', name: 'SEAT IBIZA ou similar', image: '/api/vehicle-photo/seat%20ibiza' },
-                        { code: 'E1', name: 'HYUNDAI i10 ou similar', image: '/api/vehicle-photo/hyundai%20i10' },
-                        { code: 'E2', name: 'CITROEN C3 ou similar', image: '/api/vehicle-photo/citroen%20c3' },
-                        { code: 'F', name: 'SEAT ARONA ou similar', image: '/api/vehicle-photo/seat%20arona' },
-                        { code: 'G', name: 'FIAT 500 cabrio', image: '/api/vehicle-photo/fiat%20500' },
-                        { code: 'J1', name: 'PEUGEOT 2008 ou similar', image: '/api/vehicle-photo/peugeot%202008' },
-                        { code: 'J2', name: 'PEUGEOT 3008 SW', image: '/api/vehicle-photo/peugeot%203008' },
-                        { code: 'L1', name: 'CITROEN C4 ou similar', image: '/api/vehicle-photo/citroen%20c4' },
-                        { code: 'L2', name: 'PEUGEOT 308 SW', image: '/api/vehicle-photo/peugeot%20308' },
-                        { code: 'M1', name: 'DACIA JOGGER ou similar', image: '/api/vehicle-photo/dacia%20jogger' },
-                        { code: 'M2', name: 'CITROEN C4 PICASSO', image: '/api/vehicle-photo/citroen%20c4%20picasso' },
-                        { code: 'N', name: 'TOYOTA PROACE ou similar', image: '/api/vehicle-photo/toyota%20proace' }
+                        { code: 'A', name: 'KIA PICANTO ou similar', image: '/api/vehicles/kia picanto/photo' },
+                        { code: 'B', name: 'FIAT PANDA ou similar', image: '/api/vehicles/fiat panda/photo' },
+                        { code: 'D', name: 'SEAT IBIZA ou similar', image: '/api/vehicles/seat ibiza/photo' },
+                        { code: 'E1', name: 'HYUNDAI i10 ou similar', image: '/api/vehicles/hyundai i10/photo' },
+                        { code: 'E2', name: 'CITROEN C3 ou similar', image: '/api/vehicles/citroen c3/photo' },
+                        { code: 'F', name: 'SEAT ARONA ou similar', image: '/api/vehicles/seat arona/photo' },
+                        { code: 'G', name: 'FIAT 500 cabrio', image: '/api/vehicles/fiat 500/photo' },
+                        { code: 'J1', name: 'PEUGEOT 2008 ou similar', image: '/api/vehicles/peugeot 2008/photo' },
+                        { code: 'J2', name: 'PEUGEOT 3008 SW', image: '/api/vehicles/peugeot 3008/photo' },
+                        { code: 'L1', name: 'CITROEN C4 ou similar', image: '/api/vehicles/citroen c4/photo' },
+                        { code: 'L2', name: 'PEUGEOT 308 SW', image: '/api/vehicles/peugeot 308/photo' },
+                        { code: 'M1', name: 'DACIA JOGGER ou similar', image: '/api/vehicles/dacia jogger/photo' },
+                        { code: 'M2', name: 'CITROEN C4 PICASSO', image: '/api/vehicles/citroen c4 picasso/photo' },
+                        { code: 'N', name: 'TOYOTA PROACE ou similar', image: '/api/vehicles/toyota proace/photo' }
                     ];
                 }
             } catch (error) {
                 console.error('Error loading vehicle groups:', error);
                 // Usar fallback
                 vehicleGroups = [
-                    { code: 'A', name: 'KIA PICANTO ou similar', image: '/api/vehicle-photo/kia%20picanto' },
-                    { code: 'B', name: 'FIAT PANDA ou similar', image: '/api/vehicle-photo/fiat%20panda' },
-                    { code: 'D', name: 'SEAT IBIZA ou similar', image: '/api/vehicle-photo/seat%20ibiza' },
-                    { code: 'E1', name: 'HYUNDAI i10 ou similar', image: '/api/vehicle-photo/hyundai%20i10' },
-                    { code: 'E2', name: 'CITROEN C3 ou similar', image: '/api/vehicle-photo/citroen%20c3' },
-                    { code: 'F', name: 'SEAT ARONA ou similar', image: '/api/vehicle-photo/seat%20arona' },
-                    { code: 'G', name: 'FIAT 500 cabrio', image: '/api/vehicle-photo/fiat%20500' },
-                    { code: 'J1', name: 'PEUGEOT 2008 ou similar', image: '/api/vehicle-photo/peugeot%202008' },
-                    { code: 'J2', name: 'PEUGEOT 3008 SW', image: '/api/vehicle-photo/peugeot%203008' },
-                    { code: 'L1', name: 'CITROEN C4 ou similar', image: '/api/vehicle-photo/citroen%20c4' },
-                    { code: 'L2', name: 'PEUGEOT 308 SW', image: '/api/vehicle-photo/peugeot%20308' },
-                    { code: 'M1', name: 'DACIA JOGGER ou similar', image: '/api/vehicle-photo/dacia%20jogger' },
-                    { code: 'M2', name: 'CITROEN C4 PICASSO', image: '/api/vehicle-photo/citroen%20c4%20picasso' },
-                    { code: 'N', name: 'TOYOTA PROACE ou similar', image: '/api/vehicle-photo/toyota%20proace' }
+                    { code: 'A', name: 'KIA PICANTO ou similar', image: '/api/vehicles/kia picanto/photo' },
+                    { code: 'B', name: 'FIAT PANDA ou similar', image: '/api/vehicles/fiat panda/photo' },
+                    { code: 'D', name: 'SEAT IBIZA ou similar', image: '/api/vehicles/seat ibiza/photo' },
+                    { code: 'E1', name: 'HYUNDAI i10 ou similar', image: '/api/vehicles/hyundai i10/photo' },
+                    { code: 'E2', name: 'CITROEN C3 ou similar', image: '/api/vehicles/citroen c3/photo' },
+                    { code: 'F', name: 'SEAT ARONA ou similar', image: '/api/vehicles/seat arona/photo' },
+                    { code: 'G', name: 'FIAT 500 cabrio', image: '/api/vehicles/fiat 500/photo' },
+                    { code: 'J1', name: 'PEUGEOT 2008 ou similar', image: '/api/vehicles/peugeot 2008/photo' },
+                    { code: 'J2', name: 'PEUGEOT 3008 SW', image: '/api/vehicles/peugeot 3008/photo' },
+                    { code: 'L1', name: 'CITROEN C4 ou similar', image: '/api/vehicles/citroen c4/photo' },
+                    { code: 'L2', name: 'PEUGEOT 308 SW', image: '/api/vehicles/peugeot 308/photo' },
+                    { code: 'M1', name: 'DACIA JOGGER ou similar', image: '/api/vehicles/dacia jogger/photo' },
+                    { code: 'M2', name: 'CITROEN C4 PICASSO', image: '/api/vehicles/citroen c4 picasso/photo' },
+                    { code: 'N', name: 'TOYOTA PROACE ou similar', image: '/api/vehicles/toyota proace/photo' }
                 ];
             }
         }
