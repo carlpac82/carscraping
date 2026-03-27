@@ -149,13 +149,14 @@ async def commissioner_login(login: CommissionerLogin, request: Request):
     request.session["commissioner_prefix"] = commissioner['voucher_prefix']
     
     return {
-        "success": True,
+        "ok": True,
+        "needs_email": commissioner['email'] is None,
+        "commissioner_id": commissioner['id'],
         "commissioner": {
             "id": commissioner['id'],
             "name": commissioner['name'],
             "email": commissioner['email'],
-            "voucher_prefix": commissioner['voucher_prefix'],
-            "needs_email": commissioner['email'] is None
+            "voucher_prefix": commissioner['voucher_prefix']
         }
     }
 
