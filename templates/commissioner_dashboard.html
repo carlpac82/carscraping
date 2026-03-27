@@ -1316,30 +1316,38 @@
 
         // Carregar configurações de horários
         async function loadScheduleSettings() {
+            console.log('🔄 Carregando configurações de horários...');
             try {
                 const response = await fetch('/api/commissioners/schedule-settings');
                 const data = await response.json();
                 
+                console.log('📥 Resposta da API:', data);
+                
                 if (data.ok) {
                     scheduleSettings = data.settings;
+                    console.log('✅ Configurações carregadas:', scheduleSettings);
                     return true;
+                } else {
+                    console.warn('⚠️ API retornou erro:', data.error);
                 }
             } catch (error) {
-                console.error('Error loading schedule settings:', error);
-                // Usar defaults
-                scheduleSettings = {
-                    weekday_start_morning: "09:30",
-                    weekday_end_morning: "12:30",
-                    weekday_start_afternoon: "15:00",
-                    weekday_end_afternoon: "17:00",
-                    sunday_start_morning: "09:30",
-                    sunday_end_morning: "12:30",
-                    sunday_start_afternoon: "15:30",
-                    sunday_end_afternoon: "17:00",
-                    time_interval_minutes: 15
-                };
+                console.error('❌ Erro ao carregar configurações:', error);
             }
-            return false;
+            
+            // Usar defaults se falhar
+            console.log('📌 Usando configurações padrão');
+            scheduleSettings = {
+                weekday_start_morning: "09:30",
+                weekday_end_morning: "12:30",
+                weekday_start_afternoon: "15:00",
+                weekday_end_afternoon: "17:00",
+                sunday_start_morning: "09:30",
+                sunday_end_morning: "12:30",
+                sunday_start_afternoon: "15:30",
+                sunday_end_afternoon: "17:00",
+                time_interval_minutes: 15
+            };
+            return true;
         }
 
         // Popular selects de hora baseado na data selecionada
@@ -1441,7 +1449,19 @@
 
         // Popular selects de hora com horários padrão (dia de semana)
         function populateTimeSelectsDefault(timeSelect) {
-            if (!scheduleSettings) return;
+            console.log('⏰ Populando select de hora:', timeSelect.id);
+            console.log('📋 scheduleSettings:', scheduleSettings);
+            
+            if (!scheduleSettings) {
+                console.warn('⚠️ scheduleSettings não existe, usando defaults hardcoded');
+                scheduleSettings = {
+                    weekday_start_morning: "09:30",
+                    weekday_end_morning: "12:30",
+                    weekday_start_afternoon: "15:00",
+                    weekday_end_afternoon: "17:00",
+                    time_interval_minutes: 15
+                };
+            }
             
             const interval = scheduleSettings.time_interval_minutes || 15;
             
@@ -1458,6 +1478,8 @@
             );
             const timeSlots = [...morningSlots, ...afternoonSlots];
             
+            console.log('🕐 Horários gerados:', timeSlots.length, 'slots');
+            
             // Limpar e popular select
             timeSelect.innerHTML = '<option value="">Selecione a hora</option>';
             
@@ -1467,6 +1489,8 @@
                 option.textContent = time;
                 timeSelect.appendChild(option);
             });
+            
+            console.log('✅ Select populado com', timeSlots.length, 'opções');
         }
 
         function closeNewBookingModal() {
