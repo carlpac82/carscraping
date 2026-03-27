@@ -517,62 +517,67 @@ async def get_all_bookings():
 # ============================================================
 
 def get_vehicle_groups_with_photos(db_config: dict):
-    """Get vehicle groups with their photos"""
+    """Get vehicle groups with their photos from car_groups table (same as automated prices)"""
     conn = psycopg2.connect(**db_config)
     cursor = conn.cursor()
     
-    # Mapeamento de grupos para nomes de veículos
-    vehicle_mapping = {
-        'A': 'kia picanto',
-        'B': 'fiat panda',
-        'D': 'seat ibiza',
-        'E1': 'hyundai i10',
-        'E2': 'citroen c3',
-        'F': 'seat arona',
-        'G': 'fiat 500',
-        'J1': 'peugeot 2008',
-        'J2': 'peugeot 3008',
-        'L1': 'citroen c4',
-        'L2': 'peugeot 308',
-        'M1': 'dacia jogger',
-        'M2': 'citroen c4 picasso',
-        'N': 'toyota proace'
+    # Buscar todos os grupos da tabela car_groups
+    cursor.execute("""
+        SELECT code, brand, model, photo_url 
+        FROM car_groups 
+        WHERE enabled = TRUE
+        ORDER BY code
+    """)
+    
+    car_groups_data = {}
+    for row in cursor.fetchall():
+        code = row[0]
+        brand = row[1] or ''
+        model = row[2] or ''
+        photo_url = row[3] or ''
+        car_groups_data[code] = {
+            'brand': brand,
+            'model': model,
+            'photo_url': photo_url
+        }
+    
+    # Mapeamento de grupos para comissionistas
+    # Grupo B junta B1 e B2, usa foto do B2
+    # Grupo A usa foto do Kia Picanto
+    group_mapping = {
+        'A': {'source': 'A', 'name': 'KIA PICANTO ou similar'},
+        'B': {'source': 'B2', 'name': 'FIAT PANDA ou similar'},  # B usa foto do B2
+        'D': {'source': 'D', 'name': 'SEAT IBIZA ou similar'},
+        'E1': {'source': 'E1', 'name': 'HYUNDAI i10 ou similar'},
+        'E2': {'source': 'E2', 'name': 'CITROEN C3 ou similar'},
+        'F': {'source': 'F', 'name': 'SEAT ARONA ou similar'},
+        'G': {'source': 'G', 'name': 'FIAT 500 cabrio'},
+        'J1': {'source': 'J1', 'name': 'PEUGEOT 2008 ou similar'},
+        'J2': {'source': 'J2', 'name': 'PEUGEOT 3008 SW'},
+        'L1': {'source': 'L1', 'name': 'CITROEN C4 ou similar'},
+        'L2': {'source': 'L2', 'name': 'PEUGEOT 308 SW'},
+        'M1': {'source': 'M1', 'name': 'DACIA JOGGER ou similar'},
+        'M2': {'source': 'M2', 'name': 'CITROEN C4 PICASSO'},
+        'N': {'source': 'N', 'name': 'TOYOTA PROACE ou similar'}
     }
     
     groups = []
-    for code, vehicle_name in vehicle_mapping.items():
-        # Buscar foto do veículo
-        cursor.execute("""
-            SELECT photo_url 
-            FROM vehicle_photos 
-            WHERE LOWER(vehicle_name) = %s 
-            LIMIT 1
-        """, (vehicle_name.lower(),))
+    for code, mapping in group_mapping.items():
+        source_code = mapping['source']
+        name = mapping['name']
         
-        row = cursor.fetchone()
-        photo_url = row[0] if row and row[0] else f'/api/vehicle-photo/{vehicle_name}'
+        # Buscar foto do grupo correspondente em car_groups
+        photo_url = ''
+        if source_code in car_groups_data:
+            photo_url = car_groups_data[source_code]['photo_url']
         
-        # Nome formatado
-        name_map = {
-            'A': 'KIA PICANTO ou similar',
-            'B': 'FIAT PANDA ou similar',
-            'D': 'SEAT IBIZA ou similar',
-            'E1': 'HYUNDAI i10 ou similar',
-            'E2': 'CITROEN C3 ou similar',
-            'F': 'SEAT ARONA ou similar',
-            'G': 'FIAT 500 cabrio',
-            'J1': 'PEUGEOT 2008 ou similar',
-            'J2': 'PEUGEOT 3008 SW',
-            'L1': 'CITROEN C4 ou similar',
-            'L2': 'PEUGEOT 308 SW',
-            'M1': 'DACIA JOGGER ou similar',
-            'M2': 'CITROEN C4 PICASSO',
-            'N': 'TOYOTA PROACE ou similar'
-        }
+        # Fallback se não houver foto
+        if not photo_url:
+            photo_url = f'/api/vehicle-photo/{name.split(" ")[0].lower()}'
         
         groups.append({
             'code': code,
-            'name': name_map.get(code, vehicle_name.upper()),
+            'name': name,
             'image': photo_url
         })
     
