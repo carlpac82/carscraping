@@ -562,7 +562,7 @@ def get_vehicle_groups_with_photos(db_config: dict):
     # Grupo A usa foto do Kia Picanto
     group_mapping = {
         'A': {'source': 'A', 'name': 'KIA PICANTO ou similar', 'vehicle': 'kia picanto', 'seats': 4, 'doors': 5, 'ac': False, 'transmission': 'manual'},
-        'B': {'source': 'B2', 'name': 'FIAT PANDA ou similar', 'vehicle': 'fiat panda', 'seats': 5, 'doors': 5, 'ac': True, 'transmission': 'manual'},
+        'B': {'source': 'B2', 'name': 'FIAT PANDA ou similar', 'vehicle': 'fiat panda', 'seats': '4-5', 'doors': 5, 'ac': True, 'transmission': 'manual'},
         'D': {'source': 'D', 'name': 'SEAT IBIZA ou similar', 'vehicle': 'seat ibiza', 'seats': 5, 'doors': 5, 'ac': True, 'transmission': 'manual'},
         'E1': {'source': 'E1', 'name': 'HYUNDAI i10 ou similar', 'vehicle': 'hyundai i10', 'seats': 5, 'doors': 5, 'ac': True, 'transmission': 'automatic'},
         'E2': {'source': 'E2', 'name': 'CITROEN C3 ou similar', 'vehicle': 'citroen c3', 'seats': 5, 'doors': 5, 'ac': True, 'transmission': 'automatic'},
