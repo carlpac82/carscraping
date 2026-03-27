@@ -60848,6 +60848,56 @@ async def admin_add_all_commissioners(request: Request):
         traceback.print_exc()
         return JSONResponse({"ok": False, "error": str(e)}, status_code=500)
 
+@app.get("/admin/migrate-add-voucher-prefix")
+async def admin_migrate_add_voucher_prefix(request: Request):
+    """Add voucher_prefix column to commissioners table - Admin only"""
+    try:
+        require_admin(request)
+    except HTTPException:
+        return JSONResponse({"ok": False, "error": "Unauthorized"}, status_code=401)
+    
+    try:
+        with _db_lock:
+            con = _db_connect()
+            try:
+                cursor = con.cursor()
+                
+                # Add voucher_prefix column if it doesn't exist
+                cursor.execute("""
+                    ALTER TABLE commissioners 
+                    ADD COLUMN IF NOT EXISTS voucher_prefix VARCHAR(10)
+                """)
+                
+                # Generate and set voucher_prefix for each commissioner based on their ID
+                cursor.execute("SELECT id, name FROM commissioners ORDER BY id")
+                commissioners = cursor.fetchall()
+                
+                updated = 0
+                for comm_id, name in commissioners:
+                    # Generate prefix: first 3 letters of name + ID padded to 3 digits
+                    prefix = name[:3].upper().replace(" ", "") + str(comm_id).zfill(3)
+                    cursor.execute(
+                        "UPDATE commissioners SET voucher_prefix = %s WHERE id = %s",
+                        (prefix, comm_id)
+                    )
+                    updated += 1
+                
+                con.commit()
+                
+                return JSONResponse({
+                    "ok": True,
+                    "message": f"Column added and {updated} prefixes generated",
+                    "updated": updated
+                })
+                
+            finally:
+                con.close()
+                
+    except Exception as e:
+        print(f"Error in migration: {e}")
+        traceback.print_exc()
+        return JSONResponse({"ok": False, "error": str(e)}, status_code=500)
+
 
 # ============================================================
 # COMMISSIONERS API ROUTES
