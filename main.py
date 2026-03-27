@@ -8066,11 +8066,11 @@ async def set_whatsapp_profile_picture(request: Request, file: UploadFile = File
                 f.write(contents)
             
             # Use full URL to uploaded file
-            image_url = f"https://carrental-api-5f8q.onrender.com/{filepath}"
+            image_url = f"https://rentalprices.pt/{filepath}"
             print(f"[WHATSAPP-PROFILE] Using uploaded file: {image_url}")
         else:
             # Use default Auto Prudente logo
-            image_url = "https://carrental-api-5f8q.onrender.com/static/ap-logo.png"
+            image_url = "https://rentalprices.pt/static/ap-logo.png"
             print(f"[WHATSAPP-PROFILE] Using default logo: {image_url}")
         
         # Update WhatsApp Business profile picture
@@ -9012,7 +9012,7 @@ async def get_google_contacts_auth_url(request: Request):
     try:
         # Google OAuth2 configuration for Contacts (separate from Email OAuth)
         client_id = os.getenv('GOOGLE_CONTACTS_CLIENT_ID', os.getenv('GOOGLE_CLIENT_ID', ''))
-        redirect_uri = os.getenv('GOOGLE_CONTACTS_REDIRECT_URI', os.getenv('GOOGLE_REDIRECT_URI', 'https://carrental-api-5f8q.onrender.com/api/whatsapp/google-contacts/callback'))
+        redirect_uri = os.getenv('GOOGLE_CONTACTS_REDIRECT_URI', os.getenv('GOOGLE_REDIRECT_URI', 'https://rentalprices.pt/api/whatsapp/google-contacts/callback'))
         
         if not client_id:
             return JSONResponse({
@@ -9054,7 +9054,7 @@ async def google_contacts_callback(request: Request, code: str = None):
         # Use specific contacts credentials, fallback to general Google credentials
         client_id = os.getenv('GOOGLE_CONTACTS_CLIENT_ID', os.getenv('GOOGLE_CLIENT_ID', ''))
         client_secret = os.getenv('GOOGLE_CONTACTS_CLIENT_SECRET', os.getenv('GOOGLE_CLIENT_SECRET', ''))
-        redirect_uri = os.getenv('GOOGLE_CONTACTS_REDIRECT_URI', os.getenv('GOOGLE_REDIRECT_URI', 'https://carrental-api-5f8q.onrender.com/api/whatsapp/google-contacts/callback'))
+        redirect_uri = os.getenv('GOOGLE_CONTACTS_REDIRECT_URI', os.getenv('GOOGLE_REDIRECT_URI', 'https://rentalprices.pt/api/whatsapp/google-contacts/callback'))
         
         # Exchange code for tokens
         import httpx
