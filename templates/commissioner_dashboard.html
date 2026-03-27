@@ -543,6 +543,13 @@
             box-sizing: border-box;
         }
 
+        /* Garantir que selects tenham sempre a mesma largura */
+        .form-group select {
+            width: 100% !important;
+            min-width: 100%;
+            max-width: 100%;
+        }
+
         .form-group input:hover,
         .form-group select:hover,
         .form-group textarea:hover {
