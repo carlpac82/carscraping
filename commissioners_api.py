@@ -511,3 +511,92 @@ async def get_all_bookings():
         })
     
     return result
+
+# ============================================================
+# VEHICLE GROUPS ENDPOINT
+# ============================================================
+
+def get_vehicle_groups_with_photos(db_config: dict):
+    """Get vehicle groups with their photos"""
+    conn = psycopg2.connect(**db_config)
+    cursor = conn.cursor()
+    
+    # Mapeamento de grupos para nomes de veículos
+    vehicle_mapping = {
+        'A': 'kia picanto',
+        'B': 'fiat panda',
+        'D': 'seat ibiza',
+        'E1': 'hyundai i10',
+        'E2': 'citroen c3',
+        'F': 'seat arona',
+        'G': 'fiat 500',
+        'J1': 'peugeot 2008',
+        'J2': 'peugeot 3008',
+        'L1': 'citroen c4',
+        'L2': 'peugeot 308',
+        'M1': 'dacia jogger',
+        'M2': 'citroen c4 picasso',
+        'N': 'toyota proace'
+    }
+    
+    groups = []
+    for code, vehicle_name in vehicle_mapping.items():
+        # Buscar foto do veículo
+        cursor.execute("""
+            SELECT photo_url 
+            FROM vehicle_photos 
+            WHERE LOWER(vehicle_name) = %s 
+            LIMIT 1
+        """, (vehicle_name.lower(),))
+        
+        row = cursor.fetchone()
+        photo_url = row[0] if row and row[0] else f'/api/vehicle-photo/{vehicle_name}'
+        
+        # Nome formatado
+        name_map = {
+            'A': 'KIA PICANTO ou similar',
+            'B': 'FIAT PANDA ou similar',
+            'D': 'SEAT IBIZA ou similar',
+            'E1': 'HYUNDAI i10 ou similar',
+            'E2': 'CITROEN C3 ou similar',
+            'F': 'SEAT ARONA ou similar',
+            'G': 'FIAT 500 cabrio',
+            'J1': 'PEUGEOT 2008 ou similar',
+            'J2': 'PEUGEOT 3008 SW',
+            'L1': 'CITROEN C4 ou similar',
+            'L2': 'PEUGEOT 308 SW',
+            'M1': 'DACIA JOGGER ou similar',
+            'M2': 'CITROEN C4 PICASSO',
+            'N': 'TOYOTA PROACE ou similar'
+        }
+        
+        groups.append({
+            'code': code,
+            'name': name_map.get(code, vehicle_name.upper()),
+            'image': photo_url
+        })
+    
+    conn.close()
+    return groups
+
+@router.get("/api/commissioners/vehicle-groups")
+async def get_vehicle_groups_endpoint(request: Request):
+    """Get vehicle groups with photos for commissioners"""
+    try:
+        # Verificar se há sessão ativa
+        commissioner_id = request.session.get('commissioner_id')
+        if not commissioner_id:
+            return JSONResponse({"ok": False, "error": "Not authenticated"}, status_code=401)
+        
+        db_config = get_db()
+        groups = get_vehicle_groups_with_photos(db_config)
+        
+        return JSONResponse({
+            "ok": True,
+            "groups": groups
+        })
+    except Exception as e:
+        return JSONResponse({
+            "ok": False,
+            "error": str(e)
+        }, status_code=500)

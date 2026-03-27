@@ -638,12 +638,20 @@
                         <h3>Datas e Duração</h3>
                         <div class="form-grid">
                             <div class="form-group">
-                                <label>Data/Hora Entrega *</label>
-                                <input type="datetime-local" id="pickupDateTime" required>
+                                <label>Data Entrega *</label>
+                                <input type="date" id="pickupDate" required>
                             </div>
                             <div class="form-group">
-                                <label>Data/Hora Recolha *</label>
-                                <input type="datetime-local" id="dropoffDateTime" required>
+                                <label>Hora Entrega *</label>
+                                <input type="time" id="pickupTime" required>
+                            </div>
+                            <div class="form-group">
+                                <label>Data Recolha *</label>
+                                <input type="date" id="dropoffDate" required>
+                            </div>
+                            <div class="form-group">
+                                <label>Hora Recolha *</label>
+                                <input type="time" id="dropoffTime" required>
                             </div>
                             <div class="form-group full-width">
                                 <label>Número de Dias</label>
@@ -657,8 +665,12 @@
                         <h3>Dados do Cliente</h3>
                         <div class="form-grid">
                             <div class="form-group">
-                                <label>Nome Completo *</label>
-                                <input type="text" id="clientName" required>
+                                <label>Primeiro Nome *</label>
+                                <input type="text" id="clientFirstName" required>
+                            </div>
+                            <div class="form-group">
+                                <label>Último Nome *</label>
+                                <input type="text" id="clientLastName" required>
                             </div>
                             <div class="form-group">
                                 <label>Email *</label>
@@ -670,7 +682,21 @@
                             </div>
                             <div class="form-group">
                                 <label>Hotel</label>
-                                <input type="text" id="clientHotel">
+                                <select id="clientHotel">
+                                    <option value="">Selecione...</option>
+                                    <option value="Aeroporto">Aeroporto</option>
+                                    <option value="Hotel Pestana CR7">Hotel Pestana CR7</option>
+                                    <option value="Hotel The Vine">Hotel The Vine</option>
+                                    <option value="Hotel Savoy Palace">Hotel Savoy Palace</option>
+                                    <option value="Hotel Belmond Reid's Palace">Hotel Belmond Reid's Palace</option>
+                                    <option value="Hotel Pestana Carlton">Hotel Pestana Carlton</option>
+                                    <option value="Hotel Meliá Madeira Mare">Hotel Meliá Madeira Mare</option>
+                                    <option value="Hotel Vidamar">Hotel Vidamar</option>
+                                    <option value="Hotel Pestana Grand">Hotel Pestana Grand</option>
+                                    <option value="Hotel Quinta da Casa Branca">Hotel Quinta da Casa Branca</option>
+                                    <option value="Porto">Porto</option>
+                                    <option value="Outro">Outro</option>
+                                </select>
                             </div>
                             <div class="form-group">
                                 <label>Número do Quarto</label>
@@ -685,11 +711,39 @@
                         <div class="form-grid">
                             <div class="form-group">
                                 <label>Local de Entrega *</label>
-                                <input type="text" id="pickupLocation" required>
+                                <select id="pickupLocation" required>
+                                    <option value="">Selecione...</option>
+                                    <option value="Aeroporto">Aeroporto</option>
+                                    <option value="Hotel Pestana CR7">Hotel Pestana CR7</option>
+                                    <option value="Hotel The Vine">Hotel The Vine</option>
+                                    <option value="Hotel Savoy Palace">Hotel Savoy Palace</option>
+                                    <option value="Hotel Belmond Reid's Palace">Hotel Belmond Reid's Palace</option>
+                                    <option value="Hotel Pestana Carlton">Hotel Pestana Carlton</option>
+                                    <option value="Hotel Meliá Madeira Mare">Hotel Meliá Madeira Mare</option>
+                                    <option value="Hotel Vidamar">Hotel Vidamar</option>
+                                    <option value="Hotel Pestana Grand">Hotel Pestana Grand</option>
+                                    <option value="Hotel Quinta da Casa Branca">Hotel Quinta da Casa Branca</option>
+                                    <option value="Porto">Porto</option>
+                                    <option value="Outro">Outro</option>
+                                </select>
                             </div>
                             <div class="form-group">
                                 <label>Local de Recolha *</label>
-                                <input type="text" id="dropoffLocation" required>
+                                <select id="dropoffLocation" required>
+                                    <option value="">Selecione...</option>
+                                    <option value="Aeroporto">Aeroporto</option>
+                                    <option value="Hotel Pestana CR7">Hotel Pestana CR7</option>
+                                    <option value="Hotel The Vine">Hotel The Vine</option>
+                                    <option value="Hotel Savoy Palace">Hotel Savoy Palace</option>
+                                    <option value="Hotel Belmond Reid's Palace">Hotel Belmond Reid's Palace</option>
+                                    <option value="Hotel Pestana Carlton">Hotel Pestana Carlton</option>
+                                    <option value="Hotel Meliá Madeira Mare">Hotel Meliá Madeira Mare</option>
+                                    <option value="Hotel Vidamar">Hotel Vidamar</option>
+                                    <option value="Hotel Pestana Grand">Hotel Pestana Grand</option>
+                                    <option value="Hotel Quinta da Casa Branca">Hotel Quinta da Casa Branca</option>
+                                    <option value="Porto">Porto</option>
+                                    <option value="Outro">Outro</option>
+                                </select>
                             </div>
                         </div>
                     </div>
@@ -877,37 +931,70 @@
             }
         }
 
-        // Dados dos grupos de veículos baseados na imagem fornecida
-        const vehicleGroups = [
-            { code: 'A', name: 'KIA PICANTO ou similar', image: 'https://images.rentalcars.com/car_images/kia_picanto.jpg' },
-            { code: 'B', name: 'FIAT PANDA ou similar', image: 'https://images.rentalcars.com/car_images/fiat_panda.jpg' },
-            { code: 'D', name: 'SEAT IBIZA ou similar', image: 'https://images.rentalcars.com/car_images/seat_ibiza.jpg' },
-            { code: 'E1', name: 'HYUNDAI i10 ou similar', image: 'https://images.rentalcars.com/car_images/hyundai_i10.jpg' },
-            { code: 'E2', name: 'CITROEN C3 ou similar', image: 'https://images.rentalcars.com/car_images/citroen_c3.jpg' },
-            { code: 'F', name: 'SEAT ARONA ou similar', image: 'https://images.rentalcars.com/car_images/seat_arona.jpg' },
-            { code: 'G', name: 'FIAT 500 cabrio', image: 'https://images.rentalcars.com/car_images/fiat_500.jpg' },
-            { code: 'J1', name: 'PEUGEOT 2008 ou similar', image: 'https://images.rentalcars.com/car_images/peugeot_2008.jpg' },
-            { code: 'J2', name: 'PEUGEOT 3008 SW', image: 'https://images.rentalcars.com/car_images/peugeot_3008.jpg' },
-            { code: 'L1', name: 'CITROEN C4 ou similar', image: 'https://images.rentalcars.com/car_images/citroen_c4.jpg' },
-            { code: 'L2', name: 'PEUGEOT 308 SW', image: 'https://images.rentalcars.com/car_images/peugeot_308.jpg' },
-            { code: 'M1', name: 'DACIA JOGGER ou similar', image: 'https://images.rentalcars.com/car_images/dacia_jogger.jpg' },
-            { code: 'M2', name: 'CITROEN C4 PICASSO', image: 'https://images.rentalcars.com/car_images/citroen_c4_picasso.jpg' },
-            { code: 'N', name: 'TOYOTA PROACE ou similar', image: 'https://images.rentalcars.com/car_images/toyota_proace.jpg' }
-        ];
+        // Dados dos grupos de veículos - será carregado da API
+        let vehicleGroups = [];
+        
+        // Carregar veículos da base de dados
+        async function loadVehicleGroups() {
+            try {
+                const response = await fetch('/api/commissioners/vehicle-groups');
+                const data = await response.json();
+                if (data.ok && data.groups) {
+                    vehicleGroups = data.groups;
+                } else {
+                    // Fallback para grupos estáticos se API falhar
+                    vehicleGroups = [
+                        { code: 'A', name: 'KIA PICANTO ou similar', image: '/api/vehicle-photo/kia picanto' },
+                        { code: 'B', name: 'FIAT PANDA ou similar', image: '/api/vehicle-photo/fiat panda' },
+                        { code: 'D', name: 'SEAT IBIZA ou similar', image: '/api/vehicle-photo/seat ibiza' },
+                        { code: 'E1', name: 'HYUNDAI i10 ou similar', image: '/api/vehicle-photo/hyundai i10' },
+                        { code: 'E2', name: 'CITROEN C3 ou similar', image: '/api/vehicle-photo/citroen c3' },
+                        { code: 'F', name: 'SEAT ARONA ou similar', image: '/api/vehicle-photo/seat arona' },
+                        { code: 'G', name: 'FIAT 500 cabrio', image: '/api/vehicle-photo/fiat 500' },
+                        { code: 'J1', name: 'PEUGEOT 2008 ou similar', image: '/api/vehicle-photo/peugeot 2008' },
+                        { code: 'J2', name: 'PEUGEOT 3008 SW', image: '/api/vehicle-photo/peugeot 3008' },
+                        { code: 'L1', name: 'CITROEN C4 ou similar', image: '/api/vehicle-photo/citroen c4' },
+                        { code: 'L2', name: 'PEUGEOT 308 SW', image: '/api/vehicle-photo/peugeot 308' },
+                        { code: 'M1', name: 'DACIA JOGGER ou similar', image: '/api/vehicle-photo/dacia jogger' },
+                        { code: 'M2', name: 'CITROEN C4 PICASSO', image: '/api/vehicle-photo/citroen c4 picasso' },
+                        { code: 'N', name: 'TOYOTA PROACE ou similar', image: '/api/vehicle-photo/toyota proace' }
+                    ];
+                }
+            } catch (error) {
+                console.error('Error loading vehicle groups:', error);
+                // Usar fallback
+                vehicleGroups = [
+                    { code: 'A', name: 'KIA PICANTO ou similar', image: '/api/vehicle-photo/kia picanto' },
+                    { code: 'B', name: 'FIAT PANDA ou similar', image: '/api/vehicle-photo/fiat panda' },
+                    { code: 'D', name: 'SEAT IBIZA ou similar', image: '/api/vehicle-photo/seat ibiza' },
+                    { code: 'E1', name: 'HYUNDAI i10 ou similar', image: '/api/vehicle-photo/hyundai i10' },
+                    { code: 'E2', name: 'CITROEN C3 ou similar', image: '/api/vehicle-photo/citroen c3' },
+                    { code: 'F', name: 'SEAT ARONA ou similar', image: '/api/vehicle-photo/seat arona' },
+                    { code: 'G', name: 'FIAT 500 cabrio', image: '/api/vehicle-photo/fiat 500' },
+                    { code: 'J1', name: 'PEUGEOT 2008 ou similar', image: '/api/vehicle-photo/peugeot 2008' },
+                    { code: 'J2', name: 'PEUGEOT 3008 SW', image: '/api/vehicle-photo/peugeot 3008' },
+                    { code: 'L1', name: 'CITROEN C4 ou similar', image: '/api/vehicle-photo/citroen c4' },
+                    { code: 'L2', name: 'PEUGEOT 308 SW', image: '/api/vehicle-photo/peugeot 308' },
+                    { code: 'M1', name: 'DACIA JOGGER ou similar', image: '/api/vehicle-photo/dacia jogger' },
+                    { code: 'M2', name: 'CITROEN C4 PICASSO', image: '/api/vehicle-photo/citroen c4 picasso' },
+                    { code: 'N', name: 'TOYOTA PROACE ou similar', image: '/api/vehicle-photo/toyota proace' }
+                ];
+            }
+        }
 
         let currentCommissioner = null;
         let selectedVehicle = null;
 
-        function createNewBooking() {
+        async function createNewBooking() {
             const modal = document.getElementById('newBookingModal');
             modal.classList.add('active');
-            renderVehicleGrid();
             
-            // Preencher locais com nome do comissionista por defeito
-            if (currentCommissioner) {
-                document.getElementById('pickupLocation').value = currentCommissioner.name;
-                document.getElementById('dropoffLocation').value = currentCommissioner.name;
+            // Carregar veículos se ainda não foram carregados
+            if (vehicleGroups.length === 0) {
+                await loadVehicleGroups();
             }
+            
+            renderVehicleGrid();
         }
 
         function closeNewBookingModal() {
@@ -941,19 +1028,21 @@
 
         // Cálculo de dias: 24h+1min = novo dia
         function calculateDays() {
-            const pickup = document.getElementById('pickupDateTime').value;
-            const dropoff = document.getElementById('dropoffDateTime').value;
+            const pickupDate = document.getElementById('pickupDate').value;
+            const pickupTime = document.getElementById('pickupTime').value;
+            const dropoffDate = document.getElementById('dropoffDate').value;
+            const dropoffTime = document.getElementById('dropoffTime').value;
             
-            if (!pickup || !dropoff) {
+            if (!pickupDate || !pickupTime || !dropoffDate || !dropoffTime) {
                 document.getElementById('daysDisplay').textContent = '0 dias';
                 return;
             }
 
-            const pickupDate = new Date(pickup);
-            const dropoffDate = new Date(dropoff);
+            const pickup = new Date(pickupDate + 'T' + pickupTime);
+            const dropoff = new Date(dropoffDate + 'T' + dropoffTime);
             
             // Diferença em milissegundos
-            const diffMs = dropoffDate - pickupDate;
+            const diffMs = dropoff - pickup;
             
             if (diffMs <= 0) {
                 document.getElementById('daysDisplay').textContent = '0 dias';
@@ -974,8 +1063,10 @@
         }
 
         // Event listeners para cálculo automático de dias
-        document.getElementById('pickupDateTime').addEventListener('change', calculateDays);
-        document.getElementById('dropoffDateTime').addEventListener('change', calculateDays);
+        document.getElementById('pickupDate').addEventListener('change', calculateDays);
+        document.getElementById('pickupTime').addEventListener('change', calculateDays);
+        document.getElementById('dropoffDate').addEventListener('change', calculateDays);
+        document.getElementById('dropoffTime').addEventListener('change', calculateDays);
 
         async function submitNewBooking() {
             const form = document.getElementById('newBookingForm');
@@ -990,20 +1081,21 @@
                 return;
             }
 
-            const pickupDateTime = new Date(document.getElementById('pickupDateTime').value);
-            const dropoffDateTime = new Date(document.getElementById('dropoffDateTime').value);
+            const firstName = document.getElementById('clientFirstName').value;
+            const lastName = document.getElementById('clientLastName').value;
+            const clientName = `${firstName} ${lastName}`;
 
             const bookingData = {
                 vehicle_group: selectedVehicle,
-                client_name: document.getElementById('clientName').value,
+                client_name: clientName,
                 client_email: document.getElementById('clientEmail').value,
                 client_phone: document.getElementById('clientPhone').value,
                 hotel: document.getElementById('clientHotel').value || null,
                 room_number: document.getElementById('clientRoom').value || null,
-                pickup_date: pickupDateTime.toISOString().split('T')[0],
-                pickup_time: pickupDateTime.toTimeString().slice(0, 5),
-                dropoff_date: dropoffDateTime.toISOString().split('T')[0],
-                dropoff_time: dropoffDateTime.toTimeString().slice(0, 5),
+                pickup_date: document.getElementById('pickupDate').value,
+                pickup_time: document.getElementById('pickupTime').value,
+                dropoff_date: document.getElementById('dropoffDate').value,
+                dropoff_time: document.getElementById('dropoffTime').value,
                 pickup_location: document.getElementById('pickupLocation').value,
                 dropoff_location: document.getElementById('dropoffLocation').value,
                 flight_number: document.getElementById('flightNumber').value || null,
