@@ -3,8 +3,16 @@ Script to add all commissioners to the database
 Run via admin route: /admin/add-all-commissioners
 """
 
-import bcrypt
+import hashlib
+import secrets
 from database import get_db
+
+def _hash_password(pw: str, salt: str = ""):
+    """Hash password using sha256 - same method as main.py"""
+    if not salt:
+        salt = secrets.token_hex(8)
+    digest = hashlib.sha256((salt + ":" + pw).encode("utf-8")).hexdigest()
+    return f"{salt}:{digest}"
 
 COMMISSIONERS = [
     "ADRIANA BEACH CLUB", "QUINTA PEDRA DOS BICOS", "AQUA PEDRA DOS BICOS", "ALASSANE CAFÉ",
@@ -88,7 +96,7 @@ def add_all_commissioners(default_password="autoprudente2026"):
     cursor = conn.cursor()
     
     # Hash the default password
-    password_hash = bcrypt.hashpw(default_password.encode('utf-8'), bcrypt.gensalt()).decode('utf-8')
+    password_hash = _hash_password(default_password)
     
     added = 0
     skipped = 0
