@@ -411,7 +411,11 @@
             font-size: 16px;
             letter-spacing: 0.5px;
             margin: 0;
-            color: #FFB800;
+            color: white;
+        }
+
+        .group-letter {
+            color: #FFA500;
         }
 
         .vehicle-card-body {
@@ -1259,7 +1263,7 @@
             grid.innerHTML = vehicleGroups.map(vehicle => `
                 <div class="vehicle-card" onclick="selectVehicle('${vehicle.code}')">
                     <div class="vehicle-card-header">
-                        <div class="vehicle-group">GRUPO ${vehicle.code}</div>
+                        <div class="vehicle-group">GROUP <span class="group-letter">${vehicle.code}</span></div>
                     </div>
                     <div class="vehicle-card-body">
                         <img src="${vehicle.image}" alt="${vehicle.name}" onerror="this.src='data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 width=%22200%22 height=%22100%22><rect fill=%22%23e5e7eb%22 width=%22200%22 height=%22100%22/><text x=%2250%%22 y=%2250%%22 text-anchor=%22middle%22 dy=%22.3em%22 fill=%22%23666%22>Grupo ${vehicle.code}</text></svg>'">
