@@ -12,6 +12,18 @@ CREATE TABLE IF NOT EXISTS commissioners (
     password_hash VARCHAR(255) NOT NULL,
     commission_rate DECIMAL(5, 2) DEFAULT 0.00,
     enabled BOOLEAN DEFAULT TRUE,
+    
+    -- Configurações de horários (formato HH:MM)
+    weekday_start_morning TIME DEFAULT '09:30',
+    weekday_end_morning TIME DEFAULT '12:30',
+    weekday_start_afternoon TIME DEFAULT '15:00',
+    weekday_end_afternoon TIME DEFAULT '17:00',
+    sunday_start_morning TIME DEFAULT '09:30',
+    sunday_end_morning TIME DEFAULT '12:30',
+    sunday_start_afternoon TIME DEFAULT '15:30',
+    sunday_end_afternoon TIME DEFAULT '17:00',
+    time_interval_minutes INTEGER DEFAULT 15,
+    
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
