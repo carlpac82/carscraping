@@ -60827,6 +60827,27 @@ async def admin_init_commissioners_tables(request: Request):
         traceback.print_exc()
         return JSONResponse({"ok": False, "error": str(e)}, status_code=500)
 
+@app.get("/admin/add-all-commissioners")
+async def admin_add_all_commissioners(request: Request):
+    """Add all commissioners from predefined list - Admin only"""
+    try:
+        require_admin(request)
+    except HTTPException:
+        return JSONResponse({"ok": False, "error": "Unauthorized"}, status_code=401)
+    
+    try:
+        from add_commissioners import add_all_commissioners
+        result = add_all_commissioners(default_password="autoprudente2026")
+        return JSONResponse({
+            "ok": True,
+            "message": f"Added {result['added']} commissioners",
+            "details": result
+        })
+    except Exception as e:
+        print(f"Error adding commissioners: {e}")
+        traceback.print_exc()
+        return JSONResponse({"ok": False, "error": str(e)}, status_code=500)
+
 
 # ============================================================
 # COMMISSIONERS API ROUTES
