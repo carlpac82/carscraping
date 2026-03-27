@@ -60725,6 +60725,48 @@ async def admin_commissioners_page(request: Request):
 # COMMISSIONERS API ROUTES
 # ============================================================
 
+@app.get("/api/commissioners")
+async def api_get_commissioners(request: Request):
+    """API endpoint to get all commissioners"""
+    try:
+        require_admin(request)
+    except HTTPException:
+        return JSONResponse({"ok": False, "error": "Unauthorized"}, status_code=401)
+    
+    try:
+        with _db_lock:
+            con = _db_connect()
+            try:
+                cur = con.execute("""
+                    SELECT id, username, name, email, commission_rate, enabled, created_at
+                    FROM commissioners
+                    ORDER BY name
+                """)
+                rows = cur.fetchall()
+                
+                commissioners = []
+                for row in rows:
+                    commissioners.append({
+                        "id": row[0],
+                        "username": row[1],
+                        "name": row[2],
+                        "email": row[3] or "",
+                        "commission_rate": row[4],
+                        "enabled": bool(row[5]),
+                        "created_at": row[6]
+                    })
+                
+                return JSONResponse({"ok": True, "commissioners": commissioners})
+                
+            finally:
+                con.close()
+                
+    except Exception as e:
+        print(f"Error getting commissioners: {e}")
+        traceback.print_exc()
+        return JSONResponse({"ok": False, "error": "Erro ao carregar comissionistas"}, status_code=500)
+
+
 @app.post("/api/commissioners/login")
 async def api_commissioners_login(request: Request):
     """API endpoint for commissioner login with username/password"""

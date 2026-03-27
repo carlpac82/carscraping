@@ -18,7 +18,7 @@
         }
 
         .header {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            background: #009cb6;
             color: white;
             padding: 20px 30px;
             box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
@@ -63,24 +63,29 @@
             display: flex;
             justify-content: space-between;
             align-items: center;
-            margin-bottom: 20px;
+            margin-bottom: 30px;
+        }
+
+        .actions-bar h2 {
+            color: #333;
+            font-size: 22px;
         }
 
         .btn-primary {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            background: #009cb6;
             color: white;
             border: none;
             padding: 12px 24px;
-            border-radius: 10px;
+            border-radius: 8px;
             cursor: pointer;
             font-size: 15px;
             font-weight: 600;
-            transition: transform 0.2s, box-shadow 0.2s;
+            transition: all 0.2s;
         }
 
         .btn-primary:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 10px 20px rgba(102, 126, 234, 0.3);
+            background: #008ba3;
+            box-shadow: 0 4px 12px rgba(0, 156, 182, 0.3);
         }
 
         .commissioners-grid {
@@ -279,8 +284,8 @@
 
         .form-group input:focus, .form-group select:focus {
             outline: none;
-            border-color: #667eea;
-            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+            border-color: #009cb6;
+            box-shadow: 0 0 0 3px rgba(0, 156, 182, 0.1);
         }
 
         .form-actions {
@@ -304,13 +309,18 @@
         .btn-submit {
             flex: 2;
             padding: 12px;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            background: #009cb6;
             color: white;
             border: none;
             border-radius: 10px;
             cursor: pointer;
             font-size: 15px;
             font-weight: 600;
+            transition: all 0.2s;
+        }
+
+        .btn-submit:hover {
+            background: #008ba3;
         }
 
         .loading {
@@ -336,14 +346,14 @@
 <body>
     <div class="header">
         <div class="header-content">
-            <h1>👥 Gestão de Comissionistas</h1>
+            <h1>Gestão de Comissionistas</h1>
             <a href="/admin" class="btn-back">← Voltar ao Admin</a>
         </div>
     </div>
 
     <div class="container">
         <div class="actions-bar">
-            <h2 style="color: #333;">Comissionistas Ativos</h2>
+            <h2>Comissionistas Ativos</h2>
             <button class="btn-primary" onclick="openCreateModal()">+ Novo Comissionista</button>
         </div>
 
@@ -422,8 +432,8 @@
             if (commissioners.length === 0) {
                 content.innerHTML = `
                     <div class="empty-state">
-                        <div class="empty-state-icon">👥</div>
-                        <p>Nenhum comissionista cadastrado</p>
+                        <p style="font-size: 18px; font-weight: 500;">Nenhum comissionista cadastrado</p>
+                        <p style="margin-top: 10px; font-size: 14px;">Clique em "Novo Comissionista" para adicionar o primeiro</p>
                     </div>
                 `;
                 return;
@@ -438,8 +448,8 @@
                                     <div class="card-title">${c.name}</div>
                                     <div class="card-email">${c.email}</div>
                                 </div>
-                                <span class="status-badge status-${c.is_active ? 'active' : 'inactive'}">
-                                    ${c.is_active ? 'Ativo' : 'Inativo'}
+                                <span class="status-badge status-${c.enabled ? 'active' : 'inactive'}">
+                                    ${c.enabled ? 'Ativo' : 'Inativo'}
                                 </span>
                             </div>
 
@@ -457,7 +467,7 @@
                             <div class="card-actions">
                                 <button class="btn-edit" onclick="editCommissioner(${c.id})">Editar</button>
                                 <button class="btn-toggle" onclick="toggleStatus(${c.id})">
-                                    ${c.is_active ? 'Desativar' : 'Ativar'}
+                                    ${c.enabled ? 'Desativar' : 'Ativar'}
                                 </button>
                                 <button class="btn-delete" onclick="deleteCommissioner(${c.id})">Excluir</button>
                             </div>
@@ -484,7 +494,7 @@
             document.getElementById('name').value = commissioner.name;
             document.getElementById('email').value = commissioner.email;
             document.getElementById('commission_rate').value = commissioner.commission_rate;
-            document.getElementById('is_active').value = commissioner.is_active.toString();
+            document.getElementById('is_active').value = commissioner.enabled.toString();
             document.getElementById('password').placeholder = 'Deixe em branco para manter a atual';
             document.getElementById('commissionerModal').classList.add('active');
         }
@@ -545,7 +555,7 @@
                         name: commissioner.name,
                         email: commissioner.email,
                         commission_rate: commissioner.commission_rate,
-                        is_active: !commissioner.is_active
+                        is_active: !commissioner.enabled
                     })
                 });
 
