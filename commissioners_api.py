@@ -561,16 +561,16 @@ def get_vehicle_groups_with_photos(db_config: dict):
     # Grupo B junta B1 e B2, usa foto do B2
     # Grupo A usa foto do Kia Picanto
     group_mapping = {
-        'A': {'source': 'A', 'name': 'KIA PICANTO ou similar', 'vehicle': 'kia picanto', 'seats': 4, 'doors': 5, 'ac': True, 'transmission': 'manual'},
+        'A': {'source': 'A', 'name': 'KIA PICANTO ou similar', 'vehicle': 'kia picanto', 'seats': 4, 'doors': 5, 'ac': False, 'transmission': 'manual'},
         'B': {'source': 'B2', 'name': 'FIAT PANDA ou similar', 'vehicle': 'fiat panda', 'seats': 5, 'doors': 5, 'ac': True, 'transmission': 'manual'},
         'D': {'source': 'D', 'name': 'SEAT IBIZA ou similar', 'vehicle': 'seat ibiza', 'seats': 5, 'doors': 5, 'ac': True, 'transmission': 'manual'},
-        'E1': {'source': 'E1', 'name': 'HYUNDAI i10 ou similar', 'vehicle': 'hyundai i10', 'seats': 5, 'doors': 5, 'ac': True, 'transmission': 'manual'},
-        'E2': {'source': 'E2', 'name': 'CITROEN C3 ou similar', 'vehicle': 'citroen c3', 'seats': 5, 'doors': 5, 'ac': True, 'transmission': 'manual'},
+        'E1': {'source': 'E1', 'name': 'HYUNDAI i10 ou similar', 'vehicle': 'hyundai i10', 'seats': 5, 'doors': 5, 'ac': True, 'transmission': 'automatic'},
+        'E2': {'source': 'E2', 'name': 'CITROEN C3 ou similar', 'vehicle': 'citroen c3', 'seats': 5, 'doors': 5, 'ac': True, 'transmission': 'automatic'},
         'F': {'source': 'F', 'name': 'SEAT ARONA ou similar', 'vehicle': 'seat arona', 'seats': 5, 'doors': 5, 'ac': True, 'transmission': 'manual'},
         'G': {'source': 'G', 'name': 'FIAT 500 cabrio', 'vehicle': 'fiat 500', 'seats': 4, 'doors': 3, 'ac': True, 'transmission': 'manual'},
         'J1': {'source': 'J1', 'name': 'PEUGEOT 2008 ou similar', 'vehicle': 'peugeot 2008', 'seats': 5, 'doors': 5, 'ac': True, 'transmission': 'manual'},
         'J2': {'source': 'J2', 'name': 'PEUGEOT 308 SW', 'vehicle': 'peugeot 308 sw', 'seats': 5, 'doors': 5, 'ac': True, 'transmission': 'manual'},
-        'L1': {'source': 'L1', 'name': 'CITROEN C3 AIRCROSS ou similar', 'vehicle': 'citroen c3 aircross', 'seats': 5, 'doors': 5, 'ac': True, 'transmission': 'manual'},
+        'L1': {'source': 'L1', 'name': 'CITROEN C3 AIRCROSS ou similar', 'vehicle': 'citroen c3 aircross', 'seats': 5, 'doors': 5, 'ac': True, 'transmission': 'automatic'},
         'L2': {'source': 'L2', 'name': 'PEUGEOT 308 SW', 'vehicle': 'peugeot 308 sw', 'seats': 5, 'doors': 5, 'ac': True, 'transmission': 'automatic'},
         'M1': {'source': 'M1', 'name': 'DACIA JOGGER ou similar', 'vehicle': 'dacia jogger', 'seats': 7, 'doors': 5, 'ac': True, 'transmission': 'manual'},
         'M2': {'source': 'M2', 'name': 'CITROEN C4 PICASSO', 'vehicle': 'citroen c4 picasso', 'seats': 5, 'doors': 5, 'ac': True, 'transmission': 'automatic'},
