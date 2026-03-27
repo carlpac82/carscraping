@@ -207,7 +207,10 @@ async def get_current_commissioner_info(request: Request):
         'enabled': result[6]
     }
     
-    return commissioner
+    return {
+        "ok": True,
+        "commissioner": commissioner
+    }
 
 class EmailUpdate(BaseModel):
     email: str
