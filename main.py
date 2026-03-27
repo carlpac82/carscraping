@@ -5953,14 +5953,26 @@ async def login_action(request: Request, username: str = Form(...), password: st
             with _db_lock:
                 con = _db_connect()
                 try:
-                    cur = con.execute("SELECT id, password_hash, is_admin, enabled, role, can_access_inspection, has_commissioner_access FROM users WHERE username=?", (u,))
-                    row = cur.fetchone()
-                    if row and row[3]:
-                        ok = _verify_password(p, row[1])
-                        is_admin_flag = bool(row[2])
-                        user_role = row[4] if row[4] else "user"
-                        can_access_inspection = row[5] if row[5] is not None else 0
-                        has_commissioner_access = row[6] if row[6] is not None else 0
+                    # Try with has_commissioner_access column first
+                    try:
+                        cur = con.execute("SELECT id, password_hash, is_admin, enabled, role, can_access_inspection, has_commissioner_access FROM users WHERE username=?", (u,))
+                        row = cur.fetchone()
+                        if row and row[3]:
+                            ok = _verify_password(p, row[1])
+                            is_admin_flag = bool(row[2])
+                            user_role = row[4] if row[4] else "user"
+                            can_access_inspection = row[5] if row[5] is not None else 0
+                            has_commissioner_access = row[6] if row[6] is not None else 0
+                    except Exception:
+                        # Fallback: column doesn't exist yet, use old query
+                        cur = con.execute("SELECT id, password_hash, is_admin, enabled, role, can_access_inspection FROM users WHERE username=?", (u,))
+                        row = cur.fetchone()
+                        if row and row[3]:
+                            ok = _verify_password(p, row[1])
+                            is_admin_flag = bool(row[2])
+                            user_role = row[4] if row[4] else "user"
+                            can_access_inspection = row[5] if row[5] is not None else 0
+                            has_commissioner_access = 0
                 finally:
                     con.close()
         except Exception:
@@ -11105,14 +11117,26 @@ async def admin_users(request: Request):
         with _db_lock:
             con = _db_connect()
             try:
-                cur = con.execute("SELECT id, username, first_name, last_name, email, mobile, is_admin, enabled, role, can_access_inspection, has_commissioner_access FROM users ORDER BY id DESC")
-                for r in cur.fetchall():
-                    users.append({
-                        "id": r[0], "username": r[1], "first_name": r[2] or "", "last_name": r[3] or "",
-                        "email": r[4] or "", "mobile": r[5] or "", "is_admin": bool(r[6]), "enabled": bool(r[7]),
-                        "role": r[8] if r[8] else "user", "can_access_inspection": bool(r[9] if r[9] is not None else 0),
-                        "has_commissioner_access": bool(r[10] if r[10] is not None else 0)
-                    })
+                # Try with has_commissioner_access column first
+                try:
+                    cur = con.execute("SELECT id, username, first_name, last_name, email, mobile, is_admin, enabled, role, can_access_inspection, has_commissioner_access FROM users ORDER BY id DESC")
+                    for r in cur.fetchall():
+                        users.append({
+                            "id": r[0], "username": r[1], "first_name": r[2] or "", "last_name": r[3] or "",
+                            "email": r[4] or "", "mobile": r[5] or "", "is_admin": bool(r[6]), "enabled": bool(r[7]),
+                            "role": r[8] if r[8] else "user", "can_access_inspection": bool(r[9] if r[9] is not None else 0),
+                            "has_commissioner_access": bool(r[10] if r[10] is not None else 0)
+                        })
+                except Exception:
+                    # Fallback: column doesn't exist yet
+                    cur = con.execute("SELECT id, username, first_name, last_name, email, mobile, is_admin, enabled, role, can_access_inspection FROM users ORDER BY id DESC")
+                    for r in cur.fetchall():
+                        users.append({
+                            "id": r[0], "username": r[1], "first_name": r[2] or "", "last_name": r[3] or "",
+                            "email": r[4] or "", "mobile": r[5] or "", "is_admin": bool(r[6]), "enabled": bool(r[7]),
+                            "role": r[8] if r[8] else "user", "can_access_inspection": bool(r[9] if r[9] is not None else 0),
+                            "has_commissioner_access": False
+                        })
             finally:
                 con.close()
     except Exception:
@@ -60697,13 +60721,24 @@ async def admin_commissioners_page(request: Request):
     with _db_lock:
         con = _db_connect()
         try:
-            cur = con.execute("SELECT is_admin, has_commissioner_access FROM users WHERE username=?", (username,))
-            row = cur.fetchone()
-            if not row:
-                return RedirectResponse(url="/login", status_code=303)
-            
-            is_admin = bool(row[0])
-            has_commissioner_access = bool(row[1] if row[1] is not None else 0)
+            # Try with has_commissioner_access column first
+            try:
+                cur = con.execute("SELECT is_admin, has_commissioner_access FROM users WHERE username=?", (username,))
+                row = cur.fetchone()
+                if not row:
+                    return RedirectResponse(url="/login", status_code=303)
+                
+                is_admin = bool(row[0])
+                has_commissioner_access = bool(row[1] if row[1] is not None else 0)
+            except Exception:
+                # Fallback: column doesn't exist yet
+                cur = con.execute("SELECT is_admin FROM users WHERE username=?", (username,))
+                row = cur.fetchone()
+                if not row:
+                    return RedirectResponse(url="/login", status_code=303)
+                
+                is_admin = bool(row[0])
+                has_commissioner_access = False
             
             if not (is_admin or has_commissioner_access):
                 raise HTTPException(status_code=403, detail="Access denied")
