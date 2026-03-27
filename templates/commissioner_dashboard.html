@@ -18,10 +18,11 @@
         }
 
         .header {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            background: #009cb6;
             color: white;
-            padding: 20px 30px;
-            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+            padding: 12px 30px;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
         }
 
         .header-content {
@@ -32,29 +33,60 @@
             align-items: center;
         }
 
-        .header h1 {
-            font-size: 24px;
+        .header-left {
+            display: flex;
+            align-items: center;
+            gap: 20px;
         }
 
-        .user-info {
+        .header-logo {
+            height: 48px;
+            width: auto;
+        }
+
+        .welcome-message {
+            font-size: 16px;
+            font-weight: 500;
+            color: white;
+        }
+
+        .header-right {
             display: flex;
             align-items: center;
             gap: 15px;
         }
 
-        .btn-logout {
-            background: rgba(255, 255, 255, 0.2);
-            color: white;
+        .btn-new-booking {
+            background: white;
+            color: #009cb6;
             border: none;
-            padding: 8px 16px;
-            border-radius: 8px;
+            padding: 10px 20px;
+            border-radius: 6px;
             cursor: pointer;
             font-size: 14px;
-            transition: background 0.3s;
+            font-weight: 600;
+            transition: all 0.3s;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        }
+
+        .btn-new-booking:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
+        }
+
+        .btn-logout {
+            background: rgba(255, 255, 255, 0.15);
+            color: white;
+            border: 1px solid rgba(255, 255, 255, 0.3);
+            padding: 8px 16px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 14px;
+            transition: all 0.3s;
         }
 
         .btn-logout:hover {
-            background: rgba(255, 255, 255, 0.3);
+            background: rgba(255, 255, 255, 0.25);
         }
 
         .container {
@@ -215,9 +247,12 @@
 <body>
     <div class="header">
         <div class="header-content">
-            <h1>🚗 Dashboard Comissionista</h1>
-            <div class="user-info">
-                <span id="userName">Carregando...</span>
+            <div class="header-left">
+                <img src="/static/ap-heather.png" alt="Auto Prudente" class="header-logo" />
+                <span class="welcome-message" id="welcomeMessage">Bem-vindo</span>
+            </div>
+            <div class="header-right">
+                <button class="btn-new-booking" onclick="createNewBooking()">Nova Reserva</button>
                 <button class="btn-logout" onclick="logout()">Sair</button>
             </div>
         </div>
@@ -279,7 +314,7 @@
                 }
 
                 const commissioner = data.commissioner;
-                document.getElementById('userName').textContent = commissioner.name;
+                document.getElementById('welcomeMessage').textContent = `Bem-vindo ${commissioner.name}`;
 
                 await loadBookings();
             } catch (error) {
@@ -334,7 +369,6 @@
             if (filtered.length === 0) {
                 content.innerHTML = `
                     <div class="empty-state">
-                        <div class="empty-state-icon">📋</div>
                         <p>Nenhuma reserva encontrada</p>
                     </div>
                 `;
@@ -396,6 +430,11 @@
             } catch (error) {
                 console.error('Error logging out:', error);
             }
+        }
+
+        function createNewBooking() {
+            // TODO: Implementar formulário de nova reserva
+            alert('Funcionalidade de Nova Reserva em desenvolvimento');
         }
 
         loadDashboard();
