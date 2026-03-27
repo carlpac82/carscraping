@@ -1,17 +1,31 @@
 # Setup de Comissionistas - Railway
 
-## Criar Tabela na Base de Dados
+## ⚠️ IMPORTANTE: Criar Tabelas na Base de Dados
 
-Para criar a tabela `commissioners` na base de dados PostgreSQL do Railway, execute o seguinte comando no terminal do Railway:
+O sistema de comissionistas precisa de **2 tabelas**:
+1. `commissioners` - Dados dos comissionistas
+2. `bookings` - Reservas feitas pelos comissionistas
+
+### Método 1: Script Python (RECOMENDADO)
+
+Execute no terminal do Railway:
 
 ```bash
-python init_commissioners_db.py
+python init_all_tables.py
 ```
 
-Ou execute diretamente o SQL:
+Este script cria **ambas** as tabelas automaticamente.
+
+### Método 2: SQL Direto
+
+Execute os seguintes ficheiros SQL na ordem:
 
 ```bash
-python -c "from database import get_db; conn = get_db(); cursor = conn.cursor(); cursor.execute(open('create_commissioners_tables.sql').read()); conn.commit(); conn.close(); print('✅ Tabelas criadas com sucesso!')"
+# 1. Criar tabela commissioners
+python -c "from database import get_db; conn = get_db(); cursor = conn.cursor(); cursor.execute(open('create_commissioners_tables.sql').read()); conn.commit(); conn.close(); print('✅ Commissioners criado!')"
+
+# 2. Criar tabela bookings
+python -c "from database import get_db; conn = get_db(); cursor = conn.cursor(); cursor.execute(open('create_bookings_table.sql').read()); conn.commit(); conn.close(); print('✅ Bookings criado!')"
 ```
 
 ## Adicionar Comissionistas de Teste
