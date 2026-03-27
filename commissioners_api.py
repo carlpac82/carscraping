@@ -25,7 +25,7 @@ class CommissionerCreate(BaseModel):
     voucher_prefix: Optional[str] = None
     username: str
     password: str
-    active: bool = True
+    enabled: bool = True
 
 class CommissionerUpdate(BaseModel):
     name: Optional[str] = None
@@ -33,7 +33,7 @@ class CommissionerUpdate(BaseModel):
     phone: Optional[str] = None
     voucher_prefix: Optional[str] = None
     password: Optional[str] = None
-    active: Optional[bool] = None
+    enabled: Optional[bool] = None
 
 class CommissionerLogin(BaseModel):
     username: str
@@ -117,7 +117,7 @@ async def commissioner_login(login: CommissionerLogin, request: Request):
     cursor = conn.cursor()
     
     cursor.execute("""
-        SELECT id, name, email, voucher_prefix, password_hash, active
+        SELECT id, name, email, voucher_prefix, password_hash, enabled
         FROM commissioners
         WHERE username = %s
     """, (login.username,))
@@ -134,10 +134,10 @@ async def commissioner_login(login: CommissionerLogin, request: Request):
         'email': result[2],
         'voucher_prefix': result[3],
         'password_hash': result[4],
-        'active': result[5]
+        'enabled': result[5]
     }
     
-    if not commissioner['active']:
+    if not commissioner['enabled']:
         raise HTTPException(status_code=403, detail="Account disabled")
     
     if not verify_password(login.password, commissioner['password_hash']):
@@ -174,7 +174,7 @@ async def get_current_commissioner_info(request: Request):
     cursor = conn.cursor()
     
     cursor.execute("""
-        SELECT id, name, email, phone, voucher_prefix, username, active
+        SELECT id, name, email, phone, voucher_prefix, username, enabled
         FROM commissioners
         WHERE id = %s
     """, (commissioner_id,))
@@ -192,7 +192,7 @@ async def get_current_commissioner_info(request: Request):
         'phone': result[3],
         'voucher_prefix': result[4],
         'username': result[5],
-        'active': result[6]
+        'enabled': result[6]
     }
     
     return commissioner
@@ -330,7 +330,7 @@ async def get_all_commissioners():
     cursor = conn.cursor()
     
     cursor.execute("""
-        SELECT id, name, email, phone, voucher_prefix, username, active, created_at
+        SELECT id, name, email, phone, voucher_prefix, username, enabled, created_at
         FROM commissioners
         ORDER BY name
     """)
@@ -347,7 +347,7 @@ async def get_all_commissioners():
             'phone': comm[3],
             'voucher_prefix': comm[4],
             'username': comm[5],
-            'active': comm[6],
+            'enabled': comm[6],
             'created_at': str(comm[7])
         })
     
@@ -364,12 +364,12 @@ async def create_commissioner(commissioner: CommissionerCreate):
     try:
         # First insert without voucher_prefix to get the ID
         cursor.execute("""
-            INSERT INTO commissioners (name, email, phone, username, password_hash, active)
+            INSERT INTO commissioners (name, email, phone, username, password_hash, enabled)
             VALUES (%s, %s, %s, %s, %s, %s)
             RETURNING id
         """, (
             commissioner.name, commissioner.email, commissioner.phone,
-            commissioner.username, password_hash, commissioner.active
+            commissioner.username, password_hash, commissioner.enabled
         ))
         
         commissioner_id = cursor.fetchone()[0]
@@ -419,9 +419,9 @@ async def update_commissioner(commissioner_id: int, update: CommissionerUpdate):
     if update.password is not None:
         updates.append("password_hash = %s")
         params.append(hash_password(update.password))
-    if update.active is not None:
-        updates.append("active = %s")
-        params.append(update.active)
+    if update.enabled is not None:
+        updates.append("enabled = %s")
+        params.append(update.enabled)
     
     if not updates:
         conn.close()
