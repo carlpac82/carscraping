@@ -741,3 +741,65 @@ async def get_schedule_settings(request: Request):
             "ok": False,
             "error": str(e)
         }, status_code=500)
+
+class ScheduleSettings(BaseModel):
+    weekday_start_morning: str
+    weekday_end_morning: str
+    weekday_start_afternoon: str
+    weekday_end_afternoon: str
+    sunday_start_morning: str
+    sunday_end_morning: str
+    sunday_start_afternoon: str
+    sunday_end_afternoon: str
+    time_interval_minutes: int
+
+@router.post("/api/commissioners/schedule-settings")
+async def update_schedule_settings(settings: ScheduleSettings, request: Request):
+    """Update schedule settings for current commissioner"""
+    try:
+        commissioner_id = get_current_commissioner(request)
+        
+        conn = get_db()
+        cursor = conn.cursor()
+        
+        cursor.execute("""
+            UPDATE commissioners
+            SET weekday_start_morning = %s,
+                weekday_end_morning = %s,
+                weekday_start_afternoon = %s,
+                weekday_end_afternoon = %s,
+                sunday_start_morning = %s,
+                sunday_end_morning = %s,
+                sunday_start_afternoon = %s,
+                sunday_end_afternoon = %s,
+                time_interval_minutes = %s
+            WHERE id = %s
+        """, (
+            settings.weekday_start_morning,
+            settings.weekday_end_morning,
+            settings.weekday_start_afternoon,
+            settings.weekday_end_afternoon,
+            settings.sunday_start_morning,
+            settings.sunday_end_morning,
+            settings.sunday_start_afternoon,
+            settings.sunday_end_afternoon,
+            settings.time_interval_minutes,
+            commissioner_id
+        ))
+        
+        conn.commit()
+        conn.close()
+        
+        return JSONResponse({
+            "ok": True,
+            "message": "Schedule settings updated successfully"
+        })
+        
+    except Exception as e:
+        import traceback
+        print(f"Error in update_schedule_settings: {e}")
+        print(traceback.format_exc())
+        return JSONResponse({
+            "ok": False,
+            "error": str(e)
+        }, status_code=500)
