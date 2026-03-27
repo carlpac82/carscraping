@@ -376,7 +376,7 @@
         }
 
         .vehicle-card {
-            border: 1.5px solid #e5e7eb;
+            border: 2px solid #e5e7eb;
             border-radius: 12px;
             padding: 0;
             cursor: pointer;
@@ -385,6 +385,7 @@
             overflow: hidden;
             display: flex;
             flex-direction: column;
+            position: relative;
         }
 
         .vehicle-card:hover {
@@ -394,9 +395,37 @@
         }
 
         .vehicle-card.selected {
-            border-color: #009cb6;
+            border-color: #FFA500;
+            border-width: 3px;
+            box-shadow: 0 4px 12px rgba(255, 165, 0, 0.3);
+        }
+
+        .vehicle-card.unavailable {
+            border-color: #dc2626;
             border-width: 2px;
-            box-shadow: 0 4px 12px rgba(0, 156, 182, 0.2);
+            opacity: 0.7;
+            cursor: not-allowed;
+        }
+
+        .vehicle-card.unavailable:hover {
+            border-color: #dc2626;
+            transform: none;
+            box-shadow: 0 4px 12px rgba(220, 38, 38, 0.2);
+        }
+
+        .unavailable-badge {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: rgba(220, 38, 38, 0.95);
+            color: white;
+            padding: 8px 16px;
+            border-radius: 6px;
+            font-weight: 600;
+            font-size: 12px;
+            z-index: 10;
+            pointer-events: none;
         }
 
         .vehicle-card-header {
@@ -1262,8 +1291,14 @@
         function renderVehicleGrid() {
             const grid = document.getElementById('vehicleGrid');
             
-            grid.innerHTML = vehicleGroups.map(vehicle => `
-                <div class="vehicle-card" onclick="selectVehicle('${vehicle.code}')">
+            // Grupos não disponíveis (exemplo fictício - pode ser configurado dinamicamente)
+            const unavailableGroups = []; // Adicione códigos aqui para marcar como indisponível, ex: ['F', 'J1']
+            
+            grid.innerHTML = vehicleGroups.map(vehicle => {
+                const isUnavailable = unavailableGroups.includes(vehicle.code);
+                return `
+                <div class="vehicle-card ${isUnavailable ? 'unavailable' : ''}" onclick="selectVehicle('${vehicle.code}', ${isUnavailable})" data-code="${vehicle.code}">
+                    ${isUnavailable ? '<div class="unavailable-badge">Grupo não disponível</div>' : ''}
                     <div class="vehicle-card-header">
                         <div class="vehicle-group">GROUP <span class="group-letter">${vehicle.code}</span></div>
                     </div>
@@ -1278,10 +1313,16 @@
                         </div>
                     </div>
                 </div>
-            `).join('');
+            `;
+            }).join('');
         }
 
-        function selectVehicle(code) {
+        function selectVehicle(code, isUnavailable) {
+            // Não permitir seleção de grupos indisponíveis
+            if (isUnavailable) {
+                return;
+            }
+            
             selectedVehicle = code;
             document.getElementById('selectedVehicleGroup').value = code;
             
