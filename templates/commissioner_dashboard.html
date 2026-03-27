@@ -684,8 +684,9 @@
                             </div>
                             <div class="form-group">
                                 <label>Hotel</label>
-                                <input type="text" id="clientHotel" list="hotelList" placeholder="Digite ou selecione...">
-                                <datalist id="hotelList"></datalist>
+                                <select id="clientHotel">
+                                    <option value="">Selecione...</option>
+                                </select>
                             </div>
                             <div class="form-group">
                                 <label>Número do Quarto</label>
@@ -700,12 +701,15 @@
                         <div class="form-grid">
                             <div class="form-group">
                                 <label>Local de Entrega *</label>
-                                <input type="text" id="pickupLocation" list="locationList" required placeholder="Digite ou selecione...">
-                                <datalist id="locationList"></datalist>
+                                <select id="pickupLocation" required>
+                                    <option value="">Selecione...</option>
+                                </select>
                             </div>
                             <div class="form-group">
                                 <label>Local de Recolha *</label>
-                                <input type="text" id="dropoffLocation" list="locationList" required placeholder="Digite ou selecione...">
+                                <select id="dropoffLocation" required>
+                                    <option value="">Selecione...</option>
+                                </select>
                             </div>
                         </div>
                     </div>
@@ -1153,28 +1157,29 @@
         
         // Preencher dropdowns de locais
         function populateLocationDropdowns() {
-            const locationDatalist = document.getElementById('locationList');
-            const hotelDatalist = document.getElementById('hotelList');
-            const pickupInput = document.getElementById('pickupLocation');
-            const dropoffInput = document.getElementById('dropoffLocation');
+            const pickupSelect = document.getElementById('pickupLocation');
+            const dropoffSelect = document.getElementById('dropoffLocation');
+            const hotelSelect = document.getElementById('clientHotel');
             
-            // Limpar datalists
-            locationDatalist.innerHTML = '';
-            hotelDatalist.innerHTML = '';
+            // Limpar selects mantendo primeira opção
+            pickupSelect.innerHTML = '<option value="">Selecione...</option>';
+            dropoffSelect.innerHTML = '<option value="">Selecione...</option>';
+            hotelSelect.innerHTML = '<option value="">Selecione...</option>';
             
             // Combinar locais dos comissionistas com a lista completa
             const allLocationsCombined = [...new Set([...commissionerLocations, ...allLocations])].sort();
             
-            // Adicionar todas as opções aos datalists
+            // Adicionar todas as opções aos selects
             allLocationsCombined.forEach(location => {
-                locationDatalist.innerHTML += `<option value="${location}">`;
-                hotelDatalist.innerHTML += `<option value="${location}">`;
+                pickupSelect.innerHTML += `<option value="${location}">${location}</option>`;
+                dropoffSelect.innerHTML += `<option value="${location}">${location}</option>`;
+                hotelSelect.innerHTML += `<option value="${location}">${location}</option>`;
             });
             
             // Preencher por defeito com o local do comissionista logado
             if (currentCommissioner && currentCommissioner.name) {
-                pickupInput.value = currentCommissioner.name;
-                dropoffInput.value = currentCommissioner.name;
+                pickupSelect.value = currentCommissioner.name;
+                dropoffSelect.value = currentCommissioner.name;
             }
         }
 
