@@ -569,9 +569,9 @@ def get_vehicle_groups_with_photos(db_config: dict):
         'F': {'source': 'F', 'name': 'SEAT ARONA ou similar', 'vehicle': 'seat arona'},
         'G': {'source': 'G', 'name': 'FIAT 500 cabrio', 'vehicle': 'fiat 500'},
         'J1': {'source': 'J1', 'name': 'PEUGEOT 2008 ou similar', 'vehicle': 'peugeot 2008'},
-        'J2': {'source': 'J2', 'name': 'PEUGEOT 3008 SW', 'vehicle': 'peugeot 3008'},
+        'J2': {'source': 'J2', 'name': 'PEUGEOT 308 SW', 'vehicle': 'peugeot 308 sw'},
         'L1': {'source': 'L1', 'name': 'CITROEN C4 ou similar', 'vehicle': 'citroen c4'},
-        'L2': {'source': 'L2', 'name': 'PEUGEOT 308 SW', 'vehicle': 'peugeot 308'},
+        'L2': {'source': 'L2', 'name': 'PEUGEOT 308 SW', 'vehicle': 'peugeot 308 sw'},
         'M1': {'source': 'M1', 'name': 'DACIA JOGGER ou similar', 'vehicle': 'dacia jogger'},
         'M2': {'source': 'M2', 'name': 'CITROEN C4 PICASSO', 'vehicle': 'citroen c4 picasso'},
         'N': {'source': 'N', 'name': 'TOYOTA PROACE ou similar', 'vehicle': 'toyota proace'}
