@@ -58,6 +58,7 @@
               <th class="text-left px-4 py-2">Admin</th>
               <th class="text-left px-4 py-2">Role</th>
               <th class="text-left px-4 py-2">Inspection</th>
+              <th class="text-left px-4 py-2">Commissioner</th>
               <th class="text-left px-4 py-2">Enabled</th>
               <th class="text-left px-4 py-2">Actions</th>
             </tr>
@@ -80,6 +81,12 @@
                 <label class="inline-flex items-center cursor-pointer">
                   <input type="checkbox" class="inspection-toggle" data-user-id="{{ u.id }}" {% if u.can_access_inspection %}checked{% endif %} onchange="handlePermissionChange({{ u.id }})">
                   <span class="ml-2 text-xs">{% if u.can_access_inspection %}Yes{% else %}No{% endif %}</span>
+                </label>
+              </td>
+              <td class="px-4 py-2">
+                <label class="inline-flex items-center cursor-pointer">
+                  <input type="checkbox" class="commissioner-toggle" data-user-id="{{ u.id }}" {% if u.has_commissioner_access %}checked{% endif %} onchange="handlePermissionChange({{ u.id }})">
+                  <span class="ml-2 text-xs">{% if u.has_commissioner_access %}Yes{% else %}No{% endif %}</span>
                 </label>
               </td>
               <td class="px-4 py-2">{% if u.enabled %}Yes{% else %}No{% endif %}</td>
@@ -109,14 +116,16 @@
         const row = document.querySelector(`tr[data-user-id="${userId}"]`);
         const roleSelect = row.querySelector('.role-select');
         const inspectionToggle = row.querySelector('.inspection-toggle');
+        const commissionerToggle = row.querySelector('.commissioner-toggle');
         
         const role = roleSelect.value;
         const canAccess = inspectionToggle.checked ? 1 : 0;
+        const hasCommissionerAccess = commissionerToggle.checked ? 1 : 0;
         
-        updateInspectionPermission(userId, role, canAccess);
+        updateInspectionPermission(userId, role, canAccess, hasCommissionerAccess);
       }
       
-      async function updateInspectionPermission(userId, role, canAccess) {
+      async function updateInspectionPermission(userId, role, canAccess, hasCommissionerAccess) {
         try {
           const response = await fetch(`/api/admin/users/${userId}/update-inspection-permissions`, {
             method: 'POST',
@@ -125,18 +134,23 @@
             },
             body: JSON.stringify({
               role: role,
-              can_access_inspection: canAccess
+              can_access_inspection: canAccess,
+              has_commissioner_access: hasCommissionerAccess
             })
           });
           
           const data = await response.json();
           
           if (data.ok) {
-            // Update the Yes/No text next to checkbox
+            // Update the Yes/No text next to checkboxes
             const row = document.querySelector(`tr[data-user-id="${userId}"]`);
-            const checkboxLabel = row.querySelector('.inspection-toggle + span');
-            if (checkboxLabel) {
-              checkboxLabel.textContent = canAccess ? 'Yes' : 'No';
+            const inspectionLabel = row.querySelector('.inspection-toggle + span');
+            if (inspectionLabel) {
+              inspectionLabel.textContent = canAccess ? 'Yes' : 'No';
+            }
+            const commissionerLabel = row.querySelector('.commissioner-toggle + span');
+            if (commissionerLabel) {
+              commissionerLabel.textContent = hasCommissionerAccess ? 'Yes' : 'No';
             }
             
             // Show success feedback

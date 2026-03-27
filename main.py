@@ -58,6 +58,9 @@ from pathlib import Path
 import background_jobs
 from background_jobs import submit_scraping_job, get_job_status, get_job_result
 
+# Commissioners System
+from commissioners_api import router as commissioners_router
+
 # ============================================================
 # MONITORING & ERROR TRACKING (Sentry)
 # ============================================================
@@ -1419,6 +1422,13 @@ try:
 except ImportError as e:
     logging.warning(f"⚠️ WhatsApp API not available: {e}")
 
+# Commissioners API Router
+try:
+    app.include_router(commissioners_router)
+    logging.info("👥 Commissioners API endpoints loaded")
+except Exception as e:
+    logging.warning(f"⚠️ Commissioners API not available: {e}")
+
 # Exception handler to ensure CORS headers on all responses (including errors)
 @app.exception_handler(HTTPException)
 async def http_exception_handler(request: Request, exc: HTTPException):
@@ -2234,6 +2244,14 @@ def _ensure_users_table():
             except Exception as e:
                 con.rollback()  # CRITICAL for PostgreSQL - must rollback on error
                 # Column already exists, ignore
+                pass
+            
+            # Migration: Add has_commissioner_access column
+            try:
+                con.execute("ALTER TABLE users ADD COLUMN has_commissioner_access INTEGER DEFAULT 0")
+                con.commit()
+            except Exception as e:
+                con.rollback()
                 pass
             
             con.commit()
@@ -5929,18 +5947,20 @@ async def login_action(request: Request, username: str = Form(...), password: st
         is_admin_flag = False
         user_role = "user"
         can_access_inspection = 0
+        has_commissioner_access = 0
         ok = False
         try:
             with _db_lock:
                 con = _db_connect()
                 try:
-                    cur = con.execute("SELECT id, password_hash, is_admin, enabled, role, can_access_inspection FROM users WHERE username=?", (u,))
+                    cur = con.execute("SELECT id, password_hash, is_admin, enabled, role, can_access_inspection, has_commissioner_access FROM users WHERE username=?", (u,))
                     row = cur.fetchone()
                     if row and row[3]:
                         ok = _verify_password(p, row[1])
                         is_admin_flag = bool(row[2])
                         user_role = row[4] if row[4] else "user"
                         can_access_inspection = row[5] if row[5] is not None else 0
+                        has_commissioner_access = row[6] if row[6] is not None else 0
                 finally:
                     con.close()
         except Exception:
@@ -5957,6 +5977,7 @@ async def login_action(request: Request, username: str = Form(...), password: st
                 request.session["role"] = user_role  # Guardar role na sessão
                 request.session["user_role"] = user_role  # Manter compatibilidade
                 request.session["can_access_inspection"] = can_access_inspection
+                request.session["has_commissioner_access"] = has_commissioner_access
                 request.session["last_active_ts"] = int(datetime.now(timezone.utc).timestamp())
                 log_activity(request, "login_success", details="", username=u)
                 try:
@@ -6801,7 +6822,7 @@ async def admin_users_delete(request: Request, user_id: int):
 async def admin_update_inspection_permissions(request: Request, user_id: int):
     """
     Update user role and inspection access permission.
-    Body: {role: "user|receptionist|support|admin", can_access_inspection: 0|1}
+    Body: {role: "user|receptionist|support|admin", can_access_inspection: 0|1, has_commissioner_access: 0|1}
     """
     try:
         require_admin(request)
@@ -6812,6 +6833,7 @@ async def admin_update_inspection_permissions(request: Request, user_id: int):
         body = await request.json()
         role = body.get("role", "user")
         can_access = int(body.get("can_access_inspection", 0))
+        has_commissioner_access = int(body.get("has_commissioner_access", 0))
         
         # Validate role
         if role not in ["user", "receptionist", "support", "admin"]:
@@ -6825,10 +6847,10 @@ async def admin_update_inspection_permissions(request: Request, user_id: int):
                 if not cur.fetchone():
                     return JSONResponse({"ok": False, "error": "User not found"}, status_code=404)
                 
-                # Update role and permission
+                # Update role and permissions
                 con.execute(
-                    "UPDATE users SET role=?, can_access_inspection=? WHERE id=?",
-                    (role, can_access, user_id)
+                    "UPDATE users SET role=?, can_access_inspection=?, has_commissioner_access=? WHERE id=?",
+                    (role, can_access, has_commissioner_access, user_id)
                 )
                 con.commit()
                 
@@ -11083,12 +11105,13 @@ async def admin_users(request: Request):
         with _db_lock:
             con = _db_connect()
             try:
-                cur = con.execute("SELECT id, username, first_name, last_name, email, mobile, is_admin, enabled, role, can_access_inspection FROM users ORDER BY id DESC")
+                cur = con.execute("SELECT id, username, first_name, last_name, email, mobile, is_admin, enabled, role, can_access_inspection, has_commissioner_access FROM users ORDER BY id DESC")
                 for r in cur.fetchall():
                     users.append({
                         "id": r[0], "username": r[1], "first_name": r[2] or "", "last_name": r[3] or "",
                         "email": r[4] or "", "mobile": r[5] or "", "is_admin": bool(r[6]), "enabled": bool(r[7]),
-                        "role": r[8] if r[8] else "user", "can_access_inspection": bool(r[9] if r[9] is not None else 0)
+                        "role": r[8] if r[8] else "user", "can_access_inspection": bool(r[9] if r[9] is not None else 0),
+                        "has_commissioner_access": bool(r[10] if r[10] is not None else 0)
                     })
             finally:
                 con.close()
@@ -60633,6 +60656,61 @@ async def copy_inspection_data(request: Request):
             "error": str(e)
         }, status_code=500)
 
+
+# ============================================================
+# COMMISSIONERS FRONTEND ROUTES
+# ============================================================
+
+@app.get("/agentes", response_class=HTMLResponse)
+async def agentes_login_page(request: Request):
+    """Página de login para agentes/comissionistas - URL principal"""
+    return templates.TemplateResponse("commissioner_login.html", {"request": request})
+
+@app.get("/agentes/dashboard", response_class=HTMLResponse)
+async def agentes_dashboard_page(request: Request):
+    """Dashboard dos agentes/comissionistas"""
+    commissioner_id = request.session.get("commissioner_id")
+    if not commissioner_id:
+        return RedirectResponse(url="/agentes", status_code=303)
+    return templates.TemplateResponse("commissioner_dashboard.html", {"request": request})
+
+# Rotas antigas mantidas para compatibilidade
+@app.get("/commissioner-login", response_class=HTMLResponse)
+async def commissioner_login_page(request: Request):
+    """Redirect para nova rota /agentes"""
+    return RedirectResponse(url="/agentes", status_code=301)
+
+@app.get("/commissioner-dashboard", response_class=HTMLResponse)
+async def commissioner_dashboard_page(request: Request):
+    """Redirect para nova rota /agentes/dashboard"""
+    return RedirectResponse(url="/agentes/dashboard", status_code=301)
+
+@app.get("/admin/commissioners", response_class=HTMLResponse)
+async def admin_commissioners_page(request: Request):
+    """Admin commissioners management page"""
+    user = request.session.get("user")
+    if not user:
+        return RedirectResponse(url="/login", status_code=303)
+    
+    # Check if user has permission (admin or has_commissioner_access)
+    username = request.session.get("username")
+    with _db_lock:
+        con = _db_connect()
+        try:
+            cur = con.execute("SELECT is_admin, has_commissioner_access FROM users WHERE username=?", (username,))
+            row = cur.fetchone()
+            if not row:
+                return RedirectResponse(url="/login", status_code=303)
+            
+            is_admin = bool(row[0])
+            has_commissioner_access = bool(row[1] if row[1] is not None else 0)
+            
+            if not (is_admin or has_commissioner_access):
+                raise HTTPException(status_code=403, detail="Access denied")
+        finally:
+            con.close()
+    
+    return templates.TemplateResponse("admin_commissioners.html", {"request": request, "user": user})
 
 
 if __name__ == "__main__":
