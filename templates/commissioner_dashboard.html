@@ -728,7 +728,7 @@
                         <div class="form-grid">
                             <div class="form-group">
                                 <label>Data Entrega *</label>
-                                <input type="date" id="pickupDate" required>
+                                <input type="date" id="pickupDate" required min="">
                             </div>
                             <div class="form-group">
                                 <label>Hora Entrega *</label>
@@ -738,7 +738,7 @@
                             </div>
                             <div class="form-group">
                                 <label>Data Recolha *</label>
-                                <input type="date" id="dropoffDate" required>
+                                <input type="date" id="dropoffDate" required min="">
                             </div>
                             <div class="form-group">
                                 <label>Hora Recolha *</label>
@@ -1386,6 +1386,13 @@
             const modal = document.getElementById('newBookingModal');
             modal.classList.add('active');
             
+            // Definir data mínima (hoje)
+            const today = new Date();
+            const todayStr = today.toISOString().split('T')[0];
+            const pickupDateInput = document.getElementById('pickupDate');
+            const dropoffDateInput = document.getElementById('dropoffDate');
+            pickupDateInput.min = todayStr;
+            
             // Carregar veículos se ainda não foram carregados
             if (vehicleGroups.length === 0) {
                 await loadVehicleGroups();
@@ -1396,17 +1403,15 @@
                 await loadScheduleSettings();
             }
             
-            // Popular selects de hora com horários padrão (dia de semana)
-            if (scheduleSettings) {
-                const pickupDate = document.getElementById('pickupDate');
-                const dropoffDate = document.getElementById('dropoffDate');
+            // Aguardar um momento para garantir que scheduleSettings foi carregado
+            setTimeout(() => {
                 const pickupTime = document.getElementById('pickupTime');
                 const dropoffTime = document.getElementById('dropoffTime');
                 
                 // Popular com horários de dia de semana por padrão
                 populateTimeSelectsDefault(pickupTime);
                 populateTimeSelectsDefault(dropoffTime);
-            }
+            }, 100);
             
             // Carregar locais se ainda não foram carregados
             if (commissionerLocations.length === 0) {
@@ -1541,8 +1546,21 @@
         document.getElementById('pickupDate').addEventListener('change', function() {
             const pickupDate = document.getElementById('pickupDate');
             const pickupTime = document.getElementById('pickupTime');
+            const dropoffDate = document.getElementById('dropoffDate');
+            
             if (pickupDate.value) {
+                // Popular horários baseado na data
                 populateTimeSelects(pickupDate, pickupTime);
+                
+                // Definir data mínima de recolha (24h depois da entrega)
+                const minDropoffDate = new Date(pickupDate.value);
+                minDropoffDate.setDate(minDropoffDate.getDate() + 1);
+                dropoffDate.min = minDropoffDate.toISOString().split('T')[0];
+                
+                // Se data de recolha já está definida e é anterior ao mínimo, limpar
+                if (dropoffDate.value && new Date(dropoffDate.value) < minDropoffDate) {
+                    dropoffDate.value = '';
+                }
             }
             calculateDays();
         });
