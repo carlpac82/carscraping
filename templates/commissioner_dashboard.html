@@ -2190,27 +2190,10 @@
                 return;
             }
 
-            // Valores de franquia por grupo (valores aproximados)
-            const franchiseValues = {
-                'A': '500€',
-                'B': '600€', 
-                'C': '700€',
-                'D': '800€',
-                'E': '900€',
-                'F': '1.000€',
-                'G': '1.100€',
-                'H': '1.200€',
-                'I': '1.300€',
-                'J': '1.400€',
-                'K': '1.500€',
-                'L': '1.600€',
-                'M': '1.700€',
-                'N': '1.800€',
-                'O': '1.900€',
-                'P': '2.000€'
-            };
+            // Usar valores reais das franquias do sistema
+            const franchise = selectedVehicleData && selectedVehicleData.group ? 
+                franchisesByGroup[selectedVehicleData.group] || '1.250 €' : '1.250 €';
 
-            const franchise = franchiseValues[selectedGroup] || '1.500€';
             franchiseText.textContent = `Franquia de ${franchise}`;
             franchisePrice.textContent = `Franquia até ${franchise}`;
         }
