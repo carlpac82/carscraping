@@ -6610,17 +6610,23 @@ async def admin_set_test_periods(request: Request):
         return JSONResponse({"ok": False, "error": "Unauthorized"}, status_code=401)
     
     try:
-        # Baixa Época: 01/01/2026 - 31/03/2026
+        # Época Baixa - 2 períodos
         _set_setting("commissioner_season_low_period_0_start_date", "2026-01-01")
-        _set_setting("commissioner_season_low_period_0_end_date", "2026-03-31")
+        _set_setting("commissioner_season_low_period_0_end_date", "2026-03-25")
+        _set_setting("commissioner_season_low_period_1_start_date", "2026-11-16")
+        _set_setting("commissioner_season_low_period_1_end_date", "2027-03-25")
         
-        # Média Época: 01/04/2026 - 30/06/2026
-        _set_setting("commissioner_season_mid_period_0_start_date", "2026-04-01")
-        _set_setting("commissioner_season_mid_period_0_end_date", "2026-06-30")
+        # Época Média - 3 períodos
+        _set_setting("commissioner_season_mid_period_0_start_date", "2026-03-26")
+        _set_setting("commissioner_season_mid_period_0_end_date", "2026-07-14")
+        _set_setting("commissioner_season_mid_period_1_start_date", "2026-09-14")
+        _set_setting("commissioner_season_mid_period_1_end_date", "2026-11-15")
+        _set_setting("commissioner_season_mid_period_2_start_date", "2027-03-26")
+        _set_setting("commissioner_season_mid_period_2_end_date", "2027-07-14")
         
-        # Alta Época: 01/07/2026 - 31/08/2026
-        _set_setting("commissioner_season_high_period_0_start_date", "2026-07-01")
-        _set_setting("commissioner_season_high_period_0_end_date", "2026-08-31")
+        # Época Alta - 1 período
+        _set_setting("commissioner_season_high_period_0_start_date", "2026-07-15")
+        _set_setting("commissioner_season_high_period_0_end_date", "2026-09-13")
         
         logging.info("✅ Test periods set successfully")
         return JSONResponse({"ok": True, "message": "Test periods set"})
