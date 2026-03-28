@@ -523,31 +523,47 @@ def get_vehicle_groups_with_photos_v2(conn):
         cursor = conn.cursor()
         
         # Buscar todos os grupos da tabela car_groups
+        print("🔍 Tentando carregar grupos de veículos...")
+        
         # Tentar com filtro enabled primeiro
         try:
-            cursor.execute("""
+            query = """
                 SELECT code, brand, model, photo_url 
                 FROM car_groups 
                 WHERE enabled IS TRUE OR enabled = 1
                 ORDER BY code
-            """)
+            """
+            print(f"📝 Query 1: {query}")
+            cursor.execute(query)
             rows = cursor.fetchall()
+            print(f"✅ Query 1 retornou {len(rows)} linhas")
+            
             if len(rows) == 0:
                 # Se não houver resultados, tentar sem filtro
-                cursor.execute("""
+                query = """
                     SELECT code, brand, model, photo_url 
                     FROM car_groups 
                     ORDER BY code
-                """)
+                """
+                print(f"📝 Query 2 (sem filtro): {query}")
+                cursor.execute(query)
                 rows = cursor.fetchall()
+                print(f"✅ Query 2 retornou {len(rows)} linhas")
         except Exception as e:
-            print(f"Error with enabled filter: {e}, trying without filter")
-            cursor.execute("""
+            print(f"❌ Error with enabled filter: {e}, trying without filter")
+            import traceback
+            print(traceback.format_exc())
+            query = """
                 SELECT code, brand, model, photo_url 
                 FROM car_groups 
                 ORDER BY code
-            """)
+            """
+            print(f"📝 Query 3 (fallback): {query}")
+            cursor.execute(query)
             rows = cursor.fetchall()
+            print(f"✅ Query 3 retornou {len(rows)} linhas")
+        
+        print(f"🔢 Total de linhas para processar: {len(rows)}")
         
         car_groups_data = []
         for row in rows:
@@ -562,6 +578,10 @@ def get_vehicle_groups_with_photos_v2(conn):
                 'photo_url': photo_url,
                 'name': f"{brand} {model}".strip() or code
             })
+        
+        print(f"✅ Processados {len(car_groups_data)} grupos de veículos")
+        if len(car_groups_data) > 0:
+            print(f"📋 Primeiro grupo: {car_groups_data[0]}")
         
         return car_groups_data
     except Exception as e:
