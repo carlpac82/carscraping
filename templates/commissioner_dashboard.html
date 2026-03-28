@@ -1480,6 +1480,7 @@
                 document.getElementById('welcomeMessage').innerHTML = `Bem-vindo <strong>${firstName}</strong>`;
 
                 await loadBookings();
+                await loadCommissionerPricing();
             } catch (error) {
                 console.error('Error loading dashboard:', error);
             }
@@ -1605,6 +1606,8 @@
         // Dados dos grupos de veículos - será carregado da API
         let vehicleGroups = [];
         let commissionerLocations = [];
+        let currentBooking = {};
+        let commissionerPricing = null;
         
         // Carregar veículos da base de dados
         async function loadVehicleGroups() {
@@ -1663,15 +1666,33 @@
                 const data = await response.json();
                 if (data.ok && data.locations) {
                     commissionerLocations = data.locations;
-                    console.log('Loaded locations:', commissionerLocations);
+                    console.log('Loaded commissioner locations:', commissionerLocations);
+                } else {
+                    console.error('Failed to load commissioner locations');
                 }
             } catch (error) {
-                console.error('Error loading locations:', error);
-                commissionerLocations = []; // Usar lista vazia se falhar
+                console.error('Error loading commissioner locations:', error);
             }
+            commissionerLocations = []; // Usar lista vazia se falhar
             
             // SEMPRE popular os dropdowns, mesmo se API falhar
             populateLocationDropdowns();
+        }
+
+        // Carregar preços dos comissionistas
+        async function loadCommissionerPricing() {
+            try {
+                const response = await fetch('/api/commissioner-pricing');
+                const data = await response.json();
+                if (data.ok && data.data) {
+                    commissionerPricing = data.data;
+                    console.log('Loaded commissioner pricing:', commissionerPricing);
+                } else {
+                    console.error('Failed to load commissioner pricing');
+                }
+            } catch (error) {
+                console.error('Error loading commissioner pricing:', error);
+            }
         }
         
         // Lista completa de locais/hotéis
@@ -2477,6 +2498,60 @@
             calculatePrice();
         }
 
+        // Determinar época com base na data
+        function getSeasonForDate(date) {
+            const year = date.getFullYear();
+            const month = date.getMonth() + 1;
+            const day = date.getDate();
+            
+            // Época Baixa: 01/01/2026 - 25/03/2026 e 16/11/2026 - 25/03/2027
+            if (year === 2026) {
+                if ((month === 1 || month === 2) || (month === 3 && day <= 25)) {
+                    return 'low';
+                }
+                if (month === 11 && day >= 16) {
+                    return 'low';
+                }
+                if (month === 12) {
+                    return 'low';
+                }
+            } else if (year === 2027) {
+                if (month === 1 || month === 2 || (month === 3 && day <= 25)) {
+                    return 'low';
+                }
+            }
+            
+            // Época Alta: 15/07/2026 - 13/09/2026
+            if (year === 2026) {
+                if (month === 7 && day >= 15) {
+                    return 'high';
+                }
+                if (month === 8) {
+                    return 'high';
+                }
+                if (month === 9 && day <= 13) {
+                    return 'high';
+                }
+            }
+            
+            // Época Média: restante dos períodos
+            // 26/03/2026 - 14/07/2026
+            if (year === 2026) {
+                if ((month === 3 && day >= 26) || month === 4 || month === 5 || month === 6 || (month === 7 && day <= 14)) {
+                    return 'mid';
+                }
+                if ((month === 9 && day >= 14) || month === 10 || (month === 11 && day <= 15)) {
+                    return 'mid';
+                }
+            } else if (year === 2027) {
+                if ((month === 3 && day >= 26) || month === 4 || month === 5 || month === 6 || (month === 7 && day <= 14)) {
+                    return 'mid';
+                }
+            }
+            
+            return 'mid'; // Default para média época
+        }
+
         // Calcular preço aproximado com extras
         function calculatePrice() {
             const pickupDate = document.getElementById('pickupDate').value;
@@ -2554,10 +2629,38 @@
                 extrasTotal += 20;
             }
 
-            // Atualizar preço no resumo do veículo (apenas extras, sem preço base)
+            // Calcular preço base
+            let basePrice = 0;
+            const selectedGroup = document.querySelector('input[name="vehicleGroup"]:checked');
+            
+            if (selectedGroup && commissionerPricing) {
+                const group = selectedGroup.value;
+                const season = getSeasonForDate(pickup);
+                
+                // Obter preço por dia para o grupo e época
+                if (commissionerPricing.seasons && commissionerPricing.seasons[group] && commissionerPricing.seasons[group][season]) {
+                    // Obter preço por dia (média dos 7 dias ou usar o dia específico)
+                    const seasonPrices = commissionerPricing.seasons[group][season];
+                    let dailyPrice = 0;
+                    
+                    // Usar preço do dia 1 como padrão (pode ser ajustado para usar média)
+                    for (let day = 1; day <= 7; day++) {
+                        const dayPrice = seasonPrices[`day${day}`] || 0;
+                        if (dayPrice > 0) {
+                            dailyPrice = dayPrice;
+                            break; // Usar primeiro preço disponível
+                        }
+                    }
+                    
+                    basePrice = dailyPrice * diffDays;
+                }
+            }
+
+            // Atualizar preço no resumo do veículo (base + extras)
+            const totalPrice = basePrice + extrasTotal;
             const summaryPrice = document.getElementById('summaryTotalPrice');
             if (summaryPrice) {
-                summaryPrice.textContent = `${extrasTotal.toFixed(2)}€`;
+                summaryPrice.textContent = `${totalPrice.toFixed(2)}€`;
             }
         }
 
