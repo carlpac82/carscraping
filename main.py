@@ -6499,16 +6499,17 @@ async def api_get_commissioner_pricing(request: Request):
             franchise_val = _get_setting(f"commissioner_franchise_{group}", "0")
             pricing_data["franchises"][group] = float(franchise_val)
         
-        # Load season pricing (low/mid/high)
+        # Load season pricing (low/mid/high) por dia (1-7)
         for group in groups:
-            low_val = _get_setting(f"commissioner_season_{group}_low", "0")
-            mid_val = _get_setting(f"commissioner_season_{group}_mid", "0")
-            high_val = _get_setting(f"commissioner_season_{group}_high", "0")
             pricing_data["seasons"][group] = {
-                "low": float(low_val),
-                "mid": float(mid_val),
-                "high": float(high_val)
+                "low": {},
+                "mid": {},
+                "high": {}
             }
+            for season in ['low', 'mid', 'high']:
+                for day in range(1, 8):
+                    val = _get_setting(f"commissioner_season_{group}_{season}_day{day}", "0")
+                    pricing_data["seasons"][group][season][f"day{day}"] = float(val)
         
         return JSONResponse({"ok": True, "data": pricing_data})
         
@@ -6552,22 +6553,20 @@ async def api_save_commissioner_pricing(request: Request):
         # Save franchises
         if "franchises" in data:
             logging.info(f"💾 Saving {len(data['franchises'])} franchises...")
-            for group, value in data["franchises"].items():
-                _set_setting(f"commissioner_franchise_{group}", str(value))
+            for group, price in data["franchises"].items():
+                _set_setting(f"commissioner_franchise_{group}", str(price))
         
-        # Save season pricing (low/mid/high)
+        # Save season pricing (7 dias × 3 épocas)
         if "seasons" in data:
-            logging.info(f"💾 Saving {len(data['seasons'])} season prices...")
-            for group, values in data["seasons"].items():
-                if "low" in values:
-                    _set_setting(f"commissioner_season_{group}_low", str(values["low"]))
-                if "mid" in values:
-                    _set_setting(f"commissioner_season_{group}_mid", str(values["mid"]))
-                if "high" in values:
-                    _set_setting(f"commissioner_season_{group}_high", str(values["high"]))
+            logging.info(f"💾 Saving season pricing for {len(data['seasons'])} groups...")
+            for group, seasons in data["seasons"].items():
+                for season_type, days in seasons.items():
+                    for day_key, price in days.items():
+                        key = f"commissioner_season_{group}_{season_type}_{day_key}"
+                        _set_setting(key, str(price))
         
         logging.info("✅ All pricing data saved successfully")
-        return JSONResponse({"ok": True, "message": "Preços guardados com sucesso"})
+        return JSONResponse({"ok": True})
         
     except Exception as e:
         logging.error(f"Error saving commissioner pricing: {e}")

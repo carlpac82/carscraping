@@ -256,22 +256,10 @@
             <span>Tarifas por Grupo e Época (€/dia)</span>
           </h3>
           
-          <p class="text-sm text-gray-600 mb-4">Configure os preços base por grupo de veículo e época do ano.</p>
+          <p class="text-sm text-gray-600 mb-4">Configure os preços por grupo de veículo, época do ano e número de dias. Clique nos ícones para expandir.</p>
           
-          <div class="overflow-x-auto">
-            <table class="min-w-full divide-y divide-gray-200">
-              <thead class="bg-gray-50">
-                <tr>
-                  <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Grupo</th>
-                  <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Baixa Época</th>
-                  <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Meia Época</th>
-                  <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Alta Época</th>
-                </tr>
-              </thead>
-              <tbody class="bg-white divide-y divide-gray-200" id="groupPricingTable">
-                <!-- Será populado via JavaScript -->
-              </tbody>
-            </table>
+          <div id="groupPricingContainer">
+            <!-- Será populado via JavaScript -->
           </div>
         </div>
         
@@ -383,26 +371,97 @@
     
     <script>
       const vehicleGroups = ['A', 'B', 'D', 'E1', 'E2', 'F', 'G', 'J1', 'J2', 'L1', 'L2', 'M1', 'M2', 'N'];
+      const seasons = [
+        { key: 'low', label: 'Baixa Época', icon: '☀️', color: 'blue' },
+        { key: 'mid', label: 'Média Época', icon: '🌤️', color: 'yellow' },
+        { key: 'high', label: 'Alta Época', icon: '🔥', color: 'red' }
+      ];
+      
+      function toggleSeason(group, season) {
+        const tableId = `season_table_${group}_${season}`;
+        const table = document.getElementById(tableId);
+        const icon = document.getElementById(`icon_${group}_${season}`);
+        
+        if (table.style.display === 'none') {
+          table.style.display = 'block';
+          icon.style.transform = 'rotate(180deg)';
+        } else {
+          table.style.display = 'none';
+          icon.style.transform = 'rotate(0deg)';
+        }
+      }
       
       function initializeGroupPricingTable() {
-        const tbody = document.getElementById('groupPricingTable');
-        tbody.innerHTML = '';
+        const container = document.getElementById('groupPricingContainer');
+        container.innerHTML = '';
         
         vehicleGroups.forEach(group => {
-          const row = document.createElement('tr');
-          row.innerHTML = `
-            <td class="px-4 py-3 whitespace-nowrap text-sm font-medium text-gray-900">GROUP ${group}</td>
-            <td class="px-4 py-3 whitespace-nowrap">
-              <input type="number" step="0.01" id="group_${group}_low" value="0.00" class="w-24 rounded-md border-gray-300 shadow-sm focus:border-[#009cb6] focus:ring-1 focus:ring-[#009cb6] text-sm" />
-            </td>
-            <td class="px-4 py-3 whitespace-nowrap">
-              <input type="number" step="0.01" id="group_${group}_mid" value="0.00" class="w-24 rounded-md border-gray-300 shadow-sm focus:border-[#009cb6] focus:ring-1 focus:ring-[#009cb6] text-sm" />
-            </td>
-            <td class="px-4 py-3 whitespace-nowrap">
-              <input type="number" step="0.01" id="group_${group}_high" value="0.00" class="w-24 rounded-md border-gray-300 shadow-sm focus:border-[#009cb6] focus:ring-1 focus:ring-[#009cb6] text-sm" />
-            </td>
+          const groupCard = document.createElement('div');
+          groupCard.className = 'mb-6 border border-gray-200 rounded-lg overflow-hidden';
+          
+          let seasonsHTML = '';
+          seasons.forEach(season => {
+            const daysInputs = Array.from({length: 7}, (_, i) => {
+              const day = i + 1;
+              return `
+                <td class="px-3 py-2">
+                  <input type="number" step="0.01" 
+                    id="group_${group}_${season.key}_day${day}" 
+                    value="0.00" 
+                    class="w-20 rounded-md border-gray-300 shadow-sm focus:border-[#009cb6] focus:ring-1 focus:ring-[#009cb6] text-sm" 
+                    placeholder="0.00" />
+                </td>
+              `;
+            }).join('');
+            
+            seasonsHTML += `
+              <div class="border-t border-gray-100">
+                <button type="button" 
+                  onclick="toggleSeason('${group}', '${season.key}')" 
+                  class="w-full px-4 py-3 flex items-center justify-between hover:bg-gray-50 transition-colors">
+                  <div class="flex items-center gap-3">
+                    <span class="text-2xl">${season.icon}</span>
+                    <span class="font-medium text-gray-700">${season.label}</span>
+                  </div>
+                  <svg id="icon_${group}_${season.key}" class="w-5 h-5 text-gray-400 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/>
+                  </svg>
+                </button>
+                
+                <div id="season_table_${group}_${season.key}" style="display: none;" class="px-4 pb-4">
+                  <div class="overflow-x-auto">
+                    <table class="min-w-full">
+                      <thead>
+                        <tr class="bg-gray-50">
+                          <th class="px-3 py-2 text-xs font-medium text-gray-500 text-center">1 dia</th>
+                          <th class="px-3 py-2 text-xs font-medium text-gray-500 text-center">2 dias</th>
+                          <th class="px-3 py-2 text-xs font-medium text-gray-500 text-center">3 dias</th>
+                          <th class="px-3 py-2 text-xs font-medium text-gray-500 text-center">4 dias</th>
+                          <th class="px-3 py-2 text-xs font-medium text-gray-500 text-center">5 dias</th>
+                          <th class="px-3 py-2 text-xs font-medium text-gray-500 text-center">6 dias</th>
+                          <th class="px-3 py-2 text-xs font-medium text-gray-500 text-center">7 dias</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        <tr>
+                          ${daysInputs}
+                        </tr>
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+              </div>
+            `;
+          });
+          
+          groupCard.innerHTML = `
+            <div class="bg-[#009cb6] px-4 py-3">
+              <h4 class="text-white font-semibold text-lg">GROUP ${group}</h4>
+            </div>
+            ${seasonsHTML}
           `;
-          tbody.appendChild(row);
+          
+          container.appendChild(groupCard);
         });
       }
       
@@ -429,6 +488,23 @@
               Object.keys(data.data.franchises).forEach(group => {
                 const input = document.getElementById(`franchise_${group}`);
                 if (input) input.value = data.data.franchises[group].toFixed(2);
+              });
+            }
+            
+            // Carregar preços de épocas por dia
+            if (data.data.seasons) {
+              Object.keys(data.data.seasons).forEach(group => {
+                ['low', 'mid', 'high'].forEach(season => {
+                  if (data.data.seasons[group] && data.data.seasons[group][season]) {
+                    for (let day = 1; day <= 7; day++) {
+                      const input = document.getElementById(`group_${group}_${season}_day${day}`);
+                      const value = data.data.seasons[group][season][`day${day}`];
+                      if (input && value !== undefined) {
+                        input.value = parseFloat(value).toFixed(2);
+                      }
+                    }
+                  }
+                });
               });
             }
           }
@@ -463,16 +539,20 @@
           if (input) pricing.franchises[group] = parseFloat(input.value) || 0;
         });
         
-        // Recolher preços por época
+        // Recolher preços por época e dia
         ['A', 'B', 'D', 'E1', 'E2', 'F', 'G', 'J1', 'J2', 'L1', 'L2', 'M1', 'M2', 'N'].forEach(group => {
-          const lowInput = document.getElementById(`group_${group}_low`);
-          const midInput = document.getElementById(`group_${group}_mid`);
-          const highInput = document.getElementById(`group_${group}_high`);
           pricing.seasons[group] = {
-            low: parseFloat(lowInput?.value) || 0,
-            mid: parseFloat(midInput?.value) || 0,
-            high: parseFloat(highInput?.value) || 0
+            low: {},
+            mid: {},
+            high: {}
           };
+          
+          ['low', 'mid', 'high'].forEach(season => {
+            for (let day = 1; day <= 7; day++) {
+              const input = document.getElementById(`group_${group}_${season}_day${day}`);
+              pricing.seasons[group][season][`day${day}`] = parseFloat(input?.value) || 0;
+            }
+          });
         });
         
         console.log('📦 Dados a enviar:', pricing);
