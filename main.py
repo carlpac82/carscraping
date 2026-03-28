@@ -6601,6 +6601,34 @@ async def api_save_commissioner_pricing(request: Request):
         traceback.print_exc()
         return JSONResponse({"ok": False, "error": str(e)}, status_code=500)
 
+@app.get("/admin/set-test-periods")
+async def admin_set_test_periods(request: Request):
+    """Temporarily set test periods for seasons"""
+    try:
+        require_admin(request)
+    except HTTPException:
+        return JSONResponse({"ok": False, "error": "Unauthorized"}, status_code=401)
+    
+    try:
+        # Baixa Época: 01/01/2026 - 31/03/2026
+        _set_setting("commissioner_season_low_period_0_start_date", "2026-01-01")
+        _set_setting("commissioner_season_low_period_0_end_date", "2026-03-31")
+        
+        # Média Época: 01/04/2026 - 30/06/2026
+        _set_setting("commissioner_season_mid_period_0_start_date", "2026-04-01")
+        _set_setting("commissioner_season_mid_period_0_end_date", "2026-06-30")
+        
+        # Alta Época: 01/07/2026 - 31/08/2026
+        _set_setting("commissioner_season_high_period_0_start_date", "2026-07-01")
+        _set_setting("commissioner_season_high_period_0_end_date", "2026-08-31")
+        
+        logging.info("✅ Test periods set successfully")
+        return JSONResponse({"ok": True, "message": "Test periods set"})
+        
+    except Exception as e:
+        logging.error(f"Error setting test periods: {e}")
+        return JSONResponse({"ok": False, "error": str(e)}, status_code=500)
+
 @app.get("/admin/migrate-schedule")
 async def admin_migrate_schedule(request: Request):
     """Admin endpoint to manually run schedule columns migration"""
