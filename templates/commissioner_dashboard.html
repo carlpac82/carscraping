@@ -1660,7 +1660,7 @@
                         <div class="protection-section">
                             <div class="section-header">
                                 <h3 class="section-title">
-                                    <span class="section-icon"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#009cb6" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22C6.477 22 2 17.523 2 12S6.477 2 12 2s10 4.477 10 10-4.477 10-10 10z"></path><path d="M12 12l-4 4 4 4"></path></svg></span>
+                                    <span class="section-icon"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#009cb6" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2L2 7v10c0 5.55 3.84 10.74 9 12 5.16-1.26 9-6.45 9-12V7l-10-5z"></path></svg></span>
                                 Proteção e Seguro
                             </h3>
                             <p class="section-subtitle">Escolha a cobertura ideal para sua tranquilidade</p>
@@ -1684,7 +1684,7 @@
                                             </div>
                                             <div class="benefit-item">
                                                 <span class="benefit-icon"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#10b981" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg></span>
-                                                <span class="benefit-text">Seguro obrigatório por lei</span>
+                                                <span class="benefit-text" id="baseFranchiseText">Franquia de 1.500€</span>
                                             </div>
                                             <div class="benefit-item">
                                                 <span class="benefit-icon"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#ef4444" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg></span>
@@ -1945,7 +1945,7 @@
             <div class="insurance-modal-content">
                 <div class="modal-header">
                     <div class="modal-icon"><svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="#f59e0b" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path><line x1="12" y1="9" x2="12" y2="13"></line><line x1="12" y1="17" x2="12.01" y2="17"></line></svg></div>
-                    <h3 class="modal-title">Atenção: Seguro Base</h3>
+                    <h3 class="modal-title">Deseja mudar para seguro base?</h3>
                     <p class="modal-subtitle">Revise os requisitos antes de continuar</p>
                 </div>
                 <div class="modal-body">
@@ -2041,6 +2041,43 @@
             
             // Recalcular preço
             calculatePrice();
+            
+            // Atualizar texto da franquia do seguro base
+            updateBaseFranchiseText();
+        }
+
+        function updateBaseFranchiseText() {
+            const franchiseText = document.getElementById('baseFranchiseText');
+            if (!franchiseText) return;
+            
+            const selectedGroup = selectedVehicle;
+            if (!selectedGroup) {
+                franchiseText.textContent = 'Franquia de 1.500€';
+                return;
+            }
+            
+            // Valores de franquia por grupo (valores aproximados)
+            const franchiseValues = {
+                'A': '500€',
+                'B': '600€', 
+                'C': '700€',
+                'D': '800€',
+                'E': '900€',
+                'F': '1.000€',
+                'G': '1.100€',
+                'H': '1.200€',
+                'I': '1.300€',
+                'J': '1.400€',
+                'K': '1.500€',
+                'L': '1.600€',
+                'M': '1.700€',
+                'N': '1.800€',
+                'O': '1.900€',
+                'P': '2.000€'
+            };
+            
+            const franchise = franchiseValues[selectedGroup] || '1.500€';
+            franchiseText.textContent = `Franquia de ${franchise}`;
         }
 
         // Fechar modal ao clicar fora
@@ -3376,6 +3413,9 @@
                 card.classList.remove('selected');
             });
             event.target.closest('.vehicle-card').classList.add('selected');
+            
+            // Atualizar texto da franquia
+            updateBaseFranchiseText();
         }
 
         function showVehicleSummary() {
