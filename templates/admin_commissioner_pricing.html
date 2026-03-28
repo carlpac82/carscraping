@@ -406,6 +406,7 @@
           <button onclick="loadPricing()" class="px-4 py-2 rounded border border-gray-300 text-gray-700 hover:bg-gray-50 transition-colors">Recarregar</button>
           <button onclick="importEpocaMedia()" class="px-4 py-2 rounded bg-yellow-500 text-white hover:bg-yellow-600 transition-colors">Época Média</button>
           <button onclick="importEpocaBaixa()" class="px-4 py-2 rounded bg-blue-500 text-white hover:bg-blue-600 transition-colors">Época Baixa</button>
+          <button onclick="importEpocaAlta()" class="px-4 py-2 rounded bg-red-500 text-white hover:bg-red-600 transition-colors">Época Alta</button>
         </div>
       </div>
     </main>
@@ -774,6 +775,24 @@
         'N': [150, 200, 250, 300, 350, 420, 500]
       };
       
+      // Dados da tabela Época Alta (Auto Prudente)
+      const epocaAltaPrices = {
+        'A': [65, 70, 75, 100, 125, 140, 150],
+        'B': [80, 85, 90, 120, 150, 170, 180],
+        'D': [95, 100, 105, 140, 175, 195, 210],
+        'E1': [110, 120, 130, 170, 215, 240, 260],
+        'E2': [125, 135, 150, 195, 245, 275, 295],
+        'F': [120, 130, 145, 190, 240, 270, 290],
+        'G': [130, 145, 165, 220, 275, 310, 330],
+        'J1': [140, 155, 175, 230, 290, 320, 350],
+        'J2': [145, 160, 180, 240, 300, 330, 360],
+        'L1': [165, 180, 200, 270, 330, 365, 395],
+        'L2': [180, 200, 220, 295, 360, 395, 430],
+        'M1': [190, 230, 270, 355, 450, 495, 540],
+        'M2': [210, 260, 300, 395, 495, 545, 595],
+        'N': [220, 270, 320, 430, 540, 590, 640]
+      };
+      
       function importEpocaMedia() {
         if (!confirm('Isto vai preencher a tabela "Média Época" com os valores predefinidos. Continuar?')) {
           return;
@@ -825,6 +844,33 @@
           });
           
           showNotification('Preços da Época Baixa importados com sucesso!', 'success');
+        }, 100);
+      }
+      
+      function importEpocaAlta() {
+        if (!confirm('Isto vai preencher a tabela "Época Alta" com os valores predefinidos. Continuar?')) {
+          return;
+        }
+        
+        // Abrir a tabela de Época Alta se ainda não estiver aberta
+        const table = document.getElementById('season_table_high');
+        if (table && table.style.display === 'none') {
+          toggleSeason('high');
+        }
+        
+        // Aguardar um momento para a tabela ser renderizada
+        setTimeout(() => {
+          // Preencher todos os 7 dias da Época Alta
+          Object.keys(epocaAltaPrices).forEach(group => {
+            for (let day = 1; day <= 7; day++) {
+              const input = document.getElementById(`group_${group}_high_day${day}`);
+              if (input && epocaAltaPrices[group][day - 1]) {
+                input.value = epocaAltaPrices[group][day - 1].toFixed(2);
+              }
+            }
+          });
+          
+          showNotification('Preços da Época Alta importados com sucesso!', 'success');
         }, 100);
       }
       
