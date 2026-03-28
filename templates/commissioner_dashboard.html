@@ -1805,19 +1805,26 @@
             if (currentCommissioner) {
                 let defaultLocation = currentCommissioner.name;
                 
-                // Se o comissionista for AP, usar 'Auto Prudente' em vez do nome
-                if (currentCommissioner.name === 'AP' || currentCommissioner.name === 'ap') {
+                // Se o comissionista for AP (Auto Prudente), usar 'Auto Prudente' em vez do nome
+                const commissionerNameUpper = currentCommissioner.name.toUpperCase().trim();
+                if (commissionerNameUpper === 'AP' || commissionerNameUpper.includes('AUTO PRUDENTE')) {
                     defaultLocation = 'Auto Prudente';
                 }
                 
-                // Verificar se o local existe na lista antes de definir
+                console.log('🏢 Comissionista:', currentCommissioner.name, '→ Local padrão:', defaultLocation);
+                
+                // Tentar definir o valor padrão
                 if (allLocationsCombined.includes(defaultLocation)) {
                     pickupSelect.value = defaultLocation;
                     dropoffSelect.value = defaultLocation;
+                    console.log('✅ Locais preenchidos com:', defaultLocation);
                 } else if (allLocationsCombined.includes(currentCommissioner.name)) {
                     // Fallback para o nome do comissionista
                     pickupSelect.value = currentCommissioner.name;
                     dropoffSelect.value = currentCommissioner.name;
+                    console.log('✅ Locais preenchidos com nome do comissionista:', currentCommissioner.name);
+                } else {
+                    console.warn('⚠️ Local padrão não encontrado na lista:', defaultLocation);
                 }
             }
         }
