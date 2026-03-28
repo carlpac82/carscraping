@@ -643,6 +643,24 @@
                 });
               });
             }
+            
+            // Carregar períodos das épocas
+            if (data.data.season_periods) {
+              ['low', 'mid', 'high'].forEach(season => {
+                const container = document.getElementById(`periods_${season}`);
+                if (container && data.data.season_periods[season]) {
+                  // Limpar períodos existentes
+                  container.innerHTML = '';
+                  
+                  // Adicionar períodos da base de dados
+                  data.data.season_periods[season].forEach((period, i) => {
+                    if (period.start_date && period.end_date) {
+                      addPeriod(season, period.start_date, period.end_date);
+                    }
+                  });
+                }
+              });
+            }
           }
         } catch (error) {
           console.error('Erro ao carregar preços:', error);
