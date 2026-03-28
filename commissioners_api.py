@@ -523,82 +523,37 @@ def get_vehicle_groups_with_photos_v2(conn):
         cursor = conn.cursor()
         
         # Buscar todos os grupos da tabela car_groups
-        print("Tentando carregar grupos de veículos...")
-        
-        # Coluna enabled é INTEGER (0/1), não BOOLEAN
-        query = """
-            SELECT code, brand, model, photo_url 
-            FROM car_groups 
-            WHERE enabled = 1
-            ORDER BY code
-        """
-        print(f"Query: {query}")
-        cursor.execute(query)
-        rows = cursor.fetchall()
-        print(f"Query retornou {len(rows)} linhas")
-        
-        if len(rows) == 0:
-            # Se não houver resultados com enabled=1, tentar sem filtro
-            print("Nenhum grupo com enabled=1, tentando sem filtro...")
-            query = """
+        # Usar enabled = 1 ou enabled = TRUE dependendo do tipo
+        try:
+            cursor.execute("""
+                SELECT code, brand, model, photo_url 
+                FROM car_groups 
+                WHERE enabled = 1 OR enabled = TRUE
+                ORDER BY code
+            """)
+        except:
+            # Se falhar, tentar sem filtro enabled
+            cursor.execute("""
                 SELECT code, brand, model, photo_url 
                 FROM car_groups 
                 ORDER BY code
-            """
-            cursor.execute(query)
-            rows = cursor.fetchall()
-            print(f"Query sem filtro retornou {len(rows)} linhas")
-        
-        print(f"Total de linhas para processar: {len(rows)}")
-        
-        # Dados específicos de cada grupo
-        group_specs = {
-            'A': {'seats': '5', 'doors': '3', 'ac': False, 'transmission': 'manual'},
-            'B': {'seats': '5', 'doors': '5', 'ac': True, 'transmission': 'manual'},
-            'D': {'seats': '5', 'doors': '5', 'ac': True, 'transmission': 'manual'},
-            'E1': {'seats': '5', 'doors': '5', 'ac': True, 'transmission': 'manual'},
-            'E2': {'seats': '5', 'doors': '5', 'ac': True, 'transmission': 'manual'},
-            'F': {'seats': '5', 'doors': '5', 'ac': True, 'transmission': 'manual'},
-            'G': {'seats': '4', 'doors': '3', 'ac': True, 'transmission': 'manual'},
-            'J1': {'seats': '5', 'doors': '5', 'ac': True, 'transmission': 'manual'},
-            'J2': {'seats': '5', 'doors': '5', 'ac': True, 'transmission': 'manual'},
-            'L1': {'seats': '5', 'doors': '5', 'ac': True, 'transmission': 'manual'},
-            'L2': {'seats': '5', 'doors': '5', 'ac': True, 'transmission': 'manual'},
-            'M1': {'seats': '5-7', 'doors': '5', 'ac': True, 'transmission': 'manual'},
-            'M2': {'seats': '5-7', 'doors': '5', 'ac': True, 'transmission': 'manual'},
-            'N': {'seats': '8-9', 'doors': '5', 'ac': True, 'transmission': 'manual'}
-        }
+            """)
         
         car_groups_data = []
-        for row in rows:
+        for row in cursor.fetchall():
             code = row[0]
             brand = row[1] or ''
             model = row[2] or ''
             photo_url = row[3] or ''
-            
-            # Ignorar B1 e B2
-            if code in ['B1', 'B2']:
-                continue
-            
-            # Obter especificações do grupo
-            specs = group_specs.get(code, {'seats': '5', 'doors': '5', 'ac': True, 'transmission': 'manual'})
-            
             car_groups_data.append({
                 'code': code,
                 'brand': brand,
                 'model': model,
-                'image': photo_url or f'/api/vehicles/{brand.lower()} {model.lower()}/photo',
-                'name': f"{brand} {model}".strip() or code,
-                'seats': specs['seats'],
-                'doors': specs['doors'],
-                'ac': specs['ac'],
-                'transmission': specs['transmission']
+                'photo_url': photo_url,
+                'name': f"{brand} {model}".strip() or code
             })
         
-        print(f"Processados {len(car_groups_data)} grupos de veículos")
-        if len(car_groups_data) > 0:
-            print(f"Primeiro grupo: {car_groups_data[0]}")
-        
+        conn.close()
         return car_groups_data
     except Exception as e:
         print(f"Error loading car_groups: {e}")
@@ -706,22 +661,12 @@ async def get_vehicle_groups_endpoint(request: Request):
         
         conn = get_db()
         groups = get_vehicle_groups_with_photos_v2(conn)
-        conn.close()
         
         return JSONResponse({
             "ok": True,
             "groups": groups
         })
     except Exception as e:
-        import traceback
-        print(f"Error loading car_groups: {e}")
-        print(traceback.format_exc())
-        try:
-            if 'conn' in locals():
-                conn.rollback()
-                conn.close()
-        except:
-            pass
         return JSONResponse({
             "ok": False,
             "error": str(e)
@@ -739,12 +684,21 @@ async def get_commissioner_locations(request: Request):
         conn = get_db()
         cursor = conn.cursor()
         
-        cursor.execute("""
-            SELECT DISTINCT name 
-            FROM commissioners 
-            WHERE enabled = TRUE
-            ORDER BY name
-        """)
+        # Tentar com enabled = TRUE ou enabled = 1
+        try:
+            cursor.execute("""
+                SELECT DISTINCT name 
+                FROM commissioners 
+                WHERE enabled = TRUE OR enabled = 1
+                ORDER BY name
+            """)
+        except:
+            # Se falhar, buscar todos
+            cursor.execute("""
+                SELECT DISTINCT name 
+                FROM commissioners 
+                ORDER BY name
+            """)
         
         locations = [row[0] for row in cursor.fetchall() if row[0]]
         conn.close()
@@ -757,12 +711,6 @@ async def get_commissioner_locations(request: Request):
         import traceback
         print(f"Error in get_commissioner_locations: {e}")
         print(traceback.format_exc())
-        try:
-            if 'conn' in locals():
-                conn.rollback()
-                conn.close()
-        except:
-            pass
         return JSONResponse({
             "ok": False,
             "error": str(e)
