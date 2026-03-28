@@ -4229,62 +4229,62 @@ def init_db():
             
             # Migration: Add self check-in columns to rental_agreements
             if is_postgres:
-                with conn.cursor() as cur:
-                    cur.execute("""
-                        SELECT column_name FROM information_schema.columns 
-                        WHERE table_name='rental_agreements'
-                    """)
-                    existing_columns = [row[0] for row in cur.fetchall()]
-                    
-                    if 'self_checkin_token' not in existing_columns:
-                        cur.execute("ALTER TABLE rental_agreements ADD COLUMN self_checkin_token TEXT UNIQUE")
-                        logging.info("✅ Coluna self_checkin_token adicionada (PostgreSQL)")
-                    
-                    if 'self_checkin_email' not in existing_columns:
-                        cur.execute("ALTER TABLE rental_agreements ADD COLUMN self_checkin_email TEXT")
-                        logging.info("✅ Coluna self_checkin_email adicionada (PostgreSQL)")
-                    
-                    if 'self_checkin_scheduled_date' not in existing_columns:
-                        cur.execute("ALTER TABLE rental_agreements ADD COLUMN self_checkin_scheduled_date TEXT")
-                        logging.info("✅ Coluna self_checkin_scheduled_date adicionada (PostgreSQL)")
-                    
-                    if 'self_checkin_sent' not in existing_columns:
-                        cur.execute("ALTER TABLE rental_agreements ADD COLUMN self_checkin_sent BOOLEAN DEFAULT FALSE")
-                        logging.info("✅ Coluna self_checkin_sent adicionada (PostgreSQL)")
-                    
-                    if 'self_checkin_completed' not in existing_columns:
-                        cur.execute("ALTER TABLE rental_agreements ADD COLUMN self_checkin_completed BOOLEAN DEFAULT FALSE")
-                        logging.info("✅ Coluna self_checkin_completed adicionada (PostgreSQL)")
-                    
-                    if 'self_checkin_validated' not in existing_columns:
-                        cur.execute("ALTER TABLE rental_agreements ADD COLUMN self_checkin_validated BOOLEAN")
-                        logging.info("✅ Coluna self_checkin_validated adicionada (PostgreSQL)")
-                    
-                    if 'self_checkin_inspection_id' not in existing_columns:
-                        cur.execute("ALTER TABLE rental_agreements ADD COLUMN self_checkin_inspection_id INTEGER")
-                        logging.info("✅ Coluna self_checkin_inspection_id adicionada (PostgreSQL)")
-                    
-                    if 'return_date' not in existing_columns:
-                        cur.execute("ALTER TABLE rental_agreements ADD COLUMN return_date TEXT")
-                        logging.info("✅ Coluna return_date adicionada (PostgreSQL)")
-                    
-                    if 'client_email' not in existing_columns:
-                        cur.execute("ALTER TABLE rental_agreements ADD COLUMN client_email TEXT")
-                        logging.info("✅ Coluna client_email adicionada (PostgreSQL)")
-                    
-                    if 'self_checkout_pending' not in existing_columns:
-                        cur.execute("ALTER TABLE rental_agreements ADD COLUMN self_checkout_pending BOOLEAN DEFAULT FALSE")
-                        logging.info("✅ Coluna self_checkout_pending adicionada (PostgreSQL)")
-                    
-                    if 'self_checkout_inspection_id' not in existing_columns:
-                        cur.execute("ALTER TABLE rental_agreements ADD COLUMN self_checkout_inspection_id INTEGER")
-                        logging.info("✅ Coluna self_checkout_inspection_id adicionada (PostgreSQL)")
-                    
-                    if 'status' not in existing_columns:
-                        cur.execute("ALTER TABLE rental_agreements ADD COLUMN status TEXT DEFAULT 'active'")
-                        logging.info("✅ Coluna status adicionada (PostgreSQL)")
-                    
-                    conn.commit()
+                cur = conn.cursor()
+                cur.execute("""
+                    SELECT column_name FROM information_schema.columns 
+                    WHERE table_name='rental_agreements'
+                """)
+                existing_columns = [row[0] for row in cur.fetchall()]
+                
+                if 'self_checkin_token' not in existing_columns:
+                    cur.execute("ALTER TABLE rental_agreements ADD COLUMN self_checkin_token TEXT UNIQUE")
+                    logging.info("✅ Coluna self_checkin_token adicionada (PostgreSQL)")
+                
+                if 'self_checkin_email' not in existing_columns:
+                    cur.execute("ALTER TABLE rental_agreements ADD COLUMN self_checkin_email TEXT")
+                    logging.info("✅ Coluna self_checkin_email adicionada (PostgreSQL)")
+                
+                if 'self_checkin_scheduled_date' not in existing_columns:
+                    cur.execute("ALTER TABLE rental_agreements ADD COLUMN self_checkin_scheduled_date TEXT")
+                    logging.info("✅ Coluna self_checkin_scheduled_date adicionada (PostgreSQL)")
+                if 'self_checkin_sent' not in existing_columns:
+                    cur.execute("ALTER TABLE rental_agreements ADD COLUMN self_checkin_sent BOOLEAN DEFAULT FALSE")
+                    logging.info("✅ Coluna self_checkin_sent adicionada (PostgreSQL)")
+                
+                if 'self_checkin_completed' not in existing_columns:
+                    cur.execute("ALTER TABLE rental_agreements ADD COLUMN self_checkin_completed BOOLEAN DEFAULT FALSE")
+                    logging.info("✅ Coluna self_checkin_completed adicionada (PostgreSQL)")
+                
+                if 'self_checkin_validated' not in existing_columns:
+                    cur.execute("ALTER TABLE rental_agreements ADD COLUMN self_checkin_validated BOOLEAN")
+                    logging.info("✅ Coluna self_checkin_validated adicionada (PostgreSQL)")
+                
+                if 'self_checkin_inspection_id' not in existing_columns:
+                    cur.execute("ALTER TABLE rental_agreements ADD COLUMN self_checkin_inspection_id INTEGER")
+                    logging.info("✅ Coluna self_checkin_inspection_id adicionada (PostgreSQL)")
+                
+                if 'return_date' not in existing_columns:
+                    cur.execute("ALTER TABLE rental_agreements ADD COLUMN return_date TEXT")
+                    logging.info("✅ Coluna return_date adicionada (PostgreSQL)")
+                
+                if 'client_email' not in existing_columns:
+                    cur.execute("ALTER TABLE rental_agreements ADD COLUMN client_email TEXT")
+                    logging.info("✅ Coluna client_email adicionada (PostgreSQL)")
+                
+                if 'self_checkout_pending' not in existing_columns:
+                    cur.execute("ALTER TABLE rental_agreements ADD COLUMN self_checkout_pending BOOLEAN DEFAULT FALSE")
+                    logging.info("✅ Coluna self_checkout_pending adicionada (PostgreSQL)")
+                
+                if 'self_checkout_inspection_id' not in existing_columns:
+                    cur.execute("ALTER TABLE rental_agreements ADD COLUMN self_checkout_inspection_id INTEGER")
+                    logging.info("✅ Coluna self_checkout_inspection_id adicionada (PostgreSQL)")
+                
+                if 'status' not in existing_columns:
+                    cur.execute("ALTER TABLE rental_agreements ADD COLUMN status TEXT DEFAULT 'active'")
+                    logging.info("✅ Coluna status adicionada (PostgreSQL)")
+                
+                conn.commit()
+                cur.close()
             else:
                 # SQLite: Usar try/except
                 try:
@@ -6525,8 +6525,8 @@ async def api_get_commissioner_pricing(request: Request):
                     "1_2": float(_get_setting(f"commissioner_insurance_{group}_{season}_1_2_days", "0")),
                     "3_7": float(_get_setting(f"commissioner_insurance_{group}_{season}_3_7_days", "0")),
                     "8_14": float(_get_setting(f"commissioner_insurance_{group}_{season}_8_14_days", "0")),
-                    "14_21": float(_get_setting(f"commissioner_insurance_{group}_{season}_14_21_days", "0")),
-                    "21_31": float(_get_setting(f"commissioner_insurance_{group}_{season}_21_31_days", "0"))
+                    "15_21": float(_get_setting(f"commissioner_insurance_{group}_{season}_15_21_days", "0")),
+                    "22_31": float(_get_setting(f"commissioner_insurance_{group}_{season}_22_31_days", "0"))
                 }
         
         # Load season periods (multiple date ranges per season)
@@ -6614,11 +6614,11 @@ async def api_save_commissioner_pricing(request: Request):
         # Save insurance pricing by season, group and day ranges
         if "extras" in data and "insurance" in data["extras"] and "seasons" in data["extras"]["insurance"]:
             logging.info("💾 Saving insurance pricing...")
-            groups = ['A', 'B', 'D']
+            groups = ['A', 'B', 'D', 'E1', 'E2', 'F', 'G', 'J1', 'J2', 'L1', 'L2', 'M1', 'M2', 'N']
             for group in groups:
                 for season in ['low', 'mid', 'high']:
-                    # Faixas de dias: 1_2, 3_7, 8_14, 14_21, 21_31
-                    for range_key in ['1_2', '3_7', '8_14', '14_21', '21_31']:
+                    # Faixas de dias: 1_2, 3_7, 8_14, 15_21, 22_31
+                    for range_key in ['1_2', '3_7', '8_14', '15_21', '22_31']:
                         key = f"commissioner_insurance_{group}_{season}_{range_key}_days"
                         value = data["extras"]["insurance"]["seasons"][group][season].get(range_key, "0")
                         _set_setting(key, str(value))
@@ -6679,66 +6679,107 @@ async def set_test_insurance_pricing(request: Request):
         _set_setting("commissioner_insurance_A_low_1_2_days", "5")
         _set_setting("commissioner_insurance_A_low_3_7_days", "8")
         _set_setting("commissioner_insurance_A_low_8_14_days", "12")
-        _set_setting("commissioner_insurance_A_low_14_21_days", "18")
-        _set_setting("commissioner_insurance_A_low_21_31_days", "25")
+        _set_setting("commissioner_insurance_A_low_15_21_days", "18")
+        _set_setting("commissioner_insurance_A_low_22_31_days", "25")
         
         # Época Média
         _set_setting("commissioner_insurance_A_mid_1_2_days", "7")
         _set_setting("commissioner_insurance_A_mid_3_7_days", "10")
         _set_setting("commissioner_insurance_A_mid_8_14_days", "15")
-        _set_setting("commissioner_insurance_A_mid_14_21_days", "22")
-        _set_setting("commissioner_insurance_A_mid_21_31_days", "30")
+        _set_setting("commissioner_insurance_A_mid_15_21_days", "22")
+        _set_setting("commissioner_insurance_A_mid_22_31_days", "30")
         
         # Época Alta
         _set_setting("commissioner_insurance_A_high_1_2_days", "10")
         _set_setting("commissioner_insurance_A_high_3_7_days", "15")
         _set_setting("commissioner_insurance_A_high_8_14_days", "20")
-        _set_setting("commissioner_insurance_A_high_14_21_days", "28")
-        _set_setting("commissioner_insurance_A_high_21_31_days", "35")
+        _set_setting("commissioner_insurance_A_high_15_21_days", "28")
+        _set_setting("commissioner_insurance_A_high_22_31_days", "35")
         
         # Grupo B - Preços por faixa de dias e épocas
         # Época Baixa
         _set_setting("commissioner_insurance_B_low_1_2_days", "6")
         _set_setting("commissioner_insurance_B_low_3_7_days", "9")
         _set_setting("commissioner_insurance_B_low_8_14_days", "13")
-        _set_setting("commissioner_insurance_B_low_14_21_days", "19")
-        _set_setting("commissioner_insurance_B_low_21_31_days", "26")
+        _set_setting("commissioner_insurance_B_low_15_21_days", "19")
+        _set_setting("commissioner_insurance_B_low_22_31_days", "26")
         
         # Época Média
         _set_setting("commissioner_insurance_B_mid_1_2_days", "8")
         _set_setting("commissioner_insurance_B_mid_3_7_days", "12")
         _set_setting("commissioner_insurance_B_mid_8_14_days", "18")
-        _set_setting("commissioner_insurance_B_mid_14_21_days", "25")
-        _set_setting("commissioner_insurance_B_mid_21_31_days", "32")
+        _set_setting("commissioner_insurance_B_mid_15_21_days", "25")
+        _set_setting("commissioner_insurance_B_mid_22_31_days", "32")
         
         # Época Alta
         _set_setting("commissioner_insurance_B_high_1_2_days", "12")
         _set_setting("commissioner_insurance_B_high_3_7_days", "18")
         _set_setting("commissioner_insurance_B_high_8_14_days", "25")
-        _set_setting("commissioner_insurance_B_high_14_21_days", "32")
-        _set_setting("commissioner_insurance_B_high_21_31_days", "40")
+        _set_setting("commissioner_insurance_B_high_15_21_days", "32")
+        _set_setting("commissioner_insurance_B_high_22_31_days", "40")
         
         # Grupo D - Preços por faixa de dias e épocas
         # Época Baixa
         _set_setting("commissioner_insurance_D_low_1_2_days", "7")
         _set_setting("commissioner_insurance_D_low_3_7_days", "10")
         _set_setting("commissioner_insurance_D_low_8_14_days", "14")
-        _set_setting("commissioner_insurance_D_low_14_21_days", "20")
-        _set_setting("commissioner_insurance_D_low_21_31_days", "28")
+        _set_setting("commissioner_insurance_D_low_15_21_days", "20")
+        _set_setting("commissioner_insurance_D_low_22_31_days", "28")
         
         # Época Média
         _set_setting("commissioner_insurance_D_mid_1_2_days", "9")
         _set_setting("commissioner_insurance_D_mid_3_7_days", "13")
         _set_setting("commissioner_insurance_D_mid_8_14_days", "19")
-        _set_setting("commissioner_insurance_D_mid_14_21_days", "26")
-        _set_setting("commissioner_insurance_D_mid_21_31_days", "35")
+        _set_setting("commissioner_insurance_D_mid_15_21_days", "26")
+        _set_setting("commissioner_insurance_D_mid_22_31_days", "35")
         
         # Época Alta
         _set_setting("commissioner_insurance_D_high_1_2_days", "14")
         _set_setting("commissioner_insurance_D_high_3_7_days", "20")
         _set_setting("commissioner_insurance_D_high_8_14_days", "28")
-        _set_setting("commissioner_insurance_D_high_14_21_days", "35")
-        _set_setting("commissioner_insurance_D_high_21_31_days", "45")
+        _set_setting("commissioner_insurance_D_high_15_21_days", "35")
+        _set_setting("commissioner_insurance_D_high_22_31_days", "45")
+        
+        # Grupos E1, E2, F, G, J1, J2, L1, L2, M1, M2, N - Preços padrão
+        additional_groups = ['E1', 'E2', 'F', 'G', 'J1', 'J2', 'L1', 'L2', 'M1', 'M2', 'N']
+        for group in additional_groups:
+            # Preços base por grupo (quanto maior o grupo, mais caro)
+            base_prices = {
+                'E1': {'low': [6, 9, 13, 19, 26], 'mid': [8, 12, 18, 25, 32], 'high': [12, 18, 25, 32, 40]},
+                'E2': {'low': [7, 10, 14, 20, 28], 'mid': [9, 13, 19, 26, 35], 'high': [14, 20, 28, 35, 45]},
+                'F': {'low': [8, 11, 15, 22, 30], 'mid': [10, 14, 20, 28, 38], 'high': [15, 22, 30, 38, 48]},
+                'G': {'low': [9, 12, 16, 24, 32], 'mid': [11, 15, 22, 30, 40], 'high': [16, 24, 32, 40, 52]},
+                'J1': {'low': [10, 13, 17, 26, 34], 'mid': [12, 16, 24, 32, 42], 'high': [18, 26, 34, 42, 55]},
+                'J2': {'low': [11, 14, 18, 28, 36], 'mid': [13, 17, 26, 34, 44], 'high': [20, 28, 36, 44, 58]},
+                'L1': {'low': [12, 15, 19, 30, 38], 'mid': [14, 18, 28, 36, 46], 'high': [22, 30, 38, 46, 60]},
+                'L2': {'low': [13, 16, 20, 32, 40], 'mid': [15, 19, 30, 38, 48], 'high': [24, 32, 40, 48, 62]},
+                'M1': {'low': [14, 17, 21, 34, 42], 'mid': [16, 20, 32, 40, 50], 'high': [26, 34, 42, 50, 65]},
+                'M2': {'low': [15, 18, 22, 36, 44], 'mid': [17, 21, 34, 42, 52], 'high': [28, 36, 44, 52, 68]},
+                'N': {'low': [16, 19, 23, 38, 46], 'mid': [18, 22, 36, 44, 54], 'high': [30, 38, 46, 54, 70]}
+            }
+            
+            prices = base_prices.get(group, base_prices['E1'])  # Default para E1 se não encontrar
+            
+            # Época Baixa
+            _set_setting(f"commissioner_insurance_{group}_low_1_2_days", str(prices['low'][0]))
+            _set_setting(f"commissioner_insurance_{group}_low_3_7_days", str(prices['low'][1]))
+            _set_setting(f"commissioner_insurance_{group}_low_8_14_days", str(prices['low'][2]))
+            _set_setting(f"commissioner_insurance_{group}_low_15_21_days", str(prices['low'][3]))
+            _set_setting(f"commissioner_insurance_{group}_low_22_31_days", str(prices['low'][4]))
+            
+            # Época Média
+            _set_setting(f"commissioner_insurance_{group}_mid_1_2_days", str(prices['mid'][0]))
+            _set_setting(f"commissioner_insurance_{group}_mid_3_7_days", str(prices['mid'][1]))
+            _set_setting(f"commissioner_insurance_{group}_mid_8_14_days", str(prices['mid'][2]))
+            _set_setting(f"commissioner_insurance_{group}_mid_15_21_days", str(prices['mid'][3]))
+            _set_setting(f"commissioner_insurance_{group}_mid_22_31_days", str(prices['mid'][4]))
+            
+            # Época Alta
+            _set_setting(f"commissioner_insurance_{group}_high_1_2_days", str(prices['high'][0]))
+            _set_setting(f"commissioner_insurance_{group}_high_3_7_days", str(prices['high'][1]))
+            _set_setting(f"commissioner_insurance_{group}_high_8_14_days", str(prices['high'][2]))
+            _set_setting(f"commissioner_insurance_{group}_high_15_21_days", str(prices['high'][3]))
+            _set_setting(f"commissioner_insurance_{group}_high_22_31_days", str(prices['high'][4]))
         
         logging.info("✅ Test insurance pricing set successfully")
         return JSONResponse({"ok": True, "message": "Test insurance pricing set successfully"})
@@ -42066,7 +42107,7 @@ async def export_abbycar_excel(request: Request):
                 prices = row_data.get('prices', {})
                 price_keys = ['1_day_fixed', '2_day_fixed', '3_day_fixed', '4_day_fixed', '5_day_fixed',
                              '6_day_fixed', '7_day_fixed', '8_10_daily', '11_12_daily', '13_14_daily',
-                             '15_21_daily', '22_28_daily']
+                             '15_21_daily', '22_31_daily']
                 
                 # Default prices for Faro (same as in export_all_periods logic)
                 default_prices_faro_by_sipp = {

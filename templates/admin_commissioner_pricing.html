@@ -593,7 +593,7 @@
       
       function createInsurancePricingTables() {
         const container = document.getElementById('insurancePricingContainer');
-        const vehicleGroups = ['A', 'B', 'D'];
+        const vehicleGroups = ['A', 'B', 'D', 'E1', 'E2', 'F', 'G', 'J1', 'J2', 'L1', 'L2', 'M1', 'M2', 'N'];
         const seasons = [
           { key: 'low', name: 'Época Baixa', color: 'blue' },
           { key: 'mid', name: 'Época Média', color: 'green' },
@@ -603,8 +603,8 @@
           { key: '1_2', label: '1-2 dias' },
           { key: '3_7', label: '3-7 dias' },
           { key: '8_14', label: '8-14 dias' },
-          { key: '14_21', label: '14-21 dias' },
-          { key: '21_31', label: '21-31 dias' }
+          { key: '15_21', label: '15-21 dias' },
+          { key: '22_31', label: '22-31 dias' }
         ];
         
         container.innerHTML = '';
@@ -744,7 +744,7 @@
             if (data.data.extras && data.data.extras.insurance && data.data.extras.insurance.seasons) {
               ['A', 'B', 'D'].forEach(group => {
                 ['low', 'mid', 'high'].forEach(season => {
-                  ['1_2', '3_7', '8_14', '14_21', '21_31'].forEach(range => {
+                  ['1_2', '3_7', '8_14', '15_21', '22_31'].forEach(range => {
                     const input = document.getElementById(`insurance_${group}_${season}_${range}`);
                     if (input && data.data.extras.insurance.seasons[group] && 
                         data.data.extras.insurance.seasons[group][season] &&
@@ -814,7 +814,7 @@
           };
           
           ['low', 'mid', 'high'].forEach(season => {
-            ['1_2', '3_7', '8_14', '14_21', '21_31'].forEach(range => {
+            ['1_2', '3_7', '8_14', '15_21', '22_31'].forEach(range => {
               const input = document.getElementById(`insurance_${group}_${season}_${range}`);
               if (input) {
                 pricing.extras.insurance.seasons[group][season][range] = parseFloat(input.value) || 0;
