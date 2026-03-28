@@ -564,9 +564,9 @@ def get_vehicle_groups_with_photos_v2(conn):
             'J2': {'seats': '5', 'doors': '5', 'ac': True, 'transmission': 'manual'},
             'L1': {'seats': '5', 'doors': '5', 'ac': True, 'transmission': 'automatic'},
             'L2': {'seats': '5', 'doors': '5', 'ac': True, 'transmission': 'automatic'},
-            'M1': {'seats': '5-7', 'doors': '5', 'ac': True, 'transmission': 'manual'},
-            'M2': {'seats': '5-7', 'doors': '5', 'ac': True, 'transmission': 'automatic'},
-            'N': {'seats': '8-9', 'doors': '5', 'ac': True, 'transmission': 'manual'}
+            'M1': {'seats': '7', 'doors': '5', 'ac': True, 'transmission': 'manual'},
+            'M2': {'seats': '7', 'doors': '5', 'ac': True, 'transmission': 'automatic'},
+            'N': {'seats': '9', 'doors': '5', 'ac': True, 'transmission': 'manual'}
         }
         
         car_groups_data = []
