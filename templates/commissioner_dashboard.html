@@ -987,6 +987,44 @@
             line-height: 1.4;
         }
 
+        /* Section Divider */
+        .section-divider {
+            display: flex;
+            align-items: center;
+            margin: 30px 0 25px 0;
+            gap: 20px;
+        }
+
+        .divider-line {
+            flex: 1;
+            height: 2px;
+            background: linear-gradient(to right, transparent, #e5e7eb, transparent);
+        }
+
+        .divider-text {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 8px 16px;
+            background: linear-gradient(135deg, #f8f9fa 0%, #ffffff 100%);
+            border: 1px solid #e5e7eb;
+            border-radius: 20px;
+            font-size: 13px;
+            font-weight: 600;
+            color: #6b7280;
+            white-space: nowrap;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+        }
+
+        .divider-icon {
+            font-size: 14px;
+            color: #009cb6;
+        }
+
+        .divider-label {
+            color: #374151;
+        }
+
         /* Extras Section */
         .extras-section {
             margin-bottom: 30px;
@@ -1436,6 +1474,16 @@
                                     • Interior do veículo
                                 </div>
                             </div>
+                        </div>
+                        
+                        <!-- Divisória -->
+                        <div class="section-divider">
+                            <div class="divider-line"></div>
+                            <div class="divider-text">
+                                <span class="divider-icon">➕</span>
+                                <span class="divider-label">Extras Opcionais</span>
+                            </div>
+                            <div class="divider-line"></div>
                         </div>
                         
                         <div class="extras-section">
