@@ -551,22 +551,48 @@ def get_vehicle_groups_with_photos_v2(conn):
         
         print(f"Total de linhas para processar: {len(rows)}")
         
+        # Dados específicos de cada grupo
+        group_specs = {
+            'A': {'seats': '5', 'doors': '3', 'ac': False, 'transmission': 'manual'},
+            'B': {'seats': '5', 'doors': '5', 'ac': True, 'transmission': 'manual'},
+            'D': {'seats': '5', 'doors': '5', 'ac': True, 'transmission': 'manual'},
+            'E1': {'seats': '5', 'doors': '5', 'ac': True, 'transmission': 'manual'},
+            'E2': {'seats': '5', 'doors': '5', 'ac': True, 'transmission': 'manual'},
+            'F': {'seats': '5', 'doors': '5', 'ac': True, 'transmission': 'manual'},
+            'G': {'seats': '4', 'doors': '3', 'ac': True, 'transmission': 'manual'},
+            'J1': {'seats': '5', 'doors': '5', 'ac': True, 'transmission': 'manual'},
+            'J2': {'seats': '5', 'doors': '5', 'ac': True, 'transmission': 'manual'},
+            'L1': {'seats': '5', 'doors': '5', 'ac': True, 'transmission': 'manual'},
+            'L2': {'seats': '5', 'doors': '5', 'ac': True, 'transmission': 'manual'},
+            'M1': {'seats': '5-7', 'doors': '5', 'ac': True, 'transmission': 'manual'},
+            'M2': {'seats': '5-7', 'doors': '5', 'ac': True, 'transmission': 'manual'},
+            'N': {'seats': '8-9', 'doors': '5', 'ac': True, 'transmission': 'manual'}
+        }
+        
         car_groups_data = []
         for row in rows:
             code = row[0]
             brand = row[1] or ''
             model = row[2] or ''
             photo_url = row[3] or ''
+            
+            # Ignorar B1 e B2
+            if code in ['B1', 'B2']:
+                continue
+            
+            # Obter especificações do grupo
+            specs = group_specs.get(code, {'seats': '5', 'doors': '5', 'ac': True, 'transmission': 'manual'})
+            
             car_groups_data.append({
                 'code': code,
                 'brand': brand,
                 'model': model,
-                'image': photo_url,
+                'image': photo_url or f'/api/vehicles/{brand.lower()} {model.lower()}/photo',
                 'name': f"{brand} {model}".strip() or code,
-                'seats': '5',
-                'doors': '5',
-                'ac': True,
-                'transmission': 'manual'
+                'seats': specs['seats'],
+                'doors': specs['doors'],
+                'ac': specs['ac'],
+                'transmission': specs['transmission']
             })
         
         print(f"Processados {len(car_groups_data)} grupos de veículos")
