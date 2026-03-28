@@ -499,35 +499,37 @@
         container.innerHTML = '';
         
         const iconsRow = document.createElement('div');
-        iconsRow.className = 'flex gap-3 mb-4';
+        iconsRow.className = 'flex justify-center gap-3 mb-4';
         
         seasons.forEach(season => {
           const iconButton = document.createElement('button');
           iconButton.type = 'button';
           iconButton.id = `btn_${season.key}`;
           iconButton.onclick = () => toggleSeason(season.key);
-          iconButton.className = 'px-6 py-4 rounded-lg border-2 hover:shadow-lg transition-all flex flex-col items-center gap-2';
+          iconButton.className = 'px-4 py-3 rounded-lg border-2 hover:shadow-lg transition-all flex items-center gap-2';
           iconButton.style.borderColor = '#009cb6';
           iconButton.style.backgroundColor = '#009cb6';
           
-          const iconCircle = document.createElement('div');
-          iconCircle.className = 'w-12 h-12 rounded-full flex items-center justify-center';
-          iconCircle.style.backgroundColor = '#ffffff';
+          let iconSvg = '';
+          if (season.key === 'low') {
+            // Ícone de sol (baixa época)
+            iconSvg = '<svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z"/></svg>';
+          } else if (season.key === 'mid') {
+            // Ícone de nuvem com sol (média época)
+            iconSvg = '<svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 15a4 4 0 004 4h9a5 5 0 10-.1-9.999 5.002 5.002 0 10-9.78 2.096A4.001 4.001 0 003 15z"/></svg>';
+          } else {
+            // Ícone de fogo/chama (alta época)
+            iconSvg = '<svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 18.657A8 8 0 016.343 7.343S7 9 9 10c0-2 .5-5 2.986-7C14 5 16.09 5.777 17.656 7.343A7.975 7.975 0 0120 13a7.975 7.975 0 01-2.343 5.657z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.879 16.121A3 3 0 1012.015 11L11 14H9c0 .768.293 1.536.879 2.121z"/></svg>';
+          }
           
-          const iconSvg = document.createElement('div');
-          iconSvg.className = 'text-2xl font-bold';
-          iconSvg.style.color = '#009cb6';
-          if (season.key === 'low') iconSvg.textContent = 'B';
-          if (season.key === 'mid') iconSvg.textContent = 'M';
-          if (season.key === 'high') iconSvg.textContent = 'A';
-          
-          iconCircle.appendChild(iconSvg);
+          const iconContainer = document.createElement('div');
+          iconContainer.innerHTML = iconSvg;
           
           const label = document.createElement('span');
           label.className = 'text-sm font-medium text-white';
           label.textContent = season.label;
           
-          iconButton.appendChild(iconCircle);
+          iconButton.appendChild(iconContainer);
           iconButton.appendChild(label);
           iconsRow.appendChild(iconButton);
         });
