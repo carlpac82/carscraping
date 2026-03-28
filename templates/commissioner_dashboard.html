@@ -2640,23 +2640,30 @@
                 
                 // Obter preço total para o grupo e época
                 if (commissionerPricing.seasons && commissionerPricing.seasons[group] && commissionerPricing.seasons[group][season]) {
-                    // Obter preço para o número de dias correspondente
                     const seasonPrices = commissionerPricing.seasons[group][season];
                     let totalPrice = 0;
                     
-                    // Usar preço do período correspondente ao número de dias
-                    const dayKey = `day${diffDays}`;
-                    totalPrice = seasonPrices[dayKey] || 0;
-                    
-                    // Se não encontrar preço exato, usar o preço mais próximo
-                    if (totalPrice === 0) {
-                        // Procurar preço disponível mais próximo
-                        for (let day = 1; day <= 7; day++) {
-                            const price = seasonPrices[`day${day}`] || 0;
-                            if (price > 0) {
-                                totalPrice = price;
-                                break;
+                    if (diffDays <= 7) {
+                        // Para 1-7 dias: usar preço fixo do período
+                        const dayKey = `day${diffDays}`;
+                        totalPrice = seasonPrices[dayKey] || 0;
+                        
+                        // Se não encontrar preço exato, usar o preço mais próximo
+                        if (totalPrice === 0) {
+                            for (let day = 1; day <= 7; day++) {
+                                const price = seasonPrices[`day${day}`] || 0;
+                                if (price > 0) {
+                                    totalPrice = price;
+                                    break;
+                                }
                             }
+                        }
+                    } else {
+                        // Para 8+ dias: calcular com base no preço do dia 7
+                        const day7Price = seasonPrices.day7 || 0;
+                        if (day7Price > 0) {
+                            const dailyRate = day7Price / 7; // Preço diário do dia 7
+                            totalPrice = dailyRate * diffDays;
                         }
                     }
                     
