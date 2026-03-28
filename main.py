@@ -6511,6 +6511,19 @@ async def api_get_commissioner_pricing(request: Request):
                     val = _get_setting(f"commissioner_season_{group}_{season}_day{day}", "0")
                     pricing_data["seasons"][group][season][f"day{day}"] = float(val)
         
+        # Load insurance pricing by season, group and days
+        pricing_data["extras"]["insurance"]["seasons"] = {}
+        for group in groups:
+            pricing_data["extras"]["insurance"]["seasons"][group] = {
+                "low": {},
+                "mid": {},
+                "high": {}
+            }
+            for season in ['low', 'mid', 'high']:
+                for day in range(1, 8):
+                    val = _get_setting(f"commissioner_insurance_{group}_{season}_day{day}", "0")
+                    pricing_data["extras"]["insurance"]["seasons"][group][season][f"day{day}"] = float(val)
+        
         # Load season periods (multiple date ranges per season)
         pricing_data["season_periods"] = {}
         for season in ['low', 'mid', 'high']:
