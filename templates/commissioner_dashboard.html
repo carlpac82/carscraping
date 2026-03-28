@@ -1340,15 +1340,15 @@
                                         <span class="extra-price">+15€/dia</span>
                                     </div>
                                 </div>
-                                <div class="extra-item selected" onclick="toggleExtra('extraRoadTax')">
-                                    <input type="checkbox" id="extraRoadTax" value="road_tax" style="display: none;" checked>
+                                <div class="extra-item selected" style="opacity: 1; cursor: default;">
+                                    <input type="checkbox" id="extraRoadTax" value="road_tax" style="display: none;" checked disabled>
                                     <div class="extra-icon">
                                         <img src="/static/extras/20210622110200_2c7d3744af35fe4f216405fe941ca3ce.png" alt="Road Tax">
                                     </div>
                                     <div class="extra-info">
                                         <strong>Road Tax</strong>
                                         <span class="extra-price">+2,23€/dia</span>
-                                        <span class="extra-note" style="font-size: 11px; color: #6b7280;">Máximo 10 dias</span>
+                                        <span class="extra-note" style="font-size: 11px; color: #6b7280;">Máximo 10 dias • Obrigatório</span>
                                     </div>
                                 </div>
                                 <div class="extra-item" onclick="toggleExtra('extraYoungDriver')">
@@ -2257,10 +2257,46 @@
             calculatePrice();
         }
 
+        // Franquias por grupo de veículo
+        const franchisesByGroup = {
+            'A': '1250 €',
+            'B': '1300 €',
+            'D': '1500 €',
+            'E1': '1650 €',
+            'E2': '1700 €',
+            'F': '2000 €',
+            'G': '1900 €',
+            'J1': '2250 €',
+            'J2': '1950 €',
+            'L1': '2200 €',
+            'L2': '2250 €',
+            'M1': '2500 €',
+            'M2': '3000 €',
+            'N': '3000 €'
+        };
+
         // Toggle extra selection
         function toggleExtra(extraId) {
             const checkbox = document.getElementById(extraId);
             const extraItem = checkbox.closest('.extra-item');
+            
+            // Validação especial para Seguro Completo
+            if (extraId === 'extraInsurance' && checkbox.checked) {
+                // Tentar desselecionar - mostrar aviso de franquia
+                const vehicleGroup = selectedVehicleData ? selectedVehicleData.group : null;
+                const franchise = vehicleGroup ? franchisesByGroup[vehicleGroup] : '1250 €';
+                
+                const confirmed = confirm(
+                    `⚠️ ATENÇÃO\n\n` +
+                    `Ao remover o Seguro Completo, terá uma franquia de ${franchise}.\n\n` +
+                    `É necessário um cartão de crédito em nome do condutor.\n\n` +
+                    `Deseja prosseguir sem o Seguro Completo?`
+                );
+                
+                if (!confirmed) {
+                    return; // Mantém selecionado
+                }
+            }
             
             // Validação especial para taxa aeroporto
             if (extraId === 'extraAirport') {
