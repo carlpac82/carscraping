@@ -2638,22 +2638,29 @@
                 const group = selectedGroup;
                 const season = getSeasonForDate(pickup);
                 
-                // Obter preço por dia para o grupo e época
+                // Obter preço total para o grupo e época
                 if (commissionerPricing.seasons && commissionerPricing.seasons[group] && commissionerPricing.seasons[group][season]) {
-                    // Obter preço por dia (média dos 7 dias ou usar o dia específico)
+                    // Obter preço para o número de dias correspondente
                     const seasonPrices = commissionerPricing.seasons[group][season];
-                    let dailyPrice = 0;
+                    let totalPrice = 0;
                     
-                    // Usar preço do dia 1 como padrão (pode ser ajustado para usar média)
-                    for (let day = 1; day <= 7; day++) {
-                        const dayPrice = seasonPrices[`day${day}`] || 0;
-                        if (dayPrice > 0) {
-                            dailyPrice = dayPrice;
-                            break; // Usar primeiro preço disponível
+                    // Usar preço do período correspondente ao número de dias
+                    const dayKey = `day${diffDays}`;
+                    totalPrice = seasonPrices[dayKey] || 0;
+                    
+                    // Se não encontrar preço exato, usar o preço mais próximo
+                    if (totalPrice === 0) {
+                        // Procurar preço disponível mais próximo
+                        for (let day = 1; day <= 7; day++) {
+                            const price = seasonPrices[`day${day}`] || 0;
+                            if (price > 0) {
+                                totalPrice = price;
+                                break;
+                            }
                         }
                     }
                     
-                    basePrice = dailyPrice * diffDays;
+                    basePrice = totalPrice;
                 }
             }
 
