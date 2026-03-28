@@ -553,8 +553,8 @@ def get_vehicle_groups_with_photos_v2(conn):
         
         # Dados específicos de cada grupo (baseado na imagem Auto Prudente)
         group_specs = {
-            'A': {'seats': '4', 'doors': '3', 'ac': False, 'transmission': 'manual'},
-            'B': {'seats': '5', 'doors': '5', 'ac': True, 'transmission': 'manual'},
+            'A': {'seats': '4', 'doors': '5', 'ac': False, 'transmission': 'manual'},
+            'B': {'seats': '4-5', 'doors': '5', 'ac': True, 'transmission': 'manual'},
             'D': {'seats': '5', 'doors': '5', 'ac': True, 'transmission': 'manual'},
             'E1': {'seats': '5', 'doors': '5', 'ac': True, 'transmission': 'automatic'},
             'E2': {'seats': '5', 'doors': '5', 'ac': True, 'transmission': 'automatic'},
@@ -564,9 +564,9 @@ def get_vehicle_groups_with_photos_v2(conn):
             'J2': {'seats': '5', 'doors': '5', 'ac': True, 'transmission': 'manual'},
             'L1': {'seats': '5', 'doors': '5', 'ac': True, 'transmission': 'automatic'},
             'L2': {'seats': '5', 'doors': '5', 'ac': True, 'transmission': 'automatic'},
-            'M1': {'seats': '5', 'doors': '5', 'ac': True, 'transmission': 'manual'},
-            'M2': {'seats': '5', 'doors': '5', 'ac': True, 'transmission': 'automatic'},
-            'N': {'seats': '8', 'doors': '5', 'ac': True, 'transmission': 'manual'}
+            'M1': {'seats': '5-7', 'doors': '5', 'ac': True, 'transmission': 'manual'},
+            'M2': {'seats': '5-7', 'doors': '5', 'ac': True, 'transmission': 'automatic'},
+            'N': {'seats': '8-9', 'doors': '5', 'ac': True, 'transmission': 'manual'}
         }
         
         car_groups_data = []
