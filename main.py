@@ -6555,6 +6555,64 @@ async def api_save_commissioner_pricing(request: Request):
         traceback.print_exc()
         return JSONResponse({"ok": False, "error": str(e)}, status_code=500)
 
+@app.get("/admin/migrate-schedule")
+async def admin_migrate_schedule(request: Request):
+    """Admin endpoint to manually run schedule columns migration"""
+    try:
+        require_admin(request)
+    except HTTPException:
+        return JSONResponse({"ok": False, "error": "Unauthorized"}, status_code=401)
+    
+    try:
+        import os
+        database_url = os.getenv('DATABASE_URL')
+        
+        if not database_url:
+            return JSONResponse({"ok": False, "error": "DATABASE_URL not found"}, status_code=500)
+        
+        with _db_lock:
+            conn = _db_connect()
+            cursor = conn.cursor()
+            
+            # Check if commissioners table exists
+            try:
+                cursor.execute("SELECT 1 FROM commissioners LIMIT 1")
+            except Exception as e:
+                conn.close()
+                return JSONResponse({"ok": False, "error": f"Commissioners table doesn't exist: {e}"}, status_code=500)
+            
+            # Add schedule columns to commissioners table
+            schedule_columns = [
+                ("weekday_start_morning", "TIME", "'09:30'"),
+                ("weekday_end_morning", "TIME", "'12:30'"),
+                ("weekday_start_afternoon", "TIME", "'15:00'"),
+                ("weekday_end_afternoon", "TIME", "'17:00'"),
+                ("sunday_start_morning", "TIME", "'09:30'"),
+                ("sunday_end_morning", "TIME", "'12:30'"),
+                ("sunday_start_afternoon", "TIME", "'15:30'"),
+                ("sunday_end_afternoon", "TIME", "'17:00'"),
+                ("time_interval_minutes", "INTEGER", "15")
+            ]
+            
+            results = []
+            for col_name, col_type, default_value in schedule_columns:
+                try:
+                    cursor.execute(f"ALTER TABLE commissioners ADD COLUMN IF NOT EXISTS {col_name} {col_type} DEFAULT {default_value}")
+                    results.append(f"✓ Column {col_name} migrated")
+                except Exception as col_err:
+                    results.append(f"⚠ Column {col_name}: {col_err}")
+            
+            conn.commit()
+            conn.close()
+        
+        return JSONResponse({"ok": True, "message": "Migration completed", "results": results})
+        
+    except Exception as e:
+        logging.error(f"Error in manual schedule migration: {e}")
+        import traceback
+        traceback.print_exc()
+        return JSONResponse({"ok": False, "error": str(e)}, status_code=500)
+
 @app.get("/admin/settings", response_class=HTMLResponse)
 async def admin_settings_page(request: Request):
     try:
