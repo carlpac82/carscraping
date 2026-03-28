@@ -561,8 +561,12 @@ def get_vehicle_groups_with_photos_v2(conn):
                 'code': code,
                 'brand': brand,
                 'model': model,
-                'photo_url': photo_url,
-                'name': f"{brand} {model}".strip() or code
+                'image': photo_url,
+                'name': f"{brand} {model}".strip() or code,
+                'seats': '5',
+                'doors': '5',
+                'ac': True,
+                'transmission': 'manual'
             })
         
         print(f"Processados {len(car_groups_data)} grupos de veículos")
