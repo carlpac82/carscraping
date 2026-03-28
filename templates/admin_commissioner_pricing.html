@@ -436,6 +436,7 @@
       }
       
       async function savePricing() {
+        console.log('🔵 savePricing() chamada');
         const pricing = {
           extras: {},
           franchises: {}
@@ -459,7 +460,10 @@
           if (input) pricing.franchises[group] = parseFloat(input.value) || 0;
         });
         
+        console.log('📦 Dados a enviar:', pricing);
+        
         try {
+          console.log('🌐 Enviando POST para /api/commissioner-pricing...');
           const response = await fetch('/api/commissioner-pricing', {
             method: 'POST',
             headers: {
@@ -468,7 +472,9 @@
             body: JSON.stringify(pricing)
           });
           
+          console.log('📥 Resposta recebida:', response.status, response.statusText);
           const data = await response.json();
+          console.log('📄 Dados da resposta:', data);
           
           if (data.ok) {
             showNotification('✅ Preços guardados com sucesso!', 'success');
@@ -477,8 +483,8 @@
             showNotification('Erro ao guardar preços: ' + (data.error || 'Erro desconhecido'), 'error');
           }
         } catch (error) {
-          console.error('Erro ao guardar preços:', error);
-          showNotification('Erro ao guardar preços', 'error');
+          console.error('❌ Erro ao guardar preços:', error);
+          showNotification('Erro ao guardar preços: ' + error.message, 'error');
         }
       }
       
