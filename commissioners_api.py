@@ -523,12 +523,12 @@ def get_vehicle_groups_with_photos_v2(conn):
         cursor = conn.cursor()
         
         # Buscar todos os grupos da tabela car_groups
-        # Tentar com filtro enabled primeiro
+        # Tentar com filtro enabled primeiro (coluna é INTEGER, não BOOLEAN)
         try:
             cursor.execute("""
                 SELECT code, brand, model, photo_url 
                 FROM car_groups 
-                WHERE enabled IS TRUE OR enabled = 1
+                WHERE enabled = 1
                 ORDER BY code
             """)
             rows = cursor.fetchall()
@@ -542,6 +542,8 @@ def get_vehicle_groups_with_photos_v2(conn):
                 rows = cursor.fetchall()
         except Exception as e:
             print(f"Error with enabled filter: {e}, trying without filter")
+            # Fazer rollback da transação falhada
+            conn.rollback()
             cursor.execute("""
                 SELECT code, brand, model, photo_url 
                 FROM car_groups 
