@@ -527,13 +527,13 @@
       };
       
       function importEpocaMedia() {
-        if (!confirm('Isto vai substituir todos os preços atuais pelos valores da Época Média. Continuar?')) {
+        if (!confirm('Isto vai preencher a coluna "Meia Época" com os valores da tabela Época Média. Continuar?')) {
           return;
         }
         
-        // Preencher preços por grupo
+        // Preencher coluna Meia Época com preços de 7 dias
         Object.keys(epocaMediaPrices).forEach(group => {
-          const input = document.getElementById(`franchise_${group}`);
+          const input = document.getElementById(`group_${group}_mid`);
           if (input) {
             // Usar preço de 7 dias como base
             const price7Days = epocaMediaPrices[group][6]; // índice 6 = 7 dias
@@ -541,17 +541,17 @@
           }
         });
         
-        showNotification('✅ Preços da Época Média importados com sucesso!', 'success');
+        showNotification('✅ Preços da Época Média importados na coluna "Meia Época"!', 'success');
       }
       
       function importEpocaBaixa() {
-        if (!confirm('Isto vai substituir todos os preços atuais pelos valores da Época Baixa. Continuar?')) {
+        if (!confirm('Isto vai preencher a coluna "Baixa Época" com os valores da tabela Época Baixa. Continuar?')) {
           return;
         }
         
-        // Preencher preços por grupo
+        // Preencher coluna Baixa Época com preços de 7 dias
         Object.keys(epocaBaixaPrices).forEach(group => {
-          const input = document.getElementById(`franchise_${group}`);
+          const input = document.getElementById(`group_${group}_low`);
           if (input) {
             // Usar preço de 7 dias como base
             const price7Days = epocaBaixaPrices[group][6]; // índice 6 = 7 dias
@@ -559,7 +559,7 @@
           }
         });
         
-        showNotification('✅ Preços da Época Baixa importados com sucesso!', 'success');
+        showNotification('✅ Preços da Época Baixa importados na coluna "Baixa Época"!', 'success');
       }
       
       // Inicializar ao carregar a página
