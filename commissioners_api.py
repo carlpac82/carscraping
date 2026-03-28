@@ -523,21 +523,12 @@ def get_vehicle_groups_with_photos_v2(conn):
         cursor = conn.cursor()
         
         # Buscar todos os grupos da tabela car_groups
-        # Usar enabled = 1 ou enabled = TRUE dependendo do tipo
-        try:
-            cursor.execute("""
-                SELECT code, brand, model, photo_url 
-                FROM car_groups 
-                WHERE enabled = 1 OR enabled = TRUE
-                ORDER BY code
-            """)
-        except:
-            # Se falhar, tentar sem filtro enabled
-            cursor.execute("""
-                SELECT code, brand, model, photo_url 
-                FROM car_groups 
-                ORDER BY code
-            """)
+        cursor.execute("""
+            SELECT code, brand, model, photo_url 
+            FROM car_groups 
+            WHERE enabled = TRUE
+            ORDER BY code
+        """)
         
         car_groups_data = []
         for row in cursor.fetchall():
