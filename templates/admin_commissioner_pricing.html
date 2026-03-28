@@ -375,6 +375,7 @@
         <div class="flex items-center gap-3 pt-4 border-t">
           <button onclick="savePricing()" class="px-4 py-2 rounded bg-[#009cb6] text-white hover:bg-[#0086a1] transition-colors">Guardar Preços</button>
           <button onclick="loadPricing()" class="px-4 py-2 rounded border border-gray-300 text-gray-700 hover:bg-gray-50 transition-colors">Recarregar</button>
+          <button onclick="importEpocaMedia()" class="px-4 py-2 rounded bg-yellow-500 text-white hover:bg-yellow-600 transition-colors">📊 Importar Época Média</button>
         </div>
       </div>
     </main>
@@ -486,6 +487,42 @@
           console.error('❌ Erro ao guardar preços:', error);
           showNotification('Erro ao guardar preços: ' + error.message, 'error');
         }
+      }
+      
+      // Dados da tabela Época Média (Auto Prudente)
+      const epocaMediaPrices = {
+        'A': [50, 55, 60, 80, 100, 110, 120],
+        'B': [65, 70, 75, 100, 125, 140, 150],
+        'D': [80, 85, 90, 120, 150, 170, 180],
+        'E1': [95, 105, 115, 150, 190, 210, 230],
+        'E2': [110, 120, 135, 180, 225, 250, 270],
+        'F': [105, 115, 130, 170, 215, 240, 260],
+        'G': [115, 130, 150, 200, 250, 280, 300],
+        'J1': [125, 140, 160, 210, 265, 290, 320],
+        'J2': [130, 145, 165, 220, 275, 300, 330],
+        'L1': [145, 160, 180, 240, 300, 330, 360],
+        'L2': [160, 180, 200, 270, 330, 360, 400],
+        'M1': [170, 210, 250, 330, 420, 460, 500],
+        'M2': [190, 240, 280, 370, 460, 510, 560],
+        'N': [200, 250, 300, 400, 500, 550, 600]
+      };
+      
+      function importEpocaMedia() {
+        if (!confirm('Isto vai substituir todos os preços atuais pelos valores da Época Média. Continuar?')) {
+          return;
+        }
+        
+        // Preencher preços por grupo
+        Object.keys(epocaMediaPrices).forEach(group => {
+          const input = document.getElementById(`franchise_${group}`);
+          if (input) {
+            // Usar preço de 7 dias como base
+            const price7Days = epocaMediaPrices[group][6]; // índice 6 = 7 dias
+            input.value = price7Days.toFixed(2);
+          }
+        });
+        
+        showNotification('✅ Preços da Época Média importados com sucesso!', 'success');
       }
       
       // Inicializar ao carregar a página
