@@ -2673,13 +2673,15 @@
             const dropoffDate = document.getElementById('dropoffDate').value;
             const dropoffTime = document.getElementById('dropoffTime').value;
             
-            if (!pickupDate || !pickupTime || !dropoffDate || !dropoffTime) {
+            // Precisa pelo menos das datas para calcular
+            if (!pickupDate || !dropoffDate) {
                 document.getElementById('daysDisplay').textContent = '0 dias';
                 return;
             }
 
-            const pickup = new Date(pickupDate + 'T' + pickupTime);
-            const dropoff = new Date(dropoffDate + 'T' + dropoffTime);
+            // Usar 00:00 como padrão se hora não estiver definida
+            const pickup = new Date(pickupDate + 'T' + (pickupTime || '00:00'));
+            const dropoff = new Date(dropoffDate + 'T' + (dropoffTime || '00:00'));
             
             // Diferença em milissegundos
             const diffMs = dropoff - pickup;
