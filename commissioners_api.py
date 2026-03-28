@@ -684,21 +684,12 @@ async def get_commissioner_locations(request: Request):
         conn = get_db()
         cursor = conn.cursor()
         
-        # Tentar com enabled = TRUE ou enabled = 1
-        try:
-            cursor.execute("""
-                SELECT DISTINCT name 
-                FROM commissioners 
-                WHERE enabled = TRUE OR enabled = 1
-                ORDER BY name
-            """)
-        except:
-            # Se falhar, buscar todos
-            cursor.execute("""
-                SELECT DISTINCT name 
-                FROM commissioners 
-                ORDER BY name
-            """)
+        cursor.execute("""
+            SELECT DISTINCT name 
+            FROM commissioners 
+            WHERE enabled = TRUE
+            ORDER BY name
+        """)
         
         locations = [row[0] for row in cursor.fetchall() if row[0]]
         conn.close()

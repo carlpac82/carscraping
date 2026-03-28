@@ -2162,21 +2162,7 @@
                         return false;
                     }
                     
-                    // Validar mínimo de 5 dias
-                    const pickup = new Date(pickupDate + 'T' + pickupTime);
-                    const dropoff = new Date(dropoffDate + 'T' + dropoffTime);
-                    const diffMs = dropoff - pickup;
-                    const msPerDay = 24 * 60 * 60 * 1000;
-                    let days = Math.floor(diffMs / msPerDay);
-                    if (diffMs % msPerDay > 0) {
-                        days += 1;
-                    }
-                    
-                    if (days < 5) {
-                        alert('O período mínimo de aluguer é de 5 dias.');
-                        return false;
-                    }
-                    
+                    // Validação de datas já feita acima
                     return true;
 
                 case 2: // Veículo
