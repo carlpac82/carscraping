@@ -553,7 +553,6 @@ def get_vehicle_groups_with_photos_v2(conn):
                 'name': f"{brand} {model}".strip() or code
             })
         
-        conn.close()
         return car_groups_data
     except Exception as e:
         print(f"Error loading car_groups: {e}")
@@ -661,6 +660,7 @@ async def get_vehicle_groups_endpoint(request: Request):
         
         conn = get_db()
         groups = get_vehicle_groups_with_photos_v2(conn)
+        conn.close()
         
         return JSONResponse({
             "ok": True,
