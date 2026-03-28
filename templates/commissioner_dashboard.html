@@ -2009,6 +2009,31 @@
                 timeSlots = [...morningSlots, ...afternoonSlots];
             }
             
+            // Filtrar horas se for pickup time e data = hoje
+            if (timeSelect.id === 'pickupTime') {
+                const today = new Date();
+                today.setHours(0, 0, 0, 0);
+                const compareDate = new Date(selectedDate);
+                compareDate.setHours(0, 0, 0, 0);
+                
+                if (compareDate.getTime() === today.getTime()) {
+                    // Data = hoje - filtrar horas < agora + 30 min
+                    const now = new Date();
+                    const minTime = new Date(now.getTime() + 30 * 60 * 1000);
+                    const minHour = minTime.getHours();
+                    const minMinute = minTime.getMinutes();
+                    
+                    timeSlots = timeSlots.filter(time => {
+                        const [hour, minute] = time.split(':').map(Number);
+                        const slotMinutes = hour * 60 + minute;
+                        const minMinutes = minHour * 60 + minMinute;
+                        return slotMinutes >= minMinutes;
+                    });
+                    
+                    console.log(`🕐 Filtrado para hoje: ${timeSlots.length} slots disponíveis (mínimo: ${String(minHour).padStart(2, '0')}:${String(minMinute).padStart(2, '0')})`);
+                }
+            }
+            
             // Limpar e popular select
             const currentValue = timeSelect.value;
             timeSelect.innerHTML = '<option value="">Selecione a hora</option>';
@@ -2097,7 +2122,34 @@
                 scheduleSettings.weekday_end_afternoon,
                 interval
             );
-            const timeSlots = [...morningSlots, ...afternoonSlots];
+            let timeSlots = [...morningSlots, ...afternoonSlots];
+            
+            // Filtrar horas se for pickup time e data = hoje
+            if (timeSelect.id === 'pickupTime') {
+                const pickupDateInput = document.getElementById('pickupDate');
+                if (pickupDateInput && pickupDateInput.value) {
+                    const selectedDate = new Date(pickupDateInput.value + 'T00:00:00');
+                    const today = new Date();
+                    today.setHours(0, 0, 0, 0);
+                    
+                    if (selectedDate.getTime() === today.getTime()) {
+                        // Data = hoje - filtrar horas < agora + 30 min
+                        const now = new Date();
+                        const minTime = new Date(now.getTime() + 30 * 60 * 1000);
+                        const minHour = minTime.getHours();
+                        const minMinute = minTime.getMinutes();
+                        
+                        timeSlots = timeSlots.filter(time => {
+                            const [hour, minute] = time.split(':').map(Number);
+                            const slotMinutes = hour * 60 + minute;
+                            const minMinutes = minHour * 60 + minMinute;
+                            return slotMinutes >= minMinutes;
+                        });
+                        
+                        console.log(`🕐 Filtrado para hoje: ${timeSlots.length} slots disponíveis (mínimo: ${String(minHour).padStart(2, '0')}:${String(minMinute).padStart(2, '0')})`);
+                    }
+                }
+            }
             
             console.log('🕐 Horários gerados:', timeSlots.length, 'slots');
             
