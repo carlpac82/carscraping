@@ -823,6 +823,7 @@
             width: 100%;
             height: 80px;
             object-fit: contain;
+            mix-blend-mode: multiply;
         }
 
         .vehicle-summary-info {
@@ -2259,6 +2260,17 @@
                 pickupLocation.addEventListener('change', function() {
                     if (this.value && !dropoffLocation.value) {
                         dropoffLocation.value = this.value;
+                    }
+                });
+            }
+
+            // Auto-preencher hora de recolha quando seleciona hora de entrega
+            const pickupTime = document.getElementById('pickupTime');
+            const dropoffTime = document.getElementById('dropoffTime');
+            if (pickupTime && dropoffTime) {
+                pickupTime.addEventListener('change', function() {
+                    if (this.value && !dropoffTime.value) {
+                        dropoffTime.value = this.value;
                     }
                 });
             }
