@@ -2616,6 +2616,7 @@
             let insurancePrice = 0;
             
             const selectedGroup = selectedVehicle;
+            const season = getSeasonForDate(pickup);
             
             if (selectedGroup && commissionerPricing && commissionerPricing.extras && 
                 commissionerPricing.extras.insurance && commissionerPricing.extras.insurance.seasons &&
