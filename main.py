@@ -3851,7 +3851,9 @@ def init_db():
         
         # Detect if we're using PostgreSQL or SQLite
         import os
-        is_postgres = 'psycopg' in type(conn).__name__.lower() or bool(os.getenv('DATABASE_URL'))
+        conn_type = str(type(conn))
+        is_postgres = 'psycopg' in conn_type and bool(os.getenv('DATABASE_URL'))
+        logging.info(f"🔍 Database detection: conn_type={conn_type}, DATABASE_URL={os.getenv('DATABASE_URL')}, is_postgres={is_postgres}")
         try:
             conn.execute(
                 """
@@ -4228,6 +4230,7 @@ def init_db():
             safe_create_index(conn, "CREATE INDEX IF NOT EXISTS idx_ra_completed ON rental_agreements(inspection_completed)", "idx_ra_completed")
             
             # Migration: Add self check-in columns to rental_agreements
+            logging.info(f"🔍 Database type detection: is_postgres={is_postgres}, conn_type={type(conn).__name__}")
             if is_postgres:
                 cur = conn.cursor()
                 cur.execute("""
