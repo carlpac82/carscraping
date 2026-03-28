@@ -325,8 +325,8 @@
         }
 
         .modal-body {
-            padding: 40px;
-            max-height: calc(100vh - 240px);
+            padding: 20px 40px;
+            max-height: 65vh;
             overflow-y: auto;
         }
 
@@ -602,15 +602,16 @@
         }
 
         .days-display {
-            background: linear-gradient(135deg, #009cb6 0%, #007a8f 100%);
-            padding: 20px;
-            border-radius: 12px;
-            text-align: center;
-            font-size: 28px;
-            font-weight: 700;
             color: white;
-            letter-spacing: -0.5px;
-            box-shadow: 0 4px 12px rgba(0, 156, 182, 0.25);
+            font-size: 20px;
+            font-weight: 700;
+        }
+
+        .wizard-step-content h3 {
+            margin: 0 0 20px 0;
+            font-size: 18px;
+            color: #1f2937;
+            font-weight: 700;
         }
 
         .modal-footer {
@@ -672,13 +673,13 @@
 
         /* ===== WIZARD STYLES ===== */
         .modal-wizard {
-            max-width: 900px;
+            max-width: 1000px;
         }
 
         .wizard-progress {
             display: flex;
             justify-content: space-between;
-            padding: 30px 40px 20px;
+            padding: 20px 40px 15px;
             background: linear-gradient(to bottom, #f8f9fa, white);
             border-bottom: 2px solid #e5e7eb;
             position: relative;
@@ -706,8 +707,8 @@
         }
 
         .step-number {
-            width: 40px;
-            height: 40px;
+            width: 35px;
+            height: 35px;
             border-radius: 50%;
             background: white;
             border: 2px solid #e5e7eb;
@@ -715,21 +716,21 @@
             align-items: center;
             justify-content: center;
             font-weight: 700;
-            font-size: 16px;
+            font-size: 14px;
             color: #9ca3af;
             transition: all 0.3s;
         }
 
         .wizard-step.active .step-number {
-            background: linear-gradient(135deg, #009cb6 0%, #007a8f 100%);
-            border-color: #009cb6;
+            background: #FFA500;
+            border-color: #FFA500;
             color: white;
-            box-shadow: 0 4px 12px rgba(0, 156, 182, 0.3);
+            box-shadow: 0 4px 12px rgba(255, 165, 0, 0.3);
         }
 
         .wizard-step.completed .step-number {
-            background: #10b981;
-            border-color: #10b981;
+            background: #009cb6;
+            border-color: #009cb6;
             color: white;
         }
 
@@ -742,11 +743,11 @@
         }
 
         .wizard-step.active .step-label {
-            color: #009cb6;
+            color: #FFA500;
         }
 
         .wizard-step.completed .step-label {
-            color: #10b981;
+            color: #009cb6;
         }
 
         .wizard-step-content {
@@ -804,6 +805,40 @@
             margin-bottom: 30px;
         }
 
+        .form-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 16px;
+            margin-bottom: 20px;
+        }
+
+        .form-row {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 15px;
+            margin-bottom: 15px;
+        }
+
+        .full-width {
+            grid-column: 1 / -1;
+        }
+
+        .days-display-container {
+            margin-top: 10px;
+            padding: 15px;
+            background: linear-gradient(135deg, #009cb6 0%, #007a8f 100%);
+            border-radius: 8px;
+            text-align: center;
+        }
+
+        .days-display-container label {
+            color: white;
+            font-size: 12px;
+            font-weight: 600;
+            margin-bottom: 5px;
+            display: block;
+        }
+
         .extras-grid {
             display: grid;
             grid-template-columns: repeat(3, 1fr);
@@ -818,9 +853,9 @@
         }
 
         .extra-item {
-            border: 3px solid #e5e7eb;
-            border-radius: 12px;
-            padding: 20px;
+            border: 2px solid #e5e7eb;
+            border-radius: 8px;
+            padding: 12px;
             transition: all 0.3s;
             cursor: pointer;
             text-align: center;
@@ -859,9 +894,9 @@
         }
 
         .extra-icon {
-            width: 80px;
-            height: 80px;
-            margin: 0 auto 15px;
+            width: 60px;
+            height: 60px;
+            margin: 0 auto 10px;
             display: flex;
             align-items: center;
             justify-content: center;
@@ -1036,9 +1071,10 @@
                     
                     <!-- PASSO 1: Datas e Locais -->
                     <div class="wizard-step-content active" data-step="1">
-                        <h3>📅 Datas, Horários e Locais</h3>
+                        <h3>Datas, Horários e Locais</h3>
                         
-                        <div class="form-grid">
+                        <!-- Entrega -->
+                        <div class="form-row">
                             <div class="form-group">
                                 <label>Data Entrega *</label>
                                 <input type="date" id="pickupDate" required min="">
@@ -1050,6 +1086,16 @@
                                 </select>
                             </div>
                             <div class="form-group">
+                                <label>Local de Entrega *</label>
+                                <select id="pickupLocation" required>
+                                    <option value="">Selecione...</option>
+                                </select>
+                            </div>
+                        </div>
+                        
+                        <!-- Recolha -->
+                        <div class="form-row">
+                            <div class="form-group">
                                 <label>Data Recolha *</label>
                                 <input type="date" id="dropoffDate" required min="">
                             </div>
@@ -1059,19 +1105,6 @@
                                     <option value="">Selecione a hora</option>
                                 </select>
                             </div>
-                            <div class="form-group full-width">
-                                <label>Número de Dias</label>
-                                <div class="days-display" id="daysDisplay">0 dias</div>
-                            </div>
-                        </div>
-                        
-                        <div class="form-grid" style="margin-top: 20px;">
-                            <div class="form-group">
-                                <label>Local de Entrega *</label>
-                                <select id="pickupLocation" required>
-                                    <option value="">Selecione...</option>
-                                </select>
-                            </div>
                             <div class="form-group">
                                 <label>Local de Recolha *</label>
                                 <select id="dropoffLocation" required>
@@ -1079,18 +1112,24 @@
                                 </select>
                             </div>
                         </div>
+                        
+                        <!-- Número de Dias -->
+                        <div class="days-display-container">
+                            <label>Número de Dias</label>
+                            <div class="days-display" id="daysDisplay">0 dias</div>
+                        </div>
                     </div>
 
                     <!-- PASSO 2: Seleção de Veículo -->
                     <div class="wizard-step-content" data-step="2">
-                        <h3>🚗 Escolha o Grupo de Veículo</h3>
+                        <h3>Escolha o Grupo de Veículo</h3>
                         <div class="vehicle-grid" id="vehicleGrid"></div>
                         <input type="hidden" id="selectedVehicleGroup" required>
                     </div>
 
                     <!-- PASSO 3: Extras -->
                     <div class="wizard-step-content" data-step="3">
-                        <h3>✨ Extras e Preço</h3>
+                        <h3>Extras e Preço</h3>
                         
                         <div class="extras-section">
                             <div class="extras-grid">
@@ -1200,7 +1239,7 @@
 
                     <!-- PASSO 4: Dados do Cliente -->
                     <div class="wizard-step-content" data-step="4">
-                        <h3>👤 Dados do Cliente</h3>
+                        <h3>Dados do Cliente</h3>
                         
                         <div class="form-grid">
                             <div class="form-group">
