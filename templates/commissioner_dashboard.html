@@ -1291,15 +1291,25 @@
                 hotelSelect.innerHTML += `<option value="${location}">${location}</option>`;
             });
             
-            // Preencher por defeito com 'Auto Prudente'
-            const defaultLocation = 'Auto Prudente';
-            if (allLocationsCombined.includes(defaultLocation)) {
-                pickupSelect.value = defaultLocation;
-                dropoffSelect.value = defaultLocation;
-            } else if (currentCommissioner && currentCommissioner.name) {
-                // Fallback para o nome do comissionista se Auto Prudente não existir
-                pickupSelect.value = currentCommissioner.name;
-                dropoffSelect.value = currentCommissioner.name;
+            // Preencher por defeito com o nome do comissionista logado
+            // Se for comissionista AP, usar 'Auto Prudente'
+            if (currentCommissioner) {
+                let defaultLocation = currentCommissioner.name;
+                
+                // Se o comissionista for AP, usar 'Auto Prudente' em vez do nome
+                if (currentCommissioner.name === 'AP' || currentCommissioner.name === 'ap') {
+                    defaultLocation = 'Auto Prudente';
+                }
+                
+                // Verificar se o local existe na lista antes de definir
+                if (allLocationsCombined.includes(defaultLocation)) {
+                    pickupSelect.value = defaultLocation;
+                    dropoffSelect.value = defaultLocation;
+                } else if (allLocationsCombined.includes(currentCommissioner.name)) {
+                    // Fallback para o nome do comissionista
+                    pickupSelect.value = currentCommissioner.name;
+                    dropoffSelect.value = currentCommissioner.name;
+                }
             }
         }
 
