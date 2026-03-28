@@ -1018,6 +1018,57 @@
             margin-top: 3px;
         }
 
+        /* Seletor de quantidade */
+        .quantity-selector {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            margin-top: 8px;
+        }
+
+        .quantity-selector button {
+            width: 28px;
+            height: 28px;
+            border: 2px solid #009cb6;
+            background: white;
+            color: #009cb6;
+            border-radius: 4px;
+            font-size: 16px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.2s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .quantity-selector button:hover {
+            background: #009cb6;
+            color: white;
+        }
+
+        .quantity-selector button:disabled {
+            opacity: 0.3;
+            cursor: not-allowed;
+        }
+
+        .quantity-selector input {
+            width: 35px;
+            height: 28px;
+            text-align: center;
+            border: 2px solid #e5e7eb;
+            border-radius: 4px;
+            font-size: 14px;
+            font-weight: 600;
+            color: #1f2937;
+        }
+
+        .extra-with-quantity.selected {
+            border-color: #009cb6;
+            background: #f0f9fb;
+        }
+
         /* Price Summary */
         .price-section {
             margin-top: 30px;
@@ -1240,8 +1291,7 @@
                                         <span class="extra-price">+5€/dia</span>
                                     </div>
                                 </div>
-                                <div class="extra-item" onclick="toggleExtra('extraChildSeat')">
-                                    <input type="checkbox" id="extraChildSeat" value="child_seat" style="display: none;">
+                                <div class="extra-item extra-with-quantity" id="extraChildSeatItem">
                                     <div class="extra-icon">
                                         <img src="/static/extras/20210622110335_cdc017edeaca896919f46424fcbb5993.png" alt="Cadeira de Criança">
                                     </div>
@@ -1249,15 +1299,24 @@
                                         <strong>Cadeira de Criança</strong>
                                         <span class="extra-price">+5€/dia</span>
                                     </div>
+                                    <div class="quantity-selector">
+                                        <button type="button" onclick="changeQuantity('extraChildSeat', -1)">-</button>
+                                        <input type="number" id="extraChildSeat" min="0" max="3" value="0" readonly>
+                                        <button type="button" onclick="changeQuantity('extraChildSeat', 1)">+</button>
+                                    </div>
                                 </div>
-                                <div class="extra-item" onclick="toggleExtra('extraBoosterSeat')">
-                                    <input type="checkbox" id="extraBoosterSeat" value="booster_seat" style="display: none;">
+                                <div class="extra-item extra-with-quantity" id="extraBoosterSeatItem">
                                     <div class="extra-icon">
                                         <img src="/static/extras/20210622110320_6e699497bd12b0402a3048127f9b4f98.png" alt="Booster Seat">
                                     </div>
                                     <div class="extra-info">
                                         <strong>Booster Seat</strong>
                                         <span class="extra-price">+3€/dia</span>
+                                    </div>
+                                    <div class="quantity-selector">
+                                        <button type="button" onclick="changeQuantity('extraBoosterSeat', -1)">-</button>
+                                        <input type="number" id="extraBoosterSeat" min="0" max="3" value="0" readonly>
+                                        <button type="button" onclick="changeQuantity('extraBoosterSeat', 1)">+</button>
                                     </div>
                                 </div>
                                 <div class="extra-item" id="extraAirportItem" onclick="toggleExtra('extraAirport')">
@@ -1299,6 +1358,20 @@
                                     <div class="extra-info">
                                         <strong>Senior Driver (+75)</strong>
                                         <span class="extra-price">+8€/dia</span>
+                                    </div>
+                                </div>
+                                <div class="extra-item extra-with-quantity" id="extraAdditionalDriverItem">
+                                    <div class="extra-icon">
+                                        <img src="/static/extras/20260328_condutor_adicional.png" alt="Condutor Adicional">
+                                    </div>
+                                    <div class="extra-info">
+                                        <strong>Condutor Adicional</strong>
+                                        <span class="extra-price">+5€/dia</span>
+                                    </div>
+                                    <div class="quantity-selector">
+                                        <button type="button" onclick="changeQuantity('extraAdditionalDriver', -1)">-</button>
+                                        <input type="number" id="extraAdditionalDriver" min="0" max="3" value="0" readonly>
+                                        <button type="button" onclick="changeQuantity('extraAdditionalDriver', 1)">+</button>
                                     </div>
                                 </div>
                             </div>
@@ -2149,6 +2222,25 @@
             }
         }
 
+        // Função para alterar quantidade de extras
+        function changeQuantity(extraId, change) {
+            const input = document.getElementById(extraId);
+            const currentValue = parseInt(input.value) || 0;
+            const newValue = Math.max(0, Math.min(3, currentValue + change));
+            
+            input.value = newValue;
+            
+            // Atualizar visual do card
+            const extraItem = input.closest('.extra-item');
+            if (newValue > 0) {
+                extraItem.classList.add('selected');
+            } else {
+                extraItem.classList.remove('selected');
+            }
+            
+            calculatePrice();
+        }
+
         // Toggle extra selection
         function toggleExtra(extraId) {
             const checkbox = document.getElementById(extraId);
@@ -2215,20 +2307,36 @@
 
             // Calcular extras
             let extrasTotal = 0;
+            
+            // Extras com checkbox (preço por dia)
             const extraPricesPerDay = {
                 extraGPS: 5,
-                extraChildSeat: 5,
-                extraBoosterSeat: 3,
                 extraInsurance: 15,
                 extraYoungDriver: 10,
                 extraSeniorDriver: 8
             };
 
-            // Extras com preço por dia
             Object.keys(extraPricesPerDay).forEach(extraId => {
                 const checkbox = document.getElementById(extraId);
                 if (checkbox && checkbox.checked) {
                     extrasTotal += extraPricesPerDay[extraId] * diffDays;
+                }
+            });
+            
+            // Extras com quantidade (preço por dia × quantidade)
+            const extraQuantityPrices = {
+                extraChildSeat: 5,
+                extraBoosterSeat: 3,
+                extraAdditionalDriver: 5
+            };
+            
+            Object.keys(extraQuantityPrices).forEach(extraId => {
+                const input = document.getElementById(extraId);
+                if (input) {
+                    const quantity = parseInt(input.value) || 0;
+                    if (quantity > 0) {
+                        extrasTotal += extraQuantityPrices[extraId] * diffDays * quantity;
+                    }
                 }
             });
 
