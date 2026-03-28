@@ -2645,17 +2645,7 @@
                 days += 1;
             }
 
-            const daysDisplay = document.getElementById('daysDisplay');
-            daysDisplay.textContent = `${days} dia${days !== 1 ? 's' : ''}`;
-            
-            // Adicionar aviso se menos de 5 dias
-            if (days < 5) {
-                daysDisplay.style.color = '#ef4444';
-                daysDisplay.title = 'Mínimo de 5 dias de aluguer';
-            } else {
-                daysDisplay.style.color = '';
-                daysDisplay.title = '';
-            }
+            document.getElementById('daysDisplay').textContent = `${days} dia${days !== 1 ? 's' : ''}`;
         }
 
         // Event listeners para popular horários quando data muda
