@@ -775,39 +775,39 @@
       };
       
       function importEpocaMedia() {
-        if (!confirm('Isto vai preencher a coluna "Meia Época" com os valores da tabela Época Média. Continuar?')) {
+        if (!confirm('Isto vai preencher a tabela "Média Época" com os valores predefinidos. Continuar?')) {
           return;
         }
         
-        // Preencher coluna Meia Época com preços de 7 dias
+        // Preencher todos os 7 dias da Média Época
         Object.keys(epocaMediaPrices).forEach(group => {
-          const input = document.getElementById(`group_${group}_mid`);
-          if (input) {
-            // Usar preço de 7 dias como base
-            const price7Days = epocaMediaPrices[group][6]; // índice 6 = 7 dias
-            input.value = price7Days.toFixed(2);
+          for (let day = 1; day <= 7; day++) {
+            const input = document.getElementById(`group_${group}_mid_day${day}`);
+            if (input && epocaMediaPrices[group][day - 1]) {
+              input.value = epocaMediaPrices[group][day - 1].toFixed(2);
+            }
           }
         });
         
-        showNotification('✅ Preços da Época Média importados na coluna "Meia Época"!', 'success');
+        showNotification('Preços da Época Média importados com sucesso!', 'success');
       }
       
       function importEpocaBaixa() {
-        if (!confirm('Isto vai preencher a coluna "Baixa Época" com os valores da tabela Época Baixa. Continuar?')) {
+        if (!confirm('Isto vai preencher a tabela "Baixa Época" com os valores predefinidos. Continuar?')) {
           return;
         }
         
-        // Preencher coluna Baixa Época com preços de 7 dias
+        // Preencher todos os 7 dias da Baixa Época
         Object.keys(epocaBaixaPrices).forEach(group => {
-          const input = document.getElementById(`group_${group}_low`);
-          if (input) {
-            // Usar preço de 7 dias como base
-            const price7Days = epocaBaixaPrices[group][6]; // índice 6 = 7 dias
-            input.value = price7Days.toFixed(2);
+          for (let day = 1; day <= 7; day++) {
+            const input = document.getElementById(`group_${group}_low_day${day}`);
+            if (input && epocaBaixaPrices[group][day - 1]) {
+              input.value = epocaBaixaPrices[group][day - 1].toFixed(2);
+            }
           }
         });
         
-        showNotification('✅ Preços da Época Baixa importados na coluna "Baixa Época"!', 'success');
+        showNotification('Preços da Época Baixa importados com sucesso!', 'success');
       }
       
       // Inicializar ao carregar a página
