@@ -1019,18 +1019,105 @@
 
         .exclusions {
             padding: 16px;
-            background: #fef3c7;
+            background: #f8fafc;
             border-radius: 8px;
-            border-left: 3px solid #f59e0b;
+            border-left: 3px solid #ef4444;
+            position: relative;
         }
 
         .exclusions-title {
-            font-size: 12px;
+            font-size: 14px;
             font-weight: 600;
-            color: #d97706;
+            color: #ef4444;
             margin-bottom: 8px;
-            text-transform: uppercase;
-            letter-spacing: 0.5px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .info-icon {
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            background: #f0f9fb;
+            transition: all 0.2s ease;
+        }
+
+        .info-icon:hover {
+            background: #e6f7fa;
+        }
+
+        .info-tooltip {
+            position: absolute;
+            top: 100%;
+            left: 0;
+            right: 0;
+            background: white;
+            border: 1px solid #e5e7eb;
+            border-radius: 8px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+            z-index: 1000;
+            margin-top: 8px;
+        }
+
+        .tooltip-content {
+            padding: 16px;
+            position: relative;
+        }
+
+        .tooltip-content h4 {
+            margin: 0 0 12px 0;
+            font-size: 14px;
+            font-weight: 600;
+            color: #1f2937;
+        }
+
+        .tooltip-content ul {
+            margin: 0;
+            padding: 0 0 0 16px;
+            list-style: none;
+        }
+
+        .tooltip-content li {
+            margin-bottom: 8px;
+            font-size: 13px;
+            color: #6b7280;
+            position: relative;
+        }
+
+        .tooltip-content li:before {
+            content: "•";
+            color: #009cb6;
+            font-weight: bold;
+            position: absolute;
+            left: -16px;
+        }
+
+        .tooltip-close {
+            position: absolute;
+            top: 8px;
+            right: 8px;
+            background: none;
+            border: none;
+            color: #6b7280;
+            cursor: pointer;
+            font-size: 16px;
+            width: 24px;
+            height: 24px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 4px;
+            transition: all 0.2s ease;
+        }
+
+        .tooltip-close:hover {
+            background: #f3f4f6;
+            color: #374151;
         }
 
         .exclusions-list {
@@ -1719,11 +1806,32 @@
                                             </div>
                                         </div>
                                         <div class="exclusions">
-                                            <div class="exclusions-title">Requisitos:</div>
+                                            <div class="exclusions-title">
+                                                Não incluído
+                                                <span class="info-icon" onclick="toggleInfoTooltip('base-exclusions')">
+                                                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#009cb6" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                                        <circle cx="12" cy="12" r="10"></circle>
+                                                        <line x1="12" y1="16" x2="12" y2="12"></line>
+                                                        <line x1="12" y1="8" x2="12.01" y2="8"></line>
+                                                    </svg>
+                                                </span>
+                                            </div>
                                             <div class="exclusions-list">
-                                                <span>Cartão crédito nome condutor</span>
-                                                <span>Entrega/Recolha apenas Auto Prudente</span>
-                                                <span>Franquia até 1.500€</span>
+                                                <span>Assistência em viagem 24h</span>
+                                                <span>Cobertura de danos em rodas/chaves</span>
+                                                <span>Proteção contra roubo</span>
+                                            </div>
+                                            <div class="info-tooltip" id="base-exclusions" style="display: none;">
+                                                <div class="tooltip-content">
+                                                    <h4>O que não está incluído:</h4>
+                                                    <ul>
+                                                        <li>Assistência 24h em caso de pane ou acidente</li>
+                                                        <li>Danos em rodas, pneus e chaves do veículo</li>
+                                                        <li>Proteção contra roubo do veículo</li>
+                                                        <li>Responsabilidade civil completa</li>
+                                                    </ul>
+                                                    <button class="tooltip-close" onclick="toggleInfoTooltip('base-exclusions')">✕</button>
+                                                </div>
                                             </div>
                                         </div>
                                                                             </div>
@@ -2091,6 +2199,31 @@
                 closeInsuranceModal();
             }
         }
+
+        // Função para controlar tooltips
+        function toggleInfoTooltip(tooltipId) {
+            const tooltip = document.getElementById(tooltipId);
+            if (tooltip) {
+                const isVisible = tooltip.style.display !== 'none';
+                tooltip.style.display = isVisible ? 'none' : 'block';
+                
+                // Fechar outros tooltips
+                document.querySelectorAll('.info-tooltip').forEach(otherTooltip => {
+                    if (otherTooltip.id !== tooltipId) {
+                        otherTooltip.style.display = 'none';
+                    }
+                });
+            }
+        }
+
+        // Fechar tooltips ao clicar fora
+        document.addEventListener('click', function(event) {
+            if (!event.target.closest('.info-icon') && !event.target.closest('.info-tooltip')) {
+                document.querySelectorAll('.info-tooltip').forEach(tooltip => {
+                    tooltip.style.display = 'none';
+                });
+            }
+        });
 
         async function loadDashboard() {
             try {
