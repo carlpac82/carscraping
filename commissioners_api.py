@@ -525,43 +525,29 @@ def get_vehicle_groups_with_photos_v2(conn):
         # Buscar todos os grupos da tabela car_groups
         print("🔍 Tentando carregar grupos de veículos...")
         
-        # Tentar com filtro enabled primeiro
-        try:
-            query = """
-                SELECT code, brand, model, photo_url 
-                FROM car_groups 
-                WHERE enabled IS TRUE OR enabled = 1
-                ORDER BY code
-            """
-            print(f"📝 Query 1: {query}")
-            cursor.execute(query)
-            rows = cursor.fetchall()
-            print(f"✅ Query 1 retornou {len(rows)} linhas")
-            
-            if len(rows) == 0:
-                # Se não houver resultados, tentar sem filtro
-                query = """
-                    SELECT code, brand, model, photo_url 
-                    FROM car_groups 
-                    ORDER BY code
-                """
-                print(f"📝 Query 2 (sem filtro): {query}")
-                cursor.execute(query)
-                rows = cursor.fetchall()
-                print(f"✅ Query 2 retornou {len(rows)} linhas")
-        except Exception as e:
-            print(f"❌ Error with enabled filter: {e}, trying without filter")
-            import traceback
-            print(traceback.format_exc())
+        # Coluna enabled é INTEGER (0/1), não BOOLEAN
+        query = """
+            SELECT code, brand, model, photo_url 
+            FROM car_groups 
+            WHERE enabled = 1
+            ORDER BY code
+        """
+        print(f"📝 Query: {query}")
+        cursor.execute(query)
+        rows = cursor.fetchall()
+        print(f"✅ Query retornou {len(rows)} linhas")
+        
+        if len(rows) == 0:
+            # Se não houver resultados com enabled=1, tentar sem filtro
+            print("⚠️ Nenhum grupo com enabled=1, tentando sem filtro...")
             query = """
                 SELECT code, brand, model, photo_url 
                 FROM car_groups 
                 ORDER BY code
             """
-            print(f"📝 Query 3 (fallback): {query}")
             cursor.execute(query)
             rows = cursor.fetchall()
-            print(f"✅ Query 3 retornou {len(rows)} linhas")
+            print(f"✅ Query sem filtro retornou {len(rows)} linhas")
         
         print(f"🔢 Total de linhas para processar: {len(rows)}")
         
