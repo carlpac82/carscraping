@@ -539,25 +539,25 @@ def get_vehicle_groups_with_photos_v2(conn):
                 ORDER BY code
             """)
         
-        car_groups_data = {}
+        car_groups_data = []
         for row in cursor.fetchall():
             code = row[0]
             brand = row[1] or ''
             model = row[2] or ''
             photo_url = row[3] or ''
-            car_groups_data[code] = {
+            car_groups_data.append({
                 'code': code,
                 'brand': brand,
                 'model': model,
                 'photo_url': photo_url,
                 'name': f"{brand} {model}".strip() or code
-            }
+            })
         
         conn.close()
         return car_groups_data
     except Exception as e:
         print(f"Error loading car_groups: {e}")
-        return {}
+        return []
 
 def get_vehicle_groups_with_photos(db_config: dict):
     """Get vehicle groups with their photos from car_groups table (same as automated prices)"""
