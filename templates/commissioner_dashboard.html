@@ -800,6 +800,59 @@
             color: white;
         }
 
+        /* Vehicle Summary */
+        .vehicle-summary {
+            background: linear-gradient(135deg, #f0f9fb 0%, #e6f7fa 100%);
+            border: 2px solid #009cb6;
+            border-radius: 8px;
+            padding: 15px;
+            margin-bottom: 20px;
+        }
+
+        .vehicle-summary-content {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+
+        .vehicle-summary-image {
+            flex: 0 0 120px;
+        }
+
+        .vehicle-summary-image img {
+            width: 100%;
+            height: 80px;
+            object-fit: contain;
+        }
+
+        .vehicle-summary-info {
+            flex: 1;
+        }
+
+        .vehicle-summary-group {
+            font-weight: 700;
+            font-size: 16px;
+            color: #009cb6;
+            margin-bottom: 5px;
+        }
+
+        .vehicle-summary-name {
+            font-size: 12px;
+            color: #6b7280;
+            margin-bottom: 8px;
+        }
+
+        .vehicle-summary-features {
+            display: flex;
+            gap: 8px;
+            align-items: center;
+        }
+
+        .vehicle-summary-features img {
+            height: 24px;
+            width: auto;
+        }
+
         /* Extras Section */
         .extras-section {
             margin-bottom: 30px;
@@ -1130,6 +1183,22 @@
                     <!-- PASSO 3: Extras -->
                     <div class="wizard-step-content" data-step="3">
                         <h3>Extras e Preço</h3>
+                        
+                        <!-- Resumo do Veículo Selecionado -->
+                        <div id="vehicleSummary" class="vehicle-summary" style="display: none;">
+                            <div class="vehicle-summary-content">
+                                <div class="vehicle-summary-image">
+                                    <img id="summaryVehicleImage" src="" alt="Veículo selecionado">
+                                </div>
+                                <div class="vehicle-summary-info">
+                                    <div class="vehicle-summary-group">
+                                        <span>GROUP</span> <span id="summaryVehicleGroup" class="group-letter"></span>
+                                    </div>
+                                    <div id="summaryVehicleName" class="vehicle-summary-name"></div>
+                                    <div id="summaryVehicleFeatures" class="vehicle-summary-features"></div>
+                                </div>
+                            </div>
+                        </div>
                         
                         <div class="extras-section">
                             <div class="extras-grid">
@@ -2074,6 +2143,7 @@
             // Atualizar cálculo de preço no passo 3
             if (currentWizardStep === 3) {
                 calculatePrice();
+                showVehicleSummary();
             }
         }
 
@@ -2223,6 +2293,8 @@
             }).join('');
         }
 
+        let selectedVehicleData = null;
+
         function selectVehicle(code, isUnavailable) {
             // Não permitir seleção de grupos indisponíveis
             if (isUnavailable) {
@@ -2232,11 +2304,44 @@
             selectedVehicle = code;
             document.getElementById('selectedVehicleGroup').value = code;
             
+            // Guardar dados completos do veículo
+            selectedVehicleData = vehicleGroups.find(v => v.code === code);
+            
             // Atualizar visual
             document.querySelectorAll('.vehicle-card').forEach(card => {
                 card.classList.remove('selected');
             });
             event.target.closest('.vehicle-card').classList.add('selected');
+        }
+
+        function showVehicleSummary() {
+            if (!selectedVehicleData) return;
+
+            const summary = document.getElementById('vehicleSummary');
+            const summaryImage = document.getElementById('summaryVehicleImage');
+            const summaryGroup = document.getElementById('summaryVehicleGroup');
+            const summaryName = document.getElementById('summaryVehicleName');
+            const summaryFeatures = document.getElementById('summaryVehicleFeatures');
+
+            // Preencher dados
+            summaryImage.src = selectedVehicleData.image;
+            summaryGroup.textContent = selectedVehicleData.code;
+            summaryName.textContent = selectedVehicleData.name;
+
+            // Criar features HTML
+            let featuresHTML = '';
+            if (selectedVehicleData.ac) {
+                featuresHTML += '<img src="/static/Icones-Caracteristicas/AC.png" alt="A/C">';
+            }
+            featuresHTML += `<img src="/static/Icones-Caracteristicas/${String(selectedVehicleData.seats).includes('-') ? selectedVehicleData.seats + ' L' : selectedVehicleData.seats + 'L'}.png" alt="${selectedVehicleData.seats} lugares">`;
+            featuresHTML += `<img src="/static/Icones-Caracteristicas/${selectedVehicleData.doors}P.png" alt="${selectedVehicleData.doors} portas">`;
+            if (selectedVehicleData.transmission === 'automatic') {
+                featuresHTML += '<img src="/static/Icones-Caracteristicas/automatico.png" alt="Automático">';
+            }
+            summaryFeatures.innerHTML = featuresHTML;
+
+            // Mostrar resumo
+            summary.style.display = 'block';
         }
 
         // Cálculo de dias: 24h+1min = novo dia
