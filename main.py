@@ -6515,13 +6515,17 @@ async def api_get_commissioner_pricing(request: Request):
 @app.post("/api/commissioner-pricing")
 async def api_save_commissioner_pricing(request: Request):
     """API endpoint to save commissioner pricing configuration"""
+    logging.info("🔵 POST /api/commissioner-pricing called")
     try:
         require_admin(request)
+        logging.info("✅ Admin authentication passed")
     except HTTPException:
+        logging.error("❌ Admin authentication failed")
         return JSONResponse({"ok": False, "error": "Unauthorized"}, status_code=401)
     
     try:
         data = await request.json()
+        logging.info(f"📦 Received data: extras={len(data.get('extras', {}))}, franchises={len(data.get('franchises', {}))}, seasons={len(data.get('seasons', {}))}")
         
         with _db_lock:
             conn = _db_connect()
@@ -6529,6 +6533,7 @@ async def api_save_commissioner_pricing(request: Request):
             
             # Save extras pricing (min/per_day/max)
             if "extras" in data:
+                logging.info(f"💾 Saving {len(data['extras'])} extras...")
                 for extra_name, values in data["extras"].items():
                     if "min" in values and values["min"] is not None:
                         _set_setting(f"commissioner_extra_{extra_name}_min", str(values["min"]))
