@@ -1892,10 +1892,10 @@
             if (currentCommissioner) {
                 let defaultLocation = currentCommissioner.name;
                 
-                // Se o comissionista for AP (Auto Prudente), usar 'Auto Prudente' em vez do nome
+                // Se o comissionista for AP (Auto Prudente), usar 'AUTO PRUDENTE' em vez do nome
                 const commissionerNameUpper = currentCommissioner.name.toUpperCase().trim();
                 if (commissionerNameUpper === 'AP' || commissionerNameUpper.includes('AUTO PRUDENTE')) {
-                    defaultLocation = 'Auto Prudente';
+                    defaultLocation = 'AUTO PRUDENTE';
                 }
                 
                 console.log('🏢 Comissionista:', currentCommissioner.name, '→ Local padrão:', defaultLocation);
