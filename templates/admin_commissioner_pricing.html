@@ -6,6 +6,8 @@
     <title>Admin • Preços Comissionistas</title>
     <link rel="icon" type="image/png" href="/static/autoprudente-favicon.png?v=2" />
     <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="/static/notifications.css" />
+    <script src="/static/notifications.js"></script>
     <style>
       img[alt="Profile"], img[src*="profile"], .profile-picture {
         border-radius: 50% !important;
@@ -469,14 +471,14 @@
           const data = await response.json();
           
           if (data.ok) {
-            alert('Preços guardados com sucesso!');
+            showNotification('✅ Preços guardados com sucesso!', 'success');
             loadPricing();
           } else {
-            alert('Erro ao guardar preços: ' + (data.error || 'Erro desconhecido'));
+            showNotification('Erro ao guardar preços: ' + (data.error || 'Erro desconhecido'), 'error');
           }
         } catch (error) {
           console.error('Erro ao guardar preços:', error);
-          alert('Erro ao guardar preços');
+          showNotification('Erro ao guardar preços', 'error');
         }
       }
       
