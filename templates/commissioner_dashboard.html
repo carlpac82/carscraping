@@ -1986,14 +1986,24 @@
                                     <div class="extra-icon">
                                         <img src="/static/extras/20260328_condutor_adicional.png" alt="Condutor Adicional">
                                     </div>
-                                    <div class="extra-info">
-                                        <strong>Condutor Adicional</strong>
-                                        <span class="extra-price">+5€/dia</span>
+                                    <div class="extra-details">
+                                        <span class="extra-name">Condutor Adicional</span>
+                                        <span class="extra-price">+10€/dia</span>
                                     </div>
-                                    <div class="quantity-selector">
+                                    <div class="quantity-controls">
                                         <button type="button" onclick="changeQuantity('extraAdditionalDriver', -1)">-</button>
-                                        <input type="number" id="extraAdditionalDriver" min="0" max="3" value="0" readonly>
+                                        <input type="number" id="extraAdditionalDriver" value="0" min="0" max="2" readonly>
                                         <button type="button" onclick="changeQuantity('extraAdditionalDriver', 1)">+</button>
+                                    </div>
+                                </div>
+                                <div class="extra-item" onclick="toggleExtra('extraTripToSpain')">
+                                    <input type="checkbox" id="extraTripToSpain" value="trip_to_spain" style="display: none;">
+                                    <div class="extra-icon">
+                                        <img src="/static/extras/TRIP_TO_SPAIN.png" alt="Trip to Spain">
+                                    </div>
+                                    <div class="extra-details">
+                                        <span class="extra-name">TRIP TO SPAIN (máximo Sevila)</span>
+                                        <span class="extra-price">+100€ (taxa única)</span>
                                     </div>
                                 </div>
                             </div>
@@ -3400,6 +3410,12 @@
             // Taxa aeroporto - taxa única de 20€
             if (airportCheckbox && airportCheckbox.checked) {
                 extrasTotal += 20;
+            }
+
+            // TRIP TO SPAIN - taxa única de 100€
+            const tripToSpainCheckbox = document.getElementById('extraTripToSpain');
+            if (tripToSpainCheckbox && tripToSpainCheckbox.checked) {
+                extrasTotal += 100;
             }
 
             // Calcular seguro (baseado na seleção)
