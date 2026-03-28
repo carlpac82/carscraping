@@ -375,7 +375,8 @@
         <div class="flex items-center gap-3 pt-4 border-t">
           <button onclick="savePricing()" class="px-4 py-2 rounded bg-[#009cb6] text-white hover:bg-[#0086a1] transition-colors">Guardar Preços</button>
           <button onclick="loadPricing()" class="px-4 py-2 rounded border border-gray-300 text-gray-700 hover:bg-gray-50 transition-colors">Recarregar</button>
-          <button onclick="importEpocaMedia()" class="px-4 py-2 rounded bg-yellow-500 text-white hover:bg-yellow-600 transition-colors">📊 Importar Época Média</button>
+          <button onclick="importEpocaMedia()" class="px-4 py-2 rounded bg-yellow-500 text-white hover:bg-yellow-600 transition-colors">📊 Época Média</button>
+          <button onclick="importEpocaBaixa()" class="px-4 py-2 rounded bg-blue-500 text-white hover:bg-blue-600 transition-colors">📉 Época Baixa</button>
         </div>
       </div>
     </main>
@@ -507,6 +508,24 @@
         'N': [200, 250, 300, 400, 500, 550, 600]
       };
       
+      // Dados da tabela Época Baixa (Auto Prudente)
+      const epocaBaixaPrices = {
+        'A': [35, 40, 45, 60, 70, 80, 90],
+        'B': [40, 45, 50, 65, 80, 90, 100],
+        'D': [60, 65, 70, 90, 110, 130, 140],
+        'E1': [70, 85, 100, 135, 160, 190, 200],
+        'E2': [75, 90, 110, 150, 170, 200, 220],
+        'F': [80, 100, 120, 165, 200, 225, 240],
+        'G': [90, 110, 130, 175, 215, 245, 260],
+        'J1': [100, 120, 140, 190, 235, 260, 280],
+        'J2': [110, 130, 150, 200, 250, 280, 300],
+        'L1': [120, 140, 160, 220, 270, 300, 320],
+        'L2': [130, 150, 170, 230, 280, 320, 340],
+        'M1': [140, 160, 180, 250, 310, 340, 360],
+        'M2': [145, 165, 195, 260, 320, 360, 390],
+        'N': [150, 200, 250, 300, 350, 420, 500]
+      };
+      
       function importEpocaMedia() {
         if (!confirm('Isto vai substituir todos os preços atuais pelos valores da Época Média. Continuar?')) {
           return;
@@ -523,6 +542,24 @@
         });
         
         showNotification('✅ Preços da Época Média importados com sucesso!', 'success');
+      }
+      
+      function importEpocaBaixa() {
+        if (!confirm('Isto vai substituir todos os preços atuais pelos valores da Época Baixa. Continuar?')) {
+          return;
+        }
+        
+        // Preencher preços por grupo
+        Object.keys(epocaBaixaPrices).forEach(group => {
+          const input = document.getElementById(`franchise_${group}`);
+          if (input) {
+            // Usar preço de 7 dias como base
+            const price7Days = epocaBaixaPrices[group][6]; // índice 6 = 7 dias
+            input.value = price7Days.toFixed(2);
+          }
+        });
+        
+        showNotification('✅ Preços da Época Baixa importados com sucesso!', 'success');
       }
       
       // Inicializar ao carregar a página
