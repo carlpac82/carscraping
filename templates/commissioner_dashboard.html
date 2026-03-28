@@ -1783,7 +1783,7 @@
                                         <h4 class="card-title">Seguro Base</h4>
                                         <div class="card-price">
                                             <span class="price-calc">Incluído</span>
-                                            <span class="price-info">Franquia até 1.500€</span>
+                                            <span class="price-info" id="baseFranchisePrice">Franquia até 1.500€</span>
                                         </div>
                                     </div>
                                     <div class="card-content">
@@ -2154,14 +2154,17 @@
 
         function updateBaseFranchiseText() {
             const franchiseText = document.getElementById('baseFranchiseText');
-            if (!franchiseText) return;
+            const franchisePrice = document.getElementById('baseFranchisePrice');
             
+            if (!franchiseText || !franchisePrice) return;
+
             const selectedGroup = selectedVehicle;
             if (!selectedGroup) {
                 franchiseText.textContent = 'Franquia de 1.500€';
+                franchisePrice.textContent = 'Franquia até 1.500€';
                 return;
             }
-            
+
             // Valores de franquia por grupo (valores aproximados)
             const franchiseValues = {
                 'A': '500€',
@@ -2181,9 +2184,10 @@
                 'O': '1.900€',
                 'P': '2.000€'
             };
-            
+
             const franchise = franchiseValues[selectedGroup] || '1.500€';
             franchiseText.textContent = `Franquia de ${franchise}`;
+            franchisePrice.textContent = `Franquia até ${franchise}`;
         }
 
         // Fechar modal ao clicar fora
