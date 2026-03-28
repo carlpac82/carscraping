@@ -1303,35 +1303,6 @@
                                 </div>
                             </div>
                         </div>
-                        
-                        <div class="price-section">
-                            <div class="form-grid">
-                                <div class="form-group">
-                                    <label>Depósito (€)</label>
-                                    <input type="number" id="deposit" step="0.01" min="0" value="0">
-                                </div>
-                                <div class="form-group">
-                                    <label>Preço Total (€) *</label>
-                                    <input type="number" id="price" step="0.01" min="0" required>
-                                </div>
-                            </div>
-                            
-                            <div class="price-summary">
-                                <h4>Resumo do Preço</h4>
-                                <div class="price-line">
-                                    <span>Dias de aluguer:</span>
-                                    <span id="priceDays">0 dias</span>
-                                </div>
-                                <div class="price-line">
-                                    <span>Extras:</span>
-                                    <span id="priceExtras">0€</span>
-                                </div>
-                                <div class="price-line total">
-                                    <span><strong>Total Aproximado:</strong></span>
-                                    <span id="priceTotal"><strong>0€</strong></span>
-                                </div>
-                            </div>
-                        </div>
                     </div>
 
                     <!-- PASSO 4: Dados do Cliente -->
@@ -2115,12 +2086,8 @@
                     }
                     return true;
 
-                case 3: // Extras e Preço
-                    const price = document.getElementById('price').value;
-                    if (!price || parseFloat(price) <= 0) {
-                        alert('Por favor, insira o preço total.');
-                        return false;
-                    }
+                case 3: // Extras
+                    // Sem validação necessária - extras são opcionais
                     return true;
 
                 case 4: // Cliente
@@ -2231,8 +2198,6 @@
             const diffTime = Math.abs(dropoff - pickup);
             const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
 
-            document.getElementById('priceDays').textContent = `${diffDays} dia${diffDays !== 1 ? 's' : ''}`;
-
             // Habilitar/desabilitar taxa aeroporto baseado no número de dias
             const airportItem = document.getElementById('extraAirportItem');
             let airportCheckbox = document.getElementById('extraAirport');
@@ -2272,27 +2237,15 @@
                 extrasTotal += 50;
             }
 
-            document.getElementById('priceExtras').textContent = `${extrasTotal}€`;
-
-            // Total aproximado (preço base + extras)
-            const basePrice = parseFloat(document.getElementById('price').value) || 0;
-            const totalPrice = basePrice + extrasTotal;
-            document.getElementById('priceTotal').textContent = `${totalPrice.toFixed(2)}€`;
-            
-            // Atualizar preço no resumo do veículo
+            // Atualizar preço no resumo do veículo (apenas extras, sem preço base)
             const summaryPrice = document.getElementById('summaryTotalPrice');
             if (summaryPrice) {
-                summaryPrice.textContent = `${totalPrice.toFixed(2)}€`;
+                summaryPrice.textContent = `${extrasTotal.toFixed(2)}€`;
             }
         }
 
-        // Event listeners para recalcular preço quando extras mudam
+        // Event listeners
         document.addEventListener('DOMContentLoaded', function() {
-            const priceInput = document.getElementById('price');
-            if (priceInput) {
-                priceInput.addEventListener('input', calculatePrice);
-            }
-
             // Auto-preencher local de recolha quando seleciona local de entrega
             const pickupLocation = document.getElementById('pickupLocation');
             const dropoffLocation = document.getElementById('dropoffLocation');
