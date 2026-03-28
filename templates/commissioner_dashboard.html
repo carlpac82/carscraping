@@ -1004,16 +1004,9 @@
         }
 
         .benefit-icon {
-            width: 20px;
-            height: 20px;
-            background: linear-gradient(135deg, #10b981 0%, #059669 100%);
-            border-radius: 50%;
             display: flex;
             align-items: center;
             justify-content: center;
-            color: white;
-            font-size: 12px;
-            font-weight: 600;
             flex-shrink: 0;
             margin-top: 2px;
         }
@@ -1095,6 +1088,41 @@
         .protection-card.selected .card-header {
             background: linear-gradient(135deg, #f0f9fb 0%, #e6f7fa 100%);
             border-bottom-color: #009cb6;
+        }
+
+        .insurance-checkbox {
+            position: absolute;
+            top: 16px;
+            right: 16px;
+            width: 24px;
+            height: 24px;
+            border: 2px solid #e5e7eb;
+            border-radius: 50%;
+            background: white;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.3s ease;
+            z-index: 10;
+        }
+
+        .protection-card.selected .insurance-checkbox {
+            border-color: #009cb6;
+            background: #009cb6;
+        }
+
+        .insurance-checkbox::after {
+            content: '';
+            width: 6px;
+            height: 10px;
+            border: solid white;
+            border-width: 0 2px 2px 0;
+            transform: rotate(45deg) scale(0);
+            transition: transform 0.2s ease;
+        }
+
+        .protection-card.selected .insurance-checkbox::after {
+            transform: rotate(45deg) scale(1);
         }
 
         /* Insurance Selection Modal - Same style as website modals */
@@ -1662,7 +1690,8 @@
                             
                             <div class="protection-grid">
                                 <!-- Plano Base -->
-                                <div class="protection-card" id="baseInsuranceCard">
+                                <div class="protection-card" id="baseInsuranceCard" onclick="selectInsurance('base')">
+                                    <div class="insurance-checkbox"></div>
                                     <div class="card-header">
                                         <h4 class="card-title">Seguro Base</h4>
                                         <div class="card-price">
@@ -1697,16 +1726,12 @@
                                                 <span>Franquia até 1.500€</span>
                                             </div>
                                         </div>
-                                        <div class="card-actions">
-                                            <button type="button" class="btn-select-insurance" data-insurance="base" onclick="selectInsurance('base')">
-                                                Selecionar Seguro Base
-                                            </button>
-                                        </div>
-                                    </div>
+                                                                            </div>
                                 </div>
                                 
                                 <!-- Plano Premium -->
-                                <div class="protection-card featured selected" id="premiumInsuranceCard">
+                                <div class="protection-card featured selected" id="premiumInsuranceCard" onclick="selectInsurance('premium')">
+                                    <div class="insurance-checkbox"></div>
                                     <div class="card-header">
                                         <div class="card-badge">RECOMENDADO</div>
                                         <h4 class="card-title">Seguro Premium</h4>
@@ -1743,12 +1768,7 @@
                                                 <span>Interior do veículo</span>
                                             </div>
                                         </div>
-                                        <div class="card-actions">
-                                            <button type="button" class="btn-select-insurance selected" data-insurance="premium" onclick="selectInsurance('premium')">
-                                                ✓ Selecionado
-                                            </button>
-                                        </div>
-                                    </div>
+                                                                            </div>
                                 </div>
                             </div>
                         </div>
@@ -2008,29 +2028,19 @@
             // Atualizar UI dos cards
             const baseCard = document.getElementById('baseInsuranceCard');
             const premiumCard = document.getElementById('premiumInsuranceCard');
-            const baseBtn = baseCard.querySelector('.btn-select-insurance');
-            const premiumBtn = premiumCard.querySelector('.btn-select-insurance');
             
             if (type === 'base') {
                 // Remover seleção do premium
                 premiumCard.classList.remove('selected');
-                premiumBtn.classList.remove('selected');
-                premiumBtn.textContent = 'Selecionar Seguro Premium';
                 
                 // Adicionar seleção ao base
                 baseCard.classList.add('selected');
-                baseBtn.classList.add('selected');
-                baseBtn.textContent = '✓ Selecionado';
             } else {
                 // Remover seleção do base
                 baseCard.classList.remove('selected');
-                baseBtn.classList.remove('selected');
-                baseBtn.textContent = 'Selecionar Seguro Base';
                 
                 // Adicionar seleção ao premium
                 premiumCard.classList.add('selected');
-                premiumBtn.classList.add('selected');
-                premiumBtn.textContent = '✓ Selecionado';
             }
             
             // Recalcular preço
