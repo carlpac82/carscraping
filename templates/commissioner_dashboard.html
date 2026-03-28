@@ -2640,7 +2640,8 @@
                 }
                 
                 if (priceRange && seasonPrices[priceRange]) {
-                    insurancePrice = seasonPrices[priceRange];
+                    // O preço do seguro é POR DIA, então multiplicar pelo número de dias
+                    insurancePrice = seasonPrices[priceRange] * diffDays;
                 }
             }
             
