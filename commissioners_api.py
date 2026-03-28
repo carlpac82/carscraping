@@ -523,7 +523,7 @@ def get_vehicle_groups_with_photos_v2(conn):
         cursor = conn.cursor()
         
         # Buscar todos os grupos da tabela car_groups
-        print("🔍 Tentando carregar grupos de veículos...")
+        print("Tentando carregar grupos de veículos...")
         
         # Coluna enabled é INTEGER (0/1), não BOOLEAN
         query = """
@@ -532,14 +532,14 @@ def get_vehicle_groups_with_photos_v2(conn):
             WHERE enabled = 1
             ORDER BY code
         """
-        print(f"📝 Query: {query}")
+        print(f"Query: {query}")
         cursor.execute(query)
         rows = cursor.fetchall()
-        print(f"✅ Query retornou {len(rows)} linhas")
+        print(f"Query retornou {len(rows)} linhas")
         
         if len(rows) == 0:
             # Se não houver resultados com enabled=1, tentar sem filtro
-            print("⚠️ Nenhum grupo com enabled=1, tentando sem filtro...")
+            print("Nenhum grupo com enabled=1, tentando sem filtro...")
             query = """
                 SELECT code, brand, model, photo_url 
                 FROM car_groups 
@@ -547,9 +547,9 @@ def get_vehicle_groups_with_photos_v2(conn):
             """
             cursor.execute(query)
             rows = cursor.fetchall()
-            print(f"✅ Query sem filtro retornou {len(rows)} linhas")
+            print(f"Query sem filtro retornou {len(rows)} linhas")
         
-        print(f"🔢 Total de linhas para processar: {len(rows)}")
+        print(f"Total de linhas para processar: {len(rows)}")
         
         car_groups_data = []
         for row in rows:
@@ -565,9 +565,9 @@ def get_vehicle_groups_with_photos_v2(conn):
                 'name': f"{brand} {model}".strip() or code
             })
         
-        print(f"✅ Processados {len(car_groups_data)} grupos de veículos")
+        print(f"Processados {len(car_groups_data)} grupos de veículos")
         if len(car_groups_data) > 0:
-            print(f"📋 Primeiro grupo: {car_groups_data[0]}")
+            print(f"Primeiro grupo: {car_groups_data[0]}")
         
         return car_groups_data
     except Exception as e:

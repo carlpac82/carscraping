@@ -363,8 +363,8 @@
         <div class="flex items-center gap-3 pt-4 border-t">
           <button onclick="savePricing()" class="px-4 py-2 rounded bg-[#009cb6] text-white hover:bg-[#0086a1] transition-colors">Guardar Preços</button>
           <button onclick="loadPricing()" class="px-4 py-2 rounded border border-gray-300 text-gray-700 hover:bg-gray-50 transition-colors">Recarregar</button>
-          <button onclick="importEpocaMedia()" class="px-4 py-2 rounded bg-yellow-500 text-white hover:bg-yellow-600 transition-colors">📊 Época Média</button>
-          <button onclick="importEpocaBaixa()" class="px-4 py-2 rounded bg-blue-500 text-white hover:bg-blue-600 transition-colors">📉 Época Baixa</button>
+          <button onclick="importEpocaMedia()" class="px-4 py-2 rounded bg-yellow-500 text-white hover:bg-yellow-600 transition-colors">Época Média</button>
+          <button onclick="importEpocaBaixa()" class="px-4 py-2 rounded bg-blue-500 text-white hover:bg-blue-600 transition-colors">Época Baixa</button>
         </div>
       </div>
     </main>
@@ -372,22 +372,28 @@
     <script>
       const vehicleGroups = ['A', 'B', 'D', 'E1', 'E2', 'F', 'G', 'J1', 'J2', 'L1', 'L2', 'M1', 'M2', 'N'];
       const seasons = [
-        { key: 'low', label: 'Baixa Época', icon: '☀️', color: 'blue' },
-        { key: 'mid', label: 'Média Época', icon: '🌤️', color: 'yellow' },
-        { key: 'high', label: 'Alta Época', icon: '🔥', color: 'red' }
+        { key: 'low', label: 'Baixa Época', color: '#3b82f6' },
+        { key: 'mid', label: 'Média Época', color: '#f59e0b' },
+        { key: 'high', label: 'Alta Época', color: '#ef4444' }
       ];
       
-      function toggleSeason(group, season) {
-        const tableId = `season_table_${group}_${season}`;
+      let currentOpenSeason = null;
+      
+      function toggleSeason(seasonKey) {
+        const tableId = `season_table_${seasonKey}`;
         const table = document.getElementById(tableId);
-        const icon = document.getElementById(`icon_${group}_${season}`);
         
-        if (table.style.display === 'none') {
+        if (currentOpenSeason && currentOpenSeason !== seasonKey) {
+          const prevTable = document.getElementById(`season_table_${currentOpenSeason}`);
+          if (prevTable) prevTable.style.display = 'none';
+        }
+        
+        if (table.style.display === 'none' || !table.style.display) {
           table.style.display = 'block';
-          icon.style.transform = 'rotate(180deg)';
+          currentOpenSeason = seasonKey;
         } else {
           table.style.display = 'none';
-          icon.style.transform = 'rotate(0deg)';
+          currentOpenSeason = null;
         }
       }
       
@@ -395,74 +401,107 @@
         const container = document.getElementById('groupPricingContainer');
         container.innerHTML = '';
         
-        vehicleGroups.forEach(group => {
-          const groupCard = document.createElement('div');
-          groupCard.className = 'mb-6 border border-gray-200 rounded-lg overflow-hidden';
+        const mainContainer = document.createElement('div');
+        mainContainer.className = 'flex gap-4';
+        
+        const iconsColumn = document.createElement('div');
+        iconsColumn.className = 'flex flex-col gap-3';
+        iconsColumn.style.width = '200px';
+        
+        seasons.forEach(season => {
+          const iconButton = document.createElement('button');
+          iconButton.type = 'button';
+          iconButton.onclick = () => toggleSeason(season.key);
+          iconButton.className = 'px-4 py-6 rounded-lg border-2 hover:shadow-lg transition-all flex flex-col items-center gap-2';
+          iconButton.style.borderColor = season.color;
+          iconButton.style.backgroundColor = '#ffffff';
           
-          let seasonsHTML = '';
-          seasons.forEach(season => {
-            const daysInputs = Array.from({length: 7}, (_, i) => {
-              const day = i + 1;
-              return `
+          const iconCircle = document.createElement('div');
+          iconCircle.className = 'w-12 h-12 rounded-full flex items-center justify-center';
+          iconCircle.style.backgroundColor = season.color;
+          
+          const iconSvg = document.createElement('div');
+          iconSvg.className = 'text-white text-2xl font-bold';
+          if (season.key === 'low') iconSvg.textContent = 'B';
+          if (season.key === 'mid') iconSvg.textContent = 'M';
+          if (season.key === 'high') iconSvg.textContent = 'A';
+          
+          iconCircle.appendChild(iconSvg);
+          
+          const label = document.createElement('span');
+          label.className = 'text-sm font-medium text-gray-700';
+          label.textContent = season.label;
+          
+          iconButton.appendChild(iconCircle);
+          iconButton.appendChild(label);
+          iconsColumn.appendChild(iconButton);
+        });
+        
+        const tablesColumn = document.createElement('div');
+        tablesColumn.className = 'flex-1';
+        
+        seasons.forEach(season => {
+          const tableContainer = document.createElement('div');
+          tableContainer.id = `season_table_${season.key}`;
+          tableContainer.style.display = 'none';
+          tableContainer.className = 'border border-gray-200 rounded-lg overflow-hidden';
+          
+          let tableHTML = `
+            <div class="bg-gray-50 px-4 py-3 border-b">
+              <h4 class="font-semibold text-gray-800">${season.label}</h4>
+            </div>
+            <div class="overflow-x-auto">
+              <table class="min-w-full">
+                <thead>
+                  <tr class="bg-gray-100">
+                    <th class="px-4 py-3 text-left text-sm font-medium text-gray-700 sticky left-0 bg-gray-100">Grupo</th>
+                    <th class="px-3 py-3 text-center text-sm font-medium text-gray-700">1 dia</th>
+                    <th class="px-3 py-3 text-center text-sm font-medium text-gray-700">2 dias</th>
+                    <th class="px-3 py-3 text-center text-sm font-medium text-gray-700">3 dias</th>
+                    <th class="px-3 py-3 text-center text-sm font-medium text-gray-700">4 dias</th>
+                    <th class="px-3 py-3 text-center text-sm font-medium text-gray-700">5 dias</th>
+                    <th class="px-3 py-3 text-center text-sm font-medium text-gray-700">6 dias</th>
+                    <th class="px-3 py-3 text-center text-sm font-medium text-gray-700">7 dias</th>
+                  </tr>
+                </thead>
+                <tbody>
+          `;
+          
+          vehicleGroups.forEach((group, idx) => {
+            const rowClass = idx % 2 === 0 ? 'bg-white' : 'bg-gray-50';
+            tableHTML += `
+              <tr class="${rowClass}">
+                <td class="px-4 py-3 text-sm font-medium text-gray-900 sticky left-0 ${rowClass}">Grupo ${group}</td>
+            `;
+            
+            for (let day = 1; day <= 7; day++) {
+              tableHTML += `
                 <td class="px-3 py-2">
                   <input type="number" step="0.01" 
                     id="group_${group}_${season.key}_day${day}" 
                     value="0.00" 
-                    class="w-20 rounded-md border-gray-300 shadow-sm focus:border-[#009cb6] focus:ring-1 focus:ring-[#009cb6] text-sm" 
+                    class="w-24 px-2 py-1 rounded border-gray-300 shadow-sm focus:border-[#009cb6] focus:ring-1 focus:ring-[#009cb6] text-sm text-center" 
                     placeholder="0.00" />
                 </td>
               `;
-            }).join('');
+            }
             
-            seasonsHTML += `
-              <div class="border-t border-gray-100">
-                <button type="button" 
-                  onclick="toggleSeason('${group}', '${season.key}')" 
-                  class="w-full px-4 py-3 flex items-center justify-between hover:bg-gray-50 transition-colors">
-                  <div class="flex items-center gap-3">
-                    <span class="text-2xl">${season.icon}</span>
-                    <span class="font-medium text-gray-700">${season.label}</span>
-                  </div>
-                  <svg id="icon_${group}_${season.key}" class="w-5 h-5 text-gray-400 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/>
-                  </svg>
-                </button>
-                
-                <div id="season_table_${group}_${season.key}" style="display: none;" class="px-4 pb-4">
-                  <div class="overflow-x-auto">
-                    <table class="min-w-full">
-                      <thead>
-                        <tr class="bg-gray-50">
-                          <th class="px-3 py-2 text-xs font-medium text-gray-500 text-center">1 dia</th>
-                          <th class="px-3 py-2 text-xs font-medium text-gray-500 text-center">2 dias</th>
-                          <th class="px-3 py-2 text-xs font-medium text-gray-500 text-center">3 dias</th>
-                          <th class="px-3 py-2 text-xs font-medium text-gray-500 text-center">4 dias</th>
-                          <th class="px-3 py-2 text-xs font-medium text-gray-500 text-center">5 dias</th>
-                          <th class="px-3 py-2 text-xs font-medium text-gray-500 text-center">6 dias</th>
-                          <th class="px-3 py-2 text-xs font-medium text-gray-500 text-center">7 dias</th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        <tr>
-                          ${daysInputs}
-                        </tr>
-                      </tbody>
-                    </table>
-                  </div>
-                </div>
-              </div>
-            `;
+            tableHTML += `</tr>`;
           });
           
-          groupCard.innerHTML = `
-            <div class="bg-[#009cb6] px-4 py-3">
-              <h4 class="text-white font-semibold text-lg">GROUP ${group}</h4>
+          tableHTML += `
+                </tbody>
+              </table>
             </div>
-            ${seasonsHTML}
           `;
           
-          container.appendChild(groupCard);
+          tableContainer.innerHTML = tableHTML;
+          tablesColumn.appendChild(tableContainer);
         });
+        
+        mainContainer.appendChild(iconsColumn);
+        mainContainer.appendChild(tablesColumn);
+        container.appendChild(mainContainer);
       }
       
       async function loadPricing() {
