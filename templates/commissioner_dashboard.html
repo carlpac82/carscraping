@@ -854,6 +854,25 @@
             width: auto;
         }
 
+        .vehicle-summary-price {
+            margin-left: auto;
+            text-align: right;
+            padding-left: 20px;
+        }
+
+        .price-label {
+            font-size: 11px;
+            color: #6b7280;
+            margin-bottom: 4px;
+            font-weight: 500;
+        }
+
+        .price-value {
+            font-size: 24px;
+            font-weight: 700;
+            color: #009cb6;
+        }
+
         /* Extras Section */
         .extras-section {
             margin-bottom: 30px;
@@ -909,7 +928,7 @@
         .extra-item {
             border: 2px solid #e5e7eb;
             border-radius: 8px;
-            padding: 12px;
+            padding: 8px;
             transition: all 0.3s;
             cursor: pointer;
             text-align: center;
@@ -948,9 +967,9 @@
         }
 
         .extra-icon {
-            width: 60px;
-            height: 60px;
-            margin: 0 auto 10px;
+            width: 45px;
+            height: 45px;
+            margin: 0 auto 6px;
             display: flex;
             align-items: center;
             justify-content: center;
@@ -1201,6 +1220,10 @@
                                     </div>
                                     <div id="summaryVehicleName" class="vehicle-summary-name"></div>
                                     <div id="summaryVehicleFeatures" class="vehicle-summary-features"></div>
+                                </div>
+                                <div class="vehicle-summary-price">
+                                    <div class="price-label">Preço Estimado</div>
+                                    <div id="summaryTotalPrice" class="price-value">0.00€</div>
                                 </div>
                             </div>
                         </div>
@@ -2255,6 +2278,12 @@
             const basePrice = parseFloat(document.getElementById('price').value) || 0;
             const totalPrice = basePrice + extrasTotal;
             document.getElementById('priceTotal').textContent = `${totalPrice.toFixed(2)}€`;
+            
+            // Atualizar preço no resumo do veículo
+            const summaryPrice = document.getElementById('summaryTotalPrice');
+            if (summaryPrice) {
+                summaryPrice.textContent = `${totalPrice.toFixed(2)}€`;
+            }
         }
 
         // Event listeners para recalcular preço quando extras mudam
