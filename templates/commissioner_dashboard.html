@@ -806,9 +806,15 @@
 
         .extras-grid {
             display: grid;
-            grid-template-columns: repeat(2, 1fr);
+            grid-template-columns: repeat(3, 1fr);
             gap: 15px;
             margin-bottom: 20px;
+        }
+
+        @media (max-width: 768px) {
+            .extras-grid {
+                grid-template-columns: repeat(2, 1fr);
+            }
         }
 
         .extra-item {
@@ -1137,6 +1143,26 @@
                                     <div class="extra-info">
                                         <strong>Seguro Completo</strong>
                                         <span class="extra-price">+15€/dia</span>
+                                    </div>
+                                </div>
+                                <div class="extra-item" onclick="toggleExtra('extraYoungDriver')">
+                                    <input type="checkbox" id="extraYoungDriver" value="young_driver" style="display: none;">
+                                    <div class="extra-icon">
+                                        <img src="/extras/20260206051651_309aa80495ab5ce88b4c086669edb780.png" alt="Young Driver">
+                                    </div>
+                                    <div class="extra-info">
+                                        <strong>Young Driver (+21)</strong>
+                                        <span class="extra-price">+10€/dia</span>
+                                    </div>
+                                </div>
+                                <div class="extra-item" onclick="toggleExtra('extraSeniorDriver')">
+                                    <input type="checkbox" id="extraSeniorDriver" value="senior_driver" style="display: none;">
+                                    <div class="extra-icon">
+                                        <img src="/extras/20260206053309_a0bdea1741fc1024981d45e3f9a9fe06.png" alt="Senior Driver">
+                                    </div>
+                                    <div class="extra-info">
+                                        <strong>Senior Driver (+75)</strong>
+                                        <span class="extra-price">+8€/dia</span>
                                     </div>
                                 </div>
                             </div>
@@ -2084,7 +2110,9 @@
                 extraGPS: 5,
                 extraChildSeat: 5,
                 extraBoosterSeat: 3,
-                extraInsurance: 15
+                extraInsurance: 15,
+                extraYoungDriver: 10,
+                extraSeniorDriver: 8
             };
 
             // Extras com preço por dia
