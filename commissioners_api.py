@@ -553,6 +553,7 @@ def get_vehicle_groups_with_photos_v2(conn):
                 'name': f"{brand} {model}".strip() or code
             }
         
+        conn.close()
         return car_groups_data
     except Exception as e:
         print(f"Error loading car_groups: {e}")
@@ -700,6 +701,7 @@ async def get_commissioner_locations(request: Request):
             """)
         
         locations = [row[0] for row in cursor.fetchall() if row[0]]
+        conn.close()
         
         return JSONResponse({
             "ok": True,
