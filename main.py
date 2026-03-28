@@ -6394,6 +6394,18 @@ async def admin_adjust_preview(request: Request, price: str, url: str):
     except Exception as e:
         return _no_store_json({"ok": False, "error": str(e)}, status_code=500)
 
+@app.get("/admin/commissioner-pricing", response_class=HTMLResponse)
+async def admin_commissioner_pricing_page(request: Request):
+    """Página de gestão de preços dos comissionistas"""
+    try:
+        require_admin(request)
+    except HTTPException:
+        return RedirectResponse(url="/login", status_code=HTTP_303_SEE_OTHER)
+    
+    return templates.TemplateResponse("admin_commissioner_pricing.html", {
+        "request": request
+    })
+
 @app.get("/admin/settings", response_class=HTMLResponse)
 async def admin_settings_page(request: Request):
     try:
