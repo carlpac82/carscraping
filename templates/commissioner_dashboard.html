@@ -2631,10 +2631,11 @@
 
             // Calcular preço base
             let basePrice = 0;
-            const selectedGroup = document.querySelector('input[name="vehicleGroup"]:checked');
+            const selectedGroupInput = document.getElementById('selectedVehicleGroup');
+            const selectedGroup = selectedGroupInput ? selectedGroupInput.value : null;
             
             if (selectedGroup && commissionerPricing) {
-                const group = selectedGroup.value;
+                const group = selectedGroup;
                 const season = getSeasonForDate(pickup);
                 
                 // Obter preço por dia para o grupo e época
