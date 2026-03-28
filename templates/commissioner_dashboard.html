@@ -2268,7 +2268,7 @@
             if (!franchiseText || !franchisePrice) return;
 
             // Obter grupo do veículo selecionado
-            const selectedGroup = selectedVehicleData ? selectedVehicleData.group : null;
+            const selectedGroup = selectedVehicleData ? selectedVehicleData.code : null;
             
             if (!selectedGroup) {
                 const defaultFranchise = '1.500€';
@@ -2294,7 +2294,7 @@
             
             if (!premiumPriceElement) return;
 
-            const selectedGroup = selectedVehicleData ? selectedVehicleData.group : null;
+            const selectedGroup = selectedVehicleData ? selectedVehicleData.code : null;
             if (!selectedGroup) {
                 premiumPriceElement.textContent = '25€/dia';
                 return;
