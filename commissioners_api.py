@@ -517,6 +517,48 @@ async def get_all_bookings():
 # VEHICLE GROUPS ENDPOINT
 # ============================================================
 
+def get_vehicle_groups_with_photos_v2(conn):
+    """Get vehicle groups with their photos from car_groups table (accepts connection object)"""
+    try:
+        cursor = conn.cursor()
+        
+        # Buscar todos os grupos da tabela car_groups
+        # Usar enabled = 1 ou enabled = TRUE dependendo do tipo
+        try:
+            cursor.execute("""
+                SELECT code, brand, model, photo_url 
+                FROM car_groups 
+                WHERE enabled = 1 OR enabled = TRUE
+                ORDER BY code
+            """)
+        except:
+            # Se falhar, tentar sem filtro enabled
+            cursor.execute("""
+                SELECT code, brand, model, photo_url 
+                FROM car_groups 
+                ORDER BY code
+            """)
+        
+        car_groups_data = {}
+        for row in cursor.fetchall():
+            code = row[0]
+            brand = row[1] or ''
+            model = row[2] or ''
+            photo_url = row[3] or ''
+            car_groups_data[code] = {
+                'code': code,
+                'brand': brand,
+                'model': model,
+                'photo_url': photo_url,
+                'name': f"{brand} {model}".strip() or code
+            }
+        
+        conn.close()
+        return car_groups_data
+    except Exception as e:
+        print(f"Error loading car_groups: {e}")
+        return {}
+
 def get_vehicle_groups_with_photos(db_config: dict):
     """Get vehicle groups with their photos from car_groups table (same as automated prices)"""
     try:
@@ -617,8 +659,8 @@ async def get_vehicle_groups_endpoint(request: Request):
         if not commissioner_id:
             return JSONResponse({"ok": False, "error": "Not authenticated"}, status_code=401)
         
-        db_config = get_db()
-        groups = get_vehicle_groups_with_photos(db_config)
+        conn = get_db()
+        groups = get_vehicle_groups_with_photos_v2(conn)
         
         return JSONResponse({
             "ok": True,
@@ -639,8 +681,7 @@ async def get_commissioner_locations(request: Request):
         if not commissioner_id:
             return JSONResponse({"ok": False, "error": "Not authenticated"}, status_code=401)
         
-        db_config = get_db()
-        conn = psycopg2.connect(**db_config)
+        conn = get_db()
         cursor = conn.cursor()
         
         # Tentar com enabled = TRUE ou enabled = 1
