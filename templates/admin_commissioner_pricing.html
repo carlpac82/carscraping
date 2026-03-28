@@ -794,11 +794,14 @@
           const minInput = document.getElementById(`extra_${key}_min`);
           const perDayInput = document.getElementById(`extra_${key}_per_day`);
           const maxInput = document.getElementById(`extra_${key}_max`);
-          pricing.extras[key] = {
-            min: parseFloat(minInput?.value) || null,
-            per_day: parseFloat(perDayInput?.value) || 0,
-            max: parseFloat(maxInput?.value) || null
-          };
+          // Só incluir se os campos existirem no formulário
+          if (minInput || perDayInput || maxInput) {
+            pricing.extras[key] = {
+              min: parseFloat(minInput?.value) || null,
+              per_day: parseFloat(perDayInput?.value) || 0,
+              max: parseFloat(maxInput?.value) || null
+            };
+          }
         });
         
         // Recolher preços dos seguros por grupo, época e faixa de dias

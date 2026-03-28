@@ -211,6 +211,26 @@ def _get_setting(key: str, default: str = "") -> str:
     except Exception:
         return default
 
+def _get_settings_batch(keys: list, default: str = "") -> dict:
+    """Get multiple settings in a single database query for performance optimization"""
+    try:
+        _ensure_settings_table()
+        with _db_lock:
+            con = _db_connect()
+            try:
+                # Create placeholders for all keys
+                placeholders = ','.join(['?' for _ in keys])
+                cur = con.execute(f"SELECT key, value FROM app_settings WHERE key IN ({placeholders})", tuple(keys))
+                results = {row[0]: row[1] for row in cur.fetchall()}
+                
+                # Return results with defaults for missing keys
+                return {key: (results.get(key) if results.get(key) is not None else default) for key in keys}
+            finally:
+                con.close()
+    except Exception:
+        # Return defaults for all keys if error occurs
+        return {key: default for key in keys}
+
 def _set_setting(key: str, value: str) -> None:
     try:
         _ensure_settings_table()
@@ -6496,13 +6516,28 @@ async def api_get_commissioner_pricing(request: Request):
                 "max": float(max_val) if max_val else None
             }
         
-        # Load franchises
+        # Load franchises - OPTIMIZED
         groups = ['A', 'B', 'D', 'E1', 'E2', 'F', 'G', 'J1', 'J2', 'L1', 'L2', 'M1', 'M2', 'N']
+        franchise_keys = [f"commissioner_franchise_{group}" for group in groups]
+        franchise_settings = _get_settings_batch(franchise_keys, "0")
+        
         for group in groups:
-            franchise_val = _get_setting(f"commissioner_franchise_{group}", "0")
+            key = f"commissioner_franchise_{group}"
+            franchise_val = franchise_settings.get(key, "0")
             pricing_data["franchises"][group] = float(franchise_val)
         
-        # Load season pricing (low/mid/high) por dia (1-7)
+        # Load season pricing (low/mid/high) por dia (1-7) - OPTIMIZED
+        # Build all season keys to fetch in single query
+        season_keys = []
+        for group in groups:
+            for season in ['low', 'mid', 'high']:
+                for day in range(1, 8):
+                    season_keys.append(f"commissioner_season_{group}_{season}_day{day}")
+        
+        # Fetch all season settings in one batch
+        season_settings = _get_settings_batch(season_keys, "0")
+        
+        # Populate season data from batch results
         for group in groups:
             pricing_data["seasons"][group] = {
                 "low": {},
@@ -6511,11 +6546,24 @@ async def api_get_commissioner_pricing(request: Request):
             }
             for season in ['low', 'mid', 'high']:
                 for day in range(1, 8):
-                    val = _get_setting(f"commissioner_season_{group}_{season}_day{day}", "0")
+                    key = f"commissioner_season_{group}_{season}_day{day}"
+                    val = season_settings.get(key, "0")
                     pricing_data["seasons"][group][season][f"day{day}"] = float(val)
         
-        # Load insurance pricing by season, group and day ranges
+        # Load insurance pricing by season, group and day ranges - OPTIMIZED
         pricing_data["extras"]["insurance"]["seasons"] = {}
+        
+        # Build all insurance keys to fetch in single query
+        insurance_keys = []
+        for group in groups:
+            for season in ['low', 'mid', 'high']:
+                for range_key in ['1_2', '3_7', '8_14', '15_21', '22_31']:
+                    insurance_keys.append(f"commissioner_insurance_{group}_{season}_{range_key}_days")
+        
+        # Fetch all insurance settings in one batch
+        insurance_settings = _get_settings_batch(insurance_keys, "0")
+        
+        # Populate insurance data from batch results
         for group in groups:
             pricing_data["extras"]["insurance"]["seasons"][group] = {
                 "low": {},
@@ -6523,13 +6571,12 @@ async def api_get_commissioner_pricing(request: Request):
                 "high": {}
             }
             for season in ['low', 'mid', 'high']:
-                # Faixas de dias: 1-2, 3-7, 8-14, 14-21, 21-31
                 pricing_data["extras"]["insurance"]["seasons"][group][season] = {
-                    "1_2": float(_get_setting(f"commissioner_insurance_{group}_{season}_1_2_days", "0")),
-                    "3_7": float(_get_setting(f"commissioner_insurance_{group}_{season}_3_7_days", "0")),
-                    "8_14": float(_get_setting(f"commissioner_insurance_{group}_{season}_8_14_days", "0")),
-                    "15_21": float(_get_setting(f"commissioner_insurance_{group}_{season}_15_21_days", "0")),
-                    "22_31": float(_get_setting(f"commissioner_insurance_{group}_{season}_22_31_days", "0"))
+                    "1_2": float(insurance_settings.get(f"commissioner_insurance_{group}_{season}_1_2_days", "0")),
+                    "3_7": float(insurance_settings.get(f"commissioner_insurance_{group}_{season}_3_7_days", "0")),
+                    "8_14": float(insurance_settings.get(f"commissioner_insurance_{group}_{season}_8_14_days", "0")),
+                    "15_21": float(insurance_settings.get(f"commissioner_insurance_{group}_{season}_15_21_days", "0")),
+                    "22_31": float(insurance_settings.get(f"commissioner_insurance_{group}_{season}_22_31_days", "0"))
                 }
         
         # Load season periods (multiple date ranges per season)
@@ -6623,7 +6670,12 @@ async def api_save_commissioner_pricing(request: Request):
                     # Faixas de dias: 1_2, 3_7, 8_14, 15_21, 22_31
                     for range_key in ['1_2', '3_7', '8_14', '15_21', '22_31']:
                         key = f"commissioner_insurance_{group}_{season}_{range_key}_days"
-                        value = data["extras"]["insurance"]["seasons"][group][season].get(range_key, "0")
+                        # Verificar se o grupo e época existem nos dados antes de aceder
+                        if (group in data["extras"]["insurance"]["seasons"] and 
+                            season in data["extras"]["insurance"]["seasons"][group]):
+                            value = data["extras"]["insurance"]["seasons"][group][season].get(range_key, "0")
+                        else:
+                            value = "0"  # Valor padrão se grupo/época não existir nos dados
                         _set_setting(key, str(value))
         
         logging.info("✅ All pricing data saved successfully")
