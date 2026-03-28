@@ -115,34 +115,104 @@
             <span>Preços dos Extras (€/dia)</span>
           </h3>
           
-          <div class="grid grid-cols-2 gap-4">
-            <div>
-              <label class="block text-sm font-medium text-gray-700">GPS</label>
-              <input type="number" step="0.01" id="extra_gps" value="5.00" class="mt-1 w-full rounded-md border-gray-300 shadow-sm focus:border-[#009cb6] focus:ring-2 focus:ring-[#009cb6]" />
+          <div class="space-y-4">
+            <div class="grid grid-cols-3 gap-4 items-end">
+              <div class="col-span-1">
+                <label class="block text-sm font-medium text-gray-700">GPS</label>
+              </div>
+              <div>
+                <label class="block text-xs text-gray-500 mb-1">Mínimo (€/dia)</label>
+                <input type="number" step="0.01" id="extra_gps_min" value="5.00" class="w-full rounded-md border-gray-300 shadow-sm focus:border-[#009cb6] focus:ring-2 focus:ring-[#009cb6]" />
+              </div>
+              <div>
+                <label class="block text-xs text-gray-500 mb-1">Máximo (€/dia)</label>
+                <input type="number" step="0.01" id="extra_gps_max" value="5.00" class="w-full rounded-md border-gray-300 shadow-sm focus:border-[#009cb6] focus:ring-2 focus:ring-[#009cb6]" />
+              </div>
             </div>
-            <div>
-              <label class="block text-sm font-medium text-gray-700">Cadeira de Criança</label>
-              <input type="number" step="0.01" id="extra_child_seat" value="5.00" class="mt-1 w-full rounded-md border-gray-300 shadow-sm focus:border-[#009cb6] focus:ring-2 focus:ring-[#009cb6]" />
+            
+            <div class="grid grid-cols-3 gap-4 items-end">
+              <div class="col-span-1">
+                <label class="block text-sm font-medium text-gray-700">Cadeira de Criança</label>
+              </div>
+              <div>
+                <label class="block text-xs text-gray-500 mb-1">Mínimo (€/dia)</label>
+                <input type="number" step="0.01" id="extra_child_seat_min" value="5.00" class="w-full rounded-md border-gray-300 shadow-sm focus:border-[#009cb6] focus:ring-2 focus:ring-[#009cb6]" />
+              </div>
+              <div>
+                <label class="block text-xs text-gray-500 mb-1">Máximo (€/dia)</label>
+                <input type="number" step="0.01" id="extra_child_seat_max" value="5.00" class="w-full rounded-md border-gray-300 shadow-sm focus:border-[#009cb6] focus:ring-2 focus:ring-[#009cb6]" />
+              </div>
             </div>
-            <div>
-              <label class="block text-sm font-medium text-gray-700">Booster Seat</label>
-              <input type="number" step="0.01" id="extra_booster_seat" value="3.00" class="mt-1 w-full rounded-md border-gray-300 shadow-sm focus:border-[#009cb6] focus:ring-2 focus:ring-[#009cb6]" />
+            
+            <div class="grid grid-cols-3 gap-4 items-end">
+              <div class="col-span-1">
+                <label class="block text-sm font-medium text-gray-700">Booster Seat</label>
+              </div>
+              <div>
+                <label class="block text-xs text-gray-500 mb-1">Mínimo (€/dia)</label>
+                <input type="number" step="0.01" id="extra_booster_seat_min" value="3.00" class="w-full rounded-md border-gray-300 shadow-sm focus:border-[#009cb6] focus:ring-2 focus:ring-[#009cb6]" />
+              </div>
+              <div>
+                <label class="block text-xs text-gray-500 mb-1">Máximo (€/dia)</label>
+                <input type="number" step="0.01" id="extra_booster_seat_max" value="3.00" class="w-full rounded-md border-gray-300 shadow-sm focus:border-[#009cb6] focus:ring-2 focus:ring-[#009cb6]" />
+              </div>
             </div>
-            <div>
-              <label class="block text-sm font-medium text-gray-700">Taxa Aeroporto (taxa única)</label>
-              <input type="number" step="0.01" id="extra_airport_fee" value="50.00" class="mt-1 w-full rounded-md border-gray-300 shadow-sm focus:border-[#009cb6] focus:ring-2 focus:ring-[#009cb6]" />
+            
+            <div class="grid grid-cols-3 gap-4 items-end">
+              <div class="col-span-1">
+                <label class="block text-sm font-medium text-gray-700">Taxa Aeroporto</label>
+                <span class="text-xs text-gray-500">(taxa única)</span>
+              </div>
+              <div>
+                <label class="block text-xs text-gray-500 mb-1">Mínimo (€)</label>
+                <input type="number" step="0.01" id="extra_airport_fee_min" value="50.00" class="w-full rounded-md border-gray-300 shadow-sm focus:border-[#009cb6] focus:ring-2 focus:ring-[#009cb6]" />
+              </div>
+              <div>
+                <label class="block text-xs text-gray-500 mb-1">Máximo (€)</label>
+                <input type="number" step="0.01" id="extra_airport_fee_max" value="50.00" class="w-full rounded-md border-gray-300 shadow-sm focus:border-[#009cb6] focus:ring-2 focus:ring-[#009cb6]" />
+              </div>
             </div>
-            <div>
-              <label class="block text-sm font-medium text-gray-700">Seguro Completo</label>
-              <input type="number" step="0.01" id="extra_insurance" value="15.00" class="mt-1 w-full rounded-md border-gray-300 shadow-sm focus:border-[#009cb6] focus:ring-2 focus:ring-[#009cb6]" />
+            
+            <div class="grid grid-cols-3 gap-4 items-end">
+              <div class="col-span-1">
+                <label class="block text-sm font-medium text-gray-700">Seguro Completo</label>
+              </div>
+              <div>
+                <label class="block text-xs text-gray-500 mb-1">Mínimo (€/dia)</label>
+                <input type="number" step="0.01" id="extra_insurance_min" value="15.00" class="w-full rounded-md border-gray-300 shadow-sm focus:border-[#009cb6] focus:ring-2 focus:ring-[#009cb6]" />
+              </div>
+              <div>
+                <label class="block text-xs text-gray-500 mb-1">Máximo (€/dia)</label>
+                <input type="number" step="0.01" id="extra_insurance_max" value="15.00" class="w-full rounded-md border-gray-300 shadow-sm focus:border-[#009cb6] focus:ring-2 focus:ring-[#009cb6]" />
+              </div>
             </div>
-            <div>
-              <label class="block text-sm font-medium text-gray-700">Young Driver (+21)</label>
-              <input type="number" step="0.01" id="extra_young_driver" value="10.00" class="mt-1 w-full rounded-md border-gray-300 shadow-sm focus:border-[#009cb6] focus:ring-2 focus:ring-[#009cb6]" />
+            
+            <div class="grid grid-cols-3 gap-4 items-end">
+              <div class="col-span-1">
+                <label class="block text-sm font-medium text-gray-700">Young Driver (+21)</label>
+              </div>
+              <div>
+                <label class="block text-xs text-gray-500 mb-1">Mínimo (€/dia)</label>
+                <input type="number" step="0.01" id="extra_young_driver_min" value="10.00" class="w-full rounded-md border-gray-300 shadow-sm focus:border-[#009cb6] focus:ring-2 focus:ring-[#009cb6]" />
+              </div>
+              <div>
+                <label class="block text-xs text-gray-500 mb-1">Máximo (€/dia)</label>
+                <input type="number" step="0.01" id="extra_young_driver_max" value="10.00" class="w-full rounded-md border-gray-300 shadow-sm focus:border-[#009cb6] focus:ring-2 focus:ring-[#009cb6]" />
+              </div>
             </div>
-            <div>
-              <label class="block text-sm font-medium text-gray-700">Senior Driver (+75)</label>
-              <input type="number" step="0.01" id="extra_senior_driver" value="8.00" class="mt-1 w-full rounded-md border-gray-300 shadow-sm focus:border-[#009cb6] focus:ring-2 focus:ring-[#009cb6]" />
+            
+            <div class="grid grid-cols-3 gap-4 items-end">
+              <div class="col-span-1">
+                <label class="block text-sm font-medium text-gray-700">Senior Driver (+75)</label>
+              </div>
+              <div>
+                <label class="block text-xs text-gray-500 mb-1">Mínimo (€/dia)</label>
+                <input type="number" step="0.01" id="extra_senior_driver_min" value="8.00" class="w-full rounded-md border-gray-300 shadow-sm focus:border-[#009cb6] focus:ring-2 focus:ring-[#009cb6]" />
+              </div>
+              <div>
+                <label class="block text-xs text-gray-500 mb-1">Máximo (€/dia)</label>
+                <input type="number" step="0.01" id="extra_senior_driver_max" value="8.00" class="w-full rounded-md border-gray-300 shadow-sm focus:border-[#009cb6] focus:ring-2 focus:ring-[#009cb6]" />
+              </div>
             </div>
           </div>
         </div>
