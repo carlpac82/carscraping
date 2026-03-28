@@ -6477,33 +6477,38 @@ async def api_get_commissioner_pricing(request: Request):
         pricing_data = {
             "extras": {},
             "group_pricing": {},
-            "franchises": {}
+            "franchises": {},
+            "seasons": {}
         }
         
-        # Get all commissioner pricing settings
-        with _db_lock:
-            conn = _db_connect()
-            cursor = conn.cursor()
-            
-            # Load extras pricing (min/per_day/max)
-            extras = ['gps', 'child_seat', 'booster_seat', 'airport_fee', 'insurance', 'young_driver', 'senior_driver']
-            for extra in extras:
-                min_val = _get_setting(f"commissioner_extra_{extra}_min", "")
-                per_day_val = _get_setting(f"commissioner_extra_{extra}_per_day", "0")
-                max_val = _get_setting(f"commissioner_extra_{extra}_max", "")
-                pricing_data["extras"][extra] = {
-                    "min": float(min_val) if min_val else None,
-                    "per_day": float(per_day_val),
-                    "max": float(max_val) if max_val else None
-                }
-            
-            # Load franchises
-            groups = ['A', 'B', 'D', 'E1', 'E2', 'F', 'G', 'J1', 'J2', 'L1', 'L2', 'M1', 'M2', 'N']
-            for group in groups:
-                franchise_val = _get_setting(f"commissioner_franchise_{group}", "0")
-                pricing_data["franchises"][group] = float(franchise_val)
-            
-            conn.close()
+        # Load extras pricing (min/per_day/max)
+        extras = ['gps', 'child_seat', 'booster_seat', 'airport_fee', 'insurance', 'young_driver', 'senior_driver']
+        for extra in extras:
+            min_val = _get_setting(f"commissioner_extra_{extra}_min", "")
+            per_day_val = _get_setting(f"commissioner_extra_{extra}_per_day", "0")
+            max_val = _get_setting(f"commissioner_extra_{extra}_max", "")
+            pricing_data["extras"][extra] = {
+                "min": float(min_val) if min_val else None,
+                "per_day": float(per_day_val),
+                "max": float(max_val) if max_val else None
+            }
+        
+        # Load franchises
+        groups = ['A', 'B', 'D', 'E1', 'E2', 'F', 'G', 'J1', 'J2', 'L1', 'L2', 'M1', 'M2', 'N']
+        for group in groups:
+            franchise_val = _get_setting(f"commissioner_franchise_{group}", "0")
+            pricing_data["franchises"][group] = float(franchise_val)
+        
+        # Load season pricing (low/mid/high)
+        for group in groups:
+            low_val = _get_setting(f"commissioner_season_{group}_low", "0")
+            mid_val = _get_setting(f"commissioner_season_{group}_mid", "0")
+            high_val = _get_setting(f"commissioner_season_{group}_high", "0")
+            pricing_data["seasons"][group] = {
+                "low": float(low_val),
+                "mid": float(mid_val),
+                "high": float(high_val)
+            }
         
         return JSONResponse({"ok": True, "data": pricing_data})
         
