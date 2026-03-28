@@ -1429,6 +1429,54 @@ try:
 except Exception as e:
     logging.warning(f"⚠️ Commissioners API not available: {e}")
 
+# Startup event to run database migrations
+@app.on_event("startup")
+async def startup_migrate_schedule_columns():
+    """Migrate schedule columns to commissioners table on startup"""
+    try:
+        import os
+        database_url = os.getenv('DATABASE_URL')
+        
+        if not database_url:
+            logging.warning("⚠️ DATABASE_URL not found, skipping schedule migration")
+            return
+        
+        logging.info("🔧 Running schedule columns migration...")
+        
+        with _db_lock:
+            conn = _db_connect()
+            cursor = conn.cursor()
+            
+            # Add schedule columns to commissioners table
+            schedule_columns = [
+                ("weekday_start_morning", "TIME", "'09:30'"),
+                ("weekday_end_morning", "TIME", "'12:30'"),
+                ("weekday_start_afternoon", "TIME", "'15:00'"),
+                ("weekday_end_afternoon", "TIME", "'17:00'"),
+                ("sunday_start_morning", "TIME", "'09:30'"),
+                ("sunday_end_morning", "TIME", "'12:30'"),
+                ("sunday_start_afternoon", "TIME", "'15:30'"),
+                ("sunday_end_afternoon", "TIME", "'17:00'"),
+                ("time_interval_minutes", "INTEGER", "15")
+            ]
+            
+            for col_name, col_type, default_value in schedule_columns:
+                try:
+                    cursor.execute(f"ALTER TABLE commissioners ADD COLUMN IF NOT EXISTS {col_name} {col_type} DEFAULT {default_value}")
+                    logging.info(f"   ✓ Column {col_name} migrated")
+                except Exception as col_err:
+                    logging.debug(f"   Column {col_name} already exists or error: {col_err}")
+            
+            conn.commit()
+            conn.close()
+            
+        logging.info("✅ Schedule columns migration completed")
+        
+    except Exception as e:
+        logging.error(f"❌ Error in schedule migration: {e}")
+        import traceback
+        traceback.print_exc()
+
 # Exception handler to ensure CORS headers on all responses (including errors)
 @app.exception_handler(HTTPException)
 async def http_exception_handler(request: Request, exc: HTTPException):
