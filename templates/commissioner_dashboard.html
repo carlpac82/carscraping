@@ -2770,6 +2770,11 @@
                 card.classList.remove('selected');
             });
             event.target.closest('.vehicle-card').classList.add('selected');
+            
+            // Mostrar resumo se estiver no passo 3
+            if (currentWizardStep === 3) {
+                showVehicleSummary();
+            }
         }
 
         function showVehicleSummary() {
