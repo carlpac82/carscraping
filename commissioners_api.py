@@ -523,15 +523,34 @@ def get_vehicle_groups_with_photos_v2(conn):
         cursor = conn.cursor()
         
         # Buscar todos os grupos da tabela car_groups
-        cursor.execute("""
-            SELECT code, brand, model, photo_url 
-            FROM car_groups 
-            WHERE enabled = TRUE
-            ORDER BY code
-        """)
+        # Tentar com filtro enabled primeiro
+        try:
+            cursor.execute("""
+                SELECT code, brand, model, photo_url 
+                FROM car_groups 
+                WHERE enabled IS TRUE OR enabled = 1
+                ORDER BY code
+            """)
+            rows = cursor.fetchall()
+            if len(rows) == 0:
+                # Se não houver resultados, tentar sem filtro
+                cursor.execute("""
+                    SELECT code, brand, model, photo_url 
+                    FROM car_groups 
+                    ORDER BY code
+                """)
+                rows = cursor.fetchall()
+        except Exception as e:
+            print(f"Error with enabled filter: {e}, trying without filter")
+            cursor.execute("""
+                SELECT code, brand, model, photo_url 
+                FROM car_groups 
+                ORDER BY code
+            """)
+            rows = cursor.fetchall()
         
         car_groups_data = []
-        for row in cursor.fetchall():
+        for row in rows:
             code = row[0]
             brand = row[1] or ''
             model = row[2] or ''
