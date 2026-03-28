@@ -1179,7 +1179,7 @@
 
         .insurance-checkbox {
             position: absolute;
-            top: 16px;
+            top: 56px;
             right: 16px;
             width: 24px;
             height: 24px;
@@ -1808,7 +1808,7 @@
                                         <div class="exclusions">
                                             <div class="exclusions-title">
                                                 Não incluído
-                                                <span class="info-icon" onclick="toggleInfoTooltip('base-exclusions')">
+                                                <span class="info-icon" onclick="event.stopPropagation(); toggleInfoTooltip('base-exclusions')">
                                                     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#009cb6" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                                                         <circle cx="12" cy="12" r="10"></circle>
                                                         <line x1="12" y1="16" x2="12" y2="12"></line>
