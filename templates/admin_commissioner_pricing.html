@@ -422,7 +422,7 @@
       let currentOpenSeason = null;
       let periodCounters = { low: 0, mid: 0, high: 0 };
       
-      function addPeriod(seasonKey) {
+      function addPeriod(seasonKey, startDate = '', endDate = '') {
         const container = document.getElementById(`periods_${seasonKey}`);
         const periodId = `period_${seasonKey}_${periodCounters[seasonKey]++}`;
         
@@ -434,11 +434,11 @@
           <div class="flex-1 grid grid-cols-2 gap-3">
             <div>
               <label class="block text-xs text-gray-600 mb-1">Data Início</label>
-              <input type="date" class="w-full px-3 py-2 rounded border-gray-300 shadow-sm focus:border-[#009cb6] focus:ring-1 focus:ring-[#009cb6] text-sm" />
+              <input type="date" value="${startDate}" class="w-full px-3 py-2 rounded border-gray-300 shadow-sm focus:border-[#009cb6] focus:ring-1 focus:ring-[#009cb6] text-sm" />
             </div>
             <div>
               <label class="block text-xs text-gray-600 mb-1">Data Fim</label>
-              <input type="date" class="w-full px-3 py-2 rounded border-gray-300 shadow-sm focus:border-[#009cb6] focus:ring-1 focus:ring-[#009cb6] text-sm" />
+              <input type="date" value="${endDate}" class="w-full px-3 py-2 rounded border-gray-300 shadow-sm focus:border-[#009cb6] focus:ring-1 focus:ring-[#009cb6] text-sm" />
             </div>
           </div>
           <button onclick="removePeriod('${periodId}')" class="px-3 py-2 text-sm text-red-600 hover:bg-red-50 rounded transition-colors">
