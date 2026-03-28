@@ -6611,6 +6611,18 @@ async def api_save_commissioner_pricing(request: Request):
                     _set_setting(f"{key}_start_date", start_date)
                     _set_setting(f"{key}_end_date", end_date)
         
+        # Save insurance pricing by season, group and day ranges
+        if "extras" in data and "insurance" in data["extras"] and "seasons" in data["extras"]["insurance"]:
+            logging.info("💾 Saving insurance pricing...")
+            groups = ['A', 'B', 'D']
+            for group in groups:
+                for season in ['low', 'mid', 'high']:
+                    # Faixas de dias: 1_2, 3_7, 8_14, 14_21, 21_31
+                    for range_key in ['1_2', '3_7', '8_14', '14_21', '21_31']:
+                        key = f"commissioner_insurance_{group}_{season}_{range_key}_days"
+                        value = data["extras"]["insurance"]["seasons"][group][season].get(range_key, "0")
+                        _set_setting(key, str(value))
+        
         logging.info("✅ All pricing data saved successfully")
         return JSONResponse({"ok": True})
         

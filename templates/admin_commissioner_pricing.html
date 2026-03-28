@@ -304,29 +304,19 @@
           </div>
         </div>
         
-        <!-- Preços dos Seguros -->
+        <!-- Preços dos Seguros por Grupo, Época e Faixas de Dias -->
         <div>
           <h3 class="text-md font-semibold text-gray-800 mb-4 flex items-center gap-2">
             <svg class="w-5 h-5 text-[#009cb6]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"/>
             </svg>
-            <span>Preços dos Seguros (€/dia)</span>
+            <span>Preços dos Seguros (€)</span>
           </h3>
           
-          <div class="grid grid-cols-2 gap-4">
-            <div>
-              <label class="block text-sm font-medium text-gray-700">Seguro Básico</label>
-              <input type="number" step="0.01" id="insurance_basic" value="0.00" class="mt-1 w-full rounded-md border-gray-300 shadow-sm focus:border-[#009cb6] focus:ring-2 focus:ring-[#009cb6]" />
-              <p class="text-xs text-gray-500 mt-1">Incluído no preço base</p>
-            </div>
-            <div>
-              <label class="block text-sm font-medium text-gray-700">Seguro Intermédio</label>
-              <input type="number" step="0.01" id="insurance_medium" value="10.00" class="mt-1 w-full rounded-md border-gray-300 shadow-sm focus:border-[#009cb6] focus:ring-2 focus:ring-[#009cb6]" />
-            </div>
-            <div>
-              <label class="block text-sm font-medium text-gray-700">Seguro Premium</label>
-              <input type="number" step="0.01" id="insurance_premium" value="15.00" class="mt-1 w-full rounded-md border-gray-300 shadow-sm focus:border-[#009cb6] focus:ring-2 focus:ring-[#009cb6]" />
-            </div>
+          <p class="text-sm text-gray-600 mb-4">Configure os preços dos seguros por grupo, época e faixas de dias. Clique nos ícones para expandir.</p>
+          
+          <div id="insurancePricingContainer">
+            <!-- Será populado via JavaScript -->
           </div>
         </div>
         
@@ -601,6 +591,94 @@
         container.appendChild(tablesColumn);
       }
       
+      function createInsurancePricingTables() {
+        const container = document.getElementById('insurancePricingContainer');
+        const vehicleGroups = ['A', 'B', 'D'];
+        const seasons = [
+          { key: 'low', name: 'Época Baixa', color: 'blue' },
+          { key: 'mid', name: 'Época Média', color: 'green' },
+          { key: 'high', name: 'Época Alta', color: 'red' }
+        ];
+        const dayRanges = [
+          { key: '1_2', label: '1-2 dias' },
+          { key: '3_7', label: '3-7 dias' },
+          { key: '8_14', label: '8-14 dias' },
+          { key: '14_21', label: '14-21 dias' },
+          { key: '21_31', label: '21-31 dias' }
+        ];
+        
+        container.innerHTML = '';
+        
+        seasons.forEach((season, seasonIdx) => {
+          const seasonDiv = document.createElement('div');
+          seasonDiv.className = `border rounded-lg overflow-hidden mb-4 ${seasonIdx > 0 ? 'border-t-2' : ''}`;
+          seasonDiv.style.borderColor = seasonIdx > 0 ? '#e5e7eb' : '';
+          
+          const header = document.createElement('div');
+          header.className = `bg-${season.color}-50 border-b border-${season.color}-200 px-4 py-3 cursor-pointer flex items-center justify-between`;
+          header.innerHTML = `
+            <h4 class="font-semibold text-${season.color}-800">${season.name}</h4>
+            <svg class="w-5 h-5 text-${season.color}-600 transform transition-transform season-toggle" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/>
+            </svg>
+          `;
+          
+          const content = document.createElement('div');
+          content.className = 'p-4';
+          
+          const table = document.createElement('table');
+          table.className = 'w-full border-collapse';
+          
+          // Header
+          table.innerHTML = `
+            <thead>
+              <tr class="bg-gray-50">
+                <th class="px-4 py-3 text-left text-sm font-medium text-gray-700 sticky left-0 bg-gray-50">Grupo</th>
+                ${dayRanges.map(range => `
+                  <th class="px-3 py-3 text-center text-sm font-medium text-gray-700">${range.label}</th>
+                `).join('')}
+              </tr>
+            </thead>
+            <tbody>
+          `;
+          
+          // Rows
+          vehicleGroups.forEach((group, idx) => {
+            const rowClass = idx % 2 === 0 ? 'bg-white' : 'bg-gray-50';
+            const row = document.createElement('tr');
+            row.className = rowClass;
+            
+            row.innerHTML = `
+              <td class="px-4 py-3 text-sm font-medium text-gray-900 sticky left-0 ${rowClass}">Grupo ${group}</td>
+              ${dayRanges.map(range => `
+                <td class="px-3 py-2">
+                  <input type="number" step="0.01" 
+                    id="insurance_${group}_${season.key}_${range.key}" 
+                    value="0.00" 
+                    class="w-24 px-2 py-1 rounded border-gray-300 shadow-sm focus:border-[#009cb6] focus:ring-1 focus:ring-[#009cb6] text-sm text-center" 
+                    placeholder="0.00" />
+                </td>
+              `).join('')}
+            `;
+            
+            table.querySelector('tbody').appendChild(row);
+          });
+          
+          content.appendChild(table);
+          seasonDiv.appendChild(header);
+          seasonDiv.appendChild(content);
+          container.appendChild(seasonDiv);
+          
+          // Toggle functionality
+          header.addEventListener('click', () => {
+            const icon = header.querySelector('.season-toggle');
+            const isExpanded = content.style.display !== 'none';
+            content.style.display = isExpanded ? 'none' : 'block';
+            icon.style.transform = isExpanded ? 'rotate(-90deg)' : 'rotate(0deg)';
+          });
+        });
+      }
+      
       async function loadPricing() {
         try {
           const response = await fetch('/api/commissioner-pricing');
@@ -661,6 +739,22 @@
                 }
               });
             }
+            
+            // Carregar preços dos seguros
+            if (data.data.extras && data.data.extras.insurance && data.data.extras.insurance.seasons) {
+              ['A', 'B', 'D'].forEach(group => {
+                ['low', 'mid', 'high'].forEach(season => {
+                  ['1_2', '3_7', '8_14', '14_21', '21_31'].forEach(range => {
+                    const input = document.getElementById(`insurance_${group}_${season}_${range}`);
+                    if (input && data.data.extras.insurance.seasons[group] && 
+                        data.data.extras.insurance.seasons[group][season] &&
+                        data.data.extras.insurance.seasons[group][season][range] !== undefined) {
+                      input.value = data.data.extras.insurance.seasons[group][season][range].toFixed(2);
+                    }
+                  });
+                });
+              });
+            }
           }
         } catch (error) {
           console.error('Erro ao carregar preços:', error);
@@ -705,6 +799,28 @@
             per_day: parseFloat(perDayInput?.value) || 0,
             max: parseFloat(maxInput?.value) || null
           };
+        });
+        
+        // Recolher preços dos seguros por grupo, época e faixa de dias
+        pricing.extras.insurance = {
+          seasons: {}
+        };
+        
+        ['A', 'B', 'D'].forEach(group => {
+          pricing.extras.insurance.seasons[group] = {
+            low: {},
+            mid: {},
+            high: {}
+          };
+          
+          ['low', 'mid', 'high'].forEach(season => {
+            ['1_2', '3_7', '8_14', '14_21', '21_31'].forEach(range => {
+              const input = document.getElementById(`insurance_${group}_${season}_${range}`);
+              if (input) {
+                pricing.extras.insurance.seasons[group][season][range] = parseFloat(input.value) || 0;
+              }
+            });
+          });
         });
         
         // Recolher franquias
@@ -895,6 +1011,7 @@
       // Inicializar ao carregar a página
       document.addEventListener('DOMContentLoaded', function() {
         initializeGroupPricingTable();
+        createInsurancePricingTables();
         loadPricing();
       });
     </script>
