@@ -1883,7 +1883,7 @@
                                     <div class="card-header">
                                         <h4 class="card-title">Seguro Premium</h4>
                                         <div class="card-price">
-                                            <span class="price-calc">25€/dia</span>
+                                            <span class="price-calc" id="premiumInsurancePrice">25€/dia</span>
                                             <span class="price-info">Franquia 0€</span>
                                         </div>
                                         <div class="card-badge">RECOMENDADO</div>
@@ -2286,6 +2286,52 @@
 
             franchiseText.textContent = `Franquia de ${franchise}`;
             franchisePrice.textContent = `Franquia até ${franchise}`;
+        }
+
+        function updatePremiumInsurancePrice() {
+            const premiumPriceElement = document.getElementById('premiumInsurancePrice');
+            
+            if (!premiumPriceElement) return;
+
+            const selectedGroup = selectedVehicleData ? selectedVehicleData.group : null;
+            if (!selectedGroup) {
+                premiumPriceElement.textContent = '25€/dia';
+                return;
+            }
+
+            // Obter data de pickup para determinar a época
+            const pickupInput = document.getElementById('pickupDate');
+            if (!pickupInput || !pickupInput.value) {
+                premiumPriceElement.textContent = '25€/dia';
+                return;
+            }
+
+            const pickup = new Date(pickupInput.value);
+            const season = getSeasonForDate(pickup);
+
+            // Obter preço do seguro premium do sistema
+            if (commissionerPricing && commissionerPricing.extras && 
+                commissionerPricing.extras.insurance && commissionerPricing.extras.insurance.seasons &&
+                commissionerPricing.extras.insurance.seasons[selectedGroup] &&
+                commissionerPricing.extras.insurance.seasons[selectedGroup][season]) {
+                
+                const seasonPrices = commissionerPricing.extras.insurance.seasons[selectedGroup][season];
+                
+                // Determinar preço por dia (usar o primeiro preço disponível)
+                let dailyPrice = 25; // valor padrão
+                
+                if (seasonPrices.day1) {
+                    dailyPrice = seasonPrices.day1;
+                } else if (seasonPrices.day2) {
+                    dailyPrice = seasonPrices.day2;
+                } else if (seasonPrices.day3) {
+                    dailyPrice = seasonPrices.day3;
+                }
+
+                premiumPriceElement.textContent = `${dailyPrice}€/dia`;
+            } else {
+                premiumPriceElement.textContent = '25€/dia'; // valor padrão
+            }
         }
 
         // Fechar modal ao clicar fora
@@ -3653,8 +3699,9 @@
             });
             event.target.closest('.vehicle-card').classList.add('selected');
             
-            // Atualizar texto da franquia
+            // Atualizar texto da franquia e preço do seguro premium
             updateBaseFranchiseText();
+            updatePremiumInsurancePrice();
         }
 
         function showVehicleSummary() {
