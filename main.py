@@ -6406,6 +6406,89 @@ async def admin_commissioner_pricing_page(request: Request):
         "request": request
     })
 
+@app.get("/api/commissioner-pricing")
+async def api_get_commissioner_pricing(request: Request):
+    """API endpoint to get commissioner pricing configuration"""
+    try:
+        require_admin(request)
+    except HTTPException:
+        return JSONResponse({"ok": False, "error": "Unauthorized"}, status_code=401)
+    
+    try:
+        # Load pricing from settings table
+        pricing_data = {
+            "extras": {},
+            "group_pricing": {},
+            "franchises": {}
+        }
+        
+        # Get all commissioner pricing settings
+        with _db_lock:
+            conn = _db_connect()
+            cursor = conn.cursor()
+            
+            # Load extras pricing (min/max)
+            extras = ['gps', 'child_seat', 'booster_seat', 'airport_fee', 'insurance', 'young_driver', 'senior_driver']
+            for extra in extras:
+                min_val = _get_setting(f"commissioner_extra_{extra}_min", "0")
+                max_val = _get_setting(f"commissioner_extra_{extra}_max", "0")
+                pricing_data["extras"][extra] = {
+                    "min": float(min_val),
+                    "max": float(max_val)
+                }
+            
+            # Load franchises
+            groups = ['A', 'B', 'D', 'E1', 'E2', 'F', 'G', 'J1', 'J2', 'L1', 'L2', 'M1', 'M2', 'N']
+            for group in groups:
+                franchise_val = _get_setting(f"commissioner_franchise_{group}", "0")
+                pricing_data["franchises"][group] = float(franchise_val)
+            
+            conn.close()
+        
+        return JSONResponse({"ok": True, "data": pricing_data})
+        
+    except Exception as e:
+        logging.error(f"Error loading commissioner pricing: {e}")
+        traceback.print_exc()
+        return JSONResponse({"ok": False, "error": str(e)}, status_code=500)
+
+@app.post("/api/commissioner-pricing")
+async def api_save_commissioner_pricing(request: Request):
+    """API endpoint to save commissioner pricing configuration"""
+    try:
+        require_admin(request)
+    except HTTPException:
+        return JSONResponse({"ok": False, "error": "Unauthorized"}, status_code=401)
+    
+    try:
+        data = await request.json()
+        
+        with _db_lock:
+            conn = _db_connect()
+            cursor = conn.cursor()
+            
+            # Save extras pricing (min/max)
+            if "extras" in data:
+                for extra_name, values in data["extras"].items():
+                    if "min" in values:
+                        _set_setting(f"commissioner_extra_{extra_name}_min", str(values["min"]))
+                    if "max" in values:
+                        _set_setting(f"commissioner_extra_{extra_name}_max", str(values["max"]))
+            
+            # Save franchises
+            if "franchises" in data:
+                for group, value in data["franchises"].items():
+                    _set_setting(f"commissioner_franchise_{group}", str(value))
+            
+            conn.close()
+        
+        return JSONResponse({"ok": True, "message": "Preços guardados com sucesso"})
+        
+    except Exception as e:
+        logging.error(f"Error saving commissioner pricing: {e}")
+        traceback.print_exc()
+        return JSONResponse({"ok": False, "error": str(e)}, status_code=500)
+
 @app.get("/admin/settings", response_class=HTMLResponse)
 async def admin_settings_page(request: Request):
     try:

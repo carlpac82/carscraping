@@ -379,31 +379,22 @@
           const response = await fetch('/api/commissioner-pricing');
           const data = await response.json();
           
-          if (data.ok && data.pricing) {
-            // Carregar extras
-            if (data.pricing.extras) {
-              Object.keys(data.pricing.extras).forEach(key => {
-                const input = document.getElementById(`extra_${key}`);
-                if (input) input.value = data.pricing.extras[key].toFixed(2);
+          if (data.ok && data.data) {
+            // Carregar extras (min/max)
+            if (data.data.extras) {
+              Object.keys(data.data.extras).forEach(key => {
+                const minInput = document.getElementById(`extra_${key}_min`);
+                const maxInput = document.getElementById(`extra_${key}_max`);
+                if (minInput) minInput.value = data.data.extras[key].min.toFixed(2);
+                if (maxInput) maxInput.value = data.data.extras[key].max.toFixed(2);
               });
             }
             
-            // Carregar tarifas por grupo
-            if (data.pricing.groups) {
-              Object.keys(data.pricing.groups).forEach(group => {
-                const seasons = data.pricing.groups[group];
-                ['low', 'mid', 'high'].forEach(season => {
-                  const input = document.getElementById(`group_${group}_${season}`);
-                  if (input && seasons[season]) input.value = seasons[season].toFixed(2);
-                });
-              });
-            }
-            
-            // Carregar seguros
-            if (data.pricing.insurance) {
-              Object.keys(data.pricing.insurance).forEach(key => {
-                const input = document.getElementById(`insurance_${key}`);
-                if (input) input.value = data.pricing.insurance[key].toFixed(2);
+            // Carregar franquias
+            if (data.data.franchises) {
+              Object.keys(data.data.franchises).forEach(group => {
+                const input = document.getElementById(`franchise_${group}`);
+                if (input) input.value = data.data.franchises[group].toFixed(2);
               });
             }
           }
@@ -415,29 +406,23 @@
       async function savePricing() {
         const pricing = {
           extras: {},
-          groups: {},
-          insurance: {}
+          franchises: {}
         };
         
-        // Recolher extras
+        // Recolher extras (min/max)
         ['gps', 'child_seat', 'booster_seat', 'airport_fee', 'insurance', 'young_driver', 'senior_driver'].forEach(key => {
-          const input = document.getElementById(`extra_${key}`);
-          if (input) pricing.extras[key] = parseFloat(input.value) || 0;
+          const minInput = document.getElementById(`extra_${key}_min`);
+          const maxInput = document.getElementById(`extra_${key}_max`);
+          pricing.extras[key] = {
+            min: parseFloat(minInput?.value) || 0,
+            max: parseFloat(maxInput?.value) || 0
+          };
         });
         
-        // Recolher tarifas por grupo
-        vehicleGroups.forEach(group => {
-          pricing.groups[group] = {};
-          ['low', 'mid', 'high'].forEach(season => {
-            const input = document.getElementById(`group_${group}_${season}`);
-            if (input) pricing.groups[group][season] = parseFloat(input.value) || 0;
-          });
-        });
-        
-        // Recolher seguros
-        ['basic', 'medium', 'premium'].forEach(key => {
-          const input = document.getElementById(`insurance_${key}`);
-          if (input) pricing.insurance[key] = parseFloat(input.value) || 0;
+        // Recolher franquias
+        ['A', 'B', 'D', 'E1', 'E2', 'F', 'G', 'J1', 'J2', 'L1', 'L2', 'M1', 'M2', 'N'].forEach(group => {
+          const input = document.getElementById(`franchise_${group}`);
+          if (input) pricing.franchises[group] = parseFloat(input.value) || 0;
         });
         
         try {
@@ -452,7 +437,8 @@
           const data = await response.json();
           
           if (data.ok) {
-            window.location.href = '/admin/commissioner-pricing?saved=1';
+            alert('Preços guardados com sucesso!');
+            loadPricing();
           } else {
             alert('Erro ao guardar preços: ' + (data.error || 'Erro desconhecido'));
           }
