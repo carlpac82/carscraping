@@ -1447,6 +1447,14 @@ async def startup_migrate_schedule_columns():
             conn = _db_connect()
             cursor = conn.cursor()
             
+            # Check if commissioners table exists
+            try:
+                cursor.execute("SELECT 1 FROM commissioners LIMIT 1")
+            except Exception:
+                logging.info("   ⚠️ Commissioners table doesn't exist yet, skipping migration")
+                conn.close()
+                return
+            
             # Add schedule columns to commissioners table
             schedule_columns = [
                 ("weekday_start_morning", "TIME", "'09:30'"),
