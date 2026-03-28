@@ -779,17 +779,26 @@
           return;
         }
         
-        // Preencher todos os 7 dias da Média Época
-        Object.keys(epocaMediaPrices).forEach(group => {
-          for (let day = 1; day <= 7; day++) {
-            const input = document.getElementById(`group_${group}_mid_day${day}`);
-            if (input && epocaMediaPrices[group][day - 1]) {
-              input.value = epocaMediaPrices[group][day - 1].toFixed(2);
-            }
-          }
-        });
+        // Abrir a tabela de Média Época se ainda não estiver aberta
+        const table = document.getElementById('season_table_mid');
+        if (table && table.style.display === 'none') {
+          toggleSeason('mid');
+        }
         
-        showNotification('Preços da Época Média importados com sucesso!', 'success');
+        // Aguardar um momento para a tabela ser renderizada
+        setTimeout(() => {
+          // Preencher todos os 7 dias da Média Época
+          Object.keys(epocaMediaPrices).forEach(group => {
+            for (let day = 1; day <= 7; day++) {
+              const input = document.getElementById(`group_${group}_mid_day${day}`);
+              if (input && epocaMediaPrices[group][day - 1]) {
+                input.value = epocaMediaPrices[group][day - 1].toFixed(2);
+              }
+            }
+          });
+          
+          showNotification('Preços da Época Média importados com sucesso!', 'success');
+        }, 100);
       }
       
       function importEpocaBaixa() {
@@ -797,17 +806,26 @@
           return;
         }
         
-        // Preencher todos os 7 dias da Baixa Época
-        Object.keys(epocaBaixaPrices).forEach(group => {
-          for (let day = 1; day <= 7; day++) {
-            const input = document.getElementById(`group_${group}_low_day${day}`);
-            if (input && epocaBaixaPrices[group][day - 1]) {
-              input.value = epocaBaixaPrices[group][day - 1].toFixed(2);
-            }
-          }
-        });
+        // Abrir a tabela de Baixa Época se ainda não estiver aberta
+        const table = document.getElementById('season_table_low');
+        if (table && table.style.display === 'none') {
+          toggleSeason('low');
+        }
         
-        showNotification('Preços da Época Baixa importados com sucesso!', 'success');
+        // Aguardar um momento para a tabela ser renderizada
+        setTimeout(() => {
+          // Preencher todos os 7 dias da Baixa Época
+          Object.keys(epocaBaixaPrices).forEach(group => {
+            for (let day = 1; day <= 7; day++) {
+              const input = document.getElementById(`group_${group}_low_day${day}`);
+              if (input && epocaBaixaPrices[group][day - 1]) {
+                input.value = epocaBaixaPrices[group][day - 1].toFixed(2);
+              }
+            }
+          });
+          
+          showNotification('Preços da Época Baixa importados com sucesso!', 'success');
+        }, 100);
       }
       
       // Inicializar ao carregar a página
