@@ -383,6 +383,20 @@
         const tableId = `season_table_${seasonKey}`;
         const table = document.getElementById(tableId);
         
+        // Update button styles
+        seasons.forEach(s => {
+          const btn = document.getElementById(`btn_${s.key}`);
+          if (btn) {
+            if (s.key === seasonKey) {
+              btn.style.backgroundColor = '#fbbf24';
+              btn.style.borderColor = '#fbbf24';
+            } else {
+              btn.style.backgroundColor = '#009cb6';
+              btn.style.borderColor = '#009cb6';
+            }
+          }
+        });
+        
         if (currentOpenSeason && currentOpenSeason !== seasonKey) {
           const prevTable = document.getElementById(`season_table_${currentOpenSeason}`);
           if (prevTable) prevTable.style.display = 'none';
@@ -394,6 +408,11 @@
         } else {
           table.style.display = 'none';
           currentOpenSeason = null;
+          const btn = document.getElementById(`btn_${seasonKey}`);
+          if (btn) {
+            btn.style.backgroundColor = '#009cb6';
+            btn.style.borderColor = '#009cb6';
+          }
         }
       }
       
@@ -401,27 +420,25 @@
         const container = document.getElementById('groupPricingContainer');
         container.innerHTML = '';
         
-        const mainContainer = document.createElement('div');
-        mainContainer.className = 'flex gap-4';
-        
-        const iconsColumn = document.createElement('div');
-        iconsColumn.className = 'flex flex-col gap-3';
-        iconsColumn.style.width = '200px';
+        const iconsRow = document.createElement('div');
+        iconsRow.className = 'flex gap-3 mb-4';
         
         seasons.forEach(season => {
           const iconButton = document.createElement('button');
           iconButton.type = 'button';
+          iconButton.id = `btn_${season.key}`;
           iconButton.onclick = () => toggleSeason(season.key);
-          iconButton.className = 'px-4 py-6 rounded-lg border-2 hover:shadow-lg transition-all flex flex-col items-center gap-2';
-          iconButton.style.borderColor = season.color;
-          iconButton.style.backgroundColor = '#ffffff';
+          iconButton.className = 'px-6 py-4 rounded-lg border-2 hover:shadow-lg transition-all flex flex-col items-center gap-2';
+          iconButton.style.borderColor = '#009cb6';
+          iconButton.style.backgroundColor = '#009cb6';
           
           const iconCircle = document.createElement('div');
           iconCircle.className = 'w-12 h-12 rounded-full flex items-center justify-center';
-          iconCircle.style.backgroundColor = season.color;
+          iconCircle.style.backgroundColor = '#ffffff';
           
           const iconSvg = document.createElement('div');
-          iconSvg.className = 'text-white text-2xl font-bold';
+          iconSvg.className = 'text-2xl font-bold';
+          iconSvg.style.color = '#009cb6';
           if (season.key === 'low') iconSvg.textContent = 'B';
           if (season.key === 'mid') iconSvg.textContent = 'M';
           if (season.key === 'high') iconSvg.textContent = 'A';
@@ -429,16 +446,16 @@
           iconCircle.appendChild(iconSvg);
           
           const label = document.createElement('span');
-          label.className = 'text-sm font-medium text-gray-700';
+          label.className = 'text-sm font-medium text-white';
           label.textContent = season.label;
           
           iconButton.appendChild(iconCircle);
           iconButton.appendChild(label);
-          iconsColumn.appendChild(iconButton);
+          iconsRow.appendChild(iconButton);
         });
         
         const tablesColumn = document.createElement('div');
-        tablesColumn.className = 'flex-1';
+        tablesColumn.className = 'w-full';
         
         seasons.forEach(season => {
           const tableContainer = document.createElement('div');
@@ -499,9 +516,8 @@
           tablesColumn.appendChild(tableContainer);
         });
         
-        mainContainer.appendChild(iconsColumn);
-        mainContainer.appendChild(tablesColumn);
-        container.appendChild(mainContainer);
+        container.appendChild(iconsRow);
+        container.appendChild(tablesColumn);
       }
       
       async function loadPricing() {
