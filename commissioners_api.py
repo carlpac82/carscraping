@@ -523,24 +523,34 @@ def get_vehicle_groups_with_photos_v2(conn):
         cursor = conn.cursor()
         
         # Buscar todos os grupos da tabela car_groups
-        # Usar enabled = 1 ou enabled = TRUE dependendo do tipo
+        # Tentar com filtro enabled primeiro
         try:
             cursor.execute("""
                 SELECT code, brand, model, photo_url 
                 FROM car_groups 
-                WHERE enabled = 1 OR enabled = TRUE
+                WHERE enabled IS TRUE OR enabled = 1
                 ORDER BY code
             """)
-        except:
-            # Se falhar, tentar sem filtro enabled
+            rows = cursor.fetchall()
+            if len(rows) == 0:
+                # Se não houver resultados, tentar sem filtro
+                cursor.execute("""
+                    SELECT code, brand, model, photo_url 
+                    FROM car_groups 
+                    ORDER BY code
+                """)
+                rows = cursor.fetchall()
+        except Exception as e:
+            print(f"Error with enabled filter: {e}, trying without filter")
             cursor.execute("""
                 SELECT code, brand, model, photo_url 
                 FROM car_groups 
                 ORDER BY code
             """)
+            rows = cursor.fetchall()
         
         car_groups_data = []
-        for row in cursor.fetchall():
+        for row in rows:
             code = row[0]
             brand = row[1] or ''
             model = row[2] or ''
@@ -553,7 +563,6 @@ def get_vehicle_groups_with_photos_v2(conn):
                 'name': f"{brand} {model}".strip() or code
             })
         
-        conn.close()
         return car_groups_data
     except Exception as e:
         print(f"Error loading car_groups: {e}")
@@ -661,12 +670,22 @@ async def get_vehicle_groups_endpoint(request: Request):
         
         conn = get_db()
         groups = get_vehicle_groups_with_photos_v2(conn)
+        conn.close()
         
         return JSONResponse({
             "ok": True,
             "groups": groups
         })
     except Exception as e:
+        import traceback
+        print(f"Error loading car_groups: {e}")
+        print(traceback.format_exc())
+        try:
+            if 'conn' in locals():
+                conn.rollback()
+                conn.close()
+        except:
+            pass
         return JSONResponse({
             "ok": False,
             "error": str(e)
@@ -684,21 +703,12 @@ async def get_commissioner_locations(request: Request):
         conn = get_db()
         cursor = conn.cursor()
         
-        # Tentar com enabled = TRUE ou enabled = 1
-        try:
-            cursor.execute("""
-                SELECT DISTINCT name 
-                FROM commissioners 
-                WHERE enabled = TRUE OR enabled = 1
-                ORDER BY name
-            """)
-        except:
-            # Se falhar, buscar todos
-            cursor.execute("""
-                SELECT DISTINCT name 
-                FROM commissioners 
-                ORDER BY name
-            """)
+        cursor.execute("""
+            SELECT DISTINCT name 
+            FROM commissioners 
+            WHERE enabled = TRUE
+            ORDER BY name
+        """)
         
         locations = [row[0] for row in cursor.fetchall() if row[0]]
         conn.close()
@@ -711,6 +721,12 @@ async def get_commissioner_locations(request: Request):
         import traceback
         print(f"Error in get_commissioner_locations: {e}")
         print(traceback.format_exc())
+        try:
+            if 'conn' in locals():
+                conn.rollback()
+                conn.close()
+        except:
+            pass
         return JSONResponse({
             "ok": False,
             "error": str(e)
