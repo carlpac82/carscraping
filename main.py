@@ -6527,44 +6527,41 @@ async def api_save_commissioner_pricing(request: Request):
         data = await request.json()
         logging.info(f"📦 Received data: extras={len(data.get('extras', {}))}, franchises={len(data.get('franchises', {}))}, seasons={len(data.get('seasons', {}))}")
         
-        with _db_lock:
-            conn = _db_connect()
-            cursor = conn.cursor()
-            
-            # Save extras pricing (min/per_day/max)
-            if "extras" in data:
-                logging.info(f"💾 Saving {len(data['extras'])} extras...")
-                for extra_name, values in data["extras"].items():
-                    if "min" in values and values["min"] is not None:
-                        _set_setting(f"commissioner_extra_{extra_name}_min", str(values["min"]))
-                    else:
-                        _set_setting(f"commissioner_extra_{extra_name}_min", "")
-                    
-                    if "per_day" in values:
-                        _set_setting(f"commissioner_extra_{extra_name}_per_day", str(values["per_day"]))
-                    
-                    if "max" in values and values["max"] is not None:
-                        _set_setting(f"commissioner_extra_{extra_name}_max", str(values["max"]))
-                    else:
-                        _set_setting(f"commissioner_extra_{extra_name}_max", "")
-            
-            # Save franchises
-            if "franchises" in data:
-                for group, value in data["franchises"].items():
-                    _set_setting(f"commissioner_franchise_{group}", str(value))
-            
-            # Save season pricing (low/mid/high)
-            if "seasons" in data:
-                for group, values in data["seasons"].items():
-                    if "low" in values:
-                        _set_setting(f"commissioner_season_{group}_low", str(values["low"]))
-                    if "mid" in values:
-                        _set_setting(f"commissioner_season_{group}_mid", str(values["mid"]))
-                    if "high" in values:
-                        _set_setting(f"commissioner_season_{group}_high", str(values["high"]))
-            
-            conn.close()
+        # Save extras pricing (min/per_day/max)
+        if "extras" in data:
+            logging.info(f"💾 Saving {len(data['extras'])} extras...")
+            for extra_name, values in data["extras"].items():
+                if "min" in values and values["min"] is not None:
+                    _set_setting(f"commissioner_extra_{extra_name}_min", str(values["min"]))
+                else:
+                    _set_setting(f"commissioner_extra_{extra_name}_min", "")
+                
+                if "per_day" in values:
+                    _set_setting(f"commissioner_extra_{extra_name}_per_day", str(values["per_day"]))
+                
+                if "max" in values and values["max"] is not None:
+                    _set_setting(f"commissioner_extra_{extra_name}_max", str(values["max"]))
+                else:
+                    _set_setting(f"commissioner_extra_{extra_name}_max", "")
         
+        # Save franchises
+        if "franchises" in data:
+            logging.info(f"💾 Saving {len(data['franchises'])} franchises...")
+            for group, value in data["franchises"].items():
+                _set_setting(f"commissioner_franchise_{group}", str(value))
+        
+        # Save season pricing (low/mid/high)
+        if "seasons" in data:
+            logging.info(f"💾 Saving {len(data['seasons'])} season prices...")
+            for group, values in data["seasons"].items():
+                if "low" in values:
+                    _set_setting(f"commissioner_season_{group}_low", str(values["low"]))
+                if "mid" in values:
+                    _set_setting(f"commissioner_season_{group}_mid", str(values["mid"]))
+                if "high" in values:
+                    _set_setting(f"commissioner_season_{group}_high", str(values["high"]))
+        
+        logging.info("✅ All pricing data saved successfully")
         return JSONResponse({"ok": True, "message": "Preços guardados com sucesso"})
         
     except Exception as e:
