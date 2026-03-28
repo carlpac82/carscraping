@@ -6548,6 +6548,16 @@ async def api_save_commissioner_pricing(request: Request):
                 for group, value in data["franchises"].items():
                     _set_setting(f"commissioner_franchise_{group}", str(value))
             
+            # Save season pricing (low/mid/high)
+            if "seasons" in data:
+                for group, values in data["seasons"].items():
+                    if "low" in values:
+                        _set_setting(f"commissioner_season_{group}_low", str(values["low"]))
+                    if "mid" in values:
+                        _set_setting(f"commissioner_season_{group}_mid", str(values["mid"]))
+                    if "high" in values:
+                        _set_setting(f"commissioner_season_{group}_high", str(values["high"]))
+            
             conn.close()
         
         return JSONResponse({"ok": True, "message": "Preços guardados com sucesso"})

@@ -441,7 +441,8 @@
         console.log('🔵 savePricing() chamada');
         const pricing = {
           extras: {},
-          franchises: {}
+          franchises: {},
+          seasons: {}
         };
         
         // Recolher extras (min/per_day/max)
@@ -460,6 +461,18 @@
         ['A', 'B', 'D', 'E1', 'E2', 'F', 'G', 'J1', 'J2', 'L1', 'L2', 'M1', 'M2', 'N'].forEach(group => {
           const input = document.getElementById(`franchise_${group}`);
           if (input) pricing.franchises[group] = parseFloat(input.value) || 0;
+        });
+        
+        // Recolher preços por época
+        ['A', 'B', 'D', 'E1', 'E2', 'F', 'G', 'J1', 'J2', 'L1', 'L2', 'M1', 'M2', 'N'].forEach(group => {
+          const lowInput = document.getElementById(`group_${group}_low`);
+          const midInput = document.getElementById(`group_${group}_mid`);
+          const highInput = document.getElementById(`group_${group}_high`);
+          pricing.seasons[group] = {
+            low: parseFloat(lowInput?.value) || 0,
+            mid: parseFloat(midInput?.value) || 0,
+            high: parseFloat(highInput?.value) || 0
+          };
         });
         
         console.log('📦 Dados a enviar:', pricing);
