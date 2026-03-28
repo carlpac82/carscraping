@@ -2615,6 +2615,8 @@
             // Calcular seguro (sempre incluído)
             let insurancePrice = 0;
             
+            const selectedGroup = selectedVehicle;
+            
             if (selectedGroup && commissionerPricing && commissionerPricing.extras && 
                 commissionerPricing.extras.insurance && commissionerPricing.extras.insurance.seasons &&
                 commissionerPricing.extras.insurance.seasons[selectedGroup] &&
