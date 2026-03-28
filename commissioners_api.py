@@ -551,22 +551,22 @@ def get_vehicle_groups_with_photos_v2(conn):
             """)
             rows = cursor.fetchall()
         
-        # Dados específicos de cada grupo
+        # Dados específicos de cada grupo (baseado na imagem Auto Prudente)
         group_specs = {
-            'A': {'seats': '5', 'doors': '3', 'ac': False, 'transmission': 'manual'},
+            'A': {'seats': '4', 'doors': '3', 'ac': False, 'transmission': 'manual'},
             'B': {'seats': '5', 'doors': '5', 'ac': True, 'transmission': 'manual'},
             'D': {'seats': '5', 'doors': '5', 'ac': True, 'transmission': 'manual'},
-            'E1': {'seats': '5', 'doors': '5', 'ac': True, 'transmission': 'manual'},
-            'E2': {'seats': '5', 'doors': '5', 'ac': True, 'transmission': 'manual'},
+            'E1': {'seats': '5', 'doors': '5', 'ac': True, 'transmission': 'automatic'},
+            'E2': {'seats': '5', 'doors': '5', 'ac': True, 'transmission': 'automatic'},
             'F': {'seats': '5', 'doors': '5', 'ac': True, 'transmission': 'manual'},
             'G': {'seats': '4', 'doors': '3', 'ac': True, 'transmission': 'manual'},
             'J1': {'seats': '5', 'doors': '5', 'ac': True, 'transmission': 'manual'},
             'J2': {'seats': '5', 'doors': '5', 'ac': True, 'transmission': 'manual'},
-            'L1': {'seats': '5', 'doors': '5', 'ac': True, 'transmission': 'manual'},
-            'L2': {'seats': '5', 'doors': '5', 'ac': True, 'transmission': 'manual'},
-            'M1': {'seats': '5-7', 'doors': '5', 'ac': True, 'transmission': 'manual'},
-            'M2': {'seats': '5-7', 'doors': '5', 'ac': True, 'transmission': 'manual'},
-            'N': {'seats': '8-9', 'doors': '5', 'ac': True, 'transmission': 'manual'}
+            'L1': {'seats': '5', 'doors': '5', 'ac': True, 'transmission': 'automatic'},
+            'L2': {'seats': '5', 'doors': '5', 'ac': True, 'transmission': 'automatic'},
+            'M1': {'seats': '5', 'doors': '5', 'ac': True, 'transmission': 'manual'},
+            'M2': {'seats': '5', 'doors': '5', 'ac': True, 'transmission': 'automatic'},
+            'N': {'seats': '8', 'doors': '5', 'ac': True, 'transmission': 'manual'}
         }
         
         car_groups_data = []
