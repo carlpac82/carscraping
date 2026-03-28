@@ -2238,6 +2238,87 @@
             }
         }
 
+        // Função para mostrar aviso de franquia com design do website
+        function showFranchiseWarning(franchise, callback) {
+            // Criar overlay
+            const overlay = document.createElement('div');
+            overlay.style.cssText = 'position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0, 0, 0, 0.5); z-index: 10000; display: flex; align-items: center; justify-content: center;';
+            
+            // Criar modal
+            const modal = document.createElement('div');
+            modal.style.cssText = 'background: white; border-radius: 12px; padding: 0; max-width: 500px; width: 90%; box-shadow: 0 10px 40px rgba(0, 0, 0, 0.3);';
+            
+            modal.innerHTML = `
+                <div style="background: #009cb6; color: white; padding: 20px; border-radius: 12px 12px 0 0; display: flex; align-items: center; gap: 12px;">
+                    <svg style="width: 32px; height: 32px; flex-shrink: 0;" fill="currentColor" viewBox="0 0 20 20">
+                        <path fill-rule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clip-rule="evenodd"/>
+                    </svg>
+                    <h3 style="margin: 0; font-size: 20px; font-weight: 600;">ATENÇÃO</h3>
+                </div>
+                <div style="padding: 24px;">
+                    <p style="margin: 0 0 16px 0; font-size: 15px; line-height: 1.6; color: #374151;">
+                        Ao remover o Seguro Completo, terá uma franquia de <strong style="color: #009cb6; font-size: 18px;">${franchise}</strong>.
+                    </p>
+                    <p style="margin: 0 0 24px 0; font-size: 15px; line-height: 1.6; color: #374151;">
+                        É necessário um <strong>cartão de crédito em nome do condutor</strong>.
+                    </p>
+                    <p style="margin: 0 0 24px 0; font-size: 15px; font-weight: 500; color: #1f2937;">
+                        Deseja prosseguir sem o Seguro Completo?
+                    </p>
+                    <div style="display: flex; gap: 12px; justify-content: flex-end;">
+                        <button id="franchiseCancel" style="padding: 10px 24px; border: 2px solid #d1d5db; background: white; color: #374151; border-radius: 8px; font-size: 15px; font-weight: 500; cursor: pointer; transition: all 0.2s;">
+                            Cancelar
+                        </button>
+                        <button id="franchiseOk" style="padding: 10px 24px; border: none; background: #009cb6; color: white; border-radius: 8px; font-size: 15px; font-weight: 500; cursor: pointer; transition: all 0.2s;">
+                            OK
+                        </button>
+                    </div>
+                </div>
+            `;
+            
+            overlay.appendChild(modal);
+            document.body.appendChild(overlay);
+            
+            // Hover effects
+            const cancelBtn = modal.querySelector('#franchiseCancel');
+            const okBtn = modal.querySelector('#franchiseOk');
+            
+            cancelBtn.addEventListener('mouseenter', () => {
+                cancelBtn.style.background = '#f3f4f6';
+                cancelBtn.style.borderColor = '#9ca3af';
+            });
+            cancelBtn.addEventListener('mouseleave', () => {
+                cancelBtn.style.background = 'white';
+                cancelBtn.style.borderColor = '#d1d5db';
+            });
+            
+            okBtn.addEventListener('mouseenter', () => {
+                okBtn.style.background = '#007a94';
+            });
+            okBtn.addEventListener('mouseleave', () => {
+                okBtn.style.background = '#009cb6';
+            });
+            
+            // Event listeners
+            cancelBtn.addEventListener('click', () => {
+                document.body.removeChild(overlay);
+                callback(false);
+            });
+            
+            okBtn.addEventListener('click', () => {
+                document.body.removeChild(overlay);
+                callback(true);
+            });
+            
+            // Fechar ao clicar no overlay
+            overlay.addEventListener('click', (e) => {
+                if (e.target === overlay) {
+                    document.body.removeChild(overlay);
+                    callback(false);
+                }
+            });
+        }
+
         // Função para alterar quantidade de extras
         function changeQuantity(extraId, change) {
             const input = document.getElementById(extraId);
@@ -2259,20 +2340,20 @@
 
         // Franquias por grupo de veículo
         const franchisesByGroup = {
-            'A': '1250 €',
-            'B': '1300 €',
-            'D': '1500 €',
-            'E1': '1650 €',
-            'E2': '1700 €',
-            'F': '2000 €',
-            'G': '1900 €',
-            'J1': '2250 €',
-            'J2': '1950 €',
-            'L1': '2200 €',
-            'L2': '2250 €',
-            'M1': '2500 €',
-            'M2': '3000 €',
-            'N': '3000 €'
+            'A': '1.250 €',
+            'B': '1.300 €',
+            'D': '1.500 €',
+            'E1': '1.650 €',
+            'E2': '1.700 €',
+            'F': '2.000 €',
+            'G': '1.900 €',
+            'J1': '2.250 €',
+            'J2': '1.950 €',
+            'L1': '2.200 €',
+            'L2': '2.250 €',
+            'M1': '2.500 €',
+            'M2': '3.000 €',
+            'N': '3.000 €'
         };
 
         // Toggle extra selection
@@ -2284,18 +2365,17 @@
             if (extraId === 'extraInsurance' && checkbox.checked) {
                 // Tentar desselecionar - mostrar aviso de franquia
                 const vehicleGroup = selectedVehicleData ? selectedVehicleData.group : null;
-                const franchise = vehicleGroup ? franchisesByGroup[vehicleGroup] : '1250 €';
+                const franchise = vehicleGroup ? franchisesByGroup[vehicleGroup] : '1.250 €';
                 
-                const confirmed = confirm(
-                    `⚠️ ATENÇÃO\n\n` +
-                    `Ao remover o Seguro Completo, terá uma franquia de ${franchise}.\n\n` +
-                    `É necessário um cartão de crédito em nome do condutor.\n\n` +
-                    `Deseja prosseguir sem o Seguro Completo?`
-                );
-                
-                if (!confirmed) {
-                    return; // Mantém selecionado
-                }
+                // Criar pop-up customizado com design do website
+                showFranchiseWarning(franchise, function(confirmed) {
+                    if (confirmed) {
+                        checkbox.checked = false;
+                        extraItem.classList.remove('selected');
+                        calculatePrice();
+                    }
+                });
+                return; // Não fazer toggle ainda
             }
             
             // Validação especial para taxa aeroporto
@@ -2587,6 +2667,9 @@
         // Event listeners para cálculo automático de dias
         document.getElementById('pickupTime').addEventListener('change', calculateDays);
         document.getElementById('dropoffTime').addEventListener('change', calculateDays);
+        
+        // Calcular dias quando a página carrega (se já tiver valores)
+        setTimeout(calculateDays, 500);
 
         async function submitNewBooking() {
             const form = document.getElementById('newBookingForm');
