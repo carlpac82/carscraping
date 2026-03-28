@@ -1053,7 +1053,7 @@
 
         .info-tooltip {
             position: absolute;
-            top: 100%;
+            bottom: 100%;
             left: 0;
             right: 0;
             background: white;
@@ -1061,7 +1061,7 @@
             border-radius: 8px;
             box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
             z-index: 1000;
-            margin-top: 8px;
+            margin-bottom: 8px;
         }
 
         .tooltip-content {
@@ -1862,12 +1862,27 @@
                                             </div>
                                         </div>
                                         <div class="exclusions">
-                                            <div class="exclusions-title">Não incluído:</div>
-                                            <div class="exclusions-list">
-                                                <span>Perda de chaves</span>
-                                                <span>Danos nas rodas</span>
-                                                <span>Parte inferior do carro</span>
-                                                <span>Interior do veículo</span>
+                                            <div class="exclusions-title">
+                                                Não incluído
+                                                <span class="info-icon" onclick="event.stopPropagation(); toggleInfoTooltip('premium-exclusions')">
+                                                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#009cb6" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                                        <circle cx="12" cy="12" r="10"></circle>
+                                                        <line x1="12" y1="16" x2="12" y2="12"></line>
+                                                        <line x1="12" y1="8" x2="12.01" y2="8"></line>
+                                                    </svg>
+                                                </span>
+                                            </div>
+                                            <div class="info-tooltip" id="premium-exclusions" style="display: none;">
+                                                <div class="tooltip-content">
+                                                    <h4>Proteção Adicional Limitada</h4>
+                                                    <ul>
+                                                        <li>Perda de chaves do veículo</li>
+                                                        <li>Danos nas rodas e pneus</li>
+                                                        <li>Parte inferior do carro</li>
+                                                        <li>Interior do veículo (estofos, painéis)</li>
+                                                    </ul>
+                                                    <button class="tooltip-close" onclick="toggleInfoTooltip('premium-exclusions')">✕</button>
+                                                </div>
                                             </div>
                                         </div>
                                                                             </div>
