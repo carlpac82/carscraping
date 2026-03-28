@@ -60808,6 +60808,27 @@ async def admin_init_commissioners_tables(request: Request):
                     $$ language 'plpgsql'
                 """)
                 
+                # Add schedule columns to commissioners table (migration)
+                logging.info("🔧 Adding schedule columns to commissioners table...")
+                schedule_columns = [
+                    ("weekday_start_morning", "TIME", "'09:30'"),
+                    ("weekday_end_morning", "TIME", "'12:30'"),
+                    ("weekday_start_afternoon", "TIME", "'15:00'"),
+                    ("weekday_end_afternoon", "TIME", "'17:00'"),
+                    ("sunday_start_morning", "TIME", "'09:30'"),
+                    ("sunday_end_morning", "TIME", "'12:30'"),
+                    ("sunday_start_afternoon", "TIME", "'15:30'"),
+                    ("sunday_end_afternoon", "TIME", "'17:00'"),
+                    ("time_interval_minutes", "INTEGER", "15")
+                ]
+                
+                for col_name, col_type, default_value in schedule_columns:
+                    try:
+                        cursor.execute(f"ALTER TABLE commissioners ADD COLUMN IF NOT EXISTS {col_name} {col_type} DEFAULT {default_value}")
+                        logging.info(f"   ✓ Added column: {col_name}")
+                    except Exception as col_err:
+                        logging.warning(f"   ⚠️  Column {col_name}: {col_err}")
+                
                 # Create triggers
                 cursor.execute("DROP TRIGGER IF EXISTS update_commissioners_updated_at ON commissioners")
                 cursor.execute("""
