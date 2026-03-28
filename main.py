@@ -6475,14 +6475,16 @@ async def api_get_commissioner_pricing(request: Request):
             conn = _db_connect()
             cursor = conn.cursor()
             
-            # Load extras pricing (min/max)
+            # Load extras pricing (min/per_day/max)
             extras = ['gps', 'child_seat', 'booster_seat', 'airport_fee', 'insurance', 'young_driver', 'senior_driver']
             for extra in extras:
-                min_val = _get_setting(f"commissioner_extra_{extra}_min", "0")
-                max_val = _get_setting(f"commissioner_extra_{extra}_max", "0")
+                min_val = _get_setting(f"commissioner_extra_{extra}_min", "")
+                per_day_val = _get_setting(f"commissioner_extra_{extra}_per_day", "0")
+                max_val = _get_setting(f"commissioner_extra_{extra}_max", "")
                 pricing_data["extras"][extra] = {
-                    "min": float(min_val),
-                    "max": float(max_val)
+                    "min": float(min_val) if min_val else None,
+                    "per_day": float(per_day_val),
+                    "max": float(max_val) if max_val else None
                 }
             
             # Load franchises
@@ -6515,13 +6517,21 @@ async def api_save_commissioner_pricing(request: Request):
             conn = _db_connect()
             cursor = conn.cursor()
             
-            # Save extras pricing (min/max)
+            # Save extras pricing (min/per_day/max)
             if "extras" in data:
                 for extra_name, values in data["extras"].items():
-                    if "min" in values:
+                    if "min" in values and values["min"] is not None:
                         _set_setting(f"commissioner_extra_{extra_name}_min", str(values["min"]))
-                    if "max" in values:
+                    else:
+                        _set_setting(f"commissioner_extra_{extra_name}_min", "")
+                    
+                    if "per_day" in values:
+                        _set_setting(f"commissioner_extra_{extra_name}_per_day", str(values["per_day"]))
+                    
+                    if "max" in values and values["max"] is not None:
                         _set_setting(f"commissioner_extra_{extra_name}_max", str(values["max"]))
+                    else:
+                        _set_setting(f"commissioner_extra_{extra_name}_max", "")
             
             # Save franchises
             if "franchises" in data:
