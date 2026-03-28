@@ -2270,22 +2270,30 @@
         function updateBaseFranchiseText() {
             const franchiseText = document.getElementById('baseFranchiseText');
             const franchisePrice = document.getElementById('baseFranchisePrice');
+            const modalFranchise = document.getElementById('modalFranchise');
             
             if (!franchiseText || !franchisePrice) return;
 
-            const selectedGroup = selectedVehicle;
+            // Obter grupo do veículo selecionado
+            const selectedGroup = selectedVehicleData ? selectedVehicleData.group : null;
+            
             if (!selectedGroup) {
-                franchiseText.textContent = 'Franquia de 1.500€';
-                franchisePrice.textContent = 'Franquia até 1.500€';
+                const defaultFranchise = '1.500€';
+                franchiseText.textContent = `Franquia de ${defaultFranchise}`;
+                franchisePrice.textContent = `Franquia até ${defaultFranchise}`;
+                if (modalFranchise) modalFranchise.textContent = defaultFranchise;
                 return;
             }
 
             // Usar valores reais das franquias do sistema
-            const franchise = selectedVehicleData && selectedVehicleData.group ? 
-                franchisesByGroup[selectedVehicleData.group] || '1.250 €' : '1.250 €';
+            const franchise = franchisesByGroup[selectedGroup] || '1.250 €';
+            
+            // Remover espaços e símbolos para formato limpo
+            const cleanFranchise = franchise.replace(' €', '€');
 
-            franchiseText.textContent = `Franquia de ${franchise}`;
-            franchisePrice.textContent = `Franquia até ${franchise}`;
+            franchiseText.textContent = `Franquia de ${cleanFranchise}`;
+            franchisePrice.textContent = `Franquia até ${cleanFranchise}`;
+            if (modalFranchise) modalFranchise.textContent = cleanFranchise;
         }
 
         function updatePremiumInsurancePrice() {
