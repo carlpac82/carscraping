@@ -1,0 +1,319 @@
+<!doctype html>
+<html lang="pt">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Admin • Preços Comissionistas</title>
+    <link rel="icon" type="image/png" href="/static/autoprudente-favicon.png?v=2" />
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+      img[alt="Profile"], img[src*="profile"], .profile-picture {
+        border-radius: 50% !important;
+      }
+      
+      .alert-success {
+        padding: 1rem;
+        border-radius: 0.5rem;
+        border-left: 4px solid #2563eb;
+        background-color: #eff6ff;
+        display: flex;
+        align-items: flex-start;
+        gap: 0.75rem;
+      }
+      .alert-error {
+        padding: 1rem;
+        border-radius: 0.5rem;
+        border-left: 4px solid #ef4444;
+        background-color: #fef2f2;
+        display: flex;
+        align-items: flex-start;
+        gap: 0.75rem;
+      }
+    </style>
+  </head>
+  <body class="min-h-screen bg-gray-50">
+    <header class="bg-[#009cb6] border-b">
+      <div class="mx-auto max-w-6xl px-4 py-3 flex items-center justify-between">
+        <div class="flex items-center gap-3">
+          <a href="/"><img src="/static/ap-heather.png" alt="Car Rental Tracker" class="h-12 w-auto" /></a>
+        </div>
+        <nav class="flex items-center gap-3">
+          <a href="/" class="p-2 text-white/90 hover:text-white hover:bg-white/10 transition-all rounded" title="Home">
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"/>
+            </svg>
+          </a>
+          
+          <a href="/admin" class="p-2 text-white/90 hover:text-white hover:bg-white/10 transition-all rounded" title="Admin Settings">
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"/>
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/>
+            </svg>
+          </a>
+        </nav>
+      </div>
+    </header>
+    
+    <main class="mx-auto max-w-6xl px-4 py-6">
+      <div class="flex items-center justify-between mb-4">
+        <h2 class="text-lg font-semibold">Preços Comissionistas</h2>
+        <div class="flex items-center gap-2">
+          <a href="/admin/settings" class="px-3 py-2 rounded border border-[#009cb6] text-[#009cb6] text-sm bg-white hover:bg-[#f6b511] hover:border-[#f6b511] hover:text-white transition-colors">Price Adjustment</a>
+          <a href="/admin/commissioner-pricing" class="px-3 py-2 rounded bg-[#009cb6] text-white text-sm border border-[#009cb6] hover:bg-[#0086a1] transition-colors">Preços Comissionistas</a>
+          <a href="/admin/abbycar-insurance" class="px-3 py-2 rounded border border-[#009cb6] text-[#009cb6] text-sm bg-white hover:bg-[#f6b511] hover:border-[#f6b511] hover:text-white transition-colors">ABBYCAR</a>
+          <a href="/admin/whatsapp" class="px-3 py-2 rounded border border-[#009cb6] text-[#009cb6] text-sm bg-white hover:bg-[#f6b511] hover:border-[#f6b511] hover:text-white transition-colors">WhatsApp</a>
+          <a href="/admin/users" class="px-3 py-2 rounded border border-[#009cb6] text-[#009cb6] text-sm bg-white hover:bg-[#f6b511] hover:border-[#f6b511] hover:text-white transition-colors">Users</a>
+          <a href="/admin/vehicles" class="px-3 py-2 rounded border border-[#009cb6] text-[#009cb6] text-sm bg-white hover:bg-[#f6b511] hover:border-[#f6b511] hover:text-white transition-colors">Veículos</a>
+          <a href="/admin/contracts" class="px-3 py-2 rounded border border-[#009cb6] text-[#009cb6] text-sm bg-white hover:bg-[#f6b511] hover:border-[#f6b511] hover:text-white transition-colors">Inspeções</a>
+        </div>
+      </div>
+      
+      {% if saved %}
+      <div class="mb-4 p-4 rounded-lg border-l-4 border-[#009cb6] bg-blue-50 flex items-start gap-3">
+        <svg class="w-5 h-5 text-[#009cb6] flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
+        </svg>
+        <div>
+          <p class="font-semibold text-[#009cb6]">Preços guardados com sucesso!</p>
+          <p class="text-sm text-gray-600 mt-1">As alterações foram aplicadas.</p>
+        </div>
+      </div>
+      {% endif %}
+      
+      {% if error %}
+      <div class="mb-4 p-4 rounded-lg border-l-4 border-red-500 bg-red-50 flex items-start gap-3">
+        <svg class="w-5 h-5 text-red-500 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+        </svg>
+        <div>
+          <p class="font-semibold text-red-800">Erro ao guardar</p>
+          <p class="text-sm text-red-700 mt-1">{{ error }}</p>
+        </div>
+      </div>
+      {% endif %}
+      
+      <div class="bg-white rounded shadow p-6 space-y-6">
+        
+        <!-- Preços dos Extras -->
+        <div class="border-b pb-6">
+          <h3 class="text-md font-semibold text-gray-800 mb-4 flex items-center gap-2">
+            <svg class="w-5 h-5 text-[#009cb6]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"/>
+            </svg>
+            <span>Preços dos Extras (€/dia)</span>
+          </h3>
+          
+          <div class="grid grid-cols-2 gap-4">
+            <div>
+              <label class="block text-sm font-medium text-gray-700">GPS</label>
+              <input type="number" step="0.01" id="extra_gps" value="5.00" class="mt-1 w-full rounded-md border-gray-300 shadow-sm focus:border-[#009cb6] focus:ring-2 focus:ring-[#009cb6]" />
+            </div>
+            <div>
+              <label class="block text-sm font-medium text-gray-700">Cadeira de Criança</label>
+              <input type="number" step="0.01" id="extra_child_seat" value="5.00" class="mt-1 w-full rounded-md border-gray-300 shadow-sm focus:border-[#009cb6] focus:ring-2 focus:ring-[#009cb6]" />
+            </div>
+            <div>
+              <label class="block text-sm font-medium text-gray-700">Booster Seat</label>
+              <input type="number" step="0.01" id="extra_booster_seat" value="3.00" class="mt-1 w-full rounded-md border-gray-300 shadow-sm focus:border-[#009cb6] focus:ring-2 focus:ring-[#009cb6]" />
+            </div>
+            <div>
+              <label class="block text-sm font-medium text-gray-700">Taxa Aeroporto (taxa única)</label>
+              <input type="number" step="0.01" id="extra_airport_fee" value="50.00" class="mt-1 w-full rounded-md border-gray-300 shadow-sm focus:border-[#009cb6] focus:ring-2 focus:ring-[#009cb6]" />
+            </div>
+            <div>
+              <label class="block text-sm font-medium text-gray-700">Seguro Completo</label>
+              <input type="number" step="0.01" id="extra_insurance" value="15.00" class="mt-1 w-full rounded-md border-gray-300 shadow-sm focus:border-[#009cb6] focus:ring-2 focus:ring-[#009cb6]" />
+            </div>
+            <div>
+              <label class="block text-sm font-medium text-gray-700">Young Driver (+21)</label>
+              <input type="number" step="0.01" id="extra_young_driver" value="10.00" class="mt-1 w-full rounded-md border-gray-300 shadow-sm focus:border-[#009cb6] focus:ring-2 focus:ring-[#009cb6]" />
+            </div>
+            <div>
+              <label class="block text-sm font-medium text-gray-700">Senior Driver (+75)</label>
+              <input type="number" step="0.01" id="extra_senior_driver" value="8.00" class="mt-1 w-full rounded-md border-gray-300 shadow-sm focus:border-[#009cb6] focus:ring-2 focus:ring-[#009cb6]" />
+            </div>
+          </div>
+        </div>
+        
+        <!-- Tarifas por Grupo e Época -->
+        <div class="border-b pb-6">
+          <h3 class="text-md font-semibold text-gray-800 mb-4 flex items-center gap-2">
+            <svg class="w-5 h-5 text-[#009cb6]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/>
+            </svg>
+            <span>Tarifas por Grupo e Época (€/dia)</span>
+          </h3>
+          
+          <p class="text-sm text-gray-600 mb-4">Configure os preços base por grupo de veículo e época do ano.</p>
+          
+          <div class="overflow-x-auto">
+            <table class="min-w-full divide-y divide-gray-200">
+              <thead class="bg-gray-50">
+                <tr>
+                  <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Grupo</th>
+                  <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Baixa Época</th>
+                  <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Meia Época</th>
+                  <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Alta Época</th>
+                </tr>
+              </thead>
+              <tbody class="bg-white divide-y divide-gray-200" id="groupPricingTable">
+                <!-- Será populado via JavaScript -->
+              </tbody>
+            </table>
+          </div>
+        </div>
+        
+        <!-- Preços dos Seguros -->
+        <div>
+          <h3 class="text-md font-semibold text-gray-800 mb-4 flex items-center gap-2">
+            <svg class="w-5 h-5 text-[#009cb6]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"/>
+            </svg>
+            <span>Preços dos Seguros (€/dia)</span>
+          </h3>
+          
+          <div class="grid grid-cols-2 gap-4">
+            <div>
+              <label class="block text-sm font-medium text-gray-700">Seguro Básico</label>
+              <input type="number" step="0.01" id="insurance_basic" value="0.00" class="mt-1 w-full rounded-md border-gray-300 shadow-sm focus:border-[#009cb6] focus:ring-2 focus:ring-[#009cb6]" />
+              <p class="text-xs text-gray-500 mt-1">Incluído no preço base</p>
+            </div>
+            <div>
+              <label class="block text-sm font-medium text-gray-700">Seguro Intermédio</label>
+              <input type="number" step="0.01" id="insurance_medium" value="10.00" class="mt-1 w-full rounded-md border-gray-300 shadow-sm focus:border-[#009cb6] focus:ring-2 focus:ring-[#009cb6]" />
+            </div>
+            <div>
+              <label class="block text-sm font-medium text-gray-700">Seguro Premium</label>
+              <input type="number" step="0.01" id="insurance_premium" value="15.00" class="mt-1 w-full rounded-md border-gray-300 shadow-sm focus:border-[#009cb6] focus:ring-2 focus:ring-[#009cb6]" />
+            </div>
+          </div>
+        </div>
+        
+        <div class="flex items-center gap-3 pt-4 border-t">
+          <button onclick="savePricing()" class="px-4 py-2 rounded bg-[#009cb6] text-white hover:bg-[#0086a1] transition-colors">Guardar Preços</button>
+          <button onclick="loadPricing()" class="px-4 py-2 rounded border border-gray-300 text-gray-700 hover:bg-gray-50 transition-colors">Recarregar</button>
+        </div>
+      </div>
+    </main>
+    
+    <script>
+      const vehicleGroups = ['A', 'B1', 'B2', 'C', 'D', 'E1', 'E2', 'F', 'G', 'J1', 'J2', 'L1', 'L2', 'M1', 'M2', 'N', 'X'];
+      
+      function initializeGroupPricingTable() {
+        const tbody = document.getElementById('groupPricingTable');
+        tbody.innerHTML = '';
+        
+        vehicleGroups.forEach(group => {
+          const row = document.createElement('tr');
+          row.innerHTML = `
+            <td class="px-4 py-3 whitespace-nowrap text-sm font-medium text-gray-900">GROUP ${group}</td>
+            <td class="px-4 py-3 whitespace-nowrap">
+              <input type="number" step="0.01" id="group_${group}_low" value="0.00" class="w-24 rounded-md border-gray-300 shadow-sm focus:border-[#009cb6] focus:ring-1 focus:ring-[#009cb6] text-sm" />
+            </td>
+            <td class="px-4 py-3 whitespace-nowrap">
+              <input type="number" step="0.01" id="group_${group}_mid" value="0.00" class="w-24 rounded-md border-gray-300 shadow-sm focus:border-[#009cb6] focus:ring-1 focus:ring-[#009cb6] text-sm" />
+            </td>
+            <td class="px-4 py-3 whitespace-nowrap">
+              <input type="number" step="0.01" id="group_${group}_high" value="0.00" class="w-24 rounded-md border-gray-300 shadow-sm focus:border-[#009cb6] focus:ring-1 focus:ring-[#009cb6] text-sm" />
+            </td>
+          `;
+          tbody.appendChild(row);
+        });
+      }
+      
+      async function loadPricing() {
+        try {
+          const response = await fetch('/api/commissioner-pricing');
+          const data = await response.json();
+          
+          if (data.ok && data.pricing) {
+            // Carregar extras
+            if (data.pricing.extras) {
+              Object.keys(data.pricing.extras).forEach(key => {
+                const input = document.getElementById(`extra_${key}`);
+                if (input) input.value = data.pricing.extras[key].toFixed(2);
+              });
+            }
+            
+            // Carregar tarifas por grupo
+            if (data.pricing.groups) {
+              Object.keys(data.pricing.groups).forEach(group => {
+                const seasons = data.pricing.groups[group];
+                ['low', 'mid', 'high'].forEach(season => {
+                  const input = document.getElementById(`group_${group}_${season}`);
+                  if (input && seasons[season]) input.value = seasons[season].toFixed(2);
+                });
+              });
+            }
+            
+            // Carregar seguros
+            if (data.pricing.insurance) {
+              Object.keys(data.pricing.insurance).forEach(key => {
+                const input = document.getElementById(`insurance_${key}`);
+                if (input) input.value = data.pricing.insurance[key].toFixed(2);
+              });
+            }
+          }
+        } catch (error) {
+          console.error('Erro ao carregar preços:', error);
+        }
+      }
+      
+      async function savePricing() {
+        const pricing = {
+          extras: {},
+          groups: {},
+          insurance: {}
+        };
+        
+        // Recolher extras
+        ['gps', 'child_seat', 'booster_seat', 'airport_fee', 'insurance', 'young_driver', 'senior_driver'].forEach(key => {
+          const input = document.getElementById(`extra_${key}`);
+          if (input) pricing.extras[key] = parseFloat(input.value) || 0;
+        });
+        
+        // Recolher tarifas por grupo
+        vehicleGroups.forEach(group => {
+          pricing.groups[group] = {};
+          ['low', 'mid', 'high'].forEach(season => {
+            const input = document.getElementById(`group_${group}_${season}`);
+            if (input) pricing.groups[group][season] = parseFloat(input.value) || 0;
+          });
+        });
+        
+        // Recolher seguros
+        ['basic', 'medium', 'premium'].forEach(key => {
+          const input = document.getElementById(`insurance_${key}`);
+          if (input) pricing.insurance[key] = parseFloat(input.value) || 0;
+        });
+        
+        try {
+          const response = await fetch('/api/commissioner-pricing', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json'
+            },
+            body: JSON.stringify(pricing)
+          });
+          
+          const data = await response.json();
+          
+          if (data.ok) {
+            window.location.href = '/admin/commissioner-pricing?saved=1';
+          } else {
+            alert('Erro ao guardar preços: ' + (data.error || 'Erro desconhecido'));
+          }
+        } catch (error) {
+          console.error('Erro ao guardar preços:', error);
+          alert('Erro ao guardar preços');
+        }
+      }
+      
+      // Inicializar ao carregar a página
+      document.addEventListener('DOMContentLoaded', function() {
+        initializeGroupPricingTable();
+        loadPricing();
+      });
+    </script>
+  </body>
+</html>
