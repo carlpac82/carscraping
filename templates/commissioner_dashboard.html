@@ -1330,15 +1330,6 @@
                                         <span class="extra-note" style="font-size: 11px; color: #6b7280;">Mínimo 5 dias</span>
                                     </div>
                                 </div>
-                                <div class="extra-item selected" onclick="toggleExtra('extraInsurance')">
-                                    <input type="checkbox" id="extraInsurance" value="full_insurance" style="display: none;" checked>
-                                    <div class="extra-icon">
-                                        <img src="/static/extras/20210622110407_876d6e2b4c449ca2242b864fca504b61.png" alt="Seguro Completo">
-                                    </div>
-                                    <div class="extra-info">
-                                        <strong>Seguro Completo</strong>
-                                        <span class="extra-price">+15€/dia</span>
-                                    </div>
                                 </div>
                                 <div class="extra-item selected" style="opacity: 1; cursor: default;">
                                     <input type="checkbox" id="extraRoadTax" value="road_tax" style="display: none;" checked disabled>
@@ -2585,44 +2576,6 @@
             // Calcular extras
             let extrasTotal = 0;
             
-            // Calcular preço do seguro por época, grupo e dias
-            const insuranceCheckbox = document.getElementById('extraInsurance');
-            if (insuranceCheckbox && insuranceCheckbox.checked) {
-                let insurancePrice = 0;
-                
-                // Usar preço por época se disponível, senão usar preço fixo
-                if (selectedGroup && commissionerPricing && commissionerPricing.extras && 
-                    commissionerPricing.extras.insurance && commissionerPricing.extras.insurance.seasons &&
-                    commissionerPricing.extras.insurance.seasons[selectedGroup] &&
-                    commissionerPricing.extras.insurance.seasons[selectedGroup][season]) {
-                    
-                    const seasonPrices = commissionerPricing.extras.insurance.seasons[selectedGroup][season];
-                    
-                    // Determinar faixa de dias
-                    let priceRange = null;
-                    if (diffDays >= 1 && diffDays <= 2) {
-                        priceRange = "1_2";
-                    } else if (diffDays >= 3 && diffDays <= 7) {
-                        priceRange = "3_7";
-                    } else if (diffDays >= 8 && diffDays <= 14) {
-                        priceRange = "8_14";
-                    } else if (diffDays >= 15 && diffDays <= 21) {
-                        priceRange = "14_21";
-                    } else if (diffDays >= 22 && diffDays <= 31) {
-                        priceRange = "21_31";
-                    }
-                    
-                    if (priceRange && seasonPrices[priceRange]) {
-                        insurancePrice = seasonPrices[priceRange];
-                    }
-                } else {
-                    // Usar preço fixo padrão
-                    insurancePrice = 15 * diffDays;
-                }
-                
-                extrasTotal += insurancePrice;
-            }
-
             // Outros extras com checkbox (preço por dia)
             const otherExtraPricesPerDay = {
                 extraGPS: 5,
@@ -2666,10 +2619,40 @@
                 extrasTotal += 20;
             }
 
+            // Calcular seguro (sempre incluído)
+            let insurancePrice = 0;
+            
+            if (selectedGroup && commissionerPricing && commissionerPricing.extras && 
+                commissionerPricing.extras.insurance && commissionerPricing.extras.insurance.seasons &&
+                commissionerPricing.extras.insurance.seasons[selectedGroup] &&
+                commissionerPricing.extras.insurance.seasons[selectedGroup][season]) {
+                
+                const seasonPrices = commissionerPricing.extras.insurance.seasons[selectedGroup][season];
+                
+                // Determinar faixa de dias
+                let priceRange = null;
+                if (diffDays >= 1 && diffDays <= 2) {
+                    priceRange = "1_2";
+                } else if (diffDays >= 3 && diffDays <= 7) {
+                    priceRange = "3_7";
+                } else if (diffDays >= 8 && diffDays <= 14) {
+                    priceRange = "8_14";
+                } else if (diffDays >= 15 && diffDays <= 21) {
+                    priceRange = "14_21";
+                } else if (diffDays >= 22 && diffDays <= 31) {
+                    priceRange = "21_31";
+                }
+                
+                if (priceRange && seasonPrices[priceRange]) {
+                    insurancePrice = seasonPrices[priceRange];
+                }
+            }
+            
+            // Adicionar seguro aos extras
+            extrasTotal += insurancePrice;
+
             // Calcular preço base
             let basePrice = 0;
-            const selectedGroupInput = document.getElementById('selectedVehicleGroup');
-            const selectedGroup = selectedGroupInput ? selectedGroupInput.value : null;
             
             if (selectedGroup && commissionerPricing) {
                 const group = selectedGroup;
