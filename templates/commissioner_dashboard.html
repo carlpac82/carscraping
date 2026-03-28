@@ -1136,7 +1136,7 @@
                                 <div class="extra-item" onclick="toggleExtra('extraGPS')">
                                     <input type="checkbox" id="extraGPS" value="gps" style="display: none;">
                                     <div class="extra-icon">
-                                        <img src="/extras/20210622110214_4dfc5c7374e9c08cd246f03883de4272.png" alt="GPS">
+                                        <img src="/static/extras/20210622110214_4dfc5c7374e9c08cd246f03883de4272.png" alt="GPS">
                                     </div>
                                     <div class="extra-info">
                                         <strong>GPS</strong>
@@ -1146,7 +1146,7 @@
                                 <div class="extra-item" onclick="toggleExtra('extraChildSeat')">
                                     <input type="checkbox" id="extraChildSeat" value="child_seat" style="display: none;">
                                     <div class="extra-icon">
-                                        <img src="/extras/20210622110335_cdc017edeaca896919f46424fcbb5993.png" alt="Cadeira de Criança">
+                                        <img src="/static/extras/20210622110335_cdc017edeaca896919f46424fcbb5993.png" alt="Cadeira de Criança">
                                     </div>
                                     <div class="extra-info">
                                         <strong>Cadeira de Criança</strong>
@@ -1156,7 +1156,7 @@
                                 <div class="extra-item" onclick="toggleExtra('extraBoosterSeat')">
                                     <input type="checkbox" id="extraBoosterSeat" value="booster_seat" style="display: none;">
                                     <div class="extra-icon">
-                                        <img src="/extras/20210622110200_2c7d3744af35fe4f216405fe941ca3ce.png" alt="Booster Seat">
+                                        <img src="/static/extras/20210622110200_2c7d3744af35fe4f216405fe941ca3ce.png" alt="Booster Seat">
                                     </div>
                                     <div class="extra-info">
                                         <strong>Booster Seat</strong>
@@ -1166,7 +1166,7 @@
                                 <div class="extra-item" id="extraAirportItem" onclick="toggleExtra('extraAirport')">
                                     <input type="checkbox" id="extraAirport" value="airport_fee" style="display: none;">
                                     <div class="extra-icon">
-                                        <img src="/extras/20210622110230_9dad37ddb715eda6de2f888a8fc44d30.png" alt="Taxa Aeroporto">
+                                        <img src="/static/extras/20210622110230_9dad37ddb715eda6de2f888a8fc44d30.png" alt="Taxa Aeroporto">
                                     </div>
                                     <div class="extra-info">
                                         <strong>Taxa Aeroporto</strong>
@@ -1177,7 +1177,7 @@
                                 <div class="extra-item" onclick="toggleExtra('extraInsurance')">
                                     <input type="checkbox" id="extraInsurance" value="full_insurance" style="display: none;">
                                     <div class="extra-icon">
-                                        <img src="/extras/20210622110407_876d6e2b4c449ca2242b864fca504b61.png" alt="Seguro Completo">
+                                        <img src="/static/extras/20210622110407_876d6e2b4c449ca2242b864fca504b61.png" alt="Seguro Completo">
                                     </div>
                                     <div class="extra-info">
                                         <strong>Seguro Completo</strong>
@@ -1187,7 +1187,7 @@
                                 <div class="extra-item" onclick="toggleExtra('extraYoungDriver')">
                                     <input type="checkbox" id="extraYoungDriver" value="young_driver" style="display: none;">
                                     <div class="extra-icon">
-                                        <img src="/extras/20260206051651_309aa80495ab5ce88b4c086669edb780.png" alt="Young Driver">
+                                        <img src="/static/extras/20260206051651_309aa80495ab5ce88b4c086669edb780.png" alt="Young Driver">
                                     </div>
                                     <div class="extra-info">
                                         <strong>Young Driver (+21)</strong>
@@ -1197,7 +1197,7 @@
                                 <div class="extra-item" onclick="toggleExtra('extraSeniorDriver')">
                                     <input type="checkbox" id="extraSeniorDriver" value="senior_driver" style="display: none;">
                                     <div class="extra-icon">
-                                        <img src="/extras/20260206053309_a0bdea1741fc1024981d45e3f9a9fe06.png" alt="Senior Driver">
+                                        <img src="/static/extras/20260206053309_a0bdea1741fc1024981d45e3f9a9fe06.png" alt="Senior Driver">
                                     </div>
                                     <div class="extra-info">
                                         <strong>Senior Driver (+75)</strong>
@@ -2180,6 +2180,17 @@
             const priceInput = document.getElementById('price');
             if (priceInput) {
                 priceInput.addEventListener('input', calculatePrice);
+            }
+
+            // Auto-preencher local de recolha quando seleciona local de entrega
+            const pickupLocation = document.getElementById('pickupLocation');
+            const dropoffLocation = document.getElementById('dropoffLocation');
+            if (pickupLocation && dropoffLocation) {
+                pickupLocation.addEventListener('change', function() {
+                    if (this.value && !dropoffLocation.value) {
+                        dropoffLocation.value = this.value;
+                    }
+                });
             }
         });
 
