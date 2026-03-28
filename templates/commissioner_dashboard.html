@@ -2226,6 +2226,11 @@
                 btnSubmit.style.display = 'none';
             }
 
+            // Atualizar cálculo de dias no passo 1
+            if (currentWizardStep === 1) {
+                calculateDays();
+            }
+
             // Atualizar cálculo de preço no passo 3
             if (currentWizardStep === 3) {
                 calculatePrice();
