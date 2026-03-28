@@ -6511,7 +6511,7 @@ async def api_get_commissioner_pricing(request: Request):
                     val = _get_setting(f"commissioner_season_{group}_{season}_day{day}", "0")
                     pricing_data["seasons"][group][season][f"day{day}"] = float(val)
         
-        # Load insurance pricing by season, group and days
+        # Load insurance pricing by season, group and day ranges
         pricing_data["extras"]["insurance"]["seasons"] = {}
         for group in groups:
             pricing_data["extras"]["insurance"]["seasons"][group] = {
@@ -6520,9 +6520,14 @@ async def api_get_commissioner_pricing(request: Request):
                 "high": {}
             }
             for season in ['low', 'mid', 'high']:
-                for day in range(1, 8):
-                    val = _get_setting(f"commissioner_insurance_{group}_{season}_day{day}", "0")
-                    pricing_data["extras"]["insurance"]["seasons"][group][season][f"day{day}"] = float(val)
+                # Faixas de dias: 1-2, 3-7, 8-14, 14-21, 21-31
+                pricing_data["extras"]["insurance"]["seasons"][group][season] = {
+                    "1_2": float(_get_setting(f"commissioner_insurance_{group}_{season}_1_2_days", "0")),
+                    "3_7": float(_get_setting(f"commissioner_insurance_{group}_{season}_3_7_days", "0")),
+                    "8_14": float(_get_setting(f"commissioner_insurance_{group}_{season}_8_14_days", "0")),
+                    "14_21": float(_get_setting(f"commissioner_insurance_{group}_{season}_14_21_days", "0")),
+                    "21_31": float(_get_setting(f"commissioner_insurance_{group}_{season}_21_31_days", "0"))
+                }
         
         # Load season periods (multiple date ranges per season)
         pricing_data["season_periods"] = {}
@@ -6643,6 +6648,88 @@ async def admin_set_test_periods(request: Request):
         
         logging.info("✅ Test periods set successfully")
         return JSONResponse({"ok": True, "message": "Test periods set"})
+        
+    except Exception as e:
+        traceback.print_exc()
+        return JSONResponse({"ok": False, "error": str(e)}, status_code=500)
+
+@app.post("/admin/set-test-insurance-pricing")
+async def set_test_insurance_pricing(request: Request):
+    """Set test insurance pricing by group, season and day ranges"""
+    try:
+        require_admin(request)
+    except HTTPException:
+        return JSONResponse({"ok": False, "error": "Unauthorized"}, status_code=401)
+    
+    try:
+        # Grupo A - Preços por faixa de dias e épocas
+        # Época Baixa
+        _set_setting("commissioner_insurance_A_low_1_2_days", "5")
+        _set_setting("commissioner_insurance_A_low_3_7_days", "8")
+        _set_setting("commissioner_insurance_A_low_8_14_days", "12")
+        _set_setting("commissioner_insurance_A_low_14_21_days", "18")
+        _set_setting("commissioner_insurance_A_low_21_31_days", "25")
+        
+        # Época Média
+        _set_setting("commissioner_insurance_A_mid_1_2_days", "7")
+        _set_setting("commissioner_insurance_A_mid_3_7_days", "10")
+        _set_setting("commissioner_insurance_A_mid_8_14_days", "15")
+        _set_setting("commissioner_insurance_A_mid_14_21_days", "22")
+        _set_setting("commissioner_insurance_A_mid_21_31_days", "30")
+        
+        # Época Alta
+        _set_setting("commissioner_insurance_A_high_1_2_days", "10")
+        _set_setting("commissioner_insurance_A_high_3_7_days", "15")
+        _set_setting("commissioner_insurance_A_high_8_14_days", "20")
+        _set_setting("commissioner_insurance_A_high_14_21_days", "28")
+        _set_setting("commissioner_insurance_A_high_21_31_days", "35")
+        
+        # Grupo B - Preços por faixa de dias e épocas
+        # Época Baixa
+        _set_setting("commissioner_insurance_B_low_1_2_days", "6")
+        _set_setting("commissioner_insurance_B_low_3_7_days", "9")
+        _set_setting("commissioner_insurance_B_low_8_14_days", "13")
+        _set_setting("commissioner_insurance_B_low_14_21_days", "19")
+        _set_setting("commissioner_insurance_B_low_21_31_days", "26")
+        
+        # Época Média
+        _set_setting("commissioner_insurance_B_mid_1_2_days", "8")
+        _set_setting("commissioner_insurance_B_mid_3_7_days", "12")
+        _set_setting("commissioner_insurance_B_mid_8_14_days", "18")
+        _set_setting("commissioner_insurance_B_mid_14_21_days", "25")
+        _set_setting("commissioner_insurance_B_mid_21_31_days", "32")
+        
+        # Época Alta
+        _set_setting("commissioner_insurance_B_high_1_2_days", "12")
+        _set_setting("commissioner_insurance_B_high_3_7_days", "18")
+        _set_setting("commissioner_insurance_B_high_8_14_days", "25")
+        _set_setting("commissioner_insurance_B_high_14_21_days", "32")
+        _set_setting("commissioner_insurance_B_high_21_31_days", "40")
+        
+        # Grupo D - Preços por faixa de dias e épocas
+        # Época Baixa
+        _set_setting("commissioner_insurance_D_low_1_2_days", "7")
+        _set_setting("commissioner_insurance_D_low_3_7_days", "10")
+        _set_setting("commissioner_insurance_D_low_8_14_days", "14")
+        _set_setting("commissioner_insurance_D_low_14_21_days", "20")
+        _set_setting("commissioner_insurance_D_low_21_31_days", "28")
+        
+        # Época Média
+        _set_setting("commissioner_insurance_D_mid_1_2_days", "9")
+        _set_setting("commissioner_insurance_D_mid_3_7_days", "13")
+        _set_setting("commissioner_insurance_D_mid_8_14_days", "19")
+        _set_setting("commissioner_insurance_D_mid_14_21_days", "26")
+        _set_setting("commissioner_insurance_D_mid_21_31_days", "35")
+        
+        # Época Alta
+        _set_setting("commissioner_insurance_D_high_1_2_days", "14")
+        _set_setting("commissioner_insurance_D_high_3_7_days", "20")
+        _set_setting("commissioner_insurance_D_high_8_14_days", "28")
+        _set_setting("commissioner_insurance_D_high_14_21_days", "35")
+        _set_setting("commissioner_insurance_D_high_21_31_days", "45")
+        
+        logging.info("✅ Test insurance pricing set successfully")
+        return JSONResponse({"ok": True, "message": "Test insurance pricing set successfully"})
         
     except Exception as e:
         logging.error(f"Error setting test periods: {e}")
