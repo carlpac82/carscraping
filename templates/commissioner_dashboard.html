@@ -1330,14 +1330,25 @@
                                         <span class="extra-note" style="font-size: 11px; color: #6b7280;">Mínimo 5 dias</span>
                                     </div>
                                 </div>
-                                <div class="extra-item" onclick="toggleExtra('extraInsurance')">
-                                    <input type="checkbox" id="extraInsurance" value="full_insurance" style="display: none;">
+                                <div class="extra-item selected" onclick="toggleExtra('extraInsurance')">
+                                    <input type="checkbox" id="extraInsurance" value="full_insurance" style="display: none;" checked>
                                     <div class="extra-icon">
                                         <img src="/static/extras/20210622110407_876d6e2b4c449ca2242b864fca504b61.png" alt="Seguro Completo">
                                     </div>
                                     <div class="extra-info">
                                         <strong>Seguro Completo</strong>
                                         <span class="extra-price">+15€/dia</span>
+                                    </div>
+                                </div>
+                                <div class="extra-item selected" onclick="toggleExtra('extraRoadTax')">
+                                    <input type="checkbox" id="extraRoadTax" value="road_tax" style="display: none;" checked>
+                                    <div class="extra-icon">
+                                        <img src="/static/extras/20210622110200_2c7d3744af35fe4f216405fe941ca3ce.png" alt="Road Tax">
+                                    </div>
+                                    <div class="extra-info">
+                                        <strong>Road Tax</strong>
+                                        <span class="extra-price">+2,23€/dia</span>
+                                        <span class="extra-note" style="font-size: 11px; color: #6b7280;">Máximo 10 dias</span>
                                     </div>
                                 </div>
                                 <div class="extra-item" onclick="toggleExtra('extraYoungDriver')">
@@ -2322,6 +2333,13 @@
                     extrasTotal += extraPricesPerDay[extraId] * diffDays;
                 }
             });
+            
+            // Road Tax - 2,23€/dia (máximo 10 dias)
+            const roadTaxCheckbox = document.getElementById('extraRoadTax');
+            if (roadTaxCheckbox && roadTaxCheckbox.checked) {
+                const roadTaxDays = Math.min(diffDays, 10);
+                extrasTotal += 2.23 * roadTaxDays;
+            }
             
             // Extras com quantidade (preço por dia × quantidade)
             const extraQuantityPrices = {
