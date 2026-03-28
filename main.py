@@ -6511,6 +6511,23 @@ async def api_get_commissioner_pricing(request: Request):
                     val = _get_setting(f"commissioner_season_{group}_{season}_day{day}", "0")
                     pricing_data["seasons"][group][season][f"day{day}"] = float(val)
         
+        # Load season periods (multiple date ranges per season)
+        pricing_data["season_periods"] = {}
+        for season in ['low', 'mid', 'high']:
+            pricing_data["season_periods"][season] = []
+            # Check up to 10 periods per season
+            for i in range(10):
+                start_date = _get_setting(f"commissioner_season_{season}_period_{i}_start_date", "")
+                end_date = _get_setting(f"commissioner_season_{season}_period_{i}_end_date", "")
+                if start_date or end_date:
+                    pricing_data["season_periods"][season].append({
+                        "start_date": start_date,
+                        "end_date": end_date
+                    })
+                else:
+                    # Stop when no more periods found
+                    break
+        
         return JSONResponse({"ok": True, "data": pricing_data})
         
     except Exception as e:
@@ -6564,6 +6581,17 @@ async def api_save_commissioner_pricing(request: Request):
                     for day_key, price in days.items():
                         key = f"commissioner_season_{group}_{season_type}_{day_key}"
                         _set_setting(key, str(price))
+        
+        # Save season periods (multiple date ranges per season)
+        if "season_periods" in data:
+            logging.info(f"💾 Saving season periods for {len(data['season_periods'])} seasons...")
+            for season_type, periods in data["season_periods"].items():
+                for i, period in enumerate(periods):
+                    start_date = period.get("start_date", "")
+                    end_date = period.get("end_date", "")
+                    key = f"commissioner_season_{season_type}_period_{i}"
+                    _set_setting(f"{key}_start_date", start_date)
+                    _set_setting(f"{key}_end_date", end_date)
         
         logging.info("✅ All pricing data saved successfully")
         return JSONResponse({"ok": True})
