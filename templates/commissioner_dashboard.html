@@ -2161,22 +2161,6 @@
                         alert('Por favor, preencha todos os campos obrigatórios.');
                         return false;
                     }
-                    
-                    // Validar mínimo de 5 dias
-                    const pickup = new Date(pickupDate + 'T' + pickupTime);
-                    const dropoff = new Date(dropoffDate + 'T' + dropoffTime);
-                    const diffMs = dropoff - pickup;
-                    const msPerDay = 24 * 60 * 60 * 1000;
-                    let days = Math.floor(diffMs / msPerDay);
-                    if (diffMs % msPerDay > 0) {
-                        days += 1;
-                    }
-                    
-                    if (days < 5) {
-                        alert('O período mínimo de aluguer é de 5 dias.');
-                        return false;
-                    }
-                    
                     return true;
 
                 case 2: // Veículo
@@ -2495,9 +2479,9 @@
                 }
             });
 
-            // Taxa aeroporto - taxa única de 20€
+            // Taxa aeroporto - taxa única de 50€
             if (airportCheckbox && airportCheckbox.checked) {
-                extrasTotal += 20;
+                extrasTotal += 50;
             }
 
             // Atualizar preço no resumo do veículo (apenas extras, sem preço base)
@@ -2645,17 +2629,7 @@
                 days += 1;
             }
 
-            const daysDisplay = document.getElementById('daysDisplay');
-            daysDisplay.textContent = `${days} dia${days !== 1 ? 's' : ''}`;
-            
-            // Adicionar aviso se menos de 5 dias
-            if (days < 5) {
-                daysDisplay.style.color = '#ef4444';
-                daysDisplay.title = 'Mínimo de 5 dias de aluguer';
-            } else {
-                daysDisplay.style.color = '';
-                daysDisplay.title = '';
-            }
+            document.getElementById('daysDisplay').textContent = `${days} dia${days !== 1 ? 's' : ''}`;
         }
 
         // Event listeners para popular horários quando data muda
