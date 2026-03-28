@@ -667,6 +667,15 @@ async def get_vehicle_groups_endpoint(request: Request):
             "groups": groups
         })
     except Exception as e:
+        import traceback
+        print(f"Error loading car_groups: {e}")
+        print(traceback.format_exc())
+        try:
+            if 'conn' in locals():
+                conn.rollback()
+                conn.close()
+        except:
+            pass
         return JSONResponse({
             "ok": False,
             "error": str(e)
@@ -702,6 +711,12 @@ async def get_commissioner_locations(request: Request):
         import traceback
         print(f"Error in get_commissioner_locations: {e}")
         print(traceback.format_exc())
+        try:
+            if 'conn' in locals():
+                conn.rollback()
+                conn.close()
+        except:
+            pass
         return JSONResponse({
             "ok": False,
             "error": str(e)
