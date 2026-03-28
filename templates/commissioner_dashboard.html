@@ -873,118 +873,186 @@
             color: #009cb6;
         }
 
-        /* Insurance Section */
-        .insurance-section {
-            background: linear-gradient(135deg, #f0f9fb 0%, #e6f7fa 100%);
-            border: 2px solid #009cb6;
-            border-radius: 12px;
-            padding: 20px;
+        /* Protection Section - Inspired by Sixt/Hertz/Enterprise */
+        .protection-section {
+            margin-bottom: 30px;
+        }
+
+        .section-header {
+            text-align: center;
             margin-bottom: 25px;
-            position: relative;
-            overflow: hidden;
         }
 
-        .insurance-section::before {
-            content: '';
-            position: absolute;
-            top: 0;
-            right: 0;
-            width: 80px;
-            height: 80px;
-            background: linear-gradient(135deg, #009cb6 0%, #007a8f 100%);
-            border-radius: 0 12px 0 80px;
-            opacity: 0.1;
-        }
-
-        .insurance-header {
-            display: flex;
-            align-items: center;
-            gap: 15px;
-            margin-bottom: 15px;
-        }
-
-        .insurance-icon {
-            width: 50px;
-            height: 50px;
-            background: linear-gradient(135deg, #009cb6 0%, #007a8f 100%);
-            border-radius: 12px;
+        .section-title {
             display: flex;
             align-items: center;
             justify-content: center;
-            color: white;
+            gap: 12px;
             font-size: 24px;
-            box-shadow: 0 4px 12px rgba(0, 156, 182, 0.25);
-        }
-
-        .insurance-title {
-            flex: 1;
-        }
-
-        .insurance-title h4 {
-            margin: 0 0 5px 0;
-            font-size: 18px;
             font-weight: 700;
             color: #1f2937;
+            margin: 0 0 8px 0;
         }
 
-        .insurance-subtitle {
-            font-size: 14px;
-            color: #009cb6;
-            font-weight: 600;
+        .section-icon {
+            font-size: 28px;
         }
 
-        .insurance-details {
+        .section-subtitle {
+            font-size: 16px;
+            color: #6b7280;
+            margin: 0;
+            font-weight: 400;
+        }
+
+        .protection-grid {
             display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 15px;
-            margin-top: 15px;
+            grid-template-columns: 1fr;
+            gap: 20px;
+            max-width: 600px;
+            margin: 0 auto;
         }
 
-        .insurance-detail {
+        .protection-card {
+            background: white;
+            border: 2px solid #e5e7eb;
+            border-radius: 16px;
+            overflow: hidden;
+            transition: all 0.3s ease;
+            position: relative;
+        }
+
+        .protection-card.featured {
+            border-color: #009cb6;
+            box-shadow: 0 8px 25px rgba(0, 156, 182, 0.15);
+            transform: translateY(-2px);
+        }
+
+        .protection-card.featured:hover {
+            box-shadow: 0 12px 35px rgba(0, 156, 182, 0.25);
+            transform: translateY(-4px);
+        }
+
+        .card-header {
+            padding: 24px;
+            background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);
+            border-bottom: 1px solid #e5e7eb;
+            position: relative;
+        }
+
+        .protection-card.featured .card-header {
+            background: linear-gradient(135deg, #f0f9fb 0%, #e6f7fa 100%);
+            border-bottom-color: #009cb6;
+        }
+
+        .card-badge {
+            position: absolute;
+            top: 12px;
+            right: 12px;
+            background: linear-gradient(135deg, #009cb6 0%, #007a8f 100%);
+            color: white;
+            font-size: 11px;
+            font-weight: 600;
+            padding: 4px 12px;
+            border-radius: 12px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .card-title {
+            font-size: 20px;
+            font-weight: 700;
+            color: #1f2937;
+            margin: 0 0 12px 0;
+        }
+
+        .card-price {
+            display: flex;
+            align-items: baseline;
+            gap: 8px;
+        }
+
+        .price-calc {
+            font-size: 18px;
+            font-weight: 700;
+            color: #009cb6;
+        }
+
+        .price-info {
+            font-size: 14px;
+            color: #6b7280;
+            font-weight: 500;
+        }
+
+        .card-content {
+            padding: 24px;
+        }
+
+        .benefits-list {
+            margin-bottom: 20px;
+        }
+
+        .benefit-item {
             display: flex;
             align-items: flex-start;
-            gap: 10px;
+            gap: 12px;
+            margin-bottom: 12px;
         }
 
-        .insurance-detail-icon {
+        .benefit-item:last-child {
+            margin-bottom: 0;
+        }
+
+        .benefit-icon {
             width: 20px;
             height: 20px;
-            background: #009cb6;
+            background: linear-gradient(135deg, #10b981 0%, #059669 100%);
             border-radius: 50%;
             display: flex;
             align-items: center;
             justify-content: center;
             color: white;
             font-size: 12px;
+            font-weight: 600;
             flex-shrink: 0;
             margin-top: 2px;
         }
 
-        .insurance-detail-text {
-            font-size: 13px;
-            color: #4b5563;
-            line-height: 1.4;
+        .benefit-text {
+            font-size: 14px;
+            color: #374151;
+            line-height: 1.5;
         }
 
-        .insurance-exclusions {
-            margin-top: 15px;
-            padding: 12px;
-            background: rgba(255, 255, 255, 0.7);
+        .exclusions {
+            padding: 16px;
+            background: #fef3c7;
             border-radius: 8px;
             border-left: 3px solid #f59e0b;
         }
 
-        .insurance-exclusions-title {
+        .exclusions-title {
             font-size: 12px;
             font-weight: 600;
             color: #d97706;
-            margin-bottom: 5px;
+            margin-bottom: 8px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
         }
 
-        .insurance-exclusions-list {
+        .exclusions-list {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+        }
+
+        .exclusions-list span {
             font-size: 12px;
             color: #6b7280;
-            line-height: 1.4;
+            background: white;
+            padding: 4px 8px;
+            border-radius: 4px;
+            border: 1px solid #fed7aa;
         }
 
         /* Section Divider */
@@ -1426,52 +1494,54 @@
                         </div>
                         
                         <!-- Seguro Premium -->
-                        <div class="insurance-section">
-                            <div class="insurance-header">
-                                <div class="insurance-icon">🛡️</div>
-                                <div class="insurance-title">
-                                    <h4>Seguro Premium</h4>
-                                    <div class="insurance-subtitle">Redução de franquia para 0€ • Depósito: 200€</div>
-                                </div>
+                        <div class="protection-section">
+                            <div class="section-header">
+                                <h3 class="section-title">
+                                    <span class="section-icon">🛡️</span>
+                                    Proteção e Seguro
+                                </h3>
+                                <p class="section-subtitle">Escolha a cobertura ideal para sua tranquilidade</p>
                             </div>
                             
-                            <div class="insurance-details">
-                                <div class="insurance-detail">
-                                    <div class="insurance-detail-icon">✓</div>
-                                    <div class="insurance-detail-text">
-                                        <strong>Cobertura Completa</strong><br>
-                                        Proteção total contra danos
+                            <div class="protection-grid">
+                                <!-- Plano Premium -->
+                                <div class="protection-card featured">
+                                    <div class="card-header">
+                                        <div class="card-badge">RECOMENDADO</div>
+                                        <h4 class="card-title">Seguro Premium</h4>
+                                        <div class="card-price">
+                                            <span class="price-calc">25€/dia</span>
+                                            <span class="price-info">Franquia 0€</span>
+                                        </div>
                                     </div>
-                                </div>
-                                <div class="insurance-detail">
-                                    <div class="insurance-detail-icon">✓</div>
-                                    <div class="insurance-detail-text">
-                                        <strong>Franquia Zero</strong><br>
-                                        Sem custos adicionais
+                                    <div class="card-content">
+                                        <div class="benefits-list">
+                                            <div class="benefit-item">
+                                                <span class="benefit-icon">✓</span>
+                                                <span class="benefit-text">Cobertura completa contra danos</span>
+                                            </div>
+                                            <div class="benefit-item">
+                                                <span class="benefit-icon">✓</span>
+                                                <span class="benefit-text">Franquia zero (sem custos adicionais)</span>
+                                            </div>
+                                            <div class="benefit-item">
+                                                <span class="benefit-icon">✓</span>
+                                                <span class="benefit-text">Assistência 24h em todo o país</span>
+                                            </div>
+                                            <div class="benefit-item">
+                                                <span class="benefit-icon">✓</span>
+                                                <span class="benefit-text">Depósito reduzido: apenas 200€</span>
+                                            </div>
+                                        </div>
+                                        <div class="exclusions">
+                                            <div class="exclusions-title">Não incluído:</div>
+                                            <div class="exclusions-list">
+                                                <span>Chaves de rodas</span>
+                                                <span>Parte inferior do carro</span>
+                                                <span>Interior do veículo</span>
+                                            </div>
+                                        </div>
                                     </div>
-                                </div>
-                                <div class="insurance-detail">
-                                    <div class="insurance-detail-icon">✓</div>
-                                    <div class="insurance-detail-text">
-                                        <strong>Assistência 24h</strong><br>
-                                        Suporte em todo o país
-                                    </div>
-                                </div>
-                                <div class="insurance-detail">
-                                    <div class="insurance-detail-icon">✓</div>
-                                    <div class="insurance-detail-text">
-                                        <strong>Depósito Reduzido</strong><br>
-                                        Apenas 200€ de caução
-                                    </div>
-                                </div>
-                            </div>
-                            
-                            <div class="insurance-exclusions">
-                                <div class="insurance-exclusions-title">⚠️ Não incluído na cobertura:</div>
-                                <div class="insurance-exclusions-list">
-                                    • Chaves de rodas<br>
-                                    • Parte de baixo do carro<br>
-                                    • Interior do veículo
                                 </div>
                             </div>
                         </div>
