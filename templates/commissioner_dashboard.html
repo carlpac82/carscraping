@@ -3877,7 +3877,7 @@
                 language: document.getElementById('language').value,
                 observations: document.getElementById('observations').value || null,
                 deposit: document.getElementById('deposit') ? parseFloat(document.getElementById('deposit').value) || 0 : 0,
-                price: document.getElementById('price') ? parseFloat(document.getElementById('price').value) : 0,
+                price: parseFloat(document.getElementById('summaryTotalPrice').textContent.replace('€', '').replace(',', '.')) || 0,
                 extras: []
             };
 
