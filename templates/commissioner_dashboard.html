@@ -2706,7 +2706,7 @@
                 <table class="bookings-table">
                     <thead>
                         <tr>
-                            <th>ID</th>
+                            <th>Voucher</th>
                             <th>Cliente</th>
                             <th>Veículo</th>
                             <th>Data</th>
@@ -2720,7 +2720,7 @@
                     <tbody>
                         ${filtered.map(booking => `
                             <tr>
-                                <td>#${booking.id}</td>
+                                <td>${booking.voucher_number || '#' + booking.id}</td>
                                 <td>${booking.client_name || 'N/A'}</td>
                                 <td>${booking.vehicle_group || 'N/A'}</td>
                                 <td>${new Date(booking.pickup_date).toLocaleDateString('pt-PT')}</td>
