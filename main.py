@@ -1285,7 +1285,6 @@ def combine_croqui_with_damages(delivery_croqui_base64=None, pickup_damages=None
         logging.error(traceback.format_exc())
         return delivery_croqui_base64
 
-# ============================================================
 # LIFESPAN CONTEXT MANAGER (replaces deprecated @app.on_event)
 # ============================================================
 @asynccontextmanager
@@ -1307,6 +1306,28 @@ async def lifespan(app: FastAPI):
         from current_prices_module import setup_db
         setup_db()
         logging.info("current_prices table setup completed")
+        
+        # Executar migration das colunas hotel, room_number e deposit
+        try:
+            cursor = conn.cursor()
+            cursor.execute("""
+                ALTER TABLE commission_bookings 
+                ADD COLUMN IF NOT EXISTS hotel VARCHAR(255)
+            """)
+            cursor.execute("""
+                ALTER TABLE commission_bookings 
+                ADD COLUMN IF NOT EXISTS room_number VARCHAR(50)
+            """)
+            cursor.execute("""
+                ALTER TABLE commission_bookings 
+                ADD COLUMN IF NOT EXISTS deposit DECIMAL(10, 2) DEFAULT 0.00
+            """)
+            conn.commit()
+            cursor.close()
+            logging.info("✅ Added hotel, room_number and deposit columns to commission_bookings")
+        except Exception as e:
+            logging.warning(f"⚠️ Migration error: {str(e)}")
+            
     except Exception as e:
         logging.error(f"Database initialization error: {e}")
         import traceback
