@@ -2464,10 +2464,10 @@
                         ${filtered.map(booking => `
                             <tr>
                                 <td>#${booking.id}</td>
-                                <td>${booking.customer_name || 'N/A'}</td>
-                                <td>${booking.vehicle_model || 'N/A'}</td>
-                                <td>${new Date(booking.booking_date).toLocaleDateString('pt-PT')}</td>
-                                <td>€${(booking.total_amount || 0).toFixed(2)}</td>
+                                <td>${booking.client_name || 'N/A'}</td>
+                                <td>${booking.vehicle_group || 'N/A'}</td>
+                                <td>${new Date(booking.pickup_date).toLocaleDateString('pt-PT')}</td>
+                                <td>€${(booking.price || 0).toFixed(2)}</td>
                                 <td>${(booking.commission_rate || 0).toFixed(1)}%</td>
                                 <td class="commission-value">€${(booking.commission_amount || 0).toFixed(2)}</td>
                                 <td><span class="status-badge status-${booking.status}">${statusMap[booking.status] || booking.status}</span></td>
