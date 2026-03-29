@@ -3834,7 +3834,7 @@
                 flight_number: document.getElementById('flightNumber').value || null,
                 language: document.getElementById('language').value,
                 observations: document.getElementById('observations').value || null,
-                deposit: parseFloat(document.getElementById('deposit').value) || 0,
+                deposit: document.getElementById('deposit') ? parseFloat(document.getElementById('deposit').value) || 0 : 0,
                 price: parseFloat(document.getElementById('price').value),
                 extras: []
             };
