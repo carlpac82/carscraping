@@ -4617,15 +4617,25 @@
                             
                             // Check contract status BEFORE auto-filling fields
                             if (ra.contract_closed === true) {
-                                // Contract CLOSED (has check-in AND check-out) - DO NOT fill RA field
-                                // Clear RA field to prevent accidental use of closed contract
-                                document.getElementById('inputRA').value = '';
-                                const emailInput = document.getElementById('reportEmail');
-                                if (emailInput) emailInput.value = '';
-                                window.currentRAData = null;
-                                showContractStatusPopup(plate, ra.rental_agreement_number, 'closed');
-                                disableBothButtons();
-                                console.log('🚫 Contract closed: RA field cleared, buttons disabled until new RA is uploaded');
+                                // Contract CLOSED (has check-in AND check-out)
+                                // Only clear RA field if it matches the closed contract
+                                const currentRA = document.getElementById('inputRA').value.trim();
+                                const closedRA = ra.rental_agreement_number;
+                                
+                                if (!currentRA || currentRA === closedRA || currentRA.startsWith(closedRA.split('-')[0])) {
+                                    // Clear RA field only if empty or matches closed contract
+                                    document.getElementById('inputRA').value = '';
+                                    const emailInput = document.getElementById('reportEmail');
+                                    if (emailInput) emailInput.value = '';
+                                    window.currentRAData = null;
+                                    showContractStatusPopup(plate, ra.rental_agreement_number, 'closed');
+                                    disableBothButtons();
+                                    console.log('🚫 Contract closed: RA field cleared, buttons disabled until new RA is uploaded');
+                                } else {
+                                    // Different RA already in field (new upload) - don't clear it
+                                    console.log(`✅ Different RA in field (${currentRA}) - keeping it despite closed contract ${closedRA}`);
+                                    enableCheckInOnly();
+                                }
                             } else if (ra.has_checkin === true && ra.has_checkout === false) {
                                 // Auto-fill RA for open contract
                                 document.getElementById('inputRA').value = ra.rental_agreement_number;
