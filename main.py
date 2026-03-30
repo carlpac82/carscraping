@@ -43468,6 +43468,10 @@ async def export_automated_prices_excel(request: Request):
                         # Get the price exactly as it exists in Abbycar system (already has all adjustments)
                         price = calculate_price_for_day(group_prices, int(day_key))
                         
+                        # DEBUG: Log day 28 specifically
+                        if day_key == 28 and grupo == 'B1':
+                            print(f"[EXCEL DEBUG] Day 28 for B1: price={price}, group_prices keys={list(group_prices.keys())}", flush=True)
+                        
                         # Start with base price (0 if no price)
                         final_price = float(price) if price else 0.0
                         
