@@ -31900,7 +31900,45 @@ async def save_inspection(request: Request):
         logging.info(f"📧 Email config - email: '{email}', send_email: {send_email} (type: {type(send_email).__name__})")
         
         # ============================================================
-        # VALIDAÇÃO CRÍTICA: Bloquear inspeções em contratos encerrados
+        # VALIDAÇÃO CRÍTICA 1: Verificar se RA corresponde à matrícula
+        # ============================================================
+        if ra and plate:
+            try:
+                conn_verify = _db_connect()
+                is_postgres_verify = _is_postgresql_connection(conn_verify)
+                
+                if is_postgres_verify:
+                    with conn_verify.cursor() as cur_verify:
+                        cur_verify.execute("""
+                            SELECT license_plate 
+                            FROM rental_agreements 
+                            WHERE rental_agreement_number = %s
+                        """, (ra,))
+                        result = cur_verify.fetchone()
+                else:
+                    cursor_verify = conn_verify.execute("""
+                        SELECT license_plate 
+                        FROM rental_agreements 
+                        WHERE rental_agreement_number = ?
+                    """, (ra,))
+                    result = cursor_verify.fetchone()
+                
+                conn_verify.close()
+                
+                if result:
+                    ra_plate = result[0] if isinstance(result, tuple) else result['license_plate']
+                    if ra_plate and ra_plate.upper() != plate.upper():
+                        logging.error(f"🚫 MISMATCH: RA {ra} belongs to plate {ra_plate}, but trying to save for plate {plate}")
+                        return JSONResponse({
+                            "success": False,
+                            "error": f"Erro: O contrato {ra} pertence à matrícula {ra_plate}, não à matrícula {plate}. Verifique se selecionou o contrato correto."
+                        }, status_code=400)
+                        
+            except Exception as verify_err:
+                logging.warning(f"⚠️ Error verifying RA/plate match: {verify_err}")
+        
+        # ============================================================
+        # VALIDAÇÃO CRÍTICA 2: Bloquear inspeções em contratos encerrados
         # Um contrato encerrado tem check-in E check-out completos
         # ============================================================
         if ra and plate:
