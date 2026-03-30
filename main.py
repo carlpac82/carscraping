@@ -42103,6 +42103,13 @@ async def export_abbycar_excel(request: Request):
                         
                         for day, key in dias_map.items():
                             net_price = precos.get(str(day), 0)
+                            
+                            # FALLBACK: Se dia 28 não existir, usar dia 31 (homepage só guarda 1-7 e 31)
+                            if day == 28 and (not net_price or float(net_price) <= 0):
+                                net_price = precos.get(str(31), 0)
+                                if net_price and float(net_price) > 0:
+                                    print(f"[BACKEND] Using day 31 price as fallback for day 28: {net_price}", flush=True)
+                            
                             use_fixed_price = False
                             
                             # Use default price if no price in database for days 1-4 and location is Aeroporto de Faro
@@ -42221,7 +42228,7 @@ async def export_abbycar_excel(request: Request):
                 prices = row_data.get('prices', {})
                 price_keys = ['1_day_fixed', '2_day_fixed', '3_day_fixed', '4_day_fixed', '5_day_fixed',
                              '6_day_fixed', '7_day_fixed', '8_10_daily', '11_12_daily', '13_14_daily',
-                             '15_21_daily', '22_31_daily']
+                             '15_21_daily', '22_28_daily']
                 
                 # Default prices for Faro (same as in export_all_periods logic)
                 default_prices_faro_by_sipp = {
