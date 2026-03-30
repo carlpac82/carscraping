@@ -31939,10 +31939,9 @@ async def save_inspection(request: Request):
         
         # ============================================================
         # VALIDAÇÃO CRÍTICA 2: Bloquear inspeções em contratos encerrados
-        # TEMPORARIAMENTE DESATIVADA - Permitir guardar inspeção em cache
+        # Um contrato encerrado tem check-in E check-out completos
         # ============================================================
-        # TODO: Reativar após resolver problema de cache no frontend
-        if False and ra and plate:  # DISABLED TEMPORARILY
+        if ra and plate:
             try:
                 conn_check = _db_connect()
                 is_postgres_check = _is_postgresql_connection(conn_check)
