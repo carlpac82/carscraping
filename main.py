@@ -42068,6 +42068,14 @@ async def export_abbycar_excel(request: Request):
                     
                     # Process each grupo
                     for grupo, precos in prices_data.items():
+                        # DEBUG: Log available days for first grupo
+                        if grupo == 'B1':
+                            available_days = list(precos.keys())
+                            print(f"[BACKEND DEBUG] Grupo B1 has prices for days: {available_days}", flush=True)
+                            if '28' in precos:
+                                print(f"[BACKEND DEBUG] Day 28 price for B1: {precos['28']}", flush=True)
+                            else:
+                                print(f"[BACKEND DEBUG] Day 28 NOT FOUND in B1 prices!", flush=True)
                         sipp_models = grupo_sipp_map.get(grupo, [])
                         if not sipp_models:
                             continue
@@ -42103,13 +42111,6 @@ async def export_abbycar_excel(request: Request):
                         
                         for day, key in dias_map.items():
                             net_price = precos.get(str(day), 0)
-                            
-                            # FALLBACK: Se dia 28 não existir, usar dia 31 (homepage só guarda 1-7 e 31)
-                            if day == 28 and (not net_price or float(net_price) <= 0):
-                                net_price = precos.get(str(31), 0)
-                                if net_price and float(net_price) > 0:
-                                    print(f"[BACKEND] Using day 31 price as fallback for day 28: {net_price}", flush=True)
-                            
                             use_fixed_price = False
                             
                             # Use default price if no price in database for days 1-4 and location is Aeroporto de Faro
