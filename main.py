@@ -42263,6 +42263,10 @@ async def export_abbycar_excel(request: Request):
                     base_price_val = prices.get(key, '')
                     use_fixed_price = False
                     
+                    # DEBUG: Log when processing 22_28_daily column
+                    if key == '22_28_daily' and sipp_code == 'MDMV':
+                        print(f"[EXCEL WRITE DEBUG] Processing {key} for {sipp_code}: base_price_val={base_price_val}, prices keys={list(prices.keys())}", flush=True)
+                    
                     # Apply Faro defaults if price is empty and location is Faro/FAO
                     if (not base_price_val or (isinstance(base_price_val, str) and base_price_val.strip() == '') or 
                         (isinstance(base_price_val, (int, float)) and float(base_price_val) == 0)):
