@@ -42113,6 +42113,10 @@ async def export_abbycar_excel(request: Request):
                             net_price = precos.get(str(day), 0)
                             use_fixed_price = False
                             
+                            # DEBUG: Log day 28 processing
+                            if day == 28 and grupo == 'B1':
+                                print(f"[BUILD PRICES DEBUG] Day 28 for B1: net_price={net_price}, key={key}", flush=True)
+                            
                             # Use default price if no price in database for days 1-4 and location is Aeroporto de Faro
                             if (not net_price or float(net_price) <= 0) and location == 'Aeroporto de Faro':
                                 # Get first SIPP code from this grupo
@@ -42140,6 +42144,10 @@ async def export_abbycar_excel(request: Request):
                                     else:
                                         # Daily price (divide total by days) with commission
                                         prices[key] = str(round(price_with_commission / day, 2))
+                                
+                                # DEBUG: Log day 28 after adding to prices dict
+                                if day == 28 and grupo == 'B1':
+                                    print(f"[BUILD PRICES DEBUG] Day 28 for B1 ADDED: prices['{key}'] = {prices[key]}", flush=True)
                         
                         # Add row for each SIPP code in this grupo
                         for sipp_code, model in sipp_models:
