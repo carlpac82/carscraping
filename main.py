@@ -31767,7 +31767,7 @@ async def clean_extra_coordinates(request: Request):
             for field in old_extra_fields:
                 cur.execute('''
                     DELETE FROM commissioner_booking_coordinates 
-                    WHERE field_name = %s
+                    WHERE field_id = %s
                 ''', (field,))
             
             conn.commit()
@@ -31782,7 +31782,7 @@ async def clean_extra_coordinates(request: Request):
             for field in old_extra_fields:
                 cursor.execute('''
                     DELETE FROM commissioner_booking_coordinates 
-                    WHERE field_name = ?
+                    WHERE field_id = ?
                 ''', (field,))
             
             conn.commit()
