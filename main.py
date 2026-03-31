@@ -32183,6 +32183,60 @@ async def generate_commissioner_booking_pdf(booking_id: int, request: Request):
                 "width": float(coord_row[4]) if coord_row[4] else 100.0  # Default 100 se não houver largura
             }
         
+        # Mostrar campos mapeados
+        print("\n" + "=" * 80)
+        print("CAMPOS MAPEADOS NO PDF:")
+        print("=" * 80)
+        
+        # Mapeamento de field_id para descrição da origem dos dados
+        field_descriptions = {
+            "voucher_number": "row[2] - voucher_number",
+            "client_name": "row[3] - client_name",
+            "client_email": "row[4] - client_email",
+            "client_phone": "row[5] - client_phone",
+            "hotel_name": "row[6] - hotel",
+            "room_number": "row[7] - room_number",
+            "flight_number": "row[16] - flight_number",
+            "pickup_day": "row[8] - pickup_date (dia)",
+            "pickup_month": "row[8] - pickup_date (mês)",
+            "pickup_year": "row[8] - pickup_date (ano)",
+            "pickup_hour": "row[9] - pickup_time (hora)",
+            "pickup_minute": "row[9] - pickup_time (minuto)",
+            "pickup_location": "row[12] - pickup_location",
+            "dropoff_day": "row[10] - dropoff_date (dia)",
+            "dropoff_month": "row[10] - dropoff_date (mês)",
+            "dropoff_year": "row[10] - dropoff_date (ano)",
+            "dropoff_hour": "row[11] - dropoff_time (hora)",
+            "dropoff_minute": "row[11] - dropoff_time (minuto)",
+            "dropoff_location": "row[13] - dropoff_location",
+            "vehicle_group": "row[14] - vehicle_group",
+            "rental_days": "calculado (dropoff_date - pickup_date)",
+            "booking_day": "row[22] - created_at (dia)",
+            "booking_month": "row[22] - created_at (mês)",
+            "booking_year": "row[22] - created_at (ano)",
+            "deposit_amount": "row[19] - deposit",
+            "deposit_day": "vazio (futuro)",
+            "deposit_month": "vazio (futuro)",
+            "deposit_year": "vazio (futuro)",
+            "base_price": "calculado (configurações)",
+            "premium_insurance": "calculado (configurações)",
+            "road_tax": "calculado (configurações)",
+            "extras_total": "calculado (soma extras)",
+            "price": "row[20] - price",
+            "driver_extras": "row[15] - extras (AD/YD/SD)",
+            "seat_extras": "row[15] - extras (BA/BO)",
+            "location_extras": "row[15] - extras (A/SP)",
+            "other_extras": "row[15] - extras (GPS, etc)",
+            "commissioner_name": "row[24] - commissioner_name",
+            "observations": "row[18] - observations"
+        }
+        
+        for field_id in sorted(coordinates.keys()):
+            description = field_descriptions.get(field_id, "desconhecido")
+            print(f"  {field_id:25s} → {description}")
+        
+        print("=" * 80 + "\n")
+        
         conn.close()
         
         # Carregar PDF template
