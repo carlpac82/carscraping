@@ -32222,6 +32222,7 @@ async def generate_commissioner_booking_pdf(booking_id: int, request: Request):
         
         # Preencher campos com coordenadas
         logging.info(f"📝 Processando {len(coordinates)} coordenadas para o PDF")
+        logging.info(f"📋 Dados disponíveis: {list(booking_data.keys())[:10]}...")  # Primeiros 10 campos
         
         # Dimensões do PDF A4 em pontos (72 DPI)
         PDF_WIDTH = 595.276  # 210mm
@@ -32231,13 +32232,17 @@ async def generate_commissioner_booking_pdf(booking_id: int, request: Request):
         # Precisamos converter coordenadas do canvas para pontos PDF
         CANVAS_SCALE = 2.0
         
+        fields_processed = 0
         for field_id, coord in coordinates.items():
             value = booking_data.get(field_id, "")
+            logging.info(f"🔍 Campo '{field_id}': valor='{value}' (tipo: {type(value).__name__})")
+            
             # Converter para string se for date/datetime
             if isinstance(value, (date, datetime)):
                 value = str(value)
             # Verificar se tem valor (string não vazia)
             if value and (isinstance(value, str) and value.strip() or not isinstance(value, str)):
+                fields_processed += 1
                 # Converter coordenadas do canvas (pixels com escala 2) para pontos PDF
                 # Canvas: origem topo-esquerda, Y cresce para baixo
                 # PDF: origem base-esquerda, Y cresce para cima
@@ -32273,7 +32278,10 @@ async def generate_commissioner_booking_pdf(booking_id: int, request: Request):
                     # Alinhamento à esquerda (padrão)
                     logging.info(f"  Campo: {field_id} = '{text}' at ({x:.1f}, {y:.1f}) [LEFT] page {page}")
                     can.drawString(x, y, text)
+            else:
+                logging.info(f"  ⚠️ Campo '{field_id}' ignorado: valor vazio ou inválido")
         
+        logging.info(f"✅ Total de campos processados e desenhados: {fields_processed}/{len(coordinates)}")
         can.save()
         packet.seek(0)
         
