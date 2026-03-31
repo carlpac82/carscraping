@@ -4435,6 +4435,90 @@
                 extrasTotal += spainPrice;
             }
 
+            // Construir array de extras com nome, preço e quantidade
+            const extrasArray = [];
+            
+            if (gpsCheckbox && gpsCheckbox.checked) {
+                const gpsPrice = commissionerPricing?.extras?.gps?.per_day || 5;
+                extrasArray.push({
+                    name: 'GPS',
+                    price: gpsPrice * rentalDays,
+                    quantity: 1
+                });
+            }
+            
+            if (youngDriverCheckbox && youngDriverCheckbox.checked) {
+                const youngDriverPrice = commissionerPricing?.extras?.young_driver?.per_day || 12;
+                extrasArray.push({
+                    name: 'Young Driver',
+                    price: youngDriverPrice * rentalDays,
+                    quantity: 1
+                });
+            }
+            
+            if (seniorDriverCheckbox && seniorDriverCheckbox.checked) {
+                const seniorDriverPrice = commissionerPricing?.extras?.senior_driver?.per_day || 10;
+                extrasArray.push({
+                    name: 'Senior Driver',
+                    price: seniorDriverPrice * rentalDays,
+                    quantity: 1
+                });
+            }
+            
+            if (childSeatInput) {
+                const quantity = parseInt(childSeatInput.value) || 0;
+                if (quantity > 0) {
+                    const childSeatPrice = commissionerPricing?.extras?.child_seat?.per_day || 12;
+                    extrasArray.push({
+                        name: 'Child Seat',
+                        price: childSeatPrice * rentalDays,
+                        quantity: quantity
+                    });
+                }
+            }
+            
+            if (boosterSeatInput) {
+                const quantity = parseInt(boosterSeatInput.value) || 0;
+                if (quantity > 0) {
+                    const boosterSeatPrice = commissionerPricing?.extras?.booster_seat?.per_day || 6;
+                    extrasArray.push({
+                        name: 'Booster Seat',
+                        price: boosterSeatPrice * rentalDays,
+                        quantity: quantity
+                    });
+                }
+            }
+            
+            if (additionalDriverInput) {
+                const quantity = parseInt(additionalDriverInput.value) || 0;
+                if (quantity > 0) {
+                    const additionalDriverPrice = commissionerPricing?.extras?.additional_driver?.per_day || 10;
+                    extrasArray.push({
+                        name: 'Additional Driver',
+                        price: additionalDriverPrice * rentalDays,
+                        quantity: quantity
+                    });
+                }
+            }
+            
+            if (airportCheckbox && airportCheckbox.checked) {
+                const airportPrice = commissionerPricing?.extras?.airport_fee?.min || 20;
+                extrasArray.push({
+                    name: 'Airport Fee',
+                    price: airportPrice,
+                    quantity: 1
+                });
+            }
+            
+            if (tripToSpainCheckbox && tripToSpainCheckbox.checked) {
+                const spainPrice = commissionerPricing?.extras?.trip_to_spain?.min || 100;
+                extrasArray.push({
+                    name: 'Spain Fee',
+                    price: spainPrice,
+                    quantity: 1
+                });
+            }
+
             const bookingData = {
                 vehicle_group: selectedVehicle,
                 client_name: clientName,
@@ -4458,7 +4542,7 @@
                 road_tax: roadTax,
                 extras_total: extrasTotal,
                 rental_days: rentalDays,
-                extras: []
+                extras: extrasArray
             };
 
             try {
