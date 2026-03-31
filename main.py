@@ -42068,14 +42068,6 @@ async def export_abbycar_excel(request: Request):
                     
                     # Process each grupo
                     for grupo, precos in prices_data.items():
-                        # DEBUG: Log available days for first grupo
-                        if grupo == 'B1':
-                            available_days = list(precos.keys())
-                            print(f"[BACKEND DEBUG] Grupo B1 has prices for days: {available_days}", flush=True)
-                            if '28' in precos:
-                                print(f"[BACKEND DEBUG] Day 28 price for B1: {precos['28']}", flush=True)
-                            else:
-                                print(f"[BACKEND DEBUG] Day 28 NOT FOUND in B1 prices!", flush=True)
                         sipp_models = grupo_sipp_map.get(grupo, [])
                         if not sipp_models:
                             continue
@@ -42111,11 +42103,6 @@ async def export_abbycar_excel(request: Request):
                         
                         for day, key in dias_map.items():
                             net_price = precos.get(str(day), 0)
-                            use_fixed_price = False
-                            
-                            # DEBUG: Log day 28 processing
-                            if day == 28 and grupo == 'B1':
-                                print(f"[BUILD PRICES DEBUG] Day 28 for B1: net_price={net_price}, key={key}", flush=True)
                             
                             # Use default price if no price in database for days 1-4 and location is Aeroporto de Faro
                             if (not net_price or float(net_price) <= 0) and location == 'Aeroporto de Faro':
@@ -42131,23 +42118,19 @@ async def export_abbycar_excel(request: Request):
                                 if use_fixed_price:
                                     # Fixed price - no commission, just use as is
                                     if day <= 7:
-                                        prices[key] = str(round(float(net_price), 2))
+                                        prices[key] = round(float(net_price), 2)
                                     else:
-                                        prices[key] = str(round(float(net_price) / day, 2))
+                                        prices[key] = round(float(net_price) / day, 2)
                                 else:
                                     # Apply Abbycar commission to NET price (same as frontend does)
                                     price_with_commission = float(net_price) * (1 + abbycar_commission / 100)
                                     
                                     if day <= 7:
                                         # Fixed price with commission
-                                        prices[key] = str(round(price_with_commission, 2))
+                                        prices[key] = round(price_with_commission, 2)
                                     else:
                                         # Daily price (divide total by days) with commission
-                                        prices[key] = str(round(price_with_commission / day, 2))
-                                
-                                # DEBUG: Log day 28 after adding to prices dict
-                                if day == 28 and grupo == 'B1':
-                                    print(f"[BUILD PRICES DEBUG] Day 28 for B1 ADDED: prices['{key}'] = {prices[key]}", flush=True)
+                                        prices[key] = round(price_with_commission / day, 2)
                         
                         # Add row for each SIPP code in this grupo
                         for sipp_code, model in sipp_models:
