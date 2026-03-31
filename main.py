@@ -31875,12 +31875,22 @@ async def generate_commissioner_booking_pdf(booking_id: int, request: Request):
                 base_price_total = 0.0
                 for day in range(1, min(days + 1, 8)):  # Máximo 7 dias na configuração
                     day_key = min(day, 7)
-                    price_per_day = float(_get_setting(f"commissioner_season_{vehicle_group}_{season}_day{day_key}", "0"))
+                    price_value = _get_setting(f"commissioner_season_{vehicle_group}_{season}_day{day_key}", "0")
+                    # Converter Decimal para float
+                    from decimal import Decimal
+                    if isinstance(price_value, Decimal):
+                        price_per_day = float(price_value)
+                    else:
+                        price_per_day = float(price_value) if price_value else 0.0
                     base_price_total += price_per_day
                 
                 # Se for mais de 7 dias, usar o preço do dia 7 para os dias restantes
                 if days > 7:
-                    price_day_7 = float(_get_setting(f"commissioner_season_{vehicle_group}_{season}_day7", "0"))
+                    price_value_7 = _get_setting(f"commissioner_season_{vehicle_group}_{season}_day7", "0")
+                    if isinstance(price_value_7, Decimal):
+                        price_day_7 = float(price_value_7)
+                    else:
+                        price_day_7 = float(price_value_7) if price_value_7 else 0.0
                     base_price_total += price_day_7 * (days - 7)
                 
                 # Buscar preço do seguro premium
@@ -31895,10 +31905,18 @@ async def generate_commissioner_booking_pdf(booking_id: int, request: Request):
                 else:
                     insurance_range = "22_31"
                 
-                insurance_price = float(_get_setting(f"commissioner_insurance_{vehicle_group}_{season}_{insurance_range}_days", "0"))
+                insurance_value = _get_setting(f"commissioner_insurance_{vehicle_group}_{season}_{insurance_range}_days", "0")
+                if isinstance(insurance_value, Decimal):
+                    insurance_price = float(insurance_value)
+                else:
+                    insurance_price = float(insurance_value) if insurance_value else 0.0
                 
                 # Road tax (franquia) - valor fixo por grupo
-                road_tax = float(_get_setting(f"commissioner_franchise_{vehicle_group}", "0"))
+                road_tax_value = _get_setting(f"commissioner_franchise_{vehicle_group}", "0")
+                if isinstance(road_tax_value, Decimal):
+                    road_tax = float(road_tax_value)
+                else:
+                    road_tax = float(road_tax_value) if road_tax_value else 0.0
                 
                 return base_price_total, insurance_price, road_tax
                 
