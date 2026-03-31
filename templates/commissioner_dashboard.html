@@ -2052,7 +2052,7 @@
         .summary-vehicle-card {
             flex: 1;
             display: flex;
-            gap: 12px;
+            gap: 16px;
             align-items: center;
         }
 
@@ -2061,21 +2061,24 @@
             height: 60px;
             border-radius: 8px;
             overflow: hidden;
-            flex-shrink: 0;
             background: #f3f4f6;
             display: flex;
             align-items: center;
             justify-content: center;
+            margin-left: 8px;
         }
 
         .summary-vehicle-image img {
-            width: 100%;
-            height: 100%;
-            object-fit: cover;
+            width: 90%;
+            height: 90%;
+            object-fit: contain;
         }
 
         .summary-vehicle-details {
             flex: 1;
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
         }
 
         .summary-vehicle-group {
@@ -2312,9 +2315,9 @@
             color: #009cb6;
             justify-content: center;
             padding: 10px;
-            background: white;
+            background: #f59e0b;
             border-radius: 8px;
-            border: 2px solid #009cb6;
+            border: none;
         }
 
         /* Labels comuns */
