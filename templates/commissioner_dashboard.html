@@ -4601,8 +4601,8 @@
                 <div class="booking-modal-body">
                     <!-- Cartão do Veículo com Preços -->
                     <div class="booking-vehicle-card">
-                        <div class="vehicle-image-wrapper">
-                            <img src="${vehicleImage}" alt="${booking.vehicle_group}" class="vehicle-image" 
+                        <div class="vehicle-image-wrapper" style="background: transparent;">
+                            <img src="${vehicleImage}" alt="${booking.vehicle_group}" class="vehicle-image" style="background: transparent;"
                                  onerror="this.src='/static/images/car-placeholder.jpg'">
                         </div>
                         <div class="vehicle-details">
@@ -4623,23 +4623,23 @@
                         <div class="vehicle-pricing-summary">
                             <div class="pricing-breakdown-compact">
                                 <div class="pricing-item-compact">
-                                    <span class="pricing-label-compact">Preço Base (${days}d × ${basePricePerDay.toFixed(2)}€)</span>
+                                    <span class="pricing-label-compact">Preço Base</span>
                                     <span class="pricing-value-compact">${basePrice.toFixed(2)}€</span>
                                 </div>
                                 <div class="pricing-item-compact">
-                                    <span class="pricing-label-compact">Seguro Premium (${days}d × ${insurancePricePerDay.toFixed(2)}€)</span>
+                                    <span class="pricing-label-compact">Seguro Premium</span>
                                     <span class="pricing-value-compact">${insurancePrice.toFixed(2)}€</span>
                                 </div>
                                 <div class="pricing-item-compact">
-                                    <span class="pricing-label-compact">Road Tax (${days}d × 2.23€, máx 22.30€)</span>
+                                    <span class="pricing-label-compact">Road Tax</span>
                                     <span class="pricing-value-compact">${roadTaxPrice.toFixed(2)}€</span>
                                 </div>
-                                ${extrasDetails.length > 0 ? `
+                                ${extrasDetails.length > 0 ? extrasDetails.map(extra => `
                                 <div class="pricing-item-compact">
-                                    <span class="pricing-label-compact">Extras</span>
-                                    <span class="pricing-value-compact">${extrasPrice > 0 ? extrasPrice.toFixed(2) + '€' : 'Incl.'}</span>
+                                    <span class="pricing-label-compact">${extra.name}</span>
+                                    <span class="pricing-value-compact">${extra.price.toFixed(2)}€</span>
                                 </div>
-                                ` : ''}
+                                `).join('') : ''}
                                 <div class="pricing-divider-compact"></div>
                                 <div class="pricing-item-compact pricing-total-compact">
                                     <span class="pricing-label-compact">Total</span>
