@@ -619,7 +619,7 @@
             if (!confirm('Confirmar esta reserva?')) return;
 
             try {
-                const response = await fetch(`/api/bookings/${id}/status`, {
+                const response = await fetch(`/api/commission-bookings/${id}/status`, {
                     method: 'PUT',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ status: 'confirmed' })
@@ -641,7 +641,7 @@
             if (!confirm('Tem certeza que deseja cancelar esta reserva?')) return;
 
             try {
-                const response = await fetch(`/api/bookings/${id}/status`, {
+                const response = await fetch(`/api/commission-bookings/${id}/status`, {
                     method: 'PUT',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ status: 'cancelled' })

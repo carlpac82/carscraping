@@ -61758,6 +61758,53 @@ async def api_get_commissioner_bookings(request: Request):
         return JSONResponse({"ok": False, "error": "Erro ao carregar reservas"}, status_code=500)
 
 
+@app.put("/api/commission-bookings/{booking_id}/status")
+async def update_commission_booking_status(booking_id: int, request: Request):
+    """Update the status of a commission booking"""
+    try:
+        require_admin(request)
+    except HTTPException:
+        return JSONResponse({"ok": False, "error": "Unauthorized"}, status_code=401)
+    
+    try:
+        data = await request.json()
+        new_status = data.get("status", "").strip()
+        
+        if not new_status:
+            return JSONResponse({"ok": False, "error": "Status is required"}, status_code=400)
+        
+        with _db_lock:
+            con = _db_connect()
+            try:
+                if USE_POSTGRES:
+                    cur = con.cursor()
+                    cur.execute("""
+                        UPDATE commission_bookings
+                        SET status = %s, updated_at = CURRENT_TIMESTAMP
+                        WHERE id = %s
+                    """, (new_status, booking_id))
+                else:
+                    cur = con.execute("""
+                        UPDATE commission_bookings
+                        SET status = ?, updated_at = CURRENT_TIMESTAMP
+                        WHERE id = ?
+                    """, (new_status, booking_id))
+                
+                if cur.rowcount == 0:
+                    return JSONResponse({"ok": False, "error": "Booking not found"}, status_code=404)
+                
+                con.commit()
+                return JSONResponse({"ok": True, "message": f"Booking status updated to {new_status}"})
+                
+            finally:
+                con.close()
+                
+    except Exception as e:
+        print(f"Error updating booking status: {e}")
+        traceback.print_exc()
+        return JSONResponse({"ok": False, "error": str(e)}, status_code=500)
+
+
 @app.post("/api/commissioners/login")
 async def api_commissioners_login(request: Request):
     """API endpoint for commissioner login with username/password"""
