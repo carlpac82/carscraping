@@ -31621,7 +31621,9 @@ async def save_commissioner_booking_coordinates(request: Request):
     
     try:
         data = await request.json()
-        coordinates = data.get('coordinates', [])
+        
+        # Aceitar tanto lista direta quanto objeto com 'coordinates'
+        coordinates = data if isinstance(data, list) else data.get('coordinates', [])
         
         if not coordinates:
             return {"ok": False, "error": "Nenhuma coordenada fornecida"}
