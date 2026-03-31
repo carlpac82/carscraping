@@ -31828,6 +31828,28 @@ async def generate_commissioner_booking_pdf(booking_id: int, request: Request):
             except:
                 pass
         
+        # Processar data da reserva (created_at)
+        booking_day, booking_month, booking_year = "", "", ""
+        if len(row) > 18 and row[18]:
+            try:
+                from datetime import datetime
+                booking_dt = row[18]
+                if hasattr(booking_dt, 'day'):
+                    booking_day = str(booking_dt.day)
+                    booking_month = str(booking_dt.month)
+                    booking_year = str(booking_dt.year)
+                else:
+                    # Se for string, converter
+                    booking_dt = datetime.strptime(str(booking_dt)[:10], "%Y-%m-%d")
+                    booking_day = str(booking_dt.day)
+                    booking_month = str(booking_dt.month)
+                    booking_year = str(booking_dt.year)
+            except:
+                pass
+        
+        # Processar data do depósito (por enquanto vazia, será implementada futuramente)
+        deposit_day, deposit_month, deposit_year = "", "", ""
+        
         # Função para processar e formatar extras
         def format_extras(extras_data):
             """Formata os extras conforme o padrão solicitado"""
@@ -31946,10 +31968,14 @@ async def generate_commissioner_booking_pdf(booking_id: int, request: Request):
             "vehicle_group": row[13] if len(row) > 13 else "",
             "rental_days": rental_days,
             
-            # Datas da Reserva
-            "booking_date": row[18].strftime("%d/%m/%Y") if len(row) > 18 and row[18] else "",  # Data de criação da reserva (created_at)
+            # Datas da Reserva (separadas)
+            "booking_day": booking_day,
+            "booking_month": booking_month,
+            "booking_year": booking_year,
             "deposit_amount": str(row[16]) if len(row) > 16 and row[16] else "0",  # Valor do depósito
-            "deposit_date": "",  # Data do depósito (será implementado futuramente)
+            "deposit_day": deposit_day,
+            "deposit_month": deposit_month,
+            "deposit_year": deposit_year,
             
             # Preços (valores simulados - podem ser ajustados conforme base de dados)
             "base_price": str(row[17] * 0.6) if len(row) > 17 and row[17] else "0",  # 60% do total
