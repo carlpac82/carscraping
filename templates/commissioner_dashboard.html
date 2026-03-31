@@ -4386,6 +4386,9 @@
                 
                 // Se chegou ao Passo 5 (Confirmação), preencher o resumo
                 if (currentWizardStep === 5) {
+                    console.log('🎯 Entrando no Passo 5, selectedVehicle:', selectedVehicle);
+                    console.log('🎯 selectedVehicleData:', selectedVehicleData);
+                    console.log('🎯 vehicleGroups disponíveis:', vehicleGroups.length);
                     populateBookingSummary();
                 }
                 
