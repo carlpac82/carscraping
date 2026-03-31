@@ -32225,16 +32225,16 @@ async def generate_commissioner_booking_pdf(booking_id: int, request: Request):
         logging.info(f"📋 Dados disponíveis: {list(booking_data.keys())[:10]}...")  # Primeiros 10 campos
         
         # Log detalhado de TODOS os campos e valores
-        logging.info("=" * 80)
-        logging.info("MAPEAMENTO COMPLETO DE CAMPOS:")
-        logging.info("=" * 80)
+        print("\n" + "=" * 80)
+        print("MAPEAMENTO COMPLETO DE CAMPOS:")
+        print("=" * 80)
         for field_id, value in booking_data.items():
             coord_info = coordinates.get(field_id, {})
             if coord_info:
-                logging.info(f"✓ {field_id:30s} = '{value}' @ ({coord_info.get('x', 0):.1f}, {coord_info.get('y', 0):.1f})")
+                print(f"✓ {field_id:30s} = '{value}' @ ({coord_info.get('x', 0):.1f}, {coord_info.get('y', 0):.1f})")
             else:
-                logging.info(f"✗ {field_id:30s} = '{value}' [SEM COORDENADAS]")
-        logging.info("=" * 80)
+                print(f"✗ {field_id:30s} = '{value}' [SEM COORDENADAS]")
+        print("=" * 80 + "\n")
         
         fields_processed = 0
         for field_id, coord in coordinates.items():
