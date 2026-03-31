@@ -31799,6 +31799,73 @@ async def list_commissioner_booking_coordinates(request: Request):
         logging.error(traceback.format_exc())
         return JSONResponse({"ok": False, "error": str(e)}, status_code=500)
 
+@app.delete("/api/commissioner-booking-pdf/clean-unknown-fields")
+async def clean_unknown_booking_coordinates(request: Request):
+    """Limpar campos desconhecidos/numéricos da tabela de coordenadas"""
+    try:
+        require_admin(request)
+    except HTTPException:
+        return JSONResponse({"ok": False, "error": "Unauthorized"}, status_code=401)
+    
+    try:
+        conn = _db_connect()
+        is_postgres = hasattr(conn, 'rollback')
+        
+        # Lista de campos válidos conhecidos
+        valid_fields = [
+            'voucher_number', 'client_name', 'client_email', 'client_phone',
+            'hotel_name', 'room_number', 'flight_number',
+            'pickup_day', 'pickup_month', 'pickup_year', 'pickup_hour', 'pickup_minute', 'pickup_location',
+            'dropoff_day', 'dropoff_month', 'dropoff_year', 'dropoff_hour', 'dropoff_minute', 'dropoff_location',
+            'booking_day', 'booking_month', 'booking_year',
+            'deposit_amount', 'deposit_day', 'deposit_month', 'deposit_year',
+            'vehicle_group', 'rental_days',
+            'base_price', 'premium_insurance', 'road_tax', 'extras_total', 'price',
+            'driver_extras', 'seat_extras', 'location_extras', 'other_extras',
+            'commissioner_name', 'observations'
+        ]
+        
+        if is_postgres:
+            cur = conn.cursor()
+            # Buscar todos os field_id
+            cur.execute("SELECT field_id FROM commissioner_booking_coordinates")
+            all_fields = [row[0] for row in cur.fetchall()]
+            
+            # Identificar campos a remover (numéricos ou não na lista de válidos)
+            fields_to_remove = [f for f in all_fields if f not in valid_fields]
+            
+            if fields_to_remove:
+                placeholders = ','.join(['%s'] * len(fields_to_remove))
+                cur.execute(f"DELETE FROM commissioner_booking_coordinates WHERE field_id IN ({placeholders})", fields_to_remove)
+                conn.commit()
+            
+            cur.close()
+        else:
+            cur = conn.cursor()
+            cur.execute("SELECT field_id FROM commissioner_booking_coordinates")
+            all_fields = [row[0] for row in cur.fetchall()]
+            
+            fields_to_remove = [f for f in all_fields if f not in valid_fields]
+            
+            if fields_to_remove:
+                placeholders = ','.join(['?'] * len(fields_to_remove))
+                cur.execute(f"DELETE FROM commissioner_booking_coordinates WHERE field_id IN ({placeholders})", fields_to_remove)
+                conn.commit()
+        
+        conn.close()
+        
+        return JSONResponse({
+            "ok": True,
+            "removed_count": len(fields_to_remove),
+            "removed_fields": fields_to_remove
+        })
+        
+    except Exception as e:
+        logging.error(f"Error cleaning unknown fields: {e}")
+        import traceback
+        logging.error(traceback.format_exc())
+        return JSONResponse({"ok": False, "error": str(e)}, status_code=500)
+
 @app.post("/api/commissioner-booking-pdf/upload-template")
 async def upload_commissioner_booking_pdf_template(request: Request, pdf: UploadFile = File(...)):
     """Upload do PDF template do Livro de Reservas"""
