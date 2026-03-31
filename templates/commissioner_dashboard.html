@@ -821,6 +821,60 @@
             gap: 4px;
         }
 
+        .vehicle-pricing-summary {
+            min-width: 280px;
+            background: white;
+            border-radius: 8px;
+            padding: 16px;
+            border: 1px solid #e5e7eb;
+        }
+
+        .pricing-breakdown-compact {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        .pricing-item-compact {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 4px 0;
+        }
+
+        .pricing-label-compact {
+            color: #6b7280;
+            font-size: 13px;
+        }
+
+        .pricing-value-compact {
+            font-weight: 600;
+            color: #1f2937;
+            font-size: 13px;
+        }
+
+        .pricing-divider-compact {
+            height: 1px;
+            background: #d1d5db;
+            margin: 8px 0;
+        }
+
+        .pricing-total-compact {
+            padding-top: 8px;
+        }
+
+        .pricing-total-compact .pricing-label-compact {
+            font-weight: 600;
+            color: #1f2937;
+            font-size: 15px;
+        }
+
+        .pricing-total-compact .pricing-value-compact {
+            font-size: 18px;
+            color: #f59e0b;
+            font-weight: 700;
+        }
+
         .booking-section {
             margin-bottom: 24px;
         }
@@ -4297,66 +4351,51 @@
 
                 <!-- Body -->
                 <div class="booking-modal-body">
-                    <!-- Cartão do Veículo -->
+                    <!-- Cartão do Veículo com Preços -->
                     <div class="booking-vehicle-card">
                         <div class="vehicle-image-wrapper">
                             <img src="${vehicleImage}" alt="${booking.vehicle_group}" class="vehicle-image" 
                                  onerror="this.src='/static/images/car-placeholder.jpg'">
                         </div>
                         <div class="vehicle-details">
-                            <h3 class="vehicle-name">${vehicle ? vehicle.name : 'Grupo ' + booking.vehicle_group}</h3>
-                            <div class="vehicle-meta">
-                                <span class="vehicle-meta-item">
-                                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                        <rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect>
-                                        <path d="M7 11V7a5 5 0 0 1 10 0v4"></path>
-                                    </svg>
-                                    Grupo ${booking.vehicle_group}
-                                </span>
-                                <span class="status-badge status-${booking.status}">${statusMap[booking.status] || booking.status}</span>
+                            <div style="margin-bottom: 16px;">
+                                <h3 class="vehicle-name">${vehicle ? vehicle.name : 'Grupo ' + booking.vehicle_group}</h3>
+                                <div class="vehicle-meta">
+                                    <span class="vehicle-meta-item">
+                                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                            <rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect>
+                                            <path d="M7 11V7a5 5 0 0 1 10 0v4"></path>
+                                        </svg>
+                                        Grupo ${booking.vehicle_group}
+                                    </span>
+                                    <span class="status-badge status-${booking.status}">${statusMap[booking.status] || booking.status}</span>
+                                </div>
                             </div>
                         </div>
-                    </div>
-
-                    <!-- Resumo de Preços -->
-                    <div class="booking-section">
-                        <h3 class="booking-section-title">
-                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                <line x1="12" y1="1" x2="12" y2="23"></line>
-                                <path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"></path>
-                            </svg>
-                            Resumo de Preços
-                        </h3>
-                        <div class="pricing-card">
-                            <div class="pricing-breakdown">
-                                <div class="pricing-item">
-                                    <span class="pricing-label">Preço Base (${days} dia${days !== 1 ? 's' : ''} × ${basePricePerDay.toFixed(2)}€/dia)</span>
-                                    <span class="pricing-value">${basePrice.toFixed(2)}€</span>
+                        <div class="vehicle-pricing-summary">
+                            <div class="pricing-breakdown-compact">
+                                <div class="pricing-item-compact">
+                                    <span class="pricing-label-compact">Preço Base (${days}d × ${basePricePerDay.toFixed(2)}€)</span>
+                                    <span class="pricing-value-compact">${basePrice.toFixed(2)}€</span>
                                 </div>
-                                <div class="pricing-item">
-                                    <span class="pricing-label">Seguro Premium (${days} dia${days !== 1 ? 's' : ''} × 25€/dia)</span>
-                                    <span class="pricing-value">${insurancePrice.toFixed(2)}€</span>
+                                <div class="pricing-item-compact">
+                                    <span class="pricing-label-compact">Seguro Premium (${days}d × 25€)</span>
+                                    <span class="pricing-value-compact">${insurancePrice.toFixed(2)}€</span>
                                 </div>
-                                <div class="pricing-item">
-                                    <span class="pricing-label">Road Tax (${days} dia${days !== 1 ? 's' : ''} × 2€/dia)</span>
-                                    <span class="pricing-value">${roadTaxPrice.toFixed(2)}€</span>
+                                <div class="pricing-item-compact">
+                                    <span class="pricing-label-compact">Road Tax (${days}d × 2€)</span>
+                                    <span class="pricing-value-compact">${roadTaxPrice.toFixed(2)}€</span>
                                 </div>
                                 ${extrasDetails.length > 0 ? `
-                                <div class="pricing-item">
-                                    <span class="pricing-label">Extras (${extrasDetails.join(', ')})</span>
-                                    <span class="pricing-value">${extrasPrice > 0 ? extrasPrice.toFixed(2) + '€' : 'Incluído'}</span>
+                                <div class="pricing-item-compact">
+                                    <span class="pricing-label-compact">Extras</span>
+                                    <span class="pricing-value-compact">${extrasPrice > 0 ? extrasPrice.toFixed(2) + '€' : 'Incl.'}</span>
                                 </div>
                                 ` : ''}
-                                ${booking.deposit && booking.deposit > 0 ? `
-                                <div class="pricing-item deposit-item">
-                                    <span class="pricing-label">💰 Depósito (reembolsável)</span>
-                                    <span class="pricing-value">${booking.deposit.toFixed(2)}€</span>
-                                </div>
-                                ` : ''}
-                                <div class="pricing-divider"></div>
-                                <div class="pricing-item pricing-total">
-                                    <span class="pricing-label">Total</span>
-                                    <span class="pricing-value">${totalPrice.toFixed(2)}€</span>
+                                <div class="pricing-divider-compact"></div>
+                                <div class="pricing-item-compact pricing-total-compact">
+                                    <span class="pricing-label-compact">Total</span>
+                                    <span class="pricing-value-compact">${totalPrice.toFixed(2)}€</span>
                                 </div>
                             </div>
                         </div>
