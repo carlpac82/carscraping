@@ -32230,20 +32230,30 @@ async def generate_commissioner_booking_pdf(booking_id: int, request: Request):
                 price = extra.get('price', 0)
                 quantity = extra.get('quantity', 1)
                 
-                # Formatar preço
-                price_str = f"{price:.2f}".replace('.', ',')
+                logging.info(f"🔍 DEBUG EXTRA: name='{name}', price={price}, quantity={quantity}")
                 
-                # Encontrar o código correspondente (case-insensitive)
+                # Formatar preço
+                if isinstance(price, (int, float)):
+                    if price == int(price):
+                        price_str = f"{int(price):.2f}".replace('.', ',')
+                    else:
+                        price_str = f"{price:.2f}".replace('.', ',')
+                else:
+                    price_str = f"{price}".replace('.', ',')
+                
+                # Encontrar código do extra
                 code = None
                 name_lower = name.lower()
                 for key, short_code in extra_codes.items():
                     if key in name_lower or name_lower in key:
                         code = short_code
+                        logging.info(f"✅ MATCH: '{name}' → '{key}' → {code}")
                         break
                 
                 if not code:
                     # Se não encontrar código, usar abreviação
                     code = name[:3].upper()
+                    logging.info(f"❌ NO MATCH: '{name}' → default code '{code}'")
                 
                 # Formatar conforme categoria
                 if code in ['AD', 'YD', 'SD']:
