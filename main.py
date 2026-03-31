@@ -32159,7 +32159,7 @@ async def generate_commissioner_booking_pdf(booking_id: int, request: Request):
         if is_postgres:
             cur = conn.cursor()
             cur.execute("""
-                SELECT field_id, x, y, page
+                SELECT field_id, x, y, page, width
                 FROM commissioner_booking_coordinates
                 ORDER BY field_id
             """)
@@ -32168,7 +32168,7 @@ async def generate_commissioner_booking_pdf(booking_id: int, request: Request):
         else:
             cur = conn.cursor()
             cur.execute("""
-                SELECT field_id, x, y, page
+                SELECT field_id, x, y, page, width
                 FROM commissioner_booking_coordinates
                 ORDER BY field_id
             """)
@@ -32179,7 +32179,8 @@ async def generate_commissioner_booking_pdf(booking_id: int, request: Request):
             coordinates[coord_row[0]] = {
                 "x": float(coord_row[1]),
                 "y": float(coord_row[2]),
-                "page": coord_row[3]
+                "page": coord_row[3],
+                "width": float(coord_row[4]) if coord_row[4] else 100.0  # Default 100 se não houver largura
             }
         
         conn.close()
@@ -32204,6 +32205,21 @@ async def generate_commissioner_booking_pdf(booking_id: int, request: Request):
         except:
             can.setFont("Times-Roman", 10)
         
+        # Definir campos com alinhamento específico
+        right_aligned_fields = [
+            'base_price', 'premium_insurance', 'road_tax', 'extras_total', 'price',
+            'driver_extras', 'seat_extras', 'location_extras', 'other_extras',
+            'hotel_name', 'room_number', 'deposit_amount'
+        ]
+        
+        center_aligned_fields = [
+            'commissioner_name', 'voucher_number', 'deposit_day', 'deposit_month', 'deposit_year',
+            'booking_day', 'booking_month', 'booking_year',
+            'pickup_day', 'pickup_month', 'pickup_year', 'pickup_hour', 'pickup_minute',
+            'dropoff_day', 'dropoff_month', 'dropoff_year', 'dropoff_hour', 'dropoff_minute',
+            'pickup_location', 'dropoff_location', 'vehicle_group', 'rental_days'
+        ]
+        
         # Preencher campos com coordenadas
         logging.info(f"📝 Processando {len(coordinates)} coordenadas para o PDF")
         
@@ -32217,12 +32233,28 @@ async def generate_commissioner_booking_pdf(booking_id: int, request: Request):
                 # Coordenadas já estão em pontos PDF (origem base-esquerda)
                 x = float(coord["x"])
                 y = float(coord["y"])
+                width = float(coord.get("width", 100))  # Largura da caixa
                 page = coord.get("page", 1)
                 
-                logging.info(f"  Campo: {field_id} = '{value}' at ({x:.1f}, {y:.1f}) page {page}")
+                text = str(value)
                 
-                # Desenhar o texto diretamente nas coordenadas
-                can.drawString(x, y, str(value))
+                # Aplicar alinhamento baseado no tipo de campo
+                if field_id in right_aligned_fields:
+                    # Alinhamento à direita: desenhar no final da caixa
+                    text_width = can.stringWidth(text, "Helvetica", 10)
+                    x_adjusted = x + width - text_width
+                    logging.info(f"  Campo: {field_id} = '{text}' at ({x_adjusted:.1f}, {y:.1f}) [RIGHT] page {page}")
+                    can.drawString(x_adjusted, y, text)
+                elif field_id in center_aligned_fields:
+                    # Alinhamento ao centro: desenhar no meio da caixa
+                    text_width = can.stringWidth(text, "Helvetica", 10)
+                    x_adjusted = x + (width - text_width) / 2
+                    logging.info(f"  Campo: {field_id} = '{text}' at ({x_adjusted:.1f}, {y:.1f}) [CENTER] page {page}")
+                    can.drawString(x_adjusted, y, text)
+                else:
+                    # Alinhamento à esquerda (padrão)
+                    logging.info(f"  Campo: {field_id} = '{text}' at ({x:.1f}, {y:.1f}) [LEFT] page {page}")
+                    can.drawString(x, y, text)
         
         can.save()
         packet.seek(0)
