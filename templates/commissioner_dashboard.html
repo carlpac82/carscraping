@@ -4315,6 +4315,15 @@
             currentWizardStep = 1;
             updateWizardUI();
             
+            // Inicializar dados de confirmação
+            bookingConfirmationData = {
+                totalAmount: 0,
+                valueConfirmed: null,
+                hasDeposit: null,
+                valueAdjustment: 0,
+                depositAmount: 0
+            };
+            
             // Verificar se escritório está fechado e definir dia seguinte
             setDefaultPickupDate();
         }
