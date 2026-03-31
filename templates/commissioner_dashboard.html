@@ -4416,6 +4416,7 @@
                     console.log('🎯 vehicleGroups disponíveis:', vehicleGroups.length);
                     
                     // Garantir que bookingConfirmationData esteja inicializado
+                    console.log('🔍 Verificando bookingConfirmationData antes:', bookingConfirmationData);
                     if (!bookingConfirmationData) {
                         bookingConfirmationData = {
                             totalAmount: 0,
@@ -4425,7 +4426,10 @@
                             depositAmount: 0
                         };
                         console.log('✅ bookingConfirmationData inicializado no Passo 5');
+                    } else {
+                        console.log('ℹ️ bookingConfirmationData já existe:', bookingConfirmationData);
                     }
+                    console.log('🔍 bookingConfirmationData após inicialização:', bookingConfirmationData);
                     
                     populateBookingSummary();
                 }
@@ -5494,7 +5498,7 @@
         }
 
         // Variáveis globais para o modal de confirmação
-        let bookingConfirmationData = null;
+        // bookingConfirmationData já está declarado globalmente
 
         function showBookingConfirmationModal(totalAmount) {
             // Guardar dados da reserva para usar depois
@@ -5502,8 +5506,8 @@
                 totalAmount: totalAmount,
                 valueConfirmed: null,
                 hasDeposit: null,
-                depositAmount: 0,
-                valueAdjustment: 0
+                valueAdjustment: 0,
+                depositAmount: 0
             };
 
             // Mostrar valor no modal
