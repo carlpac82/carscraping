@@ -31678,6 +31678,145 @@ async def save_commissioner_booking_coordinates(request: Request):
         logging.error(traceback.format_exc())
         return {"ok": False, "error": str(e)}
 
+@app.get("/api/commissioner-booking-pdf/generate/{booking_id}")
+async def generate_commissioner_booking_pdf(booking_id: int, request: Request):
+    """Gerar PDF do Livro de Reservas preenchido com dados da reserva"""
+    require_admin(request)
+    
+    try:
+        from reportlab.pdfgen import canvas
+        from reportlab.lib.pagesizes import A4
+        from PyPDF2 import PdfReader, PdfWriter
+        import io
+        
+        # Buscar dados da reserva
+        conn = get_db()
+        if is_postgres:
+            cur = conn.cursor()
+            cur.execute("""
+                SELECT cb.*, c.name as commissioner_name, c.company_name
+                FROM commission_bookings cb
+                LEFT JOIN commissioners c ON cb.commissioner_id = c.id
+                WHERE cb.id = %s
+            """, (booking_id,))
+            row = cur.fetchone()
+            cur.close()
+        else:
+            cur = conn.cursor()
+            cur.execute("""
+                SELECT cb.*, c.name as commissioner_name, c.company_name
+                FROM commission_bookings cb
+                LEFT JOIN commissioners c ON cb.commissioner_id = c.id
+                WHERE cb.id = ?
+            """, (booking_id,))
+            row = cur.fetchone()
+        
+        if not row:
+            conn.close()
+            return {"ok": False, "error": "Reserva não encontrada"}
+        
+        # Mapear dados da reserva
+        booking_data = {
+            "voucher_number": row[1] if len(row) > 1 else "",
+            "client_name": row[2] if len(row) > 2 else "",
+            "client_email": row[3] if len(row) > 3 else "",
+            "client_phone": row[4] if len(row) > 4 else "",
+            "client_hotel": row[5] if len(row) > 5 else "",
+            "client_room": row[6] if len(row) > 6 else "",
+            "pickup_date": row[7] if len(row) > 7 else "",
+            "pickup_time": row[8] if len(row) > 8 else "",
+            "pickup_location": row[9] if len(row) > 9 else "",
+            "dropoff_date": row[10] if len(row) > 10 else "",
+            "dropoff_time": row[11] if len(row) > 11 else "",
+            "dropoff_location": row[12] if len(row) > 12 else "",
+            "vehicle_group": row[13] if len(row) > 13 else "",
+            "flight_number": row[14] if len(row) > 14 else "",
+            "observations": row[15] if len(row) > 15 else "",
+            "price": row[16] if len(row) > 16 else 0,
+            "commissioner_name": row[-2] if len(row) > 20 else "",
+            "created_date": row[18] if len(row) > 18 else ""
+        }
+        
+        # Buscar coordenadas dos campos
+        if is_postgres:
+            cur = conn.cursor()
+            cur.execute("""
+                SELECT field_id, x, y, page
+                FROM commissioner_booking_coordinates
+                ORDER BY field_id
+            """)
+            coords_rows = cur.fetchall()
+            cur.close()
+        else:
+            cur = conn.cursor()
+            cur.execute("""
+                SELECT field_id, x, y, page
+                FROM commissioner_booking_coordinates
+                ORDER BY field_id
+            """)
+            coords_rows = cur.fetchall()
+        
+        coordinates = {}
+        for coord_row in coords_rows:
+            coordinates[coord_row[0]] = {
+                "x": float(coord_row[1]),
+                "y": float(coord_row[2]),
+                "page": coord_row[3]
+            }
+        
+        conn.close()
+        
+        # Carregar PDF template
+        pdf_path = "Livro de Reservas.pdf"
+        if not os.path.exists(pdf_path):
+            return {"ok": False, "error": "Template PDF não encontrado"}
+        
+        # Criar overlay com os dados
+        packet = io.BytesIO()
+        can = canvas.Canvas(packet, pagesize=A4)
+        
+        # Preencher campos com coordenadas
+        for field_id, coord in coordinates.items():
+            value = booking_data.get(field_id, "")
+            if value:
+                can.drawString(coord["x"], coord["y"], str(value))
+        
+        can.save()
+        packet.seek(0)
+        
+        # Mesclar overlay com template
+        template_pdf = PdfReader(pdf_path)
+        overlay_pdf = PdfReader(packet)
+        output = PdfWriter()
+        
+        # Adicionar páginas
+        for i in range(len(template_pdf.pages)):
+            page = template_pdf.pages[i]
+            if i < len(overlay_pdf.pages):
+                page.merge_page(overlay_pdf.pages[i])
+            output.add_page(page)
+        
+        # Gerar PDF final
+        output_stream = io.BytesIO()
+        output.write(output_stream)
+        output_stream.seek(0)
+        
+        # Retornar PDF
+        from fastapi.responses import StreamingResponse
+        return StreamingResponse(
+            output_stream,
+            media_type="application/pdf",
+            headers={
+                "Content-Disposition": f"inline; filename=Livro_Reserva_{booking_data['voucher_number']}.pdf"
+            }
+        )
+        
+    except Exception as e:
+        logging.error(f"Error generating commissioner booking PDF: {e}")
+        import traceback
+        logging.error(traceback.format_exc())
+        return {"ok": False, "error": str(e)}
+
 # ============================================================
 # VEHICLE INSPECTIONS - Check-in/Check-out System
 # ============================================================

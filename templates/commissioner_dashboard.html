@@ -2881,12 +2881,20 @@
                                 <td>€${(booking.price || 0).toFixed(2)}</td>
                                 <td>${(booking.commission_rate || 0).toFixed(1)}%</td>
                                 <td class="commission-value">€${(booking.commission_amount || 0).toFixed(2)}</td>
-                                <td><button class="btn-details" onclick="showBookingDetails(${booking.id})" title="Ver Detalhes">
-                                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                        <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path>
-                                        <circle cx="12" cy="12" r="3"></circle>
-                                    </svg>
-                                </button></td>
+                                <td>
+                                    <button class="btn-details" onclick="showBookingDetails(${booking.id})" title="Ver Detalhes">
+                                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                            <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path>
+                                            <circle cx="12" cy="12" r="3"></circle>
+                                        </svg>
+                                    </button>
+                                    <button class="btn-details" onclick="printBookingPDF(${booking.id})" title="Imprimir PDF" style="margin-left: 5px;">
+                                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                            <path d="M6 9V2h12v7M6 18H4a2 2 0 01-2-2v-5a2 2 0 012-2h16a2 2 0 012 2v5a2 2 0 01-2 2h-2"></path>
+                                            <path d="M6 14h12v8H6z"></path>
+                                        </svg>
+                                    </button>
+                                </td>
                                 <td><span class="status-badge status-${booking.status}">${statusMap[booking.status] || booking.status}</span></td>
                             </tr>
                         `).join('')}
@@ -4544,6 +4552,17 @@
 
         function closeBookingDetailsModal() {
             document.getElementById('bookingDetailsModal').classList.remove('active');
+        }
+
+        async function printBookingPDF(bookingId) {
+            try {
+                // Abrir o PDF numa nova janela
+                const url = `/api/commissioner-booking-pdf/generate/${bookingId}`;
+                window.open(url, '_blank');
+            } catch (error) {
+                console.error('Error printing booking PDF:', error);
+                alert('Erro ao gerar PDF: ' + error.message);
+            }
         }
 
         loadDashboard();
