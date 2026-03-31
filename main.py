@@ -31869,25 +31869,25 @@ async def clear_all_commissioner_bookings(request: Request):
         if is_postgres:
             cur = conn.cursor()
             # Contar quantas reservas vão ser apagadas
-            cur.execute("SELECT COUNT(*) FROM commissioner_bookings")
+            cur.execute("SELECT COUNT(*) FROM commission_bookings")
             count = cur.fetchone()[0]
             
             # Apagar todas as reservas
-            cur.execute("DELETE FROM commissioner_bookings")
+            cur.execute("DELETE FROM commission_bookings")
             
             # Resetar o contador de sequência se for PostgreSQL
-            cur.execute("ALTER SEQUENCE commissioner_bookings_id_seq RESTART WITH 1")
+            cur.execute("ALTER SEQUENCE commission_bookings_id_seq RESTART WITH 1")
             
             conn.commit()
             cur.close()
         else:
             cursor = conn.cursor()
             # Contar quantas reservas vão ser apagadas
-            cursor.execute("SELECT COUNT(*) FROM commissioner_bookings")
+            cursor.execute("SELECT COUNT(*) FROM commission_bookings")
             count = cursor.fetchone()[0]
             
             # Apagar todas as reservas
-            cursor.execute("DELETE FROM commissioner_bookings")
+            cursor.execute("DELETE FROM commission_bookings")
             
             conn.commit()
             cursor.close()
