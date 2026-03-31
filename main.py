@@ -31496,20 +31496,16 @@ async def get_commissioner_booking_pdf_template(request: Request):
     require_admin(request)
     
     try:
-        import base64
         pdf_path = "Livro de Reservas.pdf"
         
         if not os.path.exists(pdf_path):
-            return {"ok": False, "error": "PDF não encontrado"}
+            return {"ok": False, "error": "PDF não encontrado. Por favor, faça upload primeiro."}
         
-        with open(pdf_path, 'rb') as f:
-            pdf_data = base64.b64encode(f.read()).decode('utf-8')
-        
-        return {
-            "ok": True,
-            "pdf_data": pdf_data,
-            "filename": "Livro de Reservas.pdf"
-        }
+        return FileResponse(
+            pdf_path,
+            media_type="application/pdf",
+            filename="Livro de Reservas.pdf"
+        )
     except Exception as e:
         logging.error(f"Error getting commissioner booking PDF template: {e}")
         return {"ok": False, "error": str(e)}
