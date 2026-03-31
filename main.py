@@ -31778,6 +31778,12 @@ async def generate_commissioner_booking_pdf(booking_id: int, request: Request):
         pickup_hour, pickup_minute = "", ""
         if pickup_time_str:
             try:
+                # Converter para string se for objeto datetime.time
+                if hasattr(pickup_time_str, 'strftime'):
+                    pickup_time_str = pickup_time_str.strftime("%H:%M")
+                elif not isinstance(pickup_time_str, str):
+                    pickup_time_str = str(pickup_time_str)
+                
                 if ":" in pickup_time_str:
                     pickup_hour, pickup_minute = pickup_time_str.split(":")
             except:
@@ -31799,6 +31805,12 @@ async def generate_commissioner_booking_pdf(booking_id: int, request: Request):
         dropoff_hour, dropoff_minute = "", ""
         if dropoff_time_str:
             try:
+                # Converter para string se for objeto datetime.time
+                if hasattr(dropoff_time_str, 'strftime'):
+                    dropoff_time_str = dropoff_time_str.strftime("%H:%M")
+                elif not isinstance(dropoff_time_str, str):
+                    dropoff_time_str = str(dropoff_time_str)
+                
                 if ":" in dropoff_time_str:
                     dropoff_hour, dropoff_minute = dropoff_time_str.split(":")
             except:
