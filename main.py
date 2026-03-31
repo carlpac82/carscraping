@@ -4273,62 +4273,45 @@ def init_db():
             # Migration: Add self check-in columns to rental_agreements
             logging.info(f"🔍 Database type detection: is_postgres={is_postgres}, conn_type={type(conn).__name__}")
             if is_postgres:
-                cur = conn.cursor()
-                cur.execute("""
-                    SELECT column_name FROM information_schema.columns 
-                    WHERE table_name='rental_agreements'
-                """)
-                existing_columns = [row[0] for row in cur.fetchall()]
-                
-                if 'self_checkin_token' not in existing_columns:
-                    cur.execute("ALTER TABLE rental_agreements ADD COLUMN self_checkin_token TEXT UNIQUE")
-                    logging.info("✅ Coluna self_checkin_token adicionada (PostgreSQL)")
-                
-                if 'self_checkin_email' not in existing_columns:
-                    cur.execute("ALTER TABLE rental_agreements ADD COLUMN self_checkin_email TEXT")
-                    logging.info("✅ Coluna self_checkin_email adicionada (PostgreSQL)")
-                
-                if 'self_checkin_scheduled_date' not in existing_columns:
-                    cur.execute("ALTER TABLE rental_agreements ADD COLUMN self_checkin_scheduled_date TEXT")
-                    logging.info("✅ Coluna self_checkin_scheduled_date adicionada (PostgreSQL)")
-                if 'self_checkin_sent' not in existing_columns:
-                    cur.execute("ALTER TABLE rental_agreements ADD COLUMN self_checkin_sent BOOLEAN DEFAULT FALSE")
-                    logging.info("✅ Coluna self_checkin_sent adicionada (PostgreSQL)")
-                
-                if 'self_checkin_completed' not in existing_columns:
-                    cur.execute("ALTER TABLE rental_agreements ADD COLUMN self_checkin_completed BOOLEAN DEFAULT FALSE")
-                    logging.info("✅ Coluna self_checkin_completed adicionada (PostgreSQL)")
-                
-                if 'self_checkin_validated' not in existing_columns:
-                    cur.execute("ALTER TABLE rental_agreements ADD COLUMN self_checkin_validated BOOLEAN")
-                    logging.info("✅ Coluna self_checkin_validated adicionada (PostgreSQL)")
-                
-                if 'self_checkin_inspection_id' not in existing_columns:
-                    cur.execute("ALTER TABLE rental_agreements ADD COLUMN self_checkin_inspection_id INTEGER")
-                    logging.info("✅ Coluna self_checkin_inspection_id adicionada (PostgreSQL)")
-                
-                if 'return_date' not in existing_columns:
-                    cur.execute("ALTER TABLE rental_agreements ADD COLUMN return_date TEXT")
-                    logging.info("✅ Coluna return_date adicionada (PostgreSQL)")
-                
-                if 'client_email' not in existing_columns:
-                    cur.execute("ALTER TABLE rental_agreements ADD COLUMN client_email TEXT")
-                    logging.info("✅ Coluna client_email adicionada (PostgreSQL)")
-                
-                if 'self_checkout_pending' not in existing_columns:
-                    cur.execute("ALTER TABLE rental_agreements ADD COLUMN self_checkout_pending BOOLEAN DEFAULT FALSE")
-                    logging.info("✅ Coluna self_checkout_pending adicionada (PostgreSQL)")
-                
-                if 'self_checkout_inspection_id' not in existing_columns:
-                    cur.execute("ALTER TABLE rental_agreements ADD COLUMN self_checkout_inspection_id INTEGER")
-                    logging.info("✅ Coluna self_checkout_inspection_id adicionada (PostgreSQL)")
-                
-                if 'status' not in existing_columns:
-                    cur.execute("ALTER TABLE rental_agreements ADD COLUMN status TEXT DEFAULT 'active'")
-                    logging.info("✅ Coluna status adicionada (PostgreSQL)")
-                
-                conn.commit()
-                cur.close()
+                try:
+                    cur = conn.cursor()
+                    cur.execute("""
+                        SELECT column_name FROM information_schema.columns 
+                        WHERE table_name='rental_agreements'
+                    """)
+                    existing_columns = [row[0] for row in cur.fetchall()]
+                    
+                    # Lista de colunas para adicionar
+                    columns_to_add = [
+                        ('self_checkin_token', 'TEXT UNIQUE'),
+                        ('self_checkin_email', 'TEXT'),
+                        ('self_checkin_scheduled_date', 'TEXT'),
+                        ('self_checkin_sent', 'BOOLEAN DEFAULT FALSE'),
+                        ('self_checkin_completed', 'BOOLEAN DEFAULT FALSE'),
+                        ('self_checkin_validated', 'BOOLEAN'),
+                        ('self_checkin_inspection_id', 'INTEGER'),
+                        ('return_date', 'TEXT'),
+                        ('client_email', 'TEXT'),
+                        ('self_checkout_pending', 'BOOLEAN DEFAULT FALSE'),
+                        ('self_checkout_inspection_id', 'INTEGER'),
+                        ('status', 'TEXT DEFAULT \'active\'')
+                    ]
+                    
+                    for col_name, col_type in columns_to_add:
+                        if col_name not in existing_columns:
+                            try:
+                                cur.execute(f"ALTER TABLE rental_agreements ADD COLUMN {col_name} {col_type}")
+                                conn.commit()
+                                logging.info(f"✅ Coluna {col_name} adicionada (PostgreSQL)")
+                            except Exception as e:
+                                conn.rollback()
+                                logging.warning(f"⚠️ Coluna {col_name} já existe ou erro: {e}")
+                    
+                    cur.close()
+                except Exception as e:
+                    logging.warning(f"⚠️ Migration error: {e}")
+                    if 'conn' in locals():
+                        conn.rollback()
             else:
                 # SQLite: Usar try/except
                 try:
