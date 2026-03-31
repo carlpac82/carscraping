@@ -31516,7 +31516,11 @@ async def get_commissioner_booking_coordinates(request: Request):
     require_admin(request)
     
     try:
-        conn = get_db()
+        conn = _db_connect()
+        # Detectar tipo de base de dados
+        import os
+        is_postgres = 'psycopg' in str(type(conn)).lower() or bool(os.getenv('DATABASE_URL'))
+        
         if is_postgres:
             cur = conn.cursor()
             cur.execute("""
@@ -31584,7 +31588,11 @@ async def save_commissioner_booking_coordinate(request: Request):
         if not field_id or x is None or y is None:
             return {"ok": False, "error": "Dados incompletos"}
         
-        conn = get_db()
+        conn = _db_connect()
+        # Detectar tipo de base de dados
+        import os
+        is_postgres = 'psycopg' in str(type(conn)).lower() or bool(os.getenv('DATABASE_URL'))
+        
         if is_postgres:
             cur = conn.cursor()
             cur.execute("""
@@ -31628,7 +31636,11 @@ async def save_commissioner_booking_coordinates(request: Request):
         if not coordinates:
             return {"ok": False, "error": "Nenhuma coordenada fornecida"}
         
-        conn = get_db()
+        conn = _db_connect()
+        # Detectar tipo de base de dados
+        import os
+        is_postgres = 'psycopg' in str(type(conn)).lower() or bool(os.getenv('DATABASE_URL'))
+        
         saved_count = 0
         
         for coord in coordinates:
@@ -31715,7 +31727,11 @@ async def generate_commissioner_booking_pdf(booking_id: int, request: Request):
         import io
         
         # Buscar dados da reserva
-        conn = get_db()
+        conn = _db_connect()
+        # Detectar tipo de base de dados
+        import os
+        is_postgres = 'psycopg' in str(type(conn)).lower() or bool(os.getenv('DATABASE_URL'))
+        
         if is_postgres:
             cur = conn.cursor()
             cur.execute("""
