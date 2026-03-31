@@ -3443,18 +3443,44 @@
             const modal = document.getElementById('newBookingModal');
             modal.classList.add('active');
             
-            // Limpar todos os extras (desmarcar checkboxes e zerar quantidades)
+            // Limpar TODOS os extras (desmarcar checkboxes e zerar quantidades)
             const extraCheckboxes = ['extraGPS', 'extraAirport', 'extraYoungDriver', 'extraSeniorDriver', 'extraTripToSpain'];
             extraCheckboxes.forEach(id => {
                 const checkbox = document.getElementById(id);
-                if (checkbox) checkbox.checked = false;
+                if (checkbox) {
+                    checkbox.checked = false;
+                    console.log(`✅ Checkbox ${id} desmarcado`);
+                }
             });
             
             const extraQuantities = ['extraChildSeat', 'extraBoosterSeat', 'extraAdditionalDriver'];
             extraQuantities.forEach(id => {
                 const input = document.getElementById(id);
-                if (input) input.value = 0;
+                if (input) {
+                    input.value = 0;
+                    console.log(`✅ Input ${id} zerado`);
+                }
             });
+            
+            // Reset do formulário completo para garantir limpeza total
+            const form = document.getElementById('newBookingForm');
+            if (form) {
+                form.reset();
+                console.log('✅ Formulário resetado');
+            }
+            
+            // Forçar limpeza dos checkboxes novamente após reset
+            setTimeout(() => {
+                extraCheckboxes.forEach(id => {
+                    const checkbox = document.getElementById(id);
+                    if (checkbox) checkbox.checked = false;
+                });
+                extraQuantities.forEach(id => {
+                    const input = document.getElementById(id);
+                    if (input) input.value = 0;
+                });
+                console.log('✅ Segunda limpeza de extras concluída');
+            }, 100);
             
             // Definir data mínima (hoje)
             const today = new Date();
