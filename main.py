@@ -31743,6 +31743,62 @@ async def save_commissioner_booking_coordinates(request: Request):
         logging.error(traceback.format_exc())
         return {"ok": False, "error": str(e)}
 
+@app.get("/api/commissioner-booking-pdf/list-coordinates")
+async def list_commissioner_booking_coordinates(request: Request):
+    """Listar todas as coordenadas dos campos do PDF"""
+    try:
+        require_admin(request)
+    except HTTPException:
+        return JSONResponse({"ok": False, "error": "Unauthorized"}, status_code=401)
+    
+    try:
+        conn = _db_connect()
+        is_postgres = hasattr(conn, 'rollback')
+        
+        if is_postgres:
+            cur = conn.cursor()
+            cur.execute("""
+                SELECT field_id, x, y, width, height, page, field_type
+                FROM commissioner_booking_coordinates
+                ORDER BY field_id
+            """)
+            rows = cur.fetchall()
+            cur.close()
+        else:
+            cur = conn.cursor()
+            cur.execute("""
+                SELECT field_id, x, y, width, height, page, field_type
+                FROM commissioner_booking_coordinates
+                ORDER BY field_id
+            """)
+            rows = cur.fetchall()
+        
+        conn.close()
+        
+        coordinates = []
+        for row in rows:
+            coordinates.append({
+                "field_id": row[0],
+                "x": row[1],
+                "y": row[2],
+                "width": row[3],
+                "height": row[4],
+                "page": row[5],
+                "field_type": row[6] if len(row) > 6 else "text"
+            })
+        
+        return JSONResponse({
+            "ok": True,
+            "coordinates": coordinates,
+            "count": len(coordinates)
+        })
+        
+    except Exception as e:
+        logging.error(f"Error listing coordinates: {e}")
+        import traceback
+        logging.error(traceback.format_exc())
+        return JSONResponse({"ok": False, "error": str(e)}, status_code=500)
+
 @app.post("/api/commissioner-booking-pdf/upload-template")
 async def upload_commissioner_booking_pdf_template(request: Request, pdf: UploadFile = File(...)):
     """Upload do PDF template do Livro de Reservas"""
