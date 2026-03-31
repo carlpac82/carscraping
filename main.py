@@ -32275,7 +32275,7 @@ async def generate_commissioner_booking_pdf(booking_id: int, request: Request):
             'booking_day', 'booking_month', 'booking_year',
             'pickup_day', 'pickup_month', 'pickup_year', 'pickup_hour', 'pickup_minute',
             'dropoff_day', 'dropoff_month', 'dropoff_year', 'dropoff_hour', 'dropoff_minute',
-            'pickup_location', 'dropoff_location', 'vehicle_group', 'rental_days'
+            'pickup_location', 'dropoff_location', 'vehicle_group', 'rental_days', 'flight_number'
         ]
         
         # Preencher campos com coordenadas
@@ -32318,25 +32318,31 @@ async def generate_commissioner_booking_pdf(booking_id: int, request: Request):
                 
                 text = str(value)
                 
-                logging.info(f"  Coordenadas canvas: ({x:.1f}, {y_canvas:.1f}) -> PDF: ({x:.1f}, {y_pdf:.1f})")
+                # Centralização vertical: ajustar Y para o meio da caixa
+                # Fonte Helvetica 10 tem aproximadamente 10 pts de altura
+                font_height = 10
+                y_offset = (height - font_height) / 2
+                y_pdf_centered = y_pdf + y_offset
+                
+                logging.info(f"  Coordenadas canvas: ({x:.1f}, {y_canvas:.1f}) -> PDF: ({x:.1f}, {y_pdf_centered:.1f})")
                 
                 # Aplicar alinhamento baseado no tipo de campo
                 if field_id in right_aligned_fields:
                     # Alinhamento à direita: desenhar no final da caixa
                     text_width = can.stringWidth(text, "Helvetica", 10)
                     x_adjusted = x + width - text_width
-                    logging.info(f"  Campo: {field_id} = '{text}' at ({x_adjusted:.1f}, {y_pdf:.1f}) [RIGHT] page {page}")
-                    can.drawString(x_adjusted, y_pdf, text)
+                    logging.info(f"  Campo: {field_id} = '{text}' at ({x_adjusted:.1f}, {y_pdf_centered:.1f}) [RIGHT+VCENTER] page {page}")
+                    can.drawString(x_adjusted, y_pdf_centered, text)
                 elif field_id in center_aligned_fields:
                     # Alinhamento ao centro: desenhar no meio da caixa
                     text_width = can.stringWidth(text, "Helvetica", 10)
                     x_adjusted = x + (width - text_width) / 2
-                    logging.info(f"  Campo: {field_id} = '{text}' at ({x_adjusted:.1f}, {y_pdf:.1f}) [CENTER] page {page}")
-                    can.drawString(x_adjusted, y_pdf, text)
+                    logging.info(f"  Campo: {field_id} = '{text}' at ({x_adjusted:.1f}, {y_pdf_centered:.1f}) [CENTER+VCENTER] page {page}")
+                    can.drawString(x_adjusted, y_pdf_centered, text)
                 else:
                     # Alinhamento à esquerda (padrão)
-                    logging.info(f"  Campo: {field_id} = '{text}' at ({x:.1f}, {y_pdf:.1f}) [LEFT] page {page}")
-                    can.drawString(x, y_pdf, text)
+                    logging.info(f"  Campo: {field_id} = '{text}' at ({x:.1f}, {y_pdf_centered:.1f}) [LEFT+VCENTER] page {page}")
+                    can.drawString(x, y_pdf_centered, text)
             else:
                 logging.info(f"  ⚠️ Campo '{field_id}' ignorado: valor vazio ou inválido")
         
