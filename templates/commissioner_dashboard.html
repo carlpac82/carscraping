@@ -3991,15 +3991,21 @@
                 const group = selectedVehicle;
                 const season = getSeasonForDate(pickup);
                 
+                console.log('[PRICE DEBUG] Grupo:', group, 'Época:', season, 'Dias:', diffDays);
+                
                 // Obter preço total para o grupo e época
                 if (commissionerPricing.seasons && commissionerPricing.seasons[group] && commissionerPricing.seasons[group][season]) {
                     const seasonPrices = commissionerPricing.seasons[group][season];
                     let totalPrice = 0;
                     
+                    console.log('[PRICE DEBUG] Preços da época:', seasonPrices);
+                    
                     if (diffDays <= 7) {
                         // Para 1-7 dias: usar preço fixo do período
                         const dayKey = `day${diffDays}`;
                         totalPrice = seasonPrices[dayKey] || 0;
+                        
+                        console.log('[PRICE DEBUG] Buscando', dayKey, '= ', totalPrice);
                         
                         // Se não encontrar preço exato, usar o preço mais próximo
                         if (totalPrice === 0) {
@@ -4007,6 +4013,7 @@
                                 const price = seasonPrices[`day${day}`] || 0;
                                 if (price > 0) {
                                     totalPrice = price;
+                                    console.log('[PRICE DEBUG] Usando preço do dia', day, '=', totalPrice);
                                     break;
                                 }
                             }
@@ -4017,10 +4024,14 @@
                         if (day7Price > 0) {
                             const dailyRate = day7Price / 7; // Preço diário do dia 7
                             totalPrice = dailyRate * diffDays;
+                            console.log('[PRICE DEBUG] 8+ dias: day7Price=', day7Price, 'dailyRate=', dailyRate, 'total=', totalPrice);
                         }
                     }
                     
                     basePrice = totalPrice;
+                    console.log('[PRICE DEBUG] Preço base final:', basePrice);
+                } else {
+                    console.log('[PRICE DEBUG] Não encontrou preços para grupo/época');
                 }
             }
 
