@@ -31995,11 +31995,46 @@ async def generate_commissioner_booking_pdf(booking_id: int, request: Request):
         packet = io.BytesIO()
         can = canvas.Canvas(packet, pagesize=A4)
         
+        # Configurar fonte para melhor legibilidade
+        from reportlab.lib.colors import Color
+        from reportlab.pdfbase import pdfmetrics
+        from reportlab.pdfbase.ttfonts import TTFont
+        
+        # Tentar usar uma fonte padrão
+        try:
+            can.setFont("Helvetica", 10)
+        except:
+            can.setFont("Times-Roman", 10)
+        
         # Preencher campos com coordenadas
+        logging.info(f"📝 Processando {len(coordinates)} coordenadas para o PDF")
+        
+        # Obter dimensões da primeira página do PDF para referência
+        template_pdf = PdfReader(pdf_path)
+        first_page = template_pdf.pages[0]
+        page_height = float(first_page.mediabox[3])  # Altura da página em points
+        
+        logging.info(f"📏 Dimensões da página: {page_height:.1f} points")
+        
         for field_id, coord in coordinates.items():
             value = booking_data.get(field_id, "")
-            if value:
-                can.drawString(coord["x"], coord["y"], str(value))
+            if value and value.strip():
+                # Coordenadas capturadas pelo frontend (origem no topo-esquerda)
+                x = float(coord["x"])
+                y = float(coord["y"])
+                page = coord.get("page", 1)
+                
+                # Converter de sistema de coordenadas do PDF.js (topo-esquerda) 
+                # para sistema do ReportLab (base-esquerda)
+                # PDF.js: (0,0) = topo-esquerda, Y aumenta para baixo
+                # ReportLab: (0,0) = base-esquerda, Y aumenta para cima
+                
+                converted_y = page_height - y
+                
+                logging.info(f"  Campo: {field_id} = '{value}' at ({x:.1f}, {y:.1f}) -> ({x:.1f}, {converted_y:.1f}) page {page}")
+                
+                # Desenhar o texto com coordenadas convertidas
+                can.drawString(x, converted_y, str(value))
         
         can.save()
         packet.seek(0)
