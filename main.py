@@ -31735,7 +31735,7 @@ async def generate_commissioner_booking_pdf(booking_id: int, request: Request):
         if is_postgres:
             cur = conn.cursor()
             cur.execute("""
-                SELECT cb.*, c.name as commissioner_name, c.company_name
+                SELECT cb.*, c.name as commissioner_name
                 FROM commission_bookings cb
                 LEFT JOIN commissioners c ON cb.commissioner_id = c.id
                 WHERE cb.id = %s
@@ -31745,7 +31745,7 @@ async def generate_commissioner_booking_pdf(booking_id: int, request: Request):
         else:
             cur = conn.cursor()
             cur.execute("""
-                SELECT cb.*, c.name as commissioner_name, c.company_name
+                SELECT cb.*, c.name as commissioner_name
                 FROM commission_bookings cb
                 LEFT JOIN commissioners c ON cb.commissioner_id = c.id
                 WHERE cb.id = ?
