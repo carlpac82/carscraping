@@ -32156,7 +32156,7 @@ async def generate_commissioner_booking_pdf(booking_id: int, request: Request):
         if is_postgres:
             cur = conn.cursor()
             cur.execute("""
-                SELECT field_id, x, y, page, width
+                SELECT field_id, x, y, page, width, height
                 FROM commissioner_booking_coordinates
                 ORDER BY field_id
             """)
@@ -32165,7 +32165,7 @@ async def generate_commissioner_booking_pdf(booking_id: int, request: Request):
         else:
             cur = conn.cursor()
             cur.execute("""
-                SELECT field_id, x, y, page, width
+                SELECT field_id, x, y, page, width, height
                 FROM commissioner_booking_coordinates
                 ORDER BY field_id
             """)
@@ -32177,7 +32177,8 @@ async def generate_commissioner_booking_pdf(booking_id: int, request: Request):
                 "x": float(coord_row[1]),
                 "y": float(coord_row[2]),
                 "page": coord_row[3],
-                "width": float(coord_row[4]) if coord_row[4] else 100.0  # Default 100 se não houver largura
+                "width": float(coord_row[4]) if coord_row[4] else 100.0,
+                "height": float(coord_row[5]) if len(coord_row) > 5 and coord_row[5] else 20.0
             }
         
         # Mostrar campos mapeados
