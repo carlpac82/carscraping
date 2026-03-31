@@ -32242,10 +32242,18 @@ async def generate_commissioner_booking_pdf(booking_id: int, request: Request):
                 # Encontrar código do extra
                 code = None
                 name_lower = name.lower()
-                for key, short_code in extra_codes.items():
-                    if key in name_lower or name_lower in key:
-                        code = short_code
-                        break
+                
+                # Matching específico para Airport Fee
+                if 'airport' in name_lower or 'aeroporto' in name_lower:
+                    code = 'A'
+                elif 'spain' in name_lower:
+                    code = 'SP'
+                else:
+                    # Matching normal para outros
+                    for key, short_code in extra_codes.items():
+                        if key in name_lower or name_lower in key:
+                            code = short_code
+                            break
                 
                 if not code:
                     # Se não encontrar código, usar abreviação
