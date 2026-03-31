@@ -53,7 +53,7 @@ class BookingCreate(BaseModel):
     pickup_location: str
     dropoff_location: str
     vehicle_group: str
-    extras: List[str]
+    extras: List[dict]
     flight_number: Optional[str] = None
     language: str
     observations: Optional[str] = None
