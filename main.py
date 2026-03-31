@@ -31761,20 +31761,25 @@ async def generate_commissioner_booking_pdf(booking_id: int, request: Request):
         
         # Converter objetos date para string
         pickup_date_raw = row[8] if len(row) > 8 else ""
+        logging.info(f"DEBUG: row[8] (pickup_date) = {pickup_date_raw} (type: {type(pickup_date_raw)})")
         if isinstance(pickup_date_raw, (date, datetime)):
             pickup_date_str = pickup_date_raw.strftime("%Y-%m-%d")
         else:
             pickup_date_str = str(pickup_date_raw) if pickup_date_raw else ""
         
         pickup_time_str = row[9] if len(row) > 9 else ""  # índice 9: pickup_time
+        logging.info(f"DEBUG: row[9] (pickup_time) = {pickup_time_str} (type: {type(pickup_time_str)})")
         
         dropoff_date_raw = row[10] if len(row) > 10 else ""
+        logging.info(f"DEBUG: row[10] (dropoff_date) = {dropoff_date_raw} (type: {type(dropoff_date_raw)})")
         if isinstance(dropoff_date_raw, (date, datetime)):
             dropoff_date_str = dropoff_date_raw.strftime("%Y-%m-%d")
         else:
             dropoff_date_str = str(dropoff_date_raw) if dropoff_date_raw else ""
         
         dropoff_time_str = row[11] if len(row) > 11 else ""  # índice 11: dropoff_time
+        logging.info(f"DEBUG: row[11] (dropoff_time) = {dropoff_time_str} (type: {type(dropoff_time_str)})")
+        logging.info(f"DEBUG: Total row length = {len(row)}")
         
         # Processar data de levantamento
         pickup_day, pickup_month, pickup_year = "", "", ""
@@ -32197,7 +32202,11 @@ async def generate_commissioner_booking_pdf(booking_id: int, request: Request):
         
         for field_id, coord in coordinates.items():
             value = booking_data.get(field_id, "")
-            if value and value.strip():
+            # Converter para string se for date/datetime
+            if isinstance(value, (date, datetime)):
+                value = str(value)
+            # Verificar se tem valor (string não vazia)
+            if value and (isinstance(value, str) and value.strip() or not isinstance(value, str)):
                 # Coordenadas capturadas pelo frontend (origem no topo-esquerda)
                 x = float(coord["x"])
                 y = float(coord["y"])
