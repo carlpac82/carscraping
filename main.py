@@ -31735,7 +31735,14 @@ async def generate_commissioner_booking_pdf(booking_id: int, request: Request):
         if is_postgres:
             cur = conn.cursor()
             cur.execute("""
-                SELECT cb.*, c.name as commissioner_name
+                SELECT 
+                    cb.id, cb.commissioner_id, cb.voucher_number, cb.client_name, 
+                    cb.client_email, cb.client_phone, cb.hotel, cb.room_number,
+                    cb.pickup_date, cb.pickup_time, cb.dropoff_date, cb.dropoff_time,
+                    cb.pickup_location, cb.dropoff_location, cb.vehicle_group, cb.extras,
+                    cb.flight_number, cb.language, cb.observations, cb.deposit,
+                    cb.price, cb.status, cb.created_at, cb.updated_at,
+                    c.name as commissioner_name
                 FROM commission_bookings cb
                 LEFT JOIN commissioners c ON cb.commissioner_id = c.id
                 WHERE cb.id = %s
@@ -31745,7 +31752,14 @@ async def generate_commissioner_booking_pdf(booking_id: int, request: Request):
         else:
             cur = conn.cursor()
             cur.execute("""
-                SELECT cb.*, c.name as commissioner_name
+                SELECT 
+                    cb.id, cb.commissioner_id, cb.voucher_number, cb.client_name, 
+                    cb.client_email, cb.client_phone, cb.hotel, cb.room_number,
+                    cb.pickup_date, cb.pickup_time, cb.dropoff_date, cb.dropoff_time,
+                    cb.pickup_location, cb.dropoff_location, cb.vehicle_group, cb.extras,
+                    cb.flight_number, cb.language, cb.observations, cb.deposit,
+                    cb.price, cb.status, cb.created_at, cb.updated_at,
+                    c.name as commissioner_name
                 FROM commission_bookings cb
                 LEFT JOIN commissioners c ON cb.commissioner_id = c.id
                 WHERE cb.id = ?
@@ -32193,13 +32207,6 @@ async def generate_commissioner_booking_pdf(booking_id: int, request: Request):
         # Preencher campos com coordenadas
         logging.info(f"📝 Processando {len(coordinates)} coordenadas para o PDF")
         
-        # Obter dimensões da primeira página do PDF para referência
-        template_pdf = PdfReader(pdf_path)
-        first_page = template_pdf.pages[0]
-        page_height = float(first_page.mediabox[3])  # Altura da página em points
-        
-        logging.info(f"📏 Dimensões da página: {page_height:.1f} points")
-        
         for field_id, coord in coordinates.items():
             value = booking_data.get(field_id, "")
             # Converter para string se for date/datetime
@@ -32207,22 +32214,15 @@ async def generate_commissioner_booking_pdf(booking_id: int, request: Request):
                 value = str(value)
             # Verificar se tem valor (string não vazia)
             if value and (isinstance(value, str) and value.strip() or not isinstance(value, str)):
-                # Coordenadas capturadas pelo frontend (origem no topo-esquerda)
+                # Coordenadas já estão em pontos PDF (origem base-esquerda)
                 x = float(coord["x"])
                 y = float(coord["y"])
                 page = coord.get("page", 1)
                 
-                # Converter de sistema de coordenadas do PDF.js (topo-esquerda) 
-                # para sistema do ReportLab (base-esquerda)
-                # PDF.js: (0,0) = topo-esquerda, Y aumenta para baixo
-                # ReportLab: (0,0) = base-esquerda, Y aumenta para cima
+                logging.info(f"  Campo: {field_id} = '{value}' at ({x:.1f}, {y:.1f}) page {page}")
                 
-                converted_y = page_height - y
-                
-                logging.info(f"  Campo: {field_id} = '{value}' at ({x:.1f}, {y:.1f}) -> ({x:.1f}, {converted_y:.1f}) page {page}")
-                
-                # Desenhar o texto com coordenadas convertidas
-                can.drawString(x, converted_y, str(value))
+                # Desenhar o texto diretamente nas coordenadas
+                can.drawString(x, y, str(value))
         
         can.save()
         packet.seek(0)
