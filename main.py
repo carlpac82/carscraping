@@ -31816,6 +31816,93 @@ async def generate_commissioner_booking_pdf(booking_id: int, request: Request):
             except:
                 pass
         
+        # Função para processar e formatar extras
+        def format_extras(extras_data):
+            """Formata os extras conforme o padrão solicitado"""
+            if not extras_data:
+                return {
+                    "driver_extras": "",
+                    "seat_extras": "",
+                    "location_extras": "",
+                    "other_extras": ""
+                }
+            
+            driver_parts = []
+            seat_parts = []
+            location_parts = []
+            other_parts = []
+            
+            # Mapeamento de códigos de extras
+            extra_codes = {
+                "Additional Driver": "AD",
+                "Young Driver": "YD", 
+                "Senior Driver": "SD",
+                "Baby Seat": "BA",
+                "Booster Seat": "BO",
+                "Airport Fee": "A",
+                "Spain Fee": "SP",
+                "GPS": "GPS"
+            }
+            
+            for extra in extras_data:
+                name = extra.get('name', '')
+                price = extra.get('price', 0)
+                quantity = extra.get('quantity', 1)
+                
+                # Formatar preço
+                price_str = f"{price:.2f}".replace('.', ',')
+                
+                # Encontrar o código correspondente
+                code = None
+                for full_name, short_code in extra_codes.items():
+                    if full_name.lower() in name.lower():
+                        code = short_code
+                        break
+                
+                if not code:
+                    # Se não encontrar código, usar abreviação
+                    code = name[:3].upper()
+                
+                # Formatar conforme categoria
+                if code in ['AD', 'YD', 'SD']:
+                    if quantity > 1:
+                        driver_parts.append(f"{quantity}x{code}-{price_str}")
+                    else:
+                        driver_parts.append(f"{code}-{price_str}")
+                elif code in ['BA', 'BO']:
+                    if quantity > 1:
+                        seat_parts.append(f"{quantity}x{code}-{price_str}")
+                    else:
+                        seat_parts.append(f"{code}-{price_str}")
+                elif code in ['A', 'SP']:
+                    if quantity > 1:
+                        location_parts.append(f"{quantity}x{code}-{price_str}")
+                    else:
+                        location_parts.append(f"{code}-{price_str}")
+                else:
+                    if quantity > 1:
+                        other_parts.append(f"{quantity}x{code}-{price_str}")
+                    else:
+                        other_parts.append(f"{code}-{price_str}")
+            
+            return {
+                "driver_extras": " + ".join(driver_parts),
+                "seat_extras": " + ".join(seat_parts),
+                "location_extras": " + ".join(location_parts),
+                "other_extras": " + ".join(other_parts)
+            }
+        
+        # Buscar extras da reserva (se existirem na base de dados)
+        extras_formatted = {
+            "driver_extras": "",
+            "seat_extras": "",
+            "location_extras": "",
+            "other_extras": ""
+        }
+        
+        # Tentar buscar extras da reserva (implementação futura)
+        # Por enquanto, mantém os campos vazios
+        
         # Mapear dados da reserva com todos os campos
         booking_data = {
             # Dados do Cliente
@@ -31847,12 +31934,23 @@ async def generate_commissioner_booking_pdf(booking_id: int, request: Request):
             "vehicle_group": row[13] if len(row) > 13 else "",
             "rental_days": rental_days,
             
+            # Datas da Reserva
+            "booking_date": row[17] if len(row) > 17 else "",  # Data de criação da reserva
+            "deposit_amount": "",  # Será implementado no processo da reserva
+            "deposit_date": "",     # Será implementado no processo da reserva
+            
             # Preços (valores simulados - podem ser ajustados conforme base de dados)
             "base_price": str(row[16] * 0.6) if len(row) > 16 and row[16] else "0",  # 60% do total
             "premium_insurance": str(row[16] * 0.25) if len(row) > 16 and row[16] else "0",  # 25% do total
             "road_tax": str(row[16] * 0.05) if len(row) > 16 and row[16] else "0",  # 5% do total
             "extras_total": str(row[16] * 0.1) if len(row) > 16 and row[16] else "0",  # 10% do total
             "price": str(row[16]) if len(row) > 16 and row[16] else "0",
+            
+            # Extras Detalhados (formatados conforme solicitado)
+            "driver_extras": extras_formatted["driver_extras"],  # AD/YD/SD format: AD-25,00 + YD-25,00 + SD-25,00
+            "seat_extras": extras_formatted["seat_extras"],       # BA/BO format: BA-25,00 + BO-25,00 ou 2xBA-25,00
+            "location_extras": extras_formatted["location_extras"], # A/SP format: A-20,00 + SP-100,00
+            "other_extras": extras_formatted["other_extras"],     # GPS e outros: GPS-50,00
             
             # Comissionista e Observações
             "commissioner_name": row[-2] if len(row) > 20 else "",
