@@ -4539,6 +4539,13 @@
         function populateBookingSummary() {
             console.log('🚗 populateBookingSummary chamada, selectedVehicleData:', selectedVehicleData);
             
+            // Garantir que o Passo 5 esteja ativo e visível
+            const step5Content = document.querySelector('.wizard-step-content[data-step="5"]');
+            if (step5Content) {
+                step5Content.classList.add('active');
+                console.log('✅ Passo 5 ativado');
+            }
+            
             // Preencher dados do veículo com imagem
             if (selectedVehicleData) {
                 console.log('✅ selectedVehicleData encontrado:', selectedVehicleData.code, selectedVehicleData.name);
