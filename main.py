@@ -31963,12 +31963,9 @@ async def generate_commissioner_booking_pdf(booking_id: int, request: Request):
                 else:
                     insurance_price = float(insurance_value) if insurance_value else 0.0
                 
-                # Road tax (franquia) - valor fixo por grupo
-                road_tax_value = _get_setting(f"commissioner_franchise_{vehicle_group}", "0")
-                if isinstance(road_tax_value, Decimal):
-                    road_tax = float(road_tax_value)
-                else:
-                    road_tax = float(road_tax_value) if road_tax_value else 0.0
+                # Road tax - 2.23€ por dia, máximo 10 dias (22.30€)
+                road_tax_days = min(days, 10)
+                road_tax = round(road_tax_days * 2.23, 2)
                 
                 return base_price_total, insurance_price, road_tax
                 
@@ -32248,6 +32245,10 @@ async def generate_commissioner_booking_pdf(booking_id: int, request: Request):
         packet = io.BytesIO()
         can = canvas.Canvas(packet, pagesize=A4)
         
+        # Obter altura da página A4 em pontos (595.27 x 841.89)
+        from reportlab.lib.pagesizes import A4 as A4_SIZE
+        page_width, page_height = A4_SIZE
+        
         # Configurar fonte para melhor legibilidade
         from reportlab.lib.colors import Color
         from reportlab.pdfbase import pdfmetrics
@@ -32301,33 +32302,38 @@ async def generate_commissioner_booking_pdf(booking_id: int, request: Request):
             # Verificar se tem valor (string não vazia)
             if value and (isinstance(value, str) and value.strip() or not isinstance(value, str)):
                 fields_processed += 1
-                # As coordenadas já estão em pontos PDF corretos (o frontend já dividiu pela escala)
+                # As coordenadas vêm do canvas (origem no topo), precisam ser convertidas para PDF (origem no fundo)
                 x = float(coord["x"])
-                y = float(coord["y"])
+                y_canvas = float(coord["y"])
                 width = float(coord.get("width", 100))
+                height = float(coord.get("height", 20))
                 page = coord.get("page", 1)
+                
+                # Converter Y do sistema canvas (origem no topo) para sistema PDF (origem no fundo)
+                # PDF Y = page_height - canvas_y - height
+                y_pdf = page_height - y_canvas - height
                 
                 text = str(value)
                 
-                logging.info(f"  Coordenadas PDF: ({x:.1f}, {y:.1f}) largura={width:.1f}")
+                logging.info(f"  Coordenadas canvas: ({x:.1f}, {y_canvas:.1f}) -> PDF: ({x:.1f}, {y_pdf:.1f})")
                 
                 # Aplicar alinhamento baseado no tipo de campo
                 if field_id in right_aligned_fields:
                     # Alinhamento à direita: desenhar no final da caixa
                     text_width = can.stringWidth(text, "Helvetica", 10)
                     x_adjusted = x + width - text_width
-                    logging.info(f"  Campo: {field_id} = '{text}' at ({x_adjusted:.1f}, {y:.1f}) [RIGHT] page {page}")
-                    can.drawString(x_adjusted, y, text)
+                    logging.info(f"  Campo: {field_id} = '{text}' at ({x_adjusted:.1f}, {y_pdf:.1f}) [RIGHT] page {page}")
+                    can.drawString(x_adjusted, y_pdf, text)
                 elif field_id in center_aligned_fields:
                     # Alinhamento ao centro: desenhar no meio da caixa
                     text_width = can.stringWidth(text, "Helvetica", 10)
                     x_adjusted = x + (width - text_width) / 2
-                    logging.info(f"  Campo: {field_id} = '{text}' at ({x_adjusted:.1f}, {y:.1f}) [CENTER] page {page}")
-                    can.drawString(x_adjusted, y, text)
+                    logging.info(f"  Campo: {field_id} = '{text}' at ({x_adjusted:.1f}, {y_pdf:.1f}) [CENTER] page {page}")
+                    can.drawString(x_adjusted, y_pdf, text)
                 else:
                     # Alinhamento à esquerda (padrão)
-                    logging.info(f"  Campo: {field_id} = '{text}' at ({x:.1f}, {y:.1f}) [LEFT] page {page}")
-                    can.drawString(x, y, text)
+                    logging.info(f"  Campo: {field_id} = '{text}' at ({x:.1f}, {y_pdf:.1f}) [LEFT] page {page}")
+                    can.drawString(x, y_pdf, text)
             else:
                 logging.info(f"  ⚠️ Campo '{field_id}' ignorado: valor vazio ou inválido")
         
