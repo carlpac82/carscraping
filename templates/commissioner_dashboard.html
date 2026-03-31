@@ -4344,33 +4344,59 @@
                 extrasDetails = booking.extras;
             }
             
-            // Calcular seguro e preço base a partir do total
-            // Total = Base + Seguro + Road Tax + Extras
-            // Precisamos deduzir o seguro do que sobra após remover road tax e extras
-            const remainingAfterTaxAndExtras = totalPrice - roadTaxPrice - extrasPrice;
+            // Buscar preços reais da tabela commissionerPricing
+            const group = booking.vehicle_group;
+            const pickupDate = new Date(booking.pickup_date);
+            const season = getSeasonForDate(pickupDate);
             
-            // O seguro premium é calculado por faixa de dias
-            // Vamos estimar baseado no padrão (aproximadamente 25€/dia para 3-7 dias)
+            // Buscar preço base da tabela
+            let basePrice = 0;
+            let basePricePerDay = 0;
+            
+            if (commissionerPricing && commissionerPricing.seasons && 
+                commissionerPricing.seasons[group] && commissionerPricing.seasons[group][season]) {
+                const seasonPrices = commissionerPricing.seasons[group][season];
+                
+                if (days <= 7) {
+                    basePrice = seasonPrices[`day${days}`] || 0;
+                } else {
+                    const day7Price = seasonPrices.day7 || 0;
+                    const dailyRate = day7Price / 7;
+                    basePrice = dailyRate * days;
+                }
+                basePricePerDay = basePrice / days;
+            }
+            
+            // Buscar preço do seguro premium da tabela
             let insurancePrice = 0;
             let insurancePricePerDay = 0;
             
-            if (days >= 1 && days <= 2) {
-                insurancePricePerDay = 30; // Estimativa para 1-2 dias
-            } else if (days >= 3 && days <= 7) {
-                insurancePricePerDay = 25; // Estimativa para 3-7 dias
-            } else if (days >= 8 && days <= 14) {
-                insurancePricePerDay = 22; // Estimativa para 8-14 dias
-            } else if (days >= 15 && days <= 21) {
-                insurancePricePerDay = 20; // Estimativa para 15-21 dias
-            } else {
-                insurancePricePerDay = 18; // Estimativa para 22+ dias
+            if (commissionerPricing && commissionerPricing.extras && 
+                commissionerPricing.extras.insurance && commissionerPricing.extras.insurance.seasons &&
+                commissionerPricing.extras.insurance.seasons[group] &&
+                commissionerPricing.extras.insurance.seasons[group][season]) {
+                
+                const insuranceSeasonPrices = commissionerPricing.extras.insurance.seasons[group][season];
+                
+                // Determinar faixa de dias
+                let priceRange = null;
+                if (days >= 1 && days <= 2) {
+                    priceRange = "1_2";
+                } else if (days >= 3 && days <= 7) {
+                    priceRange = "3_7";
+                } else if (days >= 8 && days <= 14) {
+                    priceRange = "8_14";
+                } else if (days >= 15 && days <= 21) {
+                    priceRange = "15_21";
+                } else if (days >= 22 && days <= 31) {
+                    priceRange = "22_31";
+                }
+                
+                if (priceRange && insuranceSeasonPrices[priceRange]) {
+                    insurancePricePerDay = insuranceSeasonPrices[priceRange];
+                    insurancePrice = insurancePricePerDay * days;
+                }
             }
-            
-            insurancePrice = insurancePricePerDay * days;
-            
-            // Preço base = Total - Seguro - Road Tax - Extras
-            const basePrice = totalPrice - insurancePrice - roadTaxPrice - extrasPrice;
-            const basePricePerDay = basePrice / days;
 
             const detailsHtml = `
                 <!-- Header -->
