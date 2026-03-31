@@ -201,6 +201,15 @@
             background: #ffcdd2;
         }
 
+        .btn-pdf {
+            background: #f3e5f5;
+            color: #7b1fa2;
+        }
+
+        .btn-pdf:hover {
+            background: #e1bee7;
+        }
+
         .loading {
             text-align: center;
             padding: 40px;
@@ -586,6 +595,12 @@
                                             <button class="btn-action btn-edit" onclick="editBooking(${b.id})">
                                                 Editar
                                             </button>
+                                            <button class="btn-action btn-pdf" onclick="printBookingPDF(${b.id})" title="Ver PDF">
+                                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                                    <path d="M6 9V2h12v7M6 18H4a2 2 0 01-2-2v-5a2 2 0 012-2h16a2 2 0 012 2v5a2 2 0 01-2 2h-2"></path>
+                                                    <path d="M6 14h12v8H6z"></path>
+                                                </svg>
+                                            </button>
                                             ${b.status !== 'cancelled' ? `
                                                 <button class="btn-action btn-cancel" onclick="cancelBooking(${b.id})">
                                                     Cancelar
@@ -676,6 +691,17 @@
             document.getElementById('editTotalPrice').value = booking.total_price;
 
             document.getElementById('editModal').classList.add('active');
+        }
+
+        // Gerar PDF do Livro de Reservas
+        async function printBookingPDF(bookingId) {
+            try {
+                // Abrir PDF em nova aba
+                window.open(`/api/commissioner-booking-pdf/generate/${bookingId}`, '_blank');
+            } catch (error) {
+                console.error('Error generating PDF:', error);
+                alert('Erro ao gerar PDF. Por favor, tente novamente.');
+            }
         }
 
         function closeEditModal() {
