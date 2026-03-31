@@ -1765,6 +1765,290 @@
             border-color: #007a8f;
         }
 
+        /* Booking Confirmation Modal */
+        .booking-confirmation-modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.5);
+            z-index: 10000;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .booking-confirmation-content {
+            position: relative;
+            background: white;
+            border-radius: 20px;
+            max-width: 500px;
+            width: 90%;
+            max-height: 90vh;
+            overflow-y: auto;
+            box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+        }
+
+        .confirmation-header {
+            text-align: center;
+            padding: 32px 32px 24px 32px;
+            border-bottom: 1px solid #e5e7eb;
+        }
+
+        .confirmation-icon {
+            margin-bottom: 16px;
+            color: #009cb6;
+        }
+
+        .confirmation-title {
+            font-size: 20px;
+            font-weight: 700;
+            color: #1f2937;
+            margin-bottom: 8px;
+        }
+
+        .confirmation-subtitle {
+            font-size: 14px;
+            color: #6b7280;
+            line-height: 1.5;
+        }
+
+        .confirmation-phone {
+            padding: 20px 32px;
+            text-align: center;
+            background: #f8fafc;
+            border-bottom: 1px solid #e5e7eb;
+        }
+
+        .phone-number {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 12px;
+            font-size: 20px;
+            font-weight: 700;
+            color: #009cb6;
+        }
+
+        .phone-number svg {
+            flex-shrink: 0;
+        }
+
+        .confirmation-total {
+            padding: 24px 32px;
+            text-align: center;
+            border-bottom: 1px solid #e5e7eb;
+        }
+
+        .total-label {
+            font-size: 14px;
+            color: #6b7280;
+            margin-bottom: 8px;
+        }
+
+        .total-value {
+            font-size: 28px;
+            font-weight: 700;
+            color: #1f2937;
+        }
+
+        .confirmation-section {
+            padding: 24px 32px;
+            border-bottom: 1px solid #e5e7eb;
+        }
+
+        .section-title {
+            font-size: 16px;
+            font-weight: 600;
+            color: #1f2937;
+            margin-bottom: 16px;
+            text-align: center;
+        }
+
+        .confirmation-buttons {
+            display: flex;
+            gap: 12px;
+        }
+
+        .confirmation-btn {
+            flex: 1;
+            padding: 12px 20px;
+            border-radius: 8px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+            border: 2px solid;
+            font-size: 14px;
+        }
+
+        .confirmation-btn-yes {
+            background: #10b981;
+            color: white;
+            border-color: #10b981;
+        }
+
+        .confirmation-btn-yes:hover {
+            background: #059669;
+            border-color: #059669;
+        }
+
+        .confirmation-btn-no {
+            background: #f59e0b;
+            color: white;
+            border-color: #f59e0b;
+        }
+
+        .confirmation-btn-no:hover {
+            background: #d97706;
+            border-color: #d97706;
+        }
+
+        .value-adjustment-section {
+            padding: 24px 32px;
+            border-bottom: 1px solid #e5e7eb;
+            background: #fefce8;
+        }
+
+        .adjustment-input-group {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        .adjustment-input-group label {
+            font-size: 14px;
+            font-weight: 600;
+            color: #1f2937;
+        }
+
+        .adjustment-input-group input {
+            padding: 12px 16px;
+            border: 2px solid #e5e7eb;
+            border-radius: 8px;
+            font-size: 16px;
+            transition: border-color 0.2s;
+        }
+
+        .adjustment-input-group input:focus {
+            outline: none;
+            border-color: #009cb6;
+        }
+
+        .adjustment-note {
+            font-size: 12px;
+            color: #6b7280;
+            line-height: 1.4;
+        }
+
+        .deposit-buttons {
+            display: flex;
+            gap: 12px;
+        }
+
+        .deposit-btn {
+            flex: 1;
+            padding: 12px 20px;
+            border-radius: 8px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+            border: 2px solid;
+            font-size: 14px;
+        }
+
+        .deposit-btn-yes {
+            background: #10b981;
+            color: white;
+            border-color: #10b981;
+        }
+
+        .deposit-btn-yes:hover {
+            background: #059669;
+            border-color: #059669;
+        }
+
+        .deposit-btn-no {
+            background: #ef4444;
+            color: white;
+            border-color: #ef4444;
+        }
+
+        .deposit-btn-no:hover {
+            background: #dc2626;
+            border-color: #dc2626;
+        }
+
+        .deposit-section {
+            padding: 24px 32px;
+            border-bottom: 1px solid #e5e7eb;
+            background: #fefce8;
+        }
+
+        .deposit-input-group {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        .deposit-input-group label {
+            font-size: 14px;
+            font-weight: 600;
+            color: #1f2937;
+        }
+
+        .deposit-input-group input {
+            padding: 12px 16px;
+            border: 2px solid #e5e7eb;
+            border-radius: 8px;
+            font-size: 16px;
+            transition: border-color 0.2s;
+        }
+
+        .deposit-input-group input:focus {
+            outline: none;
+            border-color: #009cb6;
+        }
+
+        .confirmation-actions {
+            display: flex;
+            gap: 12px;
+            padding: 24px 32px 32px 32px;
+        }
+
+        .action-btn {
+            flex: 1;
+            padding: 14px 20px;
+            border-radius: 8px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+            border: none;
+            font-size: 14px;
+        }
+
+        .action-btn-cancel {
+            background: #f3f4f6;
+            color: #6b7280;
+            border: 1.5px solid #d1d5db;
+        }
+
+        .action-btn-cancel:hover {
+            background: #e5e7eb;
+            color: #4b5563;
+        }
+
+        .action-btn-confirm {
+            background: #009cb6;
+            color: white;
+            border: 1.5px solid #009cb6;
+        }
+
+        .action-btn-confirm:hover {
+            background: #007a8f;
+            border-color: #007a8f;
+        }
+
         /* Section Divider */
         .section-divider {
             display: flex;
@@ -2590,6 +2874,87 @@
                     </button>
                     <button type="button" class="modal-btn modal-btn-confirm" onclick="confirmBaseInsurance()">
                         Confirmar Seguro Base
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Modal de Confirmação de Reserva -->
+        <div id="bookingConfirmationModal" class="booking-confirmation-modal">
+            <div class="booking-confirmation-content">
+                <div class="confirmation-header">
+                    <div class="confirmation-icon">
+                        <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="#009cb6" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"></path>
+                        </svg>
+                    </div>
+                    <div class="confirmation-title">Confirmar Disponibilidade e Valores</div>
+                    <div class="confirmation-subtitle">Para confirmar a disponibilidade e valores, ligue para Auto Prudente</div>
+                </div>
+                
+                <div class="confirmation-phone">
+                    <div class="phone-number">
+                        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#009cb6" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"></path>
+                        </svg>
+                        289 542 150
+                    </div>
+                </div>
+                
+                <div class="confirmation-total">
+                    <div class="total-label">Valor Total da Reserva:</div>
+                    <div class="total-value" id="confirmationTotalAmount">€0.00</div>
+                </div>
+                
+                <div class="confirmation-section">
+                    <div class="section-title">O valor está correto?</div>
+                    <div class="confirmation-buttons">
+                        <button type="button" class="confirmation-btn confirmation-btn-yes" onclick="confirmValue(true)">
+                            Sim
+                        </button>
+                        <button type="button" class="confirmation-btn confirmation-btn-no" onclick="confirmValue(false)">
+                            Não
+                        </button>
+                    </div>
+                </div>
+                
+                <div class="value-adjustment-section" id="valueAdjustmentSection" style="display: none;">
+                    <div class="section-title">Ajuste de Valor</div>
+                    <div class="adjustment-input-group">
+                        <label for="valueAdjustment">Diferença (€):</label>
+                        <input type="number" id="valueAdjustment" step="0.01" placeholder="0.00">
+                        <div class="adjustment-note">
+                            Valor positivo se Auto Prudente cobrou mais, negativo se cobrou menos
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="confirmation-section">
+                    <div class="section-title">Depósito do Cliente</div>
+                    <div class="deposit-buttons">
+                        <button type="button" class="deposit-btn deposit-btn-yes" onclick="setDeposit(true)">
+                            Sim
+                        </button>
+                        <button type="button" class="deposit-btn deposit-btn-no" onclick="setDeposit(false)">
+                            Não
+                        </button>
+                    </div>
+                </div>
+                
+                <div class="deposit-section" id="depositSection" style="display: none;">
+                    <div class="section-title">Valor do Depósito</div>
+                    <div class="deposit-input-group">
+                        <label for="depositAmount">Valor (€):</label>
+                        <input type="number" id="depositAmount" step="0.01" placeholder="0.00">
+                    </div>
+                </div>
+                
+                <div class="confirmation-actions">
+                    <button type="button" class="action-btn action-btn-cancel" onclick="cancelConfirmation()">
+                        Cancelar
+                    </button>
+                    <button type="button" class="action-btn action-btn-confirm" onclick="proceedWithBooking()">
+                        Criar Reserva
                     </button>
                 </div>
             </div>
@@ -4360,6 +4725,12 @@
                 return;
             }
 
+            // Calcular valor total e mostrar modal de confirmação
+            const totalAmount = calculateTotalAmount();
+            showBookingConfirmationModal(totalAmount);
+        }
+
+        function calculateTotalAmount() {
             const firstName = document.getElementById('clientFirstName').value;
             const lastName = document.getElementById('clientLastName').value;
             const clientName = `${firstName} ${lastName}`;
@@ -4558,6 +4929,267 @@
                 });
             }
 
+            // Calcular valor total
+            const totalAmount = basePrice + premiumInsurance + roadTax + extrasTotal;
+            return totalAmount;
+        }
+
+        // Variáveis globais para o modal de confirmação
+        let bookingConfirmationData = null;
+
+        function showBookingConfirmationModal(totalAmount) {
+            // Guardar dados da reserva para usar depois
+            bookingConfirmationData = {
+                totalAmount: totalAmount,
+                valueConfirmed: null,
+                hasDeposit: null,
+                depositAmount: 0,
+                valueAdjustment: 0
+            };
+
+            // Mostrar valor no modal
+            document.getElementById('confirmationTotalAmount').textContent = `€${totalAmount.toFixed(2)}`;
+            
+            // Resetar campos
+            document.getElementById('valueAdjustmentSection').style.display = 'none';
+            document.getElementById('depositSection').style.display = 'none';
+            document.getElementById('valueAdjustment').value = '';
+            document.getElementById('depositAmount').value = '';
+            
+            // Mostrar modal
+            document.getElementById('bookingConfirmationModal').style.display = 'flex';
+        }
+
+        function confirmValue(isCorrect) {
+            bookingConfirmationData.valueConfirmed = isCorrect;
+            
+            if (!isCorrect) {
+                // Mostrar campo para ajuste de valor
+                document.getElementById('valueAdjustmentSection').style.display = 'block';
+            } else {
+                // Esconder campo de ajuste
+                document.getElementById('valueAdjustmentSection').style.display = 'none';
+                document.getElementById('valueAdjustment').value = '';
+            }
+        }
+
+        function setDeposit(hasDeposit) {
+            bookingConfirmationData.hasDeposit = hasDeposit;
+            
+            if (hasDeposit) {
+                // Mostrar campo para valor do depósito
+                document.getElementById('depositSection').style.display = 'block';
+            } else {
+                // Esconder campo de depósito
+                document.getElementById('depositSection').style.display = 'none';
+                document.getElementById('depositAmount').value = '';
+                bookingConfirmationData.depositAmount = 0;
+            }
+        }
+
+        function cancelConfirmation() {
+            document.getElementById('bookingConfirmationModal').style.display = 'none';
+            bookingConfirmationData = null;
+        }
+
+        async function proceedWithBooking() {
+            // Validar se o valor foi confirmado
+            if (bookingConfirmationData.valueConfirmed === null) {
+                alert('Por favor, confirme se o valor está correto');
+                return;
+            }
+
+            // Validar se o depósito foi definido
+            if (bookingConfirmationData.hasDeposit === null) {
+                alert('Por favor, defina se há depósito do cliente');
+                return;
+            }
+
+            // Obter ajuste de valor se necessário
+            if (!bookingConfirmationData.valueConfirmed) {
+                const adjustmentInput = document.getElementById('valueAdjustment');
+                const adjustment = parseFloat(adjustmentInput.value) || 0;
+                bookingConfirmationData.valueAdjustment = adjustment;
+            }
+
+            // Obter valor do depósito se necessário
+            if (bookingConfirmationData.hasDeposit) {
+                const depositInput = document.getElementById('depositAmount');
+                const depositAmount = parseFloat(depositInput.value) || 0;
+                if (depositAmount <= 0) {
+                    alert('Por favor, insira um valor de depósito válido');
+                    return;
+                }
+                bookingConfirmationData.depositAmount = depositAmount;
+            }
+
+            // Fechar modal
+            document.getElementById('bookingConfirmationModal').style.display = 'none';
+
+            // Criar reserva com os dados confirmados
+            await createBookingWithConfirmation();
+        }
+
+        async function createBookingWithConfirmation() {
+            const firstName = document.getElementById('clientFirstName').value;
+            const lastName = document.getElementById('clientLastName').value;
+            const clientName = `${firstName} ${lastName}`;
+
+            // Recalcular todos os valores
+            const pickupDate = document.getElementById('pickupDate').value;
+            const dropoffDate = document.getElementById('dropoffDate').value;
+            const pickup = new Date(pickupDate);
+            const dropoff = new Date(dropoffDate);
+            const diffTime = Math.abs(dropoff - pickup);
+            const rentalDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+            
+            // Calcular preço base
+            let basePrice = 0;
+            if (selectedVehicle && commissionerPricing && commissionerPricing.seasons && 
+                commissionerPricing.seasons[selectedVehicle]) {
+                const season = getSeasonForDate(pickup);
+                const seasonPrices = commissionerPricing.seasons[selectedVehicle][season];
+                
+                if (rentalDays <= 7) {
+                    basePrice = seasonPrices[`day${rentalDays}`] || 0;
+                } else {
+                    const day7Price = seasonPrices.day7 || 0;
+                    if (day7Price > 0) {
+                        const dailyRate = day7Price / 7;
+                        basePrice = dailyRate * rentalDays;
+                    }
+                }
+            }
+            
+            // Calcular seguro premium
+            let premiumInsurance = 0;
+            if (selectedInsurance === 'premium' && selectedVehicle && commissionerPricing && 
+                commissionerPricing.extras && commissionerPricing.extras.insurance && 
+                commissionerPricing.extras.insurance.seasons && 
+                commissionerPricing.extras.insurance.seasons[selectedVehicle]) {
+                const season = getSeasonForDate(pickup);
+                const seasonPrices = commissionerPricing.extras.insurance.seasons[selectedVehicle][season];
+                
+                let priceRange = null;
+                if (rentalDays >= 1 && rentalDays <= 2) priceRange = "1_2";
+                else if (rentalDays >= 3 && rentalDays <= 7) priceRange = "3_7";
+                else if (rentalDays >= 8 && rentalDays <= 14) priceRange = "8_14";
+                else if (rentalDays >= 15 && rentalDays <= 21) priceRange = "15_21";
+                else if (rentalDays >= 22 && rentalDays <= 31) priceRange = "22_31";
+                
+                if (priceRange && seasonPrices[priceRange]) {
+                    premiumInsurance = seasonPrices[priceRange] * rentalDays;
+                }
+            }
+            
+            // Calcular road tax
+            const roadTax = Math.min(2.23 * rentalDays, 22.30);
+            
+            // Calcular extras
+            let extrasTotal = 0;
+            const extrasArray = [];
+            
+            const gpsCheckbox = document.getElementById('extraGPS');
+            if (gpsCheckbox && gpsCheckbox.checked) {
+                const gpsPrice = commissionerPricing?.extras?.gps?.per_day || 5;
+                extrasTotal += gpsPrice * rentalDays;
+                extrasArray.push({
+                    name: 'GPS',
+                    price: gpsPrice * rentalDays,
+                    quantity: 1
+                });
+            }
+            
+            const youngDriverCheckbox = document.getElementById('extraYoungDriver');
+            if (youngDriverCheckbox && youngDriverCheckbox.checked) {
+                const youngDriverPrice = commissionerPricing?.extras?.young_driver?.per_day || 12;
+                extrasTotal += youngDriverPrice * rentalDays;
+                extrasArray.push({
+                    name: 'Young Driver',
+                    price: youngDriverPrice * rentalDays,
+                    quantity: 1
+                });
+            }
+            
+            const seniorDriverCheckbox = document.getElementById('extraSeniorDriver');
+            if (seniorDriverCheckbox && seniorDriverCheckbox.checked) {
+                const seniorDriverPrice = commissionerPricing?.extras?.senior_driver?.per_day || 10;
+                extrasTotal += seniorDriverPrice * rentalDays;
+                extrasArray.push({
+                    name: 'Senior Driver',
+                    price: seniorDriverPrice * rentalDays,
+                    quantity: 1
+                });
+            }
+            
+            const childSeatInput = document.getElementById('extraChildSeat');
+            if (childSeatInput) {
+                const quantity = parseInt(childSeatInput.value) || 0;
+                if (quantity > 0) {
+                    const childSeatPrice = commissionerPricing?.extras?.child_seat?.per_day || 12;
+                    extrasTotal += childSeatPrice * rentalDays * quantity;
+                    extrasArray.push({
+                        name: 'Baby Seat',
+                        price: childSeatPrice * rentalDays,
+                        quantity: quantity
+                    });
+                }
+            }
+            
+            const boosterSeatInput = document.getElementById('extraBoosterSeat');
+            if (boosterSeatInput) {
+                const quantity = parseInt(boosterSeatInput.value) || 0;
+                if (quantity > 0) {
+                    const boosterSeatPrice = commissionerPricing?.extras?.booster_seat?.per_day || 6;
+                    extrasTotal += boosterSeatPrice * rentalDays * quantity;
+                    extrasArray.push({
+                        name: 'Booster Seat',
+                        price: boosterSeatPrice * rentalDays,
+                        quantity: quantity
+                    });
+                }
+            }
+            
+            const additionalDriverInput = document.getElementById('extraAdditionalDriver');
+            if (additionalDriverInput) {
+                const quantity = parseInt(additionalDriverInput.value) || 0;
+                if (quantity > 0) {
+                    const additionalDriverPrice = commissionerPricing?.extras?.additional_driver?.per_day || 10;
+                    extrasTotal += additionalDriverPrice * rentalDays * quantity;
+                    extrasArray.push({
+                        name: 'Additional Driver',
+                        price: additionalDriverPrice * rentalDays,
+                        quantity: quantity
+                    });
+                }
+            }
+            
+            const airportCheckbox = document.getElementById('extraAirport');
+            if (airportCheckbox && airportCheckbox.checked) {
+                const airportPrice = commissionerPricing?.extras?.airport_fee?.min || 20;
+                extrasTotal += airportPrice;
+                extrasArray.push({
+                    name: 'Airport Fee',
+                    price: airportPrice,
+                    quantity: 1
+                });
+            }
+            
+            const tripToSpainCheckbox = document.getElementById('extraTripToSpain');
+            if (tripToSpainCheckbox && tripToSpainCheckbox.checked) {
+                const spainPrice = commissionerPricing?.extras?.trip_to_spain?.min || 100;
+                extrasTotal += spainPrice;
+                extrasArray.push({
+                    name: 'Spain Fee',
+                    price: spainPrice,
+                    quantity: 1
+                });
+            }
+
+            // Calcular valor final com ajuste
+            const originalTotal = basePrice + premiumInsurance + roadTax + extrasTotal;
+            const finalTotal = originalTotal + bookingConfirmationData.valueAdjustment;
+
             const bookingData = {
                 vehicle_group: selectedVehicle,
                 client_name: clientName,
@@ -4572,16 +5204,16 @@
                 pickup_location: document.getElementById('pickupLocation').value,
                 dropoff_location: document.getElementById('dropoffLocation').value,
                 flight_number: document.getElementById('flightNumber').value || null,
-                language: document.getElementById('language').value,
-                observations: document.getElementById('observations').value || null,
-                deposit: document.getElementById('deposit') ? parseFloat(document.getElementById('deposit').value) || 0 : 0,
-                price: parseFloat(document.getElementById('summaryTotalPrice').textContent.replace('€', '').replace(',', '.')) || 0,
+                insurance_type: selectedInsurance,
                 base_price: basePrice,
                 premium_insurance: premiumInsurance,
                 road_tax: roadTax,
                 extras_total: extrasTotal,
                 rental_days: rentalDays,
-                extras: extrasArray
+                extras: extrasArray,
+                total_amount: finalTotal,
+                value_adjustment: bookingConfirmationData.valueAdjustment,
+                deposit: bookingConfirmationData.depositAmount
             };
 
             try {
@@ -4605,6 +5237,8 @@
             } catch (error) {
                 console.error('Error creating booking:', error);
                 alert('Erro de conexão ao criar reserva');
+            } finally {
+                bookingConfirmationData = null;
             }
         }
 

@@ -31900,6 +31900,71 @@ async def clear_all_commissioner_bookings(request: Request):
         logging.error(traceback.format_exc())
         return JSONResponse({"ok": False, "error": str(e)}, status_code=500)
 
+@app.get("/admin/migrate-booking-confirmation-fields")
+async def admin_migrate_booking_confirmation_fields(request: Request):
+    """Add total_amount and value_adjustment fields to commission_bookings table - Admin only"""
+    try:
+        require_admin(request)
+    except HTTPException:
+        return JSONResponse({"ok": False, "error": "Unauthorized"}, status_code=401)
+    
+    try:
+        conn = _db_connect()
+        cursor = conn.cursor()
+        
+        # Check if columns already exist
+        cursor.execute("""
+            SELECT column_name 
+            FROM information_schema.columns 
+            WHERE table_name = 'commission_bookings' 
+            AND column_name IN ('total_amount', 'value_adjustment')
+        """)
+        existing_columns = [row[0] for row in cursor.fetchall()]
+        
+        results = []
+        
+        # Add total_amount column if it doesn't exist
+        if 'total_amount' not in existing_columns:
+            try:
+                cursor.execute("""
+                    ALTER TABLE commission_bookings 
+                    ADD COLUMN total_amount DECIMAL(10, 2)
+                """)
+                results.append("✅ Added total_amount column")
+                logging.info("✅ Added total_amount column")
+            except Exception as e:
+                results.append(f"⚠️ total_amount column: {str(e)}")
+        else:
+            results.append("ℹ️ total_amount column already exists")
+        
+        # Add value_adjustment column if it doesn't exist
+        if 'value_adjustment' not in existing_columns:
+            try:
+                cursor.execute("""
+                    ALTER TABLE commission_bookings 
+                    ADD COLUMN value_adjustment DECIMAL(10, 2) DEFAULT 0.00
+                """)
+                results.append("✅ Added value_adjustment column")
+                logging.info("✅ Added value_adjustment column")
+            except Exception as e:
+                results.append(f"⚠️ value_adjustment column: {str(e)}")
+        else:
+            results.append("ℹ️ value_adjustment column already exists")
+        
+        conn.commit()
+        cursor.close()
+        conn.close()
+        
+        return JSONResponse({
+            "ok": True,
+            "message": "Migration completed",
+            "results": results
+        })
+        
+    except Exception as e:
+        logging.error(traceback.format_exc())
+        return JSONResponse({"ok": False, "error": str(e)}, status_code=500)
+
 @app.delete("/api/commissioner-booking-pdf/clean-unknown-fields")
 async def clean_unknown_booking_coordinates(request: Request):
     """Limpar campos desconhecidos/numéricos da tabela de coordenadas"""

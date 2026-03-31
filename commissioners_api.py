@@ -41,6 +41,8 @@ class CommissionerLogin(BaseModel):
     password: str
 
 class BookingCreate(BaseModel):
+    commissioner_id: int
+    voucher_number: str
     client_name: str
     client_email: str
     client_phone: str
@@ -64,6 +66,8 @@ class BookingCreate(BaseModel):
     road_tax: float = 0.0
     extras_total: float = 0.0
     rental_days: int = 0
+    total_amount: Optional[float] = None
+    value_adjustment: float = 0.0
 
 # ============================================================
 # HELPER FUNCTIONS
@@ -287,9 +291,9 @@ async def create_booking(booking: BookingCreate, request: Request):
             vehicle_group, extras,
             flight_number, language, observations, deposit, price,
             base_price, premium_insurance, road_tax, extras_total, rental_days,
-            status
+            total_amount, value_adjustment, status
         ) VALUES (
-            %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s
+            %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s
         ) RETURNING id
     """, (
         commissioner_id, voucher_number,
@@ -299,7 +303,7 @@ async def create_booking(booking: BookingCreate, request: Request):
         booking.vehicle_group, json.dumps(booking.extras),
         booking.flight_number, booking.language, booking.observations, booking.deposit, booking.price,
         booking.base_price, booking.premium_insurance, booking.road_tax, booking.extras_total, booking.rental_days,
-        'pending'
+        booking.total_amount, booking.value_adjustment, 'pending'
     ))
     
     booking_id = cursor.fetchone()[0]
