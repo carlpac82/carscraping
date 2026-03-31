@@ -2204,25 +2204,27 @@
         }
 
         .confirmation-btn-yes {
+            background: #10b981;
+            color: white;
+            border-color: #10b981;
+        }
+
+        .confirmation-btn-yes.selected {
             background: #009cb6;
             color: white;
             border-color: #009cb6;
         }
 
-        .confirmation-btn-yes:hover {
-            background: #007a8f;
-            border-color: #007a8f;
-        }
-
         .confirmation-btn-no {
-            background: #f59e0b;
+            background: #ef4444;
             color: white;
-            border-color: #f59e0b;
+            border-color: #ef4444;
         }
 
-        .confirmation-btn-no:hover {
-            background: #d97706;
-            border-color: #d97706;
+        .confirmation-btn-no.selected {
+            background: #009cb6;
+            color: white;
+            border-color: #009cb6;
         }
 
         /* Campos Adicionais */
@@ -4412,6 +4414,19 @@
                     console.log('🎯 Entrando no Passo 5, selectedVehicle:', selectedVehicle);
                     console.log('🎯 selectedVehicleData:', selectedVehicleData);
                     console.log('🎯 vehicleGroups disponíveis:', vehicleGroups.length);
+                    
+                    // Garantir que bookingConfirmationData esteja inicializado
+                    if (!bookingConfirmationData) {
+                        bookingConfirmationData = {
+                            totalAmount: 0,
+                            valueConfirmed: null,
+                            hasDeposit: null,
+                            valueAdjustment: 0,
+                            depositAmount: 0
+                        };
+                        console.log('✅ bookingConfirmationData inicializado no Passo 5');
+                    }
+                    
                     populateBookingSummary();
                 }
                 
@@ -5512,13 +5527,22 @@
             }
             bookingConfirmationData.valueConfirmed = isCorrect;
             
-            if (!isCorrect) {
-                // Mostrar campo para ajuste de valor
-                document.getElementById('valueAdjustmentSection').style.display = 'block';
-            } else {
+            // Atualizar estilos dos botões
+            const yesBtn = document.querySelector('.confirmation-btn-yes');
+            const noBtn = document.querySelector('.confirmation-btn-no');
+            
+            if (isCorrect) {
+                yesBtn.classList.add('selected');
+                noBtn.classList.remove('selected');
                 // Esconder campo de ajuste
                 document.getElementById('valueAdjustmentSection').style.display = 'none';
                 document.getElementById('valueAdjustment').value = '';
+                bookingConfirmationData.valueAdjustment = 0;
+            } else {
+                yesBtn.classList.remove('selected');
+                noBtn.classList.add('selected');
+                // Mostrar campo para ajuste de valor
+                document.getElementById('valueAdjustmentSection').style.display = 'block';
             }
         }
 
@@ -5530,10 +5554,18 @@
             }
             bookingConfirmationData.hasDeposit = hasDeposit;
             
+            // Atualizar estilos dos botões
+            const yesBtn = document.querySelectorAll('.confirmation-btn-yes')[1]; // Segundo botão Sim (depósito)
+            const noBtn = document.querySelectorAll('.confirmation-btn-no')[1]; // Segundo botão Não (depósito)
+            
             if (hasDeposit) {
+                yesBtn.classList.add('selected');
+                noBtn.classList.remove('selected');
                 // Mostrar campo para valor do depósito
                 document.getElementById('depositSection').style.display = 'block';
             } else {
+                yesBtn.classList.remove('selected');
+                noBtn.classList.add('selected');
                 // Esconder campo de depósito
                 document.getElementById('depositSection').style.display = 'none';
                 document.getElementById('depositAmount').value = '';
