@@ -31854,6 +31854,52 @@ async def list_commissioner_booking_coordinates(request: Request):
         logging.error(traceback.format_exc())
         return JSONResponse({"ok": False, "error": str(e)}, status_code=500)
 
+@app.post("/api/commissioner-bookings/clear-all")
+async def clear_all_commissioner_bookings(request: Request):
+    """Limpar todas as reservas do commissioner (PERIGO:操作 irreversível)"""
+    try:
+        require_admin(request)
+    except HTTPException:
+        return JSONResponse({"ok": False, "error": "Unauthorized"}, status_code=401)
+    
+    try:
+        conn = _db_connect()
+        is_postgres = hasattr(conn, 'rollback')
+        
+        if is_postgres:
+            cur = conn.cursor()
+            # Contar quantas reservas vão ser apagadas
+            cur.execute("SELECT COUNT(*) FROM commissioner_bookings")
+            count = cur.fetchone()[0]
+            
+            # Apagar todas as reservas
+            cur.execute("DELETE FROM commissioner_bookings")
+            
+            # Resetar o contador de sequência se for PostgreSQL
+            cur.execute("ALTER SEQUENCE commissioner_bookings_id_seq RESTART WITH 1")
+            
+            conn.commit()
+            cur.close()
+        else:
+            cursor = conn.cursor()
+            # Contar quantas reservas vão ser apagadas
+            cursor.execute("SELECT COUNT(*) FROM commissioner_bookings")
+            count = cursor.fetchone()[0]
+            
+            # Apagar todas as reservas
+            cursor.execute("DELETE FROM commissioner_bookings")
+            
+            conn.commit()
+            cursor.close()
+        
+        conn.close()
+        
+        return {"ok": True, "message": f"Foram apagadas {count} reservas do commissioner"}
+        
+    except Exception as e:
+        logging.error(traceback.format_exc())
+        return JSONResponse({"ok": False, "error": str(e)}, status_code=500)
+
 @app.delete("/api/commissioner-booking-pdf/clean-unknown-fields")
 async def clean_unknown_booking_coordinates(request: Request):
     """Limpar campos desconhecidos/numéricos da tabela de coordenadas"""
