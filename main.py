@@ -6736,6 +6736,61 @@ async def admin_set_test_periods(request: Request):
         traceback.print_exc()
         return JSONResponse({"ok": False, "error": str(e)}, status_code=500)
 
+@app.get("/admin/migrate-pricing-fields")
+async def admin_migrate_pricing_fields(request: Request):
+    """Migrate commission_bookings table to add pricing fields"""
+    try:
+        require_admin(request)
+    except HTTPException:
+        return JSONResponse({"ok": False, "error": "Unauthorized"}, status_code=401)
+    
+    try:
+        conn = _db_connect()
+        is_postgres = hasattr(conn, 'rollback')
+        
+        if not is_postgres:
+            return JSONResponse({"ok": False, "error": "Migration only works with PostgreSQL"}, status_code=400)
+        
+        cursor = conn.cursor()
+        
+        columns_to_add = [
+            ('base_price', 'NUMERIC(10,2)'),
+            ('premium_insurance', 'NUMERIC(10,2)'),
+            ('road_tax', 'NUMERIC(10,2)'),
+            ('extras_total', 'NUMERIC(10,2)'),
+            ('rental_days', 'INTEGER')
+        ]
+        
+        results = []
+        for col_name, col_type in columns_to_add:
+            try:
+                cursor.execute(f'ALTER TABLE commission_bookings ADD COLUMN {col_name} {col_type}')
+                conn.commit()
+                results.append(f"✓ Coluna {col_name} adicionada")
+                logging.info(f"✓ Coluna {col_name} adicionada")
+            except Exception as e:
+                conn.rollback()
+                if 'already exists' in str(e) or 'duplicate column' in str(e).lower():
+                    results.append(f"⚠ Coluna {col_name} já existe")
+                    logging.info(f"⚠ Coluna {col_name} já existe")
+                else:
+                    results.append(f"❌ Erro ao adicionar {col_name}: {str(e)}")
+                    logging.error(f"❌ Erro ao adicionar {col_name}: {e}")
+        
+        cursor.close()
+        conn.close()
+        
+        return JSONResponse({
+            "ok": True, 
+            "message": "Migração concluída",
+            "results": results
+        })
+        
+    except Exception as e:
+        logging.error(f"Error in migration: {e}")
+        traceback.print_exc()
+        return JSONResponse({"ok": False, "error": str(e)}, status_code=500)
+
 @app.post("/admin/set-test-insurance-pricing")
 async def set_test_insurance_pricing(request: Request):
     """Set test insurance pricing by group, season and day ranges"""
