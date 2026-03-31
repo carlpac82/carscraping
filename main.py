@@ -31757,21 +31757,40 @@ async def generate_commissioner_booking_pdf(booking_id: int, request: Request):
             return {"ok": False, "error": "Reserva não encontrada"}
         
         # Extrair datas e horas para divisão
-        pickup_date_str = row[8] if len(row) > 8 else ""  # índice 8: pickup_date
+        from datetime import datetime, date, time
+        
+        # Converter objetos date para string
+        pickup_date_raw = row[8] if len(row) > 8 else ""
+        if isinstance(pickup_date_raw, (date, datetime)):
+            pickup_date_str = pickup_date_raw.strftime("%Y-%m-%d")
+        else:
+            pickup_date_str = str(pickup_date_raw) if pickup_date_raw else ""
+        
         pickup_time_str = row[9] if len(row) > 9 else ""  # índice 9: pickup_time
-        dropoff_date_str = row[10] if len(row) > 10 else ""  # índice 10: dropoff_date
+        
+        dropoff_date_raw = row[10] if len(row) > 10 else ""
+        if isinstance(dropoff_date_raw, (date, datetime)):
+            dropoff_date_str = dropoff_date_raw.strftime("%Y-%m-%d")
+        else:
+            dropoff_date_str = str(dropoff_date_raw) if dropoff_date_raw else ""
+        
         dropoff_time_str = row[11] if len(row) > 11 else ""  # índice 11: dropoff_time
         
         # Processar data de levantamento
         pickup_day, pickup_month, pickup_year = "", "", ""
         if pickup_date_str:
             try:
-                from datetime import datetime
-                pickup_dt = datetime.strptime(pickup_date_str, "%Y-%m-%d")
-                pickup_day = str(pickup_dt.day)
-                pickup_month = str(pickup_dt.month)
-                pickup_year = str(pickup_dt.year)
-            except:
+                if isinstance(pickup_date_raw, (date, datetime)):
+                    pickup_day = str(pickup_date_raw.day)
+                    pickup_month = str(pickup_date_raw.month)
+                    pickup_year = str(pickup_date_raw.year)
+                else:
+                    pickup_dt = datetime.strptime(pickup_date_str, "%Y-%m-%d")
+                    pickup_day = str(pickup_dt.day)
+                    pickup_month = str(pickup_dt.month)
+                    pickup_year = str(pickup_dt.year)
+            except Exception as e:
+                logging.error(f"Error processing pickup date: {e}")
                 pass
         
         # Processar hora de levantamento
@@ -31793,12 +31812,17 @@ async def generate_commissioner_booking_pdf(booking_id: int, request: Request):
         dropoff_day, dropoff_month, dropoff_year = "", "", ""
         if dropoff_date_str:
             try:
-                from datetime import datetime
-                dropoff_dt = datetime.strptime(dropoff_date_str, "%Y-%m-%d")
-                dropoff_day = str(dropoff_dt.day)
-                dropoff_month = str(dropoff_dt.month)
-                dropoff_year = str(dropoff_dt.year)
-            except:
+                if isinstance(dropoff_date_raw, (date, datetime)):
+                    dropoff_day = str(dropoff_date_raw.day)
+                    dropoff_month = str(dropoff_date_raw.month)
+                    dropoff_year = str(dropoff_date_raw.year)
+                else:
+                    dropoff_dt = datetime.strptime(dropoff_date_str, "%Y-%m-%d")
+                    dropoff_day = str(dropoff_dt.day)
+                    dropoff_month = str(dropoff_dt.month)
+                    dropoff_year = str(dropoff_dt.year)
+            except Exception as e:
+                logging.error(f"Error processing dropoff date: {e}")
                 pass
         
         # Processar hora de devolução
@@ -31820,13 +31844,17 @@ async def generate_commissioner_booking_pdf(booking_id: int, request: Request):
         rental_days = ""
         if pickup_date_str and dropoff_date_str:
             try:
-                from datetime import datetime
-                pickup_dt = datetime.strptime(pickup_date_str, "%Y-%m-%d")
-                dropoff_dt = datetime.strptime(dropoff_date_str, "%Y-%m-%d")
-                days_diff = (dropoff_dt - pickup_dt).days
+                # Usar objetos date diretamente se disponíveis
+                if isinstance(pickup_date_raw, (date, datetime)) and isinstance(dropoff_date_raw, (date, datetime)):
+                    days_diff = (dropoff_date_raw - pickup_date_raw).days
+                else:
+                    pickup_dt = datetime.strptime(pickup_date_str, "%Y-%m-%d")
+                    dropoff_dt = datetime.strptime(dropoff_date_str, "%Y-%m-%d")
+                    days_diff = (dropoff_dt - pickup_dt).days
                 rental_days = str(days_diff) if days_diff > 0 else "1"
-            except:
-                pass
+            except Exception as e:
+                logging.error(f"Error calculating rental days: {e}")
+                rental_days = "1"
         
         # Processar data da reserva (created_at)
         booking_day, booking_month, booking_year = "", "", ""
@@ -31857,8 +31885,13 @@ async def generate_commissioner_booking_pdf(booking_id: int, request: Request):
                 from datetime import datetime
                 
                 # Determinar época
-                pickup_dt = datetime.strptime(str(pickup_date)[:10], "%Y-%m-%d") if isinstance(pickup_date, str) else pickup_date
-                month = pickup_dt.month
+                if isinstance(pickup_date, (date, datetime)):
+                    month = pickup_date.month
+                elif isinstance(pickup_date, str):
+                    pickup_dt = datetime.strptime(str(pickup_date)[:10], "%Y-%m-%d")
+                    month = pickup_dt.month
+                else:
+                    month = 1  # Default para baixa época
                 
                 # Definir época baseada no mês
                 if month in [7, 8]:  # Julho e Agosto - Alta Época
