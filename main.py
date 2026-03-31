@@ -61679,28 +61679,53 @@ async def api_get_commissioner_bookings(request: Request):
         with _db_lock:
             con = _db_connect()
             try:
-                cur = con.execute("""
-                    SELECT 
-                        b.id,
-                        b.customer_name,
-                        b.customer_email,
-                        b.customer_phone,
-                        b.pickup_date,
-                        b.return_date,
-                        b.pickup_location,
-                        b.return_location,
-                        b.car_name,
-                        b.total_price,
-                        b.status,
-                        b.created_at,
-                        c.name as commissioner_name,
-                        c.id as commissioner_id
-                    FROM bookings b
-                    LEFT JOIN commissioners c ON b.commissioner_id = c.id
-                    WHERE b.commissioner_id IS NOT NULL
-                    ORDER BY b.created_at DESC
-                """)
-                rows = cur.fetchall()
+                if USE_POSTGRES:
+                    cur = con.cursor()
+                    cur.execute("""
+                        SELECT 
+                            b.id,
+                            b.client_name,
+                            b.client_email,
+                            b.client_phone,
+                            b.pickup_date,
+                            b.dropoff_date,
+                            b.pickup_location,
+                            b.dropoff_location,
+                            b.vehicle_group,
+                            b.price,
+                            b.status,
+                            b.created_at,
+                            c.name as commissioner_name,
+                            c.id as commissioner_id,
+                            b.voucher_number
+                        FROM commission_bookings b
+                        LEFT JOIN commissioners c ON b.commissioner_id = c.id
+                        ORDER BY b.created_at DESC
+                    """)
+                    rows = cur.fetchall()
+                else:
+                    cur = con.execute("""
+                        SELECT 
+                            b.id,
+                            b.client_name,
+                            b.client_email,
+                            b.client_phone,
+                            b.pickup_date,
+                            b.dropoff_date,
+                            b.pickup_location,
+                            b.dropoff_location,
+                            b.vehicle_group,
+                            b.price,
+                            b.status,
+                            b.created_at,
+                            c.name as commissioner_name,
+                            c.id as commissioner_id,
+                            b.voucher_number
+                        FROM commission_bookings b
+                        LEFT JOIN commissioners c ON b.commissioner_id = c.id
+                        ORDER BY b.created_at DESC
+                    """)
+                    rows = cur.fetchall()
                 
                 bookings = []
                 for row in rows:
@@ -61709,16 +61734,17 @@ async def api_get_commissioner_bookings(request: Request):
                         "customer_name": row[1],
                         "customer_email": row[2],
                         "customer_phone": row[3],
-                        "pickup_date": row[4],
-                        "return_date": row[5],
+                        "pickup_date": str(row[4]),
+                        "return_date": str(row[5]),
                         "pickup_location": row[6],
                         "return_location": row[7],
                         "car_name": row[8],
-                        "total_price": row[9],
+                        "total_price": float(row[9]),
                         "status": row[10],
-                        "created_at": row[11],
+                        "created_at": str(row[11]),
                         "commissioner_name": row[12],
-                        "commissioner_id": row[13]
+                        "commissioner_id": row[13],
+                        "voucher_number": row[14]
                     })
                 
                 return JSONResponse({"ok": True, "bookings": bookings})
