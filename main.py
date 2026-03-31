@@ -31935,16 +31935,16 @@ async def generate_commissioner_booking_pdf(booking_id: int, request: Request):
             "rental_days": rental_days,
             
             # Datas da Reserva
-            "booking_date": row[17] if len(row) > 17 else "",  # Data de criação da reserva
-            "deposit_amount": "",  # Será implementado no processo da reserva
-            "deposit_date": "",     # Será implementado no processo da reserva
+            "booking_date": row[18].strftime("%d/%m/%Y") if len(row) > 18 and row[18] else "",  # Data de criação da reserva (created_at)
+            "deposit_amount": str(row[16]) if len(row) > 16 and row[16] else "0",  # Valor do depósito
+            "deposit_date": "",  # Data do depósito (será implementado futuramente)
             
             # Preços (valores simulados - podem ser ajustados conforme base de dados)
-            "base_price": str(row[16] * 0.6) if len(row) > 16 and row[16] else "0",  # 60% do total
-            "premium_insurance": str(row[16] * 0.25) if len(row) > 16 and row[16] else "0",  # 25% do total
-            "road_tax": str(row[16] * 0.05) if len(row) > 16 and row[16] else "0",  # 5% do total
-            "extras_total": str(row[16] * 0.1) if len(row) > 16 and row[16] else "0",  # 10% do total
-            "price": str(row[16]) if len(row) > 16 and row[16] else "0",
+            "base_price": str(row[17] * 0.6) if len(row) > 17 and row[17] else "0",  # 60% do total
+            "premium_insurance": str(row[17] * 0.25) if len(row) > 17 and row[17] else "0",  # 25% do total
+            "road_tax": str(row[17] * 0.05) if len(row) > 17 and row[17] else "0",  # 5% do total
+            "extras_total": str(row[17] * 0.1) if len(row) > 17 and row[17] else "0",  # 10% do total
+            "price": str(row[17]) if len(row) > 17 and row[17] else "0",
             
             # Extras Detalhados (formatados conforme solicitado)
             "driver_extras": extras_formatted["driver_extras"],  # AD/YD/SD format: AD-25,00 + YD-25,00 + SD-25,00
