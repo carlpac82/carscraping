@@ -5498,6 +5498,11 @@
         }
 
         function confirmValue(isCorrect) {
+            console.log('🔘 confirmValue chamada, bookingConfirmationData:', bookingConfirmationData);
+            if (!bookingConfirmationData) {
+                console.error('❌ bookingConfirmationData é null em confirmValue!');
+                return;
+            }
             bookingConfirmationData.valueConfirmed = isCorrect;
             
             if (!isCorrect) {
@@ -5511,6 +5516,11 @@
         }
 
         function setDeposit(hasDeposit) {
+            console.log('🔘 setDeposit chamada, bookingConfirmationData:', bookingConfirmationData);
+            if (!bookingConfirmationData) {
+                console.error('❌ bookingConfirmationData é null em setDeposit!');
+                return;
+            }
             bookingConfirmationData.hasDeposit = hasDeposit;
             
             if (hasDeposit) {
