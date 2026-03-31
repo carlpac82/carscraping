@@ -2347,7 +2347,7 @@
                                     </div>
                                     <div class="extra-info">
                                         <strong>GPS</strong>
-                                        <span class="extra-price">+5€/dia</span>
+                                        <span class="extra-price" id="price_gps">+5€/dia</span>
                                     </div>
                                 </div>
                                 <div class="extra-item extra-with-quantity" id="extraChildSeatItem">
@@ -2356,7 +2356,7 @@
                                     </div>
                                     <div class="extra-info">
                                         <strong>Cadeira de Criança</strong>
-                                        <span class="extra-price">+5€/dia</span>
+                                        <span class="extra-price" id="price_child_seat">+5€/dia</span>
                                     </div>
                                     <div class="quantity-selector">
                                         <button type="button" onclick="changeQuantity('extraChildSeat', -1)">-</button>
@@ -2370,7 +2370,7 @@
                                     </div>
                                     <div class="extra-info">
                                         <strong>Booster Seat</strong>
-                                        <span class="extra-price">+3€/dia</span>
+                                        <span class="extra-price" id="price_booster_seat">+3€/dia</span>
                                     </div>
                                     <div class="quantity-selector">
                                         <button type="button" onclick="changeQuantity('extraBoosterSeat', -1)">-</button>
@@ -2407,7 +2407,7 @@
                                     </div>
                                     <div class="extra-info">
                                         <strong>Young Driver (+21)</strong>
-                                        <span class="extra-price">+10€/dia</span>
+                                        <span class="extra-price" id="price_young_driver">+10€/dia</span>
                                     </div>
                                 </div>
                                 <div class="extra-item" onclick="toggleExtra('extraSeniorDriver')">
@@ -2417,7 +2417,7 @@
                                     </div>
                                     <div class="extra-info">
                                         <strong>Senior Driver (+75)</strong>
-                                        <span class="extra-price">+8€/dia</span>
+                                        <span class="extra-price" id="price_senior_driver">+8€/dia</span>
                                     </div>
                                 </div>
                                 <div class="extra-item extra-with-quantity" id="extraAdditionalDriverItem">
@@ -2426,7 +2426,7 @@
                                     </div>
                                     <div class="extra-details">
                                         <span class="extra-name">Condutor Adicional</span>
-                                        <span class="extra-price">+10€/dia</span>
+                                        <span class="extra-price" id="price_additional_driver">+10€/dia</span>
                                     </div>
                                     <div class="quantity-controls">
                                         <button type="button" onclick="changeQuantity('extraAdditionalDriver', -1)">-</button>
@@ -2441,7 +2441,7 @@
                                     </div>
                                     <div class="extra-details">
                                         <span class="extra-name">Espanha (máximo Sevila)</span>
-                                        <span class="extra-price">+100€ (taxa única)</span>
+                                        <span class="extra-price" id="price_trip_to_spain">+100€ (taxa única)</span>
                                     </div>
                                 </div>
                             </div>
@@ -2699,14 +2699,20 @@
                 return;
             }
 
-            // Obter data de pickup para determinar a época
+            // Obter datas para calcular número de dias
             const pickupInput = document.getElementById('pickupDate');
-            if (!pickupInput || !pickupInput.value) {
+            const dropoffInput = document.getElementById('dropoffDate');
+            
+            if (!pickupInput || !pickupInput.value || !dropoffInput || !dropoffInput.value) {
                 premiumPriceElement.textContent = '25€/dia';
                 return;
             }
 
             const pickup = new Date(pickupInput.value);
+            const dropoff = new Date(dropoffInput.value);
+            const diffTime = Math.abs(dropoff - pickup);
+            const rentalDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+            
             const season = getSeasonForDate(pickup);
 
             // Obter preço do seguro premium do sistema
@@ -2717,18 +2723,26 @@
                 
                 const seasonPrices = commissionerPricing.extras.insurance.seasons[selectedGroup][season];
                 
-                // Determinar preço por dia (usar o primeiro preço disponível)
-                let dailyPrice = 25; // valor padrão
-                
-                if (seasonPrices.day1) {
-                    dailyPrice = seasonPrices.day1;
-                } else if (seasonPrices.day2) {
-                    dailyPrice = seasonPrices.day2;
-                } else if (seasonPrices.day3) {
-                    dailyPrice = seasonPrices.day3;
+                // Determinar faixa de dias
+                let priceRange = null;
+                if (rentalDays >= 1 && rentalDays <= 2) {
+                    priceRange = "1_2";
+                } else if (rentalDays >= 3 && rentalDays <= 7) {
+                    priceRange = "3_7";
+                } else if (rentalDays >= 8 && rentalDays <= 14) {
+                    priceRange = "8_14";
+                } else if (rentalDays >= 15 && rentalDays <= 21) {
+                    priceRange = "15_21";
+                } else if (rentalDays >= 22 && rentalDays <= 31) {
+                    priceRange = "22_31";
                 }
-
-                premiumPriceElement.textContent = `${dailyPrice}€/dia`;
+                
+                if (priceRange && seasonPrices[priceRange]) {
+                    const dailyPrice = seasonPrices[priceRange];
+                    premiumPriceElement.textContent = `${dailyPrice}€/dia`;
+                } else {
+                    premiumPriceElement.textContent = '25€/dia';
+                }
             } else {
                 premiumPriceElement.textContent = '25€/dia'; // valor padrão
             }
@@ -2999,12 +3013,53 @@
                 if (data.ok && data.data) {
                     commissionerPricing = data.data;
                     console.log('Loaded commissioner pricing:', commissionerPricing);
+                    updateExtraPricesDisplay();
                 } else {
                     console.error('Failed to load commissioner pricing');
                 }
             } catch (error) {
                 console.error('Error loading commissioner pricing:', error);
             }
+        }
+        
+        // Atualizar preços exibidos dos extras
+        function updateExtraPricesDisplay() {
+            if (!commissionerPricing || !commissionerPricing.extras) return;
+            
+            // GPS
+            const gpsPrice = commissionerPricing.extras.gps?.per_day || 5;
+            const gpsEl = document.getElementById('price_gps');
+            if (gpsEl) gpsEl.textContent = `+${gpsPrice}€/dia`;
+            
+            // Cadeira de Criança
+            const childSeatPrice = commissionerPricing.extras.child_seat?.per_day || 12;
+            const childSeatEl = document.getElementById('price_child_seat');
+            if (childSeatEl) childSeatEl.textContent = `+${childSeatPrice}€/dia`;
+            
+            // Booster Seat
+            const boosterSeatPrice = commissionerPricing.extras.booster_seat?.per_day || 6;
+            const boosterSeatEl = document.getElementById('price_booster_seat');
+            if (boosterSeatEl) boosterSeatEl.textContent = `+${boosterSeatPrice}€/dia`;
+            
+            // Young Driver
+            const youngDriverPrice = commissionerPricing.extras.young_driver?.per_day || 12;
+            const youngDriverEl = document.getElementById('price_young_driver');
+            if (youngDriverEl) youngDriverEl.textContent = `+${youngDriverPrice}€/dia`;
+            
+            // Senior Driver
+            const seniorDriverPrice = commissionerPricing.extras.senior_driver?.per_day || 10;
+            const seniorDriverEl = document.getElementById('price_senior_driver');
+            if (seniorDriverEl) seniorDriverEl.textContent = `+${seniorDriverPrice}€/dia`;
+            
+            // Condutor Adicional
+            const additionalDriverPrice = commissionerPricing.extras.additional_driver?.per_day || 10;
+            const additionalDriverEl = document.getElementById('price_additional_driver');
+            if (additionalDriverEl) additionalDriverEl.textContent = `+${additionalDriverPrice}€/dia`;
+            
+            // Trip to Spain
+            const spainPrice = commissionerPricing.extras.trip_to_spain?.min || 100;
+            const spainEl = document.getElementById('price_trip_to_spain');
+            if (spainEl) spainEl.textContent = `+${spainPrice}€ (taxa única)`;
         }
         
         // Lista completa de locais/hotéis
@@ -4243,6 +4298,7 @@
                 populateTimeSelects(dropoffDate, dropoffTime);
             }
             calculateDays();
+            updatePremiumInsurancePrice();
         });
         
         // Event listeners para cálculo automático de dias
