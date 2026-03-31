@@ -32220,6 +32220,7 @@ async def generate_commissioner_booking_pdf(booking_id: int, request: Request):
                 "child seat": "BA",  # Variação de Baby Seat
                 "booster seat": "BO",
                 "airport fee": "A",
+                "taxa aeroporto": "A",  # Variação em português
                 "spain fee": "SP",
                 "gps": "GPS"
             }
