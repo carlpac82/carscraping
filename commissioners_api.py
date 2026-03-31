@@ -292,7 +292,7 @@ async def create_booking(booking: BookingCreate, request: Request):
         booking.pickup_location, booking.dropoff_location,
         booking.vehicle_group, json.dumps(booking.extras),
         booking.flight_number, booking.language, booking.observations, booking.deposit, booking.price,
-        'confirmed'
+        'pending'
     ))
     
     booking_id = cursor.fetchone()[0]
