@@ -31757,10 +31757,10 @@ async def generate_commissioner_booking_pdf(booking_id: int, request: Request):
             return {"ok": False, "error": "Reserva não encontrada"}
         
         # Extrair datas e horas para divisão
-        pickup_date_str = row[7] if len(row) > 7 else ""
-        pickup_time_str = row[8] if len(row) > 8 else ""
-        dropoff_date_str = row[10] if len(row) > 10 else ""
-        dropoff_time_str = row[11] if len(row) > 11 else ""
+        pickup_date_str = row[8] if len(row) > 8 else ""  # índice 8: pickup_date
+        pickup_time_str = row[9] if len(row) > 9 else ""  # índice 9: pickup_time
+        dropoff_date_str = row[10] if len(row) > 10 else ""  # índice 10: dropoff_date
+        dropoff_time_str = row[11] if len(row) > 11 else ""  # índice 11: dropoff_time
         
         # Processar data de levantamento
         pickup_day, pickup_month, pickup_year = "", "", ""
@@ -31830,10 +31830,10 @@ async def generate_commissioner_booking_pdf(booking_id: int, request: Request):
         
         # Processar data da reserva (created_at)
         booking_day, booking_month, booking_year = "", "", ""
-        if len(row) > 18 and row[18]:
+        if len(row) > 22 and row[22]:
             try:
                 from datetime import datetime
-                booking_dt = row[18]
+                booking_dt = row[22]  # índice 22: created_at
                 if hasattr(booking_dt, 'day'):
                     booking_day = str(booking_dt.day)
                     booking_month = str(booking_dt.month)
@@ -31849,6 +31849,62 @@ async def generate_commissioner_booking_pdf(booking_id: int, request: Request):
         
         # Processar data do depósito (por enquanto vazia, será implementada futuramente)
         deposit_day, deposit_month, deposit_year = "", "", ""
+        
+        # Função para calcular preços detalhados
+        def calculate_detailed_prices(vehicle_group, pickup_date, dropoff_date, rental_days):
+            """Calcula preço base, seguro premium e road tax com base nas configurações"""
+            try:
+                from datetime import datetime
+                
+                # Determinar época
+                pickup_dt = datetime.strptime(str(pickup_date)[:10], "%Y-%m-%d") if isinstance(pickup_date, str) else pickup_date
+                month = pickup_dt.month
+                
+                # Definir época baseada no mês
+                if month in [7, 8]:  # Julho e Agosto - Alta Época
+                    season = "high"
+                elif month in [6, 9]:  # Junho e Setembro - Média Época
+                    season = "mid"
+                else:  # Resto do ano - Baixa Época
+                    season = "low"
+                
+                # Calcular número de dias
+                days = int(rental_days) if rental_days else 1
+                
+                # Buscar preço base por dia (média dos dias de aluguer)
+                base_price_total = 0.0
+                for day in range(1, min(days + 1, 8)):  # Máximo 7 dias na configuração
+                    day_key = min(day, 7)
+                    price_per_day = float(_get_setting(f"commissioner_season_{vehicle_group}_{season}_day{day_key}", "0"))
+                    base_price_total += price_per_day
+                
+                # Se for mais de 7 dias, usar o preço do dia 7 para os dias restantes
+                if days > 7:
+                    price_day_7 = float(_get_setting(f"commissioner_season_{vehicle_group}_{season}_day7", "0"))
+                    base_price_total += price_day_7 * (days - 7)
+                
+                # Buscar preço do seguro premium
+                if days <= 2:
+                    insurance_range = "1_2"
+                elif days <= 7:
+                    insurance_range = "3_7"
+                elif days <= 14:
+                    insurance_range = "8_14"
+                elif days <= 21:
+                    insurance_range = "15_21"
+                else:
+                    insurance_range = "22_31"
+                
+                insurance_price = float(_get_setting(f"commissioner_insurance_{vehicle_group}_{season}_{insurance_range}_days", "0"))
+                
+                # Road tax (franquia) - valor fixo por grupo
+                road_tax = float(_get_setting(f"commissioner_franchise_{vehicle_group}", "0"))
+                
+                return base_price_total, insurance_price, road_tax
+                
+            except Exception as e:
+                logging.error(f"Error calculating detailed prices: {e}")
+                return 0.0, 0.0, 0.0
         
         # Função para processar e formatar extras
         def format_extras(extras_data):
@@ -31926,27 +31982,51 @@ async def generate_commissioner_booking_pdf(booking_id: int, request: Request):
                 "other_extras": " + ".join(other_parts)
             }
         
-        # Buscar extras da reserva (se existirem na base de dados)
-        extras_formatted = {
-            "driver_extras": "",
-            "seat_extras": "",
-            "location_extras": "",
-            "other_extras": ""
-        }
+        # Buscar extras da reserva da base de dados
+        extras_data = []
+        if len(row) > 15 and row[15]:  # row[15] é o campo extras (JSONB)
+            try:
+                import json
+                extras_raw = row[15]  # índice 15: extras
+                if isinstance(extras_raw, str):
+                    extras_data = json.loads(extras_raw)
+                elif isinstance(extras_raw, list):
+                    extras_data = extras_raw
+            except:
+                extras_data = []
         
-        # Tentar buscar extras da reserva (implementação futura)
-        # Por enquanto, mantém os campos vazios
+        # Formatar extras
+        extras_formatted = format_extras(extras_data)
+        
+        # Calcular total de extras
+        extras_total = 0.0
+        for extra in extras_data:
+            price = extra.get('price', 0)
+            quantity = extra.get('quantity', 1)
+            extras_total += float(price) * quantity
+        
+        # Obter dados necessários para cálculo de preços
+        vehicle_group = row[14] if len(row) > 14 else ""  # índice 14: vehicle_group
+        total_price = float(row[20]) if len(row) > 20 and row[20] else 0.0  # índice 20: price
+        
+        # Calcular preços detalhados usando as configurações de preços comissionistas
+        base_price, insurance_price, road_tax = calculate_detailed_prices(
+            vehicle_group, 
+            pickup_date_str, 
+            dropoff_date_str, 
+            rental_days
+        )
         
         # Mapear dados da reserva com todos os campos
         booking_data = {
             # Dados do Cliente
-            "voucher_number": row[1] if len(row) > 1 else "",
-            "client_name": row[2] if len(row) > 2 else "",
-            "client_email": row[3] if len(row) > 3 else "",
-            "client_phone": row[4] if len(row) > 4 else "",
-            "hotel_name": row[5] if len(row) > 5 else "",
-            "room_number": row[6] if len(row) > 6 else "",
-            "flight_number": row[14] if len(row) > 14 else "",
+            "voucher_number": row[2] if len(row) > 2 else "",  # índice 2: voucher_number
+            "client_name": row[3] if len(row) > 3 else "",  # índice 3: client_name
+            "client_email": row[4] if len(row) > 4 else "",  # índice 4: client_email
+            "client_phone": row[5] if len(row) > 5 else "",  # índice 5: client_phone
+            "hotel_name": row[6] if len(row) > 6 else "",  # índice 6: hotel
+            "room_number": row[7] if len(row) > 7 else "",  # índice 7: room_number
+            "flight_number": row[16] if len(row) > 16 else "",  # índice 16: flight_number
             
             # Data de Levantamento (dividida)
             "pickup_day": pickup_day,
@@ -31954,7 +32034,7 @@ async def generate_commissioner_booking_pdf(booking_id: int, request: Request):
             "pickup_year": pickup_year,
             "pickup_hour": pickup_hour,
             "pickup_minute": pickup_minute,
-            "pickup_location": row[9] if len(row) > 9 else "",
+            "pickup_location": row[12] if len(row) > 12 else "",  # índice 12: pickup_location
             
             # Data de Devolução (dividida)
             "dropoff_day": dropoff_day,
@@ -31962,27 +32042,27 @@ async def generate_commissioner_booking_pdf(booking_id: int, request: Request):
             "dropoff_year": dropoff_year,
             "dropoff_hour": dropoff_hour,
             "dropoff_minute": dropoff_minute,
-            "dropoff_location": row[12] if len(row) > 12 else "",
+            "dropoff_location": row[13] if len(row) > 13 else "",  # índice 13: dropoff_location
             
             # Veículo e Duração
-            "vehicle_group": row[13] if len(row) > 13 else "",
+            "vehicle_group": row[14] if len(row) > 14 else "",  # índice 14: vehicle_group
             "rental_days": rental_days,
             
             # Datas da Reserva (separadas)
             "booking_day": booking_day,
             "booking_month": booking_month,
             "booking_year": booking_year,
-            "deposit_amount": str(row[16]) if len(row) > 16 and row[16] else "0",  # Valor do depósito
+            "deposit_amount": f"{float(row[19]):.2f}".replace('.', ',') if len(row) > 19 and row[19] else "0,00",  # índice 19: deposit
             "deposit_day": deposit_day,
             "deposit_month": deposit_month,
             "deposit_year": deposit_year,
             
-            # Preços (valores simulados - podem ser ajustados conforme base de dados)
-            "base_price": str(row[17] * 0.6) if len(row) > 17 and row[17] else "0",  # 60% do total
-            "premium_insurance": str(row[17] * 0.25) if len(row) > 17 and row[17] else "0",  # 25% do total
-            "road_tax": str(row[17] * 0.05) if len(row) > 17 and row[17] else "0",  # 5% do total
-            "extras_total": str(row[17] * 0.1) if len(row) > 17 and row[17] else "0",  # 10% do total
-            "price": str(row[17]) if len(row) > 17 and row[17] else "0",
+            # Preços (valores reais calculados com base nas configurações)
+            "base_price": f"{base_price:.2f}".replace('.', ','),
+            "premium_insurance": f"{insurance_price:.2f}".replace('.', ','),
+            "road_tax": f"{road_tax:.2f}".replace('.', ','),
+            "extras_total": f"{extras_total:.2f}".replace('.', ','),
+            "price": f"{total_price:.2f}".replace('.', ','),
             
             # Extras Detalhados (formatados conforme solicitado)
             "driver_extras": extras_formatted["driver_extras"],  # AD/YD/SD format: AD-25,00 + YD-25,00 + SD-25,00
@@ -31991,8 +32071,8 @@ async def generate_commissioner_booking_pdf(booking_id: int, request: Request):
             "other_extras": extras_formatted["other_extras"],     # GPS e outros: GPS-50,00
             
             # Comissionista e Observações
-            "commissioner_name": row[-2] if len(row) > 20 else "",
-            "observations": row[15] if len(row) > 15 else ""
+            "commissioner_name": row[24] if len(row) > 24 else "",  # índice 24: commissioner_name (do JOIN)
+            "observations": row[18] if len(row) > 18 else ""  # índice 18: observations
         }
         
         # Buscar coordenadas dos campos
