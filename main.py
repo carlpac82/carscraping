@@ -31742,7 +31742,8 @@ async def generate_commissioner_booking_pdf(booking_id: int, request: Request):
                     cb.pickup_location, cb.dropoff_location, cb.vehicle_group, cb.extras,
                     cb.flight_number, cb.language, cb.observations, cb.deposit,
                     cb.price, cb.status, cb.created_at, cb.updated_at,
-                    c.name as commissioner_name
+                    c.name as commissioner_name,
+                    cb.base_price, cb.premium_insurance, cb.road_tax, cb.extras_total, cb.rental_days
                 FROM commission_bookings cb
                 LEFT JOIN commissioners c ON cb.commissioner_id = c.id
                 WHERE cb.id = %s
@@ -31759,7 +31760,8 @@ async def generate_commissioner_booking_pdf(booking_id: int, request: Request):
                     cb.pickup_location, cb.dropoff_location, cb.vehicle_group, cb.extras,
                     cb.flight_number, cb.language, cb.observations, cb.deposit,
                     cb.price, cb.status, cb.created_at, cb.updated_at,
-                    c.name as commissioner_name
+                    c.name as commissioner_name,
+                    cb.base_price, cb.premium_insurance, cb.road_tax, cb.extras_total, cb.rental_days
                 FROM commission_bookings cb
                 LEFT JOIN commissioners c ON cb.commissioner_id = c.id
                 WHERE cb.id = ?
@@ -32107,13 +32109,6 @@ async def generate_commissioner_booking_pdf(booking_id: int, request: Request):
         # Formatar extras
         extras_formatted = format_extras(extras_data)
         
-        # Calcular total de extras
-        extras_total = 0.0
-        for extra in extras_data:
-            price = extra.get('price', 0)
-            quantity = extra.get('quantity', 1)
-            extras_total += float(price) * quantity
-        
         # Obter dados necessários para cálculo de preços
         vehicle_group = row[14] if len(row) > 14 else ""  # índice 14: vehicle_group
         
@@ -32128,13 +32123,40 @@ async def generate_commissioner_booking_pdf(booking_id: int, request: Request):
             logging.error(f"Unexpected price type: {type(price_raw)} - value: {price_raw}")
             total_price = 0.0
         
-        # Calcular preços detalhados usando as configurações de preços comissionistas
-        base_price, insurance_price, road_tax = calculate_detailed_prices(
-            vehicle_group, 
-            pickup_date_raw,  # Passar objeto date original
-            dropoff_date_raw,  # Passar objeto date original
-            rental_days
-        )
+        # Usar valores discriminados da base de dados (índices 25-29)
+        # Se não existirem (reservas antigas), calcular usando a função
+        base_price_raw = row[25] if len(row) > 25 else None
+        insurance_price_raw = row[26] if len(row) > 26 else None
+        road_tax_raw = row[27] if len(row) > 27 else None
+        extras_total_raw = row[28] if len(row) > 28 else None
+        rental_days_raw = row[29] if len(row) > 29 else None
+        
+        # Verificar se os valores existem e não são None/NULL (reservas novas vs antigas)
+        has_stored_prices = (base_price_raw is not None and 
+                            insurance_price_raw is not None and 
+                            road_tax_raw is not None)
+        
+        if has_stored_prices:
+            # Usar valores guardados na BD (reservas novas)
+            base_price = float(base_price_raw) if isinstance(base_price_raw, (Decimal, int, float)) else 0.0
+            insurance_price = float(insurance_price_raw) if isinstance(insurance_price_raw, (Decimal, int, float)) else 0.0
+            road_tax = float(road_tax_raw) if isinstance(road_tax_raw, (Decimal, int, float)) else 0.0
+            extras_total_from_db = float(extras_total_raw) if extras_total_raw is not None and isinstance(extras_total_raw, (Decimal, int, float)) else 0.0
+            if rental_days_raw is not None:
+                rental_days = int(rental_days_raw)
+            logging.info(f"[PDF] Usando valores da BD: base={base_price}, seguro={insurance_price}, road_tax={road_tax}, extras={extras_total_from_db}")
+        else:
+            # Fallback: calcular se não existir na BD (reservas antigas)
+            logging.info(f"[PDF] Reserva antiga detectada, a calcular preços...")
+            base_price, insurance_price, road_tax = calculate_detailed_prices(
+                vehicle_group, 
+                pickup_date_raw,
+                dropoff_date_raw,
+                rental_days
+            )
+            # Para reservas antigas, calcular extras_total do array de extras
+            extras_total_from_db = sum(float(e.get('price', 0)) * e.get('quantity', 1) for e in extras_data)
+            logging.info(f"[PDF] Valores calculados: base={base_price}, seguro={insurance_price}, road_tax={road_tax}, extras={extras_total_from_db}")
         
         # Mapear dados da reserva com todos os campos
         booking_data = {
@@ -32180,7 +32202,7 @@ async def generate_commissioner_booking_pdf(booking_id: int, request: Request):
             "base_price": f"{base_price:.2f}".replace('.', ','),
             "premium_insurance": f"{insurance_price:.2f}".replace('.', ','),
             "road_tax": f"{road_tax:.2f}".replace('.', ','),
-            "extras_total": f"{extras_total:.2f}".replace('.', ','),
+            "extras_total": f"{extras_total_from_db:.2f}".replace('.', ','),
             "price": f"{total_price:.2f}".replace('.', ','),
             
             # Extras Detalhados (formatados conforme solicitado)

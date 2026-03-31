@@ -59,6 +59,11 @@ class BookingCreate(BaseModel):
     observations: Optional[str] = None
     deposit: float = 0.0
     price: float
+    base_price: float = 0.0
+    premium_insurance: float = 0.0
+    road_tax: float = 0.0
+    extras_total: float = 0.0
+    rental_days: int = 0
 
 # ============================================================
 # HELPER FUNCTIONS
@@ -281,9 +286,10 @@ async def create_booking(booking: BookingCreate, request: Request):
             pickup_location, dropoff_location,
             vehicle_group, extras,
             flight_number, language, observations, deposit, price,
+            base_price, premium_insurance, road_tax, extras_total, rental_days,
             status
         ) VALUES (
-            %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s
+            %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s
         ) RETURNING id
     """, (
         commissioner_id, voucher_number,
@@ -292,6 +298,7 @@ async def create_booking(booking: BookingCreate, request: Request):
         booking.pickup_location, booking.dropoff_location,
         booking.vehicle_group, json.dumps(booking.extras),
         booking.flight_number, booking.language, booking.observations, booking.deposit, booking.price,
+        booking.base_price, booking.premium_insurance, booking.road_tax, booking.extras_total, booking.rental_days,
         'pending'
     ))
     

@@ -4251,6 +4251,95 @@
             const lastName = document.getElementById('clientLastName').value;
             const clientName = `${firstName} ${lastName}`;
 
+            // Calcular valores discriminados
+            const pickupDate = document.getElementById('pickupDate').value;
+            const dropoffDate = document.getElementById('dropoffDate').value;
+            const pickup = new Date(pickupDate);
+            const dropoff = new Date(dropoffDate);
+            const diffTime = Math.abs(dropoff - pickup);
+            const rentalDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+            
+            // Calcular preço base
+            let basePrice = 0;
+            if (selectedVehicle && commissionerPricing && commissionerPricing.seasons && 
+                commissionerPricing.seasons[selectedVehicle]) {
+                const season = getSeasonForDate(pickup);
+                const seasonPrices = commissionerPricing.seasons[selectedVehicle][season];
+                
+                if (rentalDays <= 7) {
+                    basePrice = seasonPrices[`day${rentalDays}`] || 0;
+                } else {
+                    const day7Price = seasonPrices.day7 || 0;
+                    if (day7Price > 0) {
+                        const dailyRate = day7Price / 7;
+                        basePrice = dailyRate * rentalDays;
+                    }
+                }
+            }
+            
+            // Calcular seguro premium
+            let premiumInsurance = 0;
+            if (selectedInsurance === 'premium' && selectedVehicle && commissionerPricing && 
+                commissionerPricing.extras && commissionerPricing.extras.insurance && 
+                commissionerPricing.extras.insurance.seasons && 
+                commissionerPricing.extras.insurance.seasons[selectedVehicle]) {
+                const season = getSeasonForDate(pickup);
+                const seasonPrices = commissionerPricing.extras.insurance.seasons[selectedVehicle][season];
+                
+                let priceRange = null;
+                if (rentalDays >= 1 && rentalDays <= 2) priceRange = "1_2";
+                else if (rentalDays >= 3 && rentalDays <= 7) priceRange = "3_7";
+                else if (rentalDays >= 8 && rentalDays <= 14) priceRange = "8_14";
+                else if (rentalDays >= 15 && rentalDays <= 21) priceRange = "15_21";
+                else if (rentalDays >= 22 && rentalDays <= 31) priceRange = "22_31";
+                
+                if (priceRange && seasonPrices[priceRange]) {
+                    premiumInsurance = seasonPrices[priceRange] * rentalDays;
+                }
+            }
+            
+            // Calcular road tax
+            const roadTax = Math.min(2.23 * rentalDays, 22.30);
+            
+            // Calcular extras total (outros extras sem seguro e road tax)
+            let extrasTotal = 0;
+            const otherExtraPricesPerDay = {
+                extraGPS: 5,
+                extraYoungDriver: 10,
+                extraSeniorDriver: 8
+            };
+            Object.keys(otherExtraPricesPerDay).forEach(extraId => {
+                const checkbox = document.getElementById(extraId);
+                if (checkbox && checkbox.checked) {
+                    extrasTotal += otherExtraPricesPerDay[extraId] * rentalDays;
+                }
+            });
+            
+            const extraQuantityPrices = {
+                extraChildSeat: 5,
+                extraBoosterSeat: 3,
+                extraAdditionalDriver: 5
+            };
+            Object.keys(extraQuantityPrices).forEach(extraId => {
+                const input = document.getElementById(extraId);
+                if (input) {
+                    const quantity = parseInt(input.value) || 0;
+                    if (quantity > 0) {
+                        extrasTotal += extraQuantityPrices[extraId] * rentalDays * quantity;
+                    }
+                }
+            });
+            
+            const airportCheckbox = document.getElementById('extraAirport');
+            if (airportCheckbox && airportCheckbox.checked) {
+                extrasTotal += 20;
+            }
+            
+            const tripToSpainCheckbox = document.getElementById('extraTripToSpain');
+            if (tripToSpainCheckbox && tripToSpainCheckbox.checked) {
+                extrasTotal += 100;
+            }
+
             const bookingData = {
                 vehicle_group: selectedVehicle,
                 client_name: clientName,
@@ -4258,9 +4347,9 @@
                 client_phone: document.getElementById('clientPhone').value,
                 hotel: document.getElementById('clientHotel').value || null,
                 room_number: document.getElementById('clientRoom').value || null,
-                pickup_date: document.getElementById('pickupDate').value,
+                pickup_date: pickupDate,
                 pickup_time: document.getElementById('pickupTime').value,
-                dropoff_date: document.getElementById('dropoffDate').value,
+                dropoff_date: dropoffDate,
                 dropoff_time: document.getElementById('dropoffTime').value,
                 pickup_location: document.getElementById('pickupLocation').value,
                 dropoff_location: document.getElementById('dropoffLocation').value,
@@ -4269,6 +4358,11 @@
                 observations: document.getElementById('observations').value || null,
                 deposit: document.getElementById('deposit') ? parseFloat(document.getElementById('deposit').value) || 0 : 0,
                 price: parseFloat(document.getElementById('summaryTotalPrice').textContent.replace('€', '').replace(',', '.')) || 0,
+                base_price: basePrice,
+                premium_insurance: premiumInsurance,
+                road_tax: roadTax,
+                extras_total: extrasTotal,
+                rental_days: rentalDays,
                 extras: []
             };
 
