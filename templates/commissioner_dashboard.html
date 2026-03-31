@@ -3970,8 +3970,11 @@
                 }
             }
 
-            // Atualizar preço no resumo do veículo (base + extras)
-            const totalPrice = basePrice + extrasTotal;
+            // Road Tax: 2€ por dia
+            const roadTax = 2 * diffDays;
+
+            // Atualizar preço no resumo do veículo (base + extras + road tax)
+            const totalPrice = basePrice + extrasTotal + roadTax;
             const summaryPrice = document.getElementById('summaryTotalPrice');
             if (summaryPrice) {
                 summaryPrice.textContent = `${totalPrice.toFixed(2)}€`;
