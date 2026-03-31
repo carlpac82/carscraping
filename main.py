@@ -32073,8 +32073,8 @@ async def generate_commissioner_booking_pdf(booking_id: int, request: Request):
         # Calcular preços detalhados usando as configurações de preços comissionistas
         base_price, insurance_price, road_tax = calculate_detailed_prices(
             vehicle_group, 
-            pickup_date_str, 
-            dropoff_date_str, 
+            pickup_date_raw,  # Passar objeto date original
+            dropoff_date_raw,  # Passar objeto date original
             rental_days
         )
         
