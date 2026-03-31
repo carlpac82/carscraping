@@ -691,6 +691,7 @@
 
         /* ===== BOOKING DETAILS MODAL ===== */
         #bookingDetailsModal {
+            display: flex;
             align-items: center;
             justify-content: center;
         }
@@ -4151,10 +4152,36 @@
             let days = Math.floor(diffMs / msPerDay);
             if (diffMs % msPerDay > 0) days += 1;
 
-            // Preços detalhados
-            const basePrice = (booking.price || 0) / days;
-            const extrasPrice = 0; // TODO: Extrair dos extras se necessário
+            // Preços detalhados - calcular componentes
             const totalPrice = booking.price || 0;
+            
+            // Seguro Premium: 25€/dia
+            const insurancePrice = 25 * days;
+            
+            // Road Tax: 2€/dia
+            const roadTaxPrice = 2 * days;
+            
+            // Extras (se houver)
+            let extrasPrice = 0;
+            let extrasDetails = [];
+            if (booking.extras && typeof booking.extras === 'string') {
+                try {
+                    const extrasArray = JSON.parse(booking.extras);
+                    if (Array.isArray(extrasArray) && extrasArray.length > 0) {
+                        extrasDetails = extrasArray;
+                        // Calcular preço dos extras se necessário
+                        extrasPrice = 0; // TODO: adicionar lógica de preço de extras se disponível
+                    }
+                } catch (e) {
+                    console.error('Error parsing extras:', e);
+                }
+            } else if (Array.isArray(booking.extras)) {
+                extrasDetails = booking.extras;
+            }
+            
+            // Preço base = Total - Seguro - Road Tax - Extras
+            const basePrice = totalPrice - insurancePrice - roadTaxPrice - extrasPrice;
+            const basePricePerDay = basePrice / days;
 
             const detailsHtml = `
                 <div class="booking-details-container">
@@ -4178,13 +4205,21 @@
                         <h4 class="pricing-title">Resumo de Preços</h4>
                         <div class="pricing-breakdown">
                             <div class="pricing-item">
-                                <span class="pricing-label">${days} dia${days !== 1 ? 's' : ''} × ${basePrice.toFixed(2)}€/dia</span>
-                                <span class="pricing-value">${(basePrice * days).toFixed(2)}€</span>
+                                <span class="pricing-label">Preço Base (${days} dia${days !== 1 ? 's' : ''} × ${basePricePerDay.toFixed(2)}€/dia)</span>
+                                <span class="pricing-value">${basePrice.toFixed(2)}€</span>
                             </div>
-                            ${extrasPrice > 0 ? `
                             <div class="pricing-item">
-                                <span class="pricing-label">Extras</span>
-                                <span class="pricing-value">${extrasPrice.toFixed(2)}€</span>
+                                <span class="pricing-label">Seguro Premium (${days} dia${days !== 1 ? 's' : ''} × 25€/dia)</span>
+                                <span class="pricing-value">${insurancePrice.toFixed(2)}€</span>
+                            </div>
+                            <div class="pricing-item">
+                                <span class="pricing-label">Road Tax (${days} dia${days !== 1 ? 's' : ''} × 2€/dia)</span>
+                                <span class="pricing-value">${roadTaxPrice.toFixed(2)}€</span>
+                            </div>
+                            ${extrasDetails.length > 0 ? `
+                            <div class="pricing-item">
+                                <span class="pricing-label">Extras (${extrasDetails.join(', ')})</span>
+                                <span class="pricing-value">${extrasPrice > 0 ? extrasPrice.toFixed(2) + '€' : 'Incluído'}</span>
                             </div>
                             ` : ''}
                             ${booking.deposit && booking.deposit > 0 ? `

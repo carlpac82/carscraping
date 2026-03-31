@@ -315,8 +315,11 @@ async def get_commissioner_bookings(request: Request):
     cursor = conn.cursor()
     
     cursor.execute("""
-        SELECT id, voucher_number, client_name, client_email,
-               pickup_date, dropoff_date, vehicle_group, price, status, created_at
+        SELECT id, voucher_number, client_name, client_email, client_phone,
+               pickup_date, pickup_time, dropoff_date, dropoff_time,
+               pickup_location, dropoff_location, vehicle_group, extras,
+               price, status, created_at, updated_at, deposit,
+               hotel, room_number, flight_number, observations
         FROM commission_bookings
         WHERE commissioner_id = %s
         ORDER BY created_at DESC
@@ -332,12 +335,24 @@ async def get_commissioner_bookings(request: Request):
             'voucher_number': booking[1],
             'client_name': booking[2],
             'client_email': booking[3],
-            'pickup_date': str(booking[4]),
-            'dropoff_date': str(booking[5]),
-            'vehicle_group': booking[6],
-            'price': float(booking[7]),
-            'status': booking[8],
-            'created_at': str(booking[9])
+            'client_phone': booking[4],
+            'pickup_date': str(booking[5]),
+            'pickup_time': str(booking[6]),
+            'dropoff_date': str(booking[7]),
+            'dropoff_time': str(booking[8]),
+            'pickup_location': booking[9],
+            'dropoff_location': booking[10],
+            'vehicle_group': booking[11],
+            'extras': booking[12],
+            'price': float(booking[13]),
+            'status': booking[14],
+            'created_at': str(booking[15]),
+            'updated_at': str(booking[16]),
+            'deposit': float(booking[17]) if booking[17] else 0.0,
+            'hotel': booking[18],
+            'room_number': booking[19],
+            'flight_number': booking[20],
+            'observations': booking[21]
         })
     
     return {"ok": True, "bookings": result}
