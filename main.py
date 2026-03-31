@@ -32244,11 +32244,13 @@ async def generate_commissioner_booking_pdf(booking_id: int, request: Request):
         
         # Criar overlay com os dados
         packet = io.BytesIO()
-        can = canvas.Canvas(packet, pagesize=A4)
+        # Livro de Reservas é A5 landscape (595.27 x 419.53 pts)
+        from reportlab.lib.pagesizes import A5
+        a5_landscape = (A5[1], A5[0])  # Inverter para landscape
+        can = canvas.Canvas(packet, pagesize=a5_landscape)
         
-        # Obter altura da página A4 em pontos (595.27 x 841.89)
-        from reportlab.lib.pagesizes import A4 as A4_SIZE
-        page_width, page_height = A4_SIZE
+        # Obter altura da página A5 landscape em pontos
+        page_width, page_height = a5_landscape
         
         # Configurar fonte para melhor legibilidade
         from reportlab.lib.colors import Color
