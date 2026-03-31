@@ -2027,94 +2027,28 @@
             border-color: #007a8f;
         }
 
-        /* Step 5: Confirmation Styles */
-        .confirmation-contact {
-            background: linear-gradient(135deg, #f8fafc 0%, #e0f2fe 100%);
-            border-radius: 12px;
-            padding: 20px;
-            margin-bottom: 24px;
-            border: 1px solid #e2e8f0;
-        }
-
-        .contact-header {
-            display: flex;
-            align-items: center;
-            gap: 12px;
-            margin-bottom: 16px;
-        }
-
-        .contact-icon {
-            color: #009cb6;
-            flex-shrink: 0;
-        }
-
-        .contact-text {
-            flex: 1;
-        }
-
-        .contact-title {
-            font-size: 16px;
-            font-weight: 700;
-            color: #1f2937;
-            margin-bottom: 2px;
-        }
-
-        .contact-subtitle {
-            font-size: 13px;
-            color: #6b7280;
-        }
-
-        .contact-phone {
-            display: flex;
-            align-items: center;
-            gap: 8px;
-            font-size: 18px;
-            font-weight: 700;
-            color: #009cb6;
-            justify-content: center;
-            padding: 12px;
-            background: white;
-            border-radius: 8px;
-            border: 2px solid #009cb6;
-        }
-
+        /* Step 5: Confirmation Styles - Clean & Compact */
         .booking-summary {
             display: flex;
             flex-direction: column;
-            gap: 20px;
+            gap: 16px;
+            margin-bottom: 20px;
         }
 
         .summary-section {
             background: white;
             border-radius: 12px;
-            padding: 20px;
+            padding: 16px;
             border: 1px solid #e5e7eb;
         }
 
-        .summary-vehicle {
+        .summary-layout {
             display: flex;
-            gap: 16px;
-            align-items: center;
+            gap: 20px;
+            align-items: flex-start;
         }
 
-        .summary-vehicle-image {
-            width: 80px;
-            height: 60px;
-            border-radius: 8px;
-            background: #f3f4f6;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            overflow: hidden;
-            flex-shrink: 0;
-        }
-
-        .summary-vehicle-image img {
-            width: 100%;
-            height: 100%;
-            object-fit: cover;
-        }
-
+        /* Veículo Info */
         .summary-vehicle-info {
             flex: 1;
         }
@@ -2143,47 +2077,35 @@
             height: 20px;
         }
 
-        .summary-grid {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 24px;
+        /* Datas e Locais */
+        .summary-dates {
+            flex: 1;
+            text-align: right;
         }
 
-        .summary-item {
-            text-align: center;
+        .summary-pickup,
+        .summary-dropoff {
+            margin-bottom: 12px;
         }
 
-        .summary-label {
-            font-size: 12px;
-            color: #6b7280;
-            text-transform: uppercase;
-            letter-spacing: 0.5px;
-            margin-bottom: 8px;
-            font-weight: 600;
+        .summary-dropoff {
+            margin-bottom: 0;
         }
 
-        .summary-value {
+        .summary-dates-text {
             font-size: 14px;
             font-weight: 500;
             color: #1f2937;
             line-height: 1.4;
         }
 
-        .summary-value > div {
-            margin-bottom: 2px;
-        }
-
-        .summary-client {
-            display: flex;
-            gap: 24px;
-        }
-
+        /* Cliente Info */
         .summary-client-info {
             flex: 1;
         }
 
         .summary-client-hotel {
-            flex: 1;
+            margin-top: 12px;
         }
 
         .summary-contact-details {
@@ -2194,56 +2116,60 @@
             color: #6b7280;
         }
 
+        /* Valores e Confirmações */
         .summary-pricing {
-            text-align: center;
+            flex: 1;
+            text-align: right;
         }
 
         .summary-total {
             display: inline-block;
-            padding: 16px 24px;
+            padding: 12px 20px;
             background: linear-gradient(135deg, #009cb6 0%, #007a8f 100%);
             border-radius: 12px;
             color: white;
+            margin-bottom: 16px;
         }
 
         .summary-total .summary-label {
             color: rgba(255, 255, 255, 0.8);
             margin-bottom: 4px;
+            font-size: 12px;
         }
 
         .summary-price {
-            font-size: 24px;
+            font-size: 20px;
             font-weight: 700;
         }
 
-        .confirmation-grid {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 20px;
-            margin-bottom: 20px;
+        .confirmation-section {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
         }
 
         .confirmation-item {
-            text-align: center;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 8px 0;
         }
 
         .confirmation-label {
-            font-size: 14px;
+            font-size: 13px;
             font-weight: 600;
             color: #1f2937;
-            margin-bottom: 12px;
         }
 
         .confirmation-buttons {
             display: flex;
-            gap: 8px;
-            justify-content: center;
+            gap: 6px;
         }
 
         .confirmation-btn {
-            width: 44px;
-            height: 44px;
-            border-radius: 10px;
+            width: 36px;
+            height: 36px;
+            border-radius: 8px;
             display: flex;
             align-items: center;
             justify-content: center;
@@ -2276,11 +2202,12 @@
             transform: translateY(-1px);
         }
 
+        /* Campos Adicionais */
         .value-adjustment-section,
         .deposit-section {
             background: #fefce8;
             border-radius: 8px;
-            padding: 16px;
+            padding: 12px;
             border: 1px solid #fde047;
         }
 
@@ -2288,22 +2215,22 @@
         .deposit-input-group {
             display: flex;
             flex-direction: column;
-            gap: 8px;
+            gap: 6px;
         }
 
         .adjustment-input-group label,
         .deposit-input-group label {
-            font-size: 13px;
+            font-size: 12px;
             font-weight: 600;
             color: #1f2937;
         }
 
         .adjustment-input-group input,
         .deposit-input-group input {
-            padding: 10px 12px;
+            padding: 8px 10px;
             border: 2px solid #e5e7eb;
             border-radius: 6px;
-            font-size: 14px;
+            font-size: 13px;
             transition: border-color 0.2s;
         }
 
@@ -2314,9 +2241,76 @@
         }
 
         .adjustment-note {
-            font-size: 11px;
+            font-size: 10px;
             color: #6b7280;
             line-height: 1.3;
+        }
+
+        /* Contato Auto Prudente */
+        .confirmation-contact {
+            background: linear-gradient(135deg, #f8fafc 0%, #e0f2fe 100%);
+            border-radius: 12px;
+            padding: 16px;
+            border: 1px solid #e2e8f0;
+        }
+
+        .contact-header {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            margin-bottom: 12px;
+        }
+
+        .contact-icon {
+            color: #009cb6;
+            flex-shrink: 0;
+        }
+
+        .contact-text {
+            flex: 1;
+        }
+
+        .contact-title {
+            font-size: 14px;
+            font-weight: 700;
+            color: #1f2937;
+            margin-bottom: 2px;
+        }
+
+        .contact-subtitle {
+            font-size: 12px;
+            color: #6b7280;
+        }
+
+        .contact-phone {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 16px;
+            font-weight: 700;
+            color: #009cb6;
+            justify-content: center;
+            padding: 10px;
+            background: white;
+            border-radius: 8px;
+            border: 2px solid #009cb6;
+        }
+
+        /* Labels comuns */
+        .summary-label {
+            font-size: 11px;
+            color: #6b7280;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            margin-bottom: 4px;
+            font-weight: 600;
+        }
+
+        .summary-value {
+            font-size: 14px;
+            font-weight: 500;
+            color: #1f2937;
+            line-height: 1.4;
         }
 
         /* Section Divider */
@@ -3066,6 +3060,121 @@
                     <div class="wizard-step-content" data-step="5">
                         <h3>Resumo e Confirmação</h3>
                         
+                        <!-- Resumo da Reserva -->
+                        <div class="booking-summary">
+                            <!-- Veículo e Datas -->
+                            <div class="summary-section">
+                                <div class="summary-layout">
+                                    <!-- Dados do Veículo -->
+                                    <div class="summary-vehicle-info">
+                                        <div class="summary-vehicle-group" id="summaryVehicleGroup">-</div>
+                                        <div class="summary-vehicle-name" id="summaryVehicleName">-</div>
+                                        <div class="summary-vehicle-features" id="summaryVehicleFeatures">
+                                            <!-- Features serão preenchidas dinamicamente -->
+                                        </div>
+                                    </div>
+                                    
+                                    <!-- Datas e Locais -->
+                                    <div class="summary-dates">
+                                        <div class="summary-pickup">
+                                            <div class="summary-label">Entrega</div>
+                                            <div class="summary-dates-text" id="summaryPickupText">-</div>
+                                        </div>
+                                        <div class="summary-dropoff">
+                                            <div class="summary-label">Recolha</div>
+                                            <div class="summary-dates-text" id="summaryDropoffText">-</div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Cliente e Valores -->
+                            <div class="summary-section">
+                                <div class="summary-layout">
+                                    <!-- Cliente -->
+                                    <div class="summary-client-info">
+                                        <div class="summary-label">Cliente</div>
+                                        <div class="summary-value" id="summaryClientName">-</div>
+                                        <div class="summary-contact-details">
+                                            <span id="summaryClientPhone">-</span>
+                                            <span id="summaryClientEmail">-</span>
+                                        </div>
+                                        <div class="summary-client-hotel" id="summaryClientHotel" style="display: none;">
+                                            <div class="summary-label">Hotel</div>
+                                            <div class="summary-value">
+                                                <span id="summaryHotelName">-</span>
+                                                <span id="summaryRoomNumber">-</span>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    
+                                    <!-- Valores e Confirmações -->
+                                    <div class="summary-pricing">
+                                        <div class="summary-total">
+                                            <div class="summary-label">Valor Total</div>
+                                            <div class="summary-price" id="summaryTotalAmount">€0.00</div>
+                                        </div>
+                                        
+                                        <div class="confirmation-section">
+                                            <div class="confirmation-item">
+                                                <div class="confirmation-label">Valor está correto?</div>
+                                                <div class="confirmation-buttons">
+                                                    <button type="button" class="confirmation-btn confirmation-btn-yes" onclick="confirmValue(true)">
+                                                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                                            <polyline points="20 6 9 17 4 12"></polyline>
+                                                        </svg>
+                                                    </button>
+                                                    <button type="button" class="confirmation-btn confirmation-btn-no" onclick="confirmValue(false)">
+                                                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                                            <line x1="18" y1="6" x2="6" y2="18"></line>
+                                                            <line x1="6" y1="6" x2="18" y2="18"></line>
+                                                        </svg>
+                                                    </button>
+                                                </div>
+                                            </div>
+                                            
+                                            <div class="confirmation-item">
+                                                <div class="confirmation-label">Depósito?</div>
+                                                <div class="confirmation-buttons">
+                                                    <button type="button" class="confirmation-btn confirmation-btn-yes" onclick="setDeposit(true)">
+                                                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                                            <polyline points="20 6 9 17 4 12"></polyline>
+                                                        </svg>
+                                                    </button>
+                                                    <button type="button" class="confirmation-btn confirmation-btn-no" onclick="setDeposit(false)">
+                                                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                                            <line x1="18" y1="6" x2="6" y2="18"></line>
+                                                            <line x1="6" y1="6" x2="18" y2="18"></line>
+                                                        </svg>
+                                                    </button>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Campos Adicionais -->
+                            <div class="summary-section">
+                                <!-- Ajuste de Valor -->
+                                <div class="value-adjustment-section" id="valueAdjustmentSection" style="display: none;">
+                                    <div class="adjustment-input-group">
+                                        <label for="valueAdjustment">Ajuste (€):</label>
+                                        <input type="number" id="valueAdjustment" step="0.01" placeholder="0.00">
+                                        <div class="adjustment-note">+ se mais, - se menos</div>
+                                    </div>
+                                </div>
+
+                                <!-- Depósito -->
+                                <div class="deposit-section" id="depositSection" style="display: none;">
+                                    <div class="deposit-input-group">
+                                        <label for="depositAmount">Depósito (€):</label>
+                                        <input type="number" id="depositAmount" step="0.01" placeholder="0.00">
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
                         <!-- Seção de Contato Auto Prudente -->
                         <div class="confirmation-contact">
                             <div class="contact-header">
@@ -3084,134 +3193,6 @@
                                     <path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"></path>
                                 </svg>
                                 289 542 150
-                            </div>
-                        </div>
-
-                        <!-- Resumo da Reserva -->
-                        <div class="booking-summary">
-                            <!-- Veículo -->
-                            <div class="summary-section">
-                                <div class="summary-vehicle">
-                                    <div class="summary-vehicle-image" id="summaryVehicleImage">
-                                        <!-- Imagem será preenchida dinamicamente -->
-                                    </div>
-                                    <div class="summary-vehicle-info">
-                                        <div class="summary-vehicle-group" id="summaryVehicleGroup">-</div>
-                                        <div class="summary-vehicle-name" id="summaryVehicleName">-</div>
-                                        <div class="summary-vehicle-features" id="summaryVehicleFeatures">
-                                            <!-- Features serão preenchidas dinamicamente -->
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-
-                            <!-- Datas e Locais -->
-                            <div class="summary-section">
-                                <div class="summary-grid">
-                                    <div class="summary-item">
-                                        <div class="summary-label">Entrega</div>
-                                        <div class="summary-value">
-                                            <div id="summaryPickupDate">-</div>
-                                            <div id="summaryPickupTime">-</div>
-                                            <div id="summaryPickupLocation">-</div>
-                                        </div>
-                                    </div>
-                                    <div class="summary-item">
-                                        <div class="summary-label">Recolha</div>
-                                        <div class="summary-value">
-                                            <div id="summaryDropoffDate">-</div>
-                                            <div id="summaryDropoffTime">-</div>
-                                            <div id="summaryDropoffLocation">-</div>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-
-                            <!-- Cliente -->
-                            <div class="summary-section">
-                                <div class="summary-client">
-                                    <div class="summary-client-info">
-                                        <div class="summary-label">Cliente</div>
-                                        <div class="summary-value" id="summaryClientName">-</div>
-                                        <div class="summary-contact-details">
-                                            <span id="summaryClientPhone">-</span>
-                                            <span id="summaryClientEmail">-</span>
-                                        </div>
-                                    </div>
-                                    <div class="summary-client-hotel" id="summaryClientHotel" style="display: none;">
-                                        <div class="summary-label">Hotel</div>
-                                        <div class="summary-value">
-                                            <span id="summaryHotelName">-</span>
-                                            <span id="summaryRoomNumber">-</span>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-
-                            <!-- Valores -->
-                            <div class="summary-section">
-                                <div class="summary-pricing">
-                                    <div class="summary-total">
-                                        <div class="summary-label">Valor Total</div>
-                                        <div class="summary-price" id="summaryTotalAmount">€0.00</div>
-                                    </div>
-                                </div>
-                            </div>
-
-                            <!-- Confirmações -->
-                            <div class="summary-section">
-                                <div class="confirmation-grid">
-                                    <div class="confirmation-item">
-                                        <div class="confirmation-label">Valor está correto?</div>
-                                        <div class="confirmation-buttons">
-                                            <button type="button" class="confirmation-btn confirmation-btn-yes" onclick="confirmValue(true)">
-                                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                                                    <polyline points="20 6 9 17 4 12"></polyline>
-                                                </svg>
-                                            </button>
-                                            <button type="button" class="confirmation-btn confirmation-btn-no" onclick="confirmValue(false)">
-                                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                                                    <line x1="18" y1="6" x2="6" y2="18"></line>
-                                                    <line x1="6" y1="6" x2="18" y2="18"></line>
-                                                </svg>
-                                            </button>
-                                        </div>
-                                    </div>
-                                    
-                                    <div class="confirmation-item">
-                                        <div class="confirmation-label">Depósito?</div>
-                                        <div class="confirmation-buttons">
-                                            <button type="button" class="confirmation-btn confirmation-btn-yes" onclick="setDeposit(true)">
-                                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                                                    <polyline points="20 6 9 17 4 12"></polyline>
-                                                </svg>
-                                            </button>
-                                            <button type="button" class="confirmation-btn confirmation-btn-no" onclick="setDeposit(false)">
-                                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                                                    <line x1="18" y1="6" x2="6" y2="18"></line>
-                                                    <line x1="6" y1="6" x2="18" y2="18"></line>
-                                                </svg>
-                                            </button>
-                                        </div>
-                                    </div>
-                                </div>
-
-                                <!-- Ajuste de Valor -->
-                                <div class="value-adjustment-section" id="valueAdjustmentSection" style="display: none;">
-                                    <div class="adjustment-input-group">
-                                        <label for="valueAdjustment">Ajuste (€):</label>
-                                        <input type="number" id="valueAdjustment" step="0.01" placeholder="0.00">
-                                        <div class="adjustment-note">+ se mais, - se menos</div>
-                                    </div>
-                                </div>
-
-                                <!-- Depósito -->
-                                <div class="deposit-section" id="depositSection" style="display: none;">
-                                    <div class="deposit-input-group">
-                                        <label for="depositAmount">Depósito (€):</label>
-                                        <input type="number" id="depositAmount" step="0.01" placeholder="0.00">
-                                    </div>
-                                </div>
                             </div>
                         </div>
                     </div>
@@ -4456,10 +4437,8 @@
 
         // Função para preencher o resumo da reserva no Passo 5
         function populateBookingSummary() {
-            // Preencher dados do veículo
+            // Preencher dados do veículo (sem imagem)
             if (selectedVehicleData) {
-                document.getElementById('summaryVehicleImage').innerHTML = 
-                    `<img src="${selectedVehicleData.image}" alt="${selectedVehicleData.name}">`;
                 document.getElementById('summaryVehicleGroup').textContent = selectedVehicleData.code;
                 document.getElementById('summaryVehicleName').textContent = selectedVehicleData.name;
                 
@@ -4476,7 +4455,7 @@
                 document.getElementById('summaryVehicleFeatures').innerHTML = featuresHTML;
             }
 
-            // Preencher datas e locais
+            // Preencher datas e locais por extenso
             const pickupDate = document.getElementById('pickupDate').value;
             const pickupTime = document.getElementById('pickupTime').value;
             const dropoffDate = document.getElementById('dropoffDate').value;
@@ -4484,18 +4463,25 @@
             const pickupLocation = document.getElementById('pickupLocation').value;
             const dropoffLocation = document.getElementById('dropoffLocation').value;
 
-            // Formatar datas
+            // Formatar datas por extenso
             const pickupDateObj = new Date(pickupDate);
             const dropoffDateObj = new Date(dropoffDate);
-            const formattedPickupDate = pickupDateObj.toLocaleDateString('pt-PT', { day: '2-digit', month: '2-digit', year: 'numeric' });
-            const formattedDropoffDate = dropoffDateObj.toLocaleDateString('pt-PT', { day: '2-digit', month: '2-digit', year: 'numeric' });
+            
+            const months = ['janeiro', 'fevereiro', 'março', 'abril', 'maio', 'junho', 'julho', 'agosto', 'setembro', 'outubro', 'novembro', 'dezembro'];
+            
+            const pickupDay = pickupDateObj.getDate();
+            const pickupMonth = months[pickupDateObj.getMonth()];
+            const pickupYear = pickupDateObj.getFullYear();
+            
+            const dropoffDay = dropoffDateObj.getDate();
+            const dropoffMonth = months[dropoffDateObj.getMonth()];
+            const dropoffYear = dropoffDateObj.getFullYear();
 
-            document.getElementById('summaryPickupDate').textContent = formattedPickupDate;
-            document.getElementById('summaryPickupTime').textContent = pickupTime;
-            document.getElementById('summaryPickupLocation').textContent = pickupLocation;
-            document.getElementById('summaryDropoffDate').textContent = formattedDropoffDate;
-            document.getElementById('summaryDropoffTime').textContent = dropoffTime;
-            document.getElementById('summaryDropoffLocation').textContent = dropoffLocation;
+            const pickupText = `Entrega na ${pickupLocation} dia ${pickupDay} de ${pickupMonth} de ${pickupYear} às ${pickupTime}`;
+            const dropoffText = `Recolha na ${dropoffLocation} dia ${dropoffDay} de ${dropoffMonth} de ${dropoffYear} às ${dropoffTime}`;
+
+            document.getElementById('summaryPickupText').textContent = pickupText;
+            document.getElementById('summaryDropoffText').textContent = dropoffText;
 
             // Preencher dados do cliente
             const firstName = document.getElementById('clientFirstName').value;
