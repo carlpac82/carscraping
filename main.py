@@ -32224,14 +32224,6 @@ async def generate_commissioner_booking_pdf(booking_id: int, request: Request):
         logging.info(f"📝 Processando {len(coordinates)} coordenadas para o PDF")
         logging.info(f"📋 Dados disponíveis: {list(booking_data.keys())[:10]}...")  # Primeiros 10 campos
         
-        # Dimensões do PDF A4 em pontos (72 DPI)
-        PDF_WIDTH = 595.276  # 210mm
-        PDF_HEIGHT = 841.890  # 297mm
-        
-        # O PDF.js renderiza com scale=2, então o canvas tem o dobro do tamanho
-        # Precisamos converter coordenadas do canvas para pontos PDF
-        CANVAS_SCALE = 2.0
-        
         fields_processed = 0
         for field_id, coord in coordinates.items():
             value = booking_data.get(field_id, "")
@@ -32243,23 +32235,15 @@ async def generate_commissioner_booking_pdf(booking_id: int, request: Request):
             # Verificar se tem valor (string não vazia)
             if value and (isinstance(value, str) and value.strip() or not isinstance(value, str)):
                 fields_processed += 1
-                # Converter coordenadas do canvas (pixels com escala 2) para pontos PDF
-                # Canvas: origem topo-esquerda, Y cresce para baixo
-                # PDF: origem base-esquerda, Y cresce para cima
-                x_canvas = float(coord["x"])
-                y_canvas = float(coord["y"])
-                width_canvas = float(coord.get("width", 100))
-                
-                # Converter de pixels do canvas para pontos PDF
-                x = x_canvas / CANVAS_SCALE
-                y = PDF_HEIGHT - (y_canvas / CANVAS_SCALE)  # Inverter Y
-                width = width_canvas / CANVAS_SCALE
-                
+                # As coordenadas já estão em pontos PDF corretos (o frontend já dividiu pela escala)
+                x = float(coord["x"])
+                y = float(coord["y"])
+                width = float(coord.get("width", 100))
                 page = coord.get("page", 1)
                 
                 text = str(value)
                 
-                logging.info(f"  Conversão: canvas({x_canvas:.1f}, {y_canvas:.1f}) -> PDF({x:.1f}, {y:.1f})")
+                logging.info(f"  Coordenadas PDF: ({x:.1f}, {y:.1f}) largura={width:.1f}")
                 
                 # Aplicar alinhamento baseado no tipo de campo
                 if field_id in right_aligned_fields:
