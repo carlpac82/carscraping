@@ -4226,9 +4226,14 @@
             }
         }
 
-        function showBookingDetails(bookingId) {
+        async function showBookingDetails(bookingId) {
             const booking = allBookings.find(b => b.id === bookingId);
             if (!booking) return;
+
+            // Garantir que vehicleGroups está carregado
+            if (vehicleGroups.length === 0) {
+                await loadVehicleGroups();
+            }
 
             const statusMap = {
                 'pending': 'Pendente',
@@ -4249,14 +4254,15 @@
             let days = Math.floor(diffMs / msPerDay);
             if (diffMs % msPerDay > 0) days += 1;
 
-            // Preços detalhados - calcular componentes
+            // O preço total da reserva já está correto
             const totalPrice = booking.price || 0;
             
-            // Seguro Premium: 25€/dia
-            const insurancePrice = 25 * days;
+            // Componentes do preço (valores fixos por dia)
+            const insurancePricePerDay = 25;
+            const roadTaxPricePerDay = 2;
             
-            // Road Tax: 2€/dia
-            const roadTaxPrice = 2 * days;
+            const insurancePrice = insurancePricePerDay * days;
+            const roadTaxPrice = roadTaxPricePerDay * days;
             
             // Extras (se houver)
             let extrasPrice = 0;
@@ -4266,8 +4272,6 @@
                     const extrasArray = JSON.parse(booking.extras);
                     if (Array.isArray(extrasArray) && extrasArray.length > 0) {
                         extrasDetails = extrasArray;
-                        // Calcular preço dos extras se necessário
-                        extrasPrice = 0; // TODO: adicionar lógica de preço de extras se disponível
                     }
                 } catch (e) {
                     console.error('Error parsing extras:', e);
