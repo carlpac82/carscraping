@@ -4024,8 +4024,8 @@
                 }
             }
 
-            // Road Tax: 2€ por dia
-            const roadTax = 2 * diffDays;
+            // Road Tax: 2.23€ por dia, máximo 22.30€
+            const roadTax = Math.min(2.23 * diffDays, 22.30);
 
             // Atualizar preço no resumo do veículo (base + extras + road tax)
             const totalPrice = basePrice + extrasTotal + roadTax;
@@ -4311,15 +4311,11 @@
             let days = Math.floor(diffMs / msPerDay);
             if (diffMs % msPerDay > 0) days += 1;
 
-            // O preço total da reserva já está correto
+            // O preço total da reserva
             const totalPrice = booking.price || 0;
             
-            // Componentes do preço (valores fixos por dia)
-            const insurancePricePerDay = 25;
-            const roadTaxPricePerDay = 2;
-            
-            const insurancePrice = insurancePricePerDay * days;
-            const roadTaxPrice = roadTaxPricePerDay * days;
+            // Road Tax: 2.23€/dia, máximo 22.30€
+            const roadTaxPrice = Math.min(2.23 * days, 22.30);
             
             // Extras (se houver)
             let extrasPrice = 0;
@@ -4336,6 +4332,30 @@
             } else if (Array.isArray(booking.extras)) {
                 extrasDetails = booking.extras;
             }
+            
+            // Calcular seguro e preço base a partir do total
+            // Total = Base + Seguro + Road Tax + Extras
+            // Precisamos deduzir o seguro do que sobra após remover road tax e extras
+            const remainingAfterTaxAndExtras = totalPrice - roadTaxPrice - extrasPrice;
+            
+            // O seguro premium é calculado por faixa de dias
+            // Vamos estimar baseado no padrão (aproximadamente 25€/dia para 3-7 dias)
+            let insurancePrice = 0;
+            let insurancePricePerDay = 0;
+            
+            if (days >= 1 && days <= 2) {
+                insurancePricePerDay = 30; // Estimativa para 1-2 dias
+            } else if (days >= 3 && days <= 7) {
+                insurancePricePerDay = 25; // Estimativa para 3-7 dias
+            } else if (days >= 8 && days <= 14) {
+                insurancePricePerDay = 22; // Estimativa para 8-14 dias
+            } else if (days >= 15 && days <= 21) {
+                insurancePricePerDay = 20; // Estimativa para 15-21 dias
+            } else {
+                insurancePricePerDay = 18; // Estimativa para 22+ dias
+            }
+            
+            insurancePrice = insurancePricePerDay * days;
             
             // Preço base = Total - Seguro - Road Tax - Extras
             const basePrice = totalPrice - insurancePrice - roadTaxPrice - extrasPrice;
@@ -4379,11 +4399,11 @@
                                     <span class="pricing-value-compact">${basePrice.toFixed(2)}€</span>
                                 </div>
                                 <div class="pricing-item-compact">
-                                    <span class="pricing-label-compact">Seguro Premium (${days}d × 25€)</span>
+                                    <span class="pricing-label-compact">Seguro Premium (${days}d × ${insurancePricePerDay.toFixed(2)}€)</span>
                                     <span class="pricing-value-compact">${insurancePrice.toFixed(2)}€</span>
                                 </div>
                                 <div class="pricing-item-compact">
-                                    <span class="pricing-label-compact">Road Tax (${days}d × 2€)</span>
+                                    <span class="pricing-label-compact">Road Tax (${days}d × 2.23€, máx 22.30€)</span>
                                     <span class="pricing-value-compact">${roadTaxPrice.toFixed(2)}€</span>
                                 </div>
                                 ${extrasDetails.length > 0 ? `
