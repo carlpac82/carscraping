@@ -6317,6 +6317,18 @@ async def checkout_mapper_page(request: Request):
         "request": request
     })
 
+@app.get("/commissioner-booking-mapper", response_class=HTMLResponse)
+async def commissioner_booking_mapper_page(request: Request):
+    """Página dedicada para mapeamento de campos do PDF Livro de Reservas"""
+    try:
+        require_admin(request)
+    except HTTPException:
+        return RedirectResponse(url="/login", status_code=HTTP_303_SEE_OTHER)
+    
+    return templates.TemplateResponse("commissioner_booking_mapper.html", {
+        "request": request
+    })
+
 @app.get("/rental-agreement-mapper", response_class=HTMLResponse)
 async def rental_agreement_mapper_page(request: Request):
     """Página dedicada para mapeamento de campos do Rental Agreement"""
@@ -31470,6 +31482,198 @@ async def save_checkout_coordinates(request: Request):
         }
     except Exception as e:
         logging.error(f"Error saving Check-out coordinates: {e}")
+        import traceback
+        logging.error(traceback.format_exc())
+        return {"ok": False, "error": str(e)}
+
+# ============================================================
+# COMMISSIONER BOOKING PDF MAPPER API ENDPOINTS
+# ============================================================
+
+@app.get("/api/commissioner-booking-pdf/get-template")
+async def get_commissioner_booking_pdf_template(request: Request):
+    """Obter o template PDF do Livro de Reservas para o mapeador"""
+    require_admin(request)
+    
+    try:
+        import base64
+        pdf_path = "Livro de Reservas.pdf"
+        
+        if not os.path.exists(pdf_path):
+            return {"ok": False, "error": "PDF não encontrado"}
+        
+        with open(pdf_path, 'rb') as f:
+            pdf_data = base64.b64encode(f.read()).decode('utf-8')
+        
+        return {
+            "ok": True,
+            "pdf_data": pdf_data,
+            "filename": "Livro de Reservas.pdf"
+        }
+    except Exception as e:
+        logging.error(f"Error getting commissioner booking PDF template: {e}")
+        return {"ok": False, "error": str(e)}
+
+@app.get("/api/commissioner-booking-pdf/get-coordinates")
+async def get_commissioner_booking_coordinates(request: Request):
+    """Obter coordenadas dos campos do PDF Livro de Reservas"""
+    require_admin(request)
+    
+    try:
+        conn = get_db()
+        if is_postgres:
+            cur = conn.cursor()
+            cur.execute("""
+                SELECT field_id, x, y, width, height, page, field_type
+                FROM commissioner_booking_coordinates
+                ORDER BY field_id
+            """)
+            rows = cur.fetchall()
+            cur.close()
+            
+            coordinates = []
+            for row in rows:
+                coordinates.append({
+                    "field_id": row[0],
+                    "x": float(row[1]),
+                    "y": float(row[2]),
+                    "width": float(row[3]) if row[3] else None,
+                    "height": float(row[4]) if row[4] else None,
+                    "page": row[5],
+                    "field_type": row[6]
+                })
+        else:
+            # SQLite
+            cur = conn.cursor()
+            cur.execute("""
+                SELECT field_id, x, y, width, height, page, field_type
+                FROM commissioner_booking_coordinates
+                ORDER BY field_id
+            """)
+            rows = cur.fetchall()
+            
+            coordinates = []
+            for row in rows:
+                coordinates.append({
+                    "field_id": row[0],
+                    "x": float(row[1]),
+                    "y": float(row[2]),
+                    "width": float(row[3]) if row[3] else None,
+                    "height": float(row[4]) if row[4] else None,
+                    "page": row[5],
+                    "field_type": row[6]
+                })
+        
+        conn.close()
+        return {"ok": True, "coordinates": coordinates}
+    except Exception as e:
+        logging.error(f"Error getting commissioner booking coordinates: {e}")
+        return {"ok": False, "error": str(e)}
+
+@app.post("/api/commissioner-booking-pdf/save-coordinate")
+async def save_commissioner_booking_coordinate(request: Request):
+    """Guardar uma coordenada de campo do PDF Livro de Reservas"""
+    require_admin(request)
+    
+    try:
+        data = await request.json()
+        field_id = data.get('field_id')
+        x = data.get('x')
+        y = data.get('y')
+        page = data.get('page', 1)
+        width = data.get('width')
+        height = data.get('height')
+        field_type = data.get('field_type', 'text')
+        
+        if not field_id or x is None or y is None:
+            return {"ok": False, "error": "Dados incompletos"}
+        
+        conn = get_db()
+        if is_postgres:
+            cur = conn.cursor()
+            cur.execute("""
+                INSERT INTO commissioner_booking_coordinates 
+                (field_id, x, y, width, height, page, field_type)
+                VALUES (%s, %s, %s, %s, %s, %s, %s)
+                ON CONFLICT (field_id) 
+                DO UPDATE SET x = %s, y = %s, width = %s, height = %s, page = %s, 
+                              field_type = %s, updated_at = CURRENT_TIMESTAMP
+            """, (field_id, x, y, width, height, page, field_type, x, y, width, height, page, field_type))
+            conn.commit()
+            cur.close()
+        else:
+            # SQLite
+            cur = conn.cursor()
+            cur.execute("""
+                INSERT OR REPLACE INTO commissioner_booking_coordinates 
+                (field_id, x, y, width, height, page, field_type)
+                VALUES (?, ?, ?, ?, ?, ?, ?)
+            """, (field_id, x, y, width, height, page, field_type))
+            conn.commit()
+        
+        conn.close()
+        logging.info(f"💾 Commissioner booking coordinate saved: {field_id}")
+        return {"ok": True, "message": "Coordenada guardada com sucesso"}
+    except Exception as e:
+        logging.error(f"Error saving commissioner booking coordinate: {e}")
+        return {"ok": False, "error": str(e)}
+
+@app.post("/api/commissioner-booking-pdf/save-coordinates")
+async def save_commissioner_booking_coordinates(request: Request):
+    """Guardar múltiplas coordenadas de campos do PDF Livro de Reservas"""
+    require_admin(request)
+    
+    try:
+        data = await request.json()
+        coordinates = data.get('coordinates', [])
+        
+        if not coordinates:
+            return {"ok": False, "error": "Nenhuma coordenada fornecida"}
+        
+        conn = get_db()
+        saved_count = 0
+        
+        for coord in coordinates:
+            field_id = coord.get('field_id')
+            x = coord.get('x')
+            y = coord.get('y')
+            page = coord.get('page', 1)
+            width = coord.get('width')
+            height = coord.get('height')
+            field_type = coord.get('field_type', 'text')
+            
+            if not field_id or x is None or y is None:
+                continue
+            
+            if is_postgres:
+                cur = conn.cursor()
+                cur.execute("""
+                    INSERT INTO commissioner_booking_coordinates 
+                    (field_id, x, y, width, height, page, field_type)
+                    VALUES (%s, %s, %s, %s, %s, %s, %s)
+                    ON CONFLICT (field_id) 
+                    DO UPDATE SET x = %s, y = %s, width = %s, height = %s, page = %s, 
+                                  field_type = %s, updated_at = CURRENT_TIMESTAMP
+                """, (field_id, x, y, width, height, page, field_type, x, y, width, height, page, field_type))
+                cur.close()
+            else:
+                # SQLite
+                cur = conn.cursor()
+                cur.execute("""
+                    INSERT OR REPLACE INTO commissioner_booking_coordinates 
+                    (field_id, x, y, width, height, page, field_type)
+                    VALUES (?, ?, ?, ?, ?, ?, ?)
+                """, (field_id, x, y, width, height, page, field_type))
+            
+            saved_count += 1
+        
+        conn.commit()
+        conn.close()
+        
+        logging.info(f"💾 Commissioner booking coordinates saved: {saved_count} campos")
+        return {"ok": True, "message": f"{saved_count} coordenadas guardadas com sucesso", "count": saved_count}
+    except Exception as e:
+        logging.error(f"Error saving commissioner booking coordinates: {e}")
         import traceback
         logging.error(traceback.format_exc())
         return {"ok": False, "error": str(e)}
