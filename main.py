@@ -6521,7 +6521,7 @@ async def api_get_commissioner_pricing(request: Request):
         }
         
         # Load extras pricing (min/per_day/max)
-        extras = ['gps', 'child_seat', 'booster_seat', 'airport_fee', 'insurance', 'young_driver', 'senior_driver']
+        extras = ['gps', 'child_seat', 'booster_seat', 'airport_fee', 'insurance', 'young_driver', 'senior_driver', 'additional_driver', 'trip_to_spain']
         for extra in extras:
             min_val = _get_setting(f"commissioner_extra_{extra}_min", "")
             per_day_val = _get_setting(f"commissioner_extra_{extra}_per_day", "0")

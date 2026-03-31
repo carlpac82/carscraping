@@ -227,6 +227,43 @@
                 <input type="number" step="0.01" id="extra_senior_driver_max" value="80.00" class="w-full rounded-md border-gray-300 shadow-sm focus:border-[#009cb6] focus:ring-2 focus:ring-[#009cb6]" />
               </div>
             </div>
+            
+            <div class="grid grid-cols-4 gap-3 items-end">
+              <div class="col-span-1">
+                <label class="block text-sm font-medium text-gray-700">Condutor Adicional</label>
+              </div>
+              <div>
+                <label class="block text-xs text-gray-500 mb-1">Mín 1 dia (€)</label>
+                <input type="number" step="0.01" id="extra_additional_driver_min" value="" placeholder="Opcional" class="w-full rounded-md border-gray-300 shadow-sm focus:border-[#009cb6] focus:ring-2 focus:ring-[#009cb6]" />
+              </div>
+              <div>
+                <label class="block text-xs text-gray-500 mb-1">Preço Dia (€)</label>
+                <input type="number" step="0.01" id="extra_additional_driver_per_day" value="10.00" class="w-full rounded-md border-gray-300 shadow-sm focus:border-[#009cb6] focus:ring-2 focus:ring-[#009cb6]" />
+              </div>
+              <div>
+                <label class="block text-xs text-gray-500 mb-1">Máx Total (€)</label>
+                <input type="number" step="0.01" id="extra_additional_driver_max" value="100.00" class="w-full rounded-md border-gray-300 shadow-sm focus:border-[#009cb6] focus:ring-2 focus:ring-[#009cb6]" />
+              </div>
+            </div>
+            
+            <div class="grid grid-cols-4 gap-3 items-end">
+              <div class="col-span-1">
+                <label class="block text-sm font-medium text-gray-700">Trip to Spain</label>
+                <span class="text-xs text-gray-500">(taxa única - máximo Sevilla)</span>
+              </div>
+              <div>
+                <label class="block text-xs text-gray-500 mb-1">Mín 1 dia (€)</label>
+                <input type="number" step="0.01" id="extra_trip_to_spain_min" value="100.00" class="w-full rounded-md border-gray-300 shadow-sm focus:border-[#009cb6] focus:ring-2 focus:ring-[#009cb6]" />
+              </div>
+              <div>
+                <label class="block text-xs text-gray-500 mb-1">Preço Dia (€)</label>
+                <input type="number" step="0.01" id="extra_trip_to_spain_per_day" value="0.00" class="w-full rounded-md border-gray-300 shadow-sm focus:border-[#009cb6] focus:ring-2 focus:ring-[#009cb6]" readonly />
+              </div>
+              <div>
+                <label class="block text-xs text-gray-500 mb-1">Máx Total (€)</label>
+                <input type="number" step="0.01" id="extra_trip_to_spain_max" value="100.00" class="w-full rounded-md border-gray-300 shadow-sm focus:border-[#009cb6] focus:ring-2 focus:ring-[#009cb6]" />
+              </div>
+            </div>
           </div>
         </div>
         
@@ -785,7 +822,7 @@
         });
         
         // Recolher extras (min/per_day/max)
-        ['gps', 'child_seat', 'booster_seat', 'airport_fee', 'young_driver', 'senior_driver'].forEach(key => {
+        ['gps', 'child_seat', 'booster_seat', 'airport_fee', 'young_driver', 'senior_driver', 'additional_driver', 'trip_to_spain'].forEach(key => {
           const minInput = document.getElementById(`extra_${key}_min`);
           const perDayInput = document.getElementById(`extra_${key}_per_day`);
           const maxInput = document.getElementById(`extra_${key}_max`);

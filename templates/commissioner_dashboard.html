@@ -3897,19 +3897,24 @@
             // Calcular extras
             let extrasTotal = 0;
             
-            // Outros extras com checkbox (preço por dia)
-            const otherExtraPricesPerDay = {
-                extraGPS: 5,
-                extraYoungDriver: 10,
-                extraSeniorDriver: 8
-            };
-
-            Object.keys(otherExtraPricesPerDay).forEach(extraId => {
-                const checkbox = document.getElementById(extraId);
-                if (checkbox && checkbox.checked) {
-                    extrasTotal += otherExtraPricesPerDay[extraId] * diffDays;
-                }
-            });
+            // Outros extras com checkbox (preço por dia) - usar preços do admin
+            const gpsCheckbox = document.getElementById('extraGPS');
+            if (gpsCheckbox && gpsCheckbox.checked) {
+                const gpsPrice = commissionerPricing?.extras?.gps?.per_day || 5;
+                extrasTotal += gpsPrice * diffDays;
+            }
+            
+            const youngDriverCheckbox = document.getElementById('extraYoungDriver');
+            if (youngDriverCheckbox && youngDriverCheckbox.checked) {
+                const youngDriverPrice = commissionerPricing?.extras?.young_driver?.per_day || 12;
+                extrasTotal += youngDriverPrice * diffDays;
+            }
+            
+            const seniorDriverCheckbox = document.getElementById('extraSeniorDriver');
+            if (seniorDriverCheckbox && seniorDriverCheckbox.checked) {
+                const seniorDriverPrice = commissionerPricing?.extras?.senior_driver?.per_day || 10;
+                extrasTotal += seniorDriverPrice * diffDays;
+            }
             
             // Road Tax - 2,23€/dia (máximo 10 dias)
             const roadTaxCheckbox = document.getElementById('extraRoadTax');
@@ -3918,32 +3923,45 @@
                 extrasTotal += 2.23 * roadTaxDays;
             }
             
-            // Extras com quantidade (preço por dia × quantidade)
-            const extraQuantityPrices = {
-                extraChildSeat: 5,
-                extraBoosterSeat: 3,
-                extraAdditionalDriver: 5
-            };
-            
-            Object.keys(extraQuantityPrices).forEach(extraId => {
-                const input = document.getElementById(extraId);
-                if (input) {
-                    const quantity = parseInt(input.value) || 0;
-                    if (quantity > 0) {
-                        extrasTotal += extraQuantityPrices[extraId] * diffDays * quantity;
-                    }
+            // Extras com quantidade (preço por dia × quantidade) - usar preços do admin
+            const childSeatInput = document.getElementById('extraChildSeat');
+            if (childSeatInput) {
+                const quantity = parseInt(childSeatInput.value) || 0;
+                if (quantity > 0) {
+                    const childSeatPrice = commissionerPricing?.extras?.child_seat?.per_day || 12;
+                    extrasTotal += childSeatPrice * diffDays * quantity;
                 }
-            });
-
-            // Taxa aeroporto - taxa única de 20€
-            if (airportCheckbox && airportCheckbox.checked) {
-                extrasTotal += 20;
+            }
+            
+            const boosterSeatInput = document.getElementById('extraBoosterSeat');
+            if (boosterSeatInput) {
+                const quantity = parseInt(boosterSeatInput.value) || 0;
+                if (quantity > 0) {
+                    const boosterSeatPrice = commissionerPricing?.extras?.booster_seat?.per_day || 6;
+                    extrasTotal += boosterSeatPrice * diffDays * quantity;
+                }
+            }
+            
+            const additionalDriverInput = document.getElementById('extraAdditionalDriver');
+            if (additionalDriverInput) {
+                const quantity = parseInt(additionalDriverInput.value) || 0;
+                if (quantity > 0) {
+                    const additionalDriverPrice = commissionerPricing?.extras?.additional_driver?.per_day || 10;
+                    extrasTotal += additionalDriverPrice * diffDays * quantity;
+                }
             }
 
-            // TRIP TO SPAIN - taxa única de 100€
+            // Taxa aeroporto - taxa única (usar preço do admin)
+            if (airportCheckbox && airportCheckbox.checked) {
+                const airportPrice = commissionerPricing?.extras?.airport_fee?.min || 20;
+                extrasTotal += airportPrice;
+            }
+
+            // TRIP TO SPAIN - taxa única (usar preço do admin)
             const tripToSpainCheckbox = document.getElementById('extraTripToSpain');
             if (tripToSpainCheckbox && tripToSpainCheckbox.checked) {
-                extrasTotal += 100;
+                const spainPrice = commissionerPricing?.extras?.trip_to_spain?.min || 100;
+                extrasTotal += spainPrice;
             }
 
             // Calcular seguro (baseado na seleção)
@@ -4301,43 +4319,64 @@
             // Calcular road tax
             const roadTax = Math.min(2.23 * rentalDays, 22.30);
             
-            // Calcular extras total (outros extras sem seguro e road tax)
+            // Calcular extras total (outros extras sem seguro e road tax) - usar preços do admin
             let extrasTotal = 0;
-            const otherExtraPricesPerDay = {
-                extraGPS: 5,
-                extraYoungDriver: 10,
-                extraSeniorDriver: 8
-            };
-            Object.keys(otherExtraPricesPerDay).forEach(extraId => {
-                const checkbox = document.getElementById(extraId);
-                if (checkbox && checkbox.checked) {
-                    extrasTotal += otherExtraPricesPerDay[extraId] * rentalDays;
-                }
-            });
             
-            const extraQuantityPrices = {
-                extraChildSeat: 5,
-                extraBoosterSeat: 3,
-                extraAdditionalDriver: 5
-            };
-            Object.keys(extraQuantityPrices).forEach(extraId => {
-                const input = document.getElementById(extraId);
-                if (input) {
-                    const quantity = parseInt(input.value) || 0;
-                    if (quantity > 0) {
-                        extrasTotal += extraQuantityPrices[extraId] * rentalDays * quantity;
-                    }
+            const gpsCheckbox = document.getElementById('extraGPS');
+            if (gpsCheckbox && gpsCheckbox.checked) {
+                const gpsPrice = commissionerPricing?.extras?.gps?.per_day || 5;
+                extrasTotal += gpsPrice * rentalDays;
+            }
+            
+            const youngDriverCheckbox = document.getElementById('extraYoungDriver');
+            if (youngDriverCheckbox && youngDriverCheckbox.checked) {
+                const youngDriverPrice = commissionerPricing?.extras?.young_driver?.per_day || 12;
+                extrasTotal += youngDriverPrice * rentalDays;
+            }
+            
+            const seniorDriverCheckbox = document.getElementById('extraSeniorDriver');
+            if (seniorDriverCheckbox && seniorDriverCheckbox.checked) {
+                const seniorDriverPrice = commissionerPricing?.extras?.senior_driver?.per_day || 10;
+                extrasTotal += seniorDriverPrice * rentalDays;
+            }
+            
+            const childSeatInput = document.getElementById('extraChildSeat');
+            if (childSeatInput) {
+                const quantity = parseInt(childSeatInput.value) || 0;
+                if (quantity > 0) {
+                    const childSeatPrice = commissionerPricing?.extras?.child_seat?.per_day || 12;
+                    extrasTotal += childSeatPrice * rentalDays * quantity;
                 }
-            });
+            }
+            
+            const boosterSeatInput = document.getElementById('extraBoosterSeat');
+            if (boosterSeatInput) {
+                const quantity = parseInt(boosterSeatInput.value) || 0;
+                if (quantity > 0) {
+                    const boosterSeatPrice = commissionerPricing?.extras?.booster_seat?.per_day || 6;
+                    extrasTotal += boosterSeatPrice * rentalDays * quantity;
+                }
+            }
+            
+            const additionalDriverInput = document.getElementById('extraAdditionalDriver');
+            if (additionalDriverInput) {
+                const quantity = parseInt(additionalDriverInput.value) || 0;
+                if (quantity > 0) {
+                    const additionalDriverPrice = commissionerPricing?.extras?.additional_driver?.per_day || 10;
+                    extrasTotal += additionalDriverPrice * rentalDays * quantity;
+                }
+            }
             
             const airportCheckbox = document.getElementById('extraAirport');
             if (airportCheckbox && airportCheckbox.checked) {
-                extrasTotal += 20;
+                const airportPrice = commissionerPricing?.extras?.airport_fee?.min || 20;
+                extrasTotal += airportPrice;
             }
             
             const tripToSpainCheckbox = document.getElementById('extraTripToSpain');
             if (tripToSpainCheckbox && tripToSpainCheckbox.checked) {
-                extrasTotal += 100;
+                const spainPrice = commissionerPricing?.extras?.trip_to_spain?.min || 100;
+                extrasTotal += spainPrice;
             }
 
             const bookingData = {
