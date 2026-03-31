@@ -31678,6 +31678,33 @@ async def save_commissioner_booking_coordinates(request: Request):
         logging.error(traceback.format_exc())
         return {"ok": False, "error": str(e)}
 
+@app.post("/api/commissioner-booking-pdf/upload-template")
+async def upload_commissioner_booking_pdf_template(request: Request, pdf: UploadFile = File(...)):
+    """Upload do PDF template do Livro de Reservas"""
+    require_admin(request)
+    
+    try:
+        # Ler o conteúdo do PDF
+        pdf_content = await pdf.read()
+        
+        # Validar que é um PDF
+        if not pdf.filename.endswith('.pdf'):
+            return {"ok": False, "error": "O ficheiro deve ser um PDF"}
+        
+        # Guardar o PDF no disco
+        pdf_path = "Livro de Reservas.pdf"
+        with open(pdf_path, 'wb') as f:
+            f.write(pdf_content)
+        
+        logging.info(f"✅ PDF template do Livro de Reservas carregado: {pdf.filename}")
+        return {"ok": True, "message": "PDF template carregado com sucesso", "filename": pdf.filename}
+        
+    except Exception as e:
+        logging.error(f"Error uploading commissioner booking PDF template: {e}")
+        import traceback
+        logging.error(traceback.format_exc())
+        return {"ok": False, "error": str(e)}
+
 @app.get("/api/commissioner-booking-pdf/generate/{booking_id}")
 async def generate_commissioner_booking_pdf(booking_id: int, request: Request):
     """Gerar PDF do Livro de Reservas preenchido com dados da reserva"""

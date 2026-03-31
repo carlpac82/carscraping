@@ -129,7 +129,29 @@
     </style>
 </head>
 <body>
-    <div class="mapper-container">
+    <!-- Upload PDF Section -->
+    <div style="background: white; padding: 15px; margin-bottom: 20px; border-radius: 8px; border: 2px solid #e5e7eb;">
+        <div style="display: flex; align-items: center; gap: 15px;">
+            <input type="file" id="pdfUpload" accept=".pdf" style="display: none;" onchange="handlePDFUpload(event)">
+            <button class="btn btn-primary" onclick="document.getElementById('pdfUpload').click()" style="width: auto; padding: 10px 20px;">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="margin-right: 8px;">
+                    <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                    <polyline points="17 8 12 3 7 8"></polyline>
+                    <line x1="12" y1="3" x2="12" y2="15"></line>
+                </svg>
+                Upload PDF Template
+            </button>
+            <button class="btn btn-secondary" onclick="toggleFullscreen()" style="width: auto; padding: 10px 20px; background: #8b5cf6;">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M8 3H5a2 2 0 0 0-2 2v3m18 0V5a2 2 0 0 0-2-2h-3m0 18h3a2 2 0 0 0 2-2v-3M3 16v3a2 2 0 0 0 2 2h3"></path>
+                </svg>
+                Fullscreen
+            </button>
+            <span id="uploadStatus" style="color: #6b7280; font-size: 14px;"></span>
+        </div>
+    </div>
+
+    <div class="mapper-container" id="mapperContainer">
         <!-- PDF Viewer -->
         <div class="pdf-viewer">
             <div class="page-controls">
@@ -1430,6 +1452,58 @@
                 console.error('[MAPPER] Error in redrawCanvas:', error);
             } finally {
                 isRedrawing = false;
+            }
+        }
+
+        // Upload PDF function
+        async function handlePDFUpload(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+            
+            document.getElementById('uploadStatus').textContent = 'A carregar PDF...';
+            
+            try {
+                const formData = new FormData();
+                formData.append('pdf', file);
+                
+                const response = await fetch('/api/commissioner-booking-pdf/upload-template', {
+                    method: 'POST',
+                    body: formData
+                });
+                
+                const result = await response.json();
+                
+                if (result.ok) {
+                    document.getElementById('uploadStatus').textContent = '✅ PDF carregado com sucesso!';
+                    document.getElementById('uploadStatus').style.color = '#10b981';
+                    
+                    // Recarregar o PDF
+                    await loadPDFMapper();
+                    showCustomNotification('PDF carregado com sucesso!', 'success');
+                } else {
+                    document.getElementById('uploadStatus').textContent = '❌ Erro: ' + result.error;
+                    document.getElementById('uploadStatus').style.color = '#ef4444';
+                    showCustomNotification('Erro ao carregar PDF: ' + result.error, 'error');
+                }
+            } catch (error) {
+                console.error('Upload error:', error);
+                document.getElementById('uploadStatus').textContent = '❌ Erro ao fazer upload';
+                document.getElementById('uploadStatus').style.color = '#ef4444';
+                showCustomNotification('Erro ao fazer upload do PDF', 'error');
+            }
+        }
+
+        // Fullscreen toggle
+        function toggleFullscreen() {
+            const container = document.getElementById('mapperContainer');
+            
+            if (!document.fullscreenElement) {
+                container.requestFullscreen().catch(err => {
+                    console.error('Error attempting to enable fullscreen:', err);
+                    showCustomNotification('Erro ao ativar fullscreen', 'error');
+                });
+            } else {
+                document.exitFullscreen();
             }
         }
 
