@@ -32144,16 +32144,17 @@ async def generate_commissioner_booking_pdf(booking_id: int, request: Request):
             location_parts = []
             other_parts = []
             
-            # Mapeamento de códigos de extras
+            # Mapeamento de códigos de extras (incluindo variações de nomes)
             extra_codes = {
-                "Additional Driver": "AD",
-                "Young Driver": "YD", 
-                "Senior Driver": "SD",
-                "Baby Seat": "BA",
-                "Booster Seat": "BO",
-                "Airport Fee": "A",
-                "Spain Fee": "SP",
-                "GPS": "GPS"
+                "additional driver": "AD",
+                "young driver": "YD", 
+                "senior driver": "SD",
+                "baby seat": "BA",
+                "child seat": "BA",  # Variação de Baby Seat
+                "booster seat": "BO",
+                "airport fee": "A",
+                "spain fee": "SP",
+                "gps": "GPS"
             }
             
             for extra in extras_data:
@@ -32164,10 +32165,11 @@ async def generate_commissioner_booking_pdf(booking_id: int, request: Request):
                 # Formatar preço
                 price_str = f"{price:.2f}".replace('.', ',')
                 
-                # Encontrar o código correspondente
+                # Encontrar o código correspondente (case-insensitive)
                 code = None
-                for full_name, short_code in extra_codes.items():
-                    if full_name.lower() in name.lower():
+                name_lower = name.lower()
+                for key, short_code in extra_codes.items():
+                    if key in name_lower or name_lower in key:
                         code = short_code
                         break
                 
