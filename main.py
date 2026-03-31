@@ -31902,6 +31902,7 @@ async def generate_commissioner_booking_pdf(booking_id: int, request: Request):
             """Calcula preço base, seguro premium e road tax com base nas configurações"""
             try:
                 from datetime import datetime
+                from decimal import Decimal
                 
                 # Determinar época
                 if isinstance(pickup_date, (date, datetime)):
@@ -31915,35 +31916,58 @@ async def generate_commissioner_booking_pdf(booking_id: int, request: Request):
                 # Definir época baseada no mês
                 if month in [7, 8]:  # Julho e Agosto - Alta Época
                     season = "high"
-                elif month in [6, 9]:  # Junho e Setembro - Média Época
+                elif month in [4, 5, 6, 9, 10]:  # Abril, Maio, Junho, Setembro, Outubro - Média Época
                     season = "mid"
-                else:  # Resto do ano - Baixa Época
+                else:  # Resto do ano - Baixa Época (Jan, Fev, Mar, Nov, Dez)
                     season = "low"
                 
                 # Calcular número de dias
                 days = int(rental_days) if rental_days else 1
                 
-                # Buscar preço base por dia (média dos dias de aluguer)
+                # Buscar preços da base de dados usando a conexão já aberta
                 base_price_total = 0.0
-                for day in range(1, min(days + 1, 8)):  # Máximo 7 dias na configuração
-                    day_key = min(day, 7)
-                    price_value = _get_setting(f"commissioner_season_{vehicle_group}_{season}_day{day_key}", "0")
-                    # Converter Decimal para float
-                    from decimal import Decimal
-                    if isinstance(price_value, Decimal):
-                        price_per_day = float(price_value)
-                    else:
-                        price_per_day = float(price_value) if price_value else 0.0
-                    base_price_total += price_per_day
                 
-                # Se for mais de 7 dias, usar o preço do dia 7 para os dias restantes
-                if days > 7:
-                    price_value_7 = _get_setting(f"commissioner_season_{vehicle_group}_{season}_day7", "0")
-                    if isinstance(price_value_7, Decimal):
-                        price_day_7 = float(price_value_7)
+                # Buscar preço base - usar a mesma lógica do frontend
+                if days <= 7:
+                    # Para 1-7 dias: buscar preço fixo do período
+                    day_key = f"day{days}"
+                    if is_postgres:
+                        price_cur = conn.cursor()
+                        price_cur.execute(
+                            "SELECT value FROM app_settings WHERE key = %s",
+                            (f"commissioner_season_{vehicle_group}_{season}_{day_key}",)
+                        )
                     else:
-                        price_day_7 = float(price_value_7) if price_value_7 else 0.0
-                    base_price_total += price_day_7 * (days - 7)
+                        price_cur = conn.execute(
+                            "SELECT value FROM app_settings WHERE key = ?",
+                            (f"commissioner_season_{vehicle_group}_{season}_{day_key}",)
+                        )
+                    result = price_cur.fetchone()
+                    if result and result[0]:
+                        base_price_total = float(result[0]) if result[0] else 0.0
+                    if is_postgres:
+                        price_cur.close()
+                else:
+                    # Para 8+ dias: calcular com base no preço do dia 7
+                    if is_postgres:
+                        price_cur = conn.cursor()
+                        price_cur.execute(
+                            "SELECT value FROM app_settings WHERE key = %s",
+                            (f"commissioner_season_{vehicle_group}_{season}_day7",)
+                        )
+                    else:
+                        price_cur = conn.execute(
+                            "SELECT value FROM app_settings WHERE key = ?",
+                            (f"commissioner_season_{vehicle_group}_{season}_day7",)
+                        )
+                    result = price_cur.fetchone()
+                    if result and result[0]:
+                        day7_price = float(result[0]) if result[0] else 0.0
+                        if day7_price > 0:
+                            daily_rate = day7_price / 7
+                            base_price_total = daily_rate * days
+                    if is_postgres:
+                        price_cur.close()
                 
                 # Buscar preço do seguro premium
                 if days <= 2:
@@ -31957,20 +31981,38 @@ async def generate_commissioner_booking_pdf(booking_id: int, request: Request):
                 else:
                     insurance_range = "22_31"
                 
-                insurance_value = _get_setting(f"commissioner_insurance_{vehicle_group}_{season}_{insurance_range}_days", "0")
-                if isinstance(insurance_value, Decimal):
-                    insurance_price = float(insurance_value)
+                if is_postgres:
+                    ins_cur = conn.cursor()
+                    ins_cur.execute(
+                        "SELECT value FROM app_settings WHERE key = %s",
+                        (f"commissioner_insurance_{vehicle_group}_{season}_{insurance_range}_days",)
+                    )
                 else:
-                    insurance_price = float(insurance_value) if insurance_value else 0.0
+                    ins_cur = conn.execute(
+                        "SELECT value FROM app_settings WHERE key = ?",
+                        (f"commissioner_insurance_{vehicle_group}_{season}_{insurance_range}_days",)
+                    )
+                result = ins_cur.fetchone()
+                insurance_price = 0.0
+                if result and result[0]:
+                    # O preço do seguro é por dia, multiplicar pelo número de dias
+                    insurance_price = float(result[0]) * days if result[0] else 0.0
+                if is_postgres:
+                    ins_cur.close()
                 
                 # Road tax - 2.23€ por dia, máximo 10 dias (22.30€)
                 road_tax_days = min(days, 10)
                 road_tax = round(road_tax_days * 2.23, 2)
                 
+                logging.info(f"[PDF PRICING] Grupo: {vehicle_group}, Época: {season}, Dias: {days}")
+                logging.info(f"[PDF PRICING] Base: {base_price_total}€, Seguro: {insurance_price}€, Road Tax: {road_tax}€")
+                
                 return base_price_total, insurance_price, road_tax
                 
             except Exception as e:
                 logging.error(f"Error calculating detailed prices: {e}")
+                import traceback
+                logging.error(traceback.format_exc())
                 return 0.0, 0.0, 0.0
         
         # Função para processar e formatar extras
