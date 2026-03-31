@@ -32058,7 +32058,17 @@ async def generate_commissioner_booking_pdf(booking_id: int, request: Request):
         
         # Obter dados necessários para cálculo de preços
         vehicle_group = row[14] if len(row) > 14 else ""  # índice 14: vehicle_group
-        total_price = float(row[20]) if len(row) > 20 and row[20] else 0.0  # índice 20: price
+        
+        # Converter price para float (pode ser Decimal da base de dados)
+        from decimal import Decimal
+        price_raw = row[20] if len(row) > 20 else 0
+        if isinstance(price_raw, Decimal):
+            total_price = float(price_raw)
+        elif isinstance(price_raw, (int, float)):
+            total_price = float(price_raw)
+        else:
+            logging.error(f"Unexpected price type: {type(price_raw)} - value: {price_raw}")
+            total_price = 0.0
         
         # Calcular preços detalhados usando as configurações de preços comissionistas
         base_price, insurance_price, road_tax = calculate_detailed_prices(
@@ -32103,7 +32113,7 @@ async def generate_commissioner_booking_pdf(booking_id: int, request: Request):
             "booking_day": booking_day,
             "booking_month": booking_month,
             "booking_year": booking_year,
-            "deposit_amount": f"{float(row[19]):.2f}".replace('.', ',') if len(row) > 19 and row[19] else "0,00",  # índice 19: deposit
+            "deposit_amount": f"{float(row[19]) if isinstance(row[19], (Decimal, int, float)) else 0:.2f}".replace('.', ',') if len(row) > 19 and row[19] else "0,00",  # índice 19: deposit
             "deposit_day": deposit_day,
             "deposit_month": deposit_month,
             "deposit_year": deposit_year,
