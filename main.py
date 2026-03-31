@@ -31743,6 +31743,61 @@ async def save_commissioner_booking_coordinates(request: Request):
         logging.error(traceback.format_exc())
         return {"ok": False, "error": str(e)}
 
+@app.post("/api/commissioner-booking-pdf/clean-extra-coordinates")
+async def clean_extra_coordinates(request: Request):
+    """Limpar coordenadas de campos extras antigos que não devem ser usados"""
+    try:
+        require_admin(request)
+    except HTTPException:
+        return JSONResponse({"ok": False, "error": "Unauthorized"}, status_code=401)
+    
+    try:
+        conn = _db_connect()
+        is_postgres = hasattr(conn, 'rollback')
+        
+        if is_postgres:
+            cur = conn.cursor()
+            # Campos extras antigos que devem ser removidos
+            old_extra_fields = [
+                'extras', 'extras_total', 'extra_driver', 'extra_seat', 
+                'extra_location', 'extra_other', 'extra_details'
+            ]
+            
+            # Remover coordenadas desses campos
+            for field in old_extra_fields:
+                cur.execute('''
+                    DELETE FROM commissioner_booking_coordinates 
+                    WHERE field_name = %s
+                ''', (field,))
+            
+            conn.commit()
+            cur.close()
+        else:
+            cursor = conn.cursor()
+            old_extra_fields = [
+                'extras', 'extras_total', 'extra_driver', 'extra_seat', 
+                'extra_location', 'extra_other', 'extra_details'
+            ]
+            
+            for field in old_extra_fields:
+                cursor.execute('''
+                    DELETE FROM commissioner_booking_coordinates 
+                    WHERE field_name = ?
+                ''', (field,))
+            
+            conn.commit()
+            cursor.close()
+        
+        conn.close()
+        
+        return {"ok": True, "message": "Coordenadas de campos extras antigos limpas"}
+        
+    except Exception as e:
+        logging.error(f"Error cleaning extra coordinates: {e}")
+        import traceback
+        logging.error(traceback.format_exc())
+        return {"ok": False, "error": str(e)}
+
 @app.get("/api/commissioner-booking-pdf/list-coordinates")
 async def list_commissioner_booking_coordinates(request: Request):
     """Listar todas as coordenadas dos campos do PDF"""
