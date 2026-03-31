@@ -262,20 +262,44 @@
 
     <script>
         const FIELDS_TO_MAP = [
+            // Dados do Cliente
             { id: 'voucher_number', name: 'Número do Voucher', type: 'text' },
             { id: 'client_name', name: 'Nome do Cliente', type: 'text' },
             { id: 'client_email', name: 'Email do Cliente', type: 'text' },
             { id: 'client_phone', name: 'Telefone do Cliente', type: 'text' },
-            { id: 'pickup_date', name: 'Data de Levantamento', type: 'text' },
-            { id: 'pickup_time', name: 'Hora de Levantamento', type: 'text' },
-            { id: 'pickup_location', name: 'Local de Levantamento', type: 'text' },
-            { id: 'dropoff_date', name: 'Data de Devolução', type: 'text' },
-            { id: 'dropoff_time', name: 'Hora de Devolução', type: 'text' },
-            { id: 'dropoff_location', name: 'Local de Devolução', type: 'text' },
-            { id: 'vehicle_group', name: 'Grupo do Veículo', type: 'text' },
-            { id: 'price', name: 'Preço Total', type: 'text' },
-            { id: 'commissioner_name', name: 'Nome do Comissionista', type: 'text' },
+            { id: 'hotel_name', name: 'Hotel do Cliente', type: 'text' },
+            { id: 'room_number', name: 'Número do Quarto', type: 'text' },
             { id: 'flight_number', name: 'Número do Voo', type: 'text' },
+            
+            // Data de Levantamento (dividida)
+            { id: 'pickup_day', name: 'Dia Levantamento', type: 'text' },
+            { id: 'pickup_month', name: 'Mês Levantamento', type: 'text' },
+            { id: 'pickup_year', name: 'Ano Levantamento', type: 'text' },
+            { id: 'pickup_hour', name: 'Hora Levantamento', type: 'text' },
+            { id: 'pickup_minute', name: 'Minutos Levantamento', type: 'text' },
+            { id: 'pickup_location', name: 'Local de Levantamento', type: 'text' },
+            
+            // Data de Devolução (dividida)
+            { id: 'dropoff_day', name: 'Dia Devolução', type: 'text' },
+            { id: 'dropoff_month', name: 'Mês Devolução', type: 'text' },
+            { id: 'dropoff_year', name: 'Ano Devolução', type: 'text' },
+            { id: 'dropoff_hour', name: 'Hora Devolução', type: 'text' },
+            { id: 'dropoff_minute', name: 'Minutos Devolução', type: 'text' },
+            { id: 'dropoff_location', name: 'Local de Devolução', type: 'text' },
+            
+            // Veículo e Duração
+            { id: 'vehicle_group', name: 'Grupo do Veículo', type: 'text' },
+            { id: 'rental_days', name: 'Número de Dias', type: 'text' },
+            
+            // Preços
+            { id: 'base_price', name: 'Preço Base', type: 'text' },
+            { id: 'premium_insurance', name: 'Seguro Premium', type: 'text' },
+            { id: 'road_tax', name: 'Road Tax', type: 'text' },
+            { id: 'extras_total', name: 'Total Extras', type: 'text' },
+            { id: 'price', name: 'Preço Total', type: 'text' },
+            
+            // Comissionista e Observações
+            { id: 'commissioner_name', name: 'Nome do Comissionista', type: 'text' },
             { id: 'observations', name: 'Observações', type: 'text' }
         ];
 

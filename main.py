@@ -31740,26 +31740,107 @@ async def generate_commissioner_booking_pdf(booking_id: int, request: Request):
             conn.close()
             return {"ok": False, "error": "Reserva não encontrada"}
         
-        # Mapear dados da reserva
+        # Extrair datas e horas para divisão
+        pickup_date_str = row[7] if len(row) > 7 else ""
+        pickup_time_str = row[8] if len(row) > 8 else ""
+        dropoff_date_str = row[10] if len(row) > 10 else ""
+        dropoff_time_str = row[11] if len(row) > 11 else ""
+        
+        # Processar data de levantamento
+        pickup_day, pickup_month, pickup_year = "", "", ""
+        if pickup_date_str:
+            try:
+                from datetime import datetime
+                pickup_dt = datetime.strptime(pickup_date_str, "%Y-%m-%d")
+                pickup_day = str(pickup_dt.day)
+                pickup_month = str(pickup_dt.month)
+                pickup_year = str(pickup_dt.year)
+            except:
+                pass
+        
+        # Processar hora de levantamento
+        pickup_hour, pickup_minute = "", ""
+        if pickup_time_str:
+            try:
+                if ":" in pickup_time_str:
+                    pickup_hour, pickup_minute = pickup_time_str.split(":")
+            except:
+                pass
+        
+        # Processar data de devolução
+        dropoff_day, dropoff_month, dropoff_year = "", "", ""
+        if dropoff_date_str:
+            try:
+                from datetime import datetime
+                dropoff_dt = datetime.strptime(dropoff_date_str, "%Y-%m-%d")
+                dropoff_day = str(dropoff_dt.day)
+                dropoff_month = str(dropoff_dt.month)
+                dropoff_year = str(dropoff_dt.year)
+            except:
+                pass
+        
+        # Processar hora de devolução
+        dropoff_hour, dropoff_minute = "", ""
+        if dropoff_time_str:
+            try:
+                if ":" in dropoff_time_str:
+                    dropoff_hour, dropoff_minute = dropoff_time_str.split(":")
+            except:
+                pass
+        
+        # Calcular número de dias
+        rental_days = ""
+        if pickup_date_str and dropoff_date_str:
+            try:
+                from datetime import datetime
+                pickup_dt = datetime.strptime(pickup_date_str, "%Y-%m-%d")
+                dropoff_dt = datetime.strptime(dropoff_date_str, "%Y-%m-%d")
+                days_diff = (dropoff_dt - pickup_dt).days
+                rental_days = str(days_diff) if days_diff > 0 else "1"
+            except:
+                pass
+        
+        # Mapear dados da reserva com todos os campos
         booking_data = {
+            # Dados do Cliente
             "voucher_number": row[1] if len(row) > 1 else "",
             "client_name": row[2] if len(row) > 2 else "",
             "client_email": row[3] if len(row) > 3 else "",
             "client_phone": row[4] if len(row) > 4 else "",
-            "client_hotel": row[5] if len(row) > 5 else "",
-            "client_room": row[6] if len(row) > 6 else "",
-            "pickup_date": row[7] if len(row) > 7 else "",
-            "pickup_time": row[8] if len(row) > 8 else "",
-            "pickup_location": row[9] if len(row) > 9 else "",
-            "dropoff_date": row[10] if len(row) > 10 else "",
-            "dropoff_time": row[11] if len(row) > 11 else "",
-            "dropoff_location": row[12] if len(row) > 12 else "",
-            "vehicle_group": row[13] if len(row) > 13 else "",
+            "hotel_name": row[5] if len(row) > 5 else "",
+            "room_number": row[6] if len(row) > 6 else "",
             "flight_number": row[14] if len(row) > 14 else "",
-            "observations": row[15] if len(row) > 15 else "",
-            "price": row[16] if len(row) > 16 else 0,
+            
+            # Data de Levantamento (dividida)
+            "pickup_day": pickup_day,
+            "pickup_month": pickup_month,
+            "pickup_year": pickup_year,
+            "pickup_hour": pickup_hour,
+            "pickup_minute": pickup_minute,
+            "pickup_location": row[9] if len(row) > 9 else "",
+            
+            # Data de Devolução (dividida)
+            "dropoff_day": dropoff_day,
+            "dropoff_month": dropoff_month,
+            "dropoff_year": dropoff_year,
+            "dropoff_hour": dropoff_hour,
+            "dropoff_minute": dropoff_minute,
+            "dropoff_location": row[12] if len(row) > 12 else "",
+            
+            # Veículo e Duração
+            "vehicle_group": row[13] if len(row) > 13 else "",
+            "rental_days": rental_days,
+            
+            # Preços (valores simulados - podem ser ajustados conforme base de dados)
+            "base_price": str(row[16] * 0.6) if len(row) > 16 and row[16] else "0",  # 60% do total
+            "premium_insurance": str(row[16] * 0.25) if len(row) > 16 and row[16] else "0",  # 25% do total
+            "road_tax": str(row[16] * 0.05) if len(row) > 16 and row[16] else "0",  # 5% do total
+            "extras_total": str(row[16] * 0.1) if len(row) > 16 and row[16] else "0",  # 10% do total
+            "price": str(row[16]) if len(row) > 16 and row[16] else "0",
+            
+            # Comissionista e Observações
             "commissioner_name": row[-2] if len(row) > 20 else "",
-            "created_date": row[18] if len(row) > 18 else ""
+            "observations": row[15] if len(row) > 15 else ""
         }
         
         # Buscar coordenadas dos campos
