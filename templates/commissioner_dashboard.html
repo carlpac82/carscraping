@@ -4297,6 +4297,65 @@
             updateWizardUI();
         }
 
+        function openNewBookingModal() {
+            document.getElementById('newBookingModal').classList.add('active');
+            resetNewBookingForm();
+            // Reset wizard to step 1
+            currentWizardStep = 1;
+            updateWizardUI();
+            
+            // Verificar se escritório está fechado e definir dia seguinte
+            setDefaultPickupDate();
+        }
+
+        function setDefaultPickupDate() {
+            const now = new Date();
+            const currentHour = now.getHours();
+            const currentMinute = now.getMinutes();
+            const currentTime = currentHour * 60 + currentMinute;
+            
+            // Horário de funcionamento: 09:30 - 12:30 e 15:00 - 17:00
+            const morningStart = 9 * 60 + 30;  // 09:30 = 570 minutos
+            const morningEnd = 12 * 60 + 30;    // 12:30 = 750 minutos
+            const afternoonStart = 15 * 60;    // 15:00 = 900 minutos
+            const afternoonEnd = 17 * 60;      // 17:00 = 1020 minutos
+            
+            const pickupDateInput = document.getElementById('pickupDate');
+            const dropoffDateInput = document.getElementById('dropoffDate');
+            
+            // Verificar se está fora do horário de funcionamento
+            const isOutsideBusinessHours = 
+                currentTime < morningStart || 
+                (currentTime > morningEnd && currentTime < afternoonStart) || 
+                currentTime >= afternoonEnd;
+            
+            if (isOutsideBusinessHours) {
+                // Definir para amanhã
+                const tomorrow = new Date(now);
+                tomorrow.setDate(tomorrow.getDate() + 1);
+                
+                const tomorrowStr = tomorrow.toISOString().split('T')[0];
+                pickupDateInput.value = tomorrowStr;
+                dropoffDateInput.min = tomorrowStr;
+                
+                // Atualizar horas disponíveis para amanhã
+                updateAvailableTimeSlots('pickupTime', tomorrow);
+                updateAvailableTimeSlots('dropoffTime', tomorrow);
+            } else {
+                // Dentro do horário - manter hoje
+                const todayStr = now.toISOString().split('T')[0];
+                pickupDateInput.value = todayStr;
+                dropoffDateInput.min = todayStr;
+                
+                // Atualizar horas disponíveis para hoje
+                updateAvailableTimeSlots('pickupTime', now);
+                updateAvailableTimeSlots('dropoffTime', now);
+            }
+            
+            // Disparar change para atualizar horas
+            pickupDateInput.dispatchEvent(new Event('change'));
+        }
+
         // ===== WIZARD NAVIGATION =====
         let currentWizardStep = 1;
         const totalWizardSteps = 5;
