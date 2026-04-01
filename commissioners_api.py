@@ -45,7 +45,7 @@ class BookingCreate(BaseModel):
     voucher_number: str
     client_name: str
     client_email: str
-    client_phone: str
+    client_phone: Optional[str] = None
     hotel: Optional[str] = None
     room_number: Optional[str] = None
     pickup_date: str
@@ -55,9 +55,10 @@ class BookingCreate(BaseModel):
     pickup_location: str
     dropoff_location: str
     vehicle_group: str
+    insurance_type: str = "premium"
     extras: List[dict]
     flight_number: Optional[str] = None
-    language: str
+    language: str = "pt"
     observations: Optional[str] = None
     deposit: float = 0.0
     price: float
@@ -66,7 +67,7 @@ class BookingCreate(BaseModel):
     road_tax: float = 0.0
     extras_total: float = 0.0
     rental_days: int = 0
-    total_amount: Optional[float] = None
+    total_amount: float
     value_adjustment: float = 0.0
 
 # ============================================================
@@ -288,19 +289,19 @@ async def create_booking(booking: BookingCreate, request: Request):
             client_name, client_email, client_phone, hotel, room_number,
             pickup_date, pickup_time, dropoff_date, dropoff_time,
             pickup_location, dropoff_location,
-            vehicle_group, extras,
+            vehicle_group, insurance_type, extras,
             flight_number, language, observations, deposit, price,
             base_price, premium_insurance, road_tax, extras_total, rental_days,
             total_amount, value_adjustment, status
         ) VALUES (
-            %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s
+            %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s
         ) RETURNING id
     """, (
         commissioner_id, voucher_number,
         booking.client_name, booking.client_email, booking.client_phone, booking.hotel, booking.room_number,
         booking.pickup_date, booking.pickup_time, booking.dropoff_date, booking.dropoff_time,
         booking.pickup_location, booking.dropoff_location,
-        booking.vehicle_group, json.dumps(booking.extras),
+        booking.vehicle_group, booking.insurance_type, json.dumps(booking.extras),
         booking.flight_number, booking.language, booking.observations, booking.deposit, booking.price,
         booking.base_price, booking.premium_insurance, booking.road_tax, booking.extras_total, booking.rental_days,
         booking.total_amount, booking.value_adjustment, 'pending'
