@@ -550,7 +550,7 @@
                     <table>
                         <thead>
                             <tr>
-                                <th>ID</th>
+                                <th>Voucher</th>
                                 <th>Cliente</th>
                                 <th>Comissionista</th>
                                 <th>Veículo</th>
@@ -565,7 +565,7 @@
                         <tbody>
                             ${bookings.map(b => `
                                 <tr>
-                                    <td>#${b.id}</td>
+                                    <td>${b.voucher_number || '#' + b.id}</td>
                                     <td>
                                         <div style="font-weight: 500;">${b.customer_name}</div>
                                         <div style="font-size: 12px; color: #999;">${b.customer_phone}</div>

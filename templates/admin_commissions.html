@@ -68,7 +68,6 @@
             <thead>
                 <tr>
                     <th><input type="checkbox" id="selectAllCheckbox" onchange="toggleSelectAll()"></th>
-                    <th>ID</th>
                     <th>Voucher</th>
                     <th>Cliente</th>
                     <th>Comissionista</th>
@@ -365,7 +364,7 @@ async function loadCommissions() {
     } catch (error) {
         console.error('Error loading commissions:', error);
         document.getElementById('commissionsTableBody').innerHTML = 
-            '<tr><td colspan="12" class="error">Erro ao carregar comissões</td></tr>';
+            '<tr><td colspan="11" class="error">Erro ao carregar comissões</td></tr>';
     }
 }
 
@@ -373,14 +372,13 @@ function renderCommissionsTable() {
     const tbody = document.getElementById('commissionsTableBody');
     
     if (allCommissions.length === 0) {
-        tbody.innerHTML = '<tr><td colspan="12">Nenhuma comissão encontrada</td></tr>';
+        tbody.innerHTML = '<tr><td colspan="11">Nenhuma comissão encontrada</td></tr>';
         return;
     }
     
     tbody.innerHTML = allCommissions.map(commission => `
         <tr>
             <td><input type="checkbox" value="${commission.id}" onchange="toggleSelection(${commission.id})"></td>
-            <td>${commission.id}</td>
             <td>${commission.voucher_number || '#' + commission.id}</td>
             <td>${commission.client_name || 'N/A'}</td>
             <td>${commission.commissioner_name || 'N/A'}</td>
