@@ -6505,9 +6505,10 @@ async def admin_commissioner_pricing_page(request: Request):
 
 @app.get("/api/commissioner-pricing")
 async def api_get_commissioner_pricing(request: Request):
-    """API endpoint to get commissioner pricing configuration"""
+    """API endpoint to get commissioner pricing configuration - accessible by commissioners and admins"""
     try:
-        require_admin(request)
+        # Allow both commissioners and admins to access pricing
+        require_auth(request)
     except HTTPException:
         return JSONResponse({"ok": False, "error": "Unauthorized"}, status_code=401)
     
