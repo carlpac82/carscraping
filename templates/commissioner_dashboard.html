@@ -5270,34 +5270,65 @@
         setTimeout(calculateDays, 500);
 
         async function submitNewBooking() {
+            // Inicializar bookingConfirmationData se não existir
+            if (!bookingConfirmationData) {
+                bookingConfirmationData = {
+                    totalAmount: 0,
+                    valueConfirmed: null,
+                    hasDeposit: null,
+                    valueAdjustment: 0,
+                    depositAmount: 0
+                };
+            }
+            
+            // Tentar obter valor do campo de preço confirmado se existir
+            const valueAdjustmentInput = document.getElementById('valueAdjustment');
+            const depositInput = document.getElementById('depositAmount');
+            const valueConfirmedYes = document.querySelector('.confirmation-btn-yes.selected');
+            const valueConfirmedNo = document.querySelector('.confirmation-btn-no.selected');
+            const depositYes = document.querySelectorAll('.confirmation-btn-yes')[1]?.classList.contains('selected');
+            const depositNo = document.querySelectorAll('.confirmation-btn-no')[1]?.classList.contains('selected');
+            
+            // Determinar se valor foi confirmado
+            if (valueConfirmedYes) {
+                bookingConfirmationData.valueConfirmed = true;
+            } else if (valueConfirmedNo) {
+                bookingConfirmationData.valueConfirmed = false;
+            }
+            
+            // Determinar se há depósito
+            if (depositYes) {
+                bookingConfirmationData.hasDeposit = true;
+            } else if (depositNo) {
+                bookingConfirmationData.hasDeposit = false;
+            }
+            
+            // Obter valor de ajuste se existir
+            if (valueAdjustmentInput && valueAdjustmentInput.value) {
+                bookingConfirmationData.valueAdjustment = parseFloat(valueAdjustmentInput.value) || 0;
+            }
+            
+            // Obter valor do depósito se existir
+            if (depositInput && depositInput.value) {
+                bookingConfirmationData.depositAmount = parseFloat(depositInput.value) || 0;
+            }
+
             // Validar se o valor foi confirmado
             if (bookingConfirmationData.valueConfirmed === null) {
-                alert('Por favor, confirme se o valor está correto');
+                alert('Por favor, confirme se o valor está correto (Sim ou Não)');
                 return;
             }
 
             // Validar se o depósito foi definido
             if (bookingConfirmationData.hasDeposit === null) {
-                alert('Por favor, defina se há depósito do cliente');
+                alert('Por favor, defina se há depósito do cliente (Sim ou Não)');
                 return;
             }
 
-            // Obter ajuste de valor se necessário
-            if (!bookingConfirmationData.valueConfirmed) {
-                const adjustmentInput = document.getElementById('valueAdjustment');
-                const adjustment = parseFloat(adjustmentInput.value) || 0;
-                bookingConfirmationData.valueAdjustment = adjustment;
-            }
-
-            // Obter valor do depósito se necessário
-            if (bookingConfirmationData.hasDeposit) {
-                const depositInput = document.getElementById('depositAmount');
-                const depositAmount = parseFloat(depositInput.value) || 0;
-                if (depositAmount <= 0) {
-                    alert('Por favor, insira um valor de depósito válido');
-                    return;
-                }
-                bookingConfirmationData.depositAmount = depositAmount;
+            // Validar depósito se necessário
+            if (bookingConfirmationData.hasDeposit && bookingConfirmationData.depositAmount <= 0) {
+                alert('Por favor, insira um valor de depósito válido');
+                return;
             }
 
             // Criar reserva com os dados confirmados
