@@ -4357,23 +4357,35 @@
             setDefaultLocations();
         }
         
-        function setDefaultLocations() {
-            // Buscar default_location do comissionista logado
-            fetch('/api/commissioners/me')
-                .then(r => r.json())
-                .then(data => {
-                    if (data.ok && data.commissioner && data.commissioner.default_location) {
-                        const defaultLocation = data.commissioner.default_location;
+        async function setDefaultLocations() {
+            try {
+                // Aguardar carregamento dos locais se ainda não foram carregados
+                if (commissionerLocations.length === 0) {
+                    await loadCommissionerLocations();
+                }
+                
+                // Buscar default_location do comissionista logado
+                const response = await fetch('/api/commissioners/me');
+                const data = await response.json();
+                
+                if (data.ok && data.commissioner && data.commissioner.default_location) {
+                    const defaultLocation = data.commissioner.default_location;
+                    
+                    // Aguardar um pouco para garantir que os selects foram populados
+                    setTimeout(() => {
                         const pickupLocationSelect = document.getElementById('pickupLocation');
                         const dropoffLocationSelect = document.getElementById('dropoffLocation');
                         
                         if (pickupLocationSelect && dropoffLocationSelect) {
                             pickupLocationSelect.value = defaultLocation;
                             dropoffLocationSelect.value = defaultLocation;
+                            console.log('✅ Default location set:', defaultLocation);
                         }
-                    }
-                })
-                .catch(err => console.error('Error loading default location:', err));
+                    }, 100);
+                }
+            } catch (err) {
+                console.error('Error loading default location:', err);
+            }
         }
 
         function setDefaultPickupDate() {
