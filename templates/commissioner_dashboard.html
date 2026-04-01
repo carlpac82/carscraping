@@ -3526,6 +3526,14 @@
 
                 await loadBookings();
                 await loadCommissionerPricing();
+                
+                // Pré-carregar locais para Nova Reserva ser instantânea
+                if (commissionerLocations.length === 0) {
+                    console.log('🔄 Pré-carregando locais...');
+                    await loadCommissionerLocations();
+                }
+                
+                console.log('✅ Dashboard pronto - locais pré-carregados:', commissionerLocations.length);
             } catch (error) {
                 console.error('Error loading dashboard:', error);
             }
