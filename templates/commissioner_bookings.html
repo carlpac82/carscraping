@@ -167,13 +167,13 @@
 
         .container {
             max-width: 80rem; /* max-w-7xl = 80rem */
-            margin: 30px auto;
-            padding: 0 30px;
+            margin: 0 auto;
+            padding: 0 1rem; /* px-4 = 1rem */
         }
 
         .filters-bar {
             background: white;
-            padding: 20px;
+            padding: 15px;
             border-radius: 10px;
             margin-bottom: 20px;
             box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
@@ -181,8 +181,8 @@
 
         .filters-grid {
             display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-            gap: 15px;
+            grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+            gap: 12px;
             align-items: end;
         }
 
@@ -192,17 +192,17 @@
         }
 
         .filter-group label {
-            font-size: 13px;
+            font-size: 12px;
             color: #666;
-            margin-bottom: 5px;
+            margin-bottom: 4px;
             font-weight: 500;
         }
 
         .filter-group select, .filter-group input {
-            padding: 10px;
+            padding: 8px;
             border: 2px solid #e0e0e0;
-            border-radius: 8px;
-            font-size: 14px;
+            border-radius: 6px;
+            font-size: 13px;
             transition: all 0.3s;
         }
 
