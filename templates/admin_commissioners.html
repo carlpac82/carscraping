@@ -403,6 +403,12 @@
                 <button class="btn-primary" onclick="openCreateModal()">+ Novo Comissionista</button>
             </div>
 
+            <div style="margin-bottom: 20px;">
+                <input type="text" id="searchCommissioners" placeholder="🔍 Pesquisar por nome, email ou série..." 
+                       style="width: 100%; padding: 12px; border: 1px solid #ddd; border-radius: 8px; font-size: 14px;"
+                       oninput="filterCommissioners()">
+            </div>
+
             <div id="commissionersContent">
                 <div class="loading">Carregando comissionistas...</div>
             </div>
@@ -658,54 +664,80 @@
             }
         }
 
+        let filteredCommissioners = [];
+
         function renderCommissioners() {
+            filteredCommissioners = commissioners;
+            displayCommissioners();
+        }
+
+        function filterCommissioners() {
+            const searchTerm = document.getElementById('searchCommissioners').value.toLowerCase();
+            
+            filteredCommissioners = commissioners.filter(c => {
+                return (
+                    c.name.toLowerCase().includes(searchTerm) ||
+                    (c.email && c.email.toLowerCase().includes(searchTerm)) ||
+                    (c.username && c.username.toLowerCase().includes(searchTerm)) ||
+                    (c.voucher_prefix && c.voucher_prefix.toLowerCase().includes(searchTerm))
+                );
+            });
+            
+            displayCommissioners();
+        }
+
+        function displayCommissioners() {
             const content = document.getElementById('commissionersContent');
 
-            if (commissioners.length === 0) {
+            if (filteredCommissioners.length === 0) {
                 content.innerHTML = `
                     <div class="empty-state">
-                        <p style="font-size: 18px; font-weight: 500;">Nenhum comissionista cadastrado</p>
-                        <p style="margin-top: 10px; font-size: 14px;">Clique em "Novo Comissionista" para adicionar o primeiro</p>
+                        <p style="font-size: 18px; font-weight: 500;">Nenhum comissionista encontrado</p>
+                        <p style="margin-top: 10px; font-size: 14px;">${commissioners.length === 0 ? 'Clique em "Novo Comissionista" para adicionar o primeiro' : 'Tente outro termo de pesquisa'}</p>
                     </div>
                 `;
                 return;
             }
 
             content.innerHTML = `
-                <div class="commissioners-grid">
-                    ${commissioners.map(c => `
-                        <div class="commissioner-card">
-                            <div class="card-header">
-                                <div>
-                                    <div class="card-title">${c.name}</div>
-                                    <div class="card-email">${c.email}</div>
-                                </div>
-                                <span class="status-badge status-${c.enabled ? 'active' : 'inactive'}">
-                                    ${c.enabled ? 'Ativo' : 'Inativo'}
-                                </span>
-                            </div>
-
-                            <div class="card-stats">
-                                <div class="stat-item">
-                                    <div class="stat-label">Taxa</div>
-                                    <div class="stat-value">${c.commission_rate}%</div>
-                                </div>
-                                <div class="stat-item">
-                                    <div class="stat-label">Reservas</div>
-                                    <div class="stat-value">${c.total_bookings || 0}</div>
-                                </div>
-                            </div>
-
-                            <div class="card-actions">
-                                <button class="btn-edit" onclick="editCommissioner(${c.id})">Editar</button>
-                                <button class="btn-toggle" onclick="toggleStatus(${c.id})">
-                                    ${c.enabled ? 'Desativar' : 'Ativar'}
-                                </button>
-                                <button class="btn-delete" onclick="deleteCommissioner(${c.id})">Excluir</button>
-                            </div>
-                        </div>
-                    `).join('')}
-                </div>
+                <table style="width: 100%; border-collapse: collapse;">
+                    <thead>
+                        <tr style="background: #f5f7fa; border-bottom: 2px solid #009cb6;">
+                            <th style="padding: 12px; text-align: left; font-weight: 600; color: #333;">Nome</th>
+                            <th style="padding: 12px; text-align: left; font-weight: 600; color: #333;">Username</th>
+                            <th style="padding: 12px; text-align: left; font-weight: 600; color: #333;">Série</th>
+                            <th style="padding: 12px; text-align: left; font-weight: 600; color: #333;">Email</th>
+                            <th style="padding: 12px; text-align: center; font-weight: 600; color: #333;">Taxa</th>
+                            <th style="padding: 12px; text-align: center; font-weight: 600; color: #333;">Reservas</th>
+                            <th style="padding: 12px; text-align: center; font-weight: 600; color: #333;">Status</th>
+                            <th style="padding: 12px; text-align: center; font-weight: 600; color: #333;">Ações</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        ${filteredCommissioners.map(c => `
+                            <tr style="border-bottom: 1px solid #eee;">
+                                <td style="padding: 12px; font-weight: 500;">${c.name}</td>
+                                <td style="padding: 12px; color: #666;">${c.username || '-'}</td>
+                                <td style="padding: 12px; color: #666;">${c.voucher_prefix || '-'}</td>
+                                <td style="padding: 12px; color: #666;">${c.email || '-'}</td>
+                                <td style="padding: 12px; text-align: center; font-weight: 500;">${c.commission_rate}%</td>
+                                <td style="padding: 12px; text-align: center;">${c.total_bookings || 0}</td>
+                                <td style="padding: 12px; text-align: center;">
+                                    <span class="status-badge status-${c.enabled ? 'active' : 'inactive'}">
+                                        ${c.enabled ? 'Ativo' : 'Inativo'}
+                                    </span>
+                                </td>
+                                <td style="padding: 12px; text-align: center;">
+                                    <button class="btn-edit" onclick="editCommissioner(${c.id})" style="margin-right: 5px;">Editar</button>
+                                    <button class="btn-toggle" onclick="toggleStatus(${c.id})" style="margin-right: 5px;">
+                                        ${c.enabled ? 'Desativar' : 'Ativar'}
+                                    </button>
+                                    <button class="btn-delete" onclick="deleteCommissioner(${c.id})">Excluir</button>
+                                </td>
+                            </tr>
+                        `).join('')}
+                    </tbody>
+                </table>
             `;
         }
 
