@@ -704,9 +704,7 @@
                     <thead>
                         <tr style="background: #f5f7fa; border-bottom: 2px solid #009cb6;">
                             <th style="padding: 12px; text-align: left; font-weight: 600; color: #333;">Nome</th>
-                            <th style="padding: 12px; text-align: left; font-weight: 600; color: #333;">Username</th>
                             <th style="padding: 12px; text-align: left; font-weight: 600; color: #333;">Série</th>
-                            <th style="padding: 12px; text-align: left; font-weight: 600; color: #333;">Email</th>
                             <th style="padding: 12px; text-align: center; font-weight: 600; color: #333;">Taxa</th>
                             <th style="padding: 12px; text-align: center; font-weight: 600; color: #333;">Reservas</th>
                             <th style="padding: 12px; text-align: center; font-weight: 600; color: #333;">Status</th>
@@ -717,9 +715,7 @@
                         ${filteredCommissioners.map(c => `
                             <tr style="border-bottom: 1px solid #eee;">
                                 <td style="padding: 12px; font-weight: 500;">${c.name}</td>
-                                <td style="padding: 12px; color: #666;">${c.username || '-'}</td>
                                 <td style="padding: 12px; color: #666;">${c.voucher_prefix || '-'}</td>
-                                <td style="padding: 12px; color: #666;">${c.email || '-'}</td>
                                 <td style="padding: 12px; text-align: center; font-weight: 500;">${c.commission_rate}%</td>
                                 <td style="padding: 12px; text-align: center;">${c.total_bookings || 0}</td>
                                 <td style="padding: 12px; text-align: center;">
@@ -727,12 +723,12 @@
                                         ${c.enabled ? 'Ativo' : 'Inativo'}
                                     </span>
                                 </td>
-                                <td style="padding: 12px; text-align: center;">
-                                    <button class="btn-edit" onclick="editCommissioner(${c.id})" style="margin-right: 5px;">Editar</button>
-                                    <button class="btn-toggle" onclick="toggleStatus(${c.id})" style="margin-right: 5px;">
+                                <td style="padding: 12px; text-align: center; white-space: nowrap;">
+                                    <button onclick="editCommissioner(${c.id})" style="background: #009cb6; color: white; border: none; padding: 6px 12px; border-radius: 4px; cursor: pointer; margin-right: 5px; font-size: 13px;">Editar</button>
+                                    <button onclick="toggleStatus(${c.id})" style="background: ${c.enabled ? '#f59e0b' : '#10b981'}; color: white; border: none; padding: 6px 12px; border-radius: 4px; cursor: pointer; margin-right: 5px; font-size: 13px;">
                                         ${c.enabled ? 'Desativar' : 'Ativar'}
                                     </button>
-                                    <button class="btn-delete" onclick="deleteCommissioner(${c.id})">Excluir</button>
+                                    <button onclick="deleteCommissioner(${c.id})" style="background: #ef4444; color: white; border: none; padding: 6px 12px; border-radius: 4px; cursor: pointer; font-size: 13px;">Excluir</button>
                                 </td>
                             </tr>
                         `).join('')}
