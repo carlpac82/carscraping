@@ -63263,6 +63263,9 @@ async def api_create_commissioner_booking(request: Request):
         
         data = await request.json()
         
+        # Log received data for debugging
+        print(f"📥 Received booking data: {json.dumps(data, indent=2, default=str)}")
+        
         # Validate required fields
         required_fields = ["vehicle_group", "client_name", "client_email", "client_phone", 
                           "pickup_date", "pickup_time", "dropoff_date", "dropoff_time",
@@ -63270,6 +63273,9 @@ async def api_create_commissioner_booking(request: Request):
         
         for field in required_fields:
             if field not in data or not data[field]:
+                print(f"❌ Missing or empty required field: {field}")
+                print(f"   Field in data: {field in data}")
+                print(f"   Field value: {data.get(field)}")
                 return JSONResponse({"ok": False, "error": f"Campo obrigatório: {field}"}, status_code=400)
         
         with _db_lock:
