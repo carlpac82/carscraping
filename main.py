@@ -63175,10 +63175,17 @@ async def api_commissioners_login(request: Request):
         with _db_lock:
             con = _db_connect()
             try:
-                cur = con.execute(
-                    "SELECT id, name, email, password_hash FROM commissioners WHERE username=? AND enabled=1",
-                    (username,)
-                )
+                if USE_POSTGRES:
+                    cur = con.cursor()
+                    cur.execute(
+                        "SELECT id, name, email, password_hash FROM commissioners WHERE username=%s AND enabled=1",
+                        (username,)
+                    )
+                else:
+                    cur = con.execute(
+                        "SELECT id, name, email, password_hash FROM commissioners WHERE username=? AND enabled=1",
+                        (username,)
+                    )
                 row = cur.fetchone()
                 
                 if not row:
