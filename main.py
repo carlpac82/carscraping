@@ -62974,6 +62974,41 @@ async def admin_migrate_add_insurance_type(request: Request):
         traceback.print_exc()
         return JSONResponse({"ok": False, "error": str(e)}, status_code=500)
 
+@app.get("/admin/migrate-add-default-location")
+async def admin_migrate_add_default_location(request: Request):
+    """Add default_location column to commissioners table - Admin only"""
+    try:
+        require_admin(request)
+    except HTTPException:
+        return JSONResponse({"ok": False, "error": "Unauthorized"}, status_code=401)
+    
+    try:
+        with _db_lock:
+            con = _db_connect()
+            try:
+                cursor = con.cursor()
+                
+                # Add default_location column
+                cursor.execute("""
+                    ALTER TABLE commissioners 
+                    ADD COLUMN IF NOT EXISTS default_location VARCHAR(255)
+                """)
+                
+                con.commit()
+                
+                return JSONResponse({
+                    "ok": True,
+                    "message": "✅ Added default_location column to commissioners table"
+                })
+                
+            finally:
+                con.close()
+                
+    except Exception as e:
+        print(f"Error adding default_location column: {e}")
+        traceback.print_exc()
+        return JSONResponse({"ok": False, "error": str(e)}, status_code=500)
+
 
 # ============================================================
 # COMMISSIONERS API ROUTES
