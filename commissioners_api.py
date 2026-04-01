@@ -41,8 +41,8 @@ class CommissionerLogin(BaseModel):
     password: str
 
 class BookingCreate(BaseModel):
-    commissioner_id: int
-    voucher_number: str
+    commissioner_id: Optional[int] = None
+    voucher_number: Optional[str] = None
     client_name: str
     client_email: str
     client_phone: Optional[str] = None
