@@ -557,6 +557,7 @@
                                 <th>Levantamento</th>
                                 <th>Devolução</th>
                                 <th>Preço</th>
+                                <th>Depósito</th>
                                 <th>Status</th>
                                 <th>Ações</th>
                             </tr>
@@ -580,6 +581,7 @@
                                         <div style="font-size: 12px; color: #999;">${b.return_location}</div>
                                     </td>
                                     <td style="font-weight: 600;">€${b.total_price}</td>
+                                    <td>${b.deposit > 0 ? '€' + b.deposit.toFixed(2) : '-'}</td>
                                     <td>
                                         <span class="status-badge status-${b.status}">
                                             ${getStatusText(b.status)}

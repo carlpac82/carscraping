@@ -63014,7 +63014,8 @@ async def api_get_commissioner_bookings(request: Request):
                             b.created_at,
                             c.name as commissioner_name,
                             c.id as commissioner_id,
-                            b.voucher_number
+                            b.voucher_number,
+                            b.deposit
                         FROM commission_bookings b
                         LEFT JOIN commissioners c ON b.commissioner_id = c.id
                         ORDER BY b.created_at DESC
@@ -63037,7 +63038,8 @@ async def api_get_commissioner_bookings(request: Request):
                             b.created_at,
                             c.name as commissioner_name,
                             c.id as commissioner_id,
-                            b.voucher_number
+                            b.voucher_number,
+                            b.deposit
                         FROM commission_bookings b
                         LEFT JOIN commissioners c ON b.commissioner_id = c.id
                         ORDER BY b.created_at DESC
@@ -63061,7 +63063,8 @@ async def api_get_commissioner_bookings(request: Request):
                         "created_at": str(row[11]),
                         "commissioner_name": row[12],
                         "commissioner_id": row[13],
-                        "voucher_number": row[14]
+                        "voucher_number": row[14],
+                        "deposit": float(row[15]) if row[15] else 0
                     })
                 
                 return JSONResponse({"ok": True, "bookings": bookings})
@@ -63179,6 +63182,74 @@ async def api_commissioners_login(request: Request):
         print(f"Error in commissioner login: {e}")
         traceback.print_exc()
         return JSONResponse({"ok": False, "error": "Erro interno do servidor"}, status_code=500)
+
+
+@app.get("/api/commissioners/bookings")
+async def api_get_commissioner_bookings_by_session(request: Request):
+    """API endpoint to get bookings for logged in commissioner"""
+    try:
+        # Check if commissioner is logged in
+        commissioner_id = request.session.get("commissioner_id")
+        if not commissioner_id:
+            return JSONResponse({"ok": False, "error": "Não autenticado"}, status_code=401)
+        
+        with _db_lock:
+            con = _db_connect()
+            try:
+                if USE_POSTGRES:
+                    cur = con.cursor()
+                    cur.execute("""
+                        SELECT 
+                            id, voucher_number, vehicle_group, client_name, client_email, client_phone,
+                            pickup_date, dropoff_date, pickup_location, dropoff_location,
+                            price, deposit, status, created_at
+                        FROM commission_bookings
+                        WHERE commissioner_id = %s
+                        ORDER BY created_at DESC
+                    """, (commissioner_id,))
+                else:
+                    cur = con.execute("""
+                        SELECT 
+                            id, voucher_number, vehicle_group, client_name, client_email, client_phone,
+                            pickup_date, dropoff_date, pickup_location, dropoff_location,
+                            price, deposit, status, created_at
+                        FROM commission_bookings
+                        WHERE commissioner_id = ?
+                        ORDER BY created_at DESC
+                    """, (commissioner_id,))
+                
+                rows = cur.fetchall()
+                
+                bookings = []
+                for row in rows:
+                    bookings.append({
+                        "id": row[0],
+                        "voucher_number": row[1],
+                        "vehicle_group": row[2],
+                        "client_name": row[3],
+                        "client_email": row[4],
+                        "client_phone": row[5],
+                        "pickup_date": str(row[6]),
+                        "dropoff_date": str(row[7]),
+                        "pickup_location": row[8],
+                        "dropoff_location": row[9],
+                        "price": float(row[10]) if row[10] else 0,
+                        "deposit": float(row[11]) if row[11] else 0,
+                        "status": row[12],
+                        "created_at": str(row[13]),
+                        "commission_rate": 0,
+                        "commission_amount": 0
+                    })
+                
+                return JSONResponse({"ok": True, "bookings": bookings})
+                
+            finally:
+                con.close()
+                
+    except Exception as e:
+        print(f"Error getting commissioner bookings: {e}")
+        traceback.print_exc()
+        return JSONResponse({"ok": False, "error": "Erro ao carregar reservas"}, status_code=500)
 
 
 @app.post("/api/commissioners/bookings")

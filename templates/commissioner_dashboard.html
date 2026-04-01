@@ -3607,6 +3607,7 @@
                             <th>Veículo</th>
                             <th>Data</th>
                             <th>Valor Total</th>
+                            <th>Depósito</th>
                             <th>Taxa</th>
                             <th>Comissão</th>
                             <th>Detalhes</th>
@@ -3621,6 +3622,7 @@
                                 <td>${booking.vehicle_group || 'N/A'}</td>
                                 <td>${new Date(booking.pickup_date).toLocaleDateString('pt-PT')}</td>
                                 <td>€${(booking.price || 0).toFixed(2)}</td>
+                                <td>${booking.deposit > 0 ? '€' + (booking.deposit || 0).toFixed(2) : '-'}</td>
                                 <td>${(booking.commission_rate || 0).toFixed(1)}%</td>
                                 <td class="commission-value">€${(booking.commission_amount || 0).toFixed(2)}</td>
                                 <td>
