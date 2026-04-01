@@ -4017,12 +4017,12 @@
                 if (allLocationsCombined.includes(defaultLocation)) {
                     pickupSelect.value = defaultLocation;
                     dropoffSelect.value = defaultLocation;
-                    console.log('✅ Locais preenchidos com:', defaultLocation);
+                    console.log('Locais preenchidos com:', defaultLocation);
                 } else if (allLocationsCombined.includes(currentCommissioner.name)) {
                     // Fallback para o nome do comissionista
                     pickupSelect.value = currentCommissioner.name;
                     dropoffSelect.value = currentCommissioner.name;
-                    console.log('✅ Locais preenchidos com nome do comissionista:', currentCommissioner.name);
+                    console.log('Locais preenchidos com nome do comissionista:', currentCommissioner.name);
                 } else {
                     console.warn('⚠️ Local padrão não encontrado na lista:', defaultLocation);
                 }
@@ -4061,17 +4061,17 @@
                 const response = await fetch('/api/commissioners/schedule-settings');
                 const data = await response.json();
                 
-                console.log('📥 Resposta da API:', data);
+                console.log('Resposta da API:', data);
                 
                 if (data.ok) {
                     scheduleSettings = data.settings;
-                    console.log('✅ Configurações carregadas:', scheduleSettings);
+                    console.log('Configurações carregadas:', scheduleSettings);
                     return true;
                 } else {
                     console.warn('⚠️ API retornou erro:', data.error);
                 }
             } catch (error) {
-                console.error('❌ Erro ao carregar configurações:', error);
+                console.error('Erro ao carregar configurações:', error);
             }
             
             // Usar defaults se falhar
@@ -4180,7 +4180,7 @@
                 const checkbox = document.getElementById(id);
                 if (checkbox) {
                     checkbox.checked = false;
-                    console.log(`✅ Checkbox ${id} desmarcado`);
+                    console.log(`Checkbox ${id} desmarcado`);
                 }
             });
             
@@ -4189,7 +4189,7 @@
                 const input = document.getElementById(id);
                 if (input) {
                     input.value = 0;
-                    console.log(`✅ Input ${id} zerado`);
+                    console.log(`Input ${id} zerado`);
                 }
             });
             
@@ -4197,7 +4197,7 @@
             const form = document.getElementById('newBookingForm');
             if (form) {
                 form.reset();
-                console.log('✅ Formulário resetado');
+                console.log('Formulário resetado');
             }
             
             // Forçar limpeza dos checkboxes novamente após reset
@@ -4210,7 +4210,7 @@
                     const input = document.getElementById(id);
                     if (input) input.value = 0;
                 });
-                console.log('✅ Segunda limpeza de extras concluída');
+                console.log('Segunda limpeza de extras concluída');
             }, 100);
             
             // Definir data mínima (hoje)
@@ -4321,7 +4321,7 @@
                 timeSelect.appendChild(option);
             });
             
-            console.log('✅ Select populado com', timeSlots.length, 'opções');
+            console.log('Select populado com', timeSlots.length, 'opções');
         }
 
         function closeNewBookingModal() {
@@ -4417,12 +4417,12 @@
                 
                 // Se chegou ao Passo 5 (Confirmação), preencher o resumo
                 if (currentWizardStep === 5) {
-                    console.log('🎯 Entrando no Passo 5, selectedVehicle:', selectedVehicle);
-                    console.log('🎯 selectedVehicleData:', selectedVehicleData);
-                    console.log('🎯 vehicleGroups disponíveis:', vehicleGroups.length);
+                    console.log('Entrando no Passo 5, selectedVehicle:', selectedVehicle);
+                    console.log('selectedVehicleData:', selectedVehicleData);
+                    console.log('vehicleGroups disponíveis:', vehicleGroups.length);
                     
                     // Garantir que bookingConfirmationData esteja inicializado
-                    console.log('🔍 Verificando bookingConfirmationData antes:', bookingConfirmationData);
+                    console.log('Verificando bookingConfirmationData antes:', bookingConfirmationData);
                     if (!bookingConfirmationData) {
                         bookingConfirmationData = {
                             totalAmount: 0,
@@ -4431,11 +4431,11 @@
                             valueAdjustment: 0,
                             depositAmount: 0
                         };
-                        console.log('✅ bookingConfirmationData inicializado no Passo 5');
+                        console.log('bookingConfirmationData inicializado no Passo 5');
                     } else {
                         console.log('ℹ️ bookingConfirmationData já existe:', bookingConfirmationData);
                     }
-                    console.log('🔍 bookingConfirmationData após inicialização:', bookingConfirmationData);
+                    console.log('bookingConfirmationData após inicialização:', bookingConfirmationData);
                     
                     populateBookingSummary();
                 }
@@ -4562,18 +4562,18 @@
 
         // Função para preencher o resumo da reserva no Passo 5
         function populateBookingSummary() {
-            console.log('🚗 populateBookingSummary chamada, selectedVehicleData:', selectedVehicleData);
+            console.log('populateBookingSummary chamada, selectedVehicleData:', selectedVehicleData);
             
             // Garantir que o Passo 5 esteja ativo e visível
             const step5Content = document.querySelector('.wizard-step-content[data-step="5"]');
             if (step5Content) {
                 step5Content.classList.add('active');
-                console.log('✅ Passo 5 ativado');
+                console.log('Passo 5 ativado');
             }
             
             // Preencher dados do veículo com imagem
             if (selectedVehicleData) {
-                console.log('✅ selectedVehicleData encontrado:', selectedVehicleData.code, selectedVehicleData.name);
+                console.log('selectedVehicleData encontrado:', selectedVehicleData.code, selectedVehicleData.name);
                 // Adicionar imagem do veículo
                 const imgElement = document.getElementById('summaryVehicleImageStep5');
                 if (imgElement) {
@@ -5572,9 +5572,9 @@
         }
 
         function confirmValue(isCorrect) {
-            console.log('🔘 confirmValue chamada, bookingConfirmationData:', bookingConfirmationData);
+            console.log('confirmValue chamada, bookingConfirmationData:', bookingConfirmationData);
             if (!bookingConfirmationData) {
-                console.error('❌ bookingConfirmationData é null em confirmValue!');
+                console.error('bookingConfirmationData é null em confirmValue!');
                 return;
             }
             bookingConfirmationData.valueConfirmed = isCorrect;
@@ -5601,9 +5601,9 @@
         }
 
         function setDeposit(hasDeposit) {
-            console.log('🔘 setDeposit chamada, bookingConfirmationData:', bookingConfirmationData);
+            console.log('setDeposit chamada, bookingConfirmationData:', bookingConfirmationData);
             if (!bookingConfirmationData) {
-                console.error('❌ bookingConfirmationData é null em setDeposit!');
+                console.error('bookingConfirmationData é null em setDeposit!');
                 return;
             }
             bookingConfirmationData.hasDeposit = hasDeposit;
@@ -5839,7 +5839,7 @@
                 if (confirmedPrice > 0) {
                     const priceDifference = confirmedPrice - originalTotal;
                     
-                    console.log(`💰 Ajuste de preço:`);
+                    console.log(`Ajuste de preço:`);
                     console.log(`   Original: ${originalTotal}€`);
                     console.log(`   Confirmado: ${confirmedPrice}€`);
                     console.log(`   Diferença: ${priceDifference}€`);
@@ -5882,7 +5882,7 @@
                 deposit: bookingConfirmationData.depositAmount || 0
             };
             
-            console.log('📤 Booking data being sent:', bookingData);
+            console.log('Booking data being sent:', bookingData);
 
             try {
                 const response = await fetch('/api/commissioners/bookings', {
@@ -5894,8 +5894,8 @@
                 });
 
                 const data = await response.json();
-                console.log('📥 Response from server:', data);
-                console.log('📥 Response status:', response.status);
+                console.log('Response from server:', data);
+                console.log('Response status:', response.status);
                 
                 // Log detalhado do erro de validação
                 if (response.status === 422 && data.detail) {
