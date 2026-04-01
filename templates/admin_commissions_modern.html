@@ -1,0 +1,539 @@
+<!DOCTYPE html>
+<html lang="pt">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Gestão de Comissões - Auto Prudente</title>
+    <link rel="icon" type="image/png" href="/static/autoprudente-favicon.png?v=2" />
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        primary: '#009cb6',
+                        secondary: '#f4ad0f',
+                        success: '#10b981',
+                        danger: '#ef4444'
+                    },
+                    fontFamily: {
+                        'outfit': ['Outfit', 'sans-serif']
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        * { font-family: 'Outfit', sans-serif; }
+        .glass-effect {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+        }
+        .stat-card {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+        }
+        .stat-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 20px 40px rgba(0,0,0,0.1);
+        }
+        .paid-gradient {
+            background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+        }
+        .unpaid-gradient {
+            background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
+        }
+        .pending-gradient {
+            background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);
+        }
+        .active-gradient {
+            background: linear-gradient(135deg, #009cb6 0%, #0891b2 100%);
+        }
+        .table-row-hover:hover {
+            background: linear-gradient(90deg, rgba(0, 156, 182, 0.05) 0%, rgba(244, 173, 15, 0.05) 100%);
+            transform: scale(1.01);
+            transition: all 0.2s ease;
+        }
+        .btn-primary {
+            background: linear-gradient(135deg, #009cb6 0%, #0891b2 100%);
+            transition: all 0.3s ease;
+        }
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 20px rgba(0, 156, 182, 0.3);
+        }
+        .btn-success {
+            background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+            transition: all 0.3s ease;
+        }
+        .btn-success:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 20px rgba(16, 185, 129, 0.3);
+        }
+        .btn-warning {
+            background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);
+            transition: all 0.3s ease;
+        }
+        .btn-warning:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 20px rgba(245, 158, 11, 0.3);
+        }
+        .status-badge {
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-weight: 600;
+            font-size: 12px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+        .loading-spinner {
+            border: 3px solid rgba(0, 156, 182, 0.1);
+            border-top: 3px solid #009cb6;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+        }
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        .fade-in {
+            animation: fadeIn 0.5s ease-in;
+        }
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+    </style>
+</head>
+<body class="bg-gradient-to-br from-blue-50 via-white to-orange-50 min-h-screen">
+    
+    <!-- Header -->
+    <header class="glass-effect shadow-lg sticky top-0 z-50">
+        <div class="container mx-auto px-6 py-4">
+            <div class="flex items-center justify-between">
+                <div class="flex items-center space-x-4">
+                    <div class="w-10 h-10 bg-gradient-to-r from-primary to-secondary rounded-lg flex items-center justify-center">
+                        <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                        </svg>
+                    </div>
+                    <div>
+                        <h1 class="text-2xl font-bold text-gray-800">Gestão de Comissões</h1>
+                        <p class="text-sm text-gray-600">Auto Prudente Admin</p>
+                    </div>
+                </div>
+                <div class="flex items-center space-x-4">
+                    <button onclick="loadCommissions()" class="btn-primary text-white px-4 py-2 rounded-lg flex items-center space-x-2">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path>
+                        </svg>
+                        <span>Atualizar</span>
+                    </button>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Content -->
+    <main class="container mx-auto px-6 py-8">
+        
+        <!-- Summary Cards -->
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+            <div class="stat-card paid-gradient rounded-xl p-6 text-white fade-in">
+                <div class="flex items-center justify-between mb-4">
+                    <div class="w-12 h-12 bg-white bg-opacity-20 rounded-lg flex items-center justify-center">
+                        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                        </svg>
+                    </div>
+                    <span class="text-sm opacity-80">Pagas</span>
+                </div>
+                <h3 class="text-sm font-medium opacity-90 mb-1">Total de Comissões Pagas</h3>
+                <p class="text-3xl font-bold" id="totalPaid">€0.00</p>
+            </div>
+            
+            <div class="stat-card unpaid-gradient rounded-xl p-6 text-white fade-in" style="animation-delay: 0.1s">
+                <div class="flex items-center justify-between mb-4">
+                    <div class="w-12 h-12 bg-white bg-opacity-20 rounded-lg flex items-center justify-center">
+                        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                        </svg>
+                    </div>
+                    <span class="text-sm opacity-80">Por Pagar</span>
+                </div>
+                <h3 class="text-sm font-medium opacity-90 mb-1">Total de Comissões Por Pagar</h3>
+                <p class="text-3xl font-bold" id="totalUnpaid">€0.00</p>
+            </div>
+            
+            <div class="stat-card pending-gradient rounded-xl p-6 text-white fade-in" style="animation-delay: 0.2s">
+                <div class="flex items-center justify-between mb-4">
+                    <div class="w-12 h-12 bg-white bg-opacity-20 rounded-lg flex items-center justify-center">
+                        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"></path>
+                        </svg>
+                    </div>
+                    <span class="text-sm opacity-80">Pendentes</span>
+                </div>
+                <h3 class="text-sm font-medium opacity-90 mb-1">Reservas Pendentes</h3>
+                <p class="text-3xl font-bold" id="pendingBookings">0</p>
+            </div>
+            
+            <div class="stat-card active-gradient rounded-xl p-6 text-white fade-in" style="animation-delay: 0.3s">
+                <div class="flex items-center justify-between mb-4">
+                    <div class="w-12 h-12 bg-white bg-opacity-20 rounded-lg flex items-center justify-center">
+                        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"></path>
+                        </svg>
+                    </div>
+                    <span class="text-sm opacity-80">Ativos</span>
+                </div>
+                <h3 class="text-sm font-medium opacity-90 mb-1">Comissionistas Ativos</h3>
+                <p class="text-3xl font-bold" id="activeCommissioners">0</p>
+            </div>
+        </div>
+
+        <!-- Filters Section -->
+        <div class="glass-effect rounded-xl p-6 mb-6 fade-in" style="animation-delay: 0.4s">
+            <h2 class="text-lg font-semibold text-gray-800 mb-4 flex items-center">
+                <svg class="w-5 h-5 mr-2 text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z"></path>
+                </svg>
+                Filtros
+            </h2>
+            <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-2">Status</label>
+                    <select id="statusFilter" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent">
+                        <option value="all">Todas</option>
+                        <option value="paid">Pagas</option>
+                        <option value="unpaid">Por Pagar</option>
+                    </select>
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-2">Mês</label>
+                    <select id="monthFilter" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent">
+                        <option value="">Todos os Meses</option>
+                    </select>
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-2">Comissionista</label>
+                    <select id="commissionerFilter" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent">
+                        <option value="">Todos</option>
+                    </select>
+                </div>
+                <div class="flex items-end">
+                    <button onclick="loadCommissions()" class="btn-primary text-white px-6 py-2 rounded-lg w-full">
+                        Aplicar Filtros
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Action Buttons -->
+        <div class="glass-effect rounded-xl p-6 mb-6 fade-in" style="animation-delay: 0.5s">
+            <div class="flex flex-wrap items-center justify-between gap-4">
+                <div class="flex flex-wrap gap-3">
+                    <button onclick="markSelectedPaid()" id="markPaidBtn" disabled class="btn-success text-white px-4 py-2 rounded-lg flex items-center space-x-2 disabled:opacity-50 disabled:cursor-not-allowed">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                        </svg>
+                        <span>Marcar como Pagas</span>
+                    </button>
+                    <button onclick="markSelectedUnpaid()" id="markUnpaidBtn" disabled class="btn-warning text-white px-4 py-2 rounded-lg flex items-center space-x-2 disabled:opacity-50 disabled:cursor-not-allowed">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                        </svg>
+                        <span>Marcar como Por Pagar</span>
+                    </button>
+                </div>
+                <div class="flex items-center space-x-3">
+                    <input type="checkbox" id="selectAllCheckbox" onchange="toggleSelectAll()" class="w-4 h-4 text-primary focus:ring-primary border-gray-300 rounded">
+                    <label for="selectAllCheckbox" id="selectAllText" class="text-sm font-medium text-gray-700 cursor-pointer">Selecionar Todas</label>
+                </div>
+            </div>
+        </div>
+
+        <!-- Commissions Table -->
+        <div class="glass-effect rounded-xl p-6 fade-in" style="animation-delay: 0.6s">
+            <div class="overflow-x-auto">
+                <table class="w-full">
+                    <thead>
+                        <tr class="border-b border-gray-200">
+                            <th class="text-left py-3 px-4 font-semibold text-gray-700">
+                                <input type="checkbox" id="headerCheckbox" onchange="toggleSelectAll()" class="w-4 h-4 text-primary focus:ring-primary border-gray-300 rounded">
+                            </th>
+                            <th class="text-left py-3 px-4 font-semibold text-gray-700">ID Reserva</th>
+                            <th class="text-left py-3 px-4 font-semibold text-gray-700">Comissionista</th>
+                            <th class="text-left py-3 px-4 font-semibold text-gray-700">Cliente</th>
+                            <th class="text-left py-3 px-4 font-semibold text-gray-700">Data Reserva</th>
+                            <th class="text-left py-3 px-4 font-semibold text-gray-700">Status</th>
+                            <th class="text-left py-3 px-4 font-semibold text-gray-700">Valor Comissão</th>
+                            <th class="text-left py-3 px-4 font-semibold text-gray-700">Status Pagamento</th>
+                            <th class="text-left py-3 px-4 font-semibold text-gray-700">Data Pagamento</th>
+                        </tr>
+                    </thead>
+                    <tbody id="commissionsTableBody">
+                        <tr>
+                            <td colspan="9" class="text-center py-8">
+                                <div class="loading-spinner mx-auto mb-4"></div>
+                                <p class="text-gray-600">Carregando dados...</p>
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </main>
+
+    <script>
+        let allCommissions = [];
+        let selectedCommissions = new Set();
+        let allSelected = false;
+
+        document.addEventListener('DOMContentLoaded', function() {
+            loadSummary();
+            loadCommissions();
+            loadCommissioners();
+            populateMonthFilter();
+        });
+
+        async function loadSummary() {
+            try {
+                const month = document.getElementById('monthFilter').value;
+                const commissionerId = document.getElementById('commissionerFilter').value;
+                
+                let url = '/api/admin/commissions/summary';
+                const params = new URLSearchParams();
+                if (month) params.append('month', month);
+                if (commissionerId) params.append('commissioner_id', commissionerId);
+                if (params.toString()) url += '?' + params.toString();
+                
+                const response = await fetch(url);
+                const data = await response.json();
+                
+                if (data.ok) {
+                    document.getElementById('totalPaid').textContent = '€' + data.total_paid.toFixed(2);
+                    document.getElementById('totalUnpaid').textContent = '€' + data.total_unpaid.toFixed(2);
+                    document.getElementById('pendingBookings').textContent = data.pending_bookings;
+                    document.getElementById('activeCommissioners').textContent = data.active_commissioners;
+                }
+            } catch (error) {
+                console.error('Error loading summary:', error);
+            }
+        }
+
+        async function loadCommissions() {
+            try {
+                const status = document.getElementById('statusFilter').value;
+                const month = document.getElementById('monthFilter').value;
+                const commissionerId = document.getElementById('commissionerFilter').value;
+                
+                let url = '/api/admin/commissions/list';
+                const params = new URLSearchParams();
+                if (status !== 'all') params.append('status', status);
+                if (month) params.append('month', month);
+                if (commissionerId) params.append('commissioner_id', commissionerId);
+                if (params.toString()) url += '?' + params.toString();
+                
+                const response = await fetch(url);
+                const data = await response.json();
+                
+                if (data.ok) {
+                    allCommissions = data.commissions;
+                    renderCommissionsTable();
+                } else {
+                    document.getElementById('commissionsTableBody').innerHTML = '<tr><td colspan="9" class="text-center py-8 text-red-600">Erro ao carregar dados: ' + (data.error || 'Erro desconhecido') + '</td></tr>';
+                }
+            } catch (error) {
+                console.error('Error loading commissions:', error);
+                document.getElementById('commissionsTableBody').innerHTML = '<tr><td colspan="9" class="text-center py-8 text-red-600">Erro de conexão com o servidor</td></tr>';
+            }
+        }
+
+        async function loadCommissioners() {
+            try {
+                const response = await fetch('/api/admin/commissioners');
+                const data = await response.json();
+                
+                if (data.ok) {
+                    const select = document.getElementById('commissionerFilter');
+                    select.innerHTML = '<option value="">Todos</option>';
+                    
+                    data.commissioners.forEach(function(commissioner) {
+                        const option = document.createElement('option');
+                        option.value = commissioner.id;
+                        option.textContent = commissioner.name;
+                        select.appendChild(option);
+                    });
+                }
+            } catch (error) {
+                console.error('Error loading commissioners:', error);
+            }
+        }
+
+        function populateMonthFilter() {
+            const select = document.getElementById('monthFilter');
+            const currentDate = new Date();
+            const currentYear = currentDate.getFullYear();
+            
+            for (let i = 0; i < 12; i++) {
+                const date = new Date(currentYear, currentDate.getMonth() - i, 1);
+                const year = date.getFullYear();
+                const month = String(date.getMonth() + 1).padStart(2, '0');
+                const monthNames = ['Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho', 
+                                  'Julho', 'Agosto', 'Setembro', 'Outubro', 'Novembro', 'Dezembro'];
+                const monthName = monthNames[date.getMonth()];
+                
+                const option = document.createElement('option');
+                option.value = year + '-' + month;
+                option.textContent = monthName.charAt(0).toUpperCase() + monthName.slice(1) + ' ' + year;
+                select.appendChild(option);
+            }
+        }
+
+        function renderCommissionsTable() {
+            const tbody = document.getElementById('commissionsTableBody');
+            
+            if (allCommissions.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="9" class="text-center py-8 text-gray-600">Nenhuma comissão encontrada</td></tr>';
+                return;
+            }
+            
+            let html = '';
+            allCommissions.forEach(function(commission) {
+                const statusClass = commission.commission_paid ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800';
+                const statusText = commission.commission_paid ? 'Paga' : 'Por Pagar';
+                const paymentDate = commission.commission_paid_date ? 
+                    new Date(commission.commission_paid_date).toLocaleDateString('pt-PT') : '-';
+                
+                html += '<tr class="table-row-hover border-b border-gray-100">' +
+                    '<td class="py-3 px-4">' +
+                        '<input type="checkbox" value="' + commission.id + '" onchange="toggleSelection(' + commission.id + ')" class="w-4 h-4 text-primary focus:ring-primary border-gray-300 rounded">' +
+                    '</td>' +
+                    '<td class="py-3 px-4 font-medium text-gray-900">#' + commission.id + '</td>' +
+                    '<td class="py-3 px-4 text-gray-700">' + (commission.commissioner_name || '-') + '</td>' +
+                    '<td class="py-3 px-4 text-gray-700">' + commission.client_name + '</td>' +
+                    '<td class="py-3 px-4 text-gray-700">' + new Date(commission.created_at).toLocaleDateString('pt-PT') + '</td>' +
+                    '<td class="py-3 px-4">' +
+                        '<span class="status-badge bg-blue-100 text-blue-800">' + getStatusText(commission.status) + '</span>' +
+                    '</td>' +
+                    '<td class="py-3 px-4 font-semibold text-gray-900">€' + commission.commission_amount.toFixed(2) + '</td>' +
+                    '<td class="py-3 px-4">' +
+                        '<span class="status-badge ' + statusClass + '">' + statusText + '</span>' +
+                    '</td>' +
+                    '<td class="py-3 px-4 text-gray-700">' + paymentDate + '</td>' +
+                '</tr>';
+            });
+            
+            tbody.innerHTML = html;
+            updateSelectAllCheckbox();
+        }
+
+        function getStatusText(status) {
+            const statusMap = {
+                'pending': 'Pendente',
+                'confirmed': 'Confirmada',
+                'completed': 'Concluída',
+                'cancelled': 'Cancelada'
+            };
+            return statusMap[status] || status;
+        }
+
+        function toggleSelection(commissionId) {
+            if (selectedCommissions.has(commissionId)) {
+                selectedCommissions.delete(commissionId);
+            } else {
+                selectedCommissions.add(commissionId);
+            }
+            updateActionButtons();
+            updateSelectAllCheckbox();
+        }
+
+        function toggleSelectAll() {
+            allSelected = !allSelected;
+            const checkboxes = document.querySelectorAll('#commissionsTableBody input[type="checkbox"]');
+            
+            checkboxes.forEach(function(checkbox) {
+                checkbox.checked = allSelected;
+                const commissionId = parseInt(checkbox.value);
+                if (allSelected) {
+                    selectedCommissions.add(commissionId);
+                } else {
+                    selectedCommissions.delete(commissionId);
+                }
+            });
+            
+            document.getElementById('selectAllText').textContent = allSelected ? 'Desselecionar Todas' : 'Selecionar Todas';
+            document.getElementById('selectAllCheckbox').checked = allSelected;
+            document.getElementById('headerCheckbox').checked = allSelected;
+            updateActionButtons();
+        }
+
+        function updateSelectAllCheckbox() {
+            const totalCheckboxes = document.querySelectorAll('#commissionsTableBody input[type="checkbox"]').length;
+            const checkedCheckboxes = document.querySelectorAll('#commissionsTableBody input[type="checkbox"]:checked').length;
+            
+            const isAllSelected = totalCheckboxes > 0 && checkedCheckboxes === totalCheckboxes;
+            document.getElementById('selectAllCheckbox').checked = isAllSelected;
+            document.getElementById('headerCheckbox').checked = isAllSelected;
+            document.getElementById('selectAllText').textContent = isAllSelected ? 'Desselecionar Todas' : 'Selecionar Todas';
+        }
+
+        function updateActionButtons() {
+            const hasSelection = selectedCommissions.size > 0;
+            document.getElementById('markPaidBtn').disabled = !hasSelection;
+            document.getElementById('markUnpaidBtn').disabled = !hasSelection;
+        }
+
+        async function markSelectedPaid() {
+            await markCommissions(true);
+        }
+
+        async function markSelectedUnpaid() {
+            await markCommissions(false);
+        }
+
+        async function markCommissions(paid) {
+            if (selectedCommissions.size === 0) return;
+            
+            const action = paid ? 'marcar como pagas' : 'marcar como por pagar';
+            if (!confirm('Tem certeza que deseja ' + action + ' as comissões selecionadas?')) {
+                return;
+            }
+            
+            try {
+                const response = await fetch('/api/admin/commissions/mark-paid', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        booking_ids: Array.from(selectedCommissions),
+                        paid: paid
+                    })
+                });
+                
+                const data = await response.json();
+                
+                if (data.ok) {
+                    alert(data.message || 'Operação realizada com sucesso');
+                    selectedCommissions.clear();
+                    allSelected = false;
+                    loadCommissions();
+                    loadSummary();
+                    updateActionButtons();
+                } else {
+                    alert('Erro: ' + (data.error || 'Ocorreu um erro'));
+                }
+            } catch (error) {
+                console.error('Error marking commissions:', error);
+                alert('Erro de conexão');
+            }
+        }
+    </script>
+</body>
+</html>
