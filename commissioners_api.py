@@ -343,7 +343,9 @@ async def get_commissioner_bookings(request: Request):
                pickup_location, dropoff_location, vehicle_group, extras,
                price, status, created_at, updated_at, deposit,
                hotel, room_number, flight_number, observations,
-               commission_rate, commission_amount
+               commission_rate, commission_amount,
+               base_price, premium_insurance, road_tax, extras_total, 
+               rental_days, total_amount, value_adjustment
         FROM commission_bookings
         WHERE commissioner_id = %s
         ORDER BY created_at DESC
@@ -378,7 +380,14 @@ async def get_commissioner_bookings(request: Request):
             'flight_number': booking[20],
             'observations': booking[21],
             'commission_rate': float(booking[22]) if len(booking) > 22 and booking[22] else 0.0,
-            'commission_amount': float(booking[23]) if len(booking) > 23 and booking[23] else 0.0
+            'commission_amount': float(booking[23]) if len(booking) > 23 and booking[23] else 0.0,
+            'base_price': float(booking[24]) if len(booking) > 24 and booking[24] else 0.0,
+            'premium_insurance': float(booking[25]) if len(booking) > 25 and booking[25] else 0.0,
+            'road_tax': float(booking[26]) if len(booking) > 26 and booking[26] else 0.0,
+            'extras_total': float(booking[27]) if len(booking) > 27 and booking[27] else 0.0,
+            'rental_days': booking[28] if len(booking) > 28 else 0,
+            'total_amount': float(booking[29]) if len(booking) > 29 and booking[29] else 0.0,
+            'value_adjustment': float(booking[30]) if len(booking) > 30 and booking[30] else 0.0
         })
     
     return {"ok": True, "bookings": result}
