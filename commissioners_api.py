@@ -171,6 +171,7 @@ async def commissioner_login(login: CommissionerLogin, request: Request):
         raise HTTPException(status_code=401, detail="Invalid credentials")
     
     # Set session
+    request.session["auth"] = True  # Required for require_auth() to work
     request.session["commissioner_id"] = commissioner['id']
     request.session["commissioner_name"] = commissioner['name']
     request.session["commissioner_prefix"] = commissioner['voucher_prefix']
