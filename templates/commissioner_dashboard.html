@@ -3730,7 +3730,7 @@
                 commissionerLocations = []; // Usar lista vazia se falhar
             }
             
-            // Popular os dropdowns após carregar
+            // Popular os dropdowns após carregar (sem default, será aplicado depois)
             populateLocationDropdowns();
         }
 
@@ -3792,7 +3792,7 @@
         }
         
         // Preencher dropdowns de locais
-        function populateLocationDropdowns() {
+        function populateLocationDropdowns(defaultLocation = null) {
             const pickupSelect = document.getElementById('pickupLocation');
             const dropoffSelect = document.getElementById('dropoffLocation');
             const hotelSelect = document.getElementById('clientHotel');
@@ -3811,6 +3811,13 @@
                 dropoffSelect.innerHTML += `<option value="${location}">${location}</option>`;
                 hotelSelect.innerHTML += `<option value="${location}">${location}</option>`;
             });
+            
+            // Aplicar default_location imediatamente se fornecido
+            if (defaultLocation && sortedLocations.includes(defaultLocation)) {
+                pickupSelect.value = defaultLocation;
+                dropoffSelect.value = defaultLocation;
+                console.log('✅ Locais preenchidos com default:', defaultLocation);
+            }
             
             console.log('📍 Dropdowns populados com', sortedLocations.length, 'locais da API');
         }
@@ -4027,15 +4034,15 @@
             }, 100);
             
             // Carregar locais se ainda não foram carregados
+            const defaultLoc = currentCommissioner?.default_location;
             if (commissionerLocations.length === 0) {
                 await loadCommissionerLocations();
+                // Aplicar default após carregar
+                populateLocationDropdowns(defaultLoc);
             } else {
-                // Repreencher dropdowns
-                populateLocationDropdowns();
+                // Repreencher dropdowns com default
+                populateLocationDropdowns(defaultLoc);
             }
-            
-            // Aplicar default_location do comissionista após dropdowns estarem populados
-            await setDefaultLocations();
             
             renderVehicleGrid();
         }
