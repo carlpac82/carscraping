@@ -117,7 +117,7 @@ warnings.filterwarnings('ignore', message='.*Failed to establish a new connectio
 
 # Import database module for PostgreSQL/SQLite hybrid support
 try:
-    from database import _db_connect as _db_connect_new, USE_POSTGRES, PostgreSQLConnectionWrapper as DBPostgreSQLWrapper
+    from database import _db_connect as _db_connect_new, USE_POSTGRES, PostgreSQLConnectionWrapper as DBPostgreSQLWrapper, get_db
     _USE_NEW_DB = True
     # Usar a classe do database.py em vez da local
     PostgreSQLConnectionWrapper = DBPostgreSQLWrapper
