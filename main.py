@@ -5872,6 +5872,12 @@ def require_admin(request: Request):
     if not request.session.get("is_admin", False):
         raise HTTPException(status_code=403, detail="Forbidden")
 
+def require_commissions_management(request: Request):
+    """Require user to have commissions management permission"""
+    require_auth(request)
+    if not request.session.get("can_manage_commissions", False):
+        raise HTTPException(status_code=403, detail="Commissions management permission required")
+
 def require_role_access(request: Request, allowed_pages: list = None):
     """
     Restringe acesso baseado no role do utilizador.
@@ -11738,7 +11744,7 @@ async def admin_users_new(request: Request):
 @app.get("/admin/commissions", response_class=HTMLResponse)
 async def admin_commissions(request: Request):
     try:
-        require_admin(request)
+        require_commissions_management(request)
     except HTTPException:
         return RedirectResponse(url="/login", status_code=HTTP_303_SEE_OTHER)
     return templates.TemplateResponse("admin_commissions.html", {"request": request})
@@ -11747,7 +11753,7 @@ async def admin_commissions(request: Request):
 async def admin_commissions_summary(request: Request):
     """Get summary statistics for admin commissions page"""
     try:
-        require_admin(request)
+        require_commissions_management(request)
     except HTTPException:
         return JSONResponse({"ok": False, "error": "Unauthorized"}, status_code=403)
     
@@ -11787,7 +11793,7 @@ async def admin_commissions_summary(request: Request):
 async def admin_commissions_list(request: Request):
     """Get list of all commissions for admin"""
     try:
-        require_admin(request)
+        require_commissions_management(request)
     except HTTPException:
         return JSONResponse({"ok": False, "error": "Unauthorized"}, status_code=403)
     
@@ -11887,7 +11893,7 @@ async def admin_commissions_list(request: Request):
 async def admin_commissions_mark_paid(request: Request):
     """Mark commissions as paid"""
     try:
-        require_admin(request)
+        require_commissions_management(request)
     except HTTPException:
         return JSONResponse({"ok": False, "error": "Unauthorized"}, status_code=403)
     
@@ -11928,7 +11934,7 @@ async def admin_commissions_mark_paid(request: Request):
 async def admin_commissions_mark_unpaid(request: Request):
     """Mark commissions as unpaid"""
     try:
-        require_admin(request)
+        require_commissions_management(request)
     except HTTPException:
         return JSONResponse({"ok": False, "error": "Unauthorized"}, status_code=403)
     

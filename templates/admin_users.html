@@ -135,6 +135,9 @@
       }
       
       async function updateInspectionPermission(userId, role, canAccess, hasCommissionerAccess, canManageCommissions) {
+        const submitButton = document.querySelector(`button[onclick="submitNewUser()"]`);
+        const originalButtonText = submitButton ? submitButton.innerHTML : '';
+        
         try {
           const response = await fetch(`/api/admin/users/${userId}/update-inspection-permissions`, {
             method: 'POST',
@@ -146,35 +149,45 @@
               can_access_inspection: canAccess,
               has_commissioner_access: hasCommissionerAccess,
               can_manage_commissions: canManageCommissions
-            })
+            }),
           });
-          
+
+          if (!response.ok) {
+            throw new Error('Failed to update permissions');
+          }
+
           const data = await response.json();
-          
           if (data.ok) {
-            // Update the Yes/No text next to checkboxes
+            // Update UI
             const row = document.querySelector(`tr[data-user-id="${userId}"]`);
-            const inspectionLabel = row.querySelector('.inspection-toggle + span');
-            if (inspectionLabel) {
-              inspectionLabel.textContent = canAccess ? 'Yes' : 'No';
-            }
-            const commissionerLabel = row.querySelector('.commissioner-toggle + span');
-            if (commissionerLabel) {
-              commissionerLabel.textContent = hasCommissionerAccess ? 'Yes' : 'No';
-            }
-            const commissionsLabel = row.querySelector('.commissions-toggle + span');
-            if (commissionsLabel) {
-              commissionsLabel.textContent = canManageCommissions ? 'Yes' : 'No';
+            if (row) {
+              const inspectionCell = row.querySelector('.inspection-toggle').nextElementSibling;
+              const commissionerCell = row.querySelector('.commissioner-toggle').nextElementSibling;
+              const commissionsCell = row.querySelector('.commissions-toggle').nextElementSibling;
+              
+              if (inspectionCell) {
+                inspectionCell.textContent = canAccess ? 'Yes' : 'No';
+              }
+              if (commissionerCell) {
+                commissionerCell.textContent = hasCommissionerAccess ? 'Yes' : 'No';
+              }
+              if (commissionsCell) {
+                commissionsCell.textContent = canManageCommissions ? 'Yes' : 'No';
+              }
             }
             
-            // Show success feedback
-            showNotification('Permissions updated successfully', 'success');
+            showNotification('User permissions updated successfully!', 'success');
           } else {
-            showNotification('Error: ' + data.error, 'error');
+            showNotification('Error updating permissions: ' + (data.error || 'Unknown error'), 'error');
           }
         } catch (error) {
           console.error('Error updating permissions:', error);
-          showNotification('Failed to update permissions', 'error');
+          showNotification('Error updating permissions: ' + error.message, 'error');
+        } finally {
+          if (submitButton) {
+            submitButton.innerHTML = originalButtonText;
+            submitButton.disabled = false;
+          }
         }
       }
       
