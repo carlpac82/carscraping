@@ -11790,9 +11790,9 @@ async def admin_commissions_summary(request: Request):
                 cur = con.execute("""
                     SELECT 
                         COUNT(*) as total_commissions,
-                        COUNT(CASE WHEN commission_paid = 1 THEN 1 END) as paid_commissions,
-                        COUNT(CASE WHEN commission_paid = 0 THEN 1 END) as unpaid_commissions,
-                        COALESCE(SUM(CASE WHEN commission_paid = 0 THEN commission_amount ELSE 0 END), 0) as total_unpaid_amount,
+                        COUNT(CASE WHEN commission_paid = true THEN 1 END) as paid_commissions,
+                        COUNT(CASE WHEN commission_paid = false THEN 1 END) as unpaid_commissions,
+                        COALESCE(SUM(CASE WHEN commission_paid = false THEN commission_amount ELSE 0 END), 0) as total_unpaid_amount,
                         COALESCE(SUM(commission_amount), 0) as total_commission_amount
                     FROM commission_bookings
                     WHERE commission_amount > 0
