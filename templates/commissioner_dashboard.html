@@ -5862,6 +5862,8 @@
                 value_adjustment: 0,
                 deposit: bookingConfirmationData.depositAmount
             };
+            
+            console.log('📤 Booking data being sent:', bookingData);
 
             try {
                 const response = await fetch('/api/commissioners/bookings', {
@@ -5873,16 +5875,19 @@
                 });
 
                 const data = await response.json();
+                console.log('📥 Response from server:', data);
+                console.log('📥 Response status:', response.status);
 
                 if (data.ok) {
                     alert('Reserva criada com sucesso!');
                     closeNewBookingModal();
                     await loadBookings();
                 } else {
-                    alert('Erro ao criar reserva: ' + (data.error || 'Erro desconhecido'));
+                    console.error('❌ Server error:', data.error);
+                    alert('Erro ao criar reserva: ' + (data.error || 'Erro desconhecido') + ' (Status: ' + response.status + ')');
                 }
             } catch (error) {
-                console.error('Error creating booking:', error);
+                console.error('❌ Error creating booking:', error);
                 alert('Erro de conexão ao criar reserva');
             } finally {
                 bookingConfirmationData = null;
