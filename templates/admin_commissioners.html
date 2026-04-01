@@ -812,7 +812,18 @@
             document.getElementById('voucher_prefix').value = commissioner.voucher_prefix || '';
             document.getElementById('email').value = commissioner.email;
             document.getElementById('commission_rate').value = commissioner.commission_rate;
-            document.getElementById('default_location').value = commissioner.default_location || '';
+            
+            // Auto-match: se não tem default_location, tenta fazer match com nome do comissionista
+            let defaultLocation = commissioner.default_location || '';
+            if (!defaultLocation && deliveryLocations.length > 0) {
+                const commissionerName = commissioner.name.toUpperCase();
+                const matchedLocation = deliveryLocations.find(loc => loc.toUpperCase() === commissionerName);
+                if (matchedLocation) {
+                    defaultLocation = matchedLocation;
+                }
+            }
+            
+            document.getElementById('default_location').value = defaultLocation;
             document.getElementById('is_active').value = commissioner.enabled.toString();
             document.getElementById('password').placeholder = 'Deixe em branco para manter a atual';
             document.getElementById('commissionerModal').classList.add('active');
