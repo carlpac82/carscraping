@@ -54538,11 +54538,6 @@ async def migrate_supplier_data_column():
 # VEHICLE INSPECTION ROUTES - BASIC IMPLEMENTATION
 # ================================================================================
 
-@app.get("/")
-async def root_page(request: Request):
-    """Root page - redirect to check-in"""
-    from fastapi.responses import RedirectResponse
-    return RedirectResponse(url="/check-in")
 
 @app.get("/check-in")
 async def check_in_page(request: Request):
