@@ -63364,10 +63364,14 @@ async def api_create_commissioner_booking(request: Request):
             finally:
                 con.close()
                 
+    except json.JSONDecodeError as e:
+        print(f"JSON decode error: {e}")
+        return JSONResponse({"ok": False, "error": "Dados inválidos (JSON malformado)"}, status_code=422)
     except Exception as e:
         print(f"Error creating commissioner booking: {e}")
+        print(f"Error type: {type(e).__name__}")
         traceback.print_exc()
-        return JSONResponse({"ok": False, "error": "Erro ao criar reserva"}, status_code=500)
+        return JSONResponse({"ok": False, "error": f"Erro ao criar reserva: {str(e)}"}, status_code=500)
 
 
 @app.post("/api/commissioners/update-email")
