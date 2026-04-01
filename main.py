@@ -11751,6 +11751,23 @@ async def admin_commissions(request: Request):
         return RedirectResponse(url="/login", status_code=HTTP_303_SEE_OTHER)
     return templates.TemplateResponse("admin_commissions.html", {"request": request})
 
+@app.get("/api/user-session")
+async def get_user_session(request: Request):
+    """Get current user session data for debugging"""
+    try:
+        session_data = {
+            "username": request.session.get("username"),
+            "is_admin": request.session.get("is_admin", False),
+            "can_manage_commissions": request.session.get("can_manage_commissions", False),
+            "can_access_inspection": request.session.get("can_access_inspection", False),
+            "has_commissioner_access": request.session.get("has_commissioner_access", False),
+            "user_role": request.session.get("user_role"),
+            "last_active_ts": request.session.get("last_active_ts")
+        }
+        return JSONResponse(session_data)
+    except Exception as e:
+        return JSONResponse({"error": str(e)}, status_code=500)
+
 @app.get("/api/admin/commissions/summary")
 async def admin_commissions_summary(request: Request):
     """Get summary statistics for admin commissions page"""
