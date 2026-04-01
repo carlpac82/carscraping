@@ -62939,6 +62939,41 @@ async def admin_migrate_complete_commissioners_schema(request: Request):
         traceback.print_exc()
         return JSONResponse({"ok": False, "error": str(e)}, status_code=500)
 
+@app.get("/admin/migrate-add-insurance-type")
+async def admin_migrate_add_insurance_type(request: Request):
+    """Add insurance_type column to commission_bookings table - Admin only"""
+    try:
+        require_admin(request)
+    except HTTPException:
+        return JSONResponse({"ok": False, "error": "Unauthorized"}, status_code=401)
+    
+    try:
+        with _db_lock:
+            con = _db_connect()
+            try:
+                cursor = con.cursor()
+                
+                # Add insurance_type column
+                cursor.execute("""
+                    ALTER TABLE commission_bookings 
+                    ADD COLUMN IF NOT EXISTS insurance_type VARCHAR(50) DEFAULT 'premium'
+                """)
+                
+                con.commit()
+                
+                return JSONResponse({
+                    "ok": True,
+                    "message": "✅ Added insurance_type column to commission_bookings table"
+                })
+                
+            finally:
+                con.close()
+                
+    except Exception as e:
+        print(f"Error adding insurance_type column: {e}")
+        traceback.print_exc()
+        return JSONResponse({"ok": False, "error": str(e)}, status_code=500)
+
 
 # ============================================================
 # COMMISSIONERS API ROUTES
