@@ -650,14 +650,14 @@
               }
               
               try {
-                  const response = await fetch('/api/admin/commissions/update-status', {
+                  const endpoint = paid ? '/api/admin/commissions/mark-paid' : '/api/admin/commissions/mark-unpaid';
+                  const response = await fetch(endpoint, {
                       method: 'POST',
                       headers: {
                           'Content-Type': 'application/json',
                       },
                       body: JSON.stringify({
-                          commission_ids: Array.from(selectedCommissions),
-                          paid: paid
+                          commission_ids: Array.from(selectedCommissions)
                       })
                   });
                   
