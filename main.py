@@ -6033,6 +6033,7 @@ async def login_action(request: Request, username: str = Form(...), password: st
         user_role = "user"
         can_access_inspection = 0
         has_commissioner_access = 0
+        can_manage_commissions = 0
         ok = False
         try:
             with _db_lock:
@@ -6040,7 +6041,7 @@ async def login_action(request: Request, username: str = Form(...), password: st
                 try:
                     # Try with has_commissioner_access column first
                     try:
-                        cur = con.execute("SELECT id, password_hash, is_admin, enabled, role, can_access_inspection, has_commissioner_access FROM users WHERE username=?", (u,))
+                        cur = con.execute("SELECT id, password_hash, is_admin, enabled, role, can_access_inspection, has_commissioner_access, can_manage_commissions FROM users WHERE username=?", (u,))
                         row = cur.fetchone()
                         if row and row[3]:
                             ok = _verify_password(p, row[1])
@@ -6048,6 +6049,7 @@ async def login_action(request: Request, username: str = Form(...), password: st
                             user_role = row[4] if row[4] else "user"
                             can_access_inspection = row[5] if row[5] is not None else 0
                             has_commissioner_access = row[6] if row[6] is not None else 0
+                            can_manage_commissions = row[7] if row[7] is not None else 0
                     except Exception:
                         # Fallback: column doesn't exist yet, use old query
                         cur = con.execute("SELECT id, password_hash, is_admin, enabled, role, can_access_inspection FROM users WHERE username=?", (u,))
@@ -6075,6 +6077,7 @@ async def login_action(request: Request, username: str = Form(...), password: st
                 request.session["user_role"] = user_role  # Manter compatibilidade
                 request.session["can_access_inspection"] = can_access_inspection
                 request.session["has_commissioner_access"] = has_commissioner_access
+                request.session["can_manage_commissions"] = can_manage_commissions
                 request.session["last_active_ts"] = int(datetime.now(timezone.utc).timestamp())
                 log_activity(request, "login_success", details="", username=u)
                 try:
