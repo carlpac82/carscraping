@@ -7426,9 +7426,9 @@ async def admin_update_inspection_permissions(request: Request, user_id: int):
     try:
         body = await request.json()
         role = body.get("role", "user")
-        can_access = int(body.get("can_access_inspection", 0))
-        has_commissioner_access = int(body.get("has_commissioner_access", 0))
-        can_manage_commissions = int(body.get("can_manage_commissions", 0))
+        can_access = bool(int(body.get("can_access_inspection", 0)))
+        has_commissioner_access = bool(int(body.get("has_commissioner_access", 0)))
+        can_manage_commissions = bool(int(body.get("can_manage_commissions", 0)))
         
         # Validate role
         if role not in ["user", "receptionist", "support", "admin"]:
