@@ -11708,13 +11708,14 @@ async def admin_users(request: Request):
             try:
                 # Try with has_commissioner_access column first
                 try:
-                    cur = con.execute("SELECT id, username, first_name, last_name, email, mobile, is_admin, enabled, role, can_access_inspection, has_commissioner_access FROM users ORDER BY id DESC")
+                    cur = con.execute("SELECT id, username, first_name, last_name, email, mobile, is_admin, enabled, role, can_access_inspection, has_commissioner_access, can_manage_commissions FROM users ORDER BY id DESC")
                     for r in cur.fetchall():
                         users.append({
                             "id": r[0], "username": r[1], "first_name": r[2] or "", "last_name": r[3] or "",
                             "email": r[4] or "", "mobile": r[5] or "", "is_admin": bool(r[6]), "enabled": bool(r[7]),
                             "role": r[8] if r[8] else "user", "can_access_inspection": bool(r[9] if r[9] is not None else 0),
-                            "has_commissioner_access": bool(r[10] if r[10] is not None else 0)
+                            "has_commissioner_access": bool(r[10] if r[10] is not None else 0),
+                            "can_manage_commissions": bool(r[11] if r[11] is not None else 0)
                         })
                 except Exception:
                     # Fallback: column doesn't exist yet
@@ -11724,7 +11725,8 @@ async def admin_users(request: Request):
                             "id": r[0], "username": r[1], "first_name": r[2] or "", "last_name": r[3] or "",
                             "email": r[4] or "", "mobile": r[5] or "", "is_admin": bool(r[6]), "enabled": bool(r[7]),
                             "role": r[8] if r[8] else "user", "can_access_inspection": bool(r[9] if r[9] is not None else 0),
-                            "has_commissioner_access": False
+                            "has_commissioner_access": False,
+                            "can_manage_commissions": False
                         })
             finally:
                 con.close()
