@@ -3723,13 +3723,14 @@
                     console.log('Loaded commissioner locations:', commissionerLocations);
                 } else {
                     console.error('Failed to load commissioner locations');
+                    commissionerLocations = []; // Usar lista vazia se falhar
                 }
             } catch (error) {
                 console.error('Error loading commissioner locations:', error);
+                commissionerLocations = []; // Usar lista vazia se falhar
             }
-            commissionerLocations = []; // Usar lista vazia se falhar
             
-            // SEMPRE popular os dropdowns, mesmo se API falhar
+            // Popular os dropdowns após carregar
             populateLocationDropdowns();
         }
 
