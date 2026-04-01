@@ -110,27 +110,29 @@ def generate_voucher_number(commissioner_id: int, prefix: str) -> str:
     
     current_year = datetime.now().year % 100  # Get last 2 digits
     
-    # Get last voucher number for this commissioner and year
+    # Get ALL voucher numbers for this commissioner and year to find the max
     cursor.execute("""
         SELECT voucher_number FROM commission_bookings
         WHERE commissioner_id = %s 
         AND voucher_number LIKE %s
-        ORDER BY id DESC LIMIT 1
     """, (commissioner_id, f"{prefix}-%/{current_year}"))
     
-    result = cursor.fetchone()
+    results = cursor.fetchall()
     conn.close()
     
-    if result:
-        # Extract number from format PREFIX-NNN/YY
-        last_voucher = result[0] if isinstance(result, tuple) else result['voucher_number']
+    max_number = 0
+    for result in results:
+        voucher = result[0] if isinstance(result, tuple) else result['voucher_number']
         try:
-            number_part = last_voucher.split('-')[1].split('/')[0]
-            next_number = int(number_part) + 1
+            # Extract number from format PREFIX-NNN/YY
+            number_part = voucher.split('-')[1].split('/')[0]
+            num = int(number_part)
+            if num > max_number:
+                max_number = num
         except:
-            next_number = 1
-    else:
-        next_number = 1
+            continue
+    
+    next_number = max_number + 1
     
     return f"{prefix}-{next_number:03d}/{current_year}"
 
