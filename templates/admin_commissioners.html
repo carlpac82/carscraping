@@ -817,6 +817,7 @@
                 const result = await response.json();
 
                 if (result.success || result.ok) {
+                    alert(id ? 'Comissionista atualizado com sucesso!' : 'Comissionista criado com sucesso!');
                     closeModal();
                     loadCommissioners();
                 } else {
@@ -845,11 +846,15 @@
                 });
 
                 const result = await response.json();
-                if (result.ok) {
+                if (result.success || result.ok) {
+                    alert(`Comissionista ${!commissioner.enabled ? 'ativado' : 'desativado'} com sucesso!`);
                     loadCommissioners();
+                } else {
+                    alert('Erro ao alterar status');
                 }
             } catch (error) {
                 console.error('Error toggling status:', error);
+                alert('Erro ao alterar status');
             }
         }
 
@@ -862,10 +867,11 @@
                 });
 
                 const result = await response.json();
-                if (result.ok) {
+                if (result.success || result.ok) {
+                    alert('Comissionista excluído com sucesso!');
                     loadCommissioners();
                 } else {
-                    alert('Erro: ' + result.error);
+                    alert('Erro: ' + (result.error || 'Erro ao excluir'));
                 }
             } catch (error) {
                 console.error('Error deleting commissioner:', error);
