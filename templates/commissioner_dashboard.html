@@ -3998,16 +3998,9 @@
                 hotelSelect.innerHTML += `<option value="${location}">${location}</option>`;
             });
             
-            // Preencher por defeito com o nome do comissionista logado
-            // Se for comissionista AP, usar 'Auto Prudente'
-            if (currentCommissioner) {
-                let defaultLocation = currentCommissioner.name;
-                
-                // Se o comissionista for AP (Auto Prudente), usar 'AUTO PRUDENTE' em vez do nome
-                const commissionerNameUpper = currentCommissioner.name.toUpperCase().trim();
-                if (commissionerNameUpper === 'AP' || commissionerNameUpper.includes('AUTO PRUDENTE')) {
-                    defaultLocation = 'AUTO PRUDENTE';
-                }
+            // Preencher por defeito com o default_location do comissionista
+            if (currentCommissioner && currentCommissioner.default_location) {
+                const defaultLocation = currentCommissioner.default_location;
                 
                 console.log('🏢 Comissionista:', currentCommissioner.name, '→ Local padrão:', defaultLocation);
                 
@@ -4015,15 +4008,12 @@
                 if (allLocationsCombined.includes(defaultLocation)) {
                     pickupSelect.value = defaultLocation;
                     dropoffSelect.value = defaultLocation;
-                    console.log('Locais preenchidos com:', defaultLocation);
-                } else if (allLocationsCombined.includes(currentCommissioner.name)) {
-                    // Fallback para o nome do comissionista
-                    pickupSelect.value = currentCommissioner.name;
-                    dropoffSelect.value = currentCommissioner.name;
-                    console.log('Locais preenchidos com nome do comissionista:', currentCommissioner.name);
+                    console.log('✅ Locais preenchidos com:', defaultLocation);
                 } else {
                     console.warn('⚠️ Local padrão não encontrado na lista:', defaultLocation);
                 }
+            } else if (currentCommissioner) {
+                console.warn('⚠️ Comissionista sem default_location definido');
             }
         }
 
