@@ -11731,6 +11731,82 @@ async def admin_users_new(request: Request):
         return RedirectResponse(url="/login", status_code=HTTP_303_SEE_OTHER)
     return templates.TemplateResponse("admin_new_user.html", {"request": request, "error": None})
 
+@app.get("/admin/commissions", response_class=HTMLResponse)
+async def admin_commissions(request: Request):
+    try:
+        require_admin(request)
+    except HTTPException:
+        return RedirectResponse(url="/login", status_code=HTTP_303_SEE_OTHER)
+    return templates.TemplateResponse("admin_commissions.html", {"request": request})
+
+@app.get("/admin/migrate-commission-payment")
+async def admin_migrate_commission_payment(request: Request):
+    """Migrate commission payment columns - Admin only"""
+    try:
+        require_admin(request)
+        
+        conn = get_db()
+        cursor = conn.cursor()
+        
+        results = []
+        
+        # Add commission_paid column
+        try:
+            cursor.execute("ALTER TABLE commission_bookings ADD COLUMN commission_paid BOOLEAN DEFAULT FALSE")
+            conn.commit()
+            results.append("commission_paid: CREATED")
+        except Exception as e:
+            if "already exists" in str(e).lower():
+                results.append("commission_paid: ALREADY EXISTS")
+            else:
+                results.append(f"commission_paid: ERROR - {e}")
+        
+        # Add commission_paid_date column
+        try:
+            cursor.execute("ALTER TABLE commission_bookings ADD COLUMN commission_paid_date TIMESTAMP")
+            conn.commit()
+            results.append("commission_paid_date: CREATED")
+        except Exception as e:
+            if "already exists" in str(e).lower():
+                results.append("commission_paid_date: ALREADY EXISTS")
+            else:
+                results.append(f"commission_paid_date: ERROR - {e}")
+        
+        # Add commission_paid_by column
+        try:
+            cursor.execute("ALTER TABLE commission_bookings ADD COLUMN commission_paid_by INTEGER")
+            conn.commit()
+            results.append("commission_paid_by: CREATED")
+        except Exception as e:
+            if "already exists" in str(e).lower():
+                results.append("commission_paid_by: ALREADY EXISTS")
+            else:
+                results.append(f"commission_paid_by: ERROR - {e}")
+        
+        # Add can_manage_commissions to users table
+        try:
+            cursor.execute("ALTER TABLE users ADD COLUMN can_manage_commissions BOOLEAN DEFAULT FALSE")
+            conn.commit()
+            results.append("can_manage_commissions: CREATED")
+        except Exception as e:
+            if "already exists" in str(e).lower():
+                results.append("can_manage_commissions: ALREADY EXISTS")
+            else:
+                results.append(f"can_manage_commissions: ERROR - {e}")
+        
+        conn.close()
+        
+        return JSONResponse({
+            "ok": True,
+            "message": "Migration completed successfully",
+            "results": results
+        })
+        
+    except HTTPException:
+        return JSONResponse({"ok": False, "error": "Unauthorized"}, status_code=403)
+    except Exception as e:
+        return JSONResponse({"ok": False, "error": str(e)}, status_code=500)
+
 @app.post("/admin/users/new")
 async def admin_users_new_post(
     request: Request,

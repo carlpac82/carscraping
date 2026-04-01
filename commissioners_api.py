@@ -348,7 +348,8 @@ async def get_commissioner_bookings(request: Request):
                hotel, room_number, flight_number, observations,
                commission_rate, commission_amount,
                base_price, premium_insurance, road_tax, extras_total, 
-               rental_days, total_amount, value_adjustment
+               rental_days, total_amount, value_adjustment,
+               commission_paid, commission_paid_date, commission_paid_by
         FROM commission_bookings
         WHERE commissioner_id = %s
         ORDER BY created_at DESC
@@ -390,7 +391,10 @@ async def get_commissioner_bookings(request: Request):
             'extras_total': float(booking[27]) if len(booking) > 27 and booking[27] else 0.0,
             'rental_days': booking[28] if len(booking) > 28 else 0,
             'total_amount': float(booking[29]) if len(booking) > 29 and booking[29] else 0.0,
-            'value_adjustment': float(booking[30]) if len(booking) > 30 and booking[30] else 0.0
+            'value_adjustment': float(booking[30]) if len(booking) > 30 and booking[30] else 0.0,
+            'commission_paid': bool(booking[31]) if len(booking) > 31 else False,
+            'commission_paid_date': booking[32] if len(booking) > 32 else None,
+            'commission_paid_by': booking[33] if len(booking) > 33 else None
         })
     
     return {"ok": True, "bookings": result}
@@ -952,6 +956,336 @@ async def update_schedule_settings(settings: ScheduleSettings, request: Request)
     except Exception as e:
         import traceback
         print(f"Error in update_schedule_settings: {e}")
+        print(traceback.format_exc())
+        return JSONResponse({
+            "ok": False,
+            "error": str(e)
+        }, status_code=500)
+
+# Commission Payment Management Endpoints
+
+@router.post("/admin/commissions/mark-paid")
+async def mark_commissions_paid(request: Request, payload: dict):
+    """Mark multiple commissions as paid or unpaid - Admin only"""
+    try:
+        require_admin(request)
+        
+        booking_ids = payload.get("booking_ids", [])
+        paid = payload.get("paid", True)  # True for paid, False for unpaid
+        
+        if not booking_ids:
+            return JSONResponse({
+                "ok": False,
+                "error": "No booking IDs provided"
+            }, status_code=400)
+        
+        conn = get_db()
+        cursor = conn.cursor()
+        
+        # Get user_id from session
+        user_id = request.session.get("user_id")
+        if not user_id:
+            return JSONResponse({
+                "ok": False,
+                "error": "User not authenticated"
+            }, status_code=401)
+        
+        updated_count = 0
+        
+        for booking_id in booking_ids:
+            try:
+                if paid:
+                    # Mark as paid
+                    cursor.execute("""
+                        UPDATE commission_bookings 
+                        SET commission_paid = TRUE, 
+                            commission_paid_date = NOW(),
+                            commission_paid_by = %s
+                        WHERE id = %s
+                    """, (user_id, booking_id))
+                else:
+                    # Mark as unpaid
+                    cursor.execute("""
+                        UPDATE commission_bookings 
+                        SET commission_paid = FALSE, 
+                            commission_paid_date = NULL,
+                            commission_paid_by = NULL
+                        WHERE id = %s
+                    """, (booking_id,))
+                
+                if cursor.rowcount > 0:
+                    updated_count += 1
+                    
+            except Exception as e:
+                print(f"Error updating booking {booking_id}: {e}")
+                continue
+        
+        conn.commit()
+        conn.close()
+        
+        return JSONResponse({
+            "ok": True,
+            "message": f"Updated {updated_count} commissions",
+            "updated_count": updated_count
+        })
+        
+    except HTTPException:
+        return JSONResponse({"ok": False, "error": "Unauthorized"}, status_code=403)
+    except Exception as e:
+        import traceback
+        print(f"Error in mark_commissions_paid: {e}")
+        print(traceback.format_exc())
+        return JSONResponse({
+            "ok": False,
+            "error": str(e)
+        }, status_code=500)
+
+@router.get("/admin/commissions/summary")
+async def get_commissions_summary(request: Request):
+    """Get commission summary for admin dashboard - Admin only"""
+    try:
+        require_admin(request)
+        
+        # Get query parameters
+        month = request.query_params.get("month")  # Format: YYYY-MM
+        commissioner_id = request.query_params.get("commissioner_id")
+        
+        conn = get_db()
+        cursor = conn.cursor()
+        
+        # Build WHERE clause
+        where_conditions = []
+        params = []
+        
+        if month:
+            where_conditions.append("EXTRACT(YEAR FROM cb.pickup_date) = %s AND EXTRACT(MONTH FROM cb.pickup_date) = %s")
+            year, month_num = month.split('-')
+            params.extend([year, month_num])
+        
+        if commissioner_id:
+            where_conditions.append("cb.commissioner_id = %s")
+            params.append(commissioner_id)
+        
+        where_clause = "WHERE " + " AND ".join(where_conditions) if where_conditions else ""
+        
+        # Get commission summary
+        cursor.execute(f"""
+            SELECT 
+                COUNT(*) as total_bookings,
+                SUM(CASE WHEN cb.commission_paid THEN cb.commission_amount ELSE 0 END) as total_paid,
+                SUM(CASE WHEN NOT cb.commission_paid THEN cb.commission_amount ELSE 0 END) as total_unpaid,
+                SUM(cb.commission_amount) as total_commission,
+                COUNT(DISTINCT cb.commissioner_id) as active_commissioners
+            FROM commission_bookings cb
+            {where_clause}
+        """, params)
+        
+        summary = cursor.fetchone()
+        
+        # Get pending bookings (not completed)
+        cursor.execute(f"""
+            SELECT COUNT(*) as pending_count
+            FROM commission_bookings cb
+            {where_clause}
+            AND cb.status != 'completed'
+        """, params)
+        
+        pending = cursor.fetchone()
+        
+        conn.close()
+        
+        return JSONResponse({
+            "ok": True,
+            "summary": {
+                "total_bookings": summary[0] or 0,
+                "total_paid": float(summary[1] or 0),
+                "total_unpaid": float(summary[2] or 0),
+                "total_commission": float(summary[3] or 0),
+                "active_commissioners": summary[4] or 0,
+                "pending_bookings": pending[0] or 0
+            }
+        })
+        
+    except HTTPException:
+        return JSONResponse({"ok": False, "error": "Unauthorized"}, status_code=403)
+    except Exception as e:
+        import traceback
+        print(f"Error in get_commissions_summary: {e}")
+        print(traceback.format_exc())
+        return JSONResponse({
+            "ok": False,
+            "error": str(e)
+        }, status_code=500)
+
+@router.get("/commissioners/my-commissions")
+async def get_my_commissions(request: Request):
+    """Get current commissioner's commissions with payment status"""
+    try:
+        commissioner_id = request.session.get("commissioner_id")
+        if not commissioner_id:
+            return JSONResponse({
+                "ok": False,
+                "error": "Not authenticated as commissioner"
+            }, status_code=401)
+        
+        # Get query parameters
+        status_filter = request.query_params.get("status")  # paid, unpaid, or all
+        month_filter = request.query_params.get("month")  # Format: YYYY-MM
+        
+        conn = get_db()
+        cursor = conn.cursor()
+        
+        # Build WHERE clause
+        where_conditions = ["cb.commissioner_id = %s"]
+        params = [commissioner_id]
+        
+        if status_filter == "paid":
+            where_conditions.append("cb.commission_paid = TRUE")
+        elif status_filter == "unpaid":
+            where_conditions.append("cb.commission_paid = FALSE")
+        
+        if month_filter:
+            where_conditions.append("EXTRACT(YEAR FROM cb.pickup_date) = %s AND EXTRACT(MONTH FROM cb.pickup_date) = %s")
+            year, month_num = month_filter.split('-')
+            params.extend([year, month_num])
+        
+        where_clause = "WHERE " + " AND ".join(where_conditions)
+        
+        # Get bookings with commission payment info
+        cursor.execute(f"""
+            SELECT 
+                cb.id,
+                cb.voucher_number,
+                cb.client_name,
+                cb.vehicle_group,
+                cb.pickup_date,
+                cb.price,
+                cb.deposit,
+                cb.commission_amount,
+                cb.commission_rate,
+                cb.commission_paid,
+                cb.commission_paid_date,
+                cb.status
+            FROM commission_bookings cb
+            {where_clause}
+            ORDER BY cb.pickup_date DESC
+        """, params)
+        
+        bookings = []
+        for row in cursor.fetchall():
+            bookings.append({
+                "id": row[0],
+                "voucher_number": row[1],
+                "client_name": row[2],
+                "vehicle_group": row[3],
+                "pickup_date": row[4],
+                "price": float(row[5]) if row[5] else 0,
+                "deposit": float(row[6]) if row[6] else 0,
+                "commission_amount": float(row[7]) if row[7] else 0,
+                "commission_rate": float(row[8]) if row[8] else 0,
+                "commission_paid": bool(row[9]),
+                "commission_paid_date": row[10],
+                "status": row[11]
+            })
+        
+        conn.close()
+        
+        return JSONResponse({
+            "ok": True,
+            "bookings": bookings
+        })
+        
+    except Exception as e:
+        import traceback
+        print(f"Error in get_my_commissions: {e}")
+        print(traceback.format_exc())
+        return JSONResponse({
+            "ok": False,
+            "error": str(e)
+        }, status_code=500)
+
+@router.get("/admin/commissions/list")
+async def get_commissions_list(request: Request):
+    """Get list of commissions for admin table - Admin only"""
+    try:
+        require_admin(request)
+        
+        # Get query parameters
+        status_filter = request.query_params.get("status")  # paid, unpaid, or all
+        month_filter = request.query_params.get("month")  # Format: YYYY-MM
+        commissioner_id = request.query_params.get("commissioner_id")
+        
+        conn = get_db()
+        cursor = conn.cursor()
+        
+        # Build WHERE clause
+        where_conditions = []
+        params = []
+        
+        if status_filter == "paid":
+            where_conditions.append("cb.commission_paid = TRUE")
+        elif status_filter == "unpaid":
+            where_conditions.append("cb.commission_paid = FALSE")
+        
+        if month_filter:
+            where_conditions.append("EXTRACT(YEAR FROM cb.pickup_date) = %s AND EXTRACT(MONTH FROM cb.pickup_date) = %s")
+            year, month_num = month_filter.split('-')
+            params.extend([year, month_num])
+        
+        if commissioner_id:
+            where_conditions.append("cb.commissioner_id = %s")
+            params.append(commissioner_id)
+        
+        where_clause = "WHERE " + " AND ".join(where_conditions) if where_conditions else ""
+        
+        # Get commissions with commissioner info
+        cursor.execute(f"""
+            SELECT 
+                cb.id,
+                cb.voucher_number,
+                cb.client_name,
+                cb.vehicle_group,
+                cb.pickup_date,
+                cb.price,
+                cb.commission_amount,
+                cb.commission_paid,
+                cb.commission_paid_date,
+                cb.status,
+                c.name as commissioner_name
+            FROM commission_bookings cb
+            LEFT JOIN commissioners c ON cb.commissioner_id = c.id
+            {where_clause}
+            ORDER BY cb.pickup_date DESC
+        """, params)
+        
+        commissions = []
+        for row in cursor.fetchall():
+            commissions.append({
+                "id": row[0],
+                "voucher_number": row[1],
+                "client_name": row[2],
+                "vehicle_group": row[3],
+                "pickup_date": row[4],
+                "price": float(row[5]) if row[5] else 0,
+                "commission_amount": float(row[6]) if row[6] else 0,
+                "commission_paid": bool(row[7]),
+                "commission_paid_date": row[8],
+                "status": row[9],
+                "commissioner_name": row[10]
+            })
+        
+        conn.close()
+        
+        return JSONResponse({
+            "ok": True,
+            "commissions": commissions
+        })
+        
+    except HTTPException:
+        return JSONResponse({"ok": False, "error": "Unauthorized"}, status_code=403)
+    except Exception as e:
+        import traceback
+        print(f"Error in get_commissions_list: {e}")
         print(traceback.format_exc())
         return JSONResponse({
             "ok": False,

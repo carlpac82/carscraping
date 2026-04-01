@@ -1,0 +1,537 @@
+{% extends "base.html" %}
+{% block title %}Gestão de Comissões - CarScraping Admin{% endblock %}
+{% block content %}
+<div class="container">
+    <h1>Gestão de Comissões</h1>
+    
+    <!-- Summary Cards -->
+    <div class="summary-cards">
+        <div class="summary-card">
+            <h3>Total de Comissões Pagas</h3>
+            <p class="summary-value" id="totalPaid">€0.00</p>
+        </div>
+        <div class="summary-card">
+            <h3>Total de Comissões Por Pagar</h3>
+            <p class="summary-value" id="totalUnpaid">€0.00</p>
+        </div>
+        <div class="summary-card">
+            <h3>Reservas Pendentes</h3>
+            <p class="summary-value" id="pendingBookings">0</p>
+        </div>
+        <div class="summary-card">
+            <h3>Comissionistas Ativos</h3>
+            <p class="summary-value" id="activeCommissioners">0</p>
+        </div>
+    </div>
+    
+    <!-- Filters -->
+    <div class="filters-section">
+        <div class="filter-group">
+            <label>Status:</label>
+            <select id="statusFilter">
+                <option value="all">Todas</option>
+                <option value="paid">Pagas</option>
+                <option value="unpaid">Por Pagar</option>
+            </select>
+        </div>
+        <div class="filter-group">
+            <label>Mês:</label>
+            <select id="monthFilter">
+                <option value="">Todos os Meses</option>
+            </select>
+        </div>
+        <div class="filter-group">
+            <label>Comissionista:</label>
+            <select id="commissionerFilter">
+                <option value="">Todos</option>
+            </select>
+        </div>
+        <button class="btn-primary" onclick="loadCommissions()">Atualizar</button>
+    </div>
+    
+    <!-- Actions -->
+    <div class="actions-section">
+        <button class="btn-success" onclick="markSelectedAsPaid(true)" disabled id="markPaidBtn">
+            Marcar Selecionadas como Pagas
+        </button>
+        <button class="btn-warning" onclick="markSelectedAsPaid(false)" disabled id="markUnpaidBtn">
+            Marcar Selecionadas como Não Pagas
+        </button>
+        <button class="btn-secondary" onclick="toggleSelectAll()">
+            <span id="selectAllText">Selecionar Todas</span>
+        </button>
+    </div>
+    
+    <!-- Commissions Table -->
+    <div class="table-container">
+        <table class="commissions-table">
+            <thead>
+                <tr>
+                    <th><input type="checkbox" id="selectAllCheckbox" onchange="toggleSelectAll()"></th>
+                    <th>ID</th>
+                    <th>Voucher</th>
+                    <th>Cliente</th>
+                    <th>Comissionista</th>
+                    <th>Veículo</th>
+                    <th>Data</th>
+                    <th>Valor Total</th>
+                    <th>Comissão</th>
+                    <th>Status Pagamento</th>
+                    <th>Status Reserva</th>
+                    <th>Data Pagamento</th>
+                </tr>
+            </thead>
+            <tbody id="commissionsTableBody">
+                <tr>
+                    <td colspan="12" class="loading">Carregando...</td>
+                </tr>
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<style>
+.summary-cards {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+    gap: 20px;
+    margin-bottom: 30px;
+}
+
+.summary-card {
+    background: white;
+    padding: 20px;
+    border-radius: 8px;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    text-align: center;
+}
+
+.summary-card h3 {
+    margin: 0 0 10px 0;
+    color: #666;
+    font-size: 14px;
+}
+
+.summary-value {
+    font-size: 24px;
+    font-weight: bold;
+    color: #333;
+    margin: 0;
+}
+
+.filters-section {
+    background: white;
+    padding: 20px;
+    border-radius: 8px;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    margin-bottom: 20px;
+    display: flex;
+    gap: 15px;
+    align-items: end;
+    flex-wrap: wrap;
+}
+
+.filter-group {
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+}
+
+.filter-group label {
+    font-weight: 500;
+    color: #333;
+}
+
+.filter-group select {
+    padding: 8px 12px;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    min-width: 150px;
+}
+
+.actions-section {
+    background: white;
+    padding: 15px 20px;
+    border-radius: 8px;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    margin-bottom: 20px;
+    display: flex;
+    gap: 10px;
+    flex-wrap: wrap;
+}
+
+.table-container {
+    background: white;
+    border-radius: 8px;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    overflow: hidden;
+}
+
+.commissions-table {
+    width: 100%;
+    border-collapse: collapse;
+}
+
+.commissions-table th,
+.commissions-table td {
+    padding: 12px;
+    text-align: left;
+    border-bottom: 1px solid #eee;
+}
+
+.commissions-table th {
+    background: #f8f9fa;
+    font-weight: 600;
+    color: #333;
+}
+
+.commissions-table tbody tr:hover {
+    background: #f8f9fa;
+}
+
+.status-badge {
+    padding: 4px 8px;
+    border-radius: 12px;
+    font-size: 12px;
+    font-weight: 500;
+}
+
+.status-paid {
+    background: #d4edda;
+    color: #155724;
+}
+
+.status-unpaid {
+    background: #f8d7da;
+    color: #721c24;
+}
+
+.status-pending {
+    background: #fff3cd;
+    color: #856404;
+}
+
+.status-confirmed {
+    background: #cce5ff;
+    color: #004085;
+}
+
+.status-completed {
+    background: #d4edda;
+    color: #155724;
+}
+
+.status-cancelled {
+    background: #f8d7da;
+    color: #721c24;
+}
+
+.btn-primary {
+    background: #007bff;
+    color: white;
+    border: none;
+    padding: 8px 16px;
+    border-radius: 4px;
+    cursor: pointer;
+}
+
+.btn-success {
+    background: #28a745;
+    color: white;
+    border: none;
+    padding: 8px 16px;
+    border-radius: 4px;
+    cursor: pointer;
+}
+
+.btn-warning {
+    background: #ffc107;
+    color: #212529;
+    border: none;
+    padding: 8px 16px;
+    border-radius: 4px;
+    cursor: pointer;
+}
+
+.btn-secondary {
+    background: #6c757d;
+    color: white;
+    border: none;
+    padding: 8px 16px;
+    border-radius: 4px;
+    cursor: pointer;
+}
+
+.btn-primary:hover,
+.btn-success:hover,
+.btn-warning:hover,
+.btn-secondary:hover {
+    opacity: 0.9;
+}
+
+.btn-primary:disabled,
+.btn-success:disabled,
+.btn-warning:disabled,
+.btn-secondary:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+}
+
+.loading {
+    text-align: center;
+    padding: 40px;
+    color: #666;
+}
+
+@media (max-width: 768px) {
+    .filters-section {
+        flex-direction: column;
+        align-items: stretch;
+    }
+    
+    .actions-section {
+        flex-direction: column;
+    }
+    
+    .commissions-table {
+        font-size: 14px;
+    }
+    
+    .commissions-table th,
+    .commissions-table td {
+        padding: 8px;
+    }
+}
+</style>
+
+<script>
+let allCommissions = [];
+let selectedCommissions = new Set();
+let allSelected = false;
+
+// Load data on page load
+document.addEventListener('DOMContentLoaded', function() {
+    loadSummary();
+    loadCommissions();
+    loadCommissioners();
+    populateMonthFilter();
+});
+
+async function loadSummary() {
+    try {
+        const month = document.getElementById('monthFilter').value;
+        const commissionerId = document.getElementById('commissionerFilter').value;
+        
+        let url = '/api/admin/commissions/summary';
+        const params = new URLSearchParams();
+        if (month) params.append('month', month);
+        if (commissionerId) params.append('commissioner_id', commissionerId);
+        if (params.toString()) url += '?' + params.toString();
+        
+        const response = await fetch(url);
+        const data = await response.json();
+        
+        if (data.ok) {
+            document.getElementById('totalPaid').textContent = `€${data.summary.total_paid.toFixed(2)}`;
+            document.getElementById('totalUnpaid').textContent = `€${data.summary.total_unpaid.toFixed(2)}`;
+            document.getElementById('pendingBookings').textContent = data.summary.pending_bookings;
+            document.getElementById('activeCommissioners').textContent = data.summary.active_commissioners;
+        }
+    } catch (error) {
+        console.error('Error loading summary:', error);
+    }
+}
+
+async function loadCommissions() {
+    try {
+        const status = document.getElementById('statusFilter').value;
+        const month = document.getElementById('monthFilter').value;
+        const commissionerId = document.getElementById('commissionerFilter').value;
+        
+        let url = '/api/admin/commissions/list';
+        const params = new URLSearchParams();
+        if (status && status !== 'all') params.append('status', status);
+        if (month) params.append('month', month);
+        if (commissionerId) params.append('commissioner_id', commissionerId);
+        if (params.toString()) url += '?' + params.toString();
+        
+        const response = await fetch(url);
+        const data = await response.json();
+        
+        if (data.ok) {
+            allCommissions = data.commissions;
+            renderCommissionsTable();
+        }
+    } catch (error) {
+        console.error('Error loading commissions:', error);
+        document.getElementById('commissionsTableBody').innerHTML = 
+            '<tr><td colspan="12" class="error">Erro ao carregar comissões</td></tr>';
+    }
+}
+
+function renderCommissionsTable() {
+    const tbody = document.getElementById('commissionsTableBody');
+    
+    if (allCommissions.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="12">Nenhuma comissão encontrada</td></tr>';
+        return;
+    }
+    
+    tbody.innerHTML = allCommissions.map(commission => `
+        <tr>
+            <td><input type="checkbox" value="${commission.id}" onchange="toggleSelection(${commission.id})"></td>
+            <td>${commission.id}</td>
+            <td>${commission.voucher_number || '#' + commission.id}</td>
+            <td>${commission.client_name || 'N/A'}</td>
+            <td>${commission.commissioner_name || 'N/A'}</td>
+            <td>${commission.vehicle_group || 'N/A'}</td>
+            <td>${new Date(commission.pickup_date).toLocaleDateString('pt-PT')}</td>
+            <td>€${(commission.price || 0).toFixed(2)}</td>
+            <td>€${(commission.commission_amount || 0).toFixed(2)}</td>
+            <td>
+                <span class="status-badge status-${commission.commission_paid ? 'paid' : 'unpaid'}">
+                    ${commission.commission_paid ? 'Paga' : 'Por Pagar'}
+                </span>
+            </td>
+            <td>
+                <span class="status-badge status-${commission.status}">
+                    ${getStatusText(commission.status)}
+                </span>
+            </td>
+            <td>${commission.commission_paid_date ? new Date(commission.commission_paid_date).toLocaleDateString('pt-PT') : '-'}</td>
+        </tr>
+    `).join('');
+}
+
+function getStatusText(status) {
+    const statusMap = {
+        'pending': 'Pendente',
+        'confirmed': 'Confirmada',
+        'completed': 'Concluída',
+        'cancelled': 'Cancelada'
+    };
+    return statusMap[status] || status;
+}
+
+function toggleSelection(commissionId) {
+    if (selectedCommissions.has(commissionId)) {
+        selectedCommissions.delete(commissionId);
+    } else {
+        selectedCommissions.add(commissionId);
+    }
+    updateActionButtons();
+    updateSelectAllCheckbox();
+}
+
+function toggleSelectAll() {
+    allSelected = !allSelected;
+    const checkboxes = document.querySelectorAll('#commissionsTableBody input[type="checkbox"]');
+    
+    checkboxes.forEach(checkbox => {
+        checkbox.checked = allSelected;
+        const commissionId = parseInt(checkbox.value);
+        if (allSelected) {
+            selectedCommissions.add(commissionId);
+        } else {
+            selectedCommissions.delete(commissionId);
+        }
+    });
+    
+    document.getElementById('selectAllText').textContent = allSelected ? 'Desselecionar Todas' : 'Selecionar Todas';
+    document.getElementById('selectAllCheckbox').checked = allSelected;
+    updateActionButtons();
+}
+
+function updateSelectAllCheckbox() {
+    const totalCheckboxes = document.querySelectorAll('#commissionsTableBody input[type="checkbox"]').length;
+    const checkedCheckboxes = document.querySelectorAll('#commissionsTableBody input[type="checkbox"]:checked').length;
+    
+    document.getElementById('selectAllCheckbox').checked = totalCheckboxes > 0 && checkedCheckboxes === totalCheckboxes;
+    document.getElementById('selectAllText').textContent = 
+        (totalCheckboxes > 0 && checkedCheckboxes === totalCheckboxes) ? 'Desselecionar Todas' : 'Selecionar Todas';
+}
+
+function updateActionButtons() {
+    const hasSelection = selectedCommissions.size > 0;
+    document.getElementById('markPaidBtn').disabled = !hasSelection;
+    document.getElementById('markUnpaidBtn').disabled = !hasSelection;
+}
+
+async function markSelectedAsPaid(paid) {
+    if (selectedCommissions.size === 0) return;
+    
+    if (!confirm(`Tem certeza que deseja marcar ${selectedCommissions.size} comissões como ${paid ? 'pagas' : 'não pagas'}?`)) {
+        return;
+    }
+    
+    try {
+        const response = await fetch('/api/admin/commissions/mark-paid', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+                booking_ids: Array.from(selectedCommissions),
+                paid: paid
+            })
+        });
+        
+        const data = await response.json();
+        
+        if (data.ok) {
+            alert(data.message);
+            selectedCommissions.clear();
+            allSelected = false;
+            loadCommissions();
+            loadSummary();
+        } else {
+            alert('Erro: ' + data.error);
+        }
+    } catch (error) {
+        console.error('Error marking commissions:', error);
+        alert('Erro ao marcar comissões');
+    }
+}
+
+async function loadCommissioners() {
+    try {
+        const response = await fetch('/api/admin/commissioners');
+        const data = await response.json();
+        
+        if (data.ok) {
+            const select = document.getElementById('commissionerFilter');
+            select.innerHTML = '<option value="">Todos</option>';
+            
+            data.commissioners.forEach(commissioner => {
+                const option = document.createElement('option');
+                option.value = commissioner.id;
+                option.textContent = commissioner.name;
+                select.appendChild(option);
+            });
+        }
+    } catch (error) {
+        console.error('Error loading commissioners:', error);
+    }
+}
+
+function populateMonthFilter() {
+    const select = document.getElementById('monthFilter');
+    const currentDate = new Date();
+    const currentYear = currentDate.getFullYear();
+    const currentMonth = currentDate.getMonth();
+    
+    // Add last 12 months
+    for (let i = 0; i < 12; i++) {
+        const date = new Date(currentYear, currentMonth - i, 1);
+        const year = date.getFullYear();
+        const month = String(date.getMonth() + 1).padStart(2, '0');
+        const monthName = date.toLocaleDateString('pt-PT', { month: 'long', year: 'numeric' });
+        
+        const option = document.createElement('option');
+        option.value = `${year}-${month}`;
+        option.textContent = monthName.charAt(0).toUpperCase() + monthName.slice(1);
+        select.appendChild(option);
+    }
+}
+</script>
+{% endblock %}
