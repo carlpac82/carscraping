@@ -139,519 +139,290 @@
         </div>
       </div>
     
-    <!-- Summary Cards -->
-    <div class="summary-cards">
-        <div class="summary-card">
-            <h3>Total de Comissões Pagas</h3>
-            <p class="summary-value" id="totalPaid">€0.00</p>
-        </div>
-        <div class="summary-card">
-            <h3>Total de Comissões Por Pagar</h3>
-            <p class="summary-value" id="totalUnpaid">€0.00</p>
-        </div>
-        <div class="summary-card">
-            <h3>Reservas Pendentes</h3>
-            <p class="summary-value" id="pendingBookings">0</p>
-        </div>
-        <div class="summary-card">
-            <h3>Comissionistas Ativos</h3>
-            <p class="summary-value" id="activeCommissioners">0</p>
-        </div>
-    </div>
-    
-    <!-- Filters -->
-    <div class="filters-section">
-        <div class="filter-group">
-            <label>Status:</label>
-            <select id="statusFilter">
-                <option value="all">Todas</option>
-                <option value="paid">Pagas</option>
-                <option value="unpaid">Por Pagar</option>
-            </select>
-        </div>
-        <div class="filter-group">
-            <label>Mês:</label>
-            <select id="monthFilter">
-                <option value="">Todos os Meses</option>
-            </select>
-        </div>
-        <div class="filter-group">
-            <label>Comissionista:</label>
-            <select id="commissionerFilter">
-                <option value="">Todos</option>
-            </select>
-        </div>
-        <button class="btn-primary" onclick="loadCommissions()">Atualizar</button>
-    </div>
-    
-    <!-- Actions -->
-    <div class="mb-4 flex gap-2">
-        <button class="btn-primary" onclick="markSelectedAsPaid(true)" disabled id="markPaidBtn">
-            Marcar Selecionadas como Pagas
-        </button>
-        <button class="btn-primary" onclick="markSelectedAsPaid(false)" disabled id="markUnpaidBtn">
-            Marcar Selecionadas como Não Pagas
-        </button>
-        <button class="btn-primary" onclick="toggleSelectAll()">
-            <span id="selectAllText">Selecionar Todas</span>
-        </button>
-    </div>
-    
-    <!-- Commissions Table -->
-    <div class="commissions-table">
-        <table>
-            <thead>
-                <tr>
-                    <th><input type="checkbox" id="selectAllCheckbox" onchange="toggleSelectAll()"></th>
-                    <th>Voucher</th>
-                    <th>Cliente</th>
-                    <th>Comissionista</th>
-                    <th>Veículo</th>
-                    <th>Data</th>
-                    <th>Valor Total</th>
-                    <th>Comissão</th>
-                    <th>Status Pagamento</th>
-                    <th>Status Reserva</th>
-                    <th>Data Pagamento</th>
-                </tr>
-            </thead>
-            <tbody id="commissionsTableBody">
-                <tr>
-                    <td colspan="12" class="text-center py-4">Carregando...</td>
-                </tr>
-            </tbody>
-        </table>
-    </div>
-    </main>
-    
-    <script>
-        // Global variables
-        let allCommissions = [];
-        let selectedCommissions = new Set();
-        
-        // Load commissions on page load
-        document.addEventListener('DOMContentLoaded', function() {
-            loadCommissions();
-            loadFilters();
-        });
-        
-        // Load commissions data
-        async function loadCommissions() {
-            try {
-                const response = await fetch('/api/admin/commissions/list');
-                const data = await response.json();
-                
-                if (data.ok) {
-                    allCommissions = data.commissions;
-                    renderCommissions();
-                    updateSummaryCards(data.summary);
-                } else {
-                    console.error('Error loading commissions:', data.error);
-                }
-            } catch (error) {
-                console.error('Error loading commissions:', error);
-            }
-        }
-        
-        // Load filter options
-        async function loadFilters() {
-            try {
-                // Load months
-                const monthSelect = document.getElementById('monthFilter');
-                for (let i = 1; i <= 12; i++) {
-                    const option = document.createElement('option');
-                    option.value = i;
-                    option.textContent = new Date(2026, i - 1, 1).toLocaleDateString('pt-PT', { month: 'long' });
-                    monthSelect.appendChild(option);
-                }
-                
-                // Load commissioners from API
-                const response = await fetch('/api/admin/commissions/list');
-                const data = await response.json();
-                if (data.ok) {
-                    const commissioners = new Set();
-                    data.commissions.forEach(c => {
-                        if (c.commissioner_name) commissioners.add(c.commissioner_name);
-                    });
-                    
-                    const commissionerSelect = document.getElementById('commissionerFilter');
-                    commissioners.forEach(name => {
-                        const option = document.createElement('option');
-                        option.value = name;
-                        option.textContent = name;
-                        commissionerSelect.appendChild(option);
-                    });
-                }
-            } catch (error) {
-                console.error('Error loading filters:', error);
-            }
-        }
-        
-        // Render commissions table
-        function renderCommissions() {
-            const tbody = document.getElementById('commissionsTableBody');
-            const filteredCommissions = filterCommissions();
-            
-            tbody.innerHTML = '';
-            
-            filteredCommissions.forEach(commission => {
-                const row = document.createElement('tr');
-                row.innerHTML = `
-                    <td><input type="checkbox" data-id="${commission.id}" onchange="toggleCommissionSelection(${commission.id})"></td>
-                    <td>${commission.voucher_code || '-'}</td>
-                    <td>${commission.customer_name || '-'}</td>
-                    <td>${commission.commissioner_name || '-'}</td>
-                    <td>${commission.vehicle_group || '-'}</td>
-                    <td>${new Date(commission.booking_date).toLocaleDateString('pt-PT')}</td>
-                    <td>€${(commission.total_amount || 0).toFixed(2)}</td>
-                    <td>€${(commission.commission_amount || 0).toFixed(2)}</td>
-                    <td class="${commission.commission_paid ? 'status-paid' : 'status-unpaid'}">
-                        ${commission.commission_paid ? 'Pago' : 'Por Pagar'}
-                    </td>
-                    <td>${commission.booking_status || '-'}</td>
-                    <td>${commission.payment_date ? new Date(commission.payment_date).toLocaleDateString('pt-PT') : '-'}</td>
-                `;
-                tbody.appendChild(row);
-            });
-            
-            updateActionButtons();
-        }
-        
-        // Filter commissions
-        function filterCommissions() {
-            const statusFilter = document.getElementById('statusFilter').value;
-            const monthFilter = document.getElementById('monthFilter').value;
-            const commissionerFilter = document.getElementById('commissionerFilter').value;
-            
-            return allCommissions.filter(commission => {
-                if (statusFilter !== 'all') {
-                    if (statusFilter === 'paid' && !commission.commission_paid) return false;
-                    if (statusFilter === 'unpaid' && commission.commission_paid) return false;
-                }
-                
-                if (monthFilter) {
-                    const bookingMonth = new Date(commission.booking_date).getMonth() + 1;
-                    if (bookingMonth != monthFilter) return false;
-                }
-                
-                if (commissionerFilter && commission.commissioner_name !== commissionerFilter) {
-                    return false;
-                }
-                
-                return true;
-            });
-        }
-        
-        // Update summary cards
-        function updateSummaryCards(summary) {
-            document.getElementById('totalPaid').textContent = `€${(summary.paid_commissions_amount || 0).toFixed(2)}`;
-            document.getElementById('totalUnpaid').textContent = `€${(summary.unpaid_commissions_amount || 0).toFixed(2)}`;
-            document.getElementById('pendingBookings').textContent = summary.unpaid_commissions || 0;
-            document.getElementById('activeCommissioners').textContent = summary.total_commissioners || 0;
-        }
-        
-        // Toggle commission selection
-        function toggleCommissionSelection(commissionId) {
-            if (selectedCommissions.has(commissionId)) {
-                selectedCommissions.delete(commissionId);
-            } else {
-                selectedCommissions.add(commissionId);
-            }
-            updateActionButtons();
-        }
-        
-        // Toggle select all
-        function toggleSelectAll() {
-            const selectAllCheckbox = document.getElementById('selectAllCheckbox');
-            const checkboxes = document.querySelectorAll('input[data-id]');
-            
-            checkboxes.forEach(checkbox => {
-                checkbox.checked = selectAllCheckbox.checked;
-                const commissionId = parseInt(checkbox.dataset.id);
-                if (selectAllCheckbox.checked) {
-                    selectedCommissions.add(commissionId);
-                } else {
-                    selectedCommissions.delete(commissionId);
-                }
-            });
-            
-            updateActionButtons();
-        }
-        
-        // Update action buttons
-        function updateActionButtons() {
-            const markPaidBtn = document.getElementById('markPaidBtn');
-            const markUnpaidBtn = document.getElementById('markUnpaidBtn');
-            const selectAllText = document.getElementById('selectAllText');
-            
-            const hasSelection = selectedCommissions.size > 0;
-            markPaidBtn.disabled = !hasSelection;
-            markUnpaidBtn.disabled = !hasSelection;
-            
-            selectAllText.textContent = selectedCommissions.size === allCommissions.length ? 'Deselecionar Todas' : 'Selecionar Todas';
-        }
-        
-        // Mark selected as paid/unpaid
-        async function markSelectedAsPaid(paid) {
-            if (selectedCommissions.size === 0) return;
-            
-            if (!confirm(`Tem certeza que deseja marcar ${selectedCommissions.size} comissões como ${paid ? 'pagas' : 'não pagas'}?`)) {
-                return;
-            }
-            
-            try {
-                const response = await fetch('/api/admin/commissions/update-status', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                    },
-                    body: JSON.stringify({
-                        commission_ids: Array.from(selectedCommissions),
-                        paid: paid
-                    })
-                });
-                
-                const data = await response.json();
-                if (data.ok) {
-                    selectedCommissions.clear();
-                    loadCommissions();
-                } else {
-                    alert('Erro ao atualizar comissões: ' + data.error);
-                }
-            } catch (error) {
-                console.error('Error updating commissions:', error);
-                alert('Erro ao atualizar comissões');
-            }
-        }
-    </script>
-  </body>
+      <!-- Summary Cards -->
+      <div class="summary-cards">
+          <div class="summary-card">
+              <h3>Total de Comissões Pagas</h3>
+              <p class="summary-value" id="totalPaid">€0.00</p>
+          </div>
+          <div class="summary-card">
+              <h3>Total de Comissões Por Pagar</h3>
+              <p class="summary-value" id="totalUnpaid">€0.00</p>
+          </div>
+          <div class="summary-card">
+              <h3>Reservas Pendentes</h3>
+              <p class="summary-value" id="pendingBookings">0</p>
+          </div>
+          <div class="summary-card">
+              <h3>Comissionistas Ativos</h3>
+              <p class="summary-value" id="activeCommissioners">0</p>
+          </div>
+      </div>
+      
+      <!-- Filters -->
+      <div class="filters-section">
+          <div class="filter-group">
+              <label>Status:</label>
+              <select id="statusFilter">
+                  <option value="all">Todas</option>
+                  <option value="paid">Pagas</option>
+                  <option value="unpaid">Por Pagar</option>
+              </select>
+          </div>
+          <div class="filter-group">
+              <label>Mês:</label>
+              <select id="monthFilter">
+                  <option value="">Todos os Meses</option>
+              </select>
+          </div>
+          <div class="filter-group">
+              <label>Comissionista:</label>
+              <select id="commissionerFilter">
+                  <option value="">Todos</option>
+              </select>
+          </div>
+          <button class="btn-primary" onclick="loadCommissions()">Atualizar</button>
+      </div>
+      
+      <!-- Actions -->
+      <div class="mb-4 flex gap-2">
+          <button class="btn-primary" onclick="markSelectedAsPaid(true)" disabled id="markPaidBtn">
+              Marcar Selecionadas como Pagas
+          </button>
+          <button class="btn-primary" onclick="markSelectedAsPaid(false)" disabled id="markUnpaidBtn">
+              Marcar Selecionadas como Não Pagas
+          </button>
+          <button class="btn-primary" onclick="toggleSelectAll()">
+              <span id="selectAllText">Selecionar Todas</span>
+          </button>
+      </div>
+      
+      <!-- Commissions Table -->
+      <div class="commissions-table">
+          <table>
+              <thead>
+                  <tr>
+                      <th><input type="checkbox" id="selectAllCheckbox" onchange="toggleSelectAll()"></th>
+                      <th>Voucher</th>
+                      <th>Cliente</th>
+                      <th>Comissionista</th>
+                      <th>Veículo</th>
+                      <th>Data</th>
+                      <th>Valor Total</th>
+                      <th>Comissão</th>
+                      <th>Status Pagamento</th>
+                      <th>Status Reserva</th>
+                      <th>Data Pagamento</th>
+                  </tr>
+              </thead>
+              <tbody id="commissionsTableBody">
+                  <tr>
+                      <td colspan="12" class="text-center py-4">Carregando...</td>
+                  </tr>
+              </tbody>
+          </table>
+      </div>
+      </main>
+      
+      <script>
+          // Global variables
+          let allCommissions = [];
+          let selectedCommissions = new Set();
+          
+          // Load commissions on page load
+          document.addEventListener('DOMContentLoaded', function() {
+              loadCommissions();
+              loadFilters();
+          });
+          
+          // Load commissions data
+          async function loadCommissions() {
+              try {
+                  const response = await fetch('/api/admin/commissions/list');
+                  const data = await response.json();
+                  
+                  if (data.ok) {
+                      allCommissions = data.commissions;
+                      renderCommissions();
+                      updateSummaryCards(data.summary);
+                  } else {
+                      console.error('Error loading commissions:', data.error);
+                  }
+              } catch (error) {
+                  console.error('Error loading commissions:', error);
+              }
+          }
+          
+          // Load filter options
+          async function loadFilters() {
+              try {
+                  // Load months
+                  const monthSelect = document.getElementById('monthFilter');
+                  for (let i = 1; i <= 12; i++) {
+                      const option = document.createElement('option');
+                      option.value = i;
+                      option.textContent = new Date(2026, i - 1, 1).toLocaleDateString('pt-PT', { month: 'long' });
+                      monthSelect.appendChild(option);
+                  }
+                  
+                  // Load commissioners from API
+                  const response = await fetch('/api/admin/commissions/list');
+                  const data = await response.json();
+                  if (data.ok) {
+                      const commissioners = new Set();
+                      data.commissions.forEach(c => {
+                          if (c.commissioner_name) commissioners.add(c.commissioner_name);
+                      });
+                      
+                      const commissionerSelect = document.getElementById('commissionerFilter');
+                      commissioners.forEach(name => {
+                          const option = document.createElement('option');
+                          option.value = name;
+                          option.textContent = name;
+                          commissionerSelect.appendChild(option);
+                      });
+                  }
+              } catch (error) {
+                  console.error('Error loading filters:', error);
+              }
+          }
+          
+          // Render commissions table
+          function renderCommissions() {
+              const tbody = document.getElementById('commissionsTableBody');
+              const filteredCommissions = filterCommissions();
+              
+              tbody.innerHTML = '';
+              
+              filteredCommissions.forEach(commission => {
+                  const row = document.createElement('tr');
+                  row.innerHTML = `
+                      <td><input type="checkbox" data-id="${commission.id}" onchange="toggleCommissionSelection(${commission.id})"></td>
+                      <td>${commission.voucher_code || '-'}</td>
+                      <td>${commission.customer_name || '-'}</td>
+                      <td>${commission.commissioner_name || '-'}</td>
+                      <td>${commission.vehicle_group || '-'}</td>
+                      <td>${new Date(commission.booking_date).toLocaleDateString('pt-PT')}</td>
+                      <td>€${(commission.total_amount || 0).toFixed(2)}</td>
+                      <td>€${(commission.commission_amount || 0).toFixed(2)}</td>
+                      <td class="${commission.commission_paid ? 'status-paid' : 'status-unpaid'}">
+                          ${commission.commission_paid ? 'Pago' : 'Por Pagar'}
+                      </td>
+                      <td>${commission.booking_status || '-'}</td>
+                      <td>${commission.payment_date ? new Date(commission.payment_date).toLocaleDateString('pt-PT') : '-'}</td>
+                  `;
+                  tbody.appendChild(row);
+              });
+              
+              updateActionButtons();
+          }
+          
+          // Filter commissions
+          function filterCommissions() {
+              const statusFilter = document.getElementById('statusFilter').value;
+              const monthFilter = document.getElementById('monthFilter').value;
+              const commissionerFilter = document.getElementById('commissionerFilter').value;
+              
+              return allCommissions.filter(commission => {
+                  if (statusFilter !== 'all') {
+                      if (statusFilter === 'paid' && !commission.commission_paid) return false;
+                      if (statusFilter === 'unpaid' && commission.commission_paid) return false;
+                  }
+                  
+                  if (monthFilter) {
+                      const bookingMonth = new Date(commission.booking_date).getMonth() + 1;
+                      if (bookingMonth != monthFilter) return false;
+                  }
+                  
+                  if (commissionerFilter && commission.commissioner_name !== commissionerFilter) {
+                      return false;
+                  }
+                  
+                  return true;
+              });
+          }
+          
+          // Update summary cards
+          function updateSummaryCards(summary) {
+              document.getElementById('totalPaid').textContent = `€${(summary.paid_commissions_amount || 0).toFixed(2)}`;
+              document.getElementById('totalUnpaid').textContent = `€${(summary.unpaid_commissions_amount || 0).toFixed(2)}`;
+              document.getElementById('pendingBookings').textContent = summary.unpaid_commissions || 0;
+              document.getElementById('activeCommissioners').textContent = summary.total_commissioners || 0;
+          }
+          
+          // Toggle commission selection
+          function toggleCommissionSelection(commissionId) {
+              if (selectedCommissions.has(commissionId)) {
+                  selectedCommissions.delete(commissionId);
+              } else {
+                  selectedCommissions.add(commissionId);
+              }
+              updateActionButtons();
+          }
+          
+          // Toggle select all
+          function toggleSelectAll() {
+              const selectAllCheckbox = document.getElementById('selectAllCheckbox');
+              const checkboxes = document.querySelectorAll('input[data-id]');
+              
+              checkboxes.forEach(checkbox => {
+                  checkbox.checked = selectAllCheckbox.checked;
+                  const commissionId = parseInt(checkbox.dataset.id);
+                  if (selectAllCheckbox.checked) {
+                      selectedCommissions.add(commissionId);
+                  } else {
+                      selectedCommissions.delete(commissionId);
+                  }
+              });
+              
+              updateActionButtons();
+          }
+          
+          // Update action buttons
+          function updateActionButtons() {
+              const markPaidBtn = document.getElementById('markPaidBtn');
+              const markUnpaidBtn = document.getElementById('markUnpaidBtn');
+              const selectAllText = document.getElementById('selectAllText');
+              
+              const hasSelection = selectedCommissions.size > 0;
+              markPaidBtn.disabled = !hasSelection;
+              markUnpaidBtn.disabled = !hasSelection;
+              
+              selectAllText.textContent = selectedCommissions.size === allCommissions.length ? 'Deselecionar Todas' : 'Selecionar Todas';
+          }
+          
+          // Mark selected as paid/unpaid
+          async function markSelectedAsPaid(paid) {
+              if (selectedCommissions.size === 0) return;
+              
+              if (!confirm(`Tem certeza que deseja marcar ${selectedCommissions.size} comissões como ${paid ? 'pagas' : 'não pagas'}?`)) {
+                  return;
+              }
+              
+              try {
+                  const response = await fetch('/api/admin/commissions/update-status', {
+                      method: 'POST',
+                      headers: {
+                          'Content-Type': 'application/json',
+                      },
+                      body: JSON.stringify({
+                          commission_ids: Array.from(selectedCommissions),
+                          paid: paid
+                      })
+                  });
+                  
+                  const data = await response.json();
+                  if (data.ok) {
+                      selectedCommissions.clear();
+                      loadCommissions();
+                  } else {
+                      alert('Erro ao atualizar comissões: ' + data.error);
+                  }
+              } catch (error) {
+                  console.error('Error updating commissions:', error);
+                  alert('Erro ao atualizar comissões');
+              }
+          }
+      </script>
+    </body>
 </html>
-    
-
-
-
-
-
-
-        loadCommissions();
-    loadCommissioners();
-    populateMonthFilter();
-});
-
-async function loadSummary() {
-    try {
-        const month = document.getElementById('monthFilter').value;
-        const commissionerId = document.getElementById('commissionerFilter').value;
-        
-        let url = '/api/admin/commissions/summary';
-        const params = new URLSearchParams();
-        if (month) params.append('month', month);
-        if (commissionerId) params.append('commissioner_id', commissionerId);
-        if (params.toString()) url += '?' + params.toString();
-        
-        const response = await fetch(url);
-        const data = await response.json();
-        
-        if (data.ok) {
-            document.getElementById('totalPaid').textContent = `€${data.summary.total_paid.toFixed(2)}`;
-            document.getElementById('totalUnpaid').textContent = `€${data.summary.total_unpaid.toFixed(2)}`;
-            document.getElementById('pendingBookings').textContent = data.summary.pending_bookings;
-            document.getElementById('activeCommissioners').textContent = data.summary.active_commissioners;
-        }
-    } catch (error) {
-        console.error('Error loading summary:', error);
-    }
-}
-
-async function loadCommissions() {
-    try {
-        const status = document.getElementById('statusFilter').value;
-        const month = document.getElementById('monthFilter').value;
-        const commissionerId = document.getElementById('commissionerFilter').value;
-        
-        let url = '/api/admin/commissions/list';
-        const params = new URLSearchParams();
-        if (status && status !== 'all') params.append('status', status);
-        if (month) params.append('month', month);
-        if (commissionerId) params.append('commissioner_id', commissionerId);
-        if (params.toString()) url += '?' + params.toString();
-        
-        const response = await fetch(url);
-        const data = await response.json();
-        
-        if (data.ok) {
-            allCommissions = data.commissions;
-            renderCommissionsTable();
-        }
-    } catch (error) {
-        console.error('Error loading commissions:', error);
-        document.getElementById('commissionsTableBody').innerHTML = 
-            '<tr><td colspan="11" class="error">Erro ao carregar comissões</td></tr>';
-    }
-}
-
-function renderCommissionsTable() {
-    const tbody = document.getElementById('commissionsTableBody');
-    
-    if (allCommissions.length === 0) {
-        tbody.innerHTML = '<tr><td colspan="11">Nenhuma comissão encontrada</td></tr>';
-        return;
-    }
-    
-    tbody.innerHTML = allCommissions.map(commission => `
-        <tr>
-            <td><input type="checkbox" value="${commission.id}" onchange="toggleSelection(${commission.id})"></td>
-            <td>${commission.voucher_number || '#' + commission.id}</td>
-            <td>${commission.client_name || 'N/A'}</td>
-            <td>${commission.commissioner_name || 'N/A'}</td>
-            <td>${commission.vehicle_group || 'N/A'}</td>
-            <td>${new Date(commission.pickup_date).toLocaleDateString('pt-PT')}</td>
-            <td>€${(commission.price || 0).toFixed(2)}</td>
-            <td>€${(commission.commission_amount || 0).toFixed(2)}</td>
-            <td>
-                <span class="status-badge status-${commission.commission_paid ? 'paid' : 'unpaid'}">
-                    ${commission.commission_paid ? 'Paga' : 'Por Pagar'}
-                </span>
-            </td>
-            <td>
-                <span class="status-badge status-${commission.status}">
-                    ${getStatusText(commission.status)}
-                </span>
-            </td>
-            <td>${commission.commission_paid_date ? new Date(commission.commission_paid_date).toLocaleDateString('pt-PT') : '-'}</td>
-        </tr>
-    `).join('');
-}
-
-function getStatusText(status) {
-    const statusMap = {
-        'pending': 'Pendente',
-        'confirmed': 'Confirmada',
-        'completed': 'Concluída',
-        'cancelled': 'Cancelada'
-    };
-    return statusMap[status] || status;
-}
-
-function toggleSelection(commissionId) {
-    if (selectedCommissions.has(commissionId)) {
-        selectedCommissions.delete(commissionId);
-    } else {
-        selectedCommissions.add(commissionId);
-    }
-    updateActionButtons();
-    updateSelectAllCheckbox();
-}
-
-function toggleSelectAll() {
-    allSelected = !allSelected;
-    const checkboxes = document.querySelectorAll('#commissionsTableBody input[type="checkbox"]');
-    
-    checkboxes.forEach(checkbox => {
-        checkbox.checked = allSelected;
-        const commissionId = parseInt(checkbox.value);
-        if (allSelected) {
-            selectedCommissions.add(commissionId);
-        } else {
-            selectedCommissions.delete(commissionId);
-        }
-    });
-    
-    document.getElementById('selectAllText').textContent = allSelected ? 'Desselecionar Todas' : 'Selecionar Todas';
-    document.getElementById('selectAllCheckbox').checked = allSelected;
-    updateActionButtons();
-}
-
-function updateSelectAllCheckbox() {
-    const totalCheckboxes = document.querySelectorAll('#commissionsTableBody input[type="checkbox"]').length;
-    const checkedCheckboxes = document.querySelectorAll('#commissionsTableBody input[type="checkbox"]:checked').length;
-    
-    document.getElementById('selectAllCheckbox').checked = totalCheckboxes > 0 && checkedCheckboxes === totalCheckboxes;
-    document.getElementById('selectAllText').textContent = 
-        (totalCheckboxes > 0 && checkedCheckboxes === totalCheckboxes) ? 'Desselecionar Todas' : 'Selecionar Todas';
-}
-
-function updateActionButtons() {
-    const hasSelection = selectedCommissions.size > 0;
-    document.getElementById('markPaidBtn').disabled = !hasSelection;
-    document.getElementById('markUnpaidBtn').disabled = !hasSelection;
-}
-
-async function markSelectedAsPaid(paid) {
-    if (selectedCommissions.size === 0) return;
-    
-    if (!confirm(`Tem certeza que deseja marcar ${selectedCommissions.size} comissões como ${paid ? 'pagas' : 'não pagas'}?`)) {
-        return;
-    }
-    
-    try {
-        const response = await fetch('/api/admin/commissions/mark-paid', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-            },
-            body: JSON.stringify({
-                booking_ids: Array.from(selectedCommissions),
-                paid: paid
-            })
-        });
-        
-        const data = await response.json();
-        
-        if (data.ok) {
-            alert(data.message);
-            selectedCommissions.clear();
-            allSelected = false;
-            loadCommissions();
-            loadSummary();
-        } else {
-            alert('Erro: ' + data.error);
-        }
-    } catch (error) {
-        console.error('Error marking commissions:', error);
-        alert('Erro ao marcar comissões');
-    }
-}
-
-async function loadCommissioners() {
-    try {
-        const response = await fetch('/api/admin/commissioners');
-        const data = await response.json();
-        
-        if (data.ok) {
-            const select = document.getElementById('commissionerFilter');
-            select.innerHTML = '<option value="">Todos</option>';
-            
-            data.commissioners.forEach(commissioner => {
-                const option = document.createElement('option');
-                option.value = commissioner.id;
-                option.textContent = commissioner.name;
-                select.appendChild(option);
-            });
-        }
-    } catch (error) {
-        console.error('Error loading commissioners:', error);
-    }
-}
-
-function populateMonthFilter() {
-    const select = document.getElementById('monthFilter');
-    const currentDate = new Date();
-    const currentYear = currentDate.getFullYear();
-    const currentMonth = currentDate.getMonth();
-    
-    // Add last 12 months
-    for (let i = 0; i < 12; i++) {
-        const date = new Date(currentYear, currentMonth - i, 1);
-        const year = date.getFullYear();
-        const month = String(date.getMonth() + 1).padStart(2, '0');
-        const monthName = date.toLocaleDateString('pt-PT', { month: 'long', year: 'numeric' });
-        
-        const option = document.createElement('option');
-        option.value = `${year}-${month}`;
-        option.textContent = monthName.charAt(0).toUpperCase() + monthName.slice(1);
-        select.appendChild(option);
-    }
-}
-</script>
-{% endblock %}
