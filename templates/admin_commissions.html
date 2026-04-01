@@ -451,9 +451,22 @@
                       <th><input type="checkbox" id="selectAllCheckbox" onchange="toggleSelectAll()"></th>
                       <th>Voucher</th>
                       <th>Cliente</th>
+                      <th>Email</th>
+                      <th>Telefone</th>
                       <th>Comissionista</th>
                       <th>Veículo</th>
-                      <th>Data</th>
+                      <th>Data Levant.</th>
+                      <th>Hora Levant.</th>
+                      <th>Local Levant.</th>
+                      <th>Data Devolv.</th>
+                      <th>Hora Devolv.</th>
+                      <th>Local Devolv.</th>
+                      <th>Extras</th>
+                      <th>Depósito</th>
+                      <th>Hotel</th>
+                      <th>Quarto</th>
+                      <th>Voo</th>
+                      <th>Observações</th>
                       <th>Valor Total</th>
                       <th>Comissão</th>
                       <th>Status Pagamento</th>
@@ -463,7 +476,7 @@
               </thead>
               <tbody id="commissionsTableBody">
                   <tr>
-                      <td colspan="12" class="text-center py-4">Carregando...</td>
+                      <td colspan="26" class="text-center py-4">Carregando...</td>
                   </tr>
               </tbody>
           </table>
@@ -544,18 +557,31 @@
                   const row = document.createElement('tr');
                   row.innerHTML = `
                       <td><input type="checkbox" data-id="${commission.id}" onchange="toggleCommissionSelection(${commission.id})"></td>
-                      <td>${commission.voucher_code || '-'}</td>
-                      <td>${commission.customer_name || '-'}</td>
+                      <td>${commission.voucher_number || '-'}</td>
+                      <td>${commission.client_name || '-'}</td>
+                      <td>${commission.client_email || '-'}</td>
+                      <td>${commission.client_phone || '-'}</td>
                       <td>${commission.commissioner_name || '-'}</td>
                       <td>${commission.vehicle_group || '-'}</td>
-                      <td>${new Date(commission.booking_date).toLocaleDateString('pt-PT')}</td>
-                      <td>€${(commission.total_amount || 0).toFixed(2)}</td>
+                      <td>${commission.pickup_date ? new Date(commission.pickup_date).toLocaleDateString('pt-PT') : '-'}</td>
+                      <td>${commission.pickup_time || '-'}</td>
+                      <td>${commission.pickup_location || '-'}</td>
+                      <td>${commission.dropoff_date ? new Date(commission.dropoff_date).toLocaleDateString('pt-PT') : '-'}</td>
+                      <td>${commission.dropoff_time || '-'}</td>
+                      <td>${commission.dropoff_location || '-'}</td>
+                      <td>${commission.extras || '-'}</td>
+                      <td>€${(commission.deposit || 0).toFixed(2)}</td>
+                      <td>${commission.hotel || '-'}</td>
+                      <td>${commission.room_number || '-'}</td>
+                      <td>${commission.flight_number || '-'}</td>
+                      <td>${commission.observations || '-'}</td>
+                      <td>€${(commission.price || 0).toFixed(2)}</td>
                       <td>€${(commission.commission_amount || 0).toFixed(2)}</td>
                       <td class="${commission.commission_paid ? 'status-paid' : 'status-unpaid'}">
                           ${commission.commission_paid ? 'Pago' : 'Por Pagar'}
                       </td>
-                      <td>${commission.booking_status || '-'}</td>
-                      <td>${commission.payment_date ? new Date(commission.payment_date).toLocaleDateString('pt-PT') : '-'}</td>
+                      <td>${commission.status || '-'}</td>
+                      <td>${commission.commission_paid_date ? new Date(commission.commission_paid_date).toLocaleDateString('pt-PT') : '-'}</td>
                   `;
                   tbody.appendChild(row);
               });
@@ -576,7 +602,7 @@
                   }
                   
                   if (monthFilter) {
-                      const bookingMonth = new Date(commission.booking_date).getMonth() + 1;
+                      const bookingMonth = new Date(commission.pickup_date).getMonth() + 1;
                       if (bookingMonth != monthFilter) return false;
                   }
                   
