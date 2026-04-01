@@ -11954,7 +11954,7 @@ async def admin_commissions_mark_paid(request: Request):
                 con.execute(f"""
                     UPDATE commission_bookings 
                     SET commission_paid = 1, 
-                        commission_paid_date = datetime('now'),
+                        commission_paid_date = strftime('%Y-%m-%d %H:%M:%S', 'now'),
                         commission_paid_by = ?
                     WHERE id IN ({placeholders})
                 """, [current_user] + commission_ids)
