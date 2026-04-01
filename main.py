@@ -7445,7 +7445,7 @@ async def admin_update_inspection_permissions(request: Request, user_id: int):
                 # Update role and permissions
                 con.execute(
                     "UPDATE users SET role=?, can_access_inspection=?, has_commissioner_access=?, can_manage_commissions=? WHERE id=?",
-                    (role, can_access, int(has_commissioner_access), int(can_manage_commissions), user_id)
+                    (role, can_access, bool(has_commissioner_access), bool(can_manage_commissions), user_id)
                 )
                 con.commit()
                 
