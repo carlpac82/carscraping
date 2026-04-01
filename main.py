@@ -63086,6 +63086,42 @@ async def admin_migrate_add_commission_columns(request: Request):
         traceback.print_exc()
         return JSONResponse({"ok": False, "error": str(e)}, status_code=500)
 
+@app.get("/admin/delete-all-commissioner-bookings")
+async def admin_delete_all_commissioner_bookings(request: Request):
+    """Delete ALL commissioner bookings - Admin only - USE WITH CAUTION"""
+    try:
+        require_admin(request)
+    except HTTPException:
+        return JSONResponse({"ok": False, "error": "Unauthorized"}, status_code=401)
+    
+    try:
+        with _db_lock:
+            con = _db_connect()
+            try:
+                cursor = con.cursor()
+                
+                # Count bookings before deletion
+                cursor.execute("SELECT COUNT(*) FROM commission_bookings")
+                count_before = cursor.fetchone()[0]
+                
+                # Delete all bookings
+                cursor.execute("DELETE FROM commission_bookings")
+                
+                con.commit()
+                
+                return JSONResponse({
+                    "ok": True,
+                    "message": f"✅ Deleted {count_before} commissioner bookings. Starting fresh!"
+                })
+                
+            finally:
+                con.close()
+                
+    except Exception as e:
+        print(f"Error deleting bookings: {e}")
+        traceback.print_exc()
+        return JSONResponse({"ok": False, "error": str(e)}, status_code=500)
+
 
 # ============================================================
 # COMMISSIONERS API ROUTES
