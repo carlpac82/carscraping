@@ -5270,15 +5270,21 @@
         setTimeout(calculateDays, 500);
 
         async function submitNewBooking() {
+            // Calcular o total atual antes de tudo
+            const currentTotal = calculateTotalAmount();
+            
             // Inicializar bookingConfirmationData se não existir
             if (!bookingConfirmationData) {
                 bookingConfirmationData = {
-                    totalAmount: 0,
+                    totalAmount: currentTotal,
                     valueConfirmed: null,
                     hasDeposit: null,
                     valueAdjustment: 0,
                     depositAmount: 0
                 };
+            } else {
+                // Atualizar totalAmount se já existir
+                bookingConfirmationData.totalAmount = currentTotal;
             }
             
             // Tentar obter valor do campo de preço confirmado se existir

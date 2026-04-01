@@ -63267,7 +63267,7 @@ async def api_create_commissioner_booking(request: Request):
         print(f"📥 Received booking data: {json.dumps(data, indent=2, default=str)}")
         
         # Validate required fields
-        required_fields = ["vehicle_group", "client_name", "client_email", "client_phone", 
+        required_fields = ["vehicle_group", "client_name", "client_email", 
                           "pickup_date", "pickup_time", "dropoff_date", "dropoff_time",
                           "pickup_location", "dropoff_location", "insurance_type", "total_amount"]
         
