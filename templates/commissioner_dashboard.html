@@ -5957,9 +5957,6 @@
             // O preço total da reserva
             const totalPrice = booking.price || 0;
             
-            // Road Tax: 2.23€/dia, máximo 22.30€
-            const roadTaxPrice = Math.min(2.23 * days, 22.30);
-            
             // Extras (se houver)
             let extrasPrice = 0;
             let extrasDetails = [];
@@ -5981,54 +5978,10 @@
             const pickupDate = new Date(booking.pickup_date);
             const season = getSeasonForDate(pickupDate);
             
-            // Buscar preço base da tabela
-            let basePrice = 0;
-            let basePricePerDay = 0;
-            
-            if (commissionerPricing && commissionerPricing.seasons && 
-                commissionerPricing.seasons[group] && commissionerPricing.seasons[group][season]) {
-                const seasonPrices = commissionerPricing.seasons[group][season];
-                
-                if (days <= 7) {
-                    basePrice = seasonPrices[`day${days}`] || 0;
-                } else {
-                    const day7Price = seasonPrices.day7 || 0;
-                    const dailyRate = day7Price / 7;
-                    basePrice = dailyRate * days;
-                }
-                basePricePerDay = basePrice / days;
-            }
-            
-            // Buscar preço do seguro premium da tabela
-            let insurancePrice = 0;
-            let insurancePricePerDay = 0;
-            
-            if (commissionerPricing && commissionerPricing.extras && 
-                commissionerPricing.extras.insurance && commissionerPricing.extras.insurance.seasons &&
-                commissionerPricing.extras.insurance.seasons[group] &&
-                commissionerPricing.extras.insurance.seasons[group][season]) {
-                
-                const insuranceSeasonPrices = commissionerPricing.extras.insurance.seasons[group][season];
-                
-                // Determinar faixa de dias
-                let priceRange = null;
-                if (days >= 1 && days <= 2) {
-                    priceRange = "1_2";
-                } else if (days >= 3 && days <= 7) {
-                    priceRange = "3_7";
-                } else if (days >= 8 && days <= 14) {
-                    priceRange = "8_14";
-                } else if (days >= 15 && days <= 21) {
-                    priceRange = "15_21";
-                } else if (days >= 22 && days <= 31) {
-                    priceRange = "22_31";
-                }
-                
-                if (priceRange && insuranceSeasonPrices[priceRange]) {
-                    insurancePricePerDay = insuranceSeasonPrices[priceRange];
-                    insurancePrice = insurancePricePerDay * days;
-                }
-            }
+            // Usar valores guardados na reserva (já incluem ajustes manuais)
+            let basePrice = booking.base_price || 0;
+            let insurancePrice = booking.premium_insurance || 0;
+            let roadTaxPrice = booking.road_tax || 0;
 
             const detailsHtml = `
                 <!-- Header -->
