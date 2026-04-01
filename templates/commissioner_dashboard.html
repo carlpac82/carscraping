@@ -3071,8 +3071,8 @@
                                 <input type="email" id="clientEmail" required>
                             </div>
                             <div class="form-group">
-                                <label>Telefone</label>
-                                <input type="tel" id="clientPhone">
+                                <label>Telefone *</label>
+                                <input type="tel" id="clientPhone" required placeholder="912345678">
                             </div>
                             <div class="form-group">
                                 <label>Hotel</label>
@@ -5573,9 +5573,11 @@
             }
             bookingConfirmationData.valueConfirmed = isCorrect;
             
-            // Atualizar estilos dos botões
-            const yesBtn = document.querySelector('.confirmation-btn-yes');
-            const noBtn = document.querySelector('.confirmation-btn-no');
+            // Atualizar estilos dos botões - IMPORTANTE: usar querySelectorAll e pegar o primeiro par
+            const allYesBtns = document.querySelectorAll('.confirmation-btn-yes');
+            const allNoBtns = document.querySelectorAll('.confirmation-btn-no');
+            const yesBtn = allYesBtns[0]; // Primeiro botão Sim (valor)
+            const noBtn = allNoBtns[0];   // Primeiro botão Não (valor)
             
             if (isCorrect) {
                 yesBtn.classList.add('selected');
