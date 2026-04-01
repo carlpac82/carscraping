@@ -4216,9 +4216,12 @@
             if (commissionerLocations.length === 0) {
                 await loadCommissionerLocations();
             } else {
-                // Repreencher dropdowns com valor padrão
+                // Repreencher dropdowns
                 populateLocationDropdowns();
             }
+            
+            // Aplicar default_location do comissionista após dropdowns estarem populados
+            await setDefaultLocations();
             
             renderVehicleGrid();
         }
@@ -4331,54 +4334,44 @@
         
         async function setDefaultLocations() {
             try {
-                // Aguardar carregamento dos locais se ainda não foram carregados
-                if (commissionerLocations.length === 0) {
-                    await loadCommissionerLocations();
-                }
-                
                 // Buscar default_location do comissionista logado
                 const response = await fetch('/api/commissioners/me');
                 const data = await response.json();
                 
-                console.log('🔍 Dados do comissionista:', data);
+                console.log('🔍 Aplicando default_location do comissionista:', data.commissioner?.name);
                 
                 if (data.ok && data.commissioner && data.commissioner.default_location) {
                     const defaultLocation = data.commissioner.default_location;
                     
-                    console.log('📍 Default location do comissionista:', defaultLocation);
+                    console.log('📍 Default location:', defaultLocation);
                     
-                    // Aguardar um pouco para garantir que os selects foram populados
-                    setTimeout(() => {
-                        const pickupLocationSelect = document.getElementById('pickupLocation');
-                        const dropoffLocationSelect = document.getElementById('dropoffLocation');
+                    const pickupLocationSelect = document.getElementById('pickupLocation');
+                    const dropoffLocationSelect = document.getElementById('dropoffLocation');
+                    
+                    if (pickupLocationSelect && dropoffLocationSelect) {
+                        console.log('📋 Opções disponíveis:', pickupLocationSelect.options.length);
                         
-                        if (pickupLocationSelect && dropoffLocationSelect) {
-                            console.log('📋 Pickup options:', pickupLocationSelect.options.length);
-                            console.log('📋 Dropoff options:', dropoffLocationSelect.options.length);
-                            
-                            // Verificar se o valor existe nas opções
-                            const pickupOptions = Array.from(pickupLocationSelect.options).map(opt => opt.value);
-                            const hasOption = pickupOptions.includes(defaultLocation);
-                            
-                            console.log('🔎 Local "' + defaultLocation + '" existe nas opções?', hasOption);
-                            
-                            if (hasOption) {
-                                pickupLocationSelect.value = defaultLocation;
-                                dropoffLocationSelect.value = defaultLocation;
-                                console.log('✅ Default location definido:', defaultLocation);
-                            } else {
-                                console.warn('⚠️ Local "' + defaultLocation + '" não encontrado nas opções');
-                                console.log('Opções disponíveis:', pickupOptions.slice(0, 10));
-                            }
+                        // Verificar se o valor existe nas opções
+                        const pickupOptions = Array.from(pickupLocationSelect.options).map(opt => opt.value);
+                        const hasOption = pickupOptions.includes(defaultLocation);
+                        
+                        console.log('🔎 Local "' + defaultLocation + '" existe?', hasOption);
+                        
+                        if (hasOption) {
+                            pickupLocationSelect.value = defaultLocation;
+                            dropoffLocationSelect.value = defaultLocation;
+                            console.log('✅ Locais preenchidos com:', defaultLocation);
                         } else {
-                            console.error('❌ Selects não encontrados');
+                            console.warn('⚠️ Local "' + defaultLocation + '" não encontrado');
                         }
-                    }, 500);
+                    } else {
+                        console.error('❌ Selects não encontrados no DOM');
+                    }
                 } else {
-                    console.warn('⚠️ Comissionista sem default_location');
+                    console.log('ℹ️ Comissionista sem default_location definido');
                 }
             } catch (err) {
-                console.error('❌ Error loading default location:', err);
+                console.error('❌ Erro ao aplicar default_location:', err);
             }
         }
 
