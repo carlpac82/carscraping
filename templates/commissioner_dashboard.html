@@ -5780,9 +5780,20 @@
                 });
             }
 
-            // Calcular valor final com ajuste
+            // Calcular valor final e ajustar premium_insurance se necessário
             const originalTotal = basePrice + premiumInsurance + roadTax + extrasTotal;
-            const finalTotal = originalTotal + bookingConfirmationData.valueAdjustment;
+            let finalTotal = originalTotal;
+            let adjustedPremiumInsurance = premiumInsurance;
+            
+            // Se o valor não está correto, ajustar o premium_insurance com a diferença
+            if (!bookingConfirmationData.valueConfirmed && bookingConfirmationData.valueAdjustment > 0) {
+                const confirmedPrice = bookingConfirmationData.valueAdjustment;
+                const priceDifference = confirmedPrice - originalTotal;
+                
+                // Ajustar premium_insurance com a diferença
+                adjustedPremiumInsurance = premiumInsurance + priceDifference;
+                finalTotal = confirmedPrice;
+            }
 
             const bookingData = {
                 vehicle_group: selectedVehicle,
@@ -5800,13 +5811,13 @@
                 flight_number: document.getElementById('flightNumber').value || null,
                 insurance_type: selectedInsurance,
                 base_price: basePrice,
-                premium_insurance: premiumInsurance,
+                premium_insurance: adjustedPremiumInsurance,
                 road_tax: roadTax,
                 extras_total: extrasTotal,
                 rental_days: rentalDays,
                 extras: extrasArray,
                 total_amount: finalTotal,
-                value_adjustment: bookingConfirmationData.valueAdjustment,
+                value_adjustment: 0,
                 deposit: bookingConfirmationData.depositAmount
             };
 
