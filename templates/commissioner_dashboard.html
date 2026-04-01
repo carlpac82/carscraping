@@ -4650,6 +4650,11 @@
             // Calcular e preencher valor total
             const totalAmount = calculateTotalAmount();
             document.getElementById('summaryTotalAmount').textContent = `€${totalAmount.toFixed(2)}`;
+            
+            // Atualizar o totalAmount no bookingConfirmationData
+            if (bookingConfirmationData) {
+                bookingConfirmationData.totalAmount = totalAmount;
+            }
         }
 
         // Função para mostrar aviso de franquia com design do website
@@ -5787,14 +5792,18 @@
             let finalTotal = originalTotal;
             let adjustedPremiumInsurance = premiumInsurance;
             
-            // Se o valor não está correto, ajustar o premium_insurance com a diferença
-            if (!bookingConfirmationData.valueConfirmed && bookingConfirmationData.valueAdjustment > 0) {
-                const confirmedPrice = bookingConfirmationData.valueAdjustment;
-                const priceDifference = confirmedPrice - originalTotal;
+            // Se o valor não está correto, usar o preço confirmado pelo utilizador
+            if (!bookingConfirmationData.valueConfirmed) {
+                const confirmedPriceInput = document.getElementById('valueAdjustment');
+                const confirmedPrice = parseFloat(confirmedPriceInput.value) || 0;
                 
-                // Ajustar premium_insurance com a diferença
-                adjustedPremiumInsurance = premiumInsurance + priceDifference;
-                finalTotal = confirmedPrice;
+                if (confirmedPrice > 0) {
+                    const priceDifference = confirmedPrice - originalTotal;
+                    
+                    // Ajustar premium_insurance com a diferença
+                    adjustedPremiumInsurance = premiumInsurance + priceDifference;
+                    finalTotal = confirmedPrice;
+                }
             }
 
             const bookingData = {
