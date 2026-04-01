@@ -451,16 +451,9 @@
                       <th><input type="checkbox" id="selectAllCheckbox" onchange="toggleSelectAll()"></th>
                       <th>Voucher</th>
                       <th>Cliente</th>
-                      <th>Email</th>
-                      <th>Telefone</th>
                       <th>Comissionista</th>
                       <th>Veículo</th>
                       <th>Data Levant.</th>
-                      <th>Hora Levant.</th>
-                      <th>Local Levant.</th>
-                      <th>Data Devolv.</th>
-                      <th>Hora Devolv.</th>
-                      <th>Local Devolv.</th>
                       <th>Extras</th>
                       <th>Depósito</th>
                       <th>Hotel</th>
@@ -476,7 +469,7 @@
               </thead>
               <tbody id="commissionsTableBody">
                   <tr>
-                      <td colspan="26" class="text-center py-4">Carregando...</td>
+                      <td colspan="18" class="text-center py-4">Carregando...</td>
                   </tr>
               </tbody>
           </table>
@@ -559,16 +552,9 @@
                       <td><input type="checkbox" data-id="${commission.id}" onchange="toggleCommissionSelection(${commission.id})"></td>
                       <td>${commission.voucher_number || '-'}</td>
                       <td>${commission.client_name || '-'}</td>
-                      <td>${commission.client_email || '-'}</td>
-                      <td>${commission.client_phone || '-'}</td>
                       <td>${commission.commissioner_name || '-'}</td>
                       <td>${commission.vehicle_group || '-'}</td>
                       <td>${commission.pickup_date ? new Date(commission.pickup_date).toLocaleDateString('pt-PT') : '-'}</td>
-                      <td>${commission.pickup_time || '-'}</td>
-                      <td>${commission.pickup_location || '-'}</td>
-                      <td>${commission.dropoff_date ? new Date(commission.dropoff_date).toLocaleDateString('pt-PT') : '-'}</td>
-                      <td>${commission.dropoff_time || '-'}</td>
-                      <td>${commission.dropoff_location || '-'}</td>
                       <td>${commission.extras || '-'}</td>
                       <td>€${(commission.deposit || 0).toFixed(2)}</td>
                       <td>${commission.hotel || '-'}</td>
