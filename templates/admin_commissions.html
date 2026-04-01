@@ -454,12 +454,7 @@
                       <th>Cliente</th>
                       <th>Veículo</th>
                       <th>Data Levant.</th>
-                      <th>Extras</th>
                       <th>Depósito</th>
-                      <th>Hotel</th>
-                      <th>Quarto</th>
-                      <th>Voo</th>
-                      <th>Observações</th>
                       <th>Valor Total</th>
                       <th>Comissão</th>
                       <th>Status Pagamento</th>
@@ -469,7 +464,7 @@
               </thead>
               <tbody id="commissionsTableBody">
                   <tr>
-                      <td colspan="18" class="text-center py-4">Carregando...</td>
+                      <td colspan="13" class="text-center py-4">Carregando...</td>
                   </tr>
               </tbody>
           </table>
@@ -555,12 +550,7 @@
                       <td>${commission.client_name || '-'}</td>
                       <td>${commission.vehicle_group || '-'}</td>
                       <td>${commission.pickup_date ? new Date(commission.pickup_date).toLocaleDateString('pt-PT') : '-'}</td>
-                      <td>${commission.extras || '-'}</td>
                       <td>€${(commission.deposit || 0).toFixed(2)}</td>
-                      <td>${commission.hotel || '-'}</td>
-                      <td>${commission.room_number || '-'}</td>
-                      <td>${commission.flight_number || '-'}</td>
-                      <td>${commission.observations || '-'}</td>
                       <td>€${(commission.price || 0).toFixed(2)}</td>
                       <td>€${(commission.commission_amount || 0).toFixed(2)}</td>
                       <td class="${commission.commission_paid ? 'status-paid' : 'status-unpaid'}">
