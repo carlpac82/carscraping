@@ -34,6 +34,7 @@ class CommissionerUpdate(BaseModel):
     phone: Optional[str] = None
     username: Optional[str] = None
     voucher_prefix: Optional[str] = None
+    default_location: Optional[str] = None
     password: Optional[str] = None
     enabled: Optional[bool] = None
 
@@ -472,6 +473,9 @@ async def update_commissioner(commissioner_id: int, update: CommissionerUpdate):
     if update.voucher_prefix is not None:
         updates.append("voucher_prefix = %s")
         params.append(update.voucher_prefix)
+    if update.default_location is not None:
+        updates.append("default_location = %s")
+        params.append(update.default_location)
     if update.password is not None:
         updates.append("password_hash = %s")
         params.append(hash_password(update.password))

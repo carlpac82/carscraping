@@ -525,6 +525,13 @@
                 </div>
 
                 <div class="form-group">
+                    <label for="default_location">Local de Entrega Padrão</label>
+                    <select id="default_location">
+                        <option value="">Carregando locais...</option>
+                    </select>
+                </div>
+
+                <div class="form-group">
                     <label for="is_active">Status</label>
                     <select id="is_active">
                         <option value="true">Ativo</option>
@@ -543,6 +550,7 @@
     <script>
         let commissioners = [];
         let currentScheduleSettings = null;
+        let deliveryLocations = [];
 
         // ========== HORÁRIOS ==========
         async function loadScheduleSettings() {
@@ -648,6 +656,33 @@
                 alert('Erro ao guardar horários');
             }
         });
+
+        // ========== LOCAIS DE ENTREGA ==========
+        async function loadDeliveryLocations() {
+            try {
+                const response = await fetch('/api/locations');
+                const data = await response.json();
+                
+                if (data.ok && data.locations) {
+                    deliveryLocations = data.locations;
+                    populateLocationSelect();
+                }
+            } catch (error) {
+                console.error('Error loading delivery locations:', error);
+            }
+        }
+
+        function populateLocationSelect() {
+            const select = document.getElementById('default_location');
+            select.innerHTML = '<option value="">Selecione um local...</option>';
+            
+            deliveryLocations.forEach(location => {
+                const option = document.createElement('option');
+                option.value = location;
+                option.textContent = location;
+                select.appendChild(option);
+            });
+        }
 
         // ========== COMISSIONISTAS ==========
         async function loadCommissioners() {
@@ -777,6 +812,7 @@
             document.getElementById('voucher_prefix').value = commissioner.voucher_prefix || '';
             document.getElementById('email').value = commissioner.email;
             document.getElementById('commission_rate').value = commissioner.commission_rate;
+            document.getElementById('default_location').value = commissioner.default_location || '';
             document.getElementById('is_active').value = commissioner.enabled.toString();
             document.getElementById('password').placeholder = 'Deixe em branco para manter a atual';
             document.getElementById('commissionerModal').classList.add('active');
@@ -796,6 +832,7 @@
                 voucher_prefix: document.getElementById('voucher_prefix').value,
                 email: document.getElementById('email').value,
                 commission_rate: parseFloat(document.getElementById('commission_rate').value),
+                default_location: document.getElementById('default_location').value || null,
                 is_active: document.getElementById('is_active').value === 'true'
             };
 
@@ -882,6 +919,7 @@
         // Carregar dados ao iniciar
         loadScheduleSettings();
         loadCommissioners();
+        loadDeliveryLocations();
     </script>
 </body>
 </html>
