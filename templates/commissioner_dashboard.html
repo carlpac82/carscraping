@@ -5861,8 +5861,9 @@
                 rental_days: rentalDays,
                 extras: extrasArray,
                 total_amount: finalTotal,
+                price: finalTotal, // Backend também espera 'price'
                 value_adjustment: 0,
-                deposit: bookingConfirmationData.depositAmount
+                deposit: bookingConfirmationData.depositAmount || 0
             };
             
             console.log('📤 Booking data being sent:', bookingData);
