@@ -399,10 +399,12 @@ async def get_all_commissioners():
             'voucher_prefix': comm[4],
             'username': comm[5],
             'enabled': comm[6],
-            'created_at': str(comm[7])
+            'created_at': str(comm[7]),
+            'commission_rate': 0,
+            'total_bookings': 0
         })
     
-    return result
+    return {"ok": True, "commissioners": result}
 
 @router.post("/api/admin/commissioners")
 async def create_commissioner(commissioner: CommissionerCreate):
