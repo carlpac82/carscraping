@@ -652,7 +652,7 @@
         // ========== COMISSIONISTAS ==========
         async function loadCommissioners() {
             try {
-                const response = await fetch('/api/commissioners');
+                const response = await fetch('/api/admin/commissioners');
                 const data = await response.json();
 
                 if (data.ok) {
@@ -809,7 +809,7 @@
             }
 
             try {
-                const url = id ? `/api/commissioners/${id}` : '/api/commissioners';
+                const url = id ? `/api/admin/commissioners/${id}` : '/api/admin/commissioners';
                 const method = id ? 'PUT' : 'POST';
 
                 const response = await fetch(url, {
@@ -820,11 +820,11 @@
 
                 const result = await response.json();
 
-                if (result.ok) {
+                if (result.success || result.ok) {
                     closeModal();
                     loadCommissioners();
                 } else {
-                    alert('Erro: ' + result.error);
+                    alert('Erro: ' + (result.error || result.detail || 'Erro desconhecido'));
                 }
             } catch (error) {
                 console.error('Error saving commissioner:', error);
@@ -837,7 +837,7 @@
             if (!commissioner) return;
 
             try {
-                const response = await fetch(`/api/commissioners/${id}`, {
+                const response = await fetch(`/api/admin/commissioners/${id}`, {
                     method: 'PUT',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({
@@ -861,7 +861,7 @@
             if (!confirm('Tem certeza que deseja excluir este comissionista?')) return;
 
             try {
-                const response = await fetch(`/api/commissioners/${id}`, {
+                const response = await fetch(`/api/admin/commissioners/${id}`, {
                     method: 'DELETE'
                 });
 
