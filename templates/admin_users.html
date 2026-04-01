@@ -59,6 +59,7 @@
               <th class="text-left px-4 py-2">Role</th>
               <th class="text-left px-4 py-2">Inspection</th>
               <th class="text-left px-4 py-2">Commissioner</th>
+              <th class="text-left px-4 py-2">Commissions</th>
               <th class="text-left px-4 py-2">Enabled</th>
               <th class="text-left px-4 py-2">Actions</th>
             </tr>
@@ -89,6 +90,12 @@
                   <span class="ml-2 text-xs">{% if u.has_commissioner_access %}Yes{% else %}No{% endif %}</span>
                 </label>
               </td>
+              <td class="px-4 py-2">
+                <label class="inline-flex items-center cursor-pointer">
+                  <input type="checkbox" class="commissions-toggle" data-user-id="{{ u.id }}" {% if u.can_manage_commissions %}checked{% endif %} onchange="handlePermissionChange({{ u.id }})">
+                  <span class="ml-2 text-xs">{% if u.can_manage_commissions %}Yes{% else %}No{% endif %}</span>
+                </label>
+              </td>
               <td class="px-4 py-2">{% if u.enabled %}Yes{% else %}No{% endif %}</td>
               <td class="px-4 py-2">
                 <div class="flex items-center gap-3">
@@ -117,15 +124,17 @@
         const roleSelect = row.querySelector('.role-select');
         const inspectionToggle = row.querySelector('.inspection-toggle');
         const commissionerToggle = row.querySelector('.commissioner-toggle');
+        const commissionsToggle = row.querySelector('.commissions-toggle');
         
         const role = roleSelect.value;
         const canAccess = inspectionToggle.checked ? 1 : 0;
         const hasCommissionerAccess = commissionerToggle.checked ? 1 : 0;
+        const canManageCommissions = commissionsToggle.checked ? 1 : 0;
         
-        updateInspectionPermission(userId, role, canAccess, hasCommissionerAccess);
+        updateInspectionPermission(userId, role, canAccess, hasCommissionerAccess, canManageCommissions);
       }
       
-      async function updateInspectionPermission(userId, role, canAccess, hasCommissionerAccess) {
+      async function updateInspectionPermission(userId, role, canAccess, hasCommissionerAccess, canManageCommissions) {
         try {
           const response = await fetch(`/api/admin/users/${userId}/update-inspection-permissions`, {
             method: 'POST',
@@ -135,7 +144,8 @@
             body: JSON.stringify({
               role: role,
               can_access_inspection: canAccess,
-              has_commissioner_access: hasCommissionerAccess
+              has_commissioner_access: hasCommissionerAccess,
+              can_manage_commissions: canManageCommissions
             })
           });
           
@@ -151,6 +161,10 @@
             const commissionerLabel = row.querySelector('.commissioner-toggle + span');
             if (commissionerLabel) {
               commissionerLabel.textContent = hasCommissionerAccess ? 'Yes' : 'No';
+            }
+            const commissionsLabel = row.querySelector('.commissions-toggle + span');
+            if (commissionsLabel) {
+              commissionsLabel.textContent = canManageCommissions ? 'Yes' : 'No';
             }
             
             // Show success feedback

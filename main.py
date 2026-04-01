@@ -7416,7 +7416,7 @@ async def admin_users_delete(request: Request, user_id: int):
 async def admin_update_inspection_permissions(request: Request, user_id: int):
     """
     Update user role and inspection access permission.
-    Body: {role: "user|receptionist|support|admin", can_access_inspection: 0|1, has_commissioner_access: 0|1}
+    Body: {role: "user|receptionist|support|admin", can_access_inspection: 0|1, has_commissioner_access: 0|1, can_manage_commissions: 0|1}
     """
     try:
         require_admin(request)
@@ -7428,6 +7428,7 @@ async def admin_update_inspection_permissions(request: Request, user_id: int):
         role = body.get("role", "user")
         can_access = int(body.get("can_access_inspection", 0))
         has_commissioner_access = int(body.get("has_commissioner_access", 0))
+        can_manage_commissions = int(body.get("can_manage_commissions", 0))
         
         # Validate role
         if role not in ["user", "receptionist", "support", "admin"]:
@@ -7443,8 +7444,8 @@ async def admin_update_inspection_permissions(request: Request, user_id: int):
                 
                 # Update role and permissions
                 con.execute(
-                    "UPDATE users SET role=?, can_access_inspection=?, has_commissioner_access=? WHERE id=?",
-                    (role, can_access, has_commissioner_access, user_id)
+                    "UPDATE users SET role=?, can_access_inspection=?, has_commissioner_access=?, can_manage_commissions=? WHERE id=?",
+                    (role, can_access, has_commissioner_access, can_manage_commissions, user_id)
                 )
                 con.commit()
                 
