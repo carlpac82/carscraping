@@ -5290,10 +5290,15 @@
             // Tentar obter valor do campo de preço confirmado se existir
             const valueAdjustmentInput = document.getElementById('valueAdjustment');
             const depositInput = document.getElementById('depositAmount');
-            const valueConfirmedYes = document.querySelector('.confirmation-btn-yes.selected');
-            const valueConfirmedNo = document.querySelector('.confirmation-btn-no.selected');
-            const depositYes = document.querySelectorAll('.confirmation-btn-yes')[1]?.classList.contains('selected');
-            const depositNo = document.querySelectorAll('.confirmation-btn-no')[1]?.classList.contains('selected');
+            
+            // Usar índices para pegar os botões corretos (0 = valor, 1 = depósito)
+            const allYesBtns = document.querySelectorAll('.confirmation-btn-yes');
+            const allNoBtns = document.querySelectorAll('.confirmation-btn-no');
+            
+            const valueConfirmedYes = allYesBtns[0]?.classList.contains('selected');
+            const valueConfirmedNo = allNoBtns[0]?.classList.contains('selected');
+            const depositYes = allYesBtns[1]?.classList.contains('selected');
+            const depositNo = allNoBtns[1]?.classList.contains('selected');
             
             // Determinar se valor foi confirmado
             if (valueConfirmedYes) {
