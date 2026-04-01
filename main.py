@@ -11741,7 +11741,226 @@ async def admin_commissions(request: Request):
         require_admin(request)
     except HTTPException:
         return RedirectResponse(url="/login", status_code=HTTP_303_SEE_OTHER)
-    return templates.TemplateResponse("admin_commissions_modern.html", {"request": request})
+    return templates.TemplateResponse("admin_commissions.html", {"request": request})
+
+@app.get("/api/admin/commissions/summary")
+async def admin_commissions_summary(request: Request):
+    """Get summary statistics for admin commissions page"""
+    try:
+        require_admin(request)
+    except HTTPException:
+        return JSONResponse({"ok": False, "error": "Unauthorized"}, status_code=403)
+    
+    try:
+        with _db_lock:
+            con = _db_connect()
+            try:
+                # Get summary stats
+                cur = con.execute("""
+                    SELECT 
+                        COUNT(*) as total_commissions,
+                        COUNT(CASE WHEN commission_paid = 1 THEN 1 END) as paid_commissions,
+                        COUNT(CASE WHEN commission_paid = 0 THEN 1 END) as unpaid_commissions,
+                        COALESCE(SUM(CASE WHEN commission_paid = 0 THEN commission_amount ELSE 0 END), 0) as total_unpaid_amount,
+                        COALESCE(SUM(commission_amount), 0) as total_commission_amount
+                    FROM commission_bookings
+                    WHERE commission_amount > 0
+                """)
+                stats = cur.fetchone()
+                
+                return JSONResponse({
+                    "ok": True,
+                    "summary": {
+                        "total_commissions": stats[0] or 0,
+                        "paid_commissions": stats[1] or 0,
+                        "unpaid_commissions": stats[2] or 0,
+                        "total_unpaid_amount": float(stats[3] or 0),
+                        "total_commission_amount": float(stats[4] or 0)
+                    }
+                })
+            finally:
+                con.close()
+    except Exception as e:
+        return JSONResponse({"ok": False, "error": str(e)}, status_code=500)
+
+@app.get("/api/admin/commissions/list")
+async def admin_commissions_list(request: Request):
+    """Get list of all commissions for admin"""
+    try:
+        require_admin(request)
+    except HTTPException:
+        return JSONResponse({"ok": False, "error": "Unauthorized"}, status_code=403)
+    
+    try:
+        # Get query parameters
+        status = request.query_params.get("status", "")
+        commissioner_id = request.query_params.get("commissioner_id", "")
+        date_from = request.query_params.get("date_from", "")
+        date_to = request.query_params.get("date_to", "")
+        
+        with _db_lock:
+            con = _db_connect()
+            try:
+                # Build query with filters
+                query = """
+                    SELECT 
+                        cb.id, cb.voucher_number, cb.client_name, cb.client_email, cb.client_phone,
+                        cb.pickup_date, cb.pickup_time, cb.dropoff_date, cb.dropoff_time,
+                        cb.pickup_location, cb.dropoff_location, cb.vehicle_group, cb.extras,
+                        cb.price, cb.status, cb.created_at, cb.updated_at, cb.deposit,
+                        cb.hotel, cb.room_number, cb.flight_number, cb.observations,
+                        cb.commission_rate, cb.commission_amount, cb.commission_paid,
+                        cb.commission_paid_date, cb.commission_paid_by,
+                        c.name as commissioner_name
+                    FROM commission_bookings cb
+                    LEFT JOIN commissioners c ON cb.commissioner_id = c.id
+                    WHERE cb.commission_amount > 0
+                """
+                params = []
+                
+                if status:
+                    if status == "paid":
+                        query += " AND cb.commission_paid = 1"
+                    elif status == "unpaid":
+                        query += " AND cb.commission_paid = 0"
+                
+                if commissioner_id:
+                    query += " AND cb.commissioner_id = ?"
+                    params.append(commissioner_id)
+                
+                if date_from:
+                    query += " AND cb.pickup_date >= ?"
+                    params.append(date_from)
+                
+                if date_to:
+                    query += " AND cb.pickup_date <= ?"
+                    params.append(date_to)
+                
+                query += " ORDER BY cb.created_at DESC"
+                
+                cur = con.execute(query, params)
+                rows = cur.fetchall()
+                
+                commissions = []
+                for row in rows:
+                    commissions.append({
+                        "id": row[0],
+                        "voucher_number": row[1],
+                        "client_name": row[2],
+                        "client_email": row[3],
+                        "client_phone": row[4],
+                        "pickup_date": row[5],
+                        "pickup_time": row[6],
+                        "dropoff_date": row[7],
+                        "dropoff_time": row[8],
+                        "pickup_location": row[9],
+                        "dropoff_location": row[10],
+                        "vehicle_group": row[11],
+                        "extras": row[12],
+                        "price": float(row[13]) if row[13] else 0,
+                        "status": row[14],
+                        "created_at": row[15],
+                        "updated_at": row[16],
+                        "deposit": float(row[17]) if row[17] else 0,
+                        "hotel": row[18],
+                        "room_number": row[19],
+                        "flight_number": row[20],
+                        "observations": row[21],
+                        "commission_rate": float(row[22]) if row[22] else 0,
+                        "commission_amount": float(row[23]) if row[23] else 0,
+                        "commission_paid": bool(row[24]),
+                        "commission_paid_date": row[25],
+                        "commission_paid_by": row[26],
+                        "commissioner_name": row[27]
+                    })
+                
+                return JSONResponse({
+                    "ok": True,
+                    "commissions": commissions
+                })
+            finally:
+                con.close()
+    except Exception as e:
+        return JSONResponse({"ok": False, "error": str(e)}, status_code=500)
+
+@app.post("/api/admin/commissions/mark-paid")
+async def admin_commissions_mark_paid(request: Request):
+    """Mark commissions as paid"""
+    try:
+        require_admin(request)
+    except HTTPException:
+        return JSONResponse({"ok": False, "error": "Unauthorized"}, status_code=403)
+    
+    try:
+        body = await request.json()
+        commission_ids = body.get("commission_ids", [])
+        
+        if not commission_ids:
+            return JSONResponse({"ok": False, "error": "No commission IDs provided"}, status_code=400)
+        
+        # Get current user for paid_by field
+        current_user = request.session.get("username")
+        
+        with _db_lock:
+            con = _db_connect()
+            try:
+                # Update commissions
+                placeholders = ",".join(["?"] * len(commission_ids))
+                con.execute(f"""
+                    UPDATE commission_bookings 
+                    SET commission_paid = 1, 
+                        commission_paid_date = datetime('now'),
+                        commission_paid_by = ?
+                    WHERE id IN ({placeholders})
+                """, [current_user] + commission_ids)
+                con.commit()
+                
+                return JSONResponse({
+                    "ok": True,
+                    "message": f"Marked {len(commission_ids)} commissions as paid"
+                })
+            finally:
+                con.close()
+    except Exception as e:
+        return JSONResponse({"ok": False, "error": str(e)}, status_code=500)
+
+@app.post("/api/admin/commissions/mark-unpaid")
+async def admin_commissions_mark_unpaid(request: Request):
+    """Mark commissions as unpaid"""
+    try:
+        require_admin(request)
+    except HTTPException:
+        return JSONResponse({"ok": False, "error": "Unauthorized"}, status_code=403)
+    
+    try:
+        body = await request.json()
+        commission_ids = body.get("commission_ids", [])
+        
+        if not commission_ids:
+            return JSONResponse({"ok": False, "error": "No commission IDs provided"}, status_code=400)
+        
+        with _db_lock:
+            con = _db_connect()
+            try:
+                # Update commissions
+                placeholders = ",".join(["?"] * len(commission_ids))
+                con.execute(f"""
+                    UPDATE commission_bookings 
+                    SET commission_paid = 0, 
+                        commission_paid_date = NULL,
+                        commission_paid_by = NULL
+                    WHERE id IN ({placeholders})
+                """, commission_ids)
+                con.commit()
+                
+                return JSONResponse({
+                    "ok": True,
+                    "message": f"Marked {len(commission_ids)} commissions as unpaid"
+                })
+            finally:
+                con.close()
+    except Exception as e:
+        return JSONResponse({"ok": False, "error": str(e)}, status_code=500)
 
 @app.get("/admin/migrate-commission-payment")
 async def admin_migrate_commission_payment(request: Request):
