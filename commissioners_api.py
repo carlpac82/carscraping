@@ -289,7 +289,7 @@ async def create_booking(booking: BookingCreate, request: Request):
     
     # Calculate commission: base_price without VAT (23%) * commission_rate (15%)
     # Formula: (base_price / 1.23) * 0.15
-    commission_rate = commissioner_data.get('commission_rate', 15.0)
+    commission_rate = float(commissioner_data.get('commission_rate', 15.0))
     base_price_without_vat = booking.base_price / 1.23
     commission_amount = base_price_without_vat * (commission_rate / 100.0)
     
