@@ -1463,13 +1463,12 @@ try:
 except ImportError as e:
     logging.warning(f"⚠️ WhatsApp API not available: {e}")
 
-# Commissioners API Router - DISABLED to avoid endpoint conflicts
-# The booking creation endpoint is now in main.py to avoid Pydantic validation issues
-# try:
-#     app.include_router(commissioners_router)
-#     logging.info("👥 Commissioners API endpoints loaded")
-# except Exception as e:
-#     logging.warning(f"⚠️ Commissioners API not available: {e}")
+# Commissioners API Router
+try:
+    app.include_router(commissioners_router)
+    logging.info("👥 Commissioners API endpoints loaded")
+except Exception as e:
+    logging.warning(f"⚠️ Commissioners API not available: {e}")
 
 # Startup event to run database migrations
 # TEMPORARILY DISABLED - Was causing app to crash on startup
