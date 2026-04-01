@@ -5832,16 +5832,25 @@
             let adjustedPremiumInsurance = premiumInsurance;
             
             // Se o valor não está correto, usar o preço confirmado pelo utilizador
-            if (!bookingConfirmationData.valueConfirmed) {
-                const confirmedPriceInput = document.getElementById('valueAdjustment');
-                const confirmedPrice = parseFloat(confirmedPriceInput.value) || 0;
+            if (bookingConfirmationData.valueConfirmed === false) {
+                // Usar o valor ajustado de bookingConfirmationData
+                const confirmedPrice = bookingConfirmationData.valueAdjustment || 0;
                 
                 if (confirmedPrice > 0) {
                     const priceDifference = confirmedPrice - originalTotal;
                     
+                    console.log(`💰 Ajuste de preço:`);
+                    console.log(`   Original: ${originalTotal}€`);
+                    console.log(`   Confirmado: ${confirmedPrice}€`);
+                    console.log(`   Diferença: ${priceDifference}€`);
+                    console.log(`   Premium Insurance original: ${premiumInsurance}€`);
+                    
                     // Ajustar premium_insurance com a diferença
                     adjustedPremiumInsurance = premiumInsurance + priceDifference;
                     finalTotal = confirmedPrice;
+                    
+                    console.log(`   Premium Insurance ajustado: ${adjustedPremiumInsurance}€`);
+                    console.log(`   Total final: ${finalTotal}€`);
                 }
             }
 
