@@ -11737,7 +11737,7 @@ async def admin_commissions(request: Request):
         require_admin(request)
     except HTTPException:
         return RedirectResponse(url="/login", status_code=HTTP_303_SEE_OTHER)
-    return templates.TemplateResponse("admin_commissions.html", {"request": request})
+    return templates.TemplateResponse("admin_commissions_simple.html", {"request": request})
 
 @app.get("/admin/migrate-commission-payment")
 async def admin_migrate_commission_payment(request: Request):
