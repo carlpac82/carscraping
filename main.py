@@ -11745,10 +11745,16 @@ async def admin_users_new(request: Request):
 
 @app.get("/admin/commissions", response_class=HTMLResponse)
 async def admin_commissions(request: Request):
+    logging.info(f"🔍 DEBUG: admin_commissions called - URL: {request.url}")
+    logging.info(f"🔍 DEBUG: Session data: {dict(request.session)}")
     try:
         require_commissions_management(request)
-    except HTTPException:
+        logging.info(f"🔍 DEBUG: require_commissions_management PASSED")
+    except HTTPException as e:
+        logging.info(f"🔍 DEBUG: require_commissions_management FAILED: {e}")
+        logging.info(f"🔍 DEBUG: Redirecting to /login")
         return RedirectResponse(url="/login", status_code=HTTP_303_SEE_OTHER)
+    logging.info(f"🔍 DEBUG: Rendering admin_commissions.html")
     return templates.TemplateResponse("admin_commissions.html", {"request": request})
 
 @app.get("/api/user-session")
