@@ -5830,6 +5830,7 @@
             const originalTotal = basePrice + premiumInsurance + roadTax + extrasTotal;
             let finalTotal = originalTotal;
             let adjustedPremiumInsurance = premiumInsurance;
+            let priceAdjustment = 0;
             
             // Se o valor não está correto, usar o preço confirmado pelo utilizador
             if (bookingConfirmationData.valueConfirmed === false) {
@@ -5838,6 +5839,7 @@
                 
                 if (confirmedPrice > 0) {
                     const priceDifference = confirmedPrice - originalTotal;
+                    priceAdjustment = priceDifference;
                     
                     console.log(`Ajuste de preço:`);
                     console.log(`   Original: ${originalTotal}€`);
@@ -5878,7 +5880,7 @@
                 extras: extrasArray,
                 total_amount: finalTotal,
                 price: finalTotal, // Backend também espera 'price'
-                value_adjustment: 0,
+                value_adjustment: priceAdjustment,
                 deposit: bookingConfirmationData.depositAmount || 0
             };
             
