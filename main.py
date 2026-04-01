@@ -63009,6 +63009,42 @@ async def admin_migrate_add_default_location(request: Request):
         traceback.print_exc()
         return JSONResponse({"ok": False, "error": str(e)}, status_code=500)
 
+@app.get("/admin/migrate-set-default-commission")
+async def admin_migrate_set_default_commission(request: Request):
+    """Set default commission rate to 15% for all commissioners - Admin only"""
+    try:
+        require_admin(request)
+    except HTTPException:
+        return JSONResponse({"ok": False, "error": "Unauthorized"}, status_code=401)
+    
+    try:
+        with _db_lock:
+            con = _db_connect()
+            try:
+                cursor = con.cursor()
+                
+                # Update all commissioners to have 15% commission rate
+                cursor.execute("""
+                    UPDATE commissioners 
+                    SET commission_rate = 15.0
+                """)
+                
+                updated_count = cursor.rowcount
+                con.commit()
+                
+                return JSONResponse({
+                    "ok": True,
+                    "message": f"✅ Set commission rate to 15% for {updated_count} commissioners"
+                })
+                
+            finally:
+                con.close()
+                
+    except Exception as e:
+        print(f"Error setting default commission: {e}")
+        traceback.print_exc()
+        return JSONResponse({"ok": False, "error": str(e)}, status_code=500)
+
 
 # ============================================================
 # COMMISSIONERS API ROUTES
