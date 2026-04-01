@@ -449,9 +449,9 @@
               <thead>
                   <tr>
                       <th><input type="checkbox" id="selectAllCheckbox" onchange="toggleSelectAll()"></th>
+                      <th>Comissionista</th>
                       <th>Voucher</th>
                       <th>Cliente</th>
-                      <th>Comissionista</th>
                       <th>Veículo</th>
                       <th>Data Levant.</th>
                       <th>Extras</th>
@@ -550,9 +550,9 @@
                   const row = document.createElement('tr');
                   row.innerHTML = `
                       <td><input type="checkbox" data-id="${commission.id}" onchange="toggleCommissionSelection(${commission.id})"></td>
+                      <td>${commission.commissioner_name || '-'}</td>
                       <td>${commission.voucher_number || '-'}</td>
                       <td>${commission.client_name || '-'}</td>
-                      <td>${commission.commissioner_name || '-'}</td>
                       <td>${commission.vehicle_group || '-'}</td>
                       <td>${commission.pickup_date ? new Date(commission.pickup_date).toLocaleDateString('pt-PT') : '-'}</td>
                       <td>${commission.extras || '-'}</td>
