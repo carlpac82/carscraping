@@ -65,7 +65,7 @@ def migrate_commission_payment():
     
     # Add can_manage_commissions to users table
     try:
-        cursor.execute("ALTER TABLE users ADD COLUMN can_manage_commissions BOOLEAN DEFAULT FALSE")
+        cursor.execute("ALTER TABLE users ADD COLUMN can_manage_commissions INTEGER DEFAULT 0")
         conn.commit()
         results.append("✅ can_manage_commissions: CREATED")
         print("✅ Added can_manage_commissions column")
