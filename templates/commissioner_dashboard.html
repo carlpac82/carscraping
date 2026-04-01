@@ -4148,41 +4148,41 @@
         
         async function setDefaultLocations() {
             try {
-                // Buscar default_location do comissionista logado
-                const response = await fetch('/api/commissioners/me');
-                const data = await response.json();
+                // Usar currentCommissioner já carregado (evita fetch extra)
+                if (!currentCommissioner) {
+                    console.warn('❌ currentCommissioner não disponível');
+                    return;
+                }
                 
-                console.log('🔍 Aplicando default_location do comissionista:', data.commissioner?.name);
+                const defaultLocation = currentCommissioner.default_location;
                 
-                if (data.ok && data.commissioner && data.commissioner.default_location) {
-                    const defaultLocation = data.commissioner.default_location;
-                    
-                    console.log('📍 Default location:', defaultLocation);
-                    
-                    const pickupLocationSelect = document.getElementById('pickupLocation');
-                    const dropoffLocationSelect = document.getElementById('dropoffLocation');
-                    
-                    if (pickupLocationSelect && dropoffLocationSelect) {
-                        console.log('📋 Opções disponíveis:', pickupLocationSelect.options.length);
-                        
-                        // Verificar se o valor existe nas opções
-                        const pickupOptions = Array.from(pickupLocationSelect.options).map(opt => opt.value);
-                        const hasOption = pickupOptions.includes(defaultLocation);
-                        
-                        console.log('🔎 Local "' + defaultLocation + '" existe?', hasOption);
-                        
-                        if (hasOption) {
-                            pickupLocationSelect.value = defaultLocation;
-                            dropoffLocationSelect.value = defaultLocation;
-                            console.log('✅ Locais preenchidos com:', defaultLocation);
-                        } else {
-                            console.warn('⚠️ Local "' + defaultLocation + '" não encontrado');
-                        }
-                    } else {
-                        console.error('❌ Selects não encontrados no DOM');
-                    }
-                } else {
+                console.log('🔍 Aplicando default_location:', currentCommissioner.name, '→', defaultLocation);
+                
+                if (!defaultLocation) {
                     console.log('ℹ️ Comissionista sem default_location definido');
+                    return;
+                }
+                
+                const pickupLocationSelect = document.getElementById('pickupLocation');
+                const dropoffLocationSelect = document.getElementById('dropoffLocation');
+                
+                if (!pickupLocationSelect || !dropoffLocationSelect) {
+                    console.error('❌ Selects não encontrados no DOM');
+                    return;
+                }
+                
+                // Verificar se o valor existe nas opções
+                const pickupOptions = Array.from(pickupLocationSelect.options).map(opt => opt.value);
+                const hasOption = pickupOptions.includes(defaultLocation);
+                
+                console.log('🔎 Local "' + defaultLocation + '" existe?', hasOption, '(' + pickupOptions.length + ' opções)');
+                
+                if (hasOption) {
+                    pickupLocationSelect.value = defaultLocation;
+                    dropoffLocationSelect.value = defaultLocation;
+                    console.log('✅ Locais preenchidos com:', defaultLocation);
+                } else {
+                    console.warn('⚠️ Local "' + defaultLocation + '" não encontrado');
                 }
             } catch (err) {
                 console.error('❌ Erro ao aplicar default_location:', err);
