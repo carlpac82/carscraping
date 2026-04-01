@@ -11905,9 +11905,23 @@ async def admin_commissions_list(request: Request):
                         "commissioner_name": row[27]
                     })
                 
+                # Calculate summary statistics
+                paid_commissions_amount = sum(c["commission_amount"] for c in commissions if c["commission_paid"])
+                unpaid_commissions_amount = sum(c["commission_amount"] for c in commissions if not c["commission_paid"])
+                unpaid_commissions = len([c for c in commissions if not c["commission_paid"]])
+                total_commissioners = len(set(c["commissioner_name"] for c in commissions if c["commissioner_name"]))
+                
+                summary = {
+                    "paid_commissions_amount": paid_commissions_amount,
+                    "unpaid_commissions_amount": unpaid_commissions_amount,
+                    "unpaid_commissions": unpaid_commissions,
+                    "total_commissioners": total_commissioners
+                }
+                
                 return JSONResponse({
                     "ok": True,
-                    "commissions": commissions
+                    "commissions": commissions,
+                    "summary": summary
                 })
             finally:
                 con.close()

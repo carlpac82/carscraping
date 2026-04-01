@@ -491,7 +491,9 @@
                   if (data.ok) {
                       allCommissions = data.commissions;
                       renderCommissions();
-                      updateSummaryCards(data.summary);
+                      if (data.summary) {
+                          updateSummaryCards(data.summary);
+                      }
                   } else {
                       console.error('Error loading commissions:', data.error);
                   }
