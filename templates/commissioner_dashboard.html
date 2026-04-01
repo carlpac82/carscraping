@@ -4352,6 +4352,28 @@
             
             // Verificar se escritório está fechado e definir dia seguinte
             setDefaultPickupDate();
+            
+            // Pré-preencher locais de entrega/recolha com default_location do comissionista
+            setDefaultLocations();
+        }
+        
+        function setDefaultLocations() {
+            // Buscar default_location do comissionista logado
+            fetch('/api/commissioners/me')
+                .then(r => r.json())
+                .then(data => {
+                    if (data.ok && data.commissioner && data.commissioner.default_location) {
+                        const defaultLocation = data.commissioner.default_location;
+                        const pickupLocationSelect = document.getElementById('pickupLocation');
+                        const dropoffLocationSelect = document.getElementById('dropoffLocation');
+                        
+                        if (pickupLocationSelect && dropoffLocationSelect) {
+                            pickupLocationSelect.value = defaultLocation;
+                            dropoffLocationSelect.value = defaultLocation;
+                        }
+                    }
+                })
+                .catch(err => console.error('Error loading default location:', err));
         }
 
         function setDefaultPickupDate() {

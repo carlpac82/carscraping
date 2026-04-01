@@ -203,7 +203,7 @@ async def get_current_commissioner_info(request: Request):
     cursor = conn.cursor()
     
     cursor.execute("""
-        SELECT id, name, email, phone, voucher_prefix, username, enabled
+        SELECT id, name, email, phone, voucher_prefix, username, enabled, default_location
         FROM commissioners
         WHERE id = %s
     """, (commissioner_id,))
@@ -221,7 +221,8 @@ async def get_current_commissioner_info(request: Request):
         'phone': result[3],
         'voucher_prefix': result[4],
         'username': result[5],
-        'enabled': result[6]
+        'enabled': result[6],
+        'default_location': result[7] if len(result) > 7 else None
     }
     
     return {
@@ -383,7 +384,7 @@ async def get_all_commissioners():
     cursor = conn.cursor()
     
     cursor.execute("""
-        SELECT id, name, email, phone, voucher_prefix, username, enabled, created_at
+        SELECT id, name, email, phone, voucher_prefix, username, enabled, created_at, default_location
         FROM commissioners
         ORDER BY name
     """)
@@ -402,6 +403,7 @@ async def get_all_commissioners():
             'username': comm[5],
             'enabled': comm[6],
             'created_at': str(comm[7]),
+            'default_location': comm[8] if len(comm) > 8 else None,
             'commission_rate': 0,
             'total_bookings': 0
         })
