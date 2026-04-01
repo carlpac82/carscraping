@@ -63309,18 +63309,19 @@ async def api_create_commissioner_booking(request: Request):
                         INSERT INTO commission_bookings (
                             commissioner_id, voucher_number, vehicle_group, client_name, client_email, client_phone,
                             hotel, room_number, pickup_date, pickup_time, dropoff_date, dropoff_time,
-                            pickup_location, dropoff_location, flight_number, insurance_type,
+                            pickup_location, dropoff_location, flight_number, insurance_type, language,
                             base_price, premium_insurance, road_tax, extras_total, rental_days,
                             extras, price, deposit, status
                         ) VALUES (
-                            %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s
+                            %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s
                         ) RETURNING id
                     """, (
                         commissioner_id, voucher_number, data["vehicle_group"], data["client_name"],
                         data["client_email"], data["client_phone"], data.get("hotel"), data.get("room_number"),
                         data["pickup_date"], data["pickup_time"], data["dropoff_date"], data["dropoff_time"],
                         data["pickup_location"], data["dropoff_location"], data.get("flight_number"),
-                        data["insurance_type"], data.get("base_price", 0), data.get("premium_insurance", 0),
+                        data["insurance_type"], data.get("language", "pt"),
+                        data.get("base_price", 0), data.get("premium_insurance", 0),
                         data.get("road_tax", 0), data.get("extras_total", 0), data.get("rental_days", 0),
                         json.dumps(data.get("extras", [])), data["total_amount"], data.get("deposit", 0), "pending"
                     ))
@@ -63331,16 +63332,17 @@ async def api_create_commissioner_booking(request: Request):
                         INSERT INTO commission_bookings (
                             commissioner_id, voucher_number, vehicle_group, client_name, client_email, client_phone,
                             hotel, room_number, pickup_date, pickup_time, dropoff_date, dropoff_time,
-                            pickup_location, dropoff_location, flight_number, insurance_type,
+                            pickup_location, dropoff_location, flight_number, insurance_type, language,
                             base_price, premium_insurance, road_tax, extras_total, rental_days,
                             extras, price, deposit, status
-                        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                     """, (
                         commissioner_id, voucher_number, data["vehicle_group"], data["client_name"],
                         data["client_email"], data["client_phone"], data.get("hotel"), data.get("room_number"),
                         data["pickup_date"], data["pickup_time"], data["dropoff_date"], data["dropoff_time"],
                         data["pickup_location"], data["dropoff_location"], data.get("flight_number"),
-                        data["insurance_type"], data.get("base_price", 0), data.get("premium_insurance", 0),
+                        data["insurance_type"], data.get("language", "pt"),
+                        data.get("base_price", 0), data.get("premium_insurance", 0),
                         data.get("road_tax", 0), data.get("extras_total", 0), data.get("rental_days", 0),
                         json.dumps(data.get("extras", [])), data["total_amount"], data.get("deposit", 0), "pending"
                     ))
