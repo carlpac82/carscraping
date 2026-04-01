@@ -265,9 +265,9 @@ async def create_booking(booking: BookingCreate, request: Request):
     conn = get_db()
     cursor = conn.cursor()
     
-    # Get commissioner info
+    # Get commissioner info including commission_rate
     cursor.execute("""
-        SELECT name, email, voucher_prefix
+        SELECT name, email, voucher_prefix, commission_rate
         FROM commissioners
         WHERE id = %s
     """, (commissioner_id,))
@@ -280,11 +280,18 @@ async def create_booking(booking: BookingCreate, request: Request):
     commissioner_data = dict(commissioner) if hasattr(commissioner, 'keys') else {
         'name': commissioner[0],
         'email': commissioner[1],
-        'voucher_prefix': commissioner[2]
+        'voucher_prefix': commissioner[2],
+        'commission_rate': commissioner[3] if len(commissioner) > 3 else 15.0
     }
     
     # Generate voucher number
     voucher_number = generate_voucher_number(commissioner_id, commissioner_data['voucher_prefix'])
+    
+    # Calculate commission: base_price without VAT (23%) * commission_rate (15%)
+    # Formula: (base_price / 1.23) * 0.15
+    commission_rate = commissioner_data.get('commission_rate', 15.0)
+    base_price_without_vat = booking.base_price / 1.23
+    commission_amount = base_price_without_vat * (commission_rate / 100.0)
     
     # Insert booking
     cursor.execute("""
@@ -296,9 +303,9 @@ async def create_booking(booking: BookingCreate, request: Request):
             vehicle_group, insurance_type, extras,
             flight_number, language, observations, deposit, price,
             base_price, premium_insurance, road_tax, extras_total, rental_days,
-            total_amount, value_adjustment, status
+            total_amount, value_adjustment, commission_rate, commission_amount, status
         ) VALUES (
-            %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s
+            %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s
         ) RETURNING id
     """, (
         commissioner_id, voucher_number,
@@ -308,7 +315,7 @@ async def create_booking(booking: BookingCreate, request: Request):
         booking.vehicle_group, booking.insurance_type, json.dumps(booking.extras),
         booking.flight_number, booking.language, booking.observations, booking.deposit, booking.price,
         booking.base_price, booking.premium_insurance, booking.road_tax, booking.extras_total, booking.rental_days,
-        booking.total_amount, booking.value_adjustment, 'pending'
+        booking.total_amount, booking.value_adjustment, commission_rate, commission_amount, 'pending'
     ))
     
     booking_id = cursor.fetchone()[0]
@@ -335,7 +342,8 @@ async def get_commissioner_bookings(request: Request):
                pickup_date, pickup_time, dropoff_date, dropoff_time,
                pickup_location, dropoff_location, vehicle_group, extras,
                price, status, created_at, updated_at, deposit,
-               hotel, room_number, flight_number, observations
+               hotel, room_number, flight_number, observations,
+               commission_rate, commission_amount
         FROM commission_bookings
         WHERE commissioner_id = %s
         ORDER BY created_at DESC
@@ -368,7 +376,9 @@ async def get_commissioner_bookings(request: Request):
             'hotel': booking[18],
             'room_number': booking[19],
             'flight_number': booking[20],
-            'observations': booking[21]
+            'observations': booking[21],
+            'commission_rate': float(booking[22]) if len(booking) > 22 and booking[22] else 0.0,
+            'commission_amount': float(booking[23]) if len(booking) > 23 and booking[23] else 0.0
         })
     
     return {"ok": True, "bookings": result}

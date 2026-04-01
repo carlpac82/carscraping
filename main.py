@@ -63045,6 +63045,47 @@ async def admin_migrate_set_default_commission(request: Request):
         traceback.print_exc()
         return JSONResponse({"ok": False, "error": str(e)}, status_code=500)
 
+@app.get("/admin/migrate-add-commission-columns")
+async def admin_migrate_add_commission_columns(request: Request):
+    """Add commission_rate and commission_amount columns to commission_bookings table - Admin only"""
+    try:
+        require_admin(request)
+    except HTTPException:
+        return JSONResponse({"ok": False, "error": "Unauthorized"}, status_code=401)
+    
+    try:
+        with _db_lock:
+            con = _db_connect()
+            try:
+                cursor = con.cursor()
+                
+                # Add commission_rate column
+                cursor.execute("""
+                    ALTER TABLE commission_bookings 
+                    ADD COLUMN IF NOT EXISTS commission_rate DECIMAL(5, 2) DEFAULT 15.0
+                """)
+                
+                # Add commission_amount column
+                cursor.execute("""
+                    ALTER TABLE commission_bookings 
+                    ADD COLUMN IF NOT EXISTS commission_amount DECIMAL(10, 2) DEFAULT 0.0
+                """)
+                
+                con.commit()
+                
+                return JSONResponse({
+                    "ok": True,
+                    "message": "✅ Added commission_rate and commission_amount columns to commission_bookings table"
+                })
+                
+            finally:
+                con.close()
+                
+    except Exception as e:
+        print(f"Error adding commission columns: {e}")
+        traceback.print_exc()
+        return JSONResponse({"ok": False, "error": str(e)}, status_code=500)
+
 
 # ============================================================
 # COMMISSIONERS API ROUTES
