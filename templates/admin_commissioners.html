@@ -490,7 +490,17 @@
                 
                 <div class="form-group">
                     <label for="name">Nome Completo</label>
-                    <input type="text" id="name" required>
+                    <input type="text" id="name" required onchange="generateUsernameAndPrefix()">
+                </div>
+
+                <div class="form-group">
+                    <label for="username">Username</label>
+                    <input type="text" id="username" required placeholder="Gerado automaticamente">
+                </div>
+
+                <div class="form-group">
+                    <label for="voucher_prefix">Série do Voucher</label>
+                    <input type="text" id="voucher_prefix" required placeholder="Gerado automaticamente" maxlength="10">
                 </div>
 
                 <div class="form-group">
@@ -699,6 +709,27 @@
             `;
         }
 
+        function generateUsernameAndPrefix() {
+            const name = document.getElementById('name').value.trim();
+            if (!name) return;
+
+            const words = name.split(' ').filter(w => w.length > 0);
+            let prefix = '';
+
+            if (words.length === 1) {
+                prefix = words[0].substring(0, 3).toUpperCase();
+            } else if (words.length === 2) {
+                prefix = (words[0][0] + words[1][0]).toUpperCase();
+            } else {
+                prefix = (words[0][0] + words[words.length - 1][0]).toUpperCase();
+            }
+
+            prefix = prefix.replace(/[^A-Z]/g, '');
+            
+            document.getElementById('username').value = prefix;
+            document.getElementById('voucher_prefix').value = prefix;
+        }
+
         function openCreateModal() {
             document.getElementById('modalTitle').textContent = 'Novo Comissionista';
             document.getElementById('commissionerForm').reset();
@@ -714,6 +745,8 @@
             document.getElementById('modalTitle').textContent = 'Editar Comissionista';
             document.getElementById('commissionerId').value = commissioner.id;
             document.getElementById('name').value = commissioner.name;
+            document.getElementById('username').value = commissioner.username || '';
+            document.getElementById('voucher_prefix').value = commissioner.voucher_prefix || '';
             document.getElementById('email').value = commissioner.email;
             document.getElementById('commission_rate').value = commissioner.commission_rate;
             document.getElementById('is_active').value = commissioner.enabled.toString();
@@ -731,6 +764,8 @@
             const id = document.getElementById('commissionerId').value;
             const data = {
                 name: document.getElementById('name').value,
+                username: document.getElementById('username').value,
+                voucher_prefix: document.getElementById('voucher_prefix').value,
                 email: document.getElementById('email').value,
                 commission_rate: parseFloat(document.getElementById('commission_rate').value),
                 is_active: document.getElementById('is_active').value === 'true'
