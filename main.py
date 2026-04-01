@@ -63181,6 +63181,116 @@ async def api_commissioners_login(request: Request):
         return JSONResponse({"ok": False, "error": "Erro interno do servidor"}, status_code=500)
 
 
+@app.post("/api/commissioners/bookings")
+async def api_create_commissioner_booking(request: Request):
+    """API endpoint to create a new booking by a commissioner"""
+    try:
+        # Check if commissioner is logged in
+        commissioner_id = request.session.get("commissioner_id")
+        if not commissioner_id:
+            return JSONResponse({"ok": False, "error": "Não autenticado"}, status_code=401)
+        
+        data = await request.json()
+        
+        # Validate required fields
+        required_fields = ["vehicle_group", "client_name", "client_email", "client_phone", 
+                          "pickup_date", "pickup_time", "dropoff_date", "dropoff_time",
+                          "pickup_location", "dropoff_location", "insurance_type", "total_amount"]
+        
+        for field in required_fields:
+            if field not in data or not data[field]:
+                return JSONResponse({"ok": False, "error": f"Campo obrigatório: {field}"}, status_code=400)
+        
+        with _db_lock:
+            con = _db_connect()
+            try:
+                # Get commissioner voucher prefix
+                if USE_POSTGRES:
+                    cur = con.cursor()
+                    cur.execute("SELECT voucher_prefix FROM commissioners WHERE id = %s", (commissioner_id,))
+                else:
+                    cur = con.execute("SELECT voucher_prefix FROM commissioners WHERE id = ?", (commissioner_id,))
+                row = cur.fetchone()
+                
+                if not row or not row[0]:
+                    return JSONResponse({"ok": False, "error": "Prefixo de voucher não configurado"}, status_code=400)
+                
+                voucher_prefix = row[0]
+                
+                # Generate voucher number
+                import random
+                import string
+                voucher_number = f"{voucher_prefix}{random.randint(1000, 9999)}"
+                
+                # Check if voucher already exists
+                if USE_POSTGRES:
+                    cur.execute("SELECT id FROM commission_bookings WHERE voucher_number = %s", (voucher_number,))
+                else:
+                    cur = con.execute("SELECT id FROM commission_bookings WHERE voucher_number = ?", (voucher_number,))
+                
+                if cur.fetchone():
+                    # Generate new voucher if collision
+                    voucher_number = f"{voucher_prefix}{random.randint(10000, 99999)}"
+                
+                # Insert booking
+                if USE_POSTGRES:
+                    cur.execute("""
+                        INSERT INTO commission_bookings (
+                            commissioner_id, voucher_number, vehicle_group, client_name, client_email, client_phone,
+                            hotel, room_number, pickup_date, pickup_time, dropoff_date, dropoff_time,
+                            pickup_location, dropoff_location, flight_number, insurance_type,
+                            base_price, premium_insurance, road_tax, extras_total, rental_days,
+                            extras, price, deposit, status
+                        ) VALUES (
+                            %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s
+                        ) RETURNING id
+                    """, (
+                        commissioner_id, voucher_number, data["vehicle_group"], data["client_name"],
+                        data["client_email"], data["client_phone"], data.get("hotel"), data.get("room_number"),
+                        data["pickup_date"], data["pickup_time"], data["dropoff_date"], data["dropoff_time"],
+                        data["pickup_location"], data["dropoff_location"], data.get("flight_number"),
+                        data["insurance_type"], data.get("base_price", 0), data.get("premium_insurance", 0),
+                        data.get("road_tax", 0), data.get("extras_total", 0), data.get("rental_days", 0),
+                        json.dumps(data.get("extras", [])), data["total_amount"], data.get("deposit", 0), "pending"
+                    ))
+                    booking_id = cur.fetchone()[0]
+                    con.commit()
+                else:
+                    cur = con.execute("""
+                        INSERT INTO commission_bookings (
+                            commissioner_id, voucher_number, vehicle_group, client_name, client_email, client_phone,
+                            hotel, room_number, pickup_date, pickup_time, dropoff_date, dropoff_time,
+                            pickup_location, dropoff_location, flight_number, insurance_type,
+                            base_price, premium_insurance, road_tax, extras_total, rental_days,
+                            extras, price, deposit, status
+                        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                    """, (
+                        commissioner_id, voucher_number, data["vehicle_group"], data["client_name"],
+                        data["client_email"], data["client_phone"], data.get("hotel"), data.get("room_number"),
+                        data["pickup_date"], data["pickup_time"], data["dropoff_date"], data["dropoff_time"],
+                        data["pickup_location"], data["dropoff_location"], data.get("flight_number"),
+                        data["insurance_type"], data.get("base_price", 0), data.get("premium_insurance", 0),
+                        data.get("road_tax", 0), data.get("extras_total", 0), data.get("rental_days", 0),
+                        json.dumps(data.get("extras", [])), data["total_amount"], data.get("deposit", 0), "pending"
+                    ))
+                    booking_id = cur.lastrowid
+                    con.commit()
+                
+                return JSONResponse({
+                    "ok": True,
+                    "booking_id": booking_id,
+                    "voucher_number": voucher_number
+                })
+                
+            finally:
+                con.close()
+                
+    except Exception as e:
+        print(f"Error creating commissioner booking: {e}")
+        traceback.print_exc()
+        return JSONResponse({"ok": False, "error": "Erro ao criar reserva"}, status_code=500)
+
+
 @app.post("/api/commissioners/update-email")
 async def api_commissioners_update_email(request: Request):
     """API endpoint to update commissioner email"""
