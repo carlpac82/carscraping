@@ -37,6 +37,7 @@ class CommissionerUpdate(BaseModel):
     default_location: Optional[str] = None
     password: Optional[str] = None
     enabled: Optional[bool] = None
+    commission_rate: Optional[float] = None
 
 class CommissionerLogin(BaseModel):
     username: str
@@ -403,7 +404,7 @@ async def get_all_commissioners():
     cursor = conn.cursor()
     
     cursor.execute("""
-        SELECT id, name, email, phone, voucher_prefix, username, enabled, created_at, default_location
+        SELECT id, name, email, phone, voucher_prefix, username, enabled, created_at, default_location, commission_rate
         FROM commissioners
         ORDER BY name
     """)
@@ -423,7 +424,7 @@ async def get_all_commissioners():
             'enabled': comm[6],
             'created_at': str(comm[7]),
             'default_location': comm[8] if len(comm) > 8 else None,
-            'commission_rate': 0,
+            'commission_rate': float(comm[9]) if len(comm) > 9 and comm[9] else 15.0,
             'total_bookings': 0
         })
     
@@ -498,6 +499,9 @@ async def update_commissioner(commissioner_id: int, update: CommissionerUpdate):
     if update.default_location is not None:
         updates.append("default_location = %s")
         params.append(update.default_location)
+    if update.commission_rate is not None:
+        updates.append("commission_rate = %s")
+        params.append(update.commission_rate)
     if update.password is not None:
         updates.append("password_hash = %s")
         params.append(hash_password(update.password))
