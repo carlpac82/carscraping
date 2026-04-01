@@ -5899,7 +5899,7 @@
                 
                 // Log detalhado do erro de validação
                 if (response.status === 422 && data.detail) {
-                    console.error('❌ Validation errors:', JSON.stringify(data.detail, null, 2));
+                    console.error('Validation errors:', JSON.stringify(data.detail, null, 2));
                 }
 
                 if (data.ok) {
@@ -5907,12 +5907,12 @@
                     closeNewBookingModal();
                     await loadBookings();
                 } else {
-                    console.error('❌ Server error:', data.error);
+                    console.error('Server error:', data.error);
                     const errorMsg = data.error || (data.detail ? JSON.stringify(data.detail) : 'Erro desconhecido');
                     alert('Erro ao criar reserva: ' + errorMsg + ' (Status: ' + response.status + ')');
                 }
             } catch (error) {
-                console.error('❌ Error creating booking:', error);
+                console.error('Error creating booking:', error);
                 alert('Erro de conexão ao criar reserva');
             } finally {
                 bookingConfirmationData = null;
