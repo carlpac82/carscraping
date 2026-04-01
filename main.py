@@ -11950,12 +11950,12 @@ async def admin_commissions_mark_paid(request: Request):
             con = _db_connect()
             try:
                 # Update commissions
-                placeholders = ",".join(["?"] * len(commission_ids))
+                placeholders = ",".join(["%s"] * len(commission_ids))
                 con.execute(f"""
                     UPDATE commission_bookings 
                     SET commission_paid = 1, 
-                        commission_paid_date = strftime('%Y-%m-%d %H:%M:%S', 'now'),
-                        commission_paid_by = ?
+                        commission_paid_date = NOW(),
+                        commission_paid_by = %s
                     WHERE id IN ({placeholders})
                 """, [current_user] + commission_ids)
                 con.commit()
@@ -11988,7 +11988,7 @@ async def admin_commissions_mark_unpaid(request: Request):
             con = _db_connect()
             try:
                 # Update commissions
-                placeholders = ",".join(["?"] * len(commission_ids))
+                placeholders = ",".join(["%s"] * len(commission_ids))
                 con.execute(f"""
                     UPDATE commission_bookings 
                     SET commission_paid = 0, 
