@@ -11953,11 +11953,11 @@ async def admin_commissions_mark_paid(request: Request):
                 placeholders = ",".join(["%s"] * len(commission_ids))
                 con.execute(f"""
                     UPDATE commission_bookings 
-                    SET commission_paid = 1, 
+                    SET commission_paid = TRUE, 
                         commission_paid_date = NOW(),
                         commission_paid_by = %s
                     WHERE id IN ({placeholders})
-                """, [current_user] + commission_ids)
+                """, [session_user] + commission_ids)
                 con.commit()
                 
                 return JSONResponse({
@@ -11991,7 +11991,7 @@ async def admin_commissions_mark_unpaid(request: Request):
                 placeholders = ",".join(["%s"] * len(commission_ids))
                 con.execute(f"""
                     UPDATE commission_bookings 
-                    SET commission_paid = 0, 
+                    SET commission_paid = FALSE, 
                         commission_paid_date = NULL,
                         commission_paid_by = NULL
                     WHERE id IN ({placeholders})
