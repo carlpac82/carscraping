@@ -11906,16 +11906,35 @@ async def admin_commissions_list(request: Request):
                     })
                 
                 # Calculate summary statistics
-                paid_commissions_amount = sum(c["commission_amount"] for c in commissions if c["commission_paid"])
-                unpaid_commissions_amount = sum(c["commission_amount"] for c in commissions if not c["commission_paid"])
-                unpaid_commissions = len([c for c in commissions if not c["commission_paid"]])
-                total_commissioners = len(set(c["commissioner_name"] for c in commissions if c["commissioner_name"]))
+                from datetime import datetime, date
+                
+                # Current month and year
+                current_date = datetime.now()
+                current_month = current_date.month
+                current_year = current_date.year
+                
+                # Current month commissions
+                current_month_paid = sum(c["commission_amount"] for c in commissions 
+                                       if c["commission_paid"] and 
+                                       c["pickup_date"] and 
+                                       datetime.fromisoformat(c["pickup_date"].replace('Z', '+00:00') if 'T' in c["pickup_date"] else f"{c['pickup_date']}T00:00:00").month == current_month and
+                                       datetime.fromisoformat(c["pickup_date"].replace('Z', '+00:00') if 'T' in c["pickup_date"] else f"{c['pickup_date']}T00:00:00").year == current_year)
+                
+                current_month_unpaid = sum(c["commission_amount"] for c in commissions 
+                                         if not c["commission_paid"] and 
+                                         c["pickup_date"] and 
+                                         datetime.fromisoformat(c["pickup_date"].replace('Z', '+00:00') if 'T' in c["pickup_date"] else f"{c['pickup_date']}T00:00:00").month == current_month and
+                                         datetime.fromisoformat(c["pickup_date"].replace('Z', '+00:00') if 'T' in c["pickup_date"] else f"{c['pickup_date']}T00:00:00").year == current_year)
+                
+                # Current year commissions
+                current_year_total = sum(c["commission_amount"] for c in commissions 
+                                        if c["pickup_date"] and 
+                                        datetime.fromisoformat(c["pickup_date"].replace('Z', '+00:00') if 'T' in c["pickup_date"] else f"{c['pickup_date']}T00:00:00").year == current_year)
                 
                 summary = {
-                    "paid_commissions_amount": paid_commissions_amount,
-                    "unpaid_commissions_amount": unpaid_commissions_amount,
-                    "unpaid_commissions": unpaid_commissions,
-                    "total_commissioners": total_commissioners
+                    "paid_commissions_amount": current_month_paid,
+                    "unpaid_commissions_amount": current_month_unpaid,
+                    "total_year_commissions": current_year_total
                 }
                 
                 return JSONResponse({

@@ -388,20 +388,16 @@
       <!-- Summary Cards -->
       <div class="summary-cards">
           <div class="summary-card">
-              <h3>Total de Comissões Pagas</h3>
+              <h3>Total de Comissões Pagas (Mês Atual)</h3>
               <p class="summary-value" id="totalPaid">€0.00</p>
           </div>
           <div class="summary-card">
-              <h3>Total de Comissões Por Pagar</h3>
+              <h3>Total de Comissões Por Pagar (Mês Atual)</h3>
               <p class="summary-value" id="totalUnpaid">€0.00</p>
           </div>
           <div class="summary-card">
-              <h3>Reservas Pendentes</h3>
-              <p class="summary-value" id="pendingBookings">0</p>
-          </div>
-          <div class="summary-card">
-              <h3>Comissionistas Ativos</h3>
-              <p class="summary-value" id="activeCommissioners">0</p>
+              <h3>Total de Comissões (Ano)</h3>
+              <p class="summary-value" id="totalYear">€0.00</p>
           </div>
       </div>
       
@@ -596,8 +592,7 @@
           function updateSummaryCards(summary) {
               document.getElementById('totalPaid').textContent = `€${(summary.paid_commissions_amount || 0).toFixed(2)}`;
               document.getElementById('totalUnpaid').textContent = `€${(summary.unpaid_commissions_amount || 0).toFixed(2)}`;
-              document.getElementById('pendingBookings').textContent = summary.unpaid_commissions || 0;
-              document.getElementById('activeCommissioners').textContent = summary.total_commissioners || 0;
+              document.getElementById('totalYear').textContent = `€${(summary.total_year_commissions || 0).toFixed(2)}`;
           }
           
           // Toggle commission selection
