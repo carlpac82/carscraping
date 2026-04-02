@@ -12042,7 +12042,7 @@ async def admin_commissions_mark_unpaid(request: Request):
 async def admin_commissions_print_pdf(request: Request):
     """Generate PDF report of commissions by commissioner"""
     try:
-        require_commissions_management(request)
+        require_admin(request)
     except HTTPException:
         return JSONResponse({"ok": False, "error": "Unauthorized"}, status_code=403)
     
@@ -12093,6 +12093,13 @@ async def admin_commissions_print_pdf(request: Request):
         
         # Check if there are any commissions
         if not rows:
+            # Debug: Adicionar log para verificar o que está sendo encontrado
+            logging.info(f"🔍 DEBUG: Month filter: {month}")
+            logging.info(f"🔍 DEBUG: Commissioner filter: {commissioner_filter}")
+            logging.info(f"🔍 DEBUG: Query: {query}")
+            logging.info(f"🔍 DEBUG: Params: {params}")
+            logging.info(f"🔍 DEBUG: Found {len(rows)} commissions")
+            
             return JSONResponse({
                 "ok": False, 
                 "error": "Nenhuma comissão encontrada para os filtros selecionados"
@@ -12212,6 +12219,24 @@ async def admin_commissions_print_pdf(request: Request):
             ]))
             
             elements.append(table)
+            elements.append(Spacer(1, 1*cm))
+            
+            # Adicionar campos para preenchimento manual
+            signature_style = ParagraphStyle(
+                'Signature',
+                parent=styles['Normal'],
+                fontSize=10,
+                textColor=colors.black,
+                spaceAfter=6,
+                alignment=TA_LEFT,
+                fontName='Helvetica'
+            )
+            
+            elements.append(Paragraph("Recebido a _____ / _____ / ________", signature_style))
+            elements.append(Spacer(1, 0.5*cm))
+            elements.append(Paragraph("Nome: _____________________________________________", signature_style))
+            elements.append(Spacer(1, 0.5*cm))
+            elements.append(Paragraph("Assinatura: _______________________________________", signature_style))
         
         # Build PDF
         doc.build(elements)
