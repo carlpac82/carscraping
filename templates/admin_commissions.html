@@ -560,6 +560,9 @@
                   tbody.appendChild(row);
               });
               
+              // Recalcular totais baseado nas comissões filtradas
+              updateSummaryCardsFromFiltered(filteredCommissions);
+              
               updateActionButtons();
           }
           
@@ -593,6 +596,41 @@
               document.getElementById('totalPaid').textContent = `€${(summary.paid_commissions_amount || 0).toFixed(2)}`;
               document.getElementById('totalUnpaid').textContent = `€${(summary.unpaid_commissions_amount || 0).toFixed(2)}`;
               document.getElementById('totalYear').textContent = `€${(summary.total_year_commissions || 0).toFixed(2)}`;
+          }
+          
+          // Update summary cards from filtered commissions
+          function updateSummaryCardsFromFiltered(filteredCommissions) {
+              const currentMonth = new Date().getMonth() + 1;
+              const currentYear = new Date().getFullYear();
+              
+              let paidCurrentMonth = 0;
+              let unpaidCurrentMonth = 0;
+              let totalYear = 0;
+              
+              filteredCommissions.forEach(commission => {
+                  const commissionDate = new Date(commission.pickup_date);
+                  const commissionMonth = commissionDate.getMonth() + 1;
+                  const commissionYear = commissionDate.getFullYear();
+                  const amount = commission.commission_amount || 0;
+                  
+                  // Total do ano
+                  if (commissionYear === currentYear) {
+                      totalYear += amount;
+                  }
+                  
+                  // Totais do mês atual
+                  if (commissionMonth === currentMonth && commissionYear === currentYear) {
+                      if (commission.commission_paid) {
+                          paidCurrentMonth += amount;
+                      } else {
+                          unpaidCurrentMonth += amount;
+                      }
+                  }
+              });
+              
+              document.getElementById('totalPaid').textContent = `€${paidCurrentMonth.toFixed(2)}`;
+              document.getElementById('totalUnpaid').textContent = `€${unpaidCurrentMonth.toFixed(2)}`;
+              document.getElementById('totalYear').textContent = `€${totalYear.toFixed(2)}`;
           }
           
           // Toggle commission selection
