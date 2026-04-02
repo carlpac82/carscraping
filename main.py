@@ -12110,13 +12110,27 @@ async def admin_commissions_print_pdf(request: Request):
                 
                 # Calculate number of days
                 # Handle both string and datetime.date objects
+                from datetime import date as date_type
+                
                 if row[2]:
-                    pickup_date = datetime.fromisoformat(str(row[2])) if isinstance(row[2], str) else row[2]
+                    if isinstance(row[2], str):
+                        pickup_date = datetime.fromisoformat(row[2])
+                    elif isinstance(row[2], date_type):
+                        # Convert date to datetime
+                        pickup_date = datetime.combine(row[2], datetime.min.time())
+                    else:
+                        pickup_date = row[2]
                 else:
                     pickup_date = None
                 
                 if row[3]:
-                    dropoff_date = datetime.fromisoformat(str(row[3])) if isinstance(row[3], str) else row[3]
+                    if isinstance(row[3], str):
+                        dropoff_date = datetime.fromisoformat(row[3])
+                    elif isinstance(row[3], date_type):
+                        # Convert date to datetime
+                        dropoff_date = datetime.combine(row[3], datetime.min.time())
+                    else:
+                        dropoff_date = row[3]
                 else:
                     dropoff_date = None
                 
