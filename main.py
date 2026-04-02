@@ -11957,7 +11957,7 @@ async def admin_commissions_mark_paid(request: Request):
                         commission_paid_date = NOW(),
                         commission_paid_by = %s
                     WHERE id IN ({placeholders})
-                """, [session_user] + commission_ids)
+                """, [current_user] + commission_ids)
                 con.commit()
                 
                 return JSONResponse({
