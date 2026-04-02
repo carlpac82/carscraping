@@ -108,12 +108,15 @@ def import_commissions():
                 pickup_date = pd.to_datetime(row['Data Entrega'])
                 days = int(row['Dias']) if pd.notna(row['Dias']) else 1
                 
-                # Tratar valores com vírgula (ex: 23,76)
-                commission_str = str(row['Loyalty Card']).replace(',', '.')
+                # Tratar valores com vírgula (ex: 23,76) - ESTE É O BASE_PRICE
+                base_price_str = str(row['Loyalty Card']).replace(',', '.')
                 try:
-                    commission_amount = float(commission_str)
+                    base_price = float(base_price_str)
                 except:
-                    commission_amount = 0
+                    base_price = 0
+                
+                # Calcular comissão corretamente: (base_price / 1.23) * 0.15
+                commission_amount = (base_price / 1.23) * 0.15
                 
                 # Verificar se há voucher manual
                 manual_voucher = None
@@ -124,9 +127,6 @@ def import_commissions():
                 
                 # Calcular dropoff date
                 dropoff_date = pickup_date + timedelta(days=days)
-                
-                # Calcular base_price a partir da comissão
-                base_price = (commission_amount / 0.15) * 1.23
                 
                 # Inserir reserva
                 try:
@@ -145,7 +145,7 @@ def import_commissions():
                         commissioner_id, manual_voucher, 'Loyalty Card', '', '',
                         pickup_date.date(), pickup_date.strftime('%H:%M'), 
                         dropoff_date.date(), '00:00',
-                        '', '', 'LOYALTY', '[]',
+                        '', '', '', '[]',
                         base_price, base_price, 0, 'confirmed', 15.0, commission_amount
                     ))
                     

@@ -100,7 +100,12 @@ def import_commissions():
                 # Extrair dados
                 pickup_date = row['Data Entrega']
                 days = int(row['Dias']) if pd.notna(row['Dias']) else 1
-                commission_amount = float(row['Loyalty Card']) if pd.notna(row['Loyalty Card']) else 0
+                
+                # Tratar valores - ESTE É O BASE_PRICE
+                base_price = float(row['Loyalty Card']) if pd.notna(row['Loyalty Card']) else 0
+                
+                # Calcular comissão corretamente: (base_price / 1.23) * 0.15
+                commission_amount = (base_price / 1.23) * 0.15
                 
                 # Verificar se há voucher manual
                 manual_voucher = None
@@ -109,9 +114,6 @@ def import_commissions():
                 
                 # Calcular dropoff date
                 dropoff_date = pickup_date + timedelta(days=days)
-                
-                # Calcular base_price a partir da comissão
-                base_price = (commission_amount / 0.15) * 1.23
                 
                 # Inserir reserva
                 try:
@@ -130,7 +132,7 @@ def import_commissions():
                         commissioner_id, manual_voucher, 'Loyalty Card', '', '',
                         pickup_date.date(), pickup_date.strftime('%H:%M'), 
                         dropoff_date.date(), '00:00',
-                        '', '', 'LOYALTY', '[]',
+                        '', '', '', '[]',
                         base_price, base_price, 0, 'confirmed', 15.0, commission_amount
                     ))
                     
