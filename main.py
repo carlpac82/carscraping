@@ -63846,6 +63846,44 @@ async def delete_commission_booking(booking_id: int, request: Request):
         traceback.print_exc()
         return JSONResponse({"ok": False, "error": str(e)}, status_code=500)
 
+@app.get("/api/vehicle-groups")
+async def get_vehicle_groups(request: Request):
+    """Get active vehicle groups for manual booking dropdown"""
+    try:
+        require_admin(request)
+    except HTTPException:
+        return JSONResponse({"ok": False, "error": "Unauthorized"}, status_code=401)
+    
+    try:
+        groups = []
+        with _db_lock:
+            con = _db_connect()
+            try:
+                if USE_POSTGRES:
+                    cur = con.cursor()
+                    cur.execute("SELECT code, brand, model FROM car_groups WHERE enabled = 1 ORDER BY code")
+                    rows = cur.fetchall()
+                else:
+                    cur = con.execute("SELECT code, brand, model FROM car_groups WHERE enabled = 1 ORDER BY code")
+                    rows = cur.fetchall()
+                
+                for row in rows:
+                    if row[0]:  # Se tem código
+                        groups.append({
+                            "code": row[0],
+                            "name": f"{row[1]} {row[2]}" if row[1] and row[2] else row[0]
+                        })
+                
+            finally:
+                con.close()
+        
+        return JSONResponse({"ok": True, "groups": groups})
+        
+    except Exception as e:
+        print(f"Error fetching vehicle groups: {e}")
+        traceback.print_exc()
+        return JSONResponse({"ok": False, "error": str(e)}, status_code=500)
+
 
 @app.post("/api/commissioners/login")
 async def api_commissioners_login(request: Request):

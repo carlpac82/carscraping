@@ -773,20 +773,6 @@
                     <label for="addVehicleGroup">Grupo *</label>
                     <select id="addVehicleGroup" required>
                         <option value="">Selecione o grupo</option>
-                        <option value="A">A</option>
-                        <option value="B">B</option>
-                        <option value="C">C</option>
-                        <option value="D">D</option>
-                        <option value="E">E</option>
-                        <option value="F">F</option>
-                        <option value="G">G</option>
-                        <option value="H">H</option>
-                        <option value="I">I</option>
-                        <option value="J">J</option>
-                        <option value="K">K</option>
-                        <option value="L">L</option>
-                        <option value="M">M</option>
-                        <option value="N">N</option>
                     </select>
                 </div>
 
@@ -1115,7 +1101,7 @@
             }
         });
 
-        function openAddBookingModal() {
+        async function openAddBookingModal() {
             // Popular dropdown de comissionistas
             const select = document.getElementById('addCommissioner');
             select.innerHTML = '<option value="">Selecione o comissionista</option>';
@@ -1126,7 +1112,31 @@
                 select.appendChild(option);
             });
             
+            // Carregar e popular grupos de veículos
+            await loadVehicleGroups();
+            
             document.getElementById('addBookingModal').classList.add('active');
+        }
+        
+        async function loadVehicleGroups() {
+            try {
+                const response = await fetch('/api/vehicle-groups');
+                const data = await response.json();
+                
+                if (data.ok && data.groups) {
+                    const select = document.getElementById('addVehicleGroup');
+                    select.innerHTML = '<option value="">Selecione o grupo</option>';
+                    
+                    data.groups.forEach(group => {
+                        const option = document.createElement('option');
+                        option.value = group.code;
+                        option.textContent = `${group.code} - ${group.name}`;
+                        select.appendChild(option);
+                    });
+                }
+            } catch (error) {
+                console.error('Error loading vehicle groups:', error);
+            }
         }
 
         function closeAddBookingModal() {
