@@ -32945,23 +32945,23 @@ async def generate_commissioner_booking_pdf(booking_id: int, request: Request):
             "booking_day": booking_day,
             "booking_month": booking_month,
             "booking_year": booking_year,
-            "deposit_amount": f"{float(row[19]) if isinstance(row[19], (Decimal, int, float)) else 0:.2f}".replace('.', ',') if len(row) > 19 and row[19] else "0,00",  # índice 19: deposit
-            "deposit_day": deposit_day,
-            "deposit_month": deposit_month,
-            "deposit_year": deposit_year,
+            "deposit_amount": f"{float(row[19]) if isinstance(row[19], (Decimal, int, float)) else 0:.2f}".replace('.', ',') if len(row) > 19 and row[19] and float(row[19]) > 0 else "",  # índice 19: deposit - só mostra se > 0
+            "deposit_day": deposit_day if (len(row) > 19 and row[19] and float(row[19]) > 0) else "",
+            "deposit_month": deposit_month if (len(row) > 19 and row[19] and float(row[19]) > 0) else "",
+            "deposit_year": deposit_year if (len(row) > 19 and row[19] and float(row[19]) > 0) else "",
             
             # Preços (valores reais calculados com base nas configurações)
             "base_price": f"{base_price:.2f}".replace('.', ','),
-            "premium_insurance": f"{insurance_price:.2f}".replace('.', ','),
+            "premium_insurance": "" if is_manual_booking else f"{insurance_price:.2f}".replace('.', ','),
             "road_tax": f"{road_tax:.2f}".replace('.', ','),
-            "extras_total": f"{extras_total_from_db:.2f}".replace('.', ','),
+            "extras_total": "" if is_manual_booking else f"{extras_total_from_db:.2f}".replace('.', ','),
             "price": f"{total_price:.2f}".replace('.', ','),
             
-            # Extras Detalhados (formatados conforme solicitado)
-            "driver_extras": extras_formatted["driver_extras"],  # AD/YD/SD format: AD-25,00 + YD-25,00 + SD-25,00
-            "seat_extras": extras_formatted["seat_extras"],       # BA/BO format: BA-25,00 + BO-25,00 ou 2xBA-25,00
-            "location_extras": extras_formatted["location_extras"], # A/SP format: A-20,00 + SP-100,00
-            "other_extras": extras_formatted["other_extras"],     # GPS e outros: GPS-50,00
+            # Extras Detalhados (formatados conforme solicitado) - vazios para reservas manuais
+            "driver_extras": "" if is_manual_booking else extras_formatted["driver_extras"],  # AD/YD/SD format: AD-25,00 + YD-25,00 + SD-25,00
+            "seat_extras": "" if is_manual_booking else extras_formatted["seat_extras"],       # BA/BO format: BA-25,00 + BO-25,00 ou 2xBA-25,00
+            "location_extras": "" if is_manual_booking else extras_formatted["location_extras"], # A/SP format: A-20,00 + SP-100,00
+            "other_extras": "" if is_manual_booking else extras_formatted["other_extras"]
             
             # Comissionista e Observações
             "commissioner_name": row[24] if len(row) > 24 else "",  # índice 24: commissioner_name (do JOIN)

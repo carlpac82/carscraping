@@ -220,9 +220,19 @@
         font-weight: 500;
         cursor: pointer;
         transition: background-color 0.2s;
+        border: none;
       }
       .btn-primary:hover {
-        background: #007a8c;
+        background: #007a8c !important;
+      }
+      .btn-primary:active,
+      .btn-primary:focus {
+        background: #007a8c !important;
+        outline: none;
+      }
+      .btn-primary:disabled {
+        opacity: 0.5;
+        cursor: not-allowed;
       }
       .commissions-table {
         background: white;
