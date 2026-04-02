@@ -11944,10 +11944,11 @@ async def admin_commissions_mark_paid(request: Request):
             return JSONResponse({"ok": False, "error": "No commission IDs provided"}, status_code=400)
         
         # Get current user full name for paid_by field
-        user_full_name = request.session.get("user_full_name")
+        user = get_user_from_session(request)
+        user_full_name = f"{user.get('first_name', '')} {user.get('last_name', '')}".strip()
         
         if not user_full_name:
-            return JSONResponse({"ok": False, "error": "User not logged in"}, status_code=400)
+            user_full_name = user.get('username', 'Unknown')
         
         with _db_lock:
             con = _db_connect()
@@ -11988,10 +11989,11 @@ async def admin_commissions_mark_unpaid(request: Request):
             return JSONResponse({"ok": False, "error": "No commission IDs provided"}, status_code=400)
         
         # Get current user full name for paid_by field
-        user_full_name = request.session.get("user_full_name")
+        user = get_user_from_session(request)
+        user_full_name = f"{user.get('first_name', '')} {user.get('last_name', '')}".strip()
         
         if not user_full_name:
-            return JSONResponse({"ok": False, "error": "User not logged in"}, status_code=400)
+            user_full_name = user.get('username', 'Unknown')
         
         with _db_lock:
             con = _db_connect()
