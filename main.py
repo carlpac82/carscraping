@@ -12181,7 +12181,7 @@ async def admin_commissions_print_pdf(request: Request):
                 ])
             
             # Add total row
-            data.append(['', '', 'TOTAL:', f"{round(total_commission)}€"])
+            data.append(['', '', 'TOTAL COMISSÕES:', f"{round(total_commission)}€"])
             
             # Create table with better column widths
             table = Table(data, colWidths=[5*cm, 3.5*cm, 2.5*cm, 3.5*cm])
