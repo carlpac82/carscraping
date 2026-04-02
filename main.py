@@ -12076,8 +12076,8 @@ async def admin_commissions_print_pdf(request: Request):
                 
                 if month:
                     # Filter by month
-                    query += " AND strftime('%m', cb.pickup_date) = ?"
-                    params.append(f"{int(month):02d}")
+                    query += " AND EXTRACT(MONTH FROM cb.pickup_date) = ?"
+                    params.append(int(month))
                 
                 if commissioner_filter:
                     query += " AND c.name LIKE ?"
