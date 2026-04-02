@@ -12058,6 +12058,7 @@ async def admin_commissions_print_pdf(request: Request):
         
         # Get query parameters
         month = request.query_params.get("month", "")
+        commissioner = request.query_params.get("commissioner", "")
         
         # Fetch commissions data
         with _db_lock:
@@ -12080,6 +12081,11 @@ async def admin_commissions_print_pdf(request: Request):
                         query += " AND EXTRACT(MONTH FROM cb.pickup_date) = %s"
                         params.append(int(month))
                     
+                    if commissioner:
+                        # Filter by commissioner name
+                        query += " AND c.name = %s"
+                        params.append(commissioner)
+                    
                     query += " ORDER BY c.name, cb.pickup_date"
                     
                     cur = con.cursor()
@@ -12101,6 +12107,11 @@ async def admin_commissions_print_pdf(request: Request):
                         # Filter by month using SQLite strftime
                         query += " AND CAST(strftime('%m', cb.pickup_date) AS INTEGER) = ?"
                         params.append(int(month))
+                    
+                    if commissioner:
+                        # Filter by commissioner name
+                        query += " AND c.name = ?"
+                        params.append(commissioner)
                     
                     query += " ORDER BY c.name, cb.pickup_date"
                     
