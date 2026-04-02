@@ -186,6 +186,29 @@
             align-items: end;
         }
 
+        .filters-bar-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 15px;
+        }
+
+        .btn-add-booking {
+            padding: 10px 20px;
+            background: #009cb6;
+            color: white;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 600;
+            transition: all 0.2s;
+        }
+
+        .btn-add-booking:hover {
+            background: #008ba3;
+        }
+
         .filter-group {
             display: flex;
             flex-direction: column;
@@ -204,6 +227,8 @@
             border-radius: 6px;
             font-size: 13px;
             transition: all 0.3s;
+            width: 100%;
+            box-sizing: border-box;
         }
 
         .filter-group select:focus, .filter-group input:focus {
@@ -590,6 +615,10 @@
 
     <main class="mx-auto max-w-7xl px-4 py-6">
         <div class="filters-bar">
+            <div class="filters-bar-header">
+                <h3 style="margin: 0; font-size: 16px; color: #333;">Filtros</h3>
+                <button class="btn-add-booking" onclick="openAddBookingModal()">+ Inserir Reserva Manual</button>
+            </div>
             <div class="filters-grid">
                 <div class="filter-group">
                     <label>Status</label>
@@ -687,6 +716,45 @@
                 <div class="form-actions">
                     <button type="button" class="btn-modal-cancel" onclick="closeEditModal()">Cancelar</button>
                     <button type="submit" class="btn-submit">Guardar Alterações</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Modal Add Manual Booking -->
+    <div id="addBookingModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>Inserir Reserva Manual</h2>
+                <button class="btn-close" onclick="closeAddBookingModal()">&times;</button>
+            </div>
+
+            <form id="addBookingForm" onsubmit="submitManualBooking(event)">
+                <div class="form-group">
+                    <label for="addCommissioner">Comissionista *</label>
+                    <select id="addCommissioner" required>
+                        <option value="">Selecione o comissionista</option>
+                    </select>
+                </div>
+
+                <div class="form-group">
+                    <label for="addPickupDate">Data de Entrega *</label>
+                    <input type="date" id="addPickupDate" required>
+                </div>
+
+                <div class="form-group">
+                    <label for="addVehicleGroup">Grupo *</label>
+                    <input type="text" id="addVehicleGroup" placeholder="Ex: B, C, D, etc." required>
+                </div>
+
+                <div class="form-group">
+                    <label for="addBasePrice">Valor Base (€) *</label>
+                    <input type="number" id="addBasePrice" step="0.01" min="0" placeholder="0.00" required>
+                </div>
+
+                <div class="form-actions">
+                    <button type="button" class="btn-modal-cancel" onclick="closeAddBookingModal()">Cancelar</button>
+                    <button type="submit" class="btn-submit">Inserir Reserva</button>
                 </div>
             </form>
         </div>
@@ -962,6 +1030,56 @@
                 alert('Erro ao atualizar reserva');
             }
         });
+
+        function openAddBookingModal() {
+            // Popular dropdown de comissionistas
+            const select = document.getElementById('addCommissioner');
+            select.innerHTML = '<option value="">Selecione o comissionista</option>';
+            commissioners.forEach(c => {
+                const option = document.createElement('option');
+                option.value = c.id;
+                option.textContent = c.name;
+                select.appendChild(option);
+            });
+            
+            document.getElementById('addBookingModal').classList.add('active');
+        }
+
+        function closeAddBookingModal() {
+            document.getElementById('addBookingModal').classList.remove('active');
+            document.getElementById('addBookingForm').reset();
+        }
+
+        async function submitManualBooking(e) {
+            e.preventDefault();
+
+            const data = {
+                commissioner_id: parseInt(document.getElementById('addCommissioner').value),
+                pickup_date: document.getElementById('addPickupDate').value,
+                vehicle_group: document.getElementById('addVehicleGroup').value.trim().toUpperCase(),
+                base_price: parseFloat(document.getElementById('addBasePrice').value)
+            };
+
+            try {
+                const response = await fetch('/api/admin/manual-booking', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(data)
+                });
+
+                const result = await response.json();
+                if (result.ok) {
+                    closeAddBookingModal();
+                    loadData();
+                    alert('Reserva inserida com sucesso!');
+                } else {
+                    alert('Erro: ' + result.error);
+                }
+            } catch (error) {
+                console.error('Error creating manual booking:', error);
+                alert('Erro ao inserir reserva');
+            }
+        }
 
         loadData();
     </script>

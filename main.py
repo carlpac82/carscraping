@@ -63632,6 +63632,123 @@ async def api_get_commissioner_bookings(request: Request):
         return JSONResponse({"ok": False, "error": "Erro ao carregar reservas"}, status_code=500)
 
 
+@app.post("/api/admin/manual-booking")
+async def create_manual_booking(request: Request):
+    """Create a manual booking for a commissioner"""
+    try:
+        require_admin(request)
+    except HTTPException:
+        return JSONResponse({"ok": False, "error": "Unauthorized"}, status_code=401)
+    
+    try:
+        data = await request.json()
+        commissioner_id = data.get("commissioner_id")
+        pickup_date = data.get("pickup_date")
+        vehicle_group = data.get("vehicle_group", "").strip().upper()
+        base_price = data.get("base_price", 0)
+        
+        if not commissioner_id or not pickup_date or not vehicle_group or not base_price:
+            return JSONResponse({"ok": False, "error": "Todos os campos são obrigatórios"}, status_code=400)
+        
+        with _db_lock:
+            con = _db_connect()
+            try:
+                # Get commissioner info
+                if USE_POSTGRES:
+                    cur = con.cursor()
+                    cur.execute("SELECT name, voucher_prefix, commission_rate FROM commissioners WHERE id = %s", (commissioner_id,))
+                else:
+                    cur = con.execute("SELECT name, voucher_prefix, commission_rate FROM commissioners WHERE id = ?", (commissioner_id,))
+                
+                commissioner = cur.fetchone()
+                if not commissioner:
+                    return JSONResponse({"ok": False, "error": "Comissionista não encontrado"}, status_code=404)
+                
+                commissioner_name = commissioner[0]
+                voucher_prefix = commissioner[1]
+                commission_rate = float(commissioner[2]) if commissioner[2] else 15.0
+                
+                # Generate voucher number
+                from datetime import datetime
+                now = datetime.now()
+                if USE_POSTGRES:
+                    cur.execute("""
+                        SELECT COUNT(*) FROM commission_bookings 
+                        WHERE commissioner_id = %s 
+                        AND EXTRACT(YEAR FROM created_at) = %s 
+                        AND EXTRACT(MONTH FROM created_at) = %s
+                    """, (commissioner_id, now.year, now.month))
+                else:
+                    cur.execute("""
+                        SELECT COUNT(*) FROM commission_bookings 
+                        WHERE commissioner_id = ? 
+                        AND strftime('%Y', created_at) = ? 
+                        AND strftime('%m', created_at) = ?
+                    """, (commissioner_id, str(now.year), f"{now.month:02d}"))
+                
+                count = cur.fetchone()[0]
+                voucher_number = f"{voucher_prefix}-{now.strftime('%m%y')}/{count + 1:02d}"
+                
+                # Calculate commission: base_price without VAT (23%) * commission_rate
+                base_price_without_vat = base_price / 1.23
+                commission_amount = base_price_without_vat * (commission_rate / 100.0)
+                
+                # Insert booking
+                if USE_POSTGRES:
+                    cur.execute("""
+                        INSERT INTO commission_bookings (
+                            commissioner_id, voucher_number, client_name, client_email, client_phone,
+                            pickup_date, pickup_time, dropoff_date, dropoff_time,
+                            pickup_location, dropoff_location, vehicle_group, extras,
+                            price, base_price, deposit, status, commission_rate, commission_amount,
+                            created_at, updated_at
+                        ) VALUES (
+                            %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP
+                        ) RETURNING id
+                    """, (
+                        commissioner_id, voucher_number, 'Manual', '', '',
+                        pickup_date, '00:00', pickup_date, '00:00',
+                        'Manual', 'Manual', vehicle_group, '[]',
+                        base_price, base_price, 0, 'confirmed', commission_rate, commission_amount
+                    ))
+                    booking_id = cur.fetchone()[0]
+                else:
+                    cur = con.execute("""
+                        INSERT INTO commission_bookings (
+                            commissioner_id, voucher_number, client_name, client_email, client_phone,
+                            pickup_date, pickup_time, dropoff_date, dropoff_time,
+                            pickup_location, dropoff_location, vehicle_group, extras,
+                            price, base_price, deposit, status, commission_rate, commission_amount,
+                            created_at, updated_at
+                        ) VALUES (
+                            ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP
+                        )
+                    """, (
+                        commissioner_id, voucher_number, 'Manual', '', '',
+                        pickup_date, '00:00', pickup_date, '00:00',
+                        'Manual', 'Manual', vehicle_group, '[]',
+                        base_price, base_price, 0, 'confirmed', commission_rate, commission_amount
+                    ))
+                    booking_id = cur.lastrowid
+                
+                con.commit()
+                
+                return JSONResponse({
+                    "ok": True, 
+                    "booking_id": booking_id,
+                    "voucher_number": voucher_number,
+                    "commission_amount": commission_amount
+                })
+                
+            finally:
+                con.close()
+                
+    except Exception as e:
+        print(f"Error creating manual booking: {e}")
+        traceback.print_exc()
+        return JSONResponse({"ok": False, "error": str(e)}, status_code=500)
+
+
 @app.put("/api/commission-bookings/{booking_id}/status")
 async def update_commission_booking_status(booking_id: int, request: Request):
     """Update the status of a commission booking"""
