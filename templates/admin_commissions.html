@@ -447,7 +447,6 @@
                       <th><input type="checkbox" id="selectAllCheckbox" onchange="toggleSelectAll()"></th>
                       <th>Comissionista</th>
                       <th>Voucher</th>
-                      <th>Cliente</th>
                       <th>Veículo</th>
                       <th>Data Levant.</th>
                       <th>Depósito</th>
@@ -460,7 +459,7 @@
               </thead>
               <tbody id="commissionsTableBody">
                   <tr>
-                      <td colspan="13" class="text-center py-4">Carregando...</td>
+                      <td colspan="12" class="text-center py-4">Carregando...</td>
                   </tr>
               </tbody>
           </table>
@@ -549,8 +548,7 @@
                   row.innerHTML = `
                       <td><input type="checkbox" data-id="${commission.id}" onchange="toggleCommissionSelection(${commission.id})"></td>
                       <td>${commission.commissioner_name || '-'}</td>
-                      <td>${commission.voucher_number || '-'}</td>
-                      <td>${commission.client_name || '-'}</td>
+                      <td style="font-size: 0.85em; white-space: nowrap;">${commission.voucher_number || '-'}</td>
                       <td>${commission.vehicle_group || '-'}</td>
                       <td>${commission.pickup_date ? new Date(commission.pickup_date).toLocaleDateString('pt-PT') : '-'}</td>
                       <td>€${(commission.deposit || 0).toFixed(2)}</td>
