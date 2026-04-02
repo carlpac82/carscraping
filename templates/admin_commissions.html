@@ -237,8 +237,13 @@
       .commissions-table th,
       .commissions-table td {
         padding: 0.75rem;
-        text-align: left;
+        text-align: center;
         border-bottom: 1px solid #e5e7eb;
+      }
+      .commissions-table td:nth-child(6),
+      .commissions-table td:nth-child(7),
+      .commissions-table td:nth-child(8) {
+        text-align: right;
       }
       .commissions-table th {
         background: #f9fafb;
@@ -447,7 +452,7 @@
                       <th><input type="checkbox" id="selectAllCheckbox" onchange="toggleSelectAll()"></th>
                       <th>Comissionista</th>
                       <th>Voucher</th>
-                      <th>Veículo</th>
+                      <th>Grupo</th>
                       <th>Data Levant.</th>
                       <th>Depósito</th>
                       <th>Valor Base</th>
