@@ -32961,7 +32961,7 @@ async def generate_commissioner_booking_pdf(booking_id: int, request: Request):
             "driver_extras": "" if is_manual_booking else extras_formatted["driver_extras"],  # AD/YD/SD format: AD-25,00 + YD-25,00 + SD-25,00
             "seat_extras": "" if is_manual_booking else extras_formatted["seat_extras"],       # BA/BO format: BA-25,00 + BO-25,00 ou 2xBA-25,00
             "location_extras": "" if is_manual_booking else extras_formatted["location_extras"], # A/SP format: A-20,00 + SP-100,00
-            "other_extras": "" if is_manual_booking else extras_formatted["other_extras"]
+            "other_extras": "" if is_manual_booking else extras_formatted["other_extras"],
             
             # Comissionista e Observações
             "commissioner_name": row[24] if len(row) > 24 else "",  # índice 24: commissioner_name (do JOIN)
