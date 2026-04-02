@@ -12058,7 +12058,6 @@ async def admin_commissions_print_pdf(request: Request):
         
         # Get query parameters
         month = request.query_params.get("month", "")
-        commissioner_filter = request.query_params.get("commissioner", "")
         
         # Fetch commissions data
         with _db_lock:
@@ -12078,10 +12077,6 @@ async def admin_commissions_print_pdf(request: Request):
                     # Filter by month
                     query += " AND EXTRACT(MONTH FROM cb.pickup_date) = ?"
                     params.append(int(month))
-                
-                if commissioner_filter:
-                    query += " AND c.name LIKE ?"
-                    params.append(f"%{commissioner_filter}%")
                 
                 query += " ORDER BY c.name, cb.pickup_date"
                 
@@ -12114,8 +12109,17 @@ async def admin_commissions_print_pdf(request: Request):
                     commissioners_data[commissioner_name] = []
                 
                 # Calculate number of days
-                pickup_date = datetime.fromisoformat(row[2]) if row[2] else None
-                dropoff_date = datetime.fromisoformat(row[3]) if row[3] else None
+                # Handle both string and datetime.date objects
+                if row[2]:
+                    pickup_date = datetime.fromisoformat(str(row[2])) if isinstance(row[2], str) else row[2]
+                else:
+                    pickup_date = None
+                
+                if row[3]:
+                    dropoff_date = datetime.fromisoformat(str(row[3])) if isinstance(row[3], str) else row[3]
+                else:
+                    dropoff_date = None
+                
                 days = (dropoff_date - pickup_date).days if pickup_date and dropoff_date else 0
                 
                 commissioners_data[commissioner_name].append({

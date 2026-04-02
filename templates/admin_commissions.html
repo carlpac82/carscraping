@@ -703,7 +703,6 @@
           // Print commissions PDF
           function printCommissionsPDF() {
               const month = document.getElementById('monthFilter').value;
-              const commissioner = document.getElementById('commissionerFilter').value;
               
               let url = '/api/admin/commissions/print-pdf';
               const params = new URLSearchParams();
@@ -711,9 +710,8 @@
               if (month) {
                   params.append('month', month);
               }
-              if (commissioner) {
-                  params.append('commissioner', commissioner);
-              }
+              // Nota: O filtro de comissionista não é enviado para a API
+              // O PDF sempre gera uma página por comissionista, filtrado apenas por mês
               
               if (params.toString()) {
                   url += '?' + params.toString();
