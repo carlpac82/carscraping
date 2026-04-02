@@ -63993,13 +63993,8 @@ async def create_manual_booking(request: Request):
                 voucher_prefix = commissioner[1]
                 commission_rate = float(commissioner[2]) if commissioner[2] else 15.0
                 
-                # Use manual voucher if provided, otherwise generate unique identifier for manual bookings
-                if manual_voucher:
-                    voucher_number = manual_voucher
-                else:
-                    # Generate unique voucher for manual bookings: MANUAL-{timestamp}-{commissioner_id}
-                    import time
-                    voucher_number = f"MANUAL-{int(time.time())}-{commissioner_id}"
+                # Use manual voucher if provided, otherwise NULL (no voucher for manual bookings)
+                voucher_number = manual_voucher if manual_voucher else None
                 
                 # Calculate commission: base_price without VAT (23%) * commission_rate
                 base_price_without_vat = base_price / 1.23
