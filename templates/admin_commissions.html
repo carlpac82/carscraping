@@ -585,6 +585,27 @@
                   tbody.appendChild(row);
               });
               
+              // Adicionar linha de total no final
+              if (filteredCommissions.length > 0) {
+                  const totalRow = document.createElement('tr');
+                  totalRow.style.fontWeight = 'bold';
+                  totalRow.style.backgroundColor = '#f8f9fa';
+                  totalRow.style.borderTop = '2px solid #dee2e6';
+                  
+                  const totalCommission = filteredCommissions.reduce((sum, c) => sum + (c.commission_amount || 0), 0);
+                  const totalDeposit = filteredCommissions.reduce((sum, c) => sum + (c.deposit || 0), 0);
+                  const totalBasePrice = filteredCommissions.reduce((sum, c) => sum + (c.base_price || 0), 0);
+                  
+                  totalRow.innerHTML = `
+                      <td colspan="5" style="text-align: right; padding-right: 20px;"><strong>TOTAL DO MÊS:</strong></td>
+                      <td><strong>€${totalDeposit.toFixed(2)}</strong></td>
+                      <td><strong>€${totalBasePrice.toFixed(2)}</strong></td>
+                      <td><strong>€${totalCommission.toFixed(2)}</strong></td>
+                      <td colspan="2"></td>
+                  `;
+                  tbody.appendChild(totalRow);
+              }
+              
               // Recalcular totais baseado nas comissões filtradas
               updateSummaryCardsFromFiltered(filteredCommissions);
               
