@@ -12123,26 +12123,28 @@ async def admin_commissions_print_pdf(request: Request):
         
         # Create PDF
         buffer = BytesIO()
-        doc = SimpleDocTemplate(buffer, pagesize=A4, topMargin=2*cm, bottomMargin=2*cm)
+        doc = SimpleDocTemplate(buffer, pagesize=A4, topMargin=1.5*cm, bottomMargin=1.5*cm, leftMargin=1.5*cm, rightMargin=1.5*cm)
         elements = []
         
         styles = getSampleStyleSheet()
         title_style = ParagraphStyle(
             'CustomTitle',
             parent=styles['Heading1'],
-            fontSize=16,
-            textColor=colors.HexColor('#009cb6'),
-            spaceAfter=20,
-            alignment=TA_CENTER
+            fontSize=18,
+            textColor=colors.HexColor('#2c3e50'),
+            spaceAfter=15,
+            alignment=TA_CENTER,
+            fontName='Helvetica-Bold'
         )
         
         commissioner_style = ParagraphStyle(
             'Commissioner',
             parent=styles['Heading2'],
             fontSize=14,
-            textColor=colors.HexColor('#333333'),
-            spaceAfter=10,
-            alignment=TA_LEFT
+            textColor=colors.HexColor('#34495e'),
+            spaceAfter=8,
+            alignment=TA_LEFT,
+            fontName='Helvetica-Bold'
         )
         
         # Month name for title
@@ -12160,7 +12162,7 @@ async def admin_commissions_print_pdf(request: Request):
             if month_name:
                 title_text += f" - {month_name}"
             elements.append(Paragraph(title_text, title_style))
-            elements.append(Spacer(1, 0.5*cm))
+            elements.append(Spacer(1, 0.3*cm))
             
             # Table data
             data = [['Voucher', 'Data Entrega', 'Nº Dias', 'Comissão']]
@@ -12181,8 +12183,8 @@ async def admin_commissions_print_pdf(request: Request):
             # Add total row
             data.append(['', '', 'TOTAL:', f"{round(total_commission)}€"])
             
-            # Create table
-            table = Table(data, colWidths=[4*cm, 3*cm, 3*cm, 3*cm])
+            # Create table with better column widths
+            table = Table(data, colWidths=[5*cm, 3.5*cm, 2.5*cm, 3.5*cm])
             table.setStyle(TableStyle([
                 # Header
                 ('BACKGROUND', (0, 0), (-1, 0), colors.HexColor('#009cb6')),
