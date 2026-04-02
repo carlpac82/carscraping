@@ -12050,9 +12050,10 @@ async def admin_commissions_print_pdf(request: Request):
         from reportlab.lib.pagesizes import A4
         from reportlab.lib import colors
         from reportlab.lib.units import cm
-        from reportlab.platypus import SimpleDocTemplate, Table, TableStyle, Paragraph, Spacer, PageBreak
+        from reportlab.platypus import SimpleDocTemplate, Table, TableStyle, Paragraph, Spacer, PageBreak, KeepTogether
         from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
         from reportlab.lib.enums import TA_CENTER, TA_LEFT
+        from reportlab.pdfgen import canvas as pdf_canvas
         from io import BytesIO
         from datetime import datetime
         
@@ -12181,27 +12182,17 @@ async def admin_commissions_print_pdf(request: Request):
         
         # Create PDF
         buffer = BytesIO()
-        doc = SimpleDocTemplate(buffer, pagesize=A4, topMargin=1.5*cm, bottomMargin=1.5*cm, leftMargin=1.5*cm, rightMargin=1.5*cm)
+        doc = SimpleDocTemplate(buffer, pagesize=A4, topMargin=1.5*cm, bottomMargin=4*cm, leftMargin=1.5*cm, rightMargin=1.5*cm)
         elements = []
         
         styles = getSampleStyleSheet()
         title_style = ParagraphStyle(
             'CustomTitle',
             parent=styles['Heading1'],
-            fontSize=18,
+            fontSize=16,
             textColor=colors.HexColor('#2c3e50'),
-            spaceAfter=15,
+            spaceAfter=12,
             alignment=TA_CENTER,
-            fontName='Helvetica-Bold'
-        )
-        
-        commissioner_style = ParagraphStyle(
-            'Commissioner',
-            parent=styles['Heading2'],
-            fontSize=14,
-            textColor=colors.HexColor('#34495e'),
-            spaceAfter=8,
-            alignment=TA_LEFT,
             fontName='Helvetica-Bold'
         )
         
@@ -12239,7 +12230,7 @@ async def admin_commissions_print_pdf(request: Request):
                 ])
             
             # Add total row
-            data.append(['', '', 'TOTAL COMISSÕES:', f"{round(total_commission)}€"])
+            data.append(['', '', 'Total:', f"{round(total_commission)}€"])
             
             # Create table with better column widths
             table = Table(data, colWidths=[5*cm, 3.5*cm, 2.5*cm, 3.5*cm])
@@ -12249,48 +12240,68 @@ async def admin_commissions_print_pdf(request: Request):
                 ('TEXTCOLOR', (0, 0), (-1, 0), colors.whitesmoke),
                 ('ALIGN', (0, 0), (-1, 0), 'CENTER'),
                 ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
-                ('FONTSIZE', (0, 0), (-1, 0), 12),
-                ('BOTTOMPADDING', (0, 0), (-1, 0), 12),
+                ('FONTSIZE', (0, 0), (-1, 0), 10),
+                ('BOTTOMPADDING', (0, 0), (-1, 0), 10),
+                ('TOPPADDING', (0, 0), (-1, 0), 10),
                 
                 # Data rows
                 ('ALIGN', (0, 1), (0, -2), 'LEFT'),
                 ('ALIGN', (1, 1), (-1, -2), 'CENTER'),
                 ('FONTNAME', (0, 1), (-1, -2), 'Helvetica'),
-                ('FONTSIZE', (0, 1), (-1, -2), 10),
-                ('ROWBACKGROUNDS', (0, 1), (-1, -2), [colors.white, colors.HexColor('#f5f5f5')]),
-                ('GRID', (0, 0), (-1, -2), 0.5, colors.grey),
+                ('FONTSIZE', (0, 1), (-1, -2), 9),
+                ('ROWBACKGROUNDS', (0, 1), (-1, -2), [colors.white, colors.HexColor('#f9f9f9')]),
+                ('GRID', (0, 0), (-1, -2), 0.5, colors.HexColor('#dddddd')),
+                ('TOPPADDING', (0, 1), (-1, -2), 8),
+                ('BOTTOMPADDING', (0, 1), (-1, -2), 8),
                 
-                # Total row
-                ('BACKGROUND', (0, -1), (-1, -1), colors.HexColor('#e0e0e0')),
+                # Total row - sem fundo
                 ('FONTNAME', (0, -1), (-1, -1), 'Helvetica-Bold'),
-                ('FONTSIZE', (0, -1), (-1, -1), 11),
+                ('FONTSIZE', (0, -1), (-1, -1), 10),
                 ('ALIGN', (2, -1), (2, -1), 'RIGHT'),
                 ('ALIGN', (3, -1), (3, -1), 'CENTER'),
-                ('LINEABOVE', (0, -1), (-1, -1), 2, colors.HexColor('#009cb6')),
+                ('LINEABOVE', (0, -1), (-1, -1), 1.5, colors.HexColor('#009cb6')),
+                ('TOPPADDING', (0, -1), (-1, -1), 10),
+                ('BOTTOMPADDING', (0, -1), (-1, -1), 10),
             ]))
             
             elements.append(table)
-            elements.append(Spacer(1, 1*cm))
-            
-            # Adicionar campos para preenchimento manual
-            signature_style = ParagraphStyle(
-                'Signature',
-                parent=styles['Normal'],
-                fontSize=10,
-                textColor=colors.black,
-                spaceAfter=6,
-                alignment=TA_LEFT,
-                fontName='Helvetica'
-            )
-            
-            elements.append(Paragraph("Recebido a _____ / _____ / ________", signature_style))
-            elements.append(Spacer(1, 0.5*cm))
-            elements.append(Paragraph("Nome: _____________________________________________", signature_style))
-            elements.append(Spacer(1, 0.5*cm))
-            elements.append(Paragraph("Assinatura: _______________________________________", signature_style))
         
-        # Build PDF
-        doc.build(elements)
+        # Custom page template to add signature fields at bottom
+        def add_signature_fields(canvas, doc):
+            canvas.saveState()
+            
+            # Position from bottom of page
+            page_width, page_height = A4
+            left_margin = 1.5*cm
+            bottom_margin = 1.5*cm
+            
+            # Background boxes with blue transparent color
+            canvas.setFillColor(colors.HexColor('#009cb6'))
+            canvas.setFillAlpha(0.08)
+            
+            # Recebido field
+            canvas.rect(left_margin, bottom_margin + 2.2*cm, 8*cm, 0.8*cm, fill=1, stroke=0)
+            
+            # Nome field
+            canvas.rect(left_margin, bottom_margin + 1.1*cm, 8*cm, 0.8*cm, fill=1, stroke=0)
+            
+            # Assinatura field
+            canvas.rect(left_margin, bottom_margin, 8*cm, 0.8*cm, fill=1, stroke=0)
+            
+            # Reset alpha
+            canvas.setFillAlpha(1)
+            canvas.setFillColor(colors.HexColor('#555555'))
+            canvas.setFont('Helvetica', 9)
+            
+            # Text labels
+            canvas.drawString(left_margin + 0.2*cm, bottom_margin + 2.5*cm, "Recebido a _____ / _____ / ________")
+            canvas.drawString(left_margin + 0.2*cm, bottom_margin + 1.4*cm, "Nome:")
+            canvas.drawString(left_margin + 0.2*cm, bottom_margin + 0.3*cm, "Assinatura:")
+            
+            canvas.restoreState()
+        
+        # Build PDF with custom page template
+        doc.build(elements, onFirstPage=add_signature_fields, onLaterPages=add_signature_fields)
         buffer.seek(0)
         
         # Return PDF
