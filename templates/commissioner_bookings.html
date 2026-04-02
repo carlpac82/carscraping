@@ -752,6 +752,23 @@
                     <input type="number" id="addBasePrice" step="0.01" min="0" placeholder="0.00" required>
                 </div>
 
+                <div class="form-group">
+                    <label for="addDeposit">Depósito (€)</label>
+                    <input type="number" id="addDeposit" step="0.01" min="0" placeholder="0.00" value="0">
+                </div>
+
+                <div class="form-group">
+                    <label style="display: flex; align-items: center; gap: 8px; cursor: pointer;">
+                        <input type="checkbox" id="useManualVoucher" onchange="toggleManualVoucher()" style="width: auto; cursor: pointer;">
+                        <span>Usar número de voucher manual</span>
+                    </label>
+                </div>
+
+                <div class="form-group" id="manualVoucherGroup" style="display: none;">
+                    <label for="addManualVoucher">Número de Voucher Manual</label>
+                    <input type="text" id="addManualVoucher" placeholder="Ex: AP-0426/01">
+                </div>
+
                 <div class="form-actions">
                     <button type="button" class="btn-modal-cancel" onclick="closeAddBookingModal()">Cancelar</button>
                     <button type="submit" class="btn-submit">Inserir Reserva</button>
@@ -1048,17 +1065,39 @@
         function closeAddBookingModal() {
             document.getElementById('addBookingModal').classList.remove('active');
             document.getElementById('addBookingForm').reset();
+            document.getElementById('manualVoucherGroup').style.display = 'none';
+        }
+
+        function toggleManualVoucher() {
+            const checkbox = document.getElementById('useManualVoucher');
+            const voucherGroup = document.getElementById('manualVoucherGroup');
+            const voucherInput = document.getElementById('addManualVoucher');
+            
+            if (checkbox.checked) {
+                voucherGroup.style.display = 'block';
+                voucherInput.required = true;
+            } else {
+                voucherGroup.style.display = 'none';
+                voucherInput.required = false;
+                voucherInput.value = '';
+            }
         }
 
         async function submitManualBooking(e) {
             e.preventDefault();
 
+            const useManualVoucher = document.getElementById('useManualVoucher').checked;
             const data = {
                 commissioner_id: parseInt(document.getElementById('addCommissioner').value),
                 pickup_date: document.getElementById('addPickupDate').value,
                 vehicle_group: document.getElementById('addVehicleGroup').value.trim().toUpperCase(),
-                base_price: parseFloat(document.getElementById('addBasePrice').value)
+                base_price: parseFloat(document.getElementById('addBasePrice').value),
+                deposit: parseFloat(document.getElementById('addDeposit').value) || 0
             };
+            
+            if (useManualVoucher) {
+                data.manual_voucher = document.getElementById('addManualVoucher').value.trim();
+            }
 
             try {
                 const response = await fetch('/api/admin/manual-booking', {

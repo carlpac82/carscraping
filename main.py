@@ -63646,6 +63646,8 @@ async def create_manual_booking(request: Request):
         pickup_date = data.get("pickup_date")
         vehicle_group = data.get("vehicle_group", "").strip().upper()
         base_price = data.get("base_price", 0)
+        deposit = data.get("deposit", 0)
+        manual_voucher = data.get("manual_voucher", "").strip()
         
         if not commissioner_id or not pickup_date or not vehicle_group or not base_price:
             return JSONResponse({"ok": False, "error": "Todos os campos são obrigatórios"}, status_code=400)
@@ -63668,26 +63670,8 @@ async def create_manual_booking(request: Request):
                 voucher_prefix = commissioner[1]
                 commission_rate = float(commissioner[2]) if commissioner[2] else 15.0
                 
-                # Generate voucher number
-                from datetime import datetime
-                now = datetime.now()
-                if USE_POSTGRES:
-                    cur.execute("""
-                        SELECT COUNT(*) FROM commission_bookings 
-                        WHERE commissioner_id = %s 
-                        AND EXTRACT(YEAR FROM created_at) = %s 
-                        AND EXTRACT(MONTH FROM created_at) = %s
-                    """, (commissioner_id, now.year, now.month))
-                else:
-                    cur.execute("""
-                        SELECT COUNT(*) FROM commission_bookings 
-                        WHERE commissioner_id = ? 
-                        AND strftime('%Y', created_at) = ? 
-                        AND strftime('%m', created_at) = ?
-                    """, (commissioner_id, str(now.year), f"{now.month:02d}"))
-                
-                count = cur.fetchone()[0]
-                voucher_number = f"{voucher_prefix}-{now.strftime('%m%y')}/{count + 1:02d}"
+                # Use manual voucher if provided, otherwise leave empty (no automatic voucher for manual bookings)
+                voucher_number = manual_voucher if manual_voucher else None
                 
                 # Calculate commission: base_price without VAT (23%) * commission_rate
                 base_price_without_vat = base_price / 1.23
@@ -63709,7 +63693,7 @@ async def create_manual_booking(request: Request):
                         commissioner_id, voucher_number, 'Manual', '', '',
                         pickup_date, '00:00', pickup_date, '00:00',
                         'Manual', 'Manual', vehicle_group, '[]',
-                        base_price, base_price, 0, 'confirmed', commission_rate, commission_amount
+                        base_price, base_price, deposit, 'confirmed', commission_rate, commission_amount
                     ))
                     booking_id = cur.fetchone()[0]
                 else:
@@ -63727,7 +63711,7 @@ async def create_manual_booking(request: Request):
                         commissioner_id, voucher_number, 'Manual', '', '',
                         pickup_date, '00:00', pickup_date, '00:00',
                         'Manual', 'Manual', vehicle_group, '[]',
-                        base_price, base_price, 0, 'confirmed', commission_rate, commission_amount
+                        base_price, base_price, deposit, 'confirmed', commission_rate, commission_amount
                     ))
                     booking_id = cur.lastrowid
                 
