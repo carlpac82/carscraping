@@ -11943,30 +11943,11 @@ async def admin_commissions_mark_paid(request: Request):
         if not commission_ids:
             return JSONResponse({"ok": False, "error": "No commission IDs provided"}, status_code=400)
         
-        # Get current user ID for paid_by field
+        # Get current username for paid_by field
         username = request.session.get("username")
-        user_id = None
         
-        if username:
-            with _db_lock:
-                con = _db_connect()
-                try:
-                    is_postgres = 'psycopg' in type(con).__name__.lower() or os.getenv('DATABASE_URL')
-                    if is_postgres:
-                        cursor = con.cursor()
-                        cursor.execute("SELECT id FROM users WHERE username = %s", (username,))
-                    else:
-                        cursor = con.cursor()
-                        cursor.execute("SELECT id FROM users WHERE username = ?", (username,))
-                    
-                    row = cursor.fetchone()
-                    if row:
-                        user_id = row[0]
-                finally:
-                    con.close()
-        
-        if not user_id:
-            return JSONResponse({"ok": False, "error": "User not found"}, status_code=400)
+        if not username:
+            return JSONResponse({"ok": False, "error": "User not logged in"}, status_code=400)
         
         with _db_lock:
             con = _db_connect()
@@ -11979,7 +11960,7 @@ async def admin_commissions_mark_paid(request: Request):
                         commission_paid_date = NOW(),
                         commission_paid_by = %s
                     WHERE id IN ({placeholders})
-                """, [user_id] + commission_ids)
+                """, [username] + commission_ids)
                 con.commit()
                 
                 return JSONResponse({
@@ -12006,6 +11987,12 @@ async def admin_commissions_mark_unpaid(request: Request):
         if not commission_ids:
             return JSONResponse({"ok": False, "error": "No commission IDs provided"}, status_code=400)
         
+        # Get current user full name for paid_by field
+        user_full_name = request.session.get("user_full_name")
+        
+        if not user_full_name:
+            return JSONResponse({"ok": False, "error": "User not logged in"}, status_code=400)
+        
         with _db_lock:
             con = _db_connect()
             try:
@@ -12015,9 +12002,9 @@ async def admin_commissions_mark_unpaid(request: Request):
                     UPDATE commission_bookings 
                     SET commission_paid = FALSE, 
                         commission_paid_date = NULL,
-                        commission_paid_by = NULL
+                        commission_paid_by = %s
                     WHERE id IN ({placeholders})
-                """, commission_ids)
+                """, [user_full_name] + commission_ids)
                 con.commit()
                 
                 return JSONResponse({
