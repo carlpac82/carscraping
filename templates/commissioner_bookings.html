@@ -752,6 +752,11 @@
                 </div>
 
                 <div class="form-group">
+                    <label for="addDays">Número de Dias *</label>
+                    <input type="number" id="addDays" min="1" placeholder="Ex: 7" required>
+                </div>
+
+                <div class="form-group">
                     <label for="addVehicleGroup">Grupo *</label>
                     <input type="text" id="addVehicleGroup" placeholder="Ex: B, C, D, etc." required>
                 </div>
@@ -1123,6 +1128,7 @@
             const data = {
                 commissioner_id: parseInt(document.getElementById('addCommissioner').value),
                 pickup_date: document.getElementById('addPickupDate').value,
+                days: parseInt(document.getElementById('addDays').value),
                 vehicle_group: document.getElementById('addVehicleGroup').value.trim().toUpperCase(),
                 base_price: parseFloat(document.getElementById('addBasePrice').value),
                 deposit: parseFloat(document.getElementById('addDeposit').value) || 0

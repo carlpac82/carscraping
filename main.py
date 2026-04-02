@@ -32868,6 +32868,11 @@ async def generate_commissioner_booking_pdf(booking_id: int, request: Request):
         extras_total_raw = row[28] if len(row) > 28 else None
         rental_days_raw = row[29] if len(row) > 29 else None
         
+        # Detectar se é reserva manual (client_name vazio e pickup_location vazio)
+        client_name = row[3] if len(row) > 3 else ""
+        pickup_location = row[12] if len(row) > 12 else ""
+        is_manual_booking = (not client_name or client_name == "") and (not pickup_location or pickup_location == "")
+        
         # Verificar se os valores existem e não são None/NULL (reservas novas vs antigas)
         has_stored_prices = (base_price_raw is not None and 
                             insurance_price_raw is not None and 
@@ -32881,7 +32886,17 @@ async def generate_commissioner_booking_pdf(booking_id: int, request: Request):
             extras_total_from_db = float(extras_total_raw) if extras_total_raw is not None and isinstance(extras_total_raw, (Decimal, int, float)) else 0.0
             if rental_days_raw is not None:
                 rental_days = int(rental_days_raw)
-            logging.info(f"[PDF] Usando valores da BD: base={base_price}, seguro={insurance_price}, road_tax={road_tax}, extras={extras_total_from_db}")
+            
+            # Para reservas manuais: só mostrar base_price e road_tax
+            if is_manual_booking:
+                # Calcular road_tax baseado no número de dias
+                road_tax_days = min(int(rental_days) if rental_days else 1, 10)
+                road_tax = round(road_tax_days * 2.23, 2)
+                insurance_price = 0.0
+                extras_total_from_db = 0.0
+                logging.info(f"[PDF] Reserva MANUAL: base={base_price}, road_tax={road_tax} ({road_tax_days} dias)")
+            else:
+                logging.info(f"[PDF] Usando valores da BD: base={base_price}, seguro={insurance_price}, road_tax={road_tax}, extras={extras_total_from_db}")
         else:
             # Fallback: calcular se não existir na BD (reservas antigas)
             logging.info(f"[PDF] Reserva antiga detectada, a calcular preços...")
@@ -32897,9 +32912,9 @@ async def generate_commissioner_booking_pdf(booking_id: int, request: Request):
         
         # Mapear dados da reserva com todos os campos
         booking_data = {
-            # Dados do Cliente
+            # Dados do Cliente (vazio para reservas manuais)
             "voucher_number": row[2] if len(row) > 2 else "",  # índice 2: voucher_number
-            "client_name": row[3] if len(row) > 3 else "",  # índice 3: client_name
+            "client_name": "" if is_manual_booking else (row[3] if len(row) > 3 else ""),  # índice 3: client_name
             "client_email": row[4] if len(row) > 4 else "",  # índice 4: client_email
             "client_phone": row[5] if len(row) > 5 else "",  # índice 5: client_phone
             "hotel_name": row[6] if len(row) > 6 else "",  # índice 6: hotel
@@ -32910,17 +32925,17 @@ async def generate_commissioner_booking_pdf(booking_id: int, request: Request):
             "pickup_day": pickup_day,
             "pickup_month": pickup_month,
             "pickup_year": pickup_year,
-            "pickup_hour": pickup_hour,
-            "pickup_minute": pickup_minute,
-            "pickup_location": row[12] if len(row) > 12 else "",  # índice 12: pickup_location
+            "pickup_hour": "" if is_manual_booking else pickup_hour,
+            "pickup_minute": "" if is_manual_booking else pickup_minute,
+            "pickup_location": "" if is_manual_booking else (row[12] if len(row) > 12 else ""),  # índice 12: pickup_location
             
             # Data de Devolução (dividida)
             "dropoff_day": dropoff_day,
             "dropoff_month": dropoff_month,
             "dropoff_year": dropoff_year,
-            "dropoff_hour": dropoff_hour,
-            "dropoff_minute": dropoff_minute,
-            "dropoff_location": row[13] if len(row) > 13 else "",  # índice 13: dropoff_location
+            "dropoff_hour": "" if is_manual_booking else dropoff_hour,
+            "dropoff_minute": "" if is_manual_booking else dropoff_minute,
+            "dropoff_location": "" if is_manual_booking else (row[13] if len(row) > 13 else ""),  # índice 13: dropoff_location
             
             # Veículo e Duração
             "vehicle_group": row[14] if len(row) > 14 else "",  # índice 14: vehicle_group
@@ -63644,12 +63659,13 @@ async def create_manual_booking(request: Request):
         data = await request.json()
         commissioner_id = data.get("commissioner_id")
         pickup_date = data.get("pickup_date")
+        days = data.get("days", 1)
         vehicle_group = data.get("vehicle_group", "").strip().upper()
         base_price = data.get("base_price", 0)
         deposit = data.get("deposit", 0)
         manual_voucher = data.get("manual_voucher", "").strip()
         
-        if not commissioner_id or not pickup_date or not vehicle_group or not base_price:
+        if not commissioner_id or not pickup_date or not days or not vehicle_group or not base_price:
             return JSONResponse({"ok": False, "error": "Todos os campos são obrigatórios"}, status_code=400)
         
         with _db_lock:
@@ -63679,6 +63695,12 @@ async def create_manual_booking(request: Request):
                 
                 # Insert booking
                 if USE_POSTGRES:
+                    # Calculate dropoff date based on days
+                    from datetime import datetime, timedelta
+                    pickup_dt = datetime.strptime(pickup_date, '%Y-%m-%d')
+                    dropoff_dt = pickup_dt + timedelta(days=days)
+                    dropoff_date = dropoff_dt.strftime('%Y-%m-%d')
+                    
                     cur.execute("""
                         INSERT INTO commission_bookings (
                             commissioner_id, voucher_number, client_name, client_email, client_phone,
@@ -63690,13 +63712,19 @@ async def create_manual_booking(request: Request):
                             %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP
                         ) RETURNING id
                     """, (
-                        commissioner_id, voucher_number, 'Manual', '', '',
-                        pickup_date, '00:00', pickup_date, '00:00',
-                        'Manual', 'Manual', vehicle_group, '[]',
+                        commissioner_id, voucher_number, '', '', '',
+                        pickup_date, '00:00', dropoff_date, '00:00',
+                        '', '', vehicle_group, '[]',
                         base_price, base_price, deposit, 'confirmed', commission_rate, commission_amount
                     ))
                     booking_id = cur.fetchone()[0]
                 else:
+                    # Calculate dropoff date based on days
+                    from datetime import datetime, timedelta
+                    pickup_dt = datetime.strptime(pickup_date, '%Y-%m-%d')
+                    dropoff_dt = pickup_dt + timedelta(days=days)
+                    dropoff_date = dropoff_dt.strftime('%Y-%m-%d')
+                    
                     cur = con.execute("""
                         INSERT INTO commission_bookings (
                             commissioner_id, voucher_number, client_name, client_email, client_phone,
@@ -63708,9 +63736,9 @@ async def create_manual_booking(request: Request):
                             ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP
                         )
                     """, (
-                        commissioner_id, voucher_number, 'Manual', '', '',
-                        pickup_date, '00:00', pickup_date, '00:00',
-                        'Manual', 'Manual', vehicle_group, '[]',
+                        commissioner_id, voucher_number, '', '', '',
+                        pickup_date, '00:00', dropoff_date, '00:00',
+                        '', '', vehicle_group, '[]',
                         base_price, base_price, deposit, 'confirmed', commission_rate, commission_amount
                     ))
                     booking_id = cur.lastrowid
