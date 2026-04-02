@@ -63979,8 +63979,8 @@ async def create_manual_booking(request: Request):
                 voucher_prefix = commissioner[1]
                 commission_rate = float(commissioner[2]) if commissioner[2] else 15.0
                 
-                # Use manual voucher if provided, otherwise leave empty (no automatic voucher for manual bookings)
-                voucher_number = manual_voucher if manual_voucher else ""
+                # Use manual voucher if provided, otherwise use NULL (no automatic voucher for manual bookings)
+                voucher_number = manual_voucher if manual_voucher else None
                 
                 # Calculate commission: base_price without VAT (23%) * commission_rate
                 base_price_without_vat = base_price / 1.23
