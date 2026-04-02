@@ -12051,7 +12051,7 @@ async def admin_migrate_commission_payment(request: Request):
         
         # Add commission_paid_by column
         try:
-            cursor.execute("ALTER TABLE commission_bookings ADD COLUMN commission_paid_by INTEGER")
+            cursor.execute("ALTER TABLE commission_bookings ADD COLUMN commission_paid_by TEXT")
             conn.commit()
             results.append("commission_paid_by: CREATED")
         except Exception as e:
