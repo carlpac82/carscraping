@@ -12270,33 +12270,36 @@ async def admin_commissions_print_pdf(request: Request):
         def add_signature_fields(canvas, doc):
             canvas.saveState()
             
-            # Position from bottom of page
+            # Position from bottom of page - centered
             page_width, page_height = A4
-            left_margin = 1.5*cm
             bottom_margin = 1.5*cm
+            
+            # Calculate center position
+            box_width = 10*cm
+            center_x = (page_width - box_width) / 2
             
             # Background boxes with blue transparent color
             canvas.setFillColor(colors.HexColor('#009cb6'))
             canvas.setFillAlpha(0.08)
             
             # Recebido field
-            canvas.rect(left_margin, bottom_margin + 2.2*cm, 8*cm, 0.8*cm, fill=1, stroke=0)
+            canvas.rect(center_x, bottom_margin + 2.2*cm, box_width, 0.8*cm, fill=1, stroke=0)
             
             # Nome field
-            canvas.rect(left_margin, bottom_margin + 1.1*cm, 8*cm, 0.8*cm, fill=1, stroke=0)
+            canvas.rect(center_x, bottom_margin + 1.1*cm, box_width, 0.8*cm, fill=1, stroke=0)
             
             # Assinatura field
-            canvas.rect(left_margin, bottom_margin, 8*cm, 0.8*cm, fill=1, stroke=0)
+            canvas.rect(center_x, bottom_margin, box_width, 0.8*cm, fill=1, stroke=0)
             
             # Reset alpha
             canvas.setFillAlpha(1)
             canvas.setFillColor(colors.HexColor('#555555'))
             canvas.setFont('Helvetica', 9)
             
-            # Text labels
-            canvas.drawString(left_margin + 0.2*cm, bottom_margin + 2.5*cm, "Recebido a _____ / _____ / ________")
-            canvas.drawString(left_margin + 0.2*cm, bottom_margin + 1.4*cm, "Nome:")
-            canvas.drawString(left_margin + 0.2*cm, bottom_margin + 0.3*cm, "Assinatura:")
+            # Text labels - centered
+            canvas.drawString(center_x + 0.3*cm, bottom_margin + 2.5*cm, "Recebido a _____ / _____ / ________")
+            canvas.drawString(center_x + 0.3*cm, bottom_margin + 1.4*cm, "Nome:")
+            canvas.drawString(center_x + 0.3*cm, bottom_margin + 0.3*cm, "Assinatura:")
             
             canvas.restoreState()
         
