@@ -453,13 +453,12 @@
                       <th>Valor Base</th>
                       <th>Comissão</th>
                       <th>Status Pagamento</th>
-                      <th>Status Reserva</th>
                       <th>Data Pagamento</th>
                   </tr>
               </thead>
               <tbody id="commissionsTableBody">
                   <tr>
-                      <td colspan="12" class="text-center py-4">Carregando...</td>
+                      <td colspan="11" class="text-center py-4">Carregando...</td>
                   </tr>
               </tbody>
           </table>
@@ -557,7 +556,6 @@
                       <td class="${commission.commission_paid ? 'status-paid' : 'status-unpaid'}">
                           ${commission.commission_paid ? 'Pago' : 'Por Pagar'}
                       </td>
-                      <td>${commission.status || '-'}</td>
                       <td>${commission.commission_paid_date ? new Date(commission.commission_paid_date).toLocaleDateString('pt-PT') : '-'}</td>
                   `;
                   tbody.appendChild(row);
