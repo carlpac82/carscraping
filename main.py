@@ -12080,8 +12080,8 @@ async def admin_commissions_print_pdf(request: Request):
                     params.append(f"{int(month):02d}")
                 
                 if commissioner_filter:
-                    query += " AND c.name = ?"
-                    params.append(commissioner_filter)
+                    query += " AND c.name LIKE ?"
+                    params.append(f"%{commissioner_filter}%")
                 
                 query += " ORDER BY c.name, cb.pickup_date"
                 
@@ -12091,24 +12091,35 @@ async def admin_commissions_print_pdf(request: Request):
             finally:
                 con.close()
         
+        # Check if there are any commissions
+        if not rows:
+            return JSONResponse({
+                "ok": False, 
+                "error": "Nenhuma comissão encontrada para os filtros selecionados"
+            }, status_code=404)
+        
         # Group commissions by commissioner
         commissioners_data = {}
         for row in rows:
-            commissioner_name = row[5] or "Sem Comissionista"
-            if commissioner_name not in commissioners_data:
-                commissioners_data[commissioner_name] = []
-            
-            # Calculate number of days
-            pickup_date = datetime.fromisoformat(row[2]) if row[2] else None
-            dropoff_date = datetime.fromisoformat(row[3]) if row[3] else None
-            days = (dropoff_date - pickup_date).days if pickup_date and dropoff_date else 0
-            
-            commissioners_data[commissioner_name].append({
-                'voucher': row[1] or '-',
-                'pickup_date': pickup_date,
-                'days': days,
-                'commission': row[4]
-            })
+            try:
+                commissioner_name = row[5] if len(row) > 5 and row[5] else "Sem Comissionista"
+                if commissioner_name not in commissioners_data:
+                    commissioners_data[commissioner_name] = []
+                
+                # Calculate number of days
+                pickup_date = datetime.fromisoformat(row[2]) if row[2] else None
+                dropoff_date = datetime.fromisoformat(row[3]) if row[3] else None
+                days = (dropoff_date - pickup_date).days if pickup_date and dropoff_date else 0
+                
+                commissioners_data[commissioner_name].append({
+                    'voucher': row[1] or '-',
+                    'pickup_date': pickup_date,
+                    'days': days,
+                    'commission': row[4] if len(row) > 4 else 0
+                })
+            except Exception as e:
+                print(f"Error processing row: {row}, error: {e}")
+                continue
         
         # Create PDF
         buffer = BytesIO()
@@ -12171,7 +12182,7 @@ async def admin_commissions_print_pdf(request: Request):
             data.append(['', '', 'TOTAL:', f"{round(total_commission)}€"])
             
             # Create table
-            table = Table(data, colWidths=[5*cm, 3*cm, 2.5*cm, 3*cm])
+            table = Table(data, colWidths=[4*cm, 3*cm, 3*cm, 3*cm])
             table.setStyle(TableStyle([
                 # Header
                 ('BACKGROUND', (0, 0), (-1, 0), colors.HexColor('#009cb6')),
