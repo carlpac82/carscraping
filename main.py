@@ -12038,6 +12038,210 @@ async def admin_commissions_mark_unpaid(request: Request):
     except Exception as e:
         return JSONResponse({"ok": False, "error": str(e)}, status_code=500)
 
+@app.get("/api/admin/commissions/print-pdf")
+async def admin_commissions_print_pdf(request: Request):
+    """Generate PDF report of commissions by commissioner"""
+    try:
+        require_commissions_management(request)
+    except HTTPException:
+        return JSONResponse({"ok": False, "error": "Unauthorized"}, status_code=403)
+    
+    try:
+        from reportlab.lib.pagesizes import A4
+        from reportlab.lib import colors
+        from reportlab.lib.units import cm
+        from reportlab.platypus import SimpleDocTemplate, Table, TableStyle, Paragraph, Spacer, PageBreak
+        from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
+        from reportlab.lib.enums import TA_CENTER, TA_LEFT
+        from io import BytesIO
+        from datetime import datetime
+        
+        # Get query parameters
+        month = request.query_params.get("month", "")
+        commissioner_filter = request.query_params.get("commissioner", "")
+        
+        # Fetch commissions data
+        with _db_lock:
+            con = _db_connect()
+            try:
+                query = """
+                    SELECT 
+                        cb.id, cb.voucher_number, cb.pickup_date, cb.dropoff_date,
+                        cb.commission_amount, c.name as commissioner_name
+                    FROM commission_bookings cb
+                    LEFT JOIN commissioners c ON cb.commissioner_id = c.id
+                    WHERE cb.commission_amount > 0
+                """
+                params = []
+                
+                if month:
+                    # Filter by month
+                    query += " AND strftime('%m', cb.pickup_date) = ?"
+                    params.append(f"{int(month):02d}")
+                
+                if commissioner_filter:
+                    query += " AND c.name = ?"
+                    params.append(commissioner_filter)
+                
+                query += " ORDER BY c.name, cb.pickup_date"
+                
+                cur = con.execute(query, params)
+                rows = cur.fetchall()
+                
+            finally:
+                con.close()
+        
+        # Group commissions by commissioner
+        commissioners_data = {}
+        for row in rows:
+            commissioner_name = row[5] or "Sem Comissionista"
+            if commissioner_name not in commissioners_data:
+                commissioners_data[commissioner_name] = []
+            
+            # Calculate number of days
+            pickup_date = datetime.fromisoformat(row[2]) if row[2] else None
+            dropoff_date = datetime.fromisoformat(row[3]) if row[3] else None
+            days = (dropoff_date - pickup_date).days if pickup_date and dropoff_date else 0
+            
+            commissioners_data[commissioner_name].append({
+                'voucher': row[1] or '-',
+                'pickup_date': pickup_date,
+                'days': days,
+                'commission': row[4]
+            })
+        
+        # Create PDF
+        buffer = BytesIO()
+        doc = SimpleDocTemplate(buffer, pagesize=A4, topMargin=2*cm, bottomMargin=2*cm)
+        elements = []
+        
+        styles = getSampleStyleSheet()
+        title_style = ParagraphStyle(
+            'CustomTitle',
+            parent=styles['Heading1'],
+            fontSize=16,
+            textColor=colors.HexColor('#009cb6'),
+            spaceAfter=20,
+            alignment=TA_CENTER
+        )
+        
+        commissioner_style = ParagraphStyle(
+            'Commissioner',
+            parent=styles['Heading2'],
+            fontSize=14,
+            textColor=colors.HexColor('#333333'),
+            spaceAfter=10,
+            alignment=TA_LEFT
+        )
+        
+        # Month name for title
+        month_name = ""
+        if month:
+            month_name = datetime(2026, int(month), 1).strftime('%B de %Y')
+        
+        # Generate PDF for each commissioner
+        for idx, (commissioner_name, commissions) in enumerate(commissioners_data.items()):
+            if idx > 0:
+                elements.append(PageBreak())
+            
+            # Title
+            title_text = f"Comissões - {commissioner_name}"
+            if month_name:
+                title_text += f" - {month_name}"
+            elements.append(Paragraph(title_text, title_style))
+            elements.append(Spacer(1, 0.5*cm))
+            
+            # Table data
+            data = [['Voucher', 'Data Entrega', 'Nº Dias', 'Comissão']]
+            
+            total_commission = 0
+            for comm in commissions:
+                date_str = comm['pickup_date'].strftime('%d/%m') if comm['pickup_date'] else '-'
+                commission_rounded = round(comm['commission'])
+                total_commission += commission_rounded
+                
+                data.append([
+                    comm['voucher'],
+                    date_str,
+                    str(comm['days']),
+                    f"{commission_rounded}€"
+                ])
+            
+            # Add total row
+            data.append(['', '', 'TOTAL:', f"{round(total_commission)}€"])
+            
+            # Create table
+            table = Table(data, colWidths=[5*cm, 3*cm, 2.5*cm, 3*cm])
+            table.setStyle(TableStyle([
+                # Header
+                ('BACKGROUND', (0, 0), (-1, 0), colors.HexColor('#009cb6')),
+                ('TEXTCOLOR', (0, 0), (-1, 0), colors.whitesmoke),
+                ('ALIGN', (0, 0), (-1, 0), 'CENTER'),
+                ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
+                ('FONTSIZE', (0, 0), (-1, 0), 12),
+                ('BOTTOMPADDING', (0, 0), (-1, 0), 12),
+                
+                # Data rows
+                ('ALIGN', (0, 1), (0, -2), 'LEFT'),
+                ('ALIGN', (1, 1), (-1, -2), 'CENTER'),
+                ('FONTNAME', (0, 1), (-1, -2), 'Helvetica'),
+                ('FONTSIZE', (0, 1), (-1, -2), 10),
+                ('ROWBACKGROUNDS', (0, 1), (-1, -2), [colors.white, colors.HexColor('#f5f5f5')]),
+                ('GRID', (0, 0), (-1, -2), 0.5, colors.grey),
+                
+                # Total row
+                ('BACKGROUND', (0, -1), (-1, -1), colors.HexColor('#e0e0e0')),
+                ('FONTNAME', (0, -1), (-1, -1), 'Helvetica-Bold'),
+                ('FONTSIZE', (0, -1), (-1, -1), 11),
+                ('ALIGN', (2, -1), (2, -1), 'RIGHT'),
+                ('ALIGN', (3, -1), (3, -1), 'CENTER'),
+                ('LINEABOVE', (0, -1), (-1, -1), 2, colors.HexColor('#009cb6')),
+            ]))
+            
+            elements.append(table)
+        
+        # Build PDF
+        doc.build(elements)
+        buffer.seek(0)
+        
+        # Return PDF
+        filename = f"comissoes_{month_name.replace(' ', '_') if month_name else 'todas'}.pdf"
+        return Response(
+            content=buffer.getvalue(),
+            media_type="application/pdf",
+            headers={"Content-Disposition": f"inline; filename={filename}"}
+        )
+        
+    except Exception as e:
+        import traceback
+        print(f"Error generating commissions PDF: {e}")
+        traceback.print_exc()
+        return JSONResponse({"ok": False, "error": str(e)}, status_code=500)
+
+@app.get("/admin/disable-b1-b2-groups")
+async def admin_disable_b1_b2_groups(request: Request):
+    """Disable B1 and B2 vehicle groups - Admin only"""
+    try:
+        require_admin(request)
+        
+        with _db_lock:
+            con = _db_connect()
+            try:
+                # Disable B1 and B2 groups
+                con.execute("UPDATE car_groups SET enabled = 0 WHERE code IN ('B1', 'B2')")
+                con.commit()
+                
+                return JSONResponse({
+                    "ok": True,
+                    "message": "Groups B1 and B2 have been disabled"
+                })
+            finally:
+                con.close()
+    except HTTPException as e:
+        return JSONResponse({"ok": False, "error": str(e)}, status_code=403)
+    except Exception as e:
+        return JSONResponse({"ok": False, "error": str(e)}, status_code=500)
+
 @app.get("/admin/migrate-commission-payment")
 async def admin_migrate_commission_payment(request: Request):
     """Migrate commission payment columns - Admin only"""
