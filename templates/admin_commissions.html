@@ -508,6 +508,7 @@
           // Load commissions data
           async function loadCommissions() {
               try {
+                  // Sempre carregar TODAS as comissões - filtro é feito no frontend
                   const response = await fetch('/api/admin/commissions/list');
                   const data = await response.json();
                   
