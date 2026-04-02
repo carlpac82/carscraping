@@ -450,7 +450,7 @@
                       <th>Veículo</th>
                       <th>Data Levant.</th>
                       <th>Depósito</th>
-                      <th>Valor Total</th>
+                      <th>Valor Base</th>
                       <th>Comissão</th>
                       <th>Status Pagamento</th>
                       <th>Status Reserva</th>
@@ -552,7 +552,7 @@
                       <td>${commission.vehicle_group || '-'}</td>
                       <td>${commission.pickup_date ? new Date(commission.pickup_date).toLocaleDateString('pt-PT') : '-'}</td>
                       <td>€${(commission.deposit || 0).toFixed(2)}</td>
-                      <td>€${(commission.price || 0).toFixed(2)}</td>
+                      <td>€${(commission.base_price || 0).toFixed(2)}</td>
                       <td>€${(commission.commission_amount || 0).toFixed(2)}</td>
                       <td class="${commission.commission_paid ? 'status-paid' : 'status-unpaid'}">
                           ${commission.commission_paid ? 'Pago' : 'Por Pagar'}
