@@ -11842,7 +11842,7 @@ async def admin_commissions_list(request: Request):
                         cb.hotel, cb.room_number, cb.flight_number, cb.observations,
                         cb.commission_rate, cb.commission_amount, cb.commission_paid,
                         cb.commission_paid_date, cb.commission_paid_by,
-                        c.name as commissioner_name
+                        c.name as commissioner_name, cb.base_price
                     FROM commission_bookings cb
                     LEFT JOIN commissioners c ON cb.commissioner_id = c.id
                     WHERE cb.commission_amount > 0
@@ -11902,7 +11902,8 @@ async def admin_commissions_list(request: Request):
                         "commission_paid": bool(row[24]),
                         "commission_paid_date": row[25].isoformat() if row[25] and hasattr(row[25], 'isoformat') else str(row[25]) if row[25] else None,
                         "commission_paid_by": row[26],
-                        "commissioner_name": row[27]
+                        "commissioner_name": row[27],
+                        "base_price": float(row[28]) if row[28] else 0
                     })
                 
                 # Calculate summary statistics
