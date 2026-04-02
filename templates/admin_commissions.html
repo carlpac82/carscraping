@@ -476,6 +476,11 @@
           document.addEventListener('DOMContentLoaded', function() {
               loadCommissions();
               loadFilters();
+              
+              // Add event listeners to filters to auto-update
+              document.getElementById('statusFilter').addEventListener('change', renderCommissions);
+              document.getElementById('monthFilter').addEventListener('change', renderCommissions);
+              document.getElementById('commissionerFilter').addEventListener('change', renderCommissions);
           });
           
           // Load commissions data
