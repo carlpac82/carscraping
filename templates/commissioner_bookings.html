@@ -347,6 +347,15 @@
             background: #e1bee7;
         }
 
+        .btn-delete {
+            background: #fbe9e7;
+            color: #d84315;
+        }
+
+        .btn-delete:hover {
+            background: #ffccbc;
+        }
+
         .loading {
             text-align: center;
             padding: 40px;
@@ -868,7 +877,7 @@
                         <tbody>
                             ${bookings.map(b => `
                                 <tr>
-                                    <td>${b.voucher_number || '#' + b.id}</td>
+                                    <td>${b.voucher_number || '-'}</td>
                                     <td>
                                         <div style="font-weight: 500;">${b.customer_name}</div>
                                         <div style="font-size: 12px; color: #999;">${b.customer_phone}</div>
@@ -909,6 +918,9 @@
                                             ${b.status !== 'cancelled' ? `
                                                 <button class="btn-action btn-cancel" onclick="cancelBooking(${b.id})">
                                                     Cancelar
+                                                </button>
+                                                <button class="btn-action btn-delete" onclick="deleteBooking(${b.id})">
+                                                    Eliminar
                                                 </button>
                                             ` : ''}
                                         </div>
@@ -976,6 +988,27 @@
             } catch (error) {
                 console.error('Error cancelling booking:', error);
                 alert('Erro ao cancelar reserva');
+            }
+        }
+
+        async function deleteBooking(id) {
+            if (!confirm('ATENÇÃO: Tem certeza que deseja ELIMINAR PERMANENTEMENTE esta reserva da base de dados?\n\nEsta ação não pode ser desfeita!')) return;
+
+            try {
+                const response = await fetch(`/api/commission-bookings/${id}`, {
+                    method: 'DELETE'
+                });
+
+                const result = await response.json();
+                if (result.ok) {
+                    loadData();
+                    alert('Reserva eliminada com sucesso!');
+                } else {
+                    alert('Erro: ' + result.error);
+                }
+            } catch (error) {
+                console.error('Error deleting booking:', error);
+                alert('Erro ao eliminar reserva');
             }
         }
 

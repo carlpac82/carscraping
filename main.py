@@ -63780,6 +63780,45 @@ async def update_commission_booking_status(booking_id: int, request: Request):
         return JSONResponse({"ok": False, "error": str(e)}, status_code=500)
 
 
+@app.delete("/api/commission-bookings/{booking_id}")
+async def delete_commission_booking(booking_id: int, request: Request):
+    """Delete a commission booking permanently from the database"""
+    try:
+        require_admin(request)
+    except HTTPException:
+        return JSONResponse({"ok": False, "error": "Unauthorized"}, status_code=401)
+    
+    try:
+        with _db_lock:
+            con = _db_connect()
+            try:
+                if USE_POSTGRES:
+                    cur = con.cursor()
+                    cur.execute("""
+                        DELETE FROM commission_bookings
+                        WHERE id = %s
+                    """, (booking_id,))
+                else:
+                    cur = con.execute("""
+                        DELETE FROM commission_bookings
+                        WHERE id = ?
+                    """, (booking_id,))
+                
+                if cur.rowcount == 0:
+                    return JSONResponse({"ok": False, "error": "Booking not found"}, status_code=404)
+                
+                con.commit()
+                return JSONResponse({"ok": True, "message": "Booking deleted successfully"})
+                
+            finally:
+                con.close()
+                
+    except Exception as e:
+        print(f"Error deleting booking: {e}")
+        traceback.print_exc()
+        return JSONResponse({"ok": False, "error": str(e)}, status_code=500)
+
+
 @app.post("/api/commissioners/login")
 async def api_commissioners_login(request: Request):
     """API endpoint for commissioner login with username/password"""
