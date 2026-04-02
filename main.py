@@ -12063,37 +12063,59 @@ async def admin_commissions_print_pdf(request: Request):
         with _db_lock:
             con = _db_connect()
             try:
-                query = """
-                    SELECT 
-                        cb.id, cb.voucher_number, cb.pickup_date, cb.dropoff_date,
-                        cb.commission_amount, c.name as commissioner_name
-                    FROM commission_bookings cb
-                    LEFT JOIN commissioners c ON cb.commissioner_id = c.id
-                    WHERE cb.commission_amount > 0
-                """
-                params = []
-                
-                if month:
-                    # Filter by month
-                    query += " AND EXTRACT(MONTH FROM cb.pickup_date) = ?"
-                    params.append(int(month))
-                
-                query += " ORDER BY c.name, cb.pickup_date"
-                
-                cur = con.execute(query, params)
-                rows = cur.fetchall()
+                if USE_POSTGRES:
+                    # PostgreSQL syntax
+                    query = """
+                        SELECT 
+                            cb.id, cb.voucher_number, cb.pickup_date, cb.dropoff_date,
+                            cb.commission_amount, c.name as commissioner_name
+                        FROM commission_bookings cb
+                        LEFT JOIN commissioners c ON cb.commissioner_id = c.id
+                        WHERE cb.commission_amount > 0
+                    """
+                    params = []
+                    
+                    if month:
+                        # Filter by month using PostgreSQL EXTRACT
+                        query += " AND EXTRACT(MONTH FROM cb.pickup_date) = %s"
+                        params.append(int(month))
+                    
+                    query += " ORDER BY c.name, cb.pickup_date"
+                    
+                    cur = con.cursor()
+                    cur.execute(query, params)
+                    rows = cur.fetchall()
+                else:
+                    # SQLite syntax
+                    query = """
+                        SELECT 
+                            cb.id, cb.voucher_number, cb.pickup_date, cb.dropoff_date,
+                            cb.commission_amount, c.name as commissioner_name
+                        FROM commission_bookings cb
+                        LEFT JOIN commissioners c ON cb.commissioner_id = c.id
+                        WHERE cb.commission_amount > 0
+                    """
+                    params = []
+                    
+                    if month:
+                        # Filter by month using SQLite strftime
+                        query += " AND CAST(strftime('%m', cb.pickup_date) AS INTEGER) = ?"
+                        params.append(int(month))
+                    
+                    query += " ORDER BY c.name, cb.pickup_date"
+                    
+                    cur = con.execute(query, params)
+                    rows = cur.fetchall()
                 
             finally:
                 con.close()
         
         # Check if there are any commissions
         if not rows:
-            # Debug: Adicionar log para verificar o que está sendo encontrado
             logging.info(f"🔍 DEBUG: Month filter: {month}")
-            logging.info(f"🔍 DEBUG: Commissioner filter: {commissioner_filter}")
             logging.info(f"🔍 DEBUG: Query: {query}")
             logging.info(f"🔍 DEBUG: Params: {params}")
-            logging.info(f"🔍 DEBUG: Found {len(rows)} commissions")
+            logging.info(f"🔍 DEBUG: Found 0 commissions")
             
             return JSONResponse({
                 "ok": False, 
