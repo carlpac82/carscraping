@@ -12022,19 +12022,20 @@ async def admin_commissions_dashboard_stats(request: Request):
     
     try:
         from datetime import datetime
-        from dateutil.relativedelta import relativedelta
         
         with _db_lock:
             con = _db_connect()
             try:
                 current_date = datetime.now()
-                
-                # Usar mês anterior (completo) em vez do mês atual
-                previous_month_date = current_date - relativedelta(months=1)
-                previous_month = previous_month_date.month
-                previous_month_year = previous_month_date.year
-                
                 current_year = current_date.year
+                
+                # Calcular mês anterior manualmente
+                if current_date.month == 1:
+                    previous_month = 12
+                    previous_month_year = current_year - 1
+                else:
+                    previous_month = current_date.month - 1
+                    previous_month_year = current_year
                 
                 # Get all commissions
                 query = """
