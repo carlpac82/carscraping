@@ -58,7 +58,19 @@ from pathlib import Path
 import background_jobs
 from background_jobs import submit_scraping_job, get_job_status, get_job_result
 
-# Commissioners System
+# ============================================================
+# CONFIGURAÇÕES DE AMBIENTE (.env)
+# ============================================================
+
+# Carregar variáveis de ambiente do arquivo .env
+from dotenv import load_dotenv
+load_dotenv()
+
+# DEBUG: Verificar se DATABASE_URL está disponível
+DATABASE_URL = os.getenv("DATABASE_URL")
+print(f"🔍 [MAIN.PY] DATABASE_URL after load_dotenv: {DATABASE_URL}")
+
+# Commissioners System (importado após load_dotenv)
 from commissioners_api import router as commissioners_router
 
 # ============================================================
@@ -98,6 +110,10 @@ from dotenv import load_dotenv
 
 # ⚠️ CRITICAL: Load environment variables FIRST before importing database module
 load_dotenv()
+
+# DEBUG: Verificar se DATABASE_URL foi carregado
+import os
+print(f"🔍 [MAIN.PY] DATABASE_URL after load_dotenv: {os.getenv('DATABASE_URL', 'NOT_FOUND')[:50] if os.getenv('DATABASE_URL') else 'NOT_FOUND'}...", flush=True)
 
 import requests
 import asyncio
@@ -4274,6 +4290,8 @@ def init_db():
             logging.info(f"🔍 Database type detection: is_postgres={is_postgres}, conn_type={type(conn).__name__}")
             if is_postgres:
                 try:
+                    import os
+                    database_url = os.getenv('DATABASE_URL')
                     cur = conn.cursor()
                     cur.execute("""
                         SELECT column_name FROM information_schema.columns 
@@ -4305,12 +4323,15 @@ def init_db():
                                 logging.info(f"✅ Coluna {col_name} adicionada (PostgreSQL)")
                             except Exception as e:
                                 conn.rollback()
+                                # Criar nova transação após rollback
+                                conn = psycopg2.connect(database_url)
+                                cur = conn.cursor()
                                 logging.warning(f"⚠️ Coluna {col_name} já existe ou erro: {e}")
                     
                     cur.close()
                 except Exception as e:
                     logging.warning(f"⚠️ Migration error: {e}")
-                    if 'conn' in locals():
+                    if 'conn' in locals() and conn:
                         conn.rollback()
             else:
                 # SQLite: Usar try/except

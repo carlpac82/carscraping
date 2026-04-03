@@ -1274,18 +1274,19 @@ def setup_scheduled_tasks():
         print(f"   ✅ Email: {send_time}", flush=True)
         logging.info(f"   ✅ Email: {send_time}")
     
-    # Setup CHECKOUT EMAIL checker (every 5 minutes)
+    # Setup CHECKOUT EMAIL checker (todos os dias às 20 horas)
     scheduler.add_job(
         func=check_and_send_scheduled_checkout_emails,
-        trigger='interval',
-        minutes=5,
+        trigger='cron',
+        hour=20,
+        minute=0,
         id='checkout_email_checker',
-        name='Checkout Email Checker (every 5 min)',
+        name='Checkout Email Checker (daily at 20:00)',
         replace_existing=True
     )
     job_count += 1
-    print(f"\n📧 CHECKOUT EMAIL CHECKER: Every 5 minutes", flush=True)
-    logging.info(f"\n📧 CHECKOUT EMAIL CHECKER: Every 5 minutes")
+    print(f"\n📧 CHECKOUT EMAIL CHECKER: Daily at 20:00", flush=True)
+    logging.info(f"\n📧 CHECKOUT EMAIL CHECKER: Daily at 20:00")
     
     print(f"\n{'='*80}", flush=True)
     print(f"✅ SCHEDULER CONFIGURED: {job_count} jobs scheduled", flush=True)
