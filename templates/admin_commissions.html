@@ -530,12 +530,12 @@
           <!-- Summary Cards -->
           <div class="summary-cards">
             <div class="summary-card">
-              <h3>Total de Comissões</h3>
-              <p class="summary-value" id="dashTotalCommissions">€0.00</p>
+              <h3>Total de Comissões Pagas (<span id="dashMonthLabel">Mês Anterior</span>)</h3>
+              <p class="summary-value" id="dashTotalPaid">€0.00</p>
             </div>
             <div class="summary-card">
-              <h3>Total de Comissões Brokers</h3>
-              <p class="summary-value" id="dashTotalBrokers">€0.00</p>
+              <h3>Total de Comissões Por Pagar (<span id="dashMonthLabel2">Mês Anterior</span>)</h3>
+              <p class="summary-value" id="dashTotalUnpaid">€0.00</p>
             </div>
             <div class="summary-card">
               <h3>Total de Comissões (Ano)</h3>
@@ -1005,11 +1005,13 @@
                       // Update month labels
                       const monthNames = ['Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho', 'Julho', 'Agosto', 'Setembro', 'Outubro', 'Novembro', 'Dezembro'];
                       const monthLabel = `${monthNames[data.summary.previous_month - 1]} ${data.summary.previous_month_year}`;
+                      document.getElementById('dashMonthLabel').textContent = monthLabel;
+                      document.getElementById('dashMonthLabel2').textContent = monthLabel;
                       document.getElementById('topCommissionersMonthLabel').textContent = monthLabel;
                       
                       // Update summary cards
-                      document.getElementById('dashTotalCommissions').textContent = `€${(data.summary.total_previous_month || 0).toFixed(2)}`;
-                      document.getElementById('dashTotalBrokers').textContent = `€0.00`; // Placeholder - será implementado depois
+                      document.getElementById('dashTotalPaid').textContent = `€${(data.summary.paid_previous_month || 0).toFixed(2)}`;
+                      document.getElementById('dashTotalUnpaid').textContent = `€${(data.summary.unpaid_previous_month || 0).toFixed(2)}`;
                       document.getElementById('dashTotalYear').textContent = `€${(data.summary.total_year || 0).toFixed(2)}`;
                       
                       // Initialize charts
