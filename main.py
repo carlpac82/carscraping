@@ -64875,29 +64875,22 @@ async def admin_brokers_list(request: Request):
                 if USE_POSTGRES:
                     # PostgreSQL syntax
                     query = """
-                        SELECT 
-                            bb.id, bb.broker_name, bb.voucher_number, bb.client_name,
-                            bb.pickup_date, bb.dropoff_date, bb.vehicle_group, bb.days,
-                            bb.total_price, bb.status, bb.created_at
+                        SELECT bb.id, bb.broker_name, bb.voucher_number, bb.client_name, 
+                               bb.pickup_date, bb.vehicle_group, bb.days, bb.total_price, bb.status
                         FROM broker_bookings bb
-                        ORDER BY bb.pickup_date DESC
+                        WHERE 1=1
                     """
-                    cur = con.cursor()
-                    cur.execute(query)
-                    rows = cur.fetchall()
                 else:
-                    # SQLite syntax
                     query = """
-                        SELECT 
-                            bb.id, bb.broker_name, bb.voucher_number, bb.client_name,
-                            bb.pickup_date, bb.dropoff_date, bb.vehicle_group, bb.days,
-                            bb.total_price, bb.status, bb.created_at
+                        SELECT bb.id, bb.broker_name, bb.voucher_number, bb.client_name, 
+                               bb.pickup_date, bb.vehicle_group, bb.days, bb.total_price, bb.status
                         FROM broker_bookings bb
-                        ORDER BY bb.pickup_date DESC
+                        WHERE 1=1
                     """
-                    cur = con.cursor()
-                    cur.execute(query)
-                    rows = cur.fetchall()
+                
+                cur = con.cursor()
+                cur.execute(query)
+                rows = cur.fetchall()
                 
                 # Convert to dict format
                 brokers = []
@@ -64908,12 +64901,10 @@ async def admin_brokers_list(request: Request):
                         'voucher_number': row[2],
                         'client_name': row[3],
                         'pickup_date': row[4].isoformat() if row[4] else None,
-                        'dropoff_date': row[5].isoformat() if row[5] else None,
-                        'vehicle_group': row[6],
-                        'days': row[7],
-                        'total_price': float(row[8]) if row[8] else 0,
-                        'status': row[9],
-                        'created_at': row[10].isoformat() if row[10] else None
+                        'vehicle_group': row[5],
+                        'days': row[6],
+                        'total_price': float(row[7]) if row[7] else 0.0,
+                        'status': row[8]
                     })
                 
                 # Calculate summary statistics
@@ -64972,8 +64963,8 @@ async def admin_brokers_import(request: Request):
             os.unlink(temp_path)
             return JSONResponse({"ok": False, "error": f"Erro ao ler ficheiro Excel: {str(e)}"}, status_code=400)
         
-        # Expected columns: Broker, Voucher, Cliente, Data Levantamento, Data Devolução, Veículo, Dias, Valor Total, Status
-        expected_columns = ['Broker', 'Voucher', 'Cliente', 'Data Levantamento', 'Data Devolução', 'Veículo', 'Dias', 'Valor Total', 'Status']
+        # Expected columns: Broker, Voucher, Data Levantamento, Dias, Valor Base, Status
+        expected_columns = ['Broker', 'Voucher', 'Data Levantamento', 'Dias', 'Valor Base', 'Status']
         
         # Check if required columns exist
         missing_columns = [col for col in expected_columns if col not in df.columns]
@@ -65028,7 +65019,6 @@ async def admin_brokers_import(request: Request):
                     try:
                         # Parse dates
                         pickup_date = None
-                        dropoff_date = None
                         
                         if pd.notna(row['Data Levantamento']):
                             if isinstance(row['Data Levantamento'], str):
@@ -65036,15 +65026,9 @@ async def admin_brokers_import(request: Request):
                             else:
                                 pickup_date = row['Data Levantamento']
                         
-                        if pd.notna(row['Data Devolução']):
-                            if isinstance(row['Data Devolução'], str):
-                                dropoff_date = pd.to_datetime(row['Data Devolução']).date()
-                            else:
-                                dropoff_date = row['Data Devolução']
-                        
                         # Parse numeric values
                         days = int(row['Dias']) if pd.notna(row['Dias']) else 0
-                        total_price = float(row['Valor Total']) if pd.notna(row['Valor Total']) else 0
+                        total_price = float(row['Valor Base']) if pd.notna(row['Valor Base']) else 0
                         
                         # Default status if not provided
                         status = 'confirmed'
@@ -65060,29 +65044,28 @@ async def admin_brokers_import(request: Request):
                         if USE_POSTGRES:
                             insert_query = """
                                 INSERT INTO broker_bookings 
-                                (broker_name, voucher_number, client_name, pickup_date, dropoff_date, 
+                                (broker_name, voucher_number, client_name, pickup_date, 
                                  vehicle_group, days, total_price, status)
-                                VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s)
+                                VALUES (%s, %s, %s, %s, %s, %s, %s, %s)
                             """
                             cur.execute(insert_query, (
                                 str(row['Broker']), str(row['Voucher']) if pd.notna(row['Voucher']) else None,
                                 str(row['Cliente']) if pd.notna(row['Cliente']) else None,
-                                pickup_date, dropoff_date,
+                                pickup_date,
                                 str(row['Veículo']) if pd.notna(row['Veículo']) else None,
                                 days, total_price, status
                             ))
                         else:
                             insert_query = """
                                 INSERT INTO broker_bookings 
-                                (broker_name, voucher_number, client_name, pickup_date, dropoff_date, 
+                                (broker_name, voucher_number, client_name, pickup_date, 
                                  vehicle_group, days, total_price, status)
-                                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+                                VALUES (?, ?, ?, ?, ?, ?, ?, ?)
                             """
                             cur.execute(insert_query, (
                                 str(row['Broker']), str(row['Voucher']) if pd.notna(row['Voucher']) else None,
                                 str(row['Cliente']) if pd.notna(row['Cliente']) else None,
                                 pickup_date.isoformat() if pickup_date else None,
-                                dropoff_date.isoformat() if dropoff_date else None,
                                 str(row['Veículo']) if pd.notna(row['Veículo']) else None,
                                 days, total_price, status
                             ))

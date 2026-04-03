@@ -728,18 +728,22 @@
           </div>
           
           <!-- Import Section -->
-          <div style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 0.5rem; padding: 1.5rem; margin-bottom: 2rem;">
-            <h4 style="margin: 0 0 1rem 0; font-weight: 600; color: #374151;">Importar Dados de Brokers</h4>
-            <div style="display: flex; gap: 1rem; align-items: flex-end; flex-wrap: wrap;">
-              <div>
-                <label style="display: block; font-size: 0.875rem; font-weight: 500; color: #374151; margin-bottom: 0.25rem;">Selecionar Ficheiro Excel</label>
-                <input type="file" id="brokerExcelFile" accept=".xlsx,.xls" style="padding: 0.5rem; border: 1px solid #d1d5db; border-radius: 0.375rem; font-size: 0.875rem;">
-              </div>
-              <button onclick="importBrokerData()" style="padding: 0.5rem 1rem; background: #009cb6; color: white; border: none; border-radius: 0.375rem; font-size: 0.875rem; font-weight: 500; cursor: pointer; transition: background 0.2s;" onmouseover="this.style.background='#0088a3'" onmouseout="this.style.background='#009cb6'">
-                Importar Dados
+          <div style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 0.5rem; padding: 1.5rem; margin-bottom: 2rem; text-align: center;">
+            <div style="display: inline-block;">
+              <input type="file" id="brokerExcelFile" accept=".xlsx,.xls" style="display: none;" onchange="document.getElementById('importFileName').textContent = this.files[0]?.name || 'Importar Dados de Brokers'; document.getElementById('importButton').style.display = this.files[0]?.name ? 'inline-block' : 'none';">
+              <label for="brokerExcelFile" style="display: inline-flex; align-items: center; gap: 0.5rem; padding: 0.75rem 1.5rem; background: #009cb6; color: white; border-radius: 0.375rem; font-size: 0.875rem; font-weight: 500; cursor: pointer; transition: background 0.2s;" onmouseover="this.style.background='#0088a3'" onmouseout="this.style.background='#009cb6'">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                  <polyline points="17 8 12 3 7 8"></polyline>
+                  <line x1="12" y1="3" x2="12" y2="15"></line>
+                </svg>
+                <span id="importFileName">Importar Dados de Brokers</span>
+              </label>
+              <button onclick="importBrokerData()" id="importButton" style="margin-left: 1rem; padding: 0.75rem 1.5rem; background: #10b981; color: white; border: none; border-radius: 0.375rem; font-size: 0.875rem; font-weight: 500; cursor: pointer; transition: background 0.2s; display: none;" onmouseover="this.style.background='#059669'" onmouseout="this.style.background='#10b981'">
+                Processar
               </button>
-              <div id="importStatus" style="font-size: 0.875rem; color: #6b7280;"></div>
             </div>
+            <div id="importStatus" style="margin-top: 1rem; font-size: 0.875rem; color: #6b7280;"></div>
           </div>
           
           <!-- Filters -->
@@ -778,15 +782,6 @@
                   <option value="12">Dezembro</option>
                 </select>
               </div>
-              <div>
-                <label style="display: block; font-size: 0.875rem; font-weight: 500; color: #374151; margin-bottom: 0.25rem;">Status</label>
-                <select id="brokerStatusFilter" style="width: 100%; padding: 0.5rem; border: 1px solid #d1d5db; border-radius: 0.375rem; font-size: 0.875rem;">
-                  <option value="">Todos os Status</option>
-                  <option value="confirmed">Confirmadas</option>
-                  <option value="pending">Pendentes</option>
-                  <option value="cancelled">Canceladas</option>
-                </select>
-              </div>
             </div>
           </div>
           
@@ -804,18 +799,15 @@
                     </th>
                     <th style="padding: 0.75rem; text-align: left; font-weight: 600; color: #374151; border-bottom: 1px solid #e5e7eb; font-size: 0.875rem;">Broker</th>
                     <th style="padding: 0.75rem; text-align: left; font-weight: 600; color: #374151; border-bottom: 1px solid #e5e7eb; font-size: 0.875rem;">Voucher</th>
-                    <th style="padding: 0.75rem; text-align: left; font-weight: 600; color: #374151; border-bottom: 1px solid #e5e7eb; font-size: 0.875rem;">Cliente</th>
                     <th style="padding: 0.75rem; text-align: left; font-weight: 600; color: #374151; border-bottom: 1px solid #e5e7eb; font-size: 0.875rem;">Data Levantamento</th>
-                    <th style="padding: 0.75rem; text-align: left; font-weight: 600; color: #374151; border-bottom: 1px solid #e5e7eb; font-size: 0.875rem;">Data Devolução</th>
-                    <th style="padding: 0.75rem; text-align: left; font-weight: 600; color: #374151; border-bottom: 1px solid #e5e7eb; font-size: 0.875rem;">Veículo</th>
                     <th style="padding: 0.75rem; text-align: left; font-weight: 600; color: #374151; border-bottom: 1px solid #e5e7eb; font-size: 0.875rem;">Dias</th>
-                    <th style="padding: 0.75rem; text-align: left; font-weight: 600; color: #374151; border-bottom: 1px solid #e5e7eb; font-size: 0.875rem;">Valor Total</th>
+                    <th style="padding: 0.75rem; text-align: left; font-weight: 600; color: #374151; border-bottom: 1px solid #e5e7eb; font-size: 0.875rem;">Valor Base</th>
                     <th style="padding: 0.75rem; text-align: left; font-weight: 600; color: #374151; border-bottom: 1px solid #e5e7eb; font-size: 0.875rem;">Status</th>
                   </tr>
                 </thead>
                 <tbody id="brokersTableBody">
                   <tr>
-                    <td colspan="10" style="padding: 3rem; text-align: center; color: #6b7280;">
+                    <td colspan="7" style="padding: 3rem; text-align: center; color: #6b7280;">
                       <div style="margin-bottom: 1rem;">
                         <svg style="width: 3rem; height: 3rem; margin: 0 auto; color: #d1d5db;" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/>
@@ -872,7 +864,6 @@
               document.getElementById('brokerFilter').addEventListener('change', renderBrokers);
               document.getElementById('brokerYearFilter').addEventListener('change', renderBrokers);
               document.getElementById('brokerMonthFilter').addEventListener('change', renderBrokers);
-              document.getElementById('brokerStatusFilter').addEventListener('change', renderBrokers);
           });
           
           // Load commissions data
@@ -1690,10 +1681,7 @@
                       <td><input type="checkbox" data-id="${broker.id}" onchange="toggleBrokerSelection(${broker.id})"></td>
                       <td>${broker.broker_name || '-'}</td>
                       <td style="font-size: 0.85em; white-space: nowrap;">${broker.voucher_number || '-'}</td>
-                      <td>${broker.client_name || '-'}</td>
                       <td>${broker.pickup_date ? new Date(broker.pickup_date).toLocaleDateString('pt-PT') : '-'}</td>
-                      <td>${broker.dropoff_date ? new Date(broker.dropoff_date).toLocaleDateString('pt-PT') : '-'}</td>
-                      <td>${broker.vehicle_group || '-'}</td>
                       <td>${broker.days || '-'}</td>
                       <td>€${(broker.total_price || 0).toFixed(2)}</td>
                       <td>
@@ -1714,7 +1702,6 @@
               const brokerFilter = document.getElementById('brokerFilter').value;
               const yearFilter = document.getElementById('brokerYearFilter').value;
               const monthFilter = document.getElementById('brokerMonthFilter').value;
-              const statusFilter = document.getElementById('brokerStatusFilter').value;
               
               return allBrokers.filter(broker => {
                   if (brokerFilter && broker.broker_name !== brokerFilter) return false;
@@ -1726,7 +1713,6 @@
                       const bookingMonth = new Date(broker.pickup_date).getMonth() + 1;
                       if (bookingMonth != monthFilter) return false;
                   }
-                  if (statusFilter && broker.status !== statusFilter) return false;
                   return true;
               });
           }
@@ -1858,14 +1844,11 @@
           
           // Convert brokers to CSV
           function convertBrokersToCSV(brokers) {
-              const headers = ['Broker', 'Voucher', 'Cliente', 'Data Levantamento', 'Data Devolução', 'Veículo', 'Dias', 'Valor Total', 'Status'];
+              const headers = ['Broker', 'Voucher', 'Data Levantamento', 'Dias', 'Valor Base', 'Status'];
               const rows = brokers.map(b => [
                   b.broker_name || '',
                   b.voucher_number || '',
-                  b.client_name || '',
                   b.pickup_date ? new Date(b.pickup_date).toLocaleDateString('pt-PT') : '',
-                  b.dropoff_date ? new Date(b.dropoff_date).toLocaleDateString('pt-PT') : '',
-                  b.vehicle_group || '',
                   b.days || '',
                   (b.total_price || 0).toFixed(2),
                   b.status || ''
