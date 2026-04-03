@@ -65025,67 +65025,31 @@ async def admin_brokers_monthly_comparison(request: Request, month: str):
                 
                 # Get current month data
                 current_query = """
-                    SELECT 
-                        CASE 
-                            WHEN broker_name LIKE 'Abbycar Prepaid%' OR broker_name LIKE 'Abbycar POA%' THEN 'Abbycar'
-                            WHEN broker_name LIKE 'Discover Prepaid%' OR broker_name LIKE 'Discover POA%' THEN 'Discover'
-                            WHEN broker_name LIKE 'API%' OR broker_name LIKE 'API-WEB%' THEN 'API'
-                            WHEN broker_name LIKE 'Caralliance POA%' OR broker_name LIKE 'Caralliance Prepaid%' THEN 'Caralliance'
-                            ELSE broker_name
-                        END as grouped_broker,
-                        SUM(total_price) as total_value, 
-                        COUNT(*) as reservation_count
+                    SELECT broker_name, SUM(total_price) as total_value, COUNT(*) as reservation_count
                     FROM broker_bookings 
                     WHERE EXTRACT(YEAR FROM pickup_date) = %s AND EXTRACT(MONTH FROM pickup_date) = %s
-                    GROUP BY grouped_broker
+                    GROUP BY broker_name
                     ORDER BY total_value DESC
                 """ if USE_POSTGRES else """
-                    SELECT 
-                        CASE 
-                            WHEN broker_name LIKE 'Abbycar Prepaid%' OR broker_name LIKE 'Abbycar POA%' THEN 'Abbycar'
-                            WHEN broker_name LIKE 'Discover Prepaid%' OR broker_name LIKE 'Discover POA%' THEN 'Discover'
-                            WHEN broker_name LIKE 'API%' OR broker_name LIKE 'API-WEB%' THEN 'API'
-                            WHEN broker_name LIKE 'Caralliance POA%' OR broker_name LIKE 'Caralliance Prepaid%' THEN 'Caralliance'
-                            ELSE broker_name
-                        END as grouped_broker,
-                        SUM(total_price) as total_value, 
-                        COUNT(*) as reservation_count
+                    SELECT broker_name, SUM(total_price) as total_value, COUNT(*) as reservation_count
                     FROM broker_bookings 
                     WHERE strftime('%%Y', pickup_date) = ? AND strftime('%%m', pickup_date) = ?
-                    GROUP BY grouped_broker
+                    GROUP BY broker_name
                     ORDER BY total_value DESC
                 """
                 
                 # Get previous year same month data
                 prev_year_query = """
-                    SELECT 
-                        CASE 
-                            WHEN broker_name LIKE 'Abbycar Prepaid%' OR broker_name LIKE 'Abbycar POA%' THEN 'Abbycar'
-                            WHEN broker_name LIKE 'Discover Prepaid%' OR broker_name LIKE 'Discover POA%' THEN 'Discover'
-                            WHEN broker_name LIKE 'API%' OR broker_name LIKE 'API-WEB%' THEN 'API'
-                            WHEN broker_name LIKE 'Caralliance POA%' OR broker_name LIKE 'Caralliance Prepaid%' THEN 'Caralliance'
-                            ELSE broker_name
-                        END as grouped_broker,
-                        SUM(total_price) as total_value, 
-                        COUNT(*) as reservation_count
+                    SELECT broker_name, SUM(total_price) as total_value, COUNT(*) as reservation_count
                     FROM broker_bookings 
                     WHERE EXTRACT(YEAR FROM pickup_date) = %s AND EXTRACT(MONTH FROM pickup_date) = %s
-                    GROUP BY grouped_broker
+                    GROUP BY broker_name
                     ORDER BY total_value DESC
                 """ if USE_POSTGRES else """
-                    SELECT 
-                        CASE 
-                            WHEN broker_name LIKE 'Abbycar Prepaid%' OR broker_name LIKE 'Abbycar POA%' THEN 'Abbycar'
-                            WHEN broker_name LIKE 'Discover Prepaid%' OR broker_name LIKE 'Discover POA%' THEN 'Discover'
-                            WHEN broker_name LIKE 'API%' OR broker_name LIKE 'API-WEB%' THEN 'API'
-                            WHEN broker_name LIKE 'Caralliance POA%' OR broker_name LIKE 'Caralliance Prepaid%' THEN 'Caralliance'
-                            ELSE broker_name
-                        END as grouped_broker,
-                        SUM(total_price) as total_value, 
-                        COUNT(*) as reservation_count
+                    SELECT broker_name, SUM(total_price) as total_value, COUNT(*) as reservation_count
                     FROM broker_bookings 
                     WHERE strftime('%%Y', pickup_date) = ? AND strftime('%%m', pickup_date) = ?
-                    GROUP BY grouped_broker
+                    GROUP BY broker_name
                     ORDER BY total_value DESC
                 """
                 
@@ -65144,7 +65108,7 @@ async def admin_brokers_monthly_comparison(request: Request, month: str):
 
 @app.get("/api/admin/brokers/yearly-distribution")
 async def admin_brokers_yearly_distribution(request: Request, year: str):
-    """Get broker distribution by reservation count for selected year including comissionistas"""
+    """Get broker distribution by reservation count for selected year"""
     try:
         with _db_lock:
             con = _db_connect()
@@ -65152,47 +65116,27 @@ async def admin_brokers_yearly_distribution(request: Request, year: str):
                 year_int = int(year)
                 
                 query = """
-                    SELECT 
-                        CASE 
-                            WHEN broker_name LIKE 'Abbycar Prepaid%' OR broker_name LIKE 'Abbycar POA%' THEN 'Abbycar'
-                            WHEN broker_name LIKE 'Discover Prepaid%' OR broker_name LIKE 'Discover POA%' THEN 'Discover'
-                            WHEN broker_name LIKE 'API%' OR broker_name LIKE 'API-WEB%' THEN 'API'
-                            WHEN broker_name LIKE 'Caralliance POA%' OR broker_name LIKE 'Caralliance Prepaid%' THEN 'Caralliance'
-                            ELSE broker_name
-                        END as grouped_broker,
-                        COUNT(*) as reservation_count
+                    SELECT broker_name, COUNT(*) as reservation_count
                     FROM broker_bookings 
                     WHERE EXTRACT(YEAR FROM pickup_date) = %s
-                    GROUP BY grouped_broker
+                    GROUP BY broker_name
                     
                     UNION ALL
                     
-                    SELECT 
-                        commissioner_name as grouped_broker,
-                        COUNT(*) as reservation_count
+                    SELECT commissioner_name as broker_name, COUNT(*) as reservation_count
                     FROM commission_bookings 
                     WHERE EXTRACT(YEAR FROM pickup_date) = %s
                     GROUP BY commissioner_name
                     ORDER BY reservation_count DESC
                 """ if USE_POSTGRES else """
-                    SELECT 
-                        CASE 
-                            WHEN broker_name LIKE 'Abbycar Prepaid%' OR broker_name LIKE 'Abbycar POA%' THEN 'Abbycar'
-                            WHEN broker_name LIKE 'Discover Prepaid%' OR broker_name LIKE 'Discover POA%' THEN 'Discover'
-                            WHEN broker_name LIKE 'API%' OR broker_name LIKE 'API-WEB%' THEN 'API'
-                            WHEN broker_name LIKE 'Caralliance POA%' OR broker_name LIKE 'Caralliance Prepaid%' THEN 'Caralliance'
-                            ELSE broker_name
-                        END as grouped_broker,
-                        COUNT(*) as reservation_count
+                    SELECT broker_name, COUNT(*) as reservation_count
                     FROM broker_bookings 
                     WHERE strftime('%%Y', pickup_date) = ?
-                    GROUP BY grouped_broker
+                    GROUP BY broker_name
                     
                     UNION ALL
                     
-                    SELECT 
-                        commissioner_name as grouped_broker,
-                        COUNT(*) as reservation_count
+                    SELECT commissioner_name as broker_name, COUNT(*) as reservation_count
                     FROM commission_bookings 
                     WHERE strftime('%%Y', pickup_date) = ?
                     GROUP BY commissioner_name
@@ -65256,9 +65200,9 @@ async def admin_brokers_top_by_value(request: Request, year: str):
                 
                 cur = con.cursor()
                 if USE_POSTGRES:
-                    cur.execute(query, (year_int,))
+                    cur.execute(query, (year_int, year_int))
                 else:
-                    cur.execute(query, (str(year),))
+                    cur.execute(query, (str(year), str(year)))
                 
                 rows = cur.fetchall()
                 

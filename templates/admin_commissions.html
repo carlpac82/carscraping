@@ -2083,13 +2083,13 @@
                       brokerMonthlyChart.destroy();
                   }
                   
+                  const monthNames = ['Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho', 'Julho', 'Agosto', 'Setembro', 'Outubro', 'Novembro', 'Dezembro'];
+                  
                   const labels = data.data.brokers.map(b => b.broker_name);
                   const currentMonthValues = data.data.brokers.map(b => b.current_month_value || 0);
                   const yearAgoValues = data.data.brokers.map(b => b.year_ago_value || 0);
                   
-                  // Format month name for display
                   const [year, month] = selectedMonth.split('-');
-                  const monthNames = ['Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho', 'Julho', 'Agosto', 'Setembro', 'Outubro', 'Novembro', 'Dezembro'];
                   const monthName = monthNames[parseInt(month) - 1];
                   
                   brokerMonthlyChart = new Chart(ctx, {
