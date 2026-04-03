@@ -737,6 +737,42 @@
           </div>
       </div>
       
+      <!-- Broker Charts Grid -->
+      <div class="dashboard-grid">
+        <!-- Comparativo de Brokers por Mês -->
+        <div class="chart-card">
+          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
+            <h3 style="margin: 0;">Comparativo de Brokers (Mês vs Ano Anterior)</h3>
+            <select id="brokerMonthSelect" onchange="loadBrokerMonthlyComparison()" style="padding: 0.4rem 0.8rem; border: 1px solid #d1d5db; border-radius: 0.375rem; font-size: 0.875rem; background: white;">
+              <!-- Months will be populated by JS -->
+            </select>
+          </div>
+          <canvas id="brokerMonthlyChart" style="max-height: 300px;"></canvas>
+        </div>
+        
+        <!-- Distribuição de Reservas por Broker (Ano) -->
+        <div class="chart-card">
+          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
+            <h3 style="margin: 0;">Distribuição de Reservas por Broker (Ano)</h3>
+            <select id="brokerYearSelect" onchange="loadBrokerYearlyDistribution()" style="padding: 0.4rem 0.8rem; border: 1px solid #d1d5db; border-radius: 0.375rem; font-size: 0.875rem; background: white;">
+              <!-- Years will be populated by JS -->
+            </select>
+          </div>
+          <canvas id="brokerYearlyChart" style="max-height: 300px;"></canvas>
+        </div>
+        
+        <!-- Top Brokers por Valor (Ano) -->
+        <div class="chart-card">
+          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
+            <h3 style="margin: 0;">Top Brokers por Valor (Ano)</h3>
+            <select id="brokerTopYearSelect" onchange="loadBrokerTopByValue()" style="padding: 0.4rem 0.8rem; border: 1px solid #d1d5db; border-radius: 0.375rem; font-size: 0.875rem; background: white;">
+              <!-- Years will be populated by JS -->
+            </select>
+          </div>
+          <canvas id="brokerTopChart" style="max-height: 300px;"></canvas>
+        </div>
+      </div>
+      
       <!-- Filters -->
       <div class="filters-section">
           <div class="filter-group">
@@ -1119,6 +1155,11 @@
           let monthlyChart = null;
           let yearlyChart = null;
           let baseValuesComparisonChart = null;
+          
+          // Broker chart instances
+          let brokerMonthlyChart = null;
+          let brokerYearlyChart = null;
+          let brokerTopChart = null;
           
           // Load dashboard data
           async function loadDashboardData() {
@@ -2019,6 +2060,259 @@
               }
           }
           
+          // Broker Charts Functions
+          
+          // Load broker monthly comparison chart
+          async function loadBrokerMonthlyComparison() {
+              try {
+                  const monthSelect = document.getElementById('brokerMonthSelect');
+                  const selectedMonth = monthSelect.value; // Format: YYYY-MM
+                  
+                  const response = await fetch(`/api/admin/brokers/monthly-comparison?month=${selectedMonth}`);
+                  const data = await response.json();
+                  
+                  if (!data.ok) {
+                      console.error('Error loading broker monthly comparison:', data.error);
+                      return;
+                  }
+                  
+                  const ctx = document.getElementById('brokerMonthlyChart');
+                  if (!ctx) return;
+                  
+                  if (brokerMonthlyChart) {
+                      brokerMonthlyChart.destroy();
+                  }
+                  
+                  const monthNames = ['Jan', 'Fev', 'Mar', 'Abr', 'Mai', 'Jun', 'Jul', 'Ago', 'Set', 'Out', 'Nov', 'Dez'];
+                  
+                  const labels = data.data.brokers.map(b => b.broker_name);
+                  const currentMonthValues = data.data.brokers.map(b => b.current_month_value || 0);
+                  const yearAgoValues = data.data.brokers.map(b => b.year_ago_value || 0);
+                  
+                  brokerMonthlyChart = new Chart(ctx, {
+                      type: 'bar',
+                      data: {
+                          labels: labels,
+                          datasets: [
+                              {
+                                  label: 'Mês Atual',
+                                  data: currentMonthValues,
+                                  backgroundColor: '#009cb6',
+                                  borderColor: '#007a8c',
+                                  borderWidth: 1
+                              },
+                              {
+                                  label: 'Ano Anterior',
+                                  data: yearAgoValues,
+                                  backgroundColor: '#ff9800',
+                                  borderColor: '#e68900',
+                                  borderWidth: 1
+                              }
+                          ]
+                      },
+                      options: {
+                          responsive: true,
+                          maintainAspectRatio: false,
+                          scales: {
+                              y: {
+                                  beginAtZero: true,
+                                  ticks: {
+                                      callback: function(value) {
+                                          return '€' + value.toFixed(0);
+                                      }
+                                  }
+                              }
+                          },
+                          plugins: {
+                              legend: {
+                                  position: 'top',
+                              },
+                              tooltip: {
+                                  callbacks: {
+                                      label: function(context) {
+                                          let label = context.dataset.label || '';
+                                          if (label) {
+                                              label += ': ';
+                                          }
+                                          label += '€' + context.parsed.y.toFixed(2);
+                                          return label;
+                                      }
+                                  }
+                              }
+                          }
+                      }
+                  });
+              } catch (error) {
+                  console.error('Error loading broker monthly comparison:', error);
+              }
+          }
+          
+          // Load broker yearly distribution chart
+          async function loadBrokerYearlyDistribution() {
+              try {
+                  const yearSelect = document.getElementById('brokerYearSelect');
+                  const selectedYear = yearSelect.value;
+                  
+                  const response = await fetch(`/api/admin/brokers/yearly-distribution?year=${selectedYear}`);
+                  const data = await response.json();
+                  
+                  if (!data.ok) {
+                      console.error('Error loading broker yearly distribution:', data.error);
+                      return;
+                  }
+                  
+                  const ctx = document.getElementById('brokerYearlyChart');
+                  if (!ctx) return;
+                  
+                  if (brokerYearlyChart) {
+                      brokerYearlyChart.destroy();
+                  }
+                  
+                  const labels = data.data.brokers.map(b => b.broker_name);
+                  const values = data.data.brokers.map(b => b.reservation_count);
+                  const colors = ['#009cb6', '#ff9800', '#4caf50', '#f44336', '#9c27b0', '#795548', '#607d8b', '#e91e63', '#ff5722', '#3f51b5'];
+                  
+                  brokerYearlyChart = new Chart(ctx, {
+                      type: 'pie',
+                      data: {
+                          labels: labels,
+                          datasets: [{
+                              data: values,
+                              backgroundColor: colors.slice(0, labels.length),
+                              borderColor: '#ffffff',
+                              borderWidth: 2
+                          }]
+                      },
+                      options: {
+                          responsive: true,
+                          maintainAspectRatio: false,
+                          plugins: {
+                              legend: {
+                                  position: 'right',
+                              },
+                              tooltip: {
+                                  callbacks: {
+                                      label: function(context) {
+                                          const label = context.label || '';
+                                          const value = context.parsed;
+                                          const total = context.dataset.data.reduce((a, b) => a + b, 0);
+                                          const percentage = ((value / total) * 100).toFixed(1);
+                                          return `${label}: ${value} reservas (${percentage}%)`;
+                                      }
+                                  }
+                              }
+                          }
+                      }
+                  });
+              } catch (error) {
+                  console.error('Error loading broker yearly distribution:', error);
+              }
+          }
+          
+          // Load broker top by value chart
+          async function loadBrokerTopByValue() {
+              try {
+                  const yearSelect = document.getElementById('brokerTopYearSelect');
+                  const selectedYear = yearSelect.value;
+                  
+                  const response = await fetch(`/api/admin/brokers/top-by-value?year=${selectedYear}`);
+                  const data = await response.json();
+                  
+                  if (!data.ok) {
+                      console.error('Error loading broker top by value:', data.error);
+                      return;
+                  }
+                  
+                  const ctx = document.getElementById('brokerTopChart');
+                  if (!ctx) return;
+                  
+                  if (brokerTopChart) {
+                      brokerTopChart.destroy();
+                  }
+                  
+                  const labels = data.data.brokers.map(b => b.broker_name);
+                  const values = data.data.brokers.map(b => b.total_value);
+                  
+                  brokerTopChart = new Chart(ctx, {
+                      type: 'bar',
+                      data: {
+                          labels: labels,
+                          datasets: [{
+                              label: 'Valor Total',
+                              data: values,
+                              backgroundColor: '#4caf50',
+                              borderColor: '#45a049',
+                              borderWidth: 1
+                          }]
+                      },
+                      options: {
+                          indexAxis: 'y',
+                          responsive: true,
+                          maintainAspectRatio: false,
+                          scales: {
+                              x: {
+                                  beginAtZero: true,
+                                  ticks: {
+                                      callback: function(value) {
+                                          return '€' + value.toFixed(0);
+                                      }
+                                  }
+                              }
+                          },
+                          plugins: {
+                              legend: {
+                                  display: false
+                              },
+                              tooltip: {
+                                  callbacks: {
+                                      label: function(context) {
+                                          return 'Valor Total: €' + context.parsed.x.toFixed(2);
+                                      }
+                                  }
+                              }
+                          }
+                      }
+                  });
+              } catch (error) {
+                  console.error('Error loading broker top by value:', error);
+              }
+          }
+          
+          // Populate broker chart selectors
+          function populateBrokerChartSelectors() {
+              // Populate month selector
+              const monthSelect = document.getElementById('brokerMonthSelect');
+              const currentMonth = new Date().getMonth() + 1;
+              const currentYear = new Date().getFullYear();
+              const months = ['Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho', 'Julho', 'Agosto', 'Setembro', 'Outubro', 'Novembro', 'Dezembro'];
+              
+              monthSelect.innerHTML = '';
+              for (let i = 0; i < 12; i++) {
+                  const date = new Date(currentYear, currentMonth - 1 - i, 1);
+                  const month = date.getMonth() + 1;
+                  const year = date.getFullYear();
+                  const option = document.createElement('option');
+                  option.value = `${year}-${month.toString().padStart(2, '0')}`;
+                  option.textContent = `${months[month - 1]} ${year}`;
+                  if (i === 0) option.selected = true;
+                  monthSelect.appendChild(option);
+              }
+              
+              // Populate year selectors
+              const yearSelectors = ['brokerYearSelect', 'brokerTopYearSelect'];
+              yearSelectors.forEach(selectorId => {
+                  const select = document.getElementById(selectorId);
+                  select.innerHTML = '';
+                  for (let year = currentYear; year >= 2025; year--) {
+                      const option = document.createElement('option');
+                      option.value = year;
+                      option.textContent = year;
+                      if (year == currentYear) option.selected = true;
+                      select.appendChild(option);
+                  }
+              });
+          }
+          
           // Update switchTab function to load brokers when tab is activated
           const originalSwitchTab = window.switchTab;
           window.switchTab = function(tabName) {
@@ -2026,6 +2320,10 @@
               
               if (tabName === 'brokers') {
                   loadBrokers();
+                  populateBrokerChartSelectors();
+                  loadBrokerMonthlyComparison();
+                  loadBrokerYearlyDistribution();
+                  loadBrokerTopByValue();
               }
           };
       </script>

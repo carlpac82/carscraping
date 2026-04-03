@@ -65013,6 +65013,208 @@ async def api_commissioners_update_email(request: Request):
 
 # ===== BROKERS MANAGEMENT ENDPOINTS =====
 
+@app.get("/api/admin/brokers/monthly-comparison")
+async def admin_brokers_monthly_comparison(request: Request, month: str):
+    """Get broker comparison for selected month vs previous year"""
+    try:
+        with _db_lock:
+            con = _db_connect()
+            try:
+                # Parse month (YYYY-MM format)
+                year, month_num = map(int, month.split('-'))
+                
+                # Get current month data
+                current_query = """
+                    SELECT broker_name, SUM(total_price) as total_value, COUNT(*) as reservation_count
+                    FROM broker_bookings 
+                    WHERE EXTRACT(YEAR FROM pickup_date) = %s AND EXTRACT(MONTH FROM pickup_date) = %s
+                    GROUP BY broker_name
+                    ORDER BY total_value DESC
+                """ if USE_POSTGRES else """
+                    SELECT broker_name, SUM(total_price) as total_value, COUNT(*) as reservation_count
+                    FROM broker_bookings 
+                    WHERE strftime('%%Y', pickup_date) = ? AND strftime('%%m', pickup_date) = ?
+                    GROUP BY broker_name
+                    ORDER BY total_value DESC
+                """
+                
+                # Get previous year same month data
+                prev_year_query = """
+                    SELECT broker_name, SUM(total_price) as total_value, COUNT(*) as reservation_count
+                    FROM broker_bookings 
+                    WHERE EXTRACT(YEAR FROM pickup_date) = %s AND EXTRACT(MONTH FROM pickup_date) = %s
+                    GROUP BY broker_name
+                    ORDER BY total_value DESC
+                """ if USE_POSTGRES else """
+                    SELECT broker_name, SUM(total_price) as total_value, COUNT(*) as reservation_count
+                    FROM broker_bookings 
+                    WHERE strftime('%%Y', pickup_date) = ? AND strftime('%%m', pickup_date) = ?
+                    GROUP BY broker_name
+                    ORDER BY total_value DESC
+                """
+                
+                cur = con.cursor()
+                
+                # Execute current month query
+                if USE_POSTGRES:
+                    cur.execute(current_query, (year, month_num))
+                    cur.execute(prev_year_query, (year - 1, month_num))
+                else:
+                    cur.execute(current_query, (str(year), str(month_num).zfill(2)))
+                    cur.execute(prev_year_query, (str(year - 1), str(month_num).zfill(2)))
+                
+                current_data = cur.fetchall()
+                cur.nextset()
+                prev_year_data = cur.fetchall()
+                
+                # Create broker mapping
+                brokers = {}
+                
+                # Process current month data
+                for row in current_data:
+                    broker_name = row[0]
+                    brokers[broker_name] = {
+                        'broker_name': broker_name,
+                        'current_month_value': float(row[1]) if row[1] else 0.0,
+                        'year_ago_value': 0.0
+                    }
+                
+                # Process previous year data
+                for row in prev_year_data:
+                    broker_name = row[0]
+                    if broker_name in brokers:
+                        brokers[broker_name]['year_ago_value'] = float(row[1]) if row[1] else 0.0
+                    else:
+                        brokers[broker_name] = {
+                            'broker_name': broker_name,
+                            'current_month_value': 0.0,
+                            'year_ago_value': float(row[1]) if row[1] else 0.0
+                        }
+                
+                return JSONResponse({
+                    "ok": True,
+                    "data": {
+                        "brokers": list(brokers.values())
+                    }
+                })
+                
+            finally:
+                con.close()
+                
+    except Exception as e:
+        logging.error(f"Error fetching broker monthly comparison: {e}")
+        traceback.print_exc()
+        return JSONResponse({"ok": False, "error": str(e)}, status_code=500)
+
+@app.get("/api/admin/brokers/yearly-distribution")
+async def admin_brokers_yearly_distribution(request: Request, year: str):
+    """Get broker distribution by reservation count for selected year"""
+    try:
+        with _db_lock:
+            con = _db_connect()
+            try:
+                year_int = int(year)
+                
+                query = """
+                    SELECT broker_name, COUNT(*) as reservation_count
+                    FROM broker_bookings 
+                    WHERE EXTRACT(YEAR FROM pickup_date) = %s
+                    GROUP BY broker_name
+                    ORDER BY reservation_count DESC
+                """ if USE_POSTGRES else """
+                    SELECT broker_name, COUNT(*) as reservation_count
+                    FROM broker_bookings 
+                    WHERE strftime('%%Y', pickup_date) = ?
+                    GROUP BY broker_name
+                    ORDER BY reservation_count DESC
+                """
+                
+                cur = con.cursor()
+                if USE_POSTGRES:
+                    cur.execute(query, (year_int,))
+                else:
+                    cur.execute(query, (str(year),))
+                
+                rows = cur.fetchall()
+                
+                brokers = []
+                for row in rows:
+                    brokers.append({
+                        'broker_name': row[0],
+                        'reservation_count': row[1]
+                    })
+                
+                return JSONResponse({
+                    "ok": True,
+                    "data": {
+                        "brokers": brokers
+                    }
+                })
+                
+            finally:
+                con.close()
+                
+    except Exception as e:
+        logging.error(f"Error fetching broker yearly distribution: {e}")
+        traceback.print_exc()
+        return JSONResponse({"ok": False, "error": str(e)}, status_code=500)
+
+@app.get("/api/admin/brokers/top-by-value")
+async def admin_brokers_top_by_value(request: Request, year: str):
+    """Get top brokers by total value for selected year"""
+    try:
+        with _db_lock:
+            con = _db_connect()
+            try:
+                year_int = int(year)
+                
+                query = """
+                    SELECT broker_name, SUM(total_price) as total_value, COUNT(*) as reservation_count
+                    FROM broker_bookings 
+                    WHERE EXTRACT(YEAR FROM pickup_date) = %s
+                    GROUP BY broker_name
+                    ORDER BY total_value DESC
+                    LIMIT 10
+                """ if USE_POSTGRES else """
+                    SELECT broker_name, SUM(total_price) as total_value, COUNT(*) as reservation_count
+                    FROM broker_bookings 
+                    WHERE strftime('%%Y', pickup_date) = ?
+                    GROUP BY broker_name
+                    ORDER BY total_value DESC
+                    LIMIT 10
+                """
+                
+                cur = con.cursor()
+                if USE_POSTGRES:
+                    cur.execute(query, (year_int,))
+                else:
+                    cur.execute(query, (str(year),))
+                
+                rows = cur.fetchall()
+                
+                brokers = []
+                for row in rows:
+                    brokers.append({
+                        'broker_name': row[0],
+                        'total_value': float(row[1]) if row[1] else 0.0,
+                        'reservation_count': row[2]
+                    })
+                
+                return JSONResponse({
+                    "ok": True,
+                    "data": {
+                        "brokers": brokers
+                    }
+                })
+                
+            finally:
+                con.close()
+                
+    except Exception as e:
+        logging.error(f"Error fetching broker top by value: {e}")
+        traceback.print_exc()
+        return JSONResponse({"ok": False, "error": str(e)}, status_code=500)
+
 @app.get("/api/admin/brokers/list")
 async def admin_brokers_list(request: Request):
     """Get list of all broker bookings for admin"""
@@ -65059,9 +65261,18 @@ async def admin_brokers_list(request: Request):
                 current_month = datetime.now().month
                 current_year = datetime.now().year
                 
-                month_reservations = len([b for b in brokers if b['pickup_date']])
-                month_value = sum([b['total_price'] for b in brokers if b['pickup_date']])
-                year_reservations = len([b for b in brokers if b['pickup_date']])
+                # Filter reservations for current month
+                month_brokers = [b for b in brokers if b['pickup_date']]
+                month_reservations = len([b for b in month_brokers if 
+                    datetime.fromisoformat(b['pickup_date']).month == current_month and 
+                    datetime.fromisoformat(b['pickup_date']).year == current_year])
+                month_value = sum([b['total_price'] for b in month_brokers if 
+                    datetime.fromisoformat(b['pickup_date']).month == current_month and 
+                    datetime.fromisoformat(b['pickup_date']).year == current_year])
+                
+                # Filter reservations for current year
+                year_reservations = len([b for b in month_brokers if 
+                    datetime.fromisoformat(b['pickup_date']).year == current_year])
                 
                 summary = {
                     'total_reservations': month_reservations,
