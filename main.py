@@ -12053,6 +12053,7 @@ async def admin_commissions_dashboard_stats(request: Request):
                 # Summary statistics (mês anterior)
                 paid_previous_month = 0
                 unpaid_previous_month = 0
+                total_previous_month = 0
                 total_year = 0
                 
                 # Top commissioners (mês anterior)
@@ -12087,6 +12088,7 @@ async def admin_commissions_dashboard_stats(request: Request):
                     
                     # Previous month summary (mês anterior completo)
                     if pickup_date.month == previous_month and pickup_date.year == previous_month_year:
+                        total_previous_month += commission_amount
                         if commission_paid:
                             paid_previous_month += commission_amount
                         else:
