@@ -12234,23 +12234,27 @@ async def admin_commissions_base_values_comparison(request: Request):
     
     try:
         from datetime import datetime
-        from dateutil.relativedelta import relativedelta
         
         # Calculate previous month
         today = datetime.now()
-        previous_month_date = today - relativedelta(months=1)
-        previous_month = previous_month_date.month
-        previous_month_year = previous_month_date.year
+        current_month = today.month
+        current_year = today.year
+        
+        # Previous month
+        if current_month == 1:
+            previous_month = 12
+            previous_month_year = current_year - 1
+        else:
+            previous_month = current_month - 1
+            previous_month_year = current_year
         
         # Same month 1 year ago
-        year_ago_date = previous_month_date - relativedelta(years=1)
-        year_ago_month = year_ago_date.month
-        year_ago_year = year_ago_date.year
+        year_ago_month = previous_month
+        year_ago_year = previous_month_year - 1
         
         # Same month 2 years ago
-        two_years_ago_date = previous_month_date - relativedelta(years=2)
-        two_years_ago_month = two_years_ago_date.month
-        two_years_ago_year = two_years_ago_date.year
+        two_years_ago_month = previous_month
+        two_years_ago_year = previous_month_year - 2
         
         with _db_lock:
             con = _db_connect()
