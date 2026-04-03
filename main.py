@@ -4298,6 +4298,7 @@ def init_db():
                         WHERE table_name='rental_agreements'
                     """)
                     existing_columns = [row[0] for row in cur.fetchall()]
+                    cur.close()
                     
                     # Lista de colunas para adicionar
                     columns_to_add = [
@@ -4315,23 +4316,29 @@ def init_db():
                         ('status', 'TEXT DEFAULT \'active\'')
                     ]
                     
+                    # Processar cada coluna separadamente com sua própria transação
                     for col_name, col_type in columns_to_add:
                         if col_name not in existing_columns:
+                            # Criar nova conexão para cada ALTER TABLE
                             try:
-                                cur.execute(f"ALTER TABLE rental_agreements ADD COLUMN {col_name} {col_type}")
-                                conn.commit()
+                                import psycopg2
+                                temp_conn = psycopg2.connect(database_url)
+                                temp_cur = temp_conn.cursor()
+                                temp_cur.execute(f"ALTER TABLE rental_agreements ADD COLUMN {col_name} {col_type}")
+                                temp_conn.commit()
+                                temp_cur.close()
+                                temp_conn.close()
                                 logging.info(f"✅ Coluna {col_name} adicionada (PostgreSQL)")
                             except Exception as e:
-                                conn.rollback()
                                 logging.warning(f"⚠️ Coluna {col_name} já existe ou erro: {e}")
-                                # Recriar cursor após rollback
-                                cur = conn.cursor()
+                                try:
+                                    if 'temp_conn' in locals():
+                                        temp_conn.close()
+                                except:
+                                    pass
                     
-                    cur.close()
                 except Exception as e:
                     logging.warning(f"⚠️ Migration error: {e}")
-                    if 'conn' in locals() and conn:
-                        conn.rollback()
             else:
                 # SQLite: Usar try/except
                 try:
