@@ -65019,15 +65019,19 @@ async def admin_brokers_monthly_comparison(request: Request, month: str):
     def group_brokers(broker_name):
         """Group broker names according to business rules"""
         if 'abbycar' in broker_name.lower():
-            return 'AbbyCar'
+            return 'ABBYCAR'
         elif 'discovercars' in broker_name.lower():
-            return 'DiscoverCars'
+            return 'DISCOVERCARS'
         elif 'caralliance' in broker_name.lower():
-            return 'Caralliance'
+            return 'CARALLIANCE'
         elif broker_name.upper() in ['API', 'API WEB']:
-            return 'API'
+            return 'API-WEB'
+        elif 'vipcars' in broker_name.lower():
+            return broker_name.replace('POA', '').strip()
+        elif 'carjet' in broker_name.lower():
+            return broker_name.replace('prepaid', '').strip()
         else:
-            return broker_name
+            return broker_name.upper()
     
     try:
         with _db_lock:
@@ -65137,15 +65141,19 @@ async def admin_brokers_yearly_distribution(request: Request, year: str):
     def group_brokers(broker_name):
         """Group broker names according to business rules"""
         if 'abbycar' in broker_name.lower():
-            return 'AbbyCar'
+            return 'ABBYCAR'
         elif 'discovercars' in broker_name.lower():
-            return 'DiscoverCars'
+            return 'DISCOVERCARS'
         elif 'caralliance' in broker_name.lower():
-            return 'Caralliance'
+            return 'CARALLIANCE'
         elif broker_name.upper() in ['API', 'API WEB']:
-            return 'API'
+            return 'API-WEB'
+        elif 'vipcars' in broker_name.lower():
+            return broker_name.replace('POA', '').strip()
+        elif 'carjet' in broker_name.lower():
+            return broker_name.replace('prepaid', '').strip()
         else:
-            return broker_name
+            return broker_name.upper()
     
     try:
         with _db_lock:
@@ -65218,15 +65226,19 @@ async def admin_brokers_top_by_value(request: Request, year: str):
     def group_brokers(broker_name):
         """Group broker names according to business rules"""
         if 'abbycar' in broker_name.lower():
-            return 'AbbyCar'
+            return 'ABBYCAR'
         elif 'discovercars' in broker_name.lower():
-            return 'DiscoverCars'
+            return 'DISCOVERCARS'
         elif 'caralliance' in broker_name.lower():
-            return 'Caralliance'
+            return 'CARALLIANCE'
         elif broker_name.upper() in ['API', 'API WEB']:
-            return 'API'
+            return 'API-WEB'
+        elif 'vipcars' in broker_name.lower():
+            return broker_name.replace('POA', '').strip()
+        elif 'carjet' in broker_name.lower():
+            return broker_name.replace('prepaid', '').strip()
         else:
-            return broker_name
+            return broker_name.upper()
     
     try:
         with _db_lock:
