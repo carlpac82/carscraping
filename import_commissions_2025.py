@@ -66,15 +66,13 @@ def extract_commissioner_name(voucher):
     return None
 
 def calculate_commission_amount(days, loyalty_card):
-    """Calcular valor da comissão baseado nos dias e cartão loyalty"""
-    if pd.isna(days) or pd.isna(loyalty_card):
+    """O Loyalty Card já é o valor da comissão, não precisa calcular"""
+    if pd.isna(loyalty_card):
         return 0.0
     
     try:
-        days = float(days)
-        loyalty_card = float(loyalty_card)
-        # Regra: 20% do valor do loyalty card
-        commission = loyalty_card * 0.2
+        # O valor do Loyalty Card já é o valor da comissão
+        commission = float(loyalty_card)
         return round(commission, 2)
     except:
         return 0.0
