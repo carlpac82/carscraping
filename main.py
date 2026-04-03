@@ -65302,6 +65302,217 @@ async def admin_brokers_top_by_value(request: Request, year: str):
         traceback.print_exc()
         return JSONResponse({"ok": False, "error": str(e)}, status_code=500)
 
+@app.get("/api/admin/brokers/payment-type-monthly")
+async def admin_brokers_payment_type_monthly(request: Request, month: str):
+    """Get payment type distribution (Prepaid vs POA) for selected month, excluding API and direct brokers"""
+    def is_excluded_broker(broker_name):
+        """Check if broker should be excluded from analysis"""
+        broker_upper = broker_name.upper()
+        return broker_upper in ['API', 'API-WEB', 'DIRECT']
+    
+    def classify_payment_type(broker_name):
+        """Classify broker as Prepaid or POA based on name patterns"""
+        broker_lower = broker_name.lower()
+        if 'prepaid' in broker_lower:
+            return 'Prepaid'
+        elif 'poa' in broker_lower or 'pay on arrival' in broker_lower:
+            return 'POA'
+        else:
+            return 'Unknown'
+    
+    try:
+        with _db_lock:
+            con = _db_connect()
+            try:
+                # Parse month (YYYY-MM format)
+                year, month_num = map(int, month.split('-'))
+                
+                query = """
+                    SELECT broker_name, SUM(total_price) as total_value, COUNT(*) as reservation_count
+                    FROM broker_bookings 
+                    WHERE EXTRACT(YEAR FROM pickup_date) = %s AND EXTRACT(MONTH FROM pickup_date) = %s
+                    GROUP BY broker_name
+                    ORDER BY total_value DESC
+                """ if USE_POSTGRES else """
+                    SELECT broker_name, SUM(total_price) as total_value, COUNT(*) as reservation_count
+                    FROM broker_bookings 
+                    WHERE strftime('%%Y', pickup_date) = ? AND strftime('%%m', pickup_date) = ?
+                    GROUP BY broker_name
+                    ORDER BY total_value DESC
+                """
+                
+                if USE_POSTGRES:
+                    cur = con.cursor()
+                    cur.execute(query, (year, month_num))
+                else:
+                    cur = con.cursor()
+                    cur.execute(query, (str(year), str(month_num).zfill(2)))
+                
+                data = cur.fetchall()
+                
+                # Process data
+                prepaid_total = 0
+                poa_total = 0
+                unknown_total = 0
+                prepaid_count = 0
+                poa_count = 0
+                unknown_count = 0
+                
+                for row in data:
+                    broker_name = row[0]
+                    total_value = float(row[1])
+                    reservation_count = int(row[2])
+                    
+                    # Skip excluded brokers
+                    if is_excluded_broker(broker_name):
+                        continue
+                    
+                    payment_type = classify_payment_type(broker_name)
+                    
+                    if payment_type == 'Prepaid':
+                        prepaid_total += total_value
+                        prepaid_count += reservation_count
+                    elif payment_type == 'POA':
+                        poa_total += total_value
+                        poa_count += reservation_count
+                    else:
+                        unknown_total += total_value
+                        unknown_count += reservation_count
+                
+                result = {
+                    'prepaid': {
+                        'total_value': prepaid_total,
+                        'reservation_count': prepaid_count,
+                        'percentage': (prepaid_total / (prepaid_total + poa_total + unknown_total) * 100) if (prepaid_total + poa_total + unknown_total) > 0 else 0
+                    },
+                    'poa': {
+                        'total_value': poa_total,
+                        'reservation_count': poa_count,
+                        'percentage': (poa_total / (prepaid_total + poa_total + unknown_total) * 100) if (prepaid_total + poa_total + unknown_total) > 0 else 0
+                    },
+                    'unknown': {
+                        'total_value': unknown_total,
+                        'reservation_count': unknown_count,
+                        'percentage': (unknown_total / (prepaid_total + poa_total + unknown_total) * 100) if (prepaid_total + poa_total + unknown_total) > 0 else 0
+                    }
+                }
+                
+                return JSONResponse({"ok": True, "data": result})
+                
+            finally:
+                cur.close()
+                con.close()
+                
+    except Exception as e:
+        logging.error(f"Error fetching payment type monthly: {e}")
+        traceback.print_exc()
+        return JSONResponse({"ok": False, "error": str(e)}, status_code=500)
+
+@app.get("/api/admin/brokers/payment-type-yearly")
+async def admin_brokers_payment_type_yearly(request: Request, year: str):
+    """Get payment type distribution (Prepaid vs POA) for selected year, excluding API and direct brokers"""
+    def is_excluded_broker(broker_name):
+        """Check if broker should be excluded from analysis"""
+        broker_upper = broker_name.upper()
+        return broker_upper in ['API', 'API-WEB', 'DIRECT']
+    
+    def classify_payment_type(broker_name):
+        """Classify broker as Prepaid or POA based on name patterns"""
+        broker_lower = broker_name.lower()
+        if 'prepaid' in broker_lower:
+            return 'Prepaid'
+        elif 'poa' in broker_lower or 'pay on arrival' in broker_lower:
+            return 'POA'
+        else:
+            return 'Unknown'
+    
+    try:
+        with _db_lock:
+            con = _db_connect()
+            try:
+                year_int = int(year)
+                
+                query = """
+                    SELECT broker_name, SUM(total_price) as total_value, COUNT(*) as reservation_count
+                    FROM broker_bookings 
+                    WHERE EXTRACT(YEAR FROM pickup_date) = %s
+                    GROUP BY broker_name
+                    ORDER BY total_value DESC
+                """ if USE_POSTGRES else """
+                    SELECT broker_name, SUM(total_price) as total_value, COUNT(*) as reservation_count
+                    FROM broker_bookings 
+                    WHERE strftime('%%Y', pickup_date) = ?
+                    GROUP BY broker_name
+                    ORDER BY total_value DESC
+                """
+                
+                if USE_POSTGRES:
+                    cur = con.cursor()
+                    cur.execute(query, (year_int,))
+                else:
+                    cur = con.cursor()
+                    cur.execute(query, (str(year),))
+                
+                data = cur.fetchall()
+                
+                # Process data
+                prepaid_total = 0
+                poa_total = 0
+                unknown_total = 0
+                prepaid_count = 0
+                poa_count = 0
+                unknown_count = 0
+                
+                for row in data:
+                    broker_name = row[0]
+                    total_value = float(row[1])
+                    reservation_count = int(row[2])
+                    
+                    # Skip excluded brokers
+                    if is_excluded_broker(broker_name):
+                        continue
+                    
+                    payment_type = classify_payment_type(broker_name)
+                    
+                    if payment_type == 'Prepaid':
+                        prepaid_total += total_value
+                        prepaid_count += reservation_count
+                    elif payment_type == 'POA':
+                        poa_total += total_value
+                        poa_count += reservation_count
+                    else:
+                        unknown_total += total_value
+                        unknown_count += reservation_count
+                
+                result = {
+                    'prepaid': {
+                        'total_value': prepaid_total,
+                        'reservation_count': prepaid_count,
+                        'percentage': (prepaid_total / (prepaid_total + poa_total + unknown_total) * 100) if (prepaid_total + poa_total + unknown_total) > 0 else 0
+                    },
+                    'poa': {
+                        'total_value': poa_total,
+                        'reservation_count': poa_count,
+                        'percentage': (poa_total / (prepaid_total + poa_total + unknown_total) * 100) if (prepaid_total + poa_total + unknown_total) > 0 else 0
+                    },
+                    'unknown': {
+                        'total_value': unknown_total,
+                        'reservation_count': unknown_count,
+                        'percentage': (unknown_total / (prepaid_total + poa_total + unknown_total) * 100) if (prepaid_total + poa_total + unknown_total) > 0 else 0
+                    }
+                }
+                
+                return JSONResponse({"ok": True, "data": result})
+                
+            finally:
+                cur.close()
+                con.close()
+                
+    except Exception as e:
+        logging.error(f"Error fetching payment type yearly: {e}")
+        traceback.print_exc()
+        return JSONResponse({"ok": False, "error": str(e)}, status_code=500)
+
 @app.get("/api/admin/brokers/list")
 async def admin_brokers_list(request: Request):
     """Get list of all broker bookings for admin"""

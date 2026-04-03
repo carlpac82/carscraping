@@ -771,6 +771,28 @@
           </div>
           <canvas id="brokerTopChart" style="max-height: 300px;"></canvas>
         </div>
+        
+        <!-- Distribuição Prepaid vs POA (Mês) -->
+        <div class="chart-card">
+          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
+            <h3 style="margin: 0;">Distribuição Prepaid vs POA (Mês)</h3>
+            <select id="paymentTypeMonthSelect" onchange="loadPaymentTypeMonthly()" style="padding: 0.4rem 0.8rem; border: 1px solid #d1d5db; border-radius: 0.375rem; font-size: 0.875rem; background: white;">
+              <!-- Months will be populated by JS -->
+            </select>
+          </div>
+          <canvas id="paymentTypeMonthlyChart" style="max-height: 300px;"></canvas>
+        </div>
+        
+        <!-- Distribuição Prepaid vs POA (Ano) -->
+        <div class="chart-card">
+          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
+            <h3 style="margin: 0;">Distribuição Prepaid vs POA (Ano)</h3>
+            <select id="paymentTypeYearSelect" onchange="loadPaymentTypeYearly()" style="padding: 0.4rem 0.8rem; border: 1px solid #d1d5db; border-radius: 0.375rem; font-size: 0.875rem; background: white;">
+              <!-- Years will be populated by JS -->
+            </select>
+          </div>
+          <canvas id="paymentTypeYearlyChart" style="max-height: 300px;"></canvas>
+        </div>
       </div>
       
       <!-- Filters -->
@@ -1169,6 +1191,8 @@
                   loadBrokerMonthlyComparison();
                   loadBrokerYearlyDistribution();
                   loadBrokerTopByValue();
+                  loadPaymentTypeMonthly();
+                  loadPaymentTypeYearly();
               }
           }
           
@@ -1184,6 +1208,8 @@
           let brokerMonthlyChart = null;
           let brokerYearlyChart = null;
           let brokerTopChart = null;
+          let paymentTypeMonthlyChart = null;
+          let paymentTypeYearlyChart = null;
           
           // Load dashboard data
           async function loadDashboardData() {
@@ -2305,6 +2331,130 @@
               }
           }
           
+          // Load payment type monthly chart
+          async function loadPaymentTypeMonthly() {
+              try {
+                  const monthSelect = document.getElementById('paymentTypeMonthSelect');
+                  const selectedMonth = monthSelect.value; // Format: YYYY-MM
+                  
+                  const response = await fetch(`/api/admin/brokers/payment-type-monthly?month=${selectedMonth}`);
+                  const data = await response.json();
+                  
+                  if (!data.ok) {
+                      console.error('Error loading payment type monthly:', data.error);
+                      return;
+                  }
+                  
+                  const ctx = document.getElementById('paymentTypeMonthlyChart');
+                  if (!ctx) return;
+                  
+                  if (paymentTypeMonthlyChart) {
+                      paymentTypeMonthlyChart.destroy();
+                  }
+                  
+                  const chartData = data.data;
+                  const labels = ['Prepaid', 'POA'];
+                  const values = [chartData.prepaid.total_value, chartData.poa.total_value];
+                  const percentages = [chartData.prepaid.percentage, chartData.poa.percentage];
+                  
+                  paymentTypeMonthlyChart = new Chart(ctx, {
+                      type: 'doughnut',
+                      data: {
+                          labels: labels,
+                          datasets: [{
+                              data: values,
+                              backgroundColor: ['#009cb6', '#ff9800'],
+                              borderColor: ['#007a8c', '#e68900'],
+                              borderWidth: 1
+                          }]
+                      },
+                      options: {
+                          responsive: true,
+                          maintainAspectRatio: false,
+                          plugins: {
+                              legend: {
+                                  position: 'top',
+                              },
+                              tooltip: {
+                                  callbacks: {
+                                      label: function(context) {
+                                          const label = context.label || '';
+                                          const value = '€' + context.parsed.toFixed(2);
+                                          const percentage = percentages[context.dataIndex].toFixed(1) + '%';
+                                          return `${label}: ${value} (${percentage})`;
+                                      }
+                                  }
+                              }
+                          }
+                      }
+                  });
+              } catch (error) {
+                  console.error('Error loading payment type monthly:', error);
+              }
+          }
+          
+          // Load payment type yearly chart
+          async function loadPaymentTypeYearly() {
+              try {
+                  const yearSelect = document.getElementById('paymentTypeYearSelect');
+                  const selectedYear = yearSelect.value;
+                  
+                  const response = await fetch(`/api/admin/brokers/payment-type-yearly?year=${selectedYear}`);
+                  const data = await response.json();
+                  
+                  if (!data.ok) {
+                      console.error('Error loading payment type yearly:', data.error);
+                      return;
+                  }
+                  
+                  const ctx = document.getElementById('paymentTypeYearlyChart');
+                  if (!ctx) return;
+                  
+                  if (paymentTypeYearlyChart) {
+                      paymentTypeYearlyChart.destroy();
+                  }
+                  
+                  const chartData = data.data;
+                  const labels = ['Prepaid', 'POA'];
+                  const values = [chartData.prepaid.total_value, chartData.poa.total_value];
+                  const percentages = [chartData.prepaid.percentage, chartData.poa.percentage];
+                  
+                  paymentTypeYearlyChart = new Chart(ctx, {
+                      type: 'doughnut',
+                      data: {
+                          labels: labels,
+                          datasets: [{
+                              data: values,
+                              backgroundColor: ['#009cb6', '#ff9800'],
+                              borderColor: ['#007a8c', '#e68900'],
+                              borderWidth: 1
+                          }]
+                      },
+                      options: {
+                          responsive: true,
+                          maintainAspectRatio: false,
+                          plugins: {
+                              legend: {
+                                  position: 'top',
+                              },
+                              tooltip: {
+                                  callbacks: {
+                                      label: function(context) {
+                                          const label = context.label || '';
+                                          const value = '€' + context.parsed.toFixed(2);
+                                          const percentage = percentages[context.dataIndex].toFixed(1) + '%';
+                                          return `${label}: ${value} (${percentage})`;
+                                      }
+                                  }
+                              }
+                          }
+                      }
+                  });
+              } catch (error) {
+                  console.error('Error loading payment type yearly:', error);
+              }
+          }
+          
           // Populate broker chart selectors
           function populateBrokerChartSelectors() {
               // Populate month selector
@@ -2326,7 +2476,7 @@
               }
               
               // Populate year selectors
-              const yearSelectors = ['brokerYearSelect', 'brokerTopYearSelect'];
+              const yearSelectors = ['brokerYearSelect', 'brokerTopYearSelect', 'paymentTypeYearSelect'];
               yearSelectors.forEach(selectorId => {
                   const select = document.getElementById(selectorId);
                   select.innerHTML = '';
@@ -2338,6 +2488,20 @@
                       select.appendChild(option);
                   }
               });
+              
+              // Populate payment type month selector
+              const paymentTypeMonthSelect = document.getElementById('paymentTypeMonthSelect');
+              paymentTypeMonthSelect.innerHTML = '';
+              for (let i = 0; i < 12; i++) {
+                  const date = new Date(currentYear, currentMonth - 1 - i, 1);
+                  const month = date.getMonth() + 1;
+                  const year = date.getFullYear();
+                  const option = document.createElement('option');
+                  option.value = `${year}-${month.toString().padStart(2, '0')}`;
+                  option.textContent = `${months[month - 1]} ${year}`;
+                  if (i === 1) option.selected = true; // Selecionar mês anterior por defeito
+                  paymentTypeMonthSelect.appendChild(option);
+              }
           }
       </script>
     </body>
