@@ -12500,6 +12500,98 @@ async def admin_commissions_base_values_comparison(request: Request, month: Opti
         traceback.print_exc()
         return JSONResponse({"ok": False, "error": str(e)}, status_code=500)
 
+@app.get("/api/admin/commissions/distribution")
+async def admin_commissions_distribution(request: Request, year: Optional[int] = None):
+    """Get distribution of revenue by origin (Comissionistas, AP, API-WEB, Brokers) for a year"""
+    try:
+        require_commissions_management(request)
+    except HTTPException:
+        return JSONResponse({"ok": False, "error": "Unauthorized"}, status_code=403)
+    
+    try:
+        from datetime import datetime
+        
+        # Use current year if not specified
+        if not year:
+            year = datetime.now().year
+        
+        with _db_lock:
+            con = _db_connect()
+            try:
+                # Initialize data structure
+                data = {
+                    'comissionistas': 0,
+                    'ap': 0,
+                    'api_web': 0,
+                    'brokers': 0
+                }
+                
+                # Get commission bookings data for the year (Comissionistas)
+                query = """
+                    SELECT 
+                        cb.base_price
+                    FROM commission_bookings cb
+                    WHERE cb.base_price > 0
+                    AND EXTRACT(YEAR FROM cb.pickup_date) = %s
+                """ if USE_POSTGRES else """
+                    SELECT 
+                        cb.base_price
+                    FROM commission_bookings cb
+                    WHERE cb.base_price > 0
+                    AND strftime('%Y', cb.pickup_date) = ?
+                """
+                
+                cur = con.execute(query, (str(year),))
+                rows = cur.fetchall()
+                
+                for row in rows:
+                    base_price = float(row[0]) if row[0] else 0
+                    data['comissionistas'] += base_price
+                
+                # Get broker bookings data for the year
+                broker_query = """
+                    SELECT 
+                        bb.broker_name,
+                        bb.total_price
+                    FROM broker_bookings bb
+                    WHERE bb.total_price > 0
+                    AND EXTRACT(YEAR FROM bb.pickup_date) = %s
+                """ if USE_POSTGRES else """
+                    SELECT 
+                        bb.broker_name,
+                        bb.total_price
+                    FROM broker_bookings bb
+                    WHERE bb.total_price > 0
+                    AND strftime('%Y', bb.pickup_date) = ?
+                """
+                
+                cur = con.execute(broker_query, (str(year),))
+                broker_rows = cur.fetchall()
+                
+                for row in broker_rows:
+                    broker_name = row[0]
+                    total_price = float(row[1]) if row[1] else 0
+                    
+                    # Categorize by broker
+                    if broker_name == 'AP':
+                        data['ap'] += total_price
+                    elif broker_name == 'API-WEB':
+                        data['api_web'] += total_price
+                    else:
+                        data['brokers'] += total_price
+                
+                return JSONResponse({
+                    "ok": True,
+                    "year": year,
+                    "data": data
+                })
+            finally:
+                con.close()
+    except Exception as e:
+        import traceback
+        traceback.print_exc()
+        return JSONResponse({"ok": False, "error": str(e)}, status_code=500)
+
 @app.post("/api/admin/commissions/mark-paid")
 async def admin_commissions_mark_paid(request: Request):
     """Mark commissions as paid"""
