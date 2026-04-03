@@ -275,13 +275,22 @@
       .commissions-table tbody tr:hover {
         background: #f9fafb !important;
       }
+      .status-badge {
+        display: inline-block;
+        padding: 4px 12px;
+        border-radius: 12px;
+        font-size: 11px;
+        font-weight: 600;
+        text-transform: uppercase;
+        letter-spacing: 0.3px;
+      }
       .status-paid {
-        color: #059669;
-        font-weight: 500;
+        background: #009cb6;
+        color: white;
       }
       .status-unpaid {
-        color: #dc2626;
-        font-weight: 500;
+        background: #ffc107;
+        color: #333;
       }
     </style>
     <script>
@@ -483,7 +492,6 @@
                       <th><input type="checkbox" id="selectAllCheckbox" onchange="toggleSelectAll()"></th>
                       <th>Comissionista</th>
                       <th>Voucher</th>
-                      <th>Grupo</th>
                       <th>Data Levant.</th>
                       <th>Depósito</th>
                       <th>Valor Base</th>
@@ -494,7 +502,7 @@
               </thead>
               <tbody id="commissionsTableBody">
                   <tr>
-                      <td colspan="11" class="text-center py-4">Carregando...</td>
+                      <td colspan="10" class="text-center py-4">Carregando...</td>
                   </tr>
               </tbody>
           </table>
@@ -585,13 +593,14 @@
                       <td><input type="checkbox" data-id="${commission.id}" onchange="toggleCommissionSelection(${commission.id})"></td>
                       <td>${commission.commissioner_name || '-'}</td>
                       <td style="font-size: 0.85em; white-space: nowrap;">${commission.voucher_number || '-'}</td>
-                      <td>${commission.vehicle_group || '-'}</td>
                       <td>${commission.pickup_date ? new Date(commission.pickup_date).toLocaleDateString('pt-PT') : '-'}</td>
                       <td>€${(commission.deposit || 0).toFixed(2)}</td>
                       <td>€${(commission.base_price || 0).toFixed(2)}</td>
                       <td>€${(commission.commission_amount || 0).toFixed(2)}</td>
-                      <td class="${commission.commission_paid ? 'status-paid' : 'status-unpaid'}">
-                          ${commission.commission_paid ? 'Pago' : 'Por Pagar'}
+                      <td>
+                          <span class="status-badge ${commission.commission_paid ? 'status-paid' : 'status-unpaid'}">
+                              ${commission.commission_paid ? 'Pago' : 'Por Pagar'}
+                          </span>
                       </td>
                       <td>${commission.commission_paid_date ? new Date(commission.commission_paid_date).toLocaleDateString('pt-PT') : '-'}</td>
                   `;
