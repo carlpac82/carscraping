@@ -1135,8 +1135,12 @@
               try {
                   const monthSelect = document.getElementById('topCommissionersMonthSelect');
                   const selectedMonth = monthSelect.value; // Format: YYYY-MM
+                  console.log('Loading top commissioners for month:', selectedMonth);
+                  
                   const response = await fetch(`/api/admin/commissions/top-commissioners?month=${selectedMonth}`);
                   const data = await response.json();
+                  
+                  console.log('Response:', data);
                   
                   if (!data.ok) {
                       console.error('Error loading top commissioners:', data.error);
@@ -1148,6 +1152,7 @@
                   const monthLabel = document.getElementById('topCommissionersMonthLabel');
                   monthLabel.textContent = `${monthNames[data.month - 1]} ${data.year}`;
                   
+                  console.log('Initializing chart with data:', data.top_commissioners);
                   initTopCommissionersChart(data.top_commissioners || []);
               } catch (error) {
                   console.error('Error loading top commissioners:', error);
