@@ -4299,14 +4299,21 @@ def init_db():
             if is_postgres:
                 try:
                     import os
+                    import psycopg2
                     database_url = os.getenv('DATABASE_URL')
-                    cur = conn.cursor()
-                    cur.execute("""
+                    
+                    # Usar conexão separada para verificar colunas existentes
+                    check_conn = psycopg2.connect(database_url)
+                    check_cur = check_conn.cursor()
+                    check_cur.execute("""
                         SELECT column_name FROM information_schema.columns 
                         WHERE table_name='rental_agreements'
                     """)
-                    existing_columns = [row[0] for row in cur.fetchall()]
-                    cur.close()
+                    existing_columns = [row[0] for row in check_cur.fetchall()]
+                    check_cur.close()
+                    check_conn.close()
+                    
+                    logging.info(f"🔍 Colunas existentes em rental_agreements: {len(existing_columns)} colunas")
                     
                     # Lista de colunas para adicionar
                     columns_to_add = [
@@ -4328,8 +4335,8 @@ def init_db():
                     for col_name, col_type in columns_to_add:
                         if col_name not in existing_columns:
                             # Criar nova conexão para cada ALTER TABLE
+                            temp_conn = None
                             try:
-                                import psycopg2
                                 temp_conn = psycopg2.connect(database_url)
                                 temp_cur = temp_conn.cursor()
                                 temp_cur.execute(f"ALTER TABLE rental_agreements ADD COLUMN {col_name} {col_type}")
@@ -4338,12 +4345,18 @@ def init_db():
                                 temp_conn.close()
                                 logging.info(f"✅ Coluna {col_name} adicionada (PostgreSQL)")
                             except Exception as e:
-                                logging.warning(f"⚠️ Coluna {col_name} já existe ou erro: {e}")
-                                try:
-                                    if 'temp_conn' in locals():
+                                err_msg = str(e).lower()
+                                if 'already exists' in err_msg or 'duplicate column' in err_msg:
+                                    logging.debug(f"⚠️ Coluna {col_name} já existe")
+                                else:
+                                    logging.warning(f"⚠️ Erro ao adicionar coluna {col_name}: {e}")
+                                if temp_conn:
+                                    try:
                                         temp_conn.close()
-                                except:
-                                    pass
+                                    except:
+                                        pass
+                        else:
+                            logging.debug(f"⏭️ Coluna {col_name} já existe, skip")
                     
                 except Exception as e:
                     logging.warning(f"⚠️ Migration error: {e}")
