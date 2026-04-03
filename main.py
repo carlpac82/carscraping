@@ -4323,10 +4323,9 @@ def init_db():
                                 logging.info(f"✅ Coluna {col_name} adicionada (PostgreSQL)")
                             except Exception as e:
                                 conn.rollback()
-                                # Criar nova transação após rollback
-                                conn = psycopg2.connect(database_url)
-                                cur = conn.cursor()
                                 logging.warning(f"⚠️ Coluna {col_name} já existe ou erro: {e}")
+                                # Recriar cursor após rollback
+                                cur = conn.cursor()
                     
                     cur.close()
                 except Exception as e:
