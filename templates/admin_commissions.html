@@ -854,16 +854,21 @@
       </div>
       
       <!-- Actions -->
-      <div class="mb-4 flex gap-2">
-          <button class="btn-primary" onclick="toggleSelectAll()">
-              <span id="selectAllBrokersText">Selecionar Todas</span>
-          </button>
-          <button class="btn-primary" onclick="exportSelectedBrokers()" disabled id="exportBrokersBtn">
-              Exportar Selecionadas
-          </button>
-          <button class="btn-primary" onclick="deleteSelectedBrokers()" disabled id="deleteBrokersBtn">
-              Eliminar Selecionadas
-          </button>
+      <div class="mb-4 flex gap-2 justify-between items-center">
+          <div class="flex gap-2">
+              <button class="btn-primary" onclick="toggleSelectAll()">
+                  <span id="selectAllBrokersText">Selecionar Todas</span>
+              </button>
+              <button class="btn-primary" onclick="exportSelectedBrokers()" disabled id="exportBrokersBtn">
+                  Exportar Selecionadas
+              </button>
+              <button class="btn-primary" onclick="deleteSelectedBrokers()" disabled id="deleteBrokersBtn">
+                  Eliminar Selecionadas
+              </button>
+          </div>
+          <div class="text-sm text-gray-600">
+              <span id="brokerResultsCount">0</span> reservas encontradas
+          </div>
       </div>
       
       <!-- Brokers Table -->
