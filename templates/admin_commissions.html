@@ -2083,11 +2083,14 @@
                       brokerMonthlyChart.destroy();
                   }
                   
-                  const monthNames = ['Jan', 'Fev', 'Mar', 'Abr', 'Mai', 'Jun', 'Jul', 'Ago', 'Set', 'Out', 'Nov', 'Dez'];
-                  
                   const labels = data.data.brokers.map(b => b.broker_name);
                   const currentMonthValues = data.data.brokers.map(b => b.current_month_value || 0);
                   const yearAgoValues = data.data.brokers.map(b => b.year_ago_value || 0);
+                  
+                  // Format month name for display
+                  const [year, month] = selectedMonth.split('-');
+                  const monthNames = ['Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho', 'Julho', 'Agosto', 'Setembro', 'Outubro', 'Novembro', 'Dezembro'];
+                  const monthName = monthNames[parseInt(month) - 1];
                   
                   brokerMonthlyChart = new Chart(ctx, {
                       type: 'bar',
@@ -2095,7 +2098,7 @@
                           labels: labels,
                           datasets: [
                               {
-                                  label: 'Mês Atual',
+                                  label: monthName,
                                   data: currentMonthValues,
                                   backgroundColor: '#009cb6',
                                   borderColor: '#007a8c',
@@ -2294,7 +2297,7 @@
                   const option = document.createElement('option');
                   option.value = `${year}-${month.toString().padStart(2, '0')}`;
                   option.textContent = `${months[month - 1]} ${year}`;
-                  if (i === 0) option.selected = true;
+                  if (i === 1) option.selected = true; // Selecionar mês anterior por defeito
                   monthSelect.appendChild(option);
               }
               
