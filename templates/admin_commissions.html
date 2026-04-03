@@ -2267,9 +2267,12 @@
                                           const value = context.parsed;
                                           const total = context.dataset.data.reduce((a, b) => a + b, 0);
                                           const percentage = ((value / total) * 100).toFixed(1);
-                                          const formattedValue = brokerYearlyShowValues ? 
-                                              dataPrefix + value.toFixed(2) : 
-                                              dataPrefix + value;
+                                          let formattedValue;
+                                          if (brokerYearlyShowValues) {
+                                              formattedValue = '€' + value.toFixed(2);
+                                          } else {
+                                              formattedValue = value.toString();
+                                          }
                                           return `${label}: ${formattedValue} ${dataType} (${percentage}%)`;
                                       }
                                   }
@@ -2288,7 +2291,7 @@
               
               // Update toggle icon
               const toggleIcon = document.getElementById('brokerYearlyToggleIcon');
-              toggleIcon.textContent = brokerYearlyShowValues ? '🔢' : '💰';
+              toggleIcon.textContent = brokerYearlyShowValues ? '📊' : '🔢';
               
               // Reload chart with new view
               loadBrokerYearlyDistribution();
