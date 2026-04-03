@@ -12430,8 +12430,64 @@ async def admin_commissions_base_values_comparison(request: Request, month: Opti
                     elif pickup_date.month == two_years_ago_month and pickup_date.year == two_years_ago_year:
                         data['two_years_ago']['comissionistas'] += base_price
                 
-                # TODO: Get AP, API-WEB, Brokers data from the 3rd tab (to be implemented)
-                # For now, these will remain at 0 until the user provides instructions for the 3rd tab
+                # Get broker bookings data for the 3 periods
+                broker_query = """
+                    SELECT 
+                        bb.broker_name,
+                        bb.total_price,
+                        bb.pickup_date
+                    FROM broker_bookings bb
+                    WHERE bb.total_price > 0
+                """ if USE_POSTGRES else """
+                    SELECT 
+                        bb.broker_name,
+                        bb.total_price,
+                        bb.pickup_date
+                    FROM broker_bookings bb
+                    WHERE bb.total_price > 0
+                """
+                
+                cur = con.execute(broker_query)
+                broker_rows = cur.fetchall()
+                
+                for row in broker_rows:
+                    broker_name = row[0]
+                    total_price = float(row[1]) if row[1] else 0
+                    pickup_date_str = row[2]
+                    
+                    if not pickup_date_str:
+                        continue
+                    
+                    try:
+                        if 'T' in str(pickup_date_str):
+                            pickup_date = datetime.fromisoformat(str(pickup_date_str).replace('Z', '+00:00'))
+                        else:
+                            pickup_date = datetime.strptime(str(pickup_date_str), '%Y-%m-%d')
+                    except:
+                        continue
+                    
+                    # Check which period this booking belongs to and categorize by broker
+                    if pickup_date.month == previous_month and pickup_date.year == previous_month_year:
+                        if broker_name == 'AP':
+                            data['previous_month']['ap'] += total_price
+                        elif broker_name == 'API-WEB':
+                            data['previous_month']['api_web'] += total_price
+                        else:
+                            data['previous_month']['brokers'] += total_price
+                    elif pickup_date.month == year_ago_month and pickup_date.year == year_ago_year:
+                        if broker_name == 'AP':
+                            data['year_ago']['ap'] += total_price
+                        elif broker_name == 'API-WEB':
+                            data['year_ago']['api_web'] += total_price
+                        else:
+                            data['year_ago']['brokers'] += total_price
+                    elif pickup_date.month == two_years_ago_month and pickup_date.year == two_years_ago_year:
+                        if broker_name == 'AP':
+                            data['two_years_ago']['ap'] += total_price
+                        elif broker_name == 'API-WEB':
+                            data['two_years_ago']['api_web'] += total_price
+                        else:
+                            data['two_years_ago']['brokers'] += total_price
                 
                 return JSONResponse({
                     "ok": True,
