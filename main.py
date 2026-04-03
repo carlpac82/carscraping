@@ -65124,22 +65124,18 @@ async def admin_brokers_yearly_distribution(request: Request, year: str):
                     WHERE EXTRACT(YEAR FROM pickup_date) = %s
                     GROUP BY broker_name
                     UNION ALL
-                    SELECT c.name as broker_name, COUNT(*) as reservation_count
+                    SELECT 'Comissionistas' as broker_name, COUNT(*) as reservation_count
                     FROM commission_bookings cb
-                    LEFT JOIN commissioners c ON cb.commissioner_id = c.id
-                    WHERE EXTRACT(YEAR FROM cb.pickup_date) = %s AND c.name IS NOT NULL
-                    GROUP BY c.name
+                    WHERE EXTRACT(YEAR FROM cb.pickup_date) = %s
                 """ if USE_POSTGRES else """
                     SELECT broker_name, COUNT(*) as reservation_count
                     FROM broker_bookings 
                     WHERE strftime('%%Y', pickup_date) = ?
                     GROUP BY broker_name
                     UNION ALL
-                    SELECT c.name as broker_name, COUNT(*) as reservation_count
+                    SELECT 'Comissionistas' as broker_name, COUNT(*) as reservation_count
                     FROM commission_bookings cb
-                    LEFT JOIN commissioners c ON cb.commissioner_id = c.id
-                    WHERE strftime('%%Y', cb.pickup_date) = ? AND c.name IS NOT NULL
-                    GROUP BY c.name
+                    WHERE strftime('%%Y', cb.pickup_date) = ?
                 """
                 
                 cur = con.cursor()
