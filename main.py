@@ -12211,12 +12211,12 @@ async def admin_commissions_top_monthly(request: Request, month: Optional[str] =
                     FROM commission_bookings cb
                     LEFT JOIN commissioners c ON cb.commissioner_id = c.id
                     WHERE cb.commission_amount > 0
-                    AND strftime('%Y', cb.pickup_date) = ?
-                    AND strftime('%m', cb.pickup_date) = ?
+                    AND EXTRACT(YEAR FROM cb.pickup_date) = %s
+                    AND EXTRACT(MONTH FROM cb.pickup_date) = %s
                     ORDER BY cb.pickup_date DESC
                 """
                 
-                cur = con.execute(query, (str(target_year), str(target_month).zfill(2)))
+                cur = con.execute(query, (target_year, target_month))
                 rows = cur.fetchall()
                 
                 # Calculate totals by commissioner
