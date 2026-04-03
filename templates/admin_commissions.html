@@ -2218,7 +2218,7 @@
                   const yearSelect = document.getElementById('brokerTopYearSelect');
                   const selectedYear = yearSelect.value;
                   
-                  const response = await fetch(`/api/admin/brokers/top-by-value?year=${selectedYear}`);
+                  const response = await fetch(`/api/admin/brokers/top-brokers?year=${selectedYear}`);
                   const data = await response.json();
                   
                   if (!data.ok) {
@@ -2243,8 +2243,8 @@
                           datasets: [{
                               label: 'Valor Total',
                               data: values,
-                              backgroundColor: '#4caf50',
-                              borderColor: '#45a049',
+                              backgroundColor: '#009cb6',
+                              borderColor: '#007a8c',
                               borderWidth: 1
                           }]
                       },
