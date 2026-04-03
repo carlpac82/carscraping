@@ -1140,140 +1140,31 @@ def setup_scheduled_tasks():
     
     job_count = 0
     
-    # Setup DAILY schedules
+    # Setup DAILY schedules - DESATIVADO para evitar bloqueios
     print(f"\n📅 Checking DAILY schedules...", flush=True)
-    print(f"   daily.enabled = {settings.get('daily', {}).get('enabled')}", flush=True)
+    daily_settings = settings.get('daily', {})
+    schedules = daily_settings.get('schedules', [])
     
-    if settings.get('daily', {}).get('enabled'):
-        schedules = settings['daily'].get('schedules', [])
-        print(f"\n📅 DAILY REPORTS ENABLED: {len(schedules)} schedules", flush=True)
-        logging.info(f"\n📅 DAILY REPORTS: {len(schedules)} schedules")
-    else:
-        print(f"   ⏭️  DAILY DISABLED - Skipping all daily schedules", flush=True)
-        schedules = []
+    print(f"   ⏭️  DAILY DISABLED - Skipping all daily schedules (to prevent blocking)", flush=True)
+    schedules = []
     
-    if settings.get('daily', {}).get('enabled') and schedules:
-        
-        for idx, schedule in enumerate(schedules):
-            search_time = schedule.get('searchTime', '08:55')
-            send_time = schedule.get('sendTime', '09:00')
-            search_hour, search_minute = search_time.split(':')
-            send_hour, send_minute = send_time.split(':')
-            
-            # Add job for EXECUTING SEARCHES at searchTime
-            scheduler.add_job(
-                func=lambda s=schedule, i=idx: execute_search_for_schedule(s, i),
-                trigger=CronTrigger(hour=int(search_hour), minute=int(search_minute)),
-                id=f'daily_search_{idx}',
-                name=f'Daily Search Schedule #{idx + 1} at {search_time}',
-                replace_existing=True
-            )
-            job_count += 1
-            print(f"   ✅ Search job #{idx + 1}: {search_time} | Days: {schedule.get('days')} | Locations: {schedule.get('locations')}", flush=True)
-            logging.info(f"   ✅ Search job #{idx + 1}: {search_time}")
-            
-            # Add job for SENDING EMAIL at sendTime
-            scheduler.add_job(
-                func=lambda s=schedule, i=idx: send_daily_report_for_schedule(s, i),
-                trigger=CronTrigger(hour=int(send_hour), minute=int(send_minute)),
-                id=f'daily_send_{idx}',
-                name=f'Daily Email Schedule #{idx + 1} at {send_time}',
-                replace_existing=True
-            )
-            job_count += 1
-            print(f"   ✅ Email job #{idx + 1}: {send_time}", flush=True)
-            logging.info(f"   ✅ Email job #{idx + 1}: {send_time}")
+    # NÃO agendar jobs diários de pesquisa e email
+    # Apenas checkout emails permanecem ativos
     
-    # Setup WEEKLY schedule (search on fixed day of month + email)
+    # Setup WEEKLY schedule - DESATIVADO para evitar bloqueios
     print(f"\n📆 Checking WEEKLY schedule...", flush=True)
     print(f"   weekly.enabled = {settings.get('weekly', {}).get('enabled')}", flush=True)
-    
-    if settings.get('weekly', {}).get('enabled'):
-        print(f"   ✅ WEEKLY ENABLED - Scheduling jobs", flush=True)
-    else:
-        print(f"   ⏭️  WEEKLY DISABLED - Skipping", flush=True)
-    
-    if settings.get('weekly', {}).get('enabled'):
-        day = settings['weekly'].get('day', 'saturday')  # Day of week OR day of month
-        search_time = settings['weekly'].get('searchTime', '09:55')
-        send_time = settings['weekly'].get('sendTime', '10:00')
-        search_hour, search_minute = search_time.split(':')
-        send_hour, send_minute = send_time.split(':')
-        
-        day_map = {
-            'monday': 0, 'tuesday': 1, 'wednesday': 2, 'thursday': 3,
-            'friday': 4, 'saturday': 5, 'sunday': 6
-        }
-        
-        # Job for executing weekly searches (uses fixed day of month)
-        scheduler.add_job(
-            func=execute_weekly_search,
-            trigger=CronTrigger(day_of_week=day_map.get(day, 5), hour=int(search_hour), minute=int(search_minute)),
-            id='weekly_search',
-            name=f'Weekly Search ({day} at {search_time})',
-            replace_existing=True
-        )
-        job_count += 1
-        print(f"\n📆 WEEKLY SEARCH: {day} at {search_time}", flush=True)
-        logging.info(f"\n📆 WEEKLY SEARCH: {day} at {search_time}")
-        
-        # Job for sending weekly email
-        scheduler.add_job(
-            func=send_weekly_report,
-            trigger=CronTrigger(day_of_week=day_map.get(day, 5), hour=int(send_hour), minute=int(send_minute)),
-            id='weekly_email',
-            name=f'Weekly Email ({day} at {send_time})',
-            replace_existing=True
-        )
-        job_count += 1
-        print(f"   ✅ Email: {send_time}", flush=True)
-        logging.info(f"   ✅ Email: {send_time}")
-    
-    # Setup MONTHLY schedule (search on fixed day of future month + email)
+    print(f"   ⏭️  WEEKLY DISABLED - Skipping (to prevent blocking)", flush=True)
+
+    # NÃO agendar jobs semanais
+
+    # Setup MONTHLY schedule - DESATIVADO para evitar bloqueios
     print(f"\n📊 Checking MONTHLY schedule...", flush=True)
     print(f"   monthly.enabled = {settings.get('monthly', {}).get('enabled')}", flush=True)
-    
-    if settings.get('monthly', {}).get('enabled'):
-        print(f"   ✅ MONTHLY ENABLED - Scheduling jobs", flush=True)
-    else:
-        print(f"   ⏭️  MONTHLY DISABLED - Skipping", flush=True)
-    
-    if settings.get('monthly', {}).get('enabled'):
-        day = settings['monthly'].get('day', '1')
-        search_time = settings['monthly'].get('searchTime', '09:55')
-        send_time = settings['monthly'].get('sendTime', '10:00')
-        search_hour, search_minute = search_time.split(':')
-        send_hour, send_minute = send_time.split(':')
-        
-        if day == 'last':
-            day = 'last'
-        else:
-            day = int(day)
-        
-        # Job for executing monthly searches (uses fixed day X months ahead)
-        scheduler.add_job(
-            func=execute_monthly_search,
-            trigger=CronTrigger(day=day, hour=int(search_hour), minute=int(search_minute)),
-            id='monthly_search',
-            name=f'Monthly Search (day {day} at {search_time})',
-            replace_existing=True
-        )
-        job_count += 1
-        print(f"\n📊 MONTHLY SEARCH: Day {day} at {search_time}", flush=True)
-        logging.info(f"\n📊 MONTHLY SEARCH: Day {day} at {search_time}")
-        
-        # Job for sending monthly email
-        scheduler.add_job(
-            func=send_monthly_report,
-            trigger=CronTrigger(day=day, hour=int(send_hour), minute=int(send_minute)),
-            id='monthly_email',
-            name=f'Monthly Email (day {day} at {send_time})',
-            replace_existing=True
-        )
-        job_count += 1
-        print(f"   ✅ Email: {send_time}", flush=True)
-        logging.info(f"   ✅ Email: {send_time}")
-    
+    print(f"   ⏭️  MONTHLY DISABLED - Skipping (to prevent blocking)", flush=True)
+
+    # NÃO agendar jobs mensais
+
     # Setup CHECKOUT EMAIL checker (todos os dias às 20 horas)
     scheduler.add_job(
         func=check_and_send_scheduled_checkout_emails,
