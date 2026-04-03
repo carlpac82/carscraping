@@ -697,9 +697,26 @@
           
           // Load commissions on page load
           document.addEventListener('DOMContentLoaded', function() {
+              console.log('🚀 DOM Content Loaded');
               loadCommissions();
               loadFilters();
-              loadDashboardData();
+              
+              // Wait for Chart.js to be available
+              if (typeof Chart !== 'undefined') {
+                  console.log('✅ Chart.js already loaded');
+                  loadDashboardData();
+              } else {
+                  console.log('⏳ Waiting for Chart.js...');
+                  // Wait a bit for Chart.js to load
+                  setTimeout(() => {
+                      if (typeof Chart !== 'undefined') {
+                          console.log('✅ Chart.js loaded after delay');
+                          loadDashboardData();
+                      } else {
+                          console.error('❌ Chart.js failed to load');
+                      }
+                  }, 500);
+              }
               
               // Add event listeners to filters to auto-update
               document.getElementById('statusFilter').addEventListener('change', renderCommissions);
