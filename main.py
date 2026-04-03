@@ -12157,6 +12157,105 @@ async def admin_commissions_dashboard_stats(request: Request):
         traceback.print_exc()
         return JSONResponse({"ok": False, "error": str(e)}, status_code=500)
 
+@app.get("/api/admin/commissions/top-commissioners")
+async def admin_commissions_top_monthly(request: Request, month: Optional[str] = None):
+    """Get top 10 commissioners for a specific month"""
+    try:
+        require_commissions_management(request)
+    except HTTPException:
+        return JSONResponse({"ok": False, "error": "Unauthorized"}, status_code=403)
+    
+    try:
+        from datetime import datetime
+        
+        # Parse month parameter or use previous month as default
+        if month:
+            # Expected format: YYYY-MM
+            try:
+                year_str, month_str = month.split('-')
+                target_month = int(month_str)
+                target_year = int(year_str)
+            except:
+                # Fallback to previous month if parsing fails
+                today = datetime.now()
+                current_month = today.month
+                current_year = today.year
+                
+                if current_month == 1:
+                    target_month = 12
+                    target_year = current_year - 1
+                else:
+                    target_month = current_month - 1
+                    target_year = current_year
+        else:
+            # Use previous month as default (original behavior)
+            today = datetime.now()
+            current_month = today.month
+            current_year = today.year
+            
+            if current_month == 1:
+                target_month = 12
+                target_year = current_year - 1
+            else:
+                target_month = current_month - 1
+                target_year = current_year
+        
+        with _db_lock:
+            con = _db_connect()
+            try:
+                # Get all commissions for the specified month
+                query = """
+                    SELECT 
+                        cb.id, cb.pickup_date, cb.commission_amount, cb.commission_paid,
+                        c.name as commissioner_name, c.id as commissioner_id
+                    FROM commission_bookings cb
+                    LEFT JOIN commissioners c ON cb.commissioner_id = c.id
+                    WHERE cb.commission_amount > 0
+                    AND strftime('%Y', cb.pickup_date) = ?
+                    AND strftime('%m', cb.pickup_date) = ?
+                    ORDER BY cb.pickup_date DESC
+                """
+                
+                cur = con.execute(query, (str(target_year), str(target_month).zfill(2)))
+                rows = cur.fetchall()
+                
+                # Calculate totals by commissioner
+                commissioner_totals = {}
+                
+                for row in rows:
+                    commissioner_name = row['commissioner_name'] or 'Sem Nome'
+                    commission_amount = row['commission_amount'] or 0
+                    
+                    if commissioner_name not in commissioner_totals:
+                        commissioner_totals[commissioner_name] = 0
+                    commissioner_totals[commissioner_name] += commission_amount
+                
+                # Top 10 commissioners
+                top_commissioners = sorted(
+                    [{"name": name, "total": total} for name, total in commissioner_totals.items()],
+                    key=lambda x: x["total"],
+                    reverse=True
+                )[:10]
+                
+                return JSONResponse({
+                    "ok": True,
+                    "top_commissioners": top_commissioners,
+                    "month": target_month,
+                    "year": target_year
+                })
+                
+            except Exception as e:
+                print(f"Database error in top commissioners: {e}")
+                traceback.print_exc()
+                return JSONResponse({"ok": False, "error": str(e)}, status_code=500)
+            finally:
+                con.close()
+                
+    except Exception as e:
+        print(f"Error in top commissioners endpoint: {e}")
+        traceback.print_exc()
+        return JSONResponse({"ok": False, "error": str(e)}, status_code=500)
+
 @app.get("/api/admin/commissions/top-commissioners-yearly")
 async def admin_commissions_top_yearly(request: Request, year: int = None):
     """Get top 10 commissioners for a specific year"""

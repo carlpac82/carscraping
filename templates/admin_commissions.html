@@ -339,10 +339,17 @@
       /* Dashboard styles */
       .dashboard-grid {
         display: grid;
-        grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+        grid-template-columns: repeat(2, 1fr);
         gap: 1.5rem;
         margin-bottom: 2rem;
       }
+      
+      @media (max-width: 1024px) {
+        .dashboard-grid {
+          grid-template-columns: 1fr;
+        }
+      }
+      
       .chart-card {
         background: white;
         padding: 1.5rem;
@@ -558,7 +565,12 @@
           <div class="dashboard-grid">
             <!-- Top 10 Comissionistas Mês Anterior -->
             <div class="chart-card">
-              <h3>Top 10 Comissionistas (<span id="topCommissionersMonthLabel">Mês Anterior</span>)</h3>
+              <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
+                <h3 style="margin: 0;">Top 10 Comissionistas (<span id="topCommissionersMonthLabel">Mês Anterior</span>)</h3>
+                <select id="topCommissionersMonthSelect" onchange="loadTopCommissioners()" style="padding: 0.4rem 0.8rem; border: 1px solid #d1d5db; border-radius: 0.375rem; font-size: 0.875rem; background: white;">
+                  <!-- Months will be populated by JS -->
+                </select>
+              </div>
               <canvas id="topCommissionersChart" style="max-height: 300px;"></canvas>
             </div>
             
@@ -1040,7 +1052,9 @@
                       // Populate selectors and load data
                       populateYearSelector();
                       populateMonthSelector();
+                      populateTopCommissionersMonthSelector();
                       loadYearlyTop();
+                      loadTopCommissioners();
                   }
               } catch (error) {
                   console.error('Error loading dashboard data:', error);
@@ -1086,6 +1100,57 @@
                   }
                   
                   select.appendChild(option);
+              }
+          }
+          
+          // Populate month selector for top commissioners
+          function populateTopCommissionersMonthSelector() {
+              const select = document.getElementById('topCommissionersMonthSelect');
+              const currentMonth = new Date().getMonth() + 1; // 1-12
+              const currentYear = new Date().getFullYear();
+              const months = ['Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho', 'Julho', 'Agosto', 'Setembro', 'Outubro', 'Novembro', 'Dezembro'];
+              
+              select.innerHTML = '';
+              
+              // Add last 12 months
+              for (let i = 0; i < 12; i++) {
+                  const date = new Date(currentYear, currentMonth - 1 - i, 1);
+                  const month = date.getMonth() + 1;
+                  const year = date.getFullYear();
+                  const option = document.createElement('option');
+                  option.value = `${year}-${month.toString().padStart(2, '0')}`;
+                  option.textContent = `${months[month - 1]} ${year}`;
+                  
+                  // Select previous month by default
+                  if (i === 1) {
+                      option.selected = true;
+                  }
+                  
+                  select.appendChild(option);
+              }
+          }
+          
+          // Load top 10 commissioners for selected month
+          async function loadTopCommissioners() {
+              try {
+                  const monthSelect = document.getElementById('topCommissionersMonthSelect');
+                  const selectedMonth = monthSelect.value; // Format: YYYY-MM
+                  const response = await fetch(`/api/admin/commissions/top-commissioners?month=${selectedMonth}`);
+                  const data = await response.json();
+                  
+                  if (!data.ok) {
+                      console.error('Error loading top commissioners:', data.error);
+                      return;
+                  }
+                  
+                  // Update month label
+                  const monthNames = ['Jan', 'Fev', 'Mar', 'Abr', 'Mai', 'Jun', 'Jul', 'Ago', 'Set', 'Out', 'Nov', 'Dez'];
+                  const monthLabel = document.getElementById('topCommissionersMonthLabel');
+                  monthLabel.textContent = `${monthNames[data.month - 1]} ${data.year}`;
+                  
+                  initTopCommissionersChart(data.top_commissioners || []);
+              } catch (error) {
+                  console.error('Error loading top commissioners:', error);
               }
           }
           
