@@ -65189,6 +65189,9 @@ async def admin_brokers_yearly_distribution(request: Request, year: str):
                 
                 rows = cur.fetchall()
                 
+                # Debug: print rows
+                print(f"DEBUG: Raw query rows: {rows}")
+                
                 # Group brokers according to business rules
                 broker_groups = {}
                 for row in rows:
@@ -65202,6 +65205,9 @@ async def admin_brokers_yearly_distribution(request: Request, year: str):
                             'total_value': row[2] or 0
                         }
                 
+                # Debug: print groups
+                print(f"DEBUG: Broker groups: {broker_groups}")
+                
                 brokers = []
                 for name, data in broker_groups.items():
                     brokers.append({
@@ -65209,6 +65215,9 @@ async def admin_brokers_yearly_distribution(request: Request, year: str):
                         'reservation_count': data['reservation_count'],
                         'total_value': data['total_value']
                     })
+                
+                # Debug: print final result
+                print(f"DEBUG: Final brokers: {brokers}")
                 
                 return JSONResponse({
                     "ok": True,
