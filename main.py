@@ -12223,8 +12223,12 @@ async def admin_commissions_top_monthly(request: Request, month: Optional[str] =
                 commissioner_totals = {}
                 
                 for row in rows:
-                    commissioner_name = row['commissioner_name'] or 'Sem Nome'
-                    commission_amount = row['commission_amount'] or 0
+                    commission_id = row[0]
+                    pickup_date_str = row[1]
+                    commission_amount = float(row[2]) if row[2] else 0
+                    commission_paid = bool(row[3])
+                    commissioner_name = row[4] or 'Sem Nome'
+                    commissioner_id = row[5]
                     
                     if commissioner_name not in commissioner_totals:
                         commissioner_totals[commissioner_name] = 0
