@@ -12012,6 +12012,135 @@ async def admin_commissions_list(request: Request):
     except Exception as e:
         return JSONResponse({"ok": False, "error": str(e)}, status_code=500)
 
+@app.get("/api/admin/commissions/dashboard-stats")
+async def admin_commissions_dashboard_stats(request: Request):
+    """Get dashboard statistics for commissions"""
+    try:
+        require_commissions_management(request)
+    except HTTPException:
+        return JSONResponse({"ok": False, "error": "Unauthorized"}, status_code=403)
+    
+    try:
+        from datetime import datetime
+        
+        with _db_lock:
+            con = _db_connect()
+            try:
+                current_date = datetime.now()
+                current_month = current_date.month
+                current_year = current_date.year
+                
+                # Get all commissions
+                query = """
+                    SELECT 
+                        cb.id, cb.pickup_date, cb.commission_amount, cb.commission_paid,
+                        c.name as commissioner_name, c.id as commissioner_id
+                    FROM commission_bookings cb
+                    LEFT JOIN commissioners c ON cb.commissioner_id = c.id
+                    WHERE cb.commission_amount > 0
+                    ORDER BY cb.pickup_date DESC
+                """
+                
+                cur = con.execute(query)
+                rows = cur.fetchall()
+                
+                # Summary statistics
+                paid_current_month = 0
+                unpaid_current_month = 0
+                total_year = 0
+                
+                # Top commissioners
+                commissioner_totals = {}
+                
+                # Monthly data (current year)
+                monthly_data = {i: 0 for i in range(1, 13)}
+                
+                # Yearly data
+                yearly_data = {}
+                
+                for row in rows:
+                    commission_id = row[0]
+                    pickup_date_str = row[1]
+                    commission_amount = float(row[2]) if row[2] else 0
+                    commission_paid = bool(row[3])
+                    commissioner_name = row[4] or "Sem Nome"
+                    commissioner_id = row[5]
+                    
+                    if not pickup_date_str:
+                        continue
+                    
+                    # Parse date
+                    try:
+                        if 'T' in str(pickup_date_str):
+                            pickup_date = datetime.fromisoformat(str(pickup_date_str).replace('Z', '+00:00'))
+                        else:
+                            pickup_date = datetime.strptime(str(pickup_date_str), '%Y-%m-%d')
+                    except:
+                        continue
+                    
+                    # Current month summary
+                    if pickup_date.month == current_month and pickup_date.year == current_year:
+                        if commission_paid:
+                            paid_current_month += commission_amount
+                        else:
+                            unpaid_current_month += commission_amount
+                    
+                    # Current year total
+                    if pickup_date.year == current_year:
+                        total_year += commission_amount
+                        monthly_data[pickup_date.month] += commission_amount
+                    
+                    # Yearly totals
+                    year = pickup_date.year
+                    if year not in yearly_data:
+                        yearly_data[year] = 0
+                    yearly_data[year] += commission_amount
+                    
+                    # Commissioner totals
+                    if commissioner_name not in commissioner_totals:
+                        commissioner_totals[commissioner_name] = 0
+                    commissioner_totals[commissioner_name] += commission_amount
+                
+                # Top 10 commissioners
+                top_commissioners = sorted(
+                    [{"name": name, "total": total} for name, total in commissioner_totals.items()],
+                    key=lambda x: x["total"],
+                    reverse=True
+                )[:10]
+                
+                # Monthly data for current year
+                monthly_chart_data = [
+                    {"month": month, "total": total}
+                    for month, total in monthly_data.items()
+                    if total > 0
+                ]
+                
+                # Yearly data (last 3 years)
+                current_year_int = current_year
+                yearly_chart_data = [
+                    {"year": year, "total": total}
+                    for year, total in sorted(yearly_data.items(), reverse=True)
+                    if year >= current_year_int - 2
+                ]
+                
+                return JSONResponse({
+                    "ok": True,
+                    "summary": {
+                        "paid_current_month": paid_current_month,
+                        "unpaid_current_month": unpaid_current_month,
+                        "total_year": total_year
+                    },
+                    "top_commissioners": top_commissioners,
+                    "monthly_data": monthly_chart_data,
+                    "yearly_data": yearly_chart_data
+                })
+            finally:
+                con.close()
+    except Exception as e:
+        import traceback
+        traceback.print_exc()
+        return JSONResponse({"ok": False, "error": str(e)}, status_code=500)
+
 @app.post("/api/admin/commissions/mark-paid")
 async def admin_commissions_mark_paid(request: Request):
     """Mark commissions as paid"""

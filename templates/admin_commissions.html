@@ -6,6 +6,7 @@
     <title>Gestão de Comissões - CarScraping Admin</title>
     <link rel="icon" type="image/png" href="/static/autoprudente-favicon.png?v=2" />
     <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
     <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <style>
       /* Fix header styles */
@@ -294,6 +295,94 @@
         background: #ffc107;
         color: #333;
       }
+      
+      /* Tabs styles */
+      .tabs-container {
+        background: white;
+        border-radius: 0.5rem;
+        box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+        margin-bottom: 2rem;
+      }
+      .tabs-header {
+        display: flex;
+        border-bottom: 2px solid #e5e7eb;
+        padding: 0;
+      }
+      .tab-button {
+        padding: 1rem 2rem;
+        background: none;
+        border: none;
+        border-bottom: 3px solid transparent;
+        cursor: pointer;
+        font-weight: 500;
+        color: #6b7280;
+        transition: all 0.2s;
+        font-size: 0.95rem;
+      }
+      .tab-button:hover {
+        color: #009cb6;
+        background: #f9fafb;
+      }
+      .tab-button.active {
+        color: #009cb6;
+        border-bottom-color: #009cb6;
+        background: white;
+      }
+      .tab-content {
+        display: none;
+        padding: 1.5rem;
+      }
+      .tab-content.active {
+        display: block;
+      }
+      
+      /* Dashboard styles */
+      .dashboard-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+        gap: 1.5rem;
+        margin-bottom: 2rem;
+      }
+      .chart-card {
+        background: white;
+        padding: 1.5rem;
+        border-radius: 0.5rem;
+        box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+      }
+      .chart-card h3 {
+        font-size: 1rem;
+        font-weight: 600;
+        color: #374151;
+        margin-bottom: 1rem;
+      }
+      .top-list {
+        list-style: none;
+        padding: 0;
+        margin: 0;
+      }
+      .top-list-item {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 0.75rem;
+        border-bottom: 1px solid #f3f4f6;
+      }
+      .top-list-item:last-child {
+        border-bottom: none;
+      }
+      .top-list-rank {
+        font-weight: 600;
+        color: #009cb6;
+        margin-right: 0.75rem;
+      }
+      .top-list-name {
+        flex: 1;
+        font-size: 0.9rem;
+      }
+      .top-list-value {
+        font-weight: 600;
+        color: #374151;
+      }
     </style>
     <script>
       if (window.location.search.includes("iframe=1")) {
@@ -425,6 +514,59 @@
           <h2 class="text-lg font-semibold">Gestão de Comissões</h2>
         </div>
       </div>
+      
+      <!-- Tabs Container -->
+      <div class="tabs-container">
+        <div class="tabs-header">
+          <button class="tab-button active" onclick="switchTab('dashboard')">Dashboard</button>
+          <button class="tab-button" onclick="switchTab('commissions')">Gestão de Comissões</button>
+          <button class="tab-button" onclick="switchTab('brokers')">Gestão de Brokers</button>
+        </div>
+        
+        <!-- Tab 1: Dashboard -->
+        <div id="dashboard-tab" class="tab-content active">
+          <h3 style="font-size: 1.1rem; font-weight: 600; margin-bottom: 1.5rem; color: #374151;">Estatísticas e Análises</h3>
+          
+          <!-- Summary Cards -->
+          <div class="summary-cards">
+            <div class="summary-card">
+              <h3>Total de Comissões Pagas (Mês Atual)</h3>
+              <p class="summary-value" id="dashTotalPaid">€0.00</p>
+            </div>
+            <div class="summary-card">
+              <h3>Total de Comissões Por Pagar (Mês Atual)</h3>
+              <p class="summary-value" id="dashTotalUnpaid">€0.00</p>
+            </div>
+            <div class="summary-card">
+              <h3>Total de Comissões (Ano)</h3>
+              <p class="summary-value" id="dashTotalYear">€0.00</p>
+            </div>
+          </div>
+          
+          <!-- Charts Grid -->
+          <div class="dashboard-grid">
+            <!-- Top 10 Comissionistas -->
+            <div class="chart-card" style="grid-column: span 2;">
+              <h3>Top 10 Comissionistas</h3>
+              <canvas id="topCommissionersChart" style="max-height: 300px;"></canvas>
+            </div>
+            
+            <!-- Comparativo Mensal -->
+            <div class="chart-card">
+              <h3>Comissões por Mês (Ano Atual)</h3>
+              <canvas id="monthlyChart" style="max-height: 300px;"></canvas>
+            </div>
+            
+            <!-- Comparativo Anual -->
+            <div class="chart-card">
+              <h3>Comparativo Anual</h3>
+              <canvas id="yearlyChart" style="max-height: 300px;"></canvas>
+            </div>
+          </div>
+        </div>
+        
+        <!-- Tab 2: Gestão de Comissões -->
+        <div id="commissions-tab" class="tab-content">
     
       <!-- Summary Cards -->
       <div class="summary-cards">
@@ -514,6 +656,20 @@
                   </tr>
               </tbody>
           </table>
+      </div>
+        </div>
+        
+        <!-- Tab 3: Gestão de Brokers -->
+        <div id="brokers-tab" class="tab-content">
+          <h3 style="font-size: 1.1rem; font-weight: 600; margin-bottom: 1.5rem; color: #374151;">Gestão de Brokers</h3>
+          <div style="padding: 2rem; text-align: center; color: #6b7280;">
+            <svg style="width: 4rem; height: 4rem; margin: 0 auto 1rem; color: #d1d5db;" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"/>
+            </svg>
+            <p style="font-size: 1.1rem; font-weight: 500; margin-bottom: 0.5rem;">Gestão de Brokers</p>
+            <p style="font-size: 0.9rem;">Funcionalidade em desenvolvimento</p>
+          </div>
+        </div>
       </div>
       </main>
       
@@ -799,6 +955,197 @@
                   console.error('Error updating commissions:', error);
                   alert('Erro ao atualizar comissões');
               }
+          }
+          
+          // Tab switching function
+          function switchTab(tabName) {
+              // Hide all tabs
+              document.querySelectorAll('.tab-content').forEach(tab => {
+                  tab.classList.remove('active');
+              });
+              document.querySelectorAll('.tab-button').forEach(btn => {
+                  btn.classList.remove('active');
+              });
+              
+              // Show selected tab
+              document.getElementById(tabName + '-tab').classList.add('active');
+              event.target.classList.add('active');
+              
+              // Load dashboard data if switching to dashboard
+              if (tabName === 'dashboard') {
+                  loadDashboardData();
+              }
+          }
+          
+          // Chart instances
+          let topCommissionersChart = null;
+          let monthlyChart = null;
+          let yearlyChart = null;
+          
+          // Load dashboard data
+          async function loadDashboardData() {
+              try {
+                  const response = await fetch('/api/admin/commissions/dashboard-stats');
+                  const data = await response.json();
+                  
+                  if (data.ok) {
+                      // Update summary cards
+                      document.getElementById('dashTotalPaid').textContent = `€${(data.summary.paid_current_month || 0).toFixed(2)}`;
+                      document.getElementById('dashTotalUnpaid').textContent = `€${(data.summary.unpaid_current_month || 0).toFixed(2)}`;
+                      document.getElementById('dashTotalYear').textContent = `€${(data.summary.total_year || 0).toFixed(2)}`;
+                      
+                      // Initialize charts
+                      initTopCommissionersChart(data.top_commissioners || []);
+                      initMonthlyChart(data.monthly_data || []);
+                      initYearlyChart(data.yearly_data || []);
+                  }
+              } catch (error) {
+                  console.error('Error loading dashboard data:', error);
+              }
+          }
+          
+          // Initialize Top Commissioners Chart
+          function initTopCommissionersChart(data) {
+              const ctx = document.getElementById('topCommissionersChart');
+              if (!ctx) return;
+              
+              if (topCommissionersChart) {
+                  topCommissionersChart.destroy();
+              }
+              
+              const labels = data.map(item => item.name);
+              const values = data.map(item => item.total);
+              
+              topCommissionersChart = new Chart(ctx, {
+                  type: 'bar',
+                  data: {
+                      labels: labels,
+                      datasets: [{
+                          label: 'Total de Comissões (€)',
+                          data: values,
+                          backgroundColor: '#009cb6',
+                          borderColor: '#007a8c',
+                          borderWidth: 1
+                      }]
+                  },
+                  options: {
+                      responsive: true,
+                      maintainAspectRatio: true,
+                      indexAxis: 'y',
+                      plugins: {
+                          legend: {
+                              display: false
+                          }
+                      },
+                      scales: {
+                          x: {
+                              beginAtZero: true,
+                              ticks: {
+                                  callback: function(value) {
+                                      return '€' + value.toFixed(0);
+                                  }
+                              }
+                          }
+                      }
+                  }
+              });
+          }
+          
+          // Initialize Monthly Chart
+          function initMonthlyChart(data) {
+              const ctx = document.getElementById('monthlyChart');
+              if (!ctx) return;
+              
+              if (monthlyChart) {
+                  monthlyChart.destroy();
+              }
+              
+              const months = ['Jan', 'Fev', 'Mar', 'Abr', 'Mai', 'Jun', 'Jul', 'Ago', 'Set', 'Out', 'Nov', 'Dez'];
+              const values = new Array(12).fill(0);
+              
+              data.forEach(item => {
+                  values[item.month - 1] = item.total;
+              });
+              
+              monthlyChart = new Chart(ctx, {
+                  type: 'line',
+                  data: {
+                      labels: months,
+                      datasets: [{
+                          label: 'Comissões (€)',
+                          data: values,
+                          borderColor: '#009cb6',
+                          backgroundColor: 'rgba(0, 156, 182, 0.1)',
+                          tension: 0.4,
+                          fill: true
+                      }]
+                  },
+                  options: {
+                      responsive: true,
+                      maintainAspectRatio: true,
+                      plugins: {
+                          legend: {
+                              display: false
+                          }
+                      },
+                      scales: {
+                          y: {
+                              beginAtZero: true,
+                              ticks: {
+                                  callback: function(value) {
+                                      return '€' + value.toFixed(0);
+                                  }
+                              }
+                          }
+                      }
+                  }
+              });
+          }
+          
+          // Initialize Yearly Chart
+          function initYearlyChart(data) {
+              const ctx = document.getElementById('yearlyChart');
+              if (!ctx) return;
+              
+              if (yearlyChart) {
+                  yearlyChart.destroy();
+              }
+              
+              const labels = data.map(item => item.year.toString());
+              const values = data.map(item => item.total);
+              
+              yearlyChart = new Chart(ctx, {
+                  type: 'bar',
+                  data: {
+                      labels: labels,
+                      datasets: [{
+                          label: 'Total Anual (€)',
+                          data: values,
+                          backgroundColor: ['#009cb6', '#00b4cc', '#00cce0'],
+                          borderColor: '#007a8c',
+                          borderWidth: 1
+                      }]
+                  },
+                  options: {
+                      responsive: true,
+                      maintainAspectRatio: true,
+                      plugins: {
+                          legend: {
+                              display: false
+                          }
+                      },
+                      scales: {
+                          y: {
+                              beginAtZero: true,
+                              ticks: {
+                                  callback: function(value) {
+                                      return '€' + value.toFixed(0);
+                                  }
+                              }
+                          }
+                      }
+                  }
+              });
           }
       </script>
     </body>
