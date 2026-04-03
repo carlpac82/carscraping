@@ -599,6 +599,17 @@
               <canvas id="topCommissionersChart" style="max-height: 300px;"></canvas>
             </div>
             
+            <!-- Top 10 Comissionistas Anual -->
+            <div class="chart-card">
+              <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
+                <h3 style="margin: 0;">Top 10 Comissionistas (Ano)</h3>
+                <select id="yearlyTopSelect" onchange="loadYearlyTop()" style="padding: 0.4rem 0.8rem; border: 1px solid #d1d5db; border-radius: 0.375rem; font-size: 0.875rem; background: white;">
+                  <!-- Years will be populated by JS -->
+                </select>
+              </div>
+              <canvas id="topCommissionersYearlyChart" style="max-height: 300px;"></canvas>
+            </div>
+            
             <!-- Comparativo Mensal -->
             <div class="chart-card">
               <h3>Comparativo Mensal (Ano Atual vs Ano Anterior)</h3>
@@ -1103,6 +1114,7 @@
           
           // Chart instances
           let topCommissionersChart = null;
+          let topCommissionersYearlyChart = null;
           let distributionChart = null;
           let monthlyChart = null;
           let yearlyChart = null;
@@ -1135,9 +1147,11 @@
                       
                       // Populate selectors and load data
                       populateDistributionYearSelector();
+                      populateYearSelector();
                       populateMonthSelector();
                       populateTopCommissionersMonthSelector();
                       loadDistributionChart();
+                      loadYearlyTop();
                       loadTopCommissioners();
                   }
               } catch (error) {
@@ -1237,6 +1251,90 @@
                   });
               } catch (error) {
                   console.error('Error loading distribution chart:', error);
+              }
+          }
+          
+          // Populate year selector for Top 10 Comissionistas (Ano)
+          function populateYearSelector() {
+              const select = document.getElementById('yearlyTopSelect');
+              const currentYear = new Date().getFullYear();
+              const startYear = 2025;
+              
+              select.innerHTML = '';
+              for (let year = currentYear; year >= startYear; year--) {
+                  const option = document.createElement('option');
+                  option.value = year;
+                  option.textContent = year;
+                  select.appendChild(option);
+              }
+          }
+          
+          // Load Top 10 Comissionistas for selected year
+          async function loadYearlyTop() {
+              try {
+                  const yearSelect = document.getElementById('yearlyTopSelect');
+                  const selectedYear = yearSelect.value;
+                  
+                  const response = await fetch(`/api/admin/commissions/top-commissioners-yearly?year=${selectedYear}`);
+                  const data = await response.json();
+                  
+                  if (!data.ok) {
+                      console.error('Error loading yearly top commissioners:', data.error);
+                      return;
+                  }
+                  
+                  const ctx = document.getElementById('topCommissionersYearlyChart');
+                  if (!ctx) return;
+                  
+                  if (topCommissionersYearlyChart) {
+                      topCommissionersYearlyChart.destroy();
+                  }
+                  
+                  const labels = data.top_commissioners.map(c => c.commissioner_name);
+                  const values = data.top_commissioners.map(c => c.total_commission);
+                  
+                  topCommissionersYearlyChart = new Chart(ctx, {
+                      type: 'bar',
+                      data: {
+                          labels: labels,
+                          datasets: [{
+                              label: 'Comissão Total',
+                              data: values,
+                              backgroundColor: '#009cb6',
+                              borderColor: '#007a8c',
+                              borderWidth: 1
+                          }]
+                      },
+                      options: {
+                          indexAxis: 'y',
+                          responsive: true,
+                          maintainAspectRatio: false,
+                          scales: {
+                              x: {
+                                  beginAtZero: true,
+                                  ticks: {
+                                      callback: function(value) {
+                                          return '€' + value.toFixed(0);
+                                      }
+                                  }
+                              }
+                          },
+                          plugins: {
+                              legend: {
+                                  display: false
+                              },
+                              tooltip: {
+                                  callbacks: {
+                                      label: function(context) {
+                                          return 'Comissão: €' + context.parsed.x.toFixed(2);
+                                      }
+                                  }
+                              }
+                          }
+                      }
+                  });
+              } catch (error) {
+                  console.error('Error loading yearly top commissioners:', error);
               }
           }
           
