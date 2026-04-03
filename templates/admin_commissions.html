@@ -709,111 +709,79 @@
         
         <!-- Tab 3: Gestão de Brokers -->
         <div id="brokers-tab" class="tab-content">
-          <h3 style="font-size: 1.1rem; font-weight: 600; margin-bottom: 1.5rem; color: #374151;">Gestão de Brokers</h3>
-          
-          <!-- Summary Cards para Brokers -->
-          <div class="summary-cards">
-            <div class="summary-card">
-              <h3>Total de Reservas Brokers (<span id="brokerMonthLabel">Mês Anterior</span>)</h3>
+    
+      <!-- Summary Cards -->
+      <div class="summary-cards">
+          <div class="summary-card">
+              <h3>Total de Reservas Brokers (Mês Atual)</h3>
               <p class="summary-value" id="brokerTotalReservations">0</p>
-            </div>
-            <div class="summary-card">
-              <h3>Valor Total Brokers (<span id="brokerMonthLabel2">Mês Anterior</span>)</h3>
+          </div>
+          <div class="summary-card">
+              <h3>Valor Total Brokers (Mês Atual)</h3>
               <p class="summary-value" id="brokerTotalValue">€0.00</p>
-            </div>
-            <div class="summary-card">
+          </div>
+          <div class="summary-card">
               <h3>Total de Reservas Brokers (Ano)</h3>
               <p class="summary-value" id="brokerTotalYear">0</p>
-            </div>
           </div>
-          
-          
-          <!-- Filters -->
-          <div style="background: white; border: 1px solid #e5e7eb; border-radius: 0.5rem; padding: 1rem; margin-bottom: 2rem;">
-            <h4 style="margin: 0 0 1rem 0; font-weight: 600; color: #374151;">Filtros</h4>
-            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1rem;">
-              <div>
-                <label style="display: block; font-size: 0.875rem; font-weight: 500; color: #374151; margin-bottom: 0.25rem;">Broker</label>
-                <select id="brokerFilter" style="width: 100%; padding: 0.5rem; border: 1px solid #d1d5db; border-radius: 0.375rem; font-size: 0.875rem;">
-                  <option value="">Todos os Brokers</option>
-                  <!-- Brokers will be populated by JS -->
-                </select>
-              </div>
-              <div>
-                <label style="display: block; font-size: 0.875rem; font-weight: 500; color: #374151; margin-bottom: 0.25rem;">Ano</label>
-                <select id="brokerYearFilter" style="width: 100%; padding: 0.5rem; border: 1px solid #d1d5db; border-radius: 0.375rem; font-size: 0.875rem;">
+      </div>
+      
+      <!-- Filters -->
+      <div class="filters-section">
+          <div class="filter-group">
+              <label>Ano:</label>
+              <select id="brokerYearFilter">
                   <option value="">Todos os Anos</option>
-                  <!-- Years will be populated by JS -->
-                </select>
-              </div>
-              <div>
-                <label style="display: block; font-size: 0.875rem; font-weight: 500; color: #374151; margin-bottom: 0.25rem;">Mês</label>
-                <select id="brokerMonthFilter" style="width: 100%; padding: 0.5rem; border: 1px solid #d1d5db; border-radius: 0.375rem; font-size: 0.875rem;">
+              </select>
+          </div>
+          <div class="filter-group">
+              <label>Mês:</label>
+              <select id="brokerMonthFilter">
                   <option value="">Todos os Meses</option>
-                  <option value="1">Janeiro</option>
-                  <option value="2">Fevereiro</option>
-                  <option value="3">Março</option>
-                  <option value="4">Abril</option>
-                  <option value="5">Maio</option>
-                  <option value="6">Junho</option>
-                  <option value="7">Julho</option>
-                  <option value="8">Agosto</option>
-                  <option value="9">Setembro</option>
-                  <option value="10">Outubro</option>
-                  <option value="11">Novembro</option>
-                  <option value="12">Dezembro</option>
-                </select>
-              </div>
-            </div>
+              </select>
           </div>
-          
-          <!-- Brokers Table -->
-          <div style="background: white; border: 1px solid #e5e7eb; border-radius: 0.5rem; overflow: hidden;">
-            <div style="padding: 1rem; border-bottom: 1px solid #e5e7eb; background: #f9fafb;">
-              <h4 style="margin: 0; font-weight: 600; color: #374151;">Reservas dos Brokers</h4>
-            </div>
-            <div style="overflow-x: auto;">
-              <table style="width: 100%; border-collapse: collapse;">
-                <thead style="background: #f9fafb;">
-                  <tr>
-                    <th style="padding: 0.75rem; text-align: left; font-weight: 600; color: #374151; border-bottom: 1px solid #e5e7eb; font-size: 0.875rem;">
-                      <input type="checkbox" id="selectAllBrokers" onchange="toggleAllBrokersSelection()">
-                    </th>
-                    <th style="padding: 0.75rem; text-align: left; font-weight: 600; color: #374151; border-bottom: 1px solid #e5e7eb; font-size: 0.875rem;">Broker</th>
-                    <th style="padding: 0.75rem; text-align: left; font-weight: 600; color: #374151; border-bottom: 1px solid #e5e7eb; font-size: 0.875rem;">Voucher</th>
-                    <th style="padding: 0.75rem; text-align: left; font-weight: 600; color: #374151; border-bottom: 1px solid #e5e7eb; font-size: 0.875rem;">Data Levantamento</th>
-                    <th style="padding: 0.75rem; text-align: left; font-weight: 600; color: #374151; border-bottom: 1px solid #e5e7eb; font-size: 0.875rem;">Dias</th>
-                    <th style="padding: 0.75rem; text-align: left; font-weight: 600; color: #374151; border-bottom: 1px solid #e5e7eb; font-size: 0.875rem;">Valor Base</th>
-                  </tr>
-                </thead>
-                <tbody id="brokersTableBody">
-                  <tr>
-                    <td colspan="6" style="padding: 3rem; text-align: center; color: #6b7280;">
-                      <div style="margin-bottom: 1rem;">
-                        <svg style="width: 3rem; height: 3rem; margin: 0 auto; color: #d1d5db;" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/>
-                        </svg>
-                      </div>
-                      <p style="font-size: 0.875rem; color: #9ca3af;">Nenhuma reserva de broker encontrada</p>
-                    </td>
-                  </tr>
-                </tbody>
-              </table>
-            </div>
-            <div style="padding: 1rem; border-top: 1px solid #e5e7eb; background: #f9fafb; display: flex; justify-content: space-between; align-items: center;">
-              <div style="font-size: 0.875rem; color: #6b7280;">
-                <span id="brokerResultsCount">0</span> resultados encontrados
-              </div>
-              <div style="display: flex; gap: 0.5rem;">
-                <button onclick="exportSelectedBrokers()" id="exportBrokersBtn" disabled style="padding: 0.5rem 1rem; background: #009cb6; color: white; border: none; border-radius: 0.375rem; font-size: 0.875rem; font-weight: 500; cursor: pointer; transition: background 0.2s; opacity: 0.5;" onmouseover="if(!this.disabled) this.style.background='#0088a3'" onmouseout="if(!this.disabled) this.style.background='#009cb6'">
-                  Exportar Selecionados
-                </button>
-                <button onclick="deleteSelectedBrokers()" id="deleteBrokersBtn" disabled style="padding: 0.5rem 1rem; background: #dc2626; color: white; border: none; border-radius: 0.375rem; font-size: 0.875rem; font-weight: 500; cursor: pointer; transition: background 0.2s; opacity: 0.5;" onmouseover="if(!this.disabled) this.style.background='#b91c1c'" onmouseout="if(!this.disabled) this.style.background='#dc2626'">
-                  Eliminar Selecionados
-                </button>
-              </div>
-            </div>
+          <div class="filter-group">
+              <label>Broker:</label>
+              <select id="brokerFilter">
+                  <option value="">Todos</option>
+              </select>
           </div>
+          <button class="btn-primary" onclick="loadBrokers()">Atualizar</button>
+      </div>
+      
+      <!-- Actions -->
+      <div class="mb-4 flex gap-2">
+          <button class="btn-primary" onclick="toggleSelectAll()">
+              <span id="selectAllBrokersText">Selecionar Todas</span>
+          </button>
+          <button class="btn-primary" onclick="exportSelectedBrokers()" disabled id="exportBrokersBtn">
+              Exportar Selecionadas
+          </button>
+          <button class="btn-primary" onclick="deleteSelectedBrokers()" disabled id="deleteBrokersBtn">
+              Eliminar Selecionadas
+          </button>
+      </div>
+      
+      <!-- Brokers Table -->
+      <div class="commissions-table">
+          <table>
+              <thead>
+                  <tr>
+                      <th><input type="checkbox" id="selectAllBrokers" onchange="toggleAllBrokersSelection()"></th>
+                      <th>Broker</th>
+                      <th>Voucher</th>
+                      <th>Data Levant.</th>
+                      <th>Dias</th>
+                      <th>Valor Base</th>
+                  </tr>
+              </thead>
+              <tbody id="brokersTableBody">
+                  <tr>
+                      <td colspan="6" class="text-center py-4">Carregando...</td>
+                  </tr>
+              </tbody>
+          </table>
+      </div>
         </div>
       </div>
       </main>
