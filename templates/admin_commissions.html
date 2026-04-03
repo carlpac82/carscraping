@@ -754,9 +754,14 @@
         <div class="chart-card">
           <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
             <h3 style="margin: 0;">Distribuição de Reservas por Broker (Ano)</h3>
-            <select id="brokerYearSelect" onchange="loadBrokerYearlyDistribution()" style="padding: 0.4rem 0.8rem; border: 1px solid #d1d5db; border-radius: 0.375rem; font-size: 0.875rem; background: white;">
-              <!-- Years will be populated by JS -->
-            </select>
+            <div style="display: flex; gap: 0.5rem; align-items: center;">
+              <button id="brokerYearlyToggle" onclick="toggleBrokerYearlyView()" style="padding: 0.4rem 0.8rem; border: 1px solid #d1d5db; border-radius: 0.375rem; font-size: 0.875rem; background: white; cursor: pointer;" title="Alternar entre valor e contagem">
+                <span id="brokerYearlyToggleIcon">💰</span>
+              </button>
+              <select id="brokerYearSelect" onchange="loadBrokerYearlyDistribution()" style="padding: 0.4rem 0.8rem; border: 1px solid #d1d5db; border-radius: 0.375rem; font-size: 0.875rem; background: white;">
+                <!-- Years will be populated by JS -->
+              </select>
+            </div>
           </div>
           <canvas id="brokerYearlyChart" style="max-height: 300px;"></canvas>
         </div>
@@ -1210,6 +1215,9 @@
           let brokerTopChart = null;
           let paymentTypeMonthlyChart = null;
           let paymentTypeYearlyChart = null;
+          
+          // Broker yearly view mode (false = show counts, true = show values)
+          let brokerYearlyShowValues = false;
           
           // Load dashboard data
           async function loadDashboardData() {
@@ -2222,15 +2230,21 @@
                   }
                   
                   const labels = data.data.brokers.map(b => b.broker_name);
-                  const values = data.data.brokers.map(b => b.reservation_count);
+                  const counts = data.data.brokers.map(b => b.reservation_count);
+                  const values = data.data.brokers.map(b => b.total_value);
                   const colors = ['#009cb6', '#ff9800', '#4caf50', '#f44336', '#9c27b0', '#795548', '#607d8b', '#e91e63', '#ff5722', '#3f51b5'];
+                  
+                  // Use counts or values based on toggle state
+                  const chartData = brokerYearlyShowValues ? values : counts;
+                  const dataType = brokerYearlyShowValues ? 'valor' : 'reservas';
+                  const dataPrefix = brokerYearlyShowValues ? '€' : '';
                   
                   brokerYearlyChart = new Chart(ctx, {
                       type: 'pie',
                       data: {
                           labels: labels,
                           datasets: [{
-                              data: values,
+                              data: chartData,
                               backgroundColor: colors.slice(0, labels.length),
                               borderColor: '#ffffff',
                               borderWidth: 2
@@ -2250,7 +2264,10 @@
                                           const value = context.parsed;
                                           const total = context.dataset.data.reduce((a, b) => a + b, 0);
                                           const percentage = ((value / total) * 100).toFixed(1);
-                                          return `${label}: ${value} reservas (${percentage}%)`;
+                                          const formattedValue = brokerYearlyShowValues ? 
+                                              dataPrefix + value.toFixed(2) : 
+                                              dataPrefix + value;
+                                          return `${label}: ${formattedValue} ${dataType} (${percentage}%)`;
                                       }
                                   }
                               }
@@ -2260,6 +2277,18 @@
               } catch (error) {
                   console.error('Error loading broker yearly distribution:', error);
               }
+          }
+          
+          // Toggle broker yearly view between counts and values
+          function toggleBrokerYearlyView() {
+              brokerYearlyShowValues = !brokerYearlyShowValues;
+              
+              // Update toggle icon
+              const toggleIcon = document.getElementById('brokerYearlyToggleIcon');
+              toggleIcon.textContent = brokerYearlyShowValues ? '🔢' : '💰';
+              
+              // Reload chart with new view
+              loadBrokerYearlyDistribution();
           }
           
           // Load broker top by value chart
