@@ -849,6 +849,16 @@
                   loadDashboardData();
               }
               
+              // Load broker data if Brokers tab is active by default
+              const brokersTab = document.getElementById('brokers-tab');
+              if (brokersTab && brokersTab.classList.contains('active')) {
+                  loadBrokers();
+                  populateBrokerChartSelectors();
+                  loadBrokerMonthlyComparison();
+                  loadBrokerYearlyDistribution();
+                  loadBrokerTopByValue();
+              }
+              
               // Add event listeners to filters to auto-update
               document.getElementById('statusFilter').addEventListener('change', renderCommissions);
               document.getElementById('yearFilter').addEventListener('change', renderCommissions);
