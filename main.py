@@ -4593,7 +4593,12 @@ def init_db():
             safe_create_index(conn, "CREATE INDEX IF NOT EXISTS idx_notification_history ON notification_history(sent_at DESC, status)", "idx_notification_history")
             
         finally:
-            conn.commit()
+            try:
+                # Fazer rollback antes de commit para limpar qualquer transação abortada
+                conn.rollback()
+                conn.commit()
+            except Exception as e:
+                logging.warning(f"⚠️ Final transaction cleanup: {e}")
             conn.close()
 
 init_db()
