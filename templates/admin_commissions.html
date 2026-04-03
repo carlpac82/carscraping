@@ -545,10 +545,21 @@
           
           <!-- Charts Grid -->
           <div class="dashboard-grid">
-            <!-- Top 10 Comissionistas -->
-            <div class="chart-card" style="grid-column: span 2;">
+            <!-- Top 10 Comissionistas Mês Anterior -->
+            <div class="chart-card">
               <h3>Top 10 Comissionistas (<span id="topCommissionersMonthLabel">Mês Anterior</span>)</h3>
               <canvas id="topCommissionersChart" style="max-height: 300px;"></canvas>
+            </div>
+            
+            <!-- Top 10 Comissionistas Anual -->
+            <div class="chart-card">
+              <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
+                <h3 style="margin: 0;">Top 10 Comissionistas (Ano)</h3>
+                <select id="yearlyTopSelect" onchange="loadYearlyTop()" style="padding: 0.4rem 0.8rem; border: 1px solid #d1d5db; border-radius: 0.375rem; font-size: 0.875rem; background: white;">
+                  <!-- Years will be populated by JS -->
+                </select>
+              </div>
+              <canvas id="topCommissionersYearlyChart" style="max-height: 300px;"></canvas>
             </div>
             
             <!-- Comparativo Mensal -->
@@ -979,6 +990,7 @@
           
           // Chart instances
           let topCommissionersChart = null;
+          let topCommissionersYearlyChart = null;
           let monthlyChart = null;
           let yearlyChart = null;
           
@@ -1005,9 +1017,43 @@
                       initTopCommissionersChart(data.top_commissioners || []);
                       initMonthlyChart(data.monthly_data || []);
                       initYearlyChart(data.yearly_data || []);
+                      
+                      // Populate year selector and load yearly top 10
+                      populateYearSelector();
+                      loadYearlyTop();
                   }
               } catch (error) {
                   console.error('Error loading dashboard data:', error);
+              }
+          }
+          
+          // Populate year selector
+          function populateYearSelector() {
+              const select = document.getElementById('yearlyTopSelect');
+              const currentYear = new Date().getFullYear();
+              const startYear = 2024;
+              
+              select.innerHTML = '';
+              for (let year = currentYear; year >= startYear; year--) {
+                  const option = document.createElement('option');
+                  option.value = year;
+                  option.textContent = year;
+                  select.appendChild(option);
+              }
+          }
+          
+          // Load yearly top 10 commissioners
+          async function loadYearlyTop() {
+              try {
+                  const year = document.getElementById('yearlyTopSelect').value;
+                  const response = await fetch(`/api/admin/commissions/top-commissioners-yearly?year=${year}`);
+                  const data = await response.json();
+                  
+                  if (data.ok) {
+                      initTopCommissionersYearlyChart(data.top_commissioners || []);
+                  }
+              } catch (error) {
+                  console.error('Error loading yearly top commissioners:', error);
               }
           }
           
@@ -1032,6 +1078,57 @@
                           data: values,
                           backgroundColor: '#009cb6',
                           borderColor: '#007a8c',
+                          borderWidth: 1
+                      }]
+                  },
+                  options: {
+                      responsive: true,
+                      maintainAspectRatio: true,
+                      indexAxis: 'y',
+                      plugins: {
+                          legend: {
+                              display: false
+                          }
+                      },
+                      scales: {
+                          x: {
+                              beginAtZero: true,
+                              ticks: {
+                                  callback: function(value) {
+                                      return '€' + value.toFixed(0);
+                                  }
+                              }
+                          }
+                      }
+                  }
+              });
+          }
+          
+          // Initialize Top Commissioners Yearly Chart
+          function initTopCommissionersYearlyChart(data) {
+              const ctx = document.getElementById('topCommissionersYearlyChart');
+              if (!ctx) return;
+              
+              if (topCommissionersYearlyChart) {
+                  topCommissionersYearlyChart.destroy();
+              }
+              
+              const labels = data.map(item => item.name);
+              const values = data.map(item => item.total);
+              
+              // Alternate colors between blue and yellow
+              const colors = values.map((_, index) => index % 2 === 0 ? '#009cb6' : '#ffc107');
+              const borderColors = values.map((_, index) => index % 2 === 0 ? '#007a8c' : '#e0a800');
+              
+              topCommissionersYearlyChart = new Chart(ctx, {
+                  type: 'bar',
+                  data: {
+                      labels: labels,
+                      datasets: [{
+                          label: 'Total de Comissões (€)',
+                          data: values,
+                          backgroundColor: colors,
+                          borderColor: borderColors,
                           borderWidth: 1
                       }]
                   },

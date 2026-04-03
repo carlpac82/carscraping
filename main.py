@@ -12156,6 +12156,74 @@ async def admin_commissions_dashboard_stats(request: Request):
         traceback.print_exc()
         return JSONResponse({"ok": False, "error": str(e)}, status_code=500)
 
+@app.get("/api/admin/commissions/top-commissioners-yearly")
+async def admin_commissions_top_yearly(request: Request, year: int = None):
+    """Get top 10 commissioners for a specific year"""
+    try:
+        require_commissions_management(request)
+    except HTTPException:
+        return JSONResponse({"ok": False, "error": "Unauthorized"}, status_code=403)
+    
+    try:
+        from datetime import datetime
+        
+        if year is None:
+            year = datetime.now().year
+        
+        with _db_lock:
+            con = _db_connect()
+            try:
+                # Get all commissions for the specified year
+                query = """
+                    SELECT 
+                        cb.commission_amount,
+                        c.name as commissioner_name
+                    FROM commission_bookings cb
+                    LEFT JOIN commissioners c ON cb.commissioner_id = c.id
+                    WHERE cb.commission_amount > 0
+                    AND EXTRACT(YEAR FROM cb.pickup_date) = %s
+                """ if USE_POSTGRES else """
+                    SELECT 
+                        cb.commission_amount,
+                        c.name as commissioner_name
+                    FROM commission_bookings cb
+                    LEFT JOIN commissioners c ON cb.commissioner_id = c.id
+                    WHERE cb.commission_amount > 0
+                    AND strftime('%Y', cb.pickup_date) = ?
+                """
+                
+                cur = con.execute(query, (str(year),))
+                rows = cur.fetchall()
+                
+                # Aggregate by commissioner
+                commissioner_totals = {}
+                for row in rows:
+                    commission_amount = float(row[0]) if row[0] else 0
+                    commissioner_name = row[1] or "Sem Nome"
+                    
+                    if commissioner_name not in commissioner_totals:
+                        commissioner_totals[commissioner_name] = 0
+                    commissioner_totals[commissioner_name] += commission_amount
+                
+                # Top 10 commissioners
+                top_commissioners = sorted(
+                    [{"name": name, "total": total} for name, total in commissioner_totals.items()],
+                    key=lambda x: x["total"],
+                    reverse=True
+                )[:10]
+                
+                return JSONResponse({
+                    "ok": True,
+                    "year": year,
+                    "top_commissioners": top_commissioners
+                })
+            finally:
+                con.close()
+    except Exception as e:
+        import traceback
+        traceback.print_exc()
+        return JSONResponse({"ok": False, "error": str(e)}, status_code=500)
+
 @app.post("/api/admin/commissions/mark-paid")
 async def admin_commissions_mark_paid(request: Request):
     """Mark commissions as paid"""
