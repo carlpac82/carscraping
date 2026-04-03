@@ -697,26 +697,8 @@
           
           // Load commissions on page load
           document.addEventListener('DOMContentLoaded', function() {
-              console.log('🚀 DOM Content Loaded');
               loadCommissions();
               loadFilters();
-              
-              // Wait for Chart.js to be available
-              if (typeof Chart !== 'undefined') {
-                  console.log('✅ Chart.js already loaded');
-                  loadDashboardData();
-              } else {
-                  console.log('⏳ Waiting for Chart.js...');
-                  // Wait a bit for Chart.js to load
-                  setTimeout(() => {
-                      if (typeof Chart !== 'undefined') {
-                          console.log('✅ Chart.js loaded after delay');
-                          loadDashboardData();
-                      } else {
-                          console.error('❌ Chart.js failed to load');
-                      }
-                  }, 500);
-              }
               
               // Add event listeners to filters to auto-update
               document.getElementById('statusFilter').addEventListener('change', renderCommissions);
@@ -1021,15 +1003,11 @@
           
           // Load dashboard data
           async function loadDashboardData() {
-              console.log('🔄 Loading dashboard data...');
               try {
                   const response = await fetch('/api/admin/commissions/dashboard-stats');
-                  console.log('📡 Response received:', response.status);
                   const data = await response.json();
-                  console.log('📊 Data:', data);
                   
                   if (data.ok) {
-                      console.log('✅ Data OK, initializing charts...');
                       // Update month labels
                       const monthNames = ['Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho', 'Julho', 'Agosto', 'Setembro', 'Outubro', 'Novembro', 'Dezembro'];
                       const monthLabel = `${monthNames[data.summary.previous_month - 1]} ${data.summary.previous_month_year}`;
@@ -1042,34 +1020,18 @@
                       document.getElementById('dashTotalUnpaid').textContent = `€${(data.summary.unpaid_previous_month || 0).toFixed(2)}`;
                       document.getElementById('dashTotalYear').textContent = `€${(data.summary.total_year || 0).toFixed(2)}`;
                       
-                      // Check if Chart is available
-                      if (typeof Chart === 'undefined') {
-                          console.error('❌ Chart.js not loaded!');
-                          return;
-                      }
-                      console.log('✅ Chart.js available');
-                      
                       // Initialize charts
-                      console.log('📈 Initializing Top Commissioners Chart...');
                       initTopCommissionersChart(data.top_commissioners || []);
-                      console.log('📈 Initializing Monthly Chart...');
                       initMonthlyChart(data.monthly_data || []);
-                      console.log('📈 Initializing Yearly Chart...');
                       initYearlyChart(data.yearly_data || []);
-                      console.log('📈 Initializing Base Values Comparison Chart...');
                       initBaseValuesComparisonChart();
                       
                       // Populate year selector and load yearly top 10
-                      console.log('📅 Populating year selector...');
                       populateYearSelector();
-                      console.log('📊 Loading yearly top 10...');
                       loadYearlyTop();
-                      console.log('✅ Dashboard loaded successfully!');
-                  } else {
-                      console.error('❌ Data not OK:', data.error);
                   }
               } catch (error) {
-                  console.error('❌ Error loading dashboard data:', error);
+                  console.error('Error loading dashboard data:', error);
               }
           }
           
