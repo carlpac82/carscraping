@@ -700,6 +700,12 @@
               loadCommissions();
               loadFilters();
               
+              // Load dashboard data if Dashboard tab is active by default
+              const dashboardTab = document.getElementById('dashboard-tab');
+              if (dashboardTab && dashboardTab.classList.contains('active')) {
+                  loadDashboardData();
+              }
+              
               // Add event listeners to filters to auto-update
               document.getElementById('statusFilter').addEventListener('change', renderCommissions);
               document.getElementById('yearFilter').addEventListener('change', renderCommissions);
