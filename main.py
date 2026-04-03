@@ -4297,12 +4297,16 @@ def init_db():
             # Migration: Add self check-in columns to rental_agreements
             logging.info(f"🔍 Database type detection: is_postgres={is_postgres}, conn_type={type(conn).__name__}")
             if is_postgres:
+                logging.info("✅ PostgreSQL detected - using advanced migration with column checking")
                 try:
                     import os
                     import psycopg2
+                    import traceback
                     database_url = os.getenv('DATABASE_URL')
+                    logging.info(f"🔗 DATABASE_URL present: {bool(database_url)}")
                     
                     # Usar conexão separada para verificar colunas existentes
+                    logging.info("📡 Connecting to check existing columns...")
                     check_conn = psycopg2.connect(database_url)
                     check_cur = check_conn.cursor()
                     check_cur.execute("""
@@ -4358,8 +4362,14 @@ def init_db():
                         else:
                             logging.debug(f"⏭️ Coluna {col_name} já existe, skip")
                     
+                    logging.info("✅ PostgreSQL migration completed successfully")
+                    
                 except Exception as e:
-                    logging.warning(f"⚠️ Migration error: {e}")
+                    logging.error(f"❌ PostgreSQL migration FAILED: {e}")
+                    logging.error(f"❌ Exception type: {type(e).__name__}")
+                    logging.error(f"❌ Traceback: {traceback.format_exc()}")
+                    logging.error("⚠️ FALLING BACK TO SQLite MIGRATION (THIS IS WRONG FOR POSTGRESQL!)")
+                    raise  # Re-raise to prevent SQLite block from executing
             else:
                 # SQLite: Usar try/except
                 try:
