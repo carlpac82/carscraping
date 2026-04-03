@@ -12226,8 +12226,8 @@ async def admin_commissions_top_yearly(request: Request, year: int = None):
         return JSONResponse({"ok": False, "error": str(e)}, status_code=500)
 
 @app.get("/api/admin/commissions/base-values-comparison")
-async def admin_commissions_base_values_comparison(request: Request):
-    """Get base values comparison by origin for previous month vs same month in previous 2 years"""
+async def admin_commissions_base_values_comparison(request: Request, month: Optional[str] = None):
+    """Get base values comparison by origin for specified month vs same month in previous 2 years"""
     try:
         require_commissions_management(request)
     except HTTPException:
@@ -12236,18 +12236,37 @@ async def admin_commissions_base_values_comparison(request: Request):
     try:
         from datetime import datetime
         
-        # Calculate previous month
-        today = datetime.now()
-        current_month = today.month
-        current_year = today.year
-        
-        # Previous month
-        if current_month == 1:
-            previous_month = 12
-            previous_month_year = current_year - 1
+        # Parse month parameter or use previous month as default
+        if month:
+            # Expected format: YYYY-MM
+            try:
+                year_str, month_str = month.split('-')
+                previous_month = int(month_str)
+                previous_month_year = int(year_str)
+            except:
+                # Fallback to previous month if parsing fails
+                today = datetime.now()
+                current_month = today.month
+                current_year = today.year
+                
+                if current_month == 1:
+                    previous_month = 12
+                    previous_month_year = current_year - 1
+                else:
+                    previous_month = current_month - 1
+                    previous_month_year = current_year
         else:
-            previous_month = current_month - 1
-            previous_month_year = current_year
+            # Use previous month as default (original behavior)
+            today = datetime.now()
+            current_month = today.month
+            current_year = today.year
+            
+            if current_month == 1:
+                previous_month = 12
+                previous_month_year = current_year - 1
+            else:
+                previous_month = current_month - 1
+                previous_month_year = current_year
         
         # Same month 1 year ago
         year_ago_month = previous_month

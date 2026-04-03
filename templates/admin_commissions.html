@@ -543,6 +543,17 @@
             </div>
           </div>
           
+          <!-- Comparativo de Valores Base por Origem (Largura Total) -->
+          <div class="chart-card" style="width: 100%; margin-bottom: 2rem;">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
+              <h3 style="margin: 0;">Comparativo de Valores Base por Origem (Mês vs Anos Anteriores)</h3>
+              <select id="baseValuesMonthSelect" onchange="loadBaseValuesComparison()" style="padding: 0.4rem 0.8rem; border: 1px solid #d1d5db; border-radius: 0.375rem; font-size: 0.875rem; background: white;">
+                <!-- Months will be populated by JS -->
+              </select>
+            </div>
+            <canvas id="baseValuesComparisonChart" style="max-height: 350px;"></canvas>
+          </div>
+          
           <!-- Charts Grid -->
           <div class="dashboard-grid">
             <!-- Top 10 Comissionistas Mês Anterior -->
@@ -572,12 +583,6 @@
             <div class="chart-card">
               <h3>Comparativo Anual</h3>
               <canvas id="yearlyChart" style="max-height: 300px;"></canvas>
-            </div>
-            
-            <!-- Comparativo de Valores Base por Origem -->
-            <div class="chart-card">
-              <h3>Comparativo de Valores Base por Origem (Mês Anterior vs Anos Anteriores)</h3>
-              <canvas id="baseValuesComparisonChart" style="max-height: 300px;"></canvas>
             </div>
           </div>
         </div>
@@ -1032,8 +1037,9 @@
                       initYearlyChart(data.yearly_data || []);
                       initBaseValuesComparisonChart();
                       
-                      // Populate year selector and load yearly top 10
+                      // Populate selectors and load data
                       populateYearSelector();
+                      populateMonthSelector();
                       loadYearlyTop();
                   }
               } catch (error) {
@@ -1052,6 +1058,33 @@
                   const option = document.createElement('option');
                   option.value = year;
                   option.textContent = year;
+                  select.appendChild(option);
+              }
+          }
+          
+          // Populate month selector for base values comparison
+          function populateMonthSelector() {
+              const select = document.getElementById('baseValuesMonthSelect');
+              const currentMonth = new Date().getMonth() + 1; // 1-12
+              const currentYear = new Date().getFullYear();
+              const months = ['Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho', 'Julho', 'Agosto', 'Setembro', 'Outubro', 'Novembro', 'Dezembro'];
+              
+              select.innerHTML = '';
+              
+              // Add last 12 months
+              for (let i = 0; i < 12; i++) {
+                  const date = new Date(currentYear, currentMonth - 1 - i, 1);
+                  const month = date.getMonth() + 1;
+                  const year = date.getFullYear();
+                  const option = document.createElement('option');
+                  option.value = `${year}-${month.toString().padStart(2, '0')}`;
+                  option.textContent = `${months[month - 1]} ${year}`;
+                  
+                  // Select previous month by default
+                  if (i === 1) {
+                      option.selected = true;
+                  }
+                  
                   select.appendChild(option);
               }
           }
@@ -1281,10 +1314,12 @@
               });
           }
           
-          // Initialize Base Values Comparison Chart
-          async function initBaseValuesComparisonChart() {
+          // Load Base Values Comparison Chart with selected month
+          async function loadBaseValuesComparison() {
               try {
-                  const response = await fetch('/api/admin/commissions/base-values-comparison');
+                  const monthSelect = document.getElementById('baseValuesMonthSelect');
+                  const selectedMonth = monthSelect.value; // Format: YYYY-MM
+                  const response = await fetch(`/api/admin/commissions/base-values-comparison?month=${selectedMonth}`);
                   const data = await response.json();
                   
                   if (!data.ok) {
@@ -1335,46 +1370,58 @@
                                   label: 'API-WEB',
                                   data: [prevMonth.api_web, yearAgo.api_web, twoYearsAgo.api_web],
                                   backgroundColor: '#4caf50',
-                                  borderColor: '#388e3c',
+                                  borderColor: '#45a049',
                                   borderWidth: 1
                               },
                               {
                                   label: 'Brokers',
                                   data: [prevMonth.brokers, yearAgo.brokers, twoYearsAgo.brokers],
                                   backgroundColor: '#ff5722',
-                                  borderColor: '#d84315',
+                                  borderColor: '#e64a19',
                                   borderWidth: 1
                               }
                           ]
                       },
                       options: {
                           responsive: true,
-                          maintainAspectRatio: true,
-                          plugins: {
-                              legend: {
-                                  display: true,
-                                  position: 'top'
-                              }
-                          },
+                          maintainAspectRatio: false,
                           scales: {
                               y: {
                                   beginAtZero: true,
-                                  stacked: false,
                                   ticks: {
                                       callback: function(value) {
                                           return '€' + value.toFixed(0);
                                       }
                                   }
+                              }
+                          },
+                          plugins: {
+                              legend: {
+                                  position: 'top',
                               },
-                              x: {
-                                  stacked: false
+                              tooltip: {
+                                  callbacks: {
+                                      label: function(context) {
+                                          let label = context.dataset.label || '';
+                                          if (label) {
+                                              label += ': ';
+                                          }
+                                          label += '€' + context.parsed.y.toFixed(2);
+                                          return label;
+                                      }
+                                  }
                               }
                           }
                       }
                   });
               } catch (error) {
-                  console.error('Error initializing base values comparison chart:', error);
+                  console.error('Error loading base values comparison:', error);
               }
+          }
+          
+          // Initialize Base Values Comparison Chart (backward compatibility)
+          async function initBaseValuesComparisonChart() {
+              await loadBaseValuesComparison();
           }
       </script>
     </body>
