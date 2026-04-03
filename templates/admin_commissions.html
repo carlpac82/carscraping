@@ -2218,7 +2218,7 @@
                   const yearSelect = document.getElementById('brokerTopYearSelect');
                   const selectedYear = yearSelect.value;
                   
-                  const response = await fetch(`/api/admin/brokers/top-brokers?year=${selectedYear}`);
+                  const response = await fetch(`/api/admin/brokers/top-by-value?year=${selectedYear}`);
                   const data = await response.json();
                   
                   if (!data.ok) {
