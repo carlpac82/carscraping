@@ -756,7 +756,9 @@
             <h3 style="margin: 0;">Distribuição de Reservas por Broker (Ano)</h3>
             <div style="display: flex; gap: 0.5rem; align-items: center;">
               <button id="brokerYearlyToggle" onclick="toggleBrokerYearlyView()" style="padding: 0.4rem 0.8rem; border: 1px solid #d1d5db; border-radius: 0.375rem; font-size: 0.875rem; background: white; cursor: pointer;" title="Alternar entre valor e contagem">
-                <span id="brokerYearlyToggleIcon" style="color: #009cb6;">🔢</span>
+                <svg id="brokerYearlyToggleIcon" width="16" height="16" viewBox="0 0 24 24" fill="currentColor" style="color: #009cb6;">
+                  <path d="M3 13h2v8H3zm4-8h2v16H7zm4-2h2v18h-2zm4 4h2v14h-2zm4-2h2v18h-2z"/>
+                </svg>
               </button>
               <select id="brokerYearSelect" onchange="loadBrokerYearlyDistribution()" style="padding: 0.4rem 0.8rem; border: 1px solid #d1d5db; border-radius: 0.375rem; font-size: 0.875rem; background: white;">
                 <!-- Years will be populated by JS -->
@@ -2237,7 +2239,7 @@
                       return;
                   }
                   
-                  if (brokerYearlyChart) {
+                  if (brokerYearlyChart && typeof brokerYearlyChart.destroy === 'function') {
                       brokerYearlyChart.destroy();
                   }
                   
@@ -2309,10 +2311,12 @@
               // Update toggle icon and color
               const toggleIcon = document.getElementById('brokerYearlyToggleIcon');
               if (brokerYearlyShowValues) {
-                  toggleIcon.textContent = '📊';
+                  // SVG para gráfico de valores (pie chart) - cor amarela
+                  toggleIcon.innerHTML = '<path d="M11 2v20c-5.07-.5-9-4.79-9-10s3.93-9.5 9-10zm2.03 0v8.99H22c-.47-4.74-4.24-8.52-8.97-8.99zm0 11.01V22c4.74-.47 8.5-4.25 8.97-8.99h-8.97z"/>';
                   toggleIcon.style.color = '#ff9800'; // Amarelo website
               } else {
-                  toggleIcon.textContent = '🔢';
+                  // SVG para contagem (bar chart) - cor azul
+                  toggleIcon.innerHTML = '<path d="M3 13h2v8H3zm4-8h2v16H7zm4-2h2v18h-2zm4 4h2v14h-2zm4-2h2v18h-2z"/>';
                   toggleIcon.style.color = '#009cb6'; // Azul website
               }
               
