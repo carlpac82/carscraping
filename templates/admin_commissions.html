@@ -451,6 +451,12 @@
               </select>
           </div>
           <div class="filter-group">
+              <label>Ano:</label>
+              <select id="yearFilter">
+                  <option value="">Todos os Anos</option>
+              </select>
+          </div>
+          <div class="filter-group">
               <label>Mês:</label>
               <select id="monthFilter">
                   <option value="">Todos os Meses</option>
@@ -521,6 +527,7 @@
               
               // Add event listeners to filters to auto-update
               document.getElementById('statusFilter').addEventListener('change', renderCommissions);
+              document.getElementById('yearFilter').addEventListener('change', renderCommissions);
               document.getElementById('monthFilter').addEventListener('change', renderCommissions);
               document.getElementById('commissionerFilter').addEventListener('change', renderCommissions);
           });
@@ -549,6 +556,16 @@
           // Load filter options
           async function loadFilters() {
               try {
+                  // Load years (from 2024 to current year)
+                  const yearSelect = document.getElementById('yearFilter');
+                  const currentYear = new Date().getFullYear();
+                  for (let year = 2024; year <= currentYear; year++) {
+                      const option = document.createElement('option');
+                      option.value = year;
+                      option.textContent = year;
+                      yearSelect.appendChild(option);
+                  }
+                  
                   // Load months
                   const monthSelect = document.getElementById('monthFilter');
                   for (let i = 1; i <= 12; i++) {
@@ -616,6 +633,7 @@
           // Filter commissions
           function filterCommissions() {
               const statusFilter = document.getElementById('statusFilter').value;
+              const yearFilter = document.getElementById('yearFilter').value;
               const monthFilter = document.getElementById('monthFilter').value;
               const commissionerFilter = document.getElementById('commissionerFilter').value;
               
@@ -623,6 +641,11 @@
                   if (statusFilter !== 'all') {
                       if (statusFilter === 'paid' && !commission.commission_paid) return false;
                       if (statusFilter === 'unpaid' && commission.commission_paid) return false;
+                  }
+                  
+                  if (yearFilter) {
+                      const bookingYear = new Date(commission.pickup_date).getFullYear();
+                      if (bookingYear != yearFilter) return false;
                   }
                   
                   if (monthFilter) {
