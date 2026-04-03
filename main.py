@@ -3914,11 +3914,12 @@ def init_db():
     with _db_lock:
         conn = _db_connect()  # Use _db_connect() instead of direct sqlite3.connect()
         
-        # Detect if we're using PostgreSQL or SQLite
+        # Detect if we're using PostgreSQL or SQLite using the robust detection function
         import os
+        is_postgres = _is_postgresql_connection(conn)
         conn_type = str(type(conn))
-        is_postgres = 'psycopg' in conn_type and bool(os.getenv('DATABASE_URL'))
-        logging.info(f"🔍 Database detection: conn_type={conn_type}, DATABASE_URL={os.getenv('DATABASE_URL')}, is_postgres={is_postgres}")
+        database_url = os.getenv('DATABASE_URL', '')
+        logging.info(f"🔍 Database detection: conn_type={conn_type}, DATABASE_URL={'***' if database_url else 'None'}, is_postgres={is_postgres}")
         try:
             conn.execute(
                 """
