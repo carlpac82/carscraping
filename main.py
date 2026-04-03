@@ -65175,9 +65175,9 @@ async def admin_brokers_yearly_distribution(request: Request, year: str):
                 
                 cur = con.cursor()
                 if USE_POSTGRES:
-                    cur.execute(query, (year_int, year_int))
+                    cur.execute(query, (year_int,))
                 else:
-                    cur.execute(query, (str(year), str(year)))
+                    cur.execute(query, (str(year),))
                 
                 rows = cur.fetchall()
                 
