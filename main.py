@@ -65167,7 +65167,7 @@ async def admin_brokers_yearly_distribution(request: Request, year: str):
                     WHERE EXTRACT(YEAR FROM pickup_date) = %s
                     GROUP BY broker_name
                     UNION ALL
-                    SELECT 'Comissionistas' as broker_name, COUNT(*) as reservation_count, COALESCE(SUM(cb.base_value), 0) as total_value
+                    SELECT 'Comissionistas' as broker_name, COUNT(*) as reservation_count, COALESCE(SUM(cb.price), 0) as total_value
                     FROM commission_bookings cb
                     WHERE EXTRACT(YEAR FROM cb.pickup_date) = %s
                 """ if USE_POSTGRES else """
@@ -65176,7 +65176,7 @@ async def admin_brokers_yearly_distribution(request: Request, year: str):
                     WHERE strftime('%%Y', pickup_date) = ?
                     GROUP BY broker_name
                     UNION ALL
-                    SELECT 'Comissionistas' as broker_name, COUNT(*) as reservation_count, COALESCE(SUM(cb.base_value), 0) as total_value
+                    SELECT 'Comissionistas' as broker_name, COUNT(*) as reservation_count, COALESCE(SUM(cb.price), 0) as total_value
                     FROM commission_bookings cb
                     WHERE strftime('%%Y', cb.pickup_date) = ?
                 """
