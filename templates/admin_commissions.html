@@ -2322,17 +2322,11 @@
           // Load broker yearly distribution chart
           async function loadBrokerYearlyDistribution() {
               try {
-                  console.log('Loading broker yearly distribution, showValues:', brokerYearlyShowValues);
-                  
                   const yearSelect = document.getElementById('brokerYearSelect');
                   const selectedYear = yearSelect.value;
                   
-                  console.log('Selected year:', selectedYear);
-                  
                   const response = await fetch(`/api/admin/brokers/yearly-distribution?year=${selectedYear}`);
                   const data = await response.json();
-                  
-                  console.log('API response:', data);
                   
                   if (!data.ok) {
                       console.error('Error loading broker yearly distribution:', data.error);
@@ -2340,10 +2334,7 @@
                   }
                   
                   const ctx = document.getElementById('brokerYearlyChart');
-                  if (!ctx) {
-                      console.error('Canvas element not found');
-                      return;
-                  }
+                  if (!ctx) return;
                   
                   if (brokerYearlyChart && typeof brokerYearlyChart.destroy === 'function') {
                       brokerYearlyChart.destroy();
@@ -2351,19 +2342,12 @@
                   
                   const labels = data.data.brokers.map(b => b.broker_name);
                   const counts = data.data.brokers.map(b => b.reservation_count);
-                  const values = data.data.brokers.map(b => b.total_value);
+                  const values = data.data.brokers.map(b => b.total_value || 0);
                   const colors = ['#009cb6', '#ff9800', '#4caf50', '#f44336', '#9c27b0', '#795548', '#607d8b', '#e91e63', '#ff5722', '#3f51b5'];
-                  
-                  console.log('Labels:', labels);
-                  console.log('Counts:', counts);
-                  console.log('Values:', values);
                   
                   // Use counts or values based on toggle state
                   const chartData = brokerYearlyShowValues ? values : counts;
                   const dataType = brokerYearlyShowValues ? 'valor' : 'reservas';
-                  
-                  console.log('Chart data type:', dataType);
-                  console.log('Chart data:', chartData);
                   
                   brokerYearlyChart = new Chart(ctx, {
                       type: 'pie',
@@ -2390,21 +2374,17 @@
                                           const value = context.parsed;
                                           const total = context.dataset.data.reduce((a, b) => a + b, 0);
                                           const percentage = ((value / total) * 100).toFixed(1);
-                                          let formattedValue;
                                           if (brokerYearlyShowValues) {
-                                              formattedValue = '€' + value.toFixed(2);
+                                              return `${label}: €${value.toFixed(2)} (${percentage}%)`;
                                           } else {
-                                              formattedValue = value.toString();
+                                              return `${label}: ${value} ${dataType} (${percentage}%)`;
                                           }
-                                          return `${label}: ${formattedValue} ${dataType} (${percentage}%)`;
                                       }
                                   }
                               }
                           }
                       }
                   });
-                  
-                  console.log('Chart created successfully');
               } catch (error) {
                   console.error('Error loading broker yearly distribution:', error);
               }
