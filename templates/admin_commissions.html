@@ -530,11 +530,11 @@
           <!-- Summary Cards -->
           <div class="summary-cards">
             <div class="summary-card">
-              <h3>Total de Comissões Pagas (Mês Atual)</h3>
+              <h3>Total de Comissões Pagas (<span id="dashMonthLabel">Mês Anterior</span>)</h3>
               <p class="summary-value" id="dashTotalPaid">€0.00</p>
             </div>
             <div class="summary-card">
-              <h3>Total de Comissões Por Pagar (Mês Atual)</h3>
+              <h3>Total de Comissões Por Pagar (<span id="dashMonthLabel2">Mês Anterior</span>)</h3>
               <p class="summary-value" id="dashTotalUnpaid">€0.00</p>
             </div>
             <div class="summary-card">
@@ -547,13 +547,13 @@
           <div class="dashboard-grid">
             <!-- Top 10 Comissionistas -->
             <div class="chart-card" style="grid-column: span 2;">
-              <h3>Top 10 Comissionistas</h3>
+              <h3>Top 10 Comissionistas (<span id="topCommissionersMonthLabel">Mês Anterior</span>)</h3>
               <canvas id="topCommissionersChart" style="max-height: 300px;"></canvas>
             </div>
             
             <!-- Comparativo Mensal -->
             <div class="chart-card">
-              <h3>Comissões por Mês (Ano Atual)</h3>
+              <h3>Comparativo Mensal (Ano Atual vs Ano Anterior)</h3>
               <canvas id="monthlyChart" style="max-height: 300px;"></canvas>
             </div>
             
@@ -989,9 +989,16 @@
                   const data = await response.json();
                   
                   if (data.ok) {
+                      // Update month labels
+                      const monthNames = ['Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho', 'Julho', 'Agosto', 'Setembro', 'Outubro', 'Novembro', 'Dezembro'];
+                      const monthLabel = `${monthNames[data.summary.previous_month - 1]} ${data.summary.previous_month_year}`;
+                      document.getElementById('dashMonthLabel').textContent = monthLabel;
+                      document.getElementById('dashMonthLabel2').textContent = monthLabel;
+                      document.getElementById('topCommissionersMonthLabel').textContent = monthLabel;
+                      
                       // Update summary cards
-                      document.getElementById('dashTotalPaid').textContent = `€${(data.summary.paid_current_month || 0).toFixed(2)}`;
-                      document.getElementById('dashTotalUnpaid').textContent = `€${(data.summary.unpaid_current_month || 0).toFixed(2)}`;
+                      document.getElementById('dashTotalPaid').textContent = `€${(data.summary.paid_previous_month || 0).toFixed(2)}`;
+                      document.getElementById('dashTotalUnpaid').textContent = `€${(data.summary.unpaid_previous_month || 0).toFixed(2)}`;
                       document.getElementById('dashTotalYear').textContent = `€${(data.summary.total_year || 0).toFixed(2)}`;
                       
                       // Initialize charts
@@ -1061,31 +1068,46 @@
               }
               
               const months = ['Jan', 'Fev', 'Mar', 'Abr', 'Mai', 'Jun', 'Jul', 'Ago', 'Set', 'Out', 'Nov', 'Dez'];
-              const values = new Array(12).fill(0);
+              const currentYearValues = new Array(12).fill(0);
+              const previousYearValues = new Array(12).fill(0);
               
               data.forEach(item => {
-                  values[item.month - 1] = item.total;
+                  currentYearValues[item.month - 1] = item.current_year;
+                  previousYearValues[item.month - 1] = item.previous_year;
               });
+              
+              const currentYear = new Date().getFullYear();
               
               monthlyChart = new Chart(ctx, {
                   type: 'line',
                   data: {
                       labels: months,
-                      datasets: [{
-                          label: 'Comissões (€)',
-                          data: values,
-                          borderColor: '#009cb6',
-                          backgroundColor: 'rgba(0, 156, 182, 0.1)',
-                          tension: 0.4,
-                          fill: true
-                      }]
+                      datasets: [
+                          {
+                              label: `${currentYear}`,
+                              data: currentYearValues,
+                              borderColor: '#009cb6',
+                              backgroundColor: 'rgba(0, 156, 182, 0.1)',
+                              tension: 0.4,
+                              fill: true
+                          },
+                          {
+                              label: `${currentYear - 1}`,
+                              data: previousYearValues,
+                              borderColor: '#ffc107',
+                              backgroundColor: 'rgba(255, 193, 7, 0.1)',
+                              tension: 0.4,
+                              fill: true
+                          }
+                      ]
                   },
                   options: {
                       responsive: true,
                       maintainAspectRatio: true,
                       plugins: {
                           legend: {
-                              display: false
+                              display: true,
+                              position: 'top'
                           }
                       },
                       scales: {

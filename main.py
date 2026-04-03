@@ -12022,12 +12022,18 @@ async def admin_commissions_dashboard_stats(request: Request):
     
     try:
         from datetime import datetime
+        from dateutil.relativedelta import relativedelta
         
         with _db_lock:
             con = _db_connect()
             try:
                 current_date = datetime.now()
-                current_month = current_date.month
+                
+                # Usar mês anterior (completo) em vez do mês atual
+                previous_month_date = current_date - relativedelta(months=1)
+                previous_month = previous_month_date.month
+                previous_month_year = previous_month_date.year
+                
                 current_year = current_date.year
                 
                 # Get all commissions
@@ -12044,16 +12050,17 @@ async def admin_commissions_dashboard_stats(request: Request):
                 cur = con.execute(query)
                 rows = cur.fetchall()
                 
-                # Summary statistics
-                paid_current_month = 0
-                unpaid_current_month = 0
+                # Summary statistics (mês anterior)
+                paid_previous_month = 0
+                unpaid_previous_month = 0
                 total_year = 0
                 
-                # Top commissioners
-                commissioner_totals = {}
+                # Top commissioners (mês anterior)
+                commissioner_totals_previous_month = {}
                 
-                # Monthly data (current year)
-                monthly_data = {i: 0 for i in range(1, 13)}
+                # Monthly data (current year and previous year for comparison)
+                monthly_data_current_year = {i: 0 for i in range(1, 13)}
+                monthly_data_previous_year = {i: 0 for i in range(1, 13)}
                 
                 # Yearly data
                 yearly_data = {}
@@ -12078,42 +12085,48 @@ async def admin_commissions_dashboard_stats(request: Request):
                     except:
                         continue
                     
-                    # Current month summary
-                    if pickup_date.month == current_month and pickup_date.year == current_year:
+                    # Previous month summary (mês anterior completo)
+                    if pickup_date.month == previous_month and pickup_date.year == previous_month_year:
                         if commission_paid:
-                            paid_current_month += commission_amount
+                            paid_previous_month += commission_amount
                         else:
-                            unpaid_current_month += commission_amount
+                            unpaid_previous_month += commission_amount
+                        
+                        # Top commissioners do mês anterior
+                        if commissioner_name not in commissioner_totals_previous_month:
+                            commissioner_totals_previous_month[commissioner_name] = 0
+                        commissioner_totals_previous_month[commissioner_name] += commission_amount
                     
                     # Current year total
                     if pickup_date.year == current_year:
                         total_year += commission_amount
-                        monthly_data[pickup_date.month] += commission_amount
+                        monthly_data_current_year[pickup_date.month] += commission_amount
+                    
+                    # Previous year data (for comparison)
+                    if pickup_date.year == current_year - 1:
+                        monthly_data_previous_year[pickup_date.month] += commission_amount
                     
                     # Yearly totals
                     year = pickup_date.year
                     if year not in yearly_data:
                         yearly_data[year] = 0
                     yearly_data[year] += commission_amount
-                    
-                    # Commissioner totals
-                    if commissioner_name not in commissioner_totals:
-                        commissioner_totals[commissioner_name] = 0
-                    commissioner_totals[commissioner_name] += commission_amount
                 
-                # Top 10 commissioners
+                # Top 10 commissioners (baseado no mês anterior)
                 top_commissioners = sorted(
-                    [{"name": name, "total": total} for name, total in commissioner_totals.items()],
+                    [{"name": name, "total": total} for name, total in commissioner_totals_previous_month.items()],
                     key=lambda x: x["total"],
                     reverse=True
                 )[:10]
                 
-                # Monthly data for current year
-                monthly_chart_data = [
-                    {"month": month, "total": total}
-                    for month, total in monthly_data.items()
-                    if total > 0
-                ]
+                # Monthly data with comparison (ano atual vs ano anterior)
+                monthly_chart_data = []
+                for month in range(1, 13):
+                    monthly_chart_data.append({
+                        "month": month,
+                        "current_year": monthly_data_current_year[month],
+                        "previous_year": monthly_data_previous_year[month]
+                    })
                 
                 # Yearly data (last 3 years)
                 current_year_int = current_year
@@ -12126,9 +12139,11 @@ async def admin_commissions_dashboard_stats(request: Request):
                 return JSONResponse({
                     "ok": True,
                     "summary": {
-                        "paid_current_month": paid_current_month,
-                        "unpaid_current_month": unpaid_current_month,
-                        "total_year": total_year
+                        "paid_previous_month": paid_previous_month,
+                        "unpaid_previous_month": unpaid_previous_month,
+                        "total_year": total_year,
+                        "previous_month": previous_month,
+                        "previous_month_year": previous_month_year
                     },
                     "top_commissioners": top_commissioners,
                     "monthly_data": monthly_chart_data,
