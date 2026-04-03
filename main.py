@@ -65189,24 +65189,18 @@ async def admin_brokers_yearly_distribution(request: Request, year: str):
                 
                 rows = cur.fetchall()
                 
-                # Debug: print rows
-                print(f"DEBUG: Raw query rows: {rows}")
-                
                 # Group brokers according to business rules
                 broker_groups = {}
                 for row in rows:
                     grouped_name = group_brokers(row[0])
                     if grouped_name in broker_groups:
                         broker_groups[grouped_name]['reservation_count'] += row[1]
-                        broker_groups[grouped_name]['total_value'] += row[2] or 0
+                        broker_groups[grouped_name]['total_value'] += float(row[2] or 0)
                     else:
                         broker_groups[grouped_name] = {
                             'reservation_count': row[1],
-                            'total_value': row[2] or 0
+                            'total_value': float(row[2] or 0)
                         }
-                
-                # Debug: print groups
-                print(f"DEBUG: Broker groups: {broker_groups}")
                 
                 brokers = []
                 for name, data in broker_groups.items():
@@ -65215,9 +65209,6 @@ async def admin_brokers_yearly_distribution(request: Request, year: str):
                         'reservation_count': data['reservation_count'],
                         'total_value': data['total_value']
                     })
-                
-                # Debug: print final result
-                print(f"DEBUG: Final brokers: {brokers}")
                 
                 return JSONResponse({
                     "ok": True,
