@@ -65137,7 +65137,7 @@ async def admin_brokers_monthly_comparison(request: Request, month: str):
 
 @app.get("/api/admin/brokers/yearly-distribution")
 async def admin_brokers_yearly_distribution(request: Request, year: str):
-    """Get broker distribution by reservation count for selected year"""
+    """Get broker distribution by reservation count and total value for selected year"""
     def group_brokers(broker_name):
         """Group broker names according to business rules"""
         if 'abbycar' in broker_name.lower():
@@ -65162,21 +65162,21 @@ async def admin_brokers_yearly_distribution(request: Request, year: str):
                 year_int = int(year)
                 
                 query = """
-                    SELECT broker_name, COUNT(*) as reservation_count
+                    SELECT broker_name, COUNT(*) as reservation_count, COALESCE(SUM(base_value), 0) as total_value
                     FROM broker_bookings 
                     WHERE EXTRACT(YEAR FROM pickup_date) = %s
                     GROUP BY broker_name
                     UNION ALL
-                    SELECT 'Comissionistas' as broker_name, COUNT(*) as reservation_count
+                    SELECT 'Comissionistas' as broker_name, COUNT(*) as reservation_count, COALESCE(SUM(cb.base_value), 0) as total_value
                     FROM commission_bookings cb
                     WHERE EXTRACT(YEAR FROM cb.pickup_date) = %s
                 """ if USE_POSTGRES else """
-                    SELECT broker_name, COUNT(*) as reservation_count
+                    SELECT broker_name, COUNT(*) as reservation_count, COALESCE(SUM(base_value), 0) as total_value
                     FROM broker_bookings 
                     WHERE strftime('%%Y', pickup_date) = ?
                     GROUP BY broker_name
                     UNION ALL
-                    SELECT 'Comissionistas' as broker_name, COUNT(*) as reservation_count
+                    SELECT 'Comissionistas' as broker_name, COUNT(*) as reservation_count, COALESCE(SUM(cb.base_value), 0) as total_value
                     FROM commission_bookings cb
                     WHERE strftime('%%Y', cb.pickup_date) = ?
                 """
@@ -65194,15 +65194,20 @@ async def admin_brokers_yearly_distribution(request: Request, year: str):
                 for row in rows:
                     grouped_name = group_brokers(row[0])
                     if grouped_name in broker_groups:
-                        broker_groups[grouped_name] += row[1]
+                        broker_groups[grouped_name]['reservation_count'] += row[1]
+                        broker_groups[grouped_name]['total_value'] += row[2] or 0
                     else:
-                        broker_groups[grouped_name] = row[1]
+                        broker_groups[grouped_name] = {
+                            'reservation_count': row[1],
+                            'total_value': row[2] or 0
+                        }
                 
                 brokers = []
-                for name, count in broker_groups.items():
+                for name, data in broker_groups.items():
                     brokers.append({
                         'broker_name': name,
-                        'reservation_count': count
+                        'reservation_count': data['reservation_count'],
+                        'total_value': data['total_value']
                     })
                 
                 return JSONResponse({
