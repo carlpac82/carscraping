@@ -1140,11 +1140,25 @@
               
               // Show selected tab
               document.getElementById(tabName + '-tab').classList.add('active');
-              event.target.classList.add('active');
+              
+              // Find and activate the button for this tab
+              const targetButton = document.querySelector(`.tab-button[onclick="switchTab('${tabName}')"]`);
+              if (targetButton) {
+                  targetButton.classList.add('active');
+              }
               
               // Load dashboard data if switching to dashboard
               if (tabName === 'dashboard') {
                   loadDashboardData();
+              }
+              
+              // Load broker data if switching to brokers
+              if (tabName === 'brokers') {
+                  loadBrokers();
+                  populateBrokerChartSelectors();
+                  loadBrokerMonthlyComparison();
+                  loadBrokerYearlyDistribution();
+                  loadBrokerTopByValue();
               }
           }
           
@@ -2315,20 +2329,6 @@
                   }
               });
           }
-          
-          // Update switchTab function to load brokers when tab is activated
-          const originalSwitchTab = window.switchTab;
-          window.switchTab = function(tabName) {
-              if (originalSwitchTab) originalSwitchTab(tabName);
-              
-              if (tabName === 'brokers') {
-                  loadBrokers();
-                  populateBrokerChartSelectors();
-                  loadBrokerMonthlyComparison();
-                  loadBrokerYearlyDistribution();
-                  loadBrokerTopByValue();
-              }
-          };
       </script>
     </body>
 </html>
