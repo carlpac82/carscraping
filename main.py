@@ -12224,6 +12224,99 @@ async def admin_commissions_top_yearly(request: Request, year: int = None):
         traceback.print_exc()
         return JSONResponse({"ok": False, "error": str(e)}, status_code=500)
 
+@app.get("/api/admin/commissions/base-values-comparison")
+async def admin_commissions_base_values_comparison(request: Request):
+    """Get base values comparison by origin for previous month vs same month in previous 2 years"""
+    try:
+        require_commissions_management(request)
+    except HTTPException:
+        return JSONResponse({"ok": False, "error": "Unauthorized"}, status_code=403)
+    
+    try:
+        from datetime import datetime
+        from dateutil.relativedelta import relativedelta
+        
+        # Calculate previous month
+        today = datetime.now()
+        previous_month_date = today - relativedelta(months=1)
+        previous_month = previous_month_date.month
+        previous_month_year = previous_month_date.year
+        
+        # Same month 1 year ago
+        year_ago_date = previous_month_date - relativedelta(years=1)
+        year_ago_month = year_ago_date.month
+        year_ago_year = year_ago_date.year
+        
+        # Same month 2 years ago
+        two_years_ago_date = previous_month_date - relativedelta(years=2)
+        two_years_ago_month = two_years_ago_date.month
+        two_years_ago_year = two_years_ago_date.year
+        
+        with _db_lock:
+            con = _db_connect()
+            try:
+                # Initialize data structure
+                data = {
+                    'previous_month': {'year': previous_month_year, 'month': previous_month, 'comissionistas': 0, 'ap': 0, 'api_web': 0, 'brokers': 0},
+                    'year_ago': {'year': year_ago_year, 'month': year_ago_month, 'comissionistas': 0, 'ap': 0, 'api_web': 0, 'brokers': 0},
+                    'two_years_ago': {'year': two_years_ago_year, 'month': two_years_ago_month, 'comissionistas': 0, 'ap': 0, 'api_web': 0, 'brokers': 0}
+                }
+                
+                # Get commission bookings data for the 3 periods
+                query = """
+                    SELECT 
+                        cb.base_price,
+                        cb.pickup_date
+                    FROM commission_bookings cb
+                    WHERE cb.base_price > 0
+                """ if USE_POSTGRES else """
+                    SELECT 
+                        cb.base_price,
+                        cb.pickup_date
+                    FROM commission_bookings cb
+                    WHERE cb.base_price > 0
+                """
+                
+                cur = con.execute(query)
+                rows = cur.fetchall()
+                
+                for row in rows:
+                    base_price = float(row[0]) if row[0] else 0
+                    pickup_date_str = row[1]
+                    
+                    if not pickup_date_str:
+                        continue
+                    
+                    try:
+                        if 'T' in str(pickup_date_str):
+                            pickup_date = datetime.fromisoformat(str(pickup_date_str).replace('Z', '+00:00'))
+                        else:
+                            pickup_date = datetime.strptime(str(pickup_date_str), '%Y-%m-%d')
+                    except:
+                        continue
+                    
+                    # Check which period this booking belongs to
+                    if pickup_date.month == previous_month and pickup_date.year == previous_month_year:
+                        data['previous_month']['comissionistas'] += base_price
+                    elif pickup_date.month == year_ago_month and pickup_date.year == year_ago_year:
+                        data['year_ago']['comissionistas'] += base_price
+                    elif pickup_date.month == two_years_ago_month and pickup_date.year == two_years_ago_year:
+                        data['two_years_ago']['comissionistas'] += base_price
+                
+                # TODO: Get AP, API-WEB, Brokers data from the 3rd tab (to be implemented)
+                # For now, these will remain at 0 until the user provides instructions for the 3rd tab
+                
+                return JSONResponse({
+                    "ok": True,
+                    "data": data
+                })
+            finally:
+                con.close()
+    except Exception as e:
+        import traceback
+        traceback.print_exc()
+        return JSONResponse({"ok": False, "error": str(e)}, status_code=500)
+
 @app.post("/api/admin/commissions/mark-paid")
 async def admin_commissions_mark_paid(request: Request):
     """Mark commissions as paid"""

@@ -573,6 +573,12 @@
               <h3>Comparativo Anual</h3>
               <canvas id="yearlyChart" style="max-height: 300px;"></canvas>
             </div>
+            
+            <!-- Comparativo de Valores Base por Origem -->
+            <div class="chart-card">
+              <h3>Comparativo de Valores Base por Origem (Mês Anterior vs Anos Anteriores)</h3>
+              <canvas id="baseValuesComparisonChart" style="max-height: 300px;"></canvas>
+            </div>
           </div>
         </div>
         
@@ -994,6 +1000,7 @@
           let topCommissionersYearlyChart = null;
           let monthlyChart = null;
           let yearlyChart = null;
+          let baseValuesComparisonChart = null;
           
           // Load dashboard data
           async function loadDashboardData() {
@@ -1018,6 +1025,7 @@
                       initTopCommissionersChart(data.top_commissioners || []);
                       initMonthlyChart(data.monthly_data || []);
                       initYearlyChart(data.yearly_data || []);
+                      initBaseValuesComparisonChart();
                       
                       // Populate year selector and load yearly top 10
                       populateYearSelector();
@@ -1266,6 +1274,102 @@
                       }
                   }
               });
+          }
+          
+          // Initialize Base Values Comparison Chart
+          async function initBaseValuesComparisonChart() {
+              try {
+                  const response = await fetch('/api/admin/commissions/base-values-comparison');
+                  const data = await response.json();
+                  
+                  if (!data.ok) {
+                      console.error('Error loading base values comparison:', data.error);
+                      return;
+                  }
+                  
+                  const ctx = document.getElementById('baseValuesComparisonChart');
+                  if (!ctx) return;
+                  
+                  if (baseValuesComparisonChart) {
+                      baseValuesComparisonChart.destroy();
+                  }
+                  
+                  const monthNames = ['Jan', 'Fev', 'Mar', 'Abr', 'Mai', 'Jun', 'Jul', 'Ago', 'Set', 'Out', 'Nov', 'Dez'];
+                  
+                  // Prepare labels
+                  const prevMonth = data.data.previous_month;
+                  const yearAgo = data.data.year_ago;
+                  const twoYearsAgo = data.data.two_years_ago;
+                  
+                  const labels = [
+                      `${monthNames[prevMonth.month - 1]} ${prevMonth.year}`,
+                      `${monthNames[yearAgo.month - 1]} ${yearAgo.year}`,
+                      `${monthNames[twoYearsAgo.month - 1]} ${twoYearsAgo.year}`
+                  ];
+                  
+                  baseValuesComparisonChart = new Chart(ctx, {
+                      type: 'bar',
+                      data: {
+                          labels: labels,
+                          datasets: [
+                              {
+                                  label: 'Comissionistas',
+                                  data: [prevMonth.comissionistas, yearAgo.comissionistas, twoYearsAgo.comissionistas],
+                                  backgroundColor: '#009cb6',
+                                  borderColor: '#007a8c',
+                                  borderWidth: 1
+                              },
+                              {
+                                  label: 'AP',
+                                  data: [prevMonth.ap, yearAgo.ap, twoYearsAgo.ap],
+                                  backgroundColor: '#ffc107',
+                                  borderColor: '#e0a800',
+                                  borderWidth: 1
+                              },
+                              {
+                                  label: 'API-WEB',
+                                  data: [prevMonth.api_web, yearAgo.api_web, twoYearsAgo.api_web],
+                                  backgroundColor: '#4caf50',
+                                  borderColor: '#388e3c',
+                                  borderWidth: 1
+                              },
+                              {
+                                  label: 'Brokers',
+                                  data: [prevMonth.brokers, yearAgo.brokers, twoYearsAgo.brokers],
+                                  backgroundColor: '#ff5722',
+                                  borderColor: '#d84315',
+                                  borderWidth: 1
+                              }
+                          ]
+                      },
+                      options: {
+                          responsive: true,
+                          maintainAspectRatio: true,
+                          plugins: {
+                              legend: {
+                                  display: true,
+                                  position: 'top'
+                              }
+                          },
+                          scales: {
+                              y: {
+                                  beginAtZero: true,
+                                  stacked: false,
+                                  ticks: {
+                                      callback: function(value) {
+                                          return '€' + value.toFixed(0);
+                                      }
+                                  }
+                              },
+                              x: {
+                                  stacked: false
+                              }
+                          }
+                      }
+                  });
+              } catch (error) {
+                  console.error('Error initializing base values comparison chart:', error);
+              }
           }
       </script>
     </body>
