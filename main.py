@@ -64863,6 +64863,297 @@ async def api_commissioners_update_email(request: Request):
         return JSONResponse({"ok": False, "error": "Erro ao guardar email"}, status_code=500)
 
 
+# ===== BROKERS MANAGEMENT ENDPOINTS =====
+
+@app.get("/api/admin/brokers/list")
+async def admin_brokers_list(request: Request):
+    """Get list of all broker bookings for admin"""
+    try:
+        with _db_lock:
+            con = _db_connect()
+            try:
+                if USE_POSTGRES:
+                    # PostgreSQL syntax
+                    query = """
+                        SELECT 
+                            bb.id, bb.broker_name, bb.voucher_number, bb.client_name,
+                            bb.pickup_date, bb.dropoff_date, bb.vehicle_group, bb.days,
+                            bb.total_price, bb.status, bb.created_at
+                        FROM broker_bookings bb
+                        ORDER BY bb.pickup_date DESC
+                    """
+                    cur = con.cursor()
+                    cur.execute(query)
+                    rows = cur.fetchall()
+                else:
+                    # SQLite syntax
+                    query = """
+                        SELECT 
+                            bb.id, bb.broker_name, bb.voucher_number, bb.client_name,
+                            bb.pickup_date, bb.dropoff_date, bb.vehicle_group, bb.days,
+                            bb.total_price, bb.status, bb.created_at
+                        FROM broker_bookings bb
+                        ORDER BY bb.pickup_date DESC
+                    """
+                    cur = con.cursor()
+                    cur.execute(query)
+                    rows = cur.fetchall()
+                
+                # Convert to dict format
+                brokers = []
+                for row in rows:
+                    brokers.append({
+                        'id': row[0],
+                        'broker_name': row[1],
+                        'voucher_number': row[2],
+                        'client_name': row[3],
+                        'pickup_date': row[4].isoformat() if row[4] else None,
+                        'dropoff_date': row[5].isoformat() if row[5] else None,
+                        'vehicle_group': row[6],
+                        'days': row[7],
+                        'total_price': float(row[8]) if row[8] else 0,
+                        'status': row[9],
+                        'created_at': row[10].isoformat() if row[10] else None
+                    })
+                
+                # Calculate summary statistics
+                current_month = datetime.now().month
+                current_year = datetime.now().year
+                
+                month_reservations = len([b for b in brokers if b['pickup_date']])
+                month_value = sum([b['total_price'] for b in brokers if b['pickup_date']])
+                year_reservations = len([b for b in brokers if b['pickup_date']])
+                
+                summary = {
+                    'total_reservations': month_reservations,
+                    'total_value': month_value,
+                    'total_year_reservations': year_reservations
+                }
+                
+                return JSONResponse({
+                    "ok": True,
+                    "brokers": brokers,
+                    "summary": summary
+                })
+                
+            finally:
+                con.close()
+                
+    except Exception as e:
+        logging.error(f"Error fetching brokers list: {e}")
+        traceback.print_exc()
+        return JSONResponse({"ok": False, "error": str(e)}, status_code=500)
+
+@app.post("/api/admin/brokers/import")
+async def admin_brokers_import(request: Request):
+    """Import broker bookings from Excel file"""
+    try:
+        import pandas as pd
+        from datetime import datetime, timedelta
+        import os
+        
+        # Check if file was uploaded
+        if "file" not in request._form:
+            return JSONResponse({"ok": False, "error": "Nenhum ficheiro enviado"}, status_code=400)
+        
+        file = request._form["file"]
+        if not file.filename.endswith(('.xlsx', '.xls')):
+            return JSONResponse({"ok": False, "error": "Ficheiro deve ser Excel (.xlsx ou .xls)"}, status_code=400)
+        
+        # Save file temporarily
+        temp_path = f"/tmp/temp_broker_import_{datetime.now().timestamp()}.xlsx"
+        with open(temp_path, "wb") as temp_file:
+            temp_file.write(await file.read())
+        
+        # Read Excel file
+        try:
+            df = pd.read_excel(temp_path)
+        except Exception as e:
+            os.unlink(temp_path)
+            return JSONResponse({"ok": False, "error": f"Erro ao ler ficheiro Excel: {str(e)}"}, status_code=400)
+        
+        # Expected columns: Broker, Voucher, Cliente, Data Levantamento, Data Devolução, Veículo, Dias, Valor Total, Status
+        expected_columns = ['Broker', 'Voucher', 'Cliente', 'Data Levantamento', 'Data Devolução', 'Veículo', 'Dias', 'Valor Total', 'Status']
+        
+        # Check if required columns exist
+        missing_columns = [col for col in expected_columns if col not in df.columns]
+        if missing_columns:
+            os.unlink(temp_path)
+            return JSONResponse({"ok": False, "error": f"Colunas em falta: {', '.join(missing_columns)}"}, status_code=400)
+        
+        # Process data
+        imported_count = 0
+        with _db_lock:
+            con = _db_connect()
+            try:
+                # Create table if not exists
+                if USE_POSTGRES:
+                    create_table_query = """
+                        CREATE TABLE IF NOT EXISTS broker_bookings (
+                            id SERIAL PRIMARY KEY,
+                            broker_name VARCHAR(100) NOT NULL,
+                            voucher_number VARCHAR(50),
+                            client_name VARCHAR(100),
+                            pickup_date DATE,
+                            dropoff_date DATE,
+                            vehicle_group VARCHAR(50),
+                            days INTEGER,
+                            total_price DECIMAL(10,2),
+                            status VARCHAR(20) DEFAULT 'confirmed',
+                            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+                        )
+                    """
+                else:
+                    create_table_query = """
+                        CREATE TABLE IF NOT EXISTS broker_bookings (
+                            id INTEGER PRIMARY KEY AUTOINCREMENT,
+                            broker_name TEXT NOT NULL,
+                            voucher_number TEXT,
+                            client_name TEXT,
+                            pickup_date TEXT,
+                            dropoff_date TEXT,
+                            vehicle_group TEXT,
+                            days INTEGER,
+                            total_price REAL,
+                            status TEXT DEFAULT 'confirmed',
+                            created_at TEXT DEFAULT CURRENT_TIMESTAMP
+                        )
+                    """
+                
+                cur = con.cursor()
+                cur.execute(create_table_query)
+                
+                # Insert data
+                for index, row in df.iterrows():
+                    try:
+                        # Parse dates
+                        pickup_date = None
+                        dropoff_date = None
+                        
+                        if pd.notna(row['Data Levantamento']):
+                            if isinstance(row['Data Levantamento'], str):
+                                pickup_date = pd.to_datetime(row['Data Levantamento']).date()
+                            else:
+                                pickup_date = row['Data Levantamento']
+                        
+                        if pd.notna(row['Data Devolução']):
+                            if isinstance(row['Data Devolução'], str):
+                                dropoff_date = pd.to_datetime(row['Data Devolução']).date()
+                            else:
+                                dropoff_date = row['Data Devolução']
+                        
+                        # Parse numeric values
+                        days = int(row['Dias']) if pd.notna(row['Dias']) else 0
+                        total_price = float(row['Valor Total']) if pd.notna(row['Valor Total']) else 0
+                        
+                        # Default status if not provided
+                        status = 'confirmed'
+                        if pd.notna(row['Status']):
+                            status_str = str(row['Status']).strip().lower()
+                            if status_str in ['confirmada', 'confirmed']:
+                                status = 'confirmed'
+                            elif status_str in ['pendente', 'pending']:
+                                status = 'pending'
+                            elif status_str in ['cancelada', 'cancelled']:
+                                status = 'cancelled'
+                        
+                        if USE_POSTGRES:
+                            insert_query = """
+                                INSERT INTO broker_bookings 
+                                (broker_name, voucher_number, client_name, pickup_date, dropoff_date, 
+                                 vehicle_group, days, total_price, status)
+                                VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s)
+                            """
+                            cur.execute(insert_query, (
+                                str(row['Broker']), str(row['Voucher']) if pd.notna(row['Voucher']) else None,
+                                str(row['Cliente']) if pd.notna(row['Cliente']) else None,
+                                pickup_date, dropoff_date,
+                                str(row['Veículo']) if pd.notna(row['Veículo']) else None,
+                                days, total_price, status
+                            ))
+                        else:
+                            insert_query = """
+                                INSERT INTO broker_bookings 
+                                (broker_name, voucher_number, client_name, pickup_date, dropoff_date, 
+                                 vehicle_group, days, total_price, status)
+                                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+                            """
+                            cur.execute(insert_query, (
+                                str(row['Broker']), str(row['Voucher']) if pd.notna(row['Voucher']) else None,
+                                str(row['Cliente']) if pd.notna(row['Cliente']) else None,
+                                pickup_date.isoformat() if pickup_date else None,
+                                dropoff_date.isoformat() if dropoff_date else None,
+                                str(row['Veículo']) if pd.notna(row['Veículo']) else None,
+                                days, total_price, status
+                            ))
+                        
+                        imported_count += 1
+                        
+                    except Exception as e:
+                        print(f"Error importing row {index}: {e}")
+                        continue
+                
+                con.commit()
+                
+            finally:
+                con.close()
+        
+        # Clean up temp file
+        os.unlink(temp_path)
+        
+        return JSONResponse({
+            "ok": True,
+            "imported": imported_count,
+            "message": f"Importados {imported_count} registos com sucesso"
+        })
+        
+    except Exception as e:
+        logging.error(f"Error importing broker data: {e}")
+        traceback.print_exc()
+        return JSONResponse({"ok": False, "error": str(e)}, status_code=500)
+
+@app.post("/api/admin/brokers/delete")
+async def admin_brokers_delete(request: Request):
+    """Delete selected broker bookings"""
+    try:
+        data = await request.json()
+        ids = data.get("ids", [])
+        
+        if not ids:
+            return JSONResponse({"ok": False, "error": "Nenhum ID fornecido"}, status_code=400)
+        
+        with _db_lock:
+            con = _db_connect()
+            try:
+                cur = con.cursor()
+                
+                if USE_POSTGRES:
+                    placeholders = ','.join(['%s'] * len(ids))
+                    query = f"DELETE FROM broker_bookings WHERE id IN ({placeholders})"
+                    cur.execute(query, ids)
+                else:
+                    placeholders = ','.join(['?'] * len(ids))
+                    query = f"DELETE FROM broker_bookings WHERE id IN ({placeholders})"
+                    cur.execute(query, ids)
+                
+                con.commit()
+                deleted_count = cur.rowcount
+                
+                return JSONResponse({
+                    "ok": True,
+                    "deleted": deleted_count,
+                    "message": f"Eliminados {deleted_count} registos"
+                })
+                
+            finally:
+                con.close()
+                
+    except Exception as e:
+        logging.error(f"Error deleting broker bookings: {e}")
+        traceback.print_exc()
+        return JSONResponse({"ok": False, "error": str(e)}, status_code=500)
+
+
 if __name__ == "__main__":
     import uvicorn
     uvicorn.run(app, host="0.0.0.0", port=8000)

@@ -710,12 +710,137 @@
         <!-- Tab 3: Gestão de Brokers -->
         <div id="brokers-tab" class="tab-content">
           <h3 style="font-size: 1.1rem; font-weight: 600; margin-bottom: 1.5rem; color: #374151;">Gestão de Brokers</h3>
-          <div style="padding: 2rem; text-align: center; color: #6b7280;">
-            <svg style="width: 4rem; height: 4rem; margin: 0 auto 1rem; color: #d1d5db;" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"/>
-            </svg>
-            <p style="font-size: 1.1rem; font-weight: 500; margin-bottom: 0.5rem;">Gestão de Brokers</p>
-            <p style="font-size: 0.9rem;">Funcionalidade em desenvolvimento</p>
+          
+          <!-- Summary Cards para Brokers -->
+          <div class="summary-cards">
+            <div class="summary-card">
+              <h3>Total de Reservas Brokers (<span id="brokerMonthLabel">Mês Anterior</span>)</h3>
+              <p class="summary-value" id="brokerTotalReservations">0</p>
+            </div>
+            <div class="summary-card">
+              <h3>Valor Total Brokers (<span id="brokerMonthLabel2">Mês Anterior</span>)</h3>
+              <p class="summary-value" id="brokerTotalValue">€0.00</p>
+            </div>
+            <div class="summary-card">
+              <h3>Total de Reservas Brokers (Ano)</h3>
+              <p class="summary-value" id="brokerTotalYear">0</p>
+            </div>
+          </div>
+          
+          <!-- Import Section -->
+          <div style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 0.5rem; padding: 1.5rem; margin-bottom: 2rem;">
+            <h4 style="margin: 0 0 1rem 0; font-weight: 600; color: #374151;">Importar Dados de Brokers</h4>
+            <div style="display: flex; gap: 1rem; align-items: flex-end; flex-wrap: wrap;">
+              <div>
+                <label style="display: block; font-size: 0.875rem; font-weight: 500; color: #374151; margin-bottom: 0.25rem;">Selecionar Ficheiro Excel</label>
+                <input type="file" id="brokerExcelFile" accept=".xlsx,.xls" style="padding: 0.5rem; border: 1px solid #d1d5db; border-radius: 0.375rem; font-size: 0.875rem;">
+              </div>
+              <button onclick="importBrokerData()" style="padding: 0.5rem 1rem; background: #009cb6; color: white; border: none; border-radius: 0.375rem; font-size: 0.875rem; font-weight: 500; cursor: pointer; transition: background 0.2s;" onmouseover="this.style.background='#0088a3'" onmouseout="this.style.background='#009cb6'">
+                Importar Dados
+              </button>
+              <div id="importStatus" style="font-size: 0.875rem; color: #6b7280;"></div>
+            </div>
+          </div>
+          
+          <!-- Filters -->
+          <div style="background: white; border: 1px solid #e5e7eb; border-radius: 0.5rem; padding: 1rem; margin-bottom: 2rem;">
+            <h4 style="margin: 0 0 1rem 0; font-weight: 600; color: #374151;">Filtros</h4>
+            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1rem;">
+              <div>
+                <label style="display: block; font-size: 0.875rem; font-weight: 500; color: #374151; margin-bottom: 0.25rem;">Broker</label>
+                <select id="brokerFilter" style="width: 100%; padding: 0.5rem; border: 1px solid #d1d5db; border-radius: 0.375rem; font-size: 0.875rem;">
+                  <option value="">Todos os Brokers</option>
+                  <!-- Brokers will be populated by JS -->
+                </select>
+              </div>
+              <div>
+                <label style="display: block; font-size: 0.875rem; font-weight: 500; color: #374151; margin-bottom: 0.25rem;">Ano</label>
+                <select id="brokerYearFilter" style="width: 100%; padding: 0.5rem; border: 1px solid #d1d5db; border-radius: 0.375rem; font-size: 0.875rem;">
+                  <option value="">Todos os Anos</option>
+                  <!-- Years will be populated by JS -->
+                </select>
+              </div>
+              <div>
+                <label style="display: block; font-size: 0.875rem; font-weight: 500; color: #374151; margin-bottom: 0.25rem;">Mês</label>
+                <select id="brokerMonthFilter" style="width: 100%; padding: 0.5rem; border: 1px solid #d1d5db; border-radius: 0.375rem; font-size: 0.875rem;">
+                  <option value="">Todos os Meses</option>
+                  <option value="1">Janeiro</option>
+                  <option value="2">Fevereiro</option>
+                  <option value="3">Março</option>
+                  <option value="4">Abril</option>
+                  <option value="5">Maio</option>
+                  <option value="6">Junho</option>
+                  <option value="7">Julho</option>
+                  <option value="8">Agosto</option>
+                  <option value="9">Setembro</option>
+                  <option value="10">Outubro</option>
+                  <option value="11">Novembro</option>
+                  <option value="12">Dezembro</option>
+                </select>
+              </div>
+              <div>
+                <label style="display: block; font-size: 0.875rem; font-weight: 500; color: #374151; margin-bottom: 0.25rem;">Status</label>
+                <select id="brokerStatusFilter" style="width: 100%; padding: 0.5rem; border: 1px solid #d1d5db; border-radius: 0.375rem; font-size: 0.875rem;">
+                  <option value="">Todos os Status</option>
+                  <option value="confirmed">Confirmadas</option>
+                  <option value="pending">Pendentes</option>
+                  <option value="cancelled">Canceladas</option>
+                </select>
+              </div>
+            </div>
+          </div>
+          
+          <!-- Brokers Table -->
+          <div style="background: white; border: 1px solid #e5e7eb; border-radius: 0.5rem; overflow: hidden;">
+            <div style="padding: 1rem; border-bottom: 1px solid #e5e7eb; background: #f9fafb;">
+              <h4 style="margin: 0; font-weight: 600; color: #374151;">Reservas dos Brokers</h4>
+            </div>
+            <div style="overflow-x: auto;">
+              <table style="width: 100%; border-collapse: collapse;">
+                <thead style="background: #f9fafb;">
+                  <tr>
+                    <th style="padding: 0.75rem; text-align: left; font-weight: 600; color: #374151; border-bottom: 1px solid #e5e7eb; font-size: 0.875rem;">
+                      <input type="checkbox" id="selectAllBrokers" onchange="toggleAllBrokersSelection()">
+                    </th>
+                    <th style="padding: 0.75rem; text-align: left; font-weight: 600; color: #374151; border-bottom: 1px solid #e5e7eb; font-size: 0.875rem;">Broker</th>
+                    <th style="padding: 0.75rem; text-align: left; font-weight: 600; color: #374151; border-bottom: 1px solid #e5e7eb; font-size: 0.875rem;">Voucher</th>
+                    <th style="padding: 0.75rem; text-align: left; font-weight: 600; color: #374151; border-bottom: 1px solid #e5e7eb; font-size: 0.875rem;">Cliente</th>
+                    <th style="padding: 0.75rem; text-align: left; font-weight: 600; color: #374151; border-bottom: 1px solid #e5e7eb; font-size: 0.875rem;">Data Levantamento</th>
+                    <th style="padding: 0.75rem; text-align: left; font-weight: 600; color: #374151; border-bottom: 1px solid #e5e7eb; font-size: 0.875rem;">Data Devolução</th>
+                    <th style="padding: 0.75rem; text-align: left; font-weight: 600; color: #374151; border-bottom: 1px solid #e5e7eb; font-size: 0.875rem;">Veículo</th>
+                    <th style="padding: 0.75rem; text-align: left; font-weight: 600; color: #374151; border-bottom: 1px solid #e5e7eb; font-size: 0.875rem;">Dias</th>
+                    <th style="padding: 0.75rem; text-align: left; font-weight: 600; color: #374151; border-bottom: 1px solid #e5e7eb; font-size: 0.875rem;">Valor Total</th>
+                    <th style="padding: 0.75rem; text-align: left; font-weight: 600; color: #374151; border-bottom: 1px solid #e5e7eb; font-size: 0.875rem;">Status</th>
+                  </tr>
+                </thead>
+                <tbody id="brokersTableBody">
+                  <tr>
+                    <td colspan="10" style="padding: 3rem; text-align: center; color: #6b7280;">
+                      <div style="margin-bottom: 1rem;">
+                        <svg style="width: 3rem; height: 3rem; margin: 0 auto; color: #d1d5db;" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/>
+                        </svg>
+                      </div>
+                      <p style="font-size: 1rem; margin-bottom: 0.5rem;">Nenhuma reserva de broker encontrada</p>
+                      <p style="font-size: 0.875rem; color: #9ca3af;">Importe dados de brokers usando o formulário acima</p>
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+            <div style="padding: 1rem; border-top: 1px solid #e5e7eb; background: #f9fafb; display: flex; justify-content: space-between; align-items: center;">
+              <div style="font-size: 0.875rem; color: #6b7280;">
+                <span id="brokerResultsCount">0</span> resultados encontrados
+              </div>
+              <div style="display: flex; gap: 0.5rem;">
+                <button onclick="exportSelectedBrokers()" id="exportBrokersBtn" disabled style="padding: 0.5rem 1rem; background: #009cb6; color: white; border: none; border-radius: 0.375rem; font-size: 0.875rem; font-weight: 500; cursor: pointer; transition: background 0.2s; opacity: 0.5;" onmouseover="if(!this.disabled) this.style.background='#0088a3'" onmouseout="if(!this.disabled) this.style.background='#009cb6'">
+                  Exportar Selecionados
+                </button>
+                <button onclick="deleteSelectedBrokers()" id="deleteBrokersBtn" disabled style="padding: 0.5rem 1rem; background: #dc2626; color: white; border: none; border-radius: 0.375rem; font-size: 0.875rem; font-weight: 500; cursor: pointer; transition: background 0.2s; opacity: 0.5;" onmouseover="if(!this.disabled) this.style.background='#b91c1c'" onmouseout="if(!this.disabled) this.style.background='#dc2626'">
+                  Eliminar Selecionados
+                </button>
+              </div>
+            </div>
           </div>
         </div>
       </div>
@@ -742,6 +867,12 @@
               document.getElementById('yearFilter').addEventListener('change', renderCommissions);
               document.getElementById('monthFilter').addEventListener('change', renderCommissions);
               document.getElementById('commissionerFilter').addEventListener('change', renderCommissions);
+              
+              // Add event listeners for broker filters
+              document.getElementById('brokerFilter').addEventListener('change', renderBrokers);
+              document.getElementById('brokerYearFilter').addEventListener('change', renderBrokers);
+              document.getElementById('brokerMonthFilter').addEventListener('change', renderBrokers);
+              document.getElementById('brokerStatusFilter').addEventListener('change', renderBrokers);
           });
           
           // Load commissions data
@@ -1507,6 +1638,295 @@
           async function initBaseValuesComparisonChart() {
               await loadBaseValuesComparison();
           }
+          
+          // ===== BROKERS FUNCTIONS =====
+          let allBrokers = [];
+          let selectedBrokers = new Set();
+          
+          // Load brokers data when tab is activated
+          async function loadBrokers() {
+              try {
+                  const response = await fetch('/api/admin/brokers/list');
+                  const data = await response.json();
+                  
+                  if (data.ok) {
+                      allBrokers = data.brokers || [];
+                      renderBrokers();
+                      updateBrokerSummary(data.summary || {});
+                      loadBrokerFilters();
+                  }
+              } catch (error) {
+                  console.error('Error loading brokers:', error);
+              }
+          }
+          
+          // Render brokers table
+          function renderBrokers() {
+              const tbody = document.getElementById('brokersTableBody');
+              const filteredBrokers = filterBrokers();
+              
+              tbody.innerHTML = '';
+              
+              if (filteredBrokers.length === 0) {
+                  tbody.innerHTML = `
+                      <tr>
+                          <td colspan="10" style="padding: 3rem; text-align: center; color: #6b7280;">
+                              <div style="margin-bottom: 1rem;">
+                                  <svg style="width: 3rem; height: 3rem; margin: 0 auto; color: #d1d5db;" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/>
+                                  </svg>
+                              </div>
+                              <p style="font-size: 1rem; margin-bottom: 0.5rem;">Nenhuma reserva de broker encontrada</p>
+                              <p style="font-size: 0.875rem; color: #9ca3af;">Importe dados de brokers usando o formulário acima</p>
+                          </td>
+                      </tr>
+                  `;
+                  return;
+              }
+              
+              filteredBrokers.forEach(broker => {
+                  const row = document.createElement('tr');
+                  row.innerHTML = `
+                      <td><input type="checkbox" data-id="${broker.id}" onchange="toggleBrokerSelection(${broker.id})"></td>
+                      <td>${broker.broker_name || '-'}</td>
+                      <td style="font-size: 0.85em; white-space: nowrap;">${broker.voucher_number || '-'}</td>
+                      <td>${broker.client_name || '-'}</td>
+                      <td>${broker.pickup_date ? new Date(broker.pickup_date).toLocaleDateString('pt-PT') : '-'}</td>
+                      <td>${broker.dropoff_date ? new Date(broker.dropoff_date).toLocaleDateString('pt-PT') : '-'}</td>
+                      <td>${broker.vehicle_group || '-'}</td>
+                      <td>${broker.days || '-'}</td>
+                      <td>€${(broker.total_price || 0).toFixed(2)}</td>
+                      <td>
+                          <span class="status-badge ${broker.status === 'confirmed' ? 'status-paid' : broker.status === 'pending' ? 'status-unpaid' : ''}" style="background: ${broker.status === 'cancelled' ? '#dc2626' : ''}; color: ${broker.status === 'cancelled' ? 'white' : ''};">
+                              ${broker.status === 'confirmed' ? 'Confirmada' : broker.status === 'pending' ? 'Pendente' : 'Cancelada'}
+                          </span>
+                      </td>
+                  `;
+                  tbody.appendChild(row);
+              });
+              
+              document.getElementById('brokerResultsCount').textContent = filteredBrokers.length;
+              updateBrokerActionButtons();
+          }
+          
+          // Filter brokers
+          function filterBrokers() {
+              const brokerFilter = document.getElementById('brokerFilter').value;
+              const yearFilter = document.getElementById('brokerYearFilter').value;
+              const monthFilter = document.getElementById('brokerMonthFilter').value;
+              const statusFilter = document.getElementById('brokerStatusFilter').value;
+              
+              return allBrokers.filter(broker => {
+                  if (brokerFilter && broker.broker_name !== brokerFilter) return false;
+                  if (yearFilter) {
+                      const bookingYear = new Date(broker.pickup_date).getFullYear();
+                      if (bookingYear != yearFilter) return false;
+                  }
+                  if (monthFilter) {
+                      const bookingMonth = new Date(broker.pickup_date).getMonth() + 1;
+                      if (bookingMonth != monthFilter) return false;
+                  }
+                  if (statusFilter && broker.status !== statusFilter) return false;
+                  return true;
+              });
+          }
+          
+          // Update broker summary cards
+          function updateBrokerSummary(summary) {
+              document.getElementById('brokerTotalReservations').textContent = summary.total_reservations || 0;
+              document.getElementById('brokerTotalValue').textContent = `€${(summary.total_value || 0).toFixed(2)}`;
+              document.getElementById('brokerTotalYear').textContent = summary.total_year_reservations || 0;
+          }
+          
+          // Load broker filters
+          function loadBrokerFilters() {
+              // Populate broker filter
+              const brokerSelect = document.getElementById('brokerFilter');
+              const brokers = [...new Set(allBrokers.map(b => b.broker_name).filter(Boolean))];
+              
+              brokerSelect.innerHTML = '<option value="">Todos os Brokers</option>';
+              brokers.forEach(broker => {
+                  const option = document.createElement('option');
+                  option.value = broker;
+                  option.textContent = broker;
+                  brokerSelect.appendChild(option);
+              });
+              
+              // Populate year filter
+              const yearSelect = document.getElementById('brokerYearFilter');
+              const years = [...new Set(allBrokers.map(b => new Date(b.pickup_date).getFullYear()).filter(Boolean))];
+              
+              yearSelect.innerHTML = '<option value="">Todos os Anos</option>';
+              years.sort((a, b) => b - a).forEach(year => {
+                  const option = document.createElement('option');
+                  option.value = year;
+                  option.textContent = year;
+                  yearSelect.appendChild(option);
+              });
+          }
+          
+          // Toggle broker selection
+          function toggleBrokerSelection(id) {
+              if (selectedBrokers.has(id)) {
+                  selectedBrokers.delete(id);
+              } else {
+                  selectedBrokers.add(id);
+              }
+              updateBrokerActionButtons();
+          }
+          
+          // Toggle all brokers selection
+          function toggleAllBrokersSelection() {
+              const checkbox = document.getElementById('selectAllBrokers');
+              const checkboxes = document.querySelectorAll('#brokersTableBody input[type="checkbox"]');
+              
+              if (checkbox.checked) {
+                  checkboxes.forEach(cb => {
+                      const id = parseInt(cb.dataset.id);
+                      selectedBrokers.add(id);
+                      cb.checked = true;
+                  });
+              } else {
+                  selectedBrokers.clear();
+                  checkboxes.forEach(cb => cb.checked = false);
+              }
+              
+              updateBrokerActionButtons();
+          }
+          
+          // Update broker action buttons
+          function updateBrokerActionButtons() {
+              const exportBtn = document.getElementById('exportBrokersBtn');
+              const deleteBtn = document.getElementById('deleteBrokersBtn');
+              const hasSelection = selectedBrokers.size > 0;
+              
+              exportBtn.disabled = !hasSelection;
+              deleteBtn.disabled = !hasSelection;
+              exportBtn.style.opacity = hasSelection ? '1' : '0.5';
+              deleteBtn.style.opacity = hasSelection ? '1' : '0.5';
+          }
+          
+          // Import broker data from Excel
+          async function importBrokerData() {
+              const fileInput = document.getElementById('brokerExcelFile');
+              const statusDiv = document.getElementById('importStatus');
+              
+              if (!fileInput.files[0]) {
+                  statusDiv.textContent = 'Por favor, selecione um ficheiro Excel.';
+                  statusDiv.style.color = '#dc2626';
+                  return;
+              }
+              
+              const formData = new FormData();
+              formData.append('file', fileInput.files[0]);
+              
+              try {
+                  statusDiv.textContent = 'A importar dados...';
+                  statusDiv.style.color = '#009cb6';
+                  
+                  const response = await fetch('/api/admin/brokers/import', {
+                      method: 'POST',
+                      body: formData
+                  });
+                  
+                  const data = await response.json();
+                  
+                  if (data.ok) {
+                      statusDiv.textContent = `Importação concluída: ${data.imported} reservas importadas.`;
+                      statusDiv.style.color = '#059669';
+                      fileInput.value = '';
+                      await loadBrokers(); // Reload data
+                  } else {
+                      statusDiv.textContent = `Erro: ${data.error}`;
+                      statusDiv.style.color = '#dc2626';
+                  }
+              } catch (error) {
+                  statusDiv.textContent = 'Erro ao importar dados.';
+                  statusDiv.style.color = '#dc2626';
+                  console.error('Import error:', error);
+              }
+          }
+          
+          // Export selected brokers
+          function exportSelectedBrokers() {
+              if (selectedBrokers.size === 0) return;
+              
+              const selectedData = allBrokers.filter(b => selectedBrokers.has(b.id));
+              const csv = convertBrokersToCSV(selectedData);
+              downloadCSV(csv, 'brokers_export.csv');
+          }
+          
+          // Convert brokers to CSV
+          function convertBrokersToCSV(brokers) {
+              const headers = ['Broker', 'Voucher', 'Cliente', 'Data Levantamento', 'Data Devolução', 'Veículo', 'Dias', 'Valor Total', 'Status'];
+              const rows = brokers.map(b => [
+                  b.broker_name || '',
+                  b.voucher_number || '',
+                  b.client_name || '',
+                  b.pickup_date ? new Date(b.pickup_date).toLocaleDateString('pt-PT') : '',
+                  b.dropoff_date ? new Date(b.dropoff_date).toLocaleDateString('pt-PT') : '',
+                  b.vehicle_group || '',
+                  b.days || '',
+                  (b.total_price || 0).toFixed(2),
+                  b.status || ''
+              ]);
+              
+              return [headers, ...rows].map(row => row.join(',')).join('\n');
+          }
+          
+          // Download CSV
+          function downloadCSV(csv, filename) {
+              const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+              const link = document.createElement('a');
+              const url = URL.createObjectURL(blob);
+              link.setAttribute('href', url);
+              link.setAttribute('download', filename);
+              link.style.visibility = 'hidden';
+              document.body.appendChild(link);
+              link.click();
+              document.body.removeChild(link);
+          }
+          
+          // Delete selected brokers
+          async function deleteSelectedBrokers() {
+              if (selectedBrokers.size === 0) return;
+              
+              if (!confirm(`Tem certeza que deseja eliminar ${selectedBrokers.size} reservas?`)) return;
+              
+              try {
+                  const response = await fetch('/api/admin/brokers/delete', {
+                      method: 'POST',
+                      headers: {
+                          'Content-Type': 'application/json'
+                      },
+                      body: JSON.stringify({
+                          ids: Array.from(selectedBrokers)
+                      })
+                  });
+                  
+                  const data = await response.json();
+                  
+                  if (data.ok) {
+                      selectedBrokers.clear();
+                      await loadBrokers();
+                  } else {
+                      alert('Erro ao eliminar reservas: ' + data.error);
+                  }
+              } catch (error) {
+                  console.error('Delete error:', error);
+                  alert('Erro ao eliminar reservas.');
+              }
+          }
+          
+          // Update switchTab function to load brokers when tab is activated
+          const originalSwitchTab = window.switchTab;
+          window.switchTab = function(tabName) {
+              if (originalSwitchTab) originalSwitchTab(tabName);
+              
+              if (tabName === 'brokers') {
+                  loadBrokers();
+              }
+          };
       </script>
     </body>
 </html>
