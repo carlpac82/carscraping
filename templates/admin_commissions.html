@@ -693,6 +693,7 @@
           document.addEventListener('DOMContentLoaded', function() {
               loadCommissions();
               loadFilters();
+              loadDashboardData();
               
               // Add event listeners to filters to auto-update
               document.getElementById('statusFilter').addEventListener('change', renderCommissions);
