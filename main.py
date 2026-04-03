@@ -65016,6 +65016,19 @@ async def api_commissioners_update_email(request: Request):
 @app.get("/api/admin/brokers/monthly-comparison")
 async def admin_brokers_monthly_comparison(request: Request, month: str):
     """Get broker comparison for selected month vs previous year"""
+    def group_brokers(broker_name):
+        """Group broker names according to business rules"""
+        if 'abbycar' in broker_name.lower():
+            return 'AbbyCar'
+        elif 'discovercars' in broker_name.lower():
+            return 'DiscoverCars'
+        elif 'caralliance' in broker_name.lower():
+            return 'Caralliance'
+        elif broker_name.upper() in ['API', 'API WEB']:
+            return 'API'
+        else:
+            return broker_name
+    
     try:
         with _db_lock:
             con = _db_connect()
@@ -65070,29 +65083,38 @@ async def admin_brokers_monthly_comparison(request: Request, month: str):
                     cur.execute(prev_year_query, (str(year - 1), str(month_num).zfill(2)))
                     prev_year_data = cur.fetchall()
                 
-                # Create broker mapping
+                # Create broker mapping with grouping
                 brokers = {}
                 
                 # Process current month data
                 for row in current_data:
-                    broker_name = row[0]
-                    brokers[broker_name] = {
-                        'broker_name': broker_name,
-                        'current_month_value': float(row[1]) if row[1] else 0.0,
-                        'year_ago_value': 0.0
-                    }
+                    broker_name = group_brokers(row[0])
+                    if broker_name not in brokers:
+                        brokers[broker_name] = {
+                            'broker_name': broker_name,
+                            'current_month_value': float(row[1]),
+                            'current_month_count': int(row[2]),
+                            'year_ago_value': 0,
+                            'year_ago_count': 0
+                        }
+                    else:
+                        brokers[broker_name]['current_month_value'] += float(row[1])
+                        brokers[broker_name]['current_month_count'] += int(row[2])
                 
                 # Process previous year data
                 for row in prev_year_data:
-                    broker_name = row[0]
-                    if broker_name in brokers:
-                        brokers[broker_name]['year_ago_value'] = float(row[1]) if row[1] else 0.0
-                    else:
+                    broker_name = group_brokers(row[0])
+                    if broker_name not in brokers:
                         brokers[broker_name] = {
                             'broker_name': broker_name,
-                            'current_month_value': 0.0,
-                            'year_ago_value': float(row[1]) if row[1] else 0.0
+                            'current_month_value': 0,
+                            'current_month_count': 0,
+                            'year_ago_value': float(row[1]),
+                            'year_ago_count': int(row[2])
                         }
+                    else:
+                        brokers[broker_name]['year_ago_value'] += float(row[1])
+                        brokers[broker_name]['year_ago_count'] += int(row[2])
                 
                 return JSONResponse({
                     "ok": True,
@@ -65112,6 +65134,19 @@ async def admin_brokers_monthly_comparison(request: Request, month: str):
 @app.get("/api/admin/brokers/yearly-distribution")
 async def admin_brokers_yearly_distribution(request: Request, year: str):
     """Get broker distribution by reservation count for selected year"""
+    def group_brokers(broker_name):
+        """Group broker names according to business rules"""
+        if 'abbycar' in broker_name.lower():
+            return 'AbbyCar'
+        elif 'discovercars' in broker_name.lower():
+            return 'DiscoverCars'
+        elif 'caralliance' in broker_name.lower():
+            return 'Caralliance'
+        elif broker_name.upper() in ['API', 'API WEB']:
+            return 'API'
+        else:
+            return broker_name
+    
     try:
         with _db_lock:
             con = _db_connect()
@@ -65146,11 +65181,20 @@ async def admin_brokers_yearly_distribution(request: Request, year: str):
                 
                 rows = cur.fetchall()
                 
-                brokers = []
+                # Group brokers according to business rules
+                broker_groups = {}
                 for row in rows:
+                    grouped_name = group_brokers(row[0])
+                    if grouped_name in broker_groups:
+                        broker_groups[grouped_name] += row[1]
+                    else:
+                        broker_groups[grouped_name] = row[1]
+                
+                brokers = []
+                for name, count in broker_groups.items():
                     brokers.append({
-                        'broker_name': row[0],
-                        'reservation_count': row[1]
+                        'broker_name': name,
+                        'reservation_count': count
                     })
                 
                 return JSONResponse({
@@ -65171,6 +65215,19 @@ async def admin_brokers_yearly_distribution(request: Request, year: str):
 @app.get("/api/admin/brokers/top-by-value")
 async def admin_brokers_top_by_value(request: Request, year: str):
     """Get top brokers by total value for selected year"""
+    def group_brokers(broker_name):
+        """Group broker names according to business rules"""
+        if 'abbycar' in broker_name.lower():
+            return 'AbbyCar'
+        elif 'discovercars' in broker_name.lower():
+            return 'DiscoverCars'
+        elif 'caralliance' in broker_name.lower():
+            return 'Caralliance'
+        elif broker_name.upper() in ['API', 'API WEB']:
+            return 'API'
+        else:
+            return broker_name
+    
     try:
         with _db_lock:
             con = _db_connect()
@@ -65201,18 +65258,27 @@ async def admin_brokers_top_by_value(request: Request, year: str):
                 
                 rows = cur.fetchall()
                 
-                brokers = []
+                # Group brokers according to business rules
+                broker_groups = {}
                 for row in rows:
-                    brokers.append({
-                        'broker_name': row[0],
-                        'total_value': float(row[1]) if row[1] else 0.0,
-                        'reservation_count': row[2]
-                    })
+                    grouped_name = group_brokers(row[0])
+                    if grouped_name in broker_groups:
+                        broker_groups[grouped_name]['total_value'] += float(row[1]) if row[1] else 0.0
+                        broker_groups[grouped_name]['reservation_count'] += row[2]
+                    else:
+                        broker_groups[grouped_name] = {
+                            'broker_name': grouped_name,
+                            'total_value': float(row[1]) if row[1] else 0.0,
+                            'reservation_count': row[2]
+                        }
+                
+                # Sort by total value and take top 10
+                sorted_brokers = sorted(broker_groups.values(), key=lambda x: x['total_value'], reverse=True)[:10]
                 
                 return JSONResponse({
                     "ok": True,
                     "data": {
-                        "brokers": brokers
+                        "brokers": sorted_brokers
                     }
                 })
                 
