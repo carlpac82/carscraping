@@ -1325,24 +1325,32 @@ async def lifespan(app: FastAPI):
         
         # Executar migration das colunas hotel, room_number e deposit
         try:
-            cursor = conn.cursor()
-            cursor.execute("""
-                ALTER TABLE commission_bookings 
-                ADD COLUMN IF NOT EXISTS hotel VARCHAR(255)
-            """)
-            cursor.execute("""
-                ALTER TABLE commission_bookings 
-                ADD COLUMN IF NOT EXISTS room_number VARCHAR(50)
-            """)
-            cursor.execute("""
-                ALTER TABLE commission_bookings 
-                ADD COLUMN IF NOT EXISTS deposit DECIMAL(10, 2) DEFAULT 0.00
-            """)
-            conn.commit()
-            cursor.close()
-            logging.info("✅ Added hotel, room_number and deposit columns to commission_bookings")
+            with _db_lock:
+                migration_conn = _db_connect()
+                try:
+                    cursor = migration_conn.cursor()
+                    cursor.execute("""
+                        ALTER TABLE commission_bookings 
+                        ADD COLUMN IF NOT EXISTS hotel VARCHAR(255)
+                    """)
+                    cursor.execute("""
+                        ALTER TABLE commission_bookings 
+                        ADD COLUMN IF NOT EXISTS room_number VARCHAR(50)
+                    """)
+                    cursor.execute("""
+                        ALTER TABLE commission_bookings 
+                        ADD COLUMN IF NOT EXISTS deposit DECIMAL(10, 2) DEFAULT 0.00
+                    """)
+                    migration_conn.commit()
+                    cursor.close()
+                    logging.info("✅ Added hotel, room_number and deposit columns to commission_bookings")
+                except Exception as e:
+                    migration_conn.rollback()
+                    logging.warning(f"⚠️ Migration error: {str(e)}")
+                finally:
+                    migration_conn.close()
         except Exception as e:
-            logging.warning(f"⚠️ Migration error: {str(e)}")
+            logging.warning(f"⚠️ Migration connection error: {str(e)}")
             
     except Exception as e:
         logging.error(f"Database initialization error: {e}")
