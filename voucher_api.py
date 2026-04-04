@@ -6,7 +6,14 @@ import psycopg2
 import os
 import logging
 import io
+import base64
+from email.mime.multipart import MIMEMultipart
+from email.mime.text import MIMEText
+from email.mime.base import MIMEBase
+from email import encoders
 from jinja2 import Template
+from google.oauth2.credentials import Credentials
+from googleapiclient.discovery import build
 
 router = APIRouter()
 
@@ -14,6 +21,26 @@ class EmailRequest(BaseModel):
     email: str
 
 DATABASE_URL = os.environ.get('DATABASE_URL')
+
+def create_message_with_attachment(credentials, to_email, subject, body, attachment_content, filename):
+    """Create email message with attachment"""
+    # Create message
+    message = MIMEMultipart('related')
+    message['to'] = to_email
+    message['subject'] = subject
+    
+    # Create HTML body
+    html_part = MIMEText(body, 'html')
+    message.attach(html_part)
+    
+    # Add attachment
+    part = MIMEBase('application', 'pdf')
+    part.set_payload(attachment_content)
+    encoders.encode_base64(part)
+    part.add_header('Content-Disposition', f'attachment; filename="{filename}"')
+    message.attach(part)
+    
+    return {'raw': base64.urlsafe_b64encode(message.as_bytes()).decode()}
 
 def get_db_connection():
     """Get database connection"""
