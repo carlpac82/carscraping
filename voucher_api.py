@@ -7,6 +7,7 @@ import os
 import logging
 import io
 from jinja2 import Template
+from weasyprint import HTML, CSS
 
 router = APIRouter()
 
@@ -257,61 +258,38 @@ async def print_voucher(booking_id: int):
         html_content = render_voucher_template(booking_data)
         print(f"[VOUCHER PRINT] HTML template rendered, length: {len(html_content)}")
         
-        print(f"[VOUCHER PRINT] Starting PDF generation with fpdf2")
+        print(f"[VOUCHER PRINT] Starting PDF generation with WeasyPrint")
         
-        # Use original template with print CSS
-        template_content = html_content
-        
-        # Add print CSS for proper printing
-        print_css = """
-        <style>
-        @media print {
-            @page {
-                size: A4;
-                margin: 1cm;
-            }
-            body {
-                margin: 0;
-                padding: 0;
-                -webkit-print-color-adjust: exact;
-                print-color-adjust: exact;
-            }
-            .voucher-container {
-                max-width: 100%;
-                margin: 0;
-                padding: 0;
-            }
-            .no-print {
-                display: none !important;
-            }
+        # Add print CSS for proper PDF generation
+        print_css = CSS(string="""
+        @page {
+            size: A4;
+            margin: 1cm;
         }
-        </style>
-        """
+        body {
+            margin: 0;
+            padding: 0;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+        }
+        .voucher-container {
+            max-width: 100%;
+            margin: 0;
+            padding: 0;
+        }
+        """)
         
-        # Insert print CSS
-        if '</head>' in template_content:
-            template_content = template_content.replace('</head>', print_css + '</head>')
+        # Generate PDF using WeasyPrint
+        html_doc = HTML(string=html_content)
+        pdf_content = html_doc.write_pdf(stylesheets=[print_css])
         
-        # Add print button
-        print_button = """
-        <div class="no-print" style="text-align: center; margin: 20px; padding: 20px; background: #f0f0f0;">
-            <button onclick="window.print()" style="padding: 10px 20px; font-size: 16px; background: #009cb6; color: white; border: none; border-radius: 5px; cursor: pointer;">
-                🖨️ Imprimir Voucher
-            </button>
-        </div>
-        """
+        print(f"[VOUCHER PRINT] PDF generated successfully, size: {len(pdf_content)} bytes")
         
-        if '<body>' in template_content:
-            template_content = template_content.replace('<body>', '<body>' + print_button)
-        
-        print(f"[VOUCHER PRINT] Using original template with print CSS, size: {len(template_content)} bytes")
-        
-        # Return HTML for browser printing
-        return Response(
-            content=template_content,
-            media_type='text/html',
+        # Return PDF
+        return StreamingResponse(
+            io.BytesIO(pdf_content),
+            media_type='application/pdf',
             headers={
-                'Content-Disposition': f'inline; filename="voucher_{booking_data["voucher_number"]}.html"'
+                'Content-Disposition': f'inline; filename="voucher_{booking_data["voucher_number"]}.pdf"'
             }
         )
         
