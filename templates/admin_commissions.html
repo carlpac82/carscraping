@@ -2021,7 +2021,10 @@
                   tbody.appendChild(row);
               });
               
-              document.getElementById('brokerResultsCount').textContent = filteredBrokers.length;
+              const resultsCountElement = document.getElementById('brokerResultsCount');
+              if (resultsCountElement) {
+                  resultsCountElement.textContent = filteredBrokers.length;
+              }
               updateBrokerActionButtons();
           }
           
