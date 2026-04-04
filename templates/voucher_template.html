@@ -37,10 +37,9 @@
             flex: 1;
         }
 
-        .company-name {
-            font-size: 28px;
-            font-weight: 700;
-            color: #009cb6;
+        .logo {
+            height: 60px;
+            width: auto;
             margin-bottom: 15px;
         }
 
@@ -317,9 +316,9 @@
         <!-- Header -->
         <div class="header">
             <div class="logo-section">
-                <div class="company-name">AutoPrudente</div>
+                <img src="https://rentalprices.pt/static/logo.png" alt="AutoPrudente" class="logo">
                 <div class="company-info">
-                    <strong>Rent a Car</strong>
+                    <strong>AutoPrudente - Rent a Car</strong>
                     📍 Rua da Empresa, 123 - Faro, Portugal<br>
                     📞 +351 289 123 456<br>
                     📱 +351 912 345 678<br>
@@ -374,6 +373,11 @@
         <!-- Vehicle Section -->
         <div class="vehicle-section">
             <div class="vehicle-content">
+                {% if vehicle_image %}
+                <div class="vehicle-image">
+                    <img src="{{ vehicle_image }}" alt="{{ vehicle_group }}">
+                </div>
+                {% endif %}
                 <div class="vehicle-details">
                     <h2>{{ vehicle_group }}</h2>
                     <p><strong>📅 Levantamento:</strong> {{ pickup_date }} às {{ pickup_time }}</p>

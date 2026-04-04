@@ -197,8 +197,17 @@ async def print_voucher(booking_id: int):
         # Render HTML template
         html_content = render_voucher_template(booking_data)
         
-        # Generate PDF
-        pdf_file = HTML(string=html_content).write_pdf()
+        # Generate PDF with custom URL fetcher for images
+        import urllib.request
+        def custom_url_fetcher(url):
+            """Custom URL fetcher with longer timeout for images"""
+            try:
+                return urllib.request.urlopen(url, timeout=30).read()
+            except Exception as e:
+                print(f"Warning: Failed to load {url}: {e}")
+                return None
+        
+        pdf_file = HTML(string=html_content, url_fetcher=custom_url_fetcher).write_pdf()
         
         # Return PDF
         return StreamingResponse(
@@ -236,9 +245,19 @@ async def email_voucher(booking_id: int, email_request: EmailRequest):
             raise HTTPException(status_code=404, detail='Reserva não encontrada')
         
         print(f"[VOUCHER EMAIL] Generating PDF for voucher {booking_data.get('voucher_number')}")
-        # Generate PDF
+        # Generate PDF with custom URL fetcher for images
         html_content = render_voucher_template(booking_data)
-        pdf_file = HTML(string=html_content).write_pdf()
+        
+        import urllib.request
+        def custom_url_fetcher(url):
+            """Custom URL fetcher with longer timeout for images"""
+            try:
+                return urllib.request.urlopen(url, timeout=30).read()
+            except Exception as e:
+                print(f"Warning: Failed to load {url}: {e}")
+                return None
+        
+        pdf_file = HTML(string=html_content, url_fetcher=custom_url_fetcher).write_pdf()
         print(f"[VOUCHER EMAIL] PDF generated successfully, size: {len(pdf_file)} bytes")
         
         # Get Gmail OAuth credentials
