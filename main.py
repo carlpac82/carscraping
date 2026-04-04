@@ -66074,8 +66074,8 @@ async def admin_brokers_list(request: Request):
                     previous_month = today.month - 1
                     previous_month_year = current_year
                 
-                # Filter reservations for previous month (excluding ap, api-web, API)
-                excluded_brokers = ['ap', 'api-web', 'API']
+                # Filter reservations for previous month (include AP, API-WEB, AP)
+                excluded_brokers = []  # Não excluir nenhum broker
                 month_brokers = [b for b in brokers if b['pickup_date'] and b['broker_name'] not in excluded_brokers]
                 month_reservations = len([b for b in month_brokers if 
                     datetime.fromisoformat(b['pickup_date']).month == previous_month and 
