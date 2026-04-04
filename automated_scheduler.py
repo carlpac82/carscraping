@@ -1124,13 +1124,15 @@ def setup_scheduled_tasks():
         print("   Apenas checkout emails continuam ativos\n", flush=True)
         logging.warning("⚠️ All automated reports DISABLED - no CarJet searches will be scheduled")
     
-    # Initialize scheduler
+    # Initialize scheduler with Lisbon timezone
     if scheduler is None:
         print("🆕 Creating new BackgroundScheduler...", flush=True)
-        scheduler = BackgroundScheduler(timezone='UTC')
+        import pytz
+        lisbon_tz = pytz.timezone('Europe/Lisbon')
+        scheduler = BackgroundScheduler(timezone=lisbon_tz)
         scheduler.start()
-        print("✅ Scheduler started", flush=True)
-        logging.info("✅ Scheduler started")
+        print("✅ Scheduler started with Europe/Lisbon timezone", flush=True)
+        logging.info("✅ Scheduler started with Europe/Lisbon timezone")
     else:
         # Clear existing jobs
         print("🔄 Clearing existing jobs...", flush=True)
