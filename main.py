@@ -12220,8 +12220,8 @@ async def admin_commissions_top_monthly(request: Request, month: Optional[str] =
                 cur.execute(query, (target_year, target_month))
                 rows = cur.fetchall()
                 
-                # Calculate totals by commissioner
-                commissioner_totals = {}
+                # Calculate totals and counts by commissioner
+                commissioner_data = {}
                 
                 for row in rows:
                     commission_id = row[0]
@@ -12231,13 +12231,14 @@ async def admin_commissions_top_monthly(request: Request, month: Optional[str] =
                     commissioner_name = row[4] or 'Sem Nome'
                     commissioner_id = row[5]
                     
-                    if commissioner_name not in commissioner_totals:
-                        commissioner_totals[commissioner_name] = 0
-                    commissioner_totals[commissioner_name] += commission_amount
+                    if commissioner_name not in commissioner_data:
+                        commissioner_data[commissioner_name] = {'total': 0, 'count': 0}
+                    commissioner_data[commissioner_name]['total'] += commission_amount
+                    commissioner_data[commissioner_name]['count'] += 1
                 
                 # Top 10 commissioners
                 top_commissioners = sorted(
-                    [{"name": name, "total": total} for name, total in commissioner_totals.items()],
+                    [{"name": name, "total": data['total'], "count": data['count']} for name, data in commissioner_data.items()],
                     key=lambda x: x["total"],
                     reverse=True
                 )[:10]
@@ -12302,18 +12303,19 @@ async def admin_commissions_top_yearly(request: Request, year: int = None):
                 rows = cur.fetchall()
                 
                 # Aggregate by commissioner
-                commissioner_totals = {}
+                commissioner_data = {}
                 for row in rows:
                     commission_amount = float(row[0]) if row[0] else 0
                     commissioner_name = row[1] or "Sem Nome"
                     
-                    if commissioner_name not in commissioner_totals:
-                        commissioner_totals[commissioner_name] = 0
-                    commissioner_totals[commissioner_name] += commission_amount
+                    if commissioner_name not in commissioner_data:
+                        commissioner_data[commissioner_name] = {'total': 0, 'count': 0}
+                    commissioner_data[commissioner_name]['total'] += commission_amount
+                    commissioner_data[commissioner_name]['count'] += 1
                 
                 # Top 10 commissioners
                 top_commissioners = sorted(
-                    [{"name": name, "total": total} for name, total in commissioner_totals.items()],
+                    [{"name": name, "total": data['total'], "count": data['count']} for name, data in commissioner_data.items()],
                     key=lambda x: x["total"],
                     reverse=True
                 )[:10]
