@@ -724,7 +724,13 @@
           <button class="btn-primary" onclick="toggleSelectAll()">
               <span id="selectAllText">Selecionar Todas</span>
           </button>
-          <button onclick="exportToExcel()" style="margin-left: auto; padding: 0.5rem; background: transparent; border: 1px solid #d1d5db; border-radius: 0.375rem; cursor: pointer;" title="Exportar Excel">
+          <input type="file" id="uploadExcelInput" accept=".xlsx,.xls" style="display: none;" onchange="uploadExcelFile(event)">
+          <button onclick="document.getElementById('uploadExcelInput').click()" style="margin-left: auto; padding: 0.5rem; background: transparent; border: 1px solid #d1d5db; border-radius: 0.375rem; cursor: pointer;" title="Importar Excel">
+              <svg style="width: 1.5rem; height: 1.5rem;" fill="none" stroke="#009cb6" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"/>
+              </svg>
+          </button>
+          <button onclick="exportToExcel()" style="padding: 0.5rem; background: transparent; border: 1px solid #d1d5db; border-radius: 0.375rem; cursor: pointer;" title="Exportar Excel">
               <svg style="width: 1.5rem; height: 1.5rem;" fill="none" stroke="#009cb6" viewBox="0 0 24 24">
                   <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
               </svg>
@@ -1230,6 +1236,35 @@
               }
               
               window.location.href = url;
+          }
+          
+          // Upload Excel file
+          async function uploadExcelFile(event) {
+              const file = event.target.files[0];
+              if (!file) return;
+              
+              const formData = new FormData();
+              formData.append('file', file);
+              
+              try {
+                  const response = await fetch('/api/admin/commissions/upload', {
+                      method: 'POST',
+                      body: formData
+                  });
+                  
+                  const data = await response.json();
+                  if (data.ok) {
+                      alert(`Importação concluída!\n${data.imported} registos importados\n${data.skipped} registos ignorados`);
+                      loadCommissions();
+                  } else {
+                      alert('Erro ao importar: ' + data.error);
+                  }
+              } catch (error) {
+                  console.error('Error uploading file:', error);
+                  alert('Erro ao fazer upload do ficheiro');
+              }
+              
+              event.target.value = '';
           }
           
           // Print commissions PDF

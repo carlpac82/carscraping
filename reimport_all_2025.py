@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Reimportar TODOS os meses de 2026
+Reimportar TODOS os meses de 2025 da pasta 2025/
 Com cálculo correto de dropoff_date
 """
 import os
@@ -9,8 +9,8 @@ import psycopg2
 from urllib.parse import urlparse
 from datetime import datetime, timedelta
 
-def import_all_2026():
-    """Importa todos os meses de 2026"""
+def import_all_2025():
+    """Importa todos os meses de 2025"""
     
     # Obter DATABASE_URL
     database_url = os.getenv('DATABASE_URL')
@@ -44,36 +44,6 @@ def import_all_2026():
         cursor = conn.cursor()
         print("✅ Conectado à base de dados")
         
-        # Mapeamento de nomes de hotéis para comissionistas
-        hotel_mapping = {
-            'AQUA PEDRA DOS BICOS': 'AQUA PEDRA DOS BICOS',
-            'AQUAMAR': 'AQUAMAR',
-            'BAIA GRANDE': 'BAIA GRANDE',
-            'CERRO MAR GARDEM': 'CERRO MAR GARDEM',
-            'CLUBE MARIA LUISA': 'CLUBE MARIA LUISA',
-            'DISCOVERCARS-PREPAID': 'DISCOVERCARS-PREPAID',
-            'EPIC SANA': 'EPIC SANA',
-            'EXPOSE I': 'EXPOSE I',
-            'FALESIA HOTEL': 'FALESIA HOTEL',
-            'HOLIDAY IN (REAL BELA VISTA)': 'HOLIDAY IN (REAL BELA VISTA)',
-            'INDIGO HOTEL': 'INDIGO HOTEL',
-            'INATEL': 'INATEL',
-            'MASANA': 'MASANA',
-            'NAU SAO RAFAEL SUITES': 'NAU SAO RAFAEL SUITES',
-            'OCEANUS': 'OCEANUS',
-            'OURA ATLANTICO': 'OURA ATLANTICO',
-            'OURA VIEW BEACH CLUB': 'OURA VIEW BEACH CLUB',
-            'PALADIM': 'PALADIM',
-            'PATEO VILLAGE': 'PATEO VILLAGE',
-            'PATIO SUITE HOTEL': 'PATIO SUITE HOTEL',
-            'PORTO BAY BLUE OCEAN': 'PORTO BAY BLUE OCEAN',
-            'PTO': 'PTO',
-            'ROCAMAR': 'ROCAMAR',
-            'RUBEN MARTINS': 'RUBEN MARTINS, ALGARVE T',
-            'SOL E MAR': 'SOL E MAR',
-            'ZEBRA SAFARIS II': 'ZEBRA SAFARIS II'
-        }
-        
         # Buscar todos os comissionistas
         cursor.execute("SELECT id, name FROM commissioners ORDER BY name")
         commissioners = {row[1].upper(): row[0] for row in cursor.fetchall()}
@@ -83,11 +53,12 @@ def import_all_2026():
         total_imported = 0
         total_skipped = 0
         
-        # Processar cada mês de 2026
+        # Processar cada mês
         for month in range(1, 13):
-            filename = f'CM-{month:02d}-2026.xlsx'
+            filename = f'2025/CM-{month:02d}-2025.xlsx'
             
             if not os.path.exists(filename):
+                print(f"\n⚠️  {filename} não encontrado")
                 continue
             
             print(f"\n📄 Processando {filename}...")
@@ -106,11 +77,7 @@ def import_all_2026():
                 # Processar reserva (linhas com data)
                 if pd.notna(row.get('Data Entrega')) and current_hotel:
                     # Buscar ID do comissionista
-                    commissioner_id = None
-                    for hotel_name, comm_name in hotel_mapping.items():
-                        if hotel_name in current_hotel:
-                            commissioner_id = commissioners.get(comm_name.upper())
-                            break
+                    commissioner_id = commissioners.get(current_hotel)
                     
                     if not commissioner_id:
                         month_skipped += 1
@@ -181,7 +148,7 @@ def import_all_2026():
             total_skipped += month_skipped
         
         print("\n" + "=" * 80)
-        print(f"✅ Importação 2026 concluída!")
+        print(f"✅ Importação 2025 concluída!")
         print(f"  - Total importado: {total_imported}")
         print(f"  - Total ignorado: {total_skipped}")
         print("=" * 80)
@@ -197,5 +164,5 @@ def import_all_2026():
         return False
 
 if __name__ == "__main__":
-    success = import_all_2026()
+    success = import_all_2025()
     exit(0 if success else 1)
