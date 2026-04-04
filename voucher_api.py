@@ -4,6 +4,7 @@ from pydantic import BaseModel
 from datetime import datetime
 import psycopg2
 import os
+import logging
 import io
 from jinja2 import Template
 
