@@ -12396,16 +12396,16 @@ async def admin_commissions_base_values_comparison(request: Request, month: Opti
                 # Get commission bookings data for the 3 periods
                 query = """
                     SELECT 
-                        cb.base_price,
+                        cb.price,
                         cb.pickup_date
                     FROM commission_bookings cb
-                    WHERE cb.base_price > 0
+                    WHERE cb.price > 0
                 """ if USE_POSTGRES else """
                     SELECT 
-                        cb.base_price,
+                        cb.price,
                         cb.pickup_date
                     FROM commission_bookings cb
-                    WHERE cb.base_price > 0
+                    WHERE cb.price > 0
                 """
                 
                 cur = con.execute(query)
@@ -12536,15 +12536,15 @@ async def admin_commissions_distribution(request: Request, year: Optional[int] =
                 # Get commission bookings data for the year (Comissionistas)
                 query = """
                     SELECT 
-                        cb.base_price
+                        cb.price
                     FROM commission_bookings cb
-                    WHERE cb.base_price > 0
+                    WHERE cb.price > 0
                     AND EXTRACT(YEAR FROM cb.pickup_date) = %s
                 """ if USE_POSTGRES else """
                     SELECT 
-                        cb.base_price
+                        cb.price
                     FROM commission_bookings cb
-                    WHERE cb.base_price > 0
+                    WHERE cb.price > 0
                     AND strftime('%Y', cb.pickup_date) = ?
                 """
                 
@@ -65206,12 +65206,12 @@ async def admin_brokers_yearly_distribution(request: Request, year: str):
                 
                 # Get commissioners data for the same year
                 commissioners_query = """
-                    SELECT COUNT(*) as reservation_count, COALESCE(SUM(cb.base_price), 0) as total_value
+                    SELECT COUNT(*) as reservation_count, COALESCE(SUM(cb.price), 0) as total_value
                     FROM commission_bookings cb
                     WHERE EXTRACT(YEAR FROM cb.pickup_date) = %s
                     AND cb.commission_amount > 0
                 """ if USE_POSTGRES else """
-                    SELECT COUNT(*) as reservation_count, COALESCE(SUM(cb.base_price), 0) as total_value
+                    SELECT COUNT(*) as reservation_count, COALESCE(SUM(cb.price), 0) as total_value
                     FROM commission_bookings cb
                     WHERE strftime('%%Y', cb.pickup_date) = ?
                     AND cb.commission_amount > 0
