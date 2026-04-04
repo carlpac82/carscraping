@@ -12396,16 +12396,16 @@ async def admin_commissions_base_values_comparison(request: Request, month: Opti
                 # Get commissioners data
                 query = """
                     SELECT 
-                        cb.price,
+                        cb.commission_amount,
                         cb.pickup_date
                     FROM commission_bookings cb
-                    WHERE cb.price > 0
+                    WHERE cb.commission_amount > 0
                 """ if USE_POSTGRES else """
                     SELECT 
-                        cb.base_price,
+                        cb.commission_amount,
                         cb.pickup_date
                     FROM commission_bookings cb
-                    WHERE cb.base_price > 0
+                    WHERE cb.commission_amount > 0
                 """
                 
                 cur = con.execute(query)
@@ -12536,15 +12536,15 @@ async def admin_commissions_distribution(request: Request, year: Optional[int] =
                 # Get commission bookings data for the year (Comissionistas)
                 query = """
                     SELECT 
-                        cb.price
+                        cb.commission_amount
                     FROM commission_bookings cb
-                    WHERE cb.price > 0
+                    WHERE cb.commission_amount > 0
                     AND EXTRACT(YEAR FROM cb.pickup_date) = %s
                 """ if USE_POSTGRES else """
                     SELECT 
-                        cb.price
+                        cb.commission_amount
                     FROM commission_bookings cb
-                    WHERE cb.price > 0
+                    WHERE cb.commission_amount > 0
                     AND strftime('%Y', cb.pickup_date) = ?
                 """
                 
