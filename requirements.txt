@@ -27,6 +27,7 @@ reportlab==4.0.7
 PyMuPDF==1.23.8
 pytesseract==0.3.10
 Pillow==10.2.0
+weasyprint==60.1
 
 # PostgreSQL support
 psycopg2-binary==2.9.9
