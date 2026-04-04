@@ -4,7 +4,7 @@ from pydantic import BaseModel
 from datetime import datetime
 import psycopg2
 import os
-from xhtml2pdf import pisa
+import pdfkit
 import io
 from jinja2 import Template
 
@@ -196,14 +196,20 @@ async def print_voucher(booking_id: int):
         html_content = render_voucher_template(booking_data)
         print(f"[VOUCHER PRINT] HTML template rendered, length: {len(html_content)}")
         
-        print(f"[VOUCHER PRINT] Starting PDF generation with xhtml2pdf")
+        print(f"[VOUCHER PRINT] Starting PDF generation with pdfkit (fast + HTML template)")
         
-        # Generate PDF with xhtml2pdf
-        buffer = io.BytesIO()
-        pisa.CreatePDF(html_content, dest=buffer, encoding='utf-8')
-        pdf_file = buffer.getvalue()
-        buffer.close()
-        print(f"[VOUCHER PRINT] PDF generated successfully with xhtml2pdf, size: {len(pdf_file)} bytes")
+        # Generate PDF with pdfkit - fast and works with HTML
+        options = {
+            'page-size': 'A4',
+            'margin-top': '10mm',
+            'encoding': "UTF-8",
+            'quiet': '',
+            'images': True,
+            'enable-local-file-access': None
+        }
+        
+        pdf_file = pdfkit.from_string(html_content, False, options=options)
+        print(f"[VOUCHER PRINT] PDF generated with pdfkit (fast), size: {len(pdf_file)} bytes")
         
         # Return PDF
         return StreamingResponse(
@@ -246,12 +252,18 @@ async def email_voucher(booking_id: int, email_request: EmailRequest):
         html_content = render_voucher_template(booking_data)
         print(f"[VOUCHER EMAIL] HTML template rendered, length: {len(html_content)}")
         
-        # Generate PDF with xhtml2pdf
-        buffer = io.BytesIO()
-        pisa.CreatePDF(html_content, dest=buffer, encoding='utf-8')
-        pdf_file = buffer.getvalue()
-        buffer.close()
-        print(f"[VOUCHER EMAIL] PDF generated successfully with xhtml2pdf, size: {len(pdf_file)} bytes")
+        # Generate PDF with pdfkit - fast and works with HTML
+        options = {
+            'page-size': 'A4',
+            'margin-top': '10mm',
+            'encoding': "UTF-8",
+            'quiet': '',
+            'images': True,
+            'enable-local-file-access': None
+        }
+        
+        pdf_file = pdfkit.from_string(html_content, False, options=options)
+        print(f"[VOUCHER EMAIL] PDF generated with pdfkit (fast), size: {len(pdf_file)} bytes")
         
         # Get Gmail OAuth credentials
         print(f"[VOUCHER EMAIL] Loading Gmail OAuth credentials")
