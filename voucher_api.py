@@ -206,17 +206,22 @@ async def print_voucher(booking_id: int):
         # Generate PDF with custom URL fetcher for images
         import urllib.request
         import io
+        import time
         def custom_url_fetcher(url):
-            """Custom URL fetcher with longer timeout for images"""
+            """Custom URL fetcher with longer timeout and retries for images"""
             print(f"[VOUCHER PRINT] Fetching URL: {url}")
-            try:
-                data = urllib.request.urlopen(url, timeout=30).read()
-                print(f"[VOUCHER PRINT] Successfully loaded {url}, size: {len(data)} bytes")
-                return {'string': data, 'mime_type': 'image/png'}
-            except Exception as e:
-                print(f"[VOUCHER PRINT] Warning: Failed to load {url}: {e}")
-                # Return empty 1x1 transparent PNG instead of None
-                return {'string': b'\x89PNG\r\n\x1a\n\x00\x00\x00\rIHDR\x00\x00\x00\x01\x00\x00\x00\x01\x08\x06\x00\x00\x00\x1f\x15\xc4\x89\x00\x00\x00\nIDATx\x9cc\x00\x01\x00\x00\x05\x00\x01\r\n-\xb4\x00\x00\x00\x00IEND\xaeB`\x82', 'mime_type': 'image/png'}
+            max_retries = 3
+            for attempt in range(max_retries):
+                try:
+                    data = urllib.request.urlopen(url, timeout=60).read()
+                    print(f"[VOUCHER PRINT] Successfully loaded {url}, size: {len(data)} bytes")
+                    return {'string': data, 'mime_type': 'image/png'}
+                except Exception as e:
+                    print(f"[VOUCHER PRINT] Attempt {attempt + 1}/{max_retries} failed for {url}: {e}")
+                    if attempt < max_retries - 1:
+                        time.sleep(2)
+                    else:
+                        raise Exception(f"Falha ao carregar imagem {url} após {max_retries} tentativas: {e}")
         
         print(f"[VOUCHER PRINT] Starting PDF generation with WeasyPrint")
         pdf_file = HTML(string=html_content, url_fetcher=custom_url_fetcher).write_pdf()
@@ -262,17 +267,22 @@ async def email_voucher(booking_id: int, email_request: EmailRequest):
         html_content = render_voucher_template(booking_data)
         
         import urllib.request
+        import time
         def custom_url_fetcher(url):
-            """Custom URL fetcher with longer timeout for images"""
+            """Custom URL fetcher with longer timeout and retries for images"""
             print(f"[VOUCHER EMAIL] Fetching URL: {url}")
-            try:
-                data = urllib.request.urlopen(url, timeout=30).read()
-                print(f"[VOUCHER EMAIL] Successfully loaded {url}, size: {len(data)} bytes")
-                return {'string': data, 'mime_type': 'image/png'}
-            except Exception as e:
-                print(f"[VOUCHER EMAIL] Warning: Failed to load {url}: {e}")
-                # Return empty 1x1 transparent PNG instead of None
-                return {'string': b'\x89PNG\r\n\x1a\n\x00\x00\x00\rIHDR\x00\x00\x00\x01\x00\x00\x00\x01\x08\x06\x00\x00\x00\x1f\x15\xc4\x89\x00\x00\x00\nIDATx\x9cc\x00\x01\x00\x00\x05\x00\x01\r\n-\xb4\x00\x00\x00\x00IEND\xaeB`\x82', 'mime_type': 'image/png'}
+            max_retries = 3
+            for attempt in range(max_retries):
+                try:
+                    data = urllib.request.urlopen(url, timeout=60).read()
+                    print(f"[VOUCHER EMAIL] Successfully loaded {url}, size: {len(data)} bytes")
+                    return {'string': data, 'mime_type': 'image/png'}
+                except Exception as e:
+                    print(f"[VOUCHER EMAIL] Attempt {attempt + 1}/{max_retries} failed for {url}: {e}")
+                    if attempt < max_retries - 1:
+                        time.sleep(2)
+                    else:
+                        raise Exception(f"Falha ao carregar imagem {url} após {max_retries} tentativas: {e}")
         
         pdf_file = HTML(string=html_content, url_fetcher=custom_url_fetcher).write_pdf()
         print(f"[VOUCHER EMAIL] PDF generated successfully, size: {len(pdf_file)} bytes")
