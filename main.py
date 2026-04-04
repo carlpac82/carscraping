@@ -12393,7 +12393,7 @@ async def admin_commissions_base_values_comparison(request: Request, month: Opti
                     'two_years_ago': {'year': two_years_ago_year, 'month': two_years_ago_month, 'comissionistas': 0, 'ap': 0, 'api_web': 0, 'brokers': 0}
                 }
                 
-                # Get commission bookings data for the 3 periods
+                # Get commissioners data
                 query = """
                     SELECT 
                         cb.price,
@@ -12402,10 +12402,10 @@ async def admin_commissions_base_values_comparison(request: Request, month: Opti
                     WHERE cb.price > 0
                 """ if USE_POSTGRES else """
                     SELECT 
-                        cb.price,
+                        cb.base_price,
                         cb.pickup_date
                     FROM commission_bookings cb
-                    WHERE cb.price > 0
+                    WHERE cb.base_price > 0
                 """
                 
                 cur = con.execute(query)
