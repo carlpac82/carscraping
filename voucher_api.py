@@ -201,12 +201,12 @@ async def print_voucher(booking_id: int):
         template_content = html_content  # This is already the rendered template
         print(f"[VOUCHER PRINT] Using original template, size: {len(template_content)} bytes")
         
-        # Return HTML as PDF-like response
+        # Return HTML as PDF-like response with print icon
         return Response(
             content=template_content,
-            media_type='text/html',
+            media_type='application/pdf',  # This shows print icon in browser
             headers={
-                'Content-Disposition': f'inline; filename="voucher_{booking_data["voucher_number"]}.html"'
+                'Content-Disposition': f'inline; filename="voucher_{booking_data["voucher_number"]}.pdf"'
             }
         )
         
