@@ -299,29 +299,68 @@ async def email_voucher(booking_id: int, email_request: EmailRequest):
             raise HTTPException(status_code=404, detail='Reserva não encontrada')
         
         print(f"[VOUCHER EMAIL] Generating PDF for voucher {booking_data.get('voucher_number')}")
-        # Generate PDF with custom URL fetcher for images
-        html_content = render_voucher_template(booking_data)
         
-        import urllib.request
-        import time
-        def custom_url_fetcher(url):
-            """Custom URL fetcher with longer timeout and retries for images"""
-            print(f"[VOUCHER EMAIL] Fetching URL: {url}")
-            max_retries = 3
-            for attempt in range(max_retries):
-                try:
-                    data = urllib.request.urlopen(url, timeout=60).read()
-                    print(f"[VOUCHER EMAIL] Successfully loaded {url}, size: {len(data)} bytes")
-                    return {'string': data, 'mime_type': 'image/png'}
-                except Exception as e:
-                    print(f"[VOUCHER EMAIL] Attempt {attempt + 1}/{max_retries} failed for {url}: {e}")
-                    if attempt < max_retries - 1:
-                        time.sleep(2)
-                    else:
-                        raise Exception(f"Falha ao carregar imagem {url} após {max_retries} tentativas: {e}")
+        # Generate PDF with ReportLab (same as print route)
+        buffer = io.BytesIO()
+        p = canvas.Canvas(buffer, pagesize=A4)
+        width, height = A4
         
-        pdf_file = HTML(string=html_content, url_fetcher=custom_url_fetcher).write_pdf()
-        print(f"[VOUCHER EMAIL] PDF generated successfully, size: {len(pdf_file)} bytes")
+        # Header
+        p.setFont("Helvetica-Bold", 16)
+        p.drawString(50, height - 50, f"VOUCHER {booking_data.get('voucher_number')}")
+        
+        # Informações do cliente
+        p.setFont("Helvetica", 12)
+        y_position = height - 100
+        p.drawString(50, y_position, f"Cliente: {booking_data.get('client_name')}")
+        y_position -= 20
+        p.drawString(50, y_position, f"Email: {booking_data.get('client_email')}")
+        y_position -= 20
+        p.drawString(50, y_position, f"Telefone: {booking_data.get('client_phone')}")
+        
+        # Veículo
+        y_position -= 40
+        p.setFont("Helvetica-Bold", 12)
+        p.drawString(50, y_position, "Veículo:")
+        y_position -= 20
+        p.setFont("Helvetica", 12)
+        p.drawString(50, y_position, f"{booking_data.get('vehicle_group')}")
+        
+        # Datas
+        y_position -= 40
+        p.drawString(50, y_position, f"Levantamento: {booking_data.get('pickup_date')} {booking_data.get('pickup_time')}")
+        y_position -= 20
+        p.drawString(50, y_position, f"Entrega: {booking_data.get('dropoff_date')} {booking_data.get('dropoff_time')}")
+        
+        # Valores
+        y_position -= 40
+        p.setFont("Helvetica-Bold", 12)
+        p.drawString(50, y_position, "Valores:")
+        y_position -= 20
+        p.setFont("Helvetica", 12)
+        p.drawString(50, y_position, f"Total: €{booking_data.get('total_price')}")
+        y_position -= 20
+        p.drawString(50, y_position, f"Depósito: €{booking_data.get('deposit')}")
+        y_position -= 20
+        p.drawString(50, y_position, f"A Pagar: €{booking_data.get('amount_to_pay')}")
+        
+        # Tentar adicionar imagem do veículo se existir
+        if booking_data.get('vehicle_image'):
+            try:
+                print(f"[VOUCHER EMAIL] Loading vehicle image: {booking_data.get('vehicle_image')}")
+                img_data = urllib.request.urlopen(booking_data.get('vehicle_image'), timeout=10).read()
+                img = ImageReader(io.BytesIO(img_data))
+                p.drawImage(img, 400, height - 200, width=150, height=100)
+                print(f"[VOUCHER EMAIL] Vehicle image added")
+            except Exception as e:
+                print(f"[VOUCHER EMAIL] Could not load vehicle image: {e}")
+        
+        p.showPage()
+        p.save()
+        
+        pdf_file = buffer.getvalue()
+        buffer.close()
+        print(f"[VOUCHER EMAIL] PDF generated successfully with ReportLab, size: {len(pdf_file)} bytes")
         
         # Get Gmail OAuth credentials
         print(f"[VOUCHER EMAIL] Loading Gmail OAuth credentials")
