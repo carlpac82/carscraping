@@ -197,9 +197,37 @@ async def print_voucher(booking_id: int):
         
         print(f"[VOUCHER PRINT] Starting PDF generation with fpdf2")
         
-        # Use the original template HTML
-        template_content = html_content  # This is already the rendered template
-        print(f"[VOUCHER PRINT] Using original template, size: {len(template_content)} bytes")
+        # Use the original template HTML with print CSS
+        template_content = html_content
+        
+        # Add print CSS for proper PDF layout
+        print_css = """
+        <style>
+        @media print {
+            @page {
+                size: A4;
+                margin: 1cm;
+            }
+            body {
+                margin: 0;
+                padding: 0;
+                -webkit-print-color-adjust: exact;
+                print-color-adjust: exact;
+            }
+            .voucher-container {
+                max-width: 100%;
+                margin: 0;
+                padding: 0;
+            }
+        }
+        </style>
+        """
+        
+        # Insert print CSS before closing head tag
+        if '</head>' in template_content:
+            template_content = template_content.replace('</head>', print_css + '</head>')
+        
+        print(f"[VOUCHER PRINT] Using original template with print CSS, size: {len(template_content)} bytes")
         
         # Return HTML as PDF-like response with print icon
         return Response(
