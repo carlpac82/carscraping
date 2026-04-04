@@ -233,20 +233,11 @@
             </div>
 
             <div class="vehicle-section">
-                <div style="display: flex; align-items: center; margin-bottom: 8px;">
-                    <span style="font-size: 10px; color: #1f2937;">{{ pickup_date }} {{ pickup_time }} -</span>
-                    {% if vehicle_image %}
-                    <div style="margin-left: 5px;">
-                        <img src="{{ vehicle_image }}" alt="{{ vehicle_group }}" style="width: 40px; height: 25px; object-fit: cover;">
-                    </div>
-                    {% endif %}
-                </div>
-                <div class="vehicle-name">
-                    <span style="text-transform: uppercase; font-weight: 700; color: #009cb6;">GRUPO {{ vehicle_group }}</span>
-                    <br>
-                    <span style="font-size: 10px; color: #6b7280; font-weight: normal;">{{ vehicle_model }}</span>
-                </div>
                 <div class="info-grid">
+                    <div class="info-row">
+                        <div class="info-label">Levantamento</div>
+                        <div class="info-value">{{ pickup_date }} {{ pickup_time }}</div>
+                    </div>
                     <div class="info-row">
                         <div class="info-label">Local Levantamento</div>
                         <div class="info-value">{{ pickup_location }}</div>
@@ -269,6 +260,19 @@
                         <div class="info-label">Dias</div>
                         <div class="info-value">{{ rental_days }}</div>
                     </div>
+                    {% if vehicle_image %}
+                    <div class="info-row" style="vertical-align: top;">
+                        <div class="info-label">&nbsp;</div>
+                        <div class="info-value">
+                            <img src="{{ vehicle_image }}" alt="{{ vehicle_group }}" style="width: 80px; height: 50px; object-fit: cover;">
+                            <div class="vehicle-name" style="margin-top: 4px;">
+                                <span style="text-transform: uppercase; font-weight: 700; color: #009cb6;">GRUPO {{ vehicle_group }}</span>
+                                <br>
+                                <span style="font-size: 10px; color: #6b7280; font-weight: normal;">{{ vehicle_model }}</span>
+                            </div>
+                        </div>
+                    </div>
+                    {% endif %}
                 </div>
             </div>
 
