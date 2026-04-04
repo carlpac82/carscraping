@@ -13029,7 +13029,7 @@ async def admin_commissions_export_excel(request: Request):
                             c.name as commissioner_name,
                             cb.voucher_number,
                             cb.pickup_date,
-                            EXTRACT(DAY FROM (cb.dropoff_date - cb.pickup_date)) as days,
+                            cb.days,
                             cb.base_price,
                             cb.commission_amount
                         FROM commission_bookings cb
