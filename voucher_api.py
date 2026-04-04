@@ -258,6 +258,12 @@ async def print_voucher(booking_id: int):
         html_content = render_voucher_template(booking_data)
         print(f"[VOUCHER PRINT] HTML template rendered, length: {len(html_content)}")
         
+        # Convert relative URLs to absolute for WeasyPrint
+        base_url = "https://rentalprices.pt"
+        html_content = html_content.replace('src="/api/vehicles/', f'src="{base_url}/api/vehicles/')
+        html_content = html_content.replace('src="https://rentalprices.pt/static/', f'src="{base_url}/static/')
+        
+        print(f"[VOUCHER PRINT] URLs converted to absolute")
         print(f"[VOUCHER PRINT] Starting PDF generation with WeasyPrint")
         
         # Add print CSS for proper PDF generation
