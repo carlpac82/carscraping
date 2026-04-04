@@ -4,7 +4,7 @@ from pydantic import BaseModel
 from datetime import datetime
 import psycopg2
 import os
-import pdfkit
+from fpdf import FPDF
 import io
 from jinja2 import Template
 
@@ -196,24 +196,57 @@ async def print_voucher(booking_id: int):
         html_content = render_voucher_template(booking_data)
         print(f"[VOUCHER PRINT] HTML template rendered, length: {len(html_content)}")
         
-        print(f"[VOUCHER PRINT] Starting PDF generation with pdfkit (fast + HTML template)")
+        print(f"[VOUCHER PRINT] Starting PDF generation with fpdf2")
         
-        # Generate PDF with pdfkit - fast and works with HTML
-        options = {
-            'page-size': 'A4',
-            'margin-top': '10mm',
-            'encoding': "UTF-8",
-            'quiet': '',
-            'images': True,
-            'enable-local-file-access': None
-        }
+        # Generate PDF with fpdf2 - ultra fast, native Python
+        pdf = FPDF()
+        pdf.add_page()
+        pdf.set_auto_page_break(auto=True, margin=15)
         
-        pdf_file = pdfkit.from_string(html_content, False, options=options)
-        print(f"[VOUCHER PRINT] PDF generated with pdfkit (fast), size: {len(pdf_file)} bytes")
+        # Set font
+        pdf.set_font("Helvetica", "B", 16)
+        pdf.cell(0, 10, f"VOUCHER {booking_data.get('voucher_number')}", 0, 1, "C")
+        pdf.ln(10)
+        
+        # Client info
+        pdf.set_font("Helvetica", "B", 12)
+        pdf.cell(0, 8, "DADOS DO CLIENTE", 0, 1, "L")
+        pdf.set_font("Helvetica", "", 11)
+        pdf.cell(0, 6, f"Nome: {booking_data.get('client_name')}", 0, 1, "L")
+        pdf.cell(0, 6, f"Email: {booking_data.get('client_email')}", 0, 1, "L")
+        pdf.cell(0, 6, f"Telefone: {booking_data.get('client_phone')}", 0, 1, "L")
+        pdf.ln(5)
+        
+        # Vehicle info
+        pdf.set_font("Helvetica", "B", 12)
+        pdf.cell(0, 8, "DADOS DO VEICULO", 0, 1, "L")
+        pdf.set_font("Helvetica", "", 11)
+        pdf.cell(0, 6, f"Grupo: {booking_data.get('vehicle_group')}", 0, 1, "L")
+        pdf.cell(0, 6, f"Modelo: {booking_data.get('vehicle_model')}", 0, 1, "L")
+        pdf.ln(5)
+        
+        # Dates
+        pdf.set_font("Helvetica", "B", 12)
+        pdf.cell(0, 8, "DATAS", 0, 1, "L")
+        pdf.set_font("Helvetica", "", 11)
+        pdf.cell(0, 6, f"Levantamento: {booking_data.get('pickup_date')} as {booking_data.get('pickup_time')}", 0, 1, "L")
+        pdf.cell(0, 6, f"Entrega: {booking_data.get('dropoff_date')} as {booking_data.get('dropoff_time')}", 0, 1, "L")
+        pdf.ln(5)
+        
+        # Values
+        pdf.set_font("Helvetica", "B", 12)
+        pdf.cell(0, 8, "VALORES", 0, 1, "L")
+        pdf.set_font("Helvetica", "", 11)
+        pdf.cell(0, 6, f"Total: EUR {booking_data.get('total_price')}", 0, 1, "L")
+        pdf.cell(0, 6, f"Valor a pagar no levantamento: EUR {booking_data.get('amount_to_pay')}", 0, 1, "L")
+        
+        # Get PDF bytes
+        pdf_content = pdf.output(dest='S').encode('latin-1')
+        print(f"[VOUCHER PRINT] PDF generated with fpdf2, size: {len(pdf_content)} bytes")
         
         # Return PDF
         return StreamingResponse(
-            io.BytesIO(pdf_file),
+            io.BytesIO(pdf_content),
             media_type='application/pdf',
             headers={
                 'Content-Disposition': f'inline; filename="voucher_{booking_data["voucher_number"]}.pdf"'
@@ -252,18 +285,51 @@ async def email_voucher(booking_id: int, email_request: EmailRequest):
         html_content = render_voucher_template(booking_data)
         print(f"[VOUCHER EMAIL] HTML template rendered, length: {len(html_content)}")
         
-        # Generate PDF with pdfkit - fast and works with HTML
-        options = {
-            'page-size': 'A4',
-            'margin-top': '10mm',
-            'encoding': "UTF-8",
-            'quiet': '',
-            'images': True,
-            'enable-local-file-access': None
-        }
+        # Generate PDF with fpdf2 - ultra fast, native Python
+        pdf = FPDF()
+        pdf.add_page()
+        pdf.set_auto_page_break(auto=True, margin=15)
         
-        pdf_file = pdfkit.from_string(html_content, False, options=options)
-        print(f"[VOUCHER EMAIL] PDF generated with pdfkit (fast), size: {len(pdf_file)} bytes")
+        # Set font
+        pdf.set_font("Helvetica", "B", 16)
+        pdf.cell(0, 10, f"VOUCHER {booking_data.get('voucher_number')}", 0, 1, "C")
+        pdf.ln(10)
+        
+        # Client info
+        pdf.set_font("Helvetica", "B", 12)
+        pdf.cell(0, 8, "DADOS DO CLIENTE", 0, 1, "L")
+        pdf.set_font("Helvetica", "", 11)
+        pdf.cell(0, 6, f"Nome: {booking_data.get('client_name')}", 0, 1, "L")
+        pdf.cell(0, 6, f"Email: {booking_data.get('client_email')}", 0, 1, "L")
+        pdf.cell(0, 6, f"Telefone: {booking_data.get('client_phone')}", 0, 1, "L")
+        pdf.ln(5)
+        
+        # Vehicle info
+        pdf.set_font("Helvetica", "B", 12)
+        pdf.cell(0, 8, "DADOS DO VEICULO", 0, 1, "L")
+        pdf.set_font("Helvetica", "", 11)
+        pdf.cell(0, 6, f"Grupo: {booking_data.get('vehicle_group')}", 0, 1, "L")
+        pdf.cell(0, 6, f"Modelo: {booking_data.get('vehicle_model')}", 0, 1, "L")
+        pdf.ln(5)
+        
+        # Dates
+        pdf.set_font("Helvetica", "B", 12)
+        pdf.cell(0, 8, "DATAS", 0, 1, "L")
+        pdf.set_font("Helvetica", "", 11)
+        pdf.cell(0, 6, f"Levantamento: {booking_data.get('pickup_date')} as {booking_data.get('pickup_time')}", 0, 1, "L")
+        pdf.cell(0, 6, f"Entrega: {booking_data.get('dropoff_date')} as {booking_data.get('dropoff_time')}", 0, 1, "L")
+        pdf.ln(5)
+        
+        # Values
+        pdf.set_font("Helvetica", "B", 12)
+        pdf.cell(0, 8, "VALORES", 0, 1, "L")
+        pdf.set_font("Helvetica", "", 11)
+        pdf.cell(0, 6, f"Total: EUR {booking_data.get('total_price')}", 0, 1, "L")
+        pdf.cell(0, 6, f"Valor a pagar no levantamento: EUR {booking_data.get('amount_to_pay')}", 0, 1, "L")
+        
+        # Get PDF bytes
+        pdf_content = pdf.output(dest='S').encode('latin-1')
+        print(f"[VOUCHER EMAIL] PDF generated with fpdf2, size: {len(pdf_content)} bytes")
         
         # Get Gmail OAuth credentials
         print(f"[VOUCHER EMAIL] Loading Gmail OAuth credentials")
@@ -274,84 +340,34 @@ async def email_voucher(booking_id: int, email_request: EmailRequest):
             raise HTTPException(status_code=500, detail='Gmail não está configurado. Vá a Admin Settings → Email e conecte o Gmail.')
         
         # Create email message
-        msg = MIMEMultipart()
-        msg['To'] = recipient_email
-        msg['Subject'] = f'Voucher de Reserva - {booking_data["voucher_number"]}'
+        message = create_message_with_attachment(
+            credentials, 
+            email_request.email, 
+            f"Voucher {booking_data['voucher_number']}", 
+            f"Anexo o voucher para a reserva {booking_data['voucher_number']}.",
+            pdf_content,  
+            f"voucher_{booking_data['voucher_number']}.pdf"
+        )
         
-        # Email body
-        email_body = f"""
-        <html>
-        <body style="font-family: Arial, sans-serif; line-height: 1.6; color: #333;">
-            <div style="max-width: 600px; margin: 0 auto; padding: 20px;">
-                <h2 style="color: #009cb6;">Voucher de Reserva - AutoPrudente</h2>
-                <p>Caro(a) {booking_data['client_name']},</p>
-                <p>Segue em anexo o voucher da sua reserva.</p>
-                
-                <div style="background: #f9fafb; padding: 20px; border-radius: 8px; margin: 20px 0;">
-                    <h3 style="color: #009cb6; margin-top: 0;">Detalhes da Reserva</h3>
-                    <p><strong>Voucher:</strong> {booking_data['voucher_number']}</p>
-                    <p><strong>Veículo:</strong> {booking_data['vehicle_group']}</p>
-                    <p><strong>Levantamento:</strong> {booking_data['pickup_date']} às {booking_data['pickup_time']}</p>
-                    <p><strong>Entrega:</strong> {booking_data['dropoff_date']} às {booking_data['dropoff_time']}</p>
-                    <p><strong>Valor a Pagar no Levantamento:</strong> €{booking_data['amount_to_pay']}</p>
-                </div>
-                
-                <p>Por favor, apresente este voucher no momento do levantamento da viatura.</p>
-                
-                <p>Para qualquer questão, não hesite em contactar-nos:</p>
-                <p>
-                    📞 +351 289 123 456<br>
-                    📱 +351 912 345 678<br>
-                    ✉️ info@autoprudente.pt
-                </p>
-                
-                <p>Obrigado por escolher a AutoPrudente!</p>
-                
-                <hr style="border: none; border-top: 1px solid #e5e7eb; margin: 30px 0;">
-                <p style="font-size: 12px; color: #6b7280;">
-                    Este é um email automático. Por favor, não responda a este email.
-                </p>
-            </div>
-        </body>
-        </html>
-        """
-        
-        msg.attach(MIMEText(email_body, 'html'))
-        
-        # Attach PDF
-        print(f"[VOUCHER EMAIL] Attaching PDF to email")
-        part = MIMEBase('application', 'pdf')
-        part.set_payload(pdf_file)
-        encoders.encode_base64(part)
-        part.add_header('Content-Disposition', f'attachment; filename="voucher_{booking_data["voucher_number"]}.pdf"')
-        msg.attach(part)
-        
-        # Send via Gmail API
-        print(f"[VOUCHER EMAIL] Sending email via Gmail API to {recipient_email}")
+        # Send email
+        print(f"[VOUCHER EMAIL] Sending email via Gmail API")
         try:
             service = build('gmail', 'v1', credentials=credentials)
-            raw_message = base64.urlsafe_b64encode(msg.as_bytes()).decode()
+            raw_message = base64.urlsafe_b64encode(message['raw']).decode()
             message_body = {'raw': raw_message}
             
             sent_message = service.users().messages().send(userId='me', body=message_body).execute()
-            print(f"[VOUCHER EMAIL] Email sent successfully! Message ID: {sent_message['id']}")
+            print(f"[VOUCHER EMAIL] Email sent successfully: {sent_message['id']}")
             
-        except Exception as gmail_error:
-            print(f"[VOUCHER EMAIL] Gmail API error: {gmail_error}")
-            raise HTTPException(status_code=500, detail=f'Erro ao enviar email: {str(gmail_error)}')
-        
-        return {'ok': True, 'message': 'Voucher enviado com sucesso'}
+            return {"message": "Voucher enviado com sucesso", "message_id": sent_message['id']}
+            
+        except Exception as e:
+            print(f"[VOUCHER EMAIL] Error sending email: {e}")
+            raise HTTPException(status_code=500, detail='Erro ao enviar email: ' + str(e))
         
     except HTTPException as he:
         print(f"[VOUCHER EMAIL] HTTP Exception: {he.detail}")
-        raise
+        raise he
     except Exception as e:
-        print(f"[VOUCHER EMAIL] Error sending voucher email: {e}")
-        import traceback
-        traceback.print_exc()
-        error_msg = str(e)
-        if 'Authentication' in error_msg or 'login' in error_msg.lower():
-            error_msg = 'Erro de autenticação SMTP. Contacte o administrador.'
-        elif 'Connection' in error_msg or 'timeout' in error_msg.lower():
-            error_msg = 'Erro de conexão ao servidor de email. Tente novamente.'
-        raise HTTPException(status_code=500, detail=error_msg)
+        print(f"[VOUCHER EMAIL] Unexpected error: {e}")
+        raise HTTPException(status_code=500, detail='Erro inesperado: ' + str(e))
