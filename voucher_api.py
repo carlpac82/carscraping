@@ -167,7 +167,7 @@ def get_booking_data(booking_id):
             'agent_email': result[21] or 'N/A',
             'agent_phone': result[22] or 'N/A',
             'booking_date': result[19].strftime('%d/%m/%Y às %H:%M') if result[19] else '',
-            'vehicle_image': f'https://carscraping-production.railway.app/static/vehicles/{result[13]}.jpg' if result[13] else ''
+            'vehicle_image': f'https://rentalprices.pt/static/vehicles/{result[13]}.jpg' if result[13] else ''
         }
         
         return booking_data
