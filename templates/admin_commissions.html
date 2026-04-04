@@ -618,8 +618,10 @@
               <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
                 <h3 style="margin: 0;">Top 10 Comissionistas (<span id="topCommissionersMonthLabel">Mês Anterior</span>)</h3>
                 <div style="display: flex; gap: 0.5rem; align-items: center;">
-                  <button onclick="toggleTopCommissionersView()" style="padding: 0.4rem 0.8rem; border: 1px solid #d1d5db; border-radius: 0.375rem; font-size: 0.875rem; background: white; cursor: pointer;">
-                    <span id="topCommissionersToggleText">Ver Reservas</span>
+                  <button id="topCommissionersToggle" onclick="toggleTopCommissionersView()" style="padding: 0.4rem 0.8rem; border: 1px solid #d1d5db; border-radius: 0.375rem; font-size: 0.875rem; background: white; cursor: pointer;" title="Alternar entre valor e contagem">
+                    <svg id="topCommissionersToggleIcon" width="16" height="16" viewBox="0 0 24 24" fill="currentColor" style="color: #ff9800;">
+                      <path d="M11 2v20c-5.07-.5-9-4.79-9-10s3.93-9.5 9-10zm2.03 0v8.99H22c-.47-4.74-4.24-8.52-8.97-8.99zm0 11.01V22c4.74-.47 8.5-4.25 8.97-8.99h-8.97z"/>
+                    </svg>
                   </button>
                   <select id="topCommissionersMonthSelect" onchange="loadTopCommissioners()" style="padding: 0.4rem 0.8rem; border: 1px solid #d1d5db; border-radius: 0.375rem; font-size: 0.875rem; background: white;">
                     <!-- Months will be populated by JS -->
@@ -634,8 +636,10 @@
               <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
                 <h3 style="margin: 0;">Top 10 Comissionistas (Ano)</h3>
                 <div style="display: flex; gap: 0.5rem; align-items: center;">
-                  <button onclick="toggleTopCommissionersYearlyView()" style="padding: 0.4rem 0.8rem; border: 1px solid #d1d5db; border-radius: 0.375rem; font-size: 0.875rem; background: white; cursor: pointer;">
-                    <span id="topCommissionersYearlyToggleText">Ver Reservas</span>
+                  <button id="topCommissionersYearlyToggle" onclick="toggleTopCommissionersYearlyView()" style="padding: 0.4rem 0.8rem; border: 1px solid #d1d5db; border-radius: 0.375rem; font-size: 0.875rem; background: white; cursor: pointer;" title="Alternar entre valor e contagem">
+                    <svg id="topCommissionersYearlyToggleIcon" width="16" height="16" viewBox="0 0 24 24" fill="currentColor" style="color: #ff9800;">
+                      <path d="M11 2v20c-5.07-.5-9-4.79-9-10s3.93-9.5 9-10zm2.03 0v8.99H22c-.47-4.74-4.24-8.52-8.97-8.99zm0 11.01V22c4.74-.47 8.5-4.25 8.97-8.99h-8.97z"/>
+                    </svg>
                   </button>
                   <select id="yearlyTopSelect" onchange="loadYearlyTop()" style="padding: 0.4rem 0.8rem; border: 1px solid #d1d5db; border-radius: 0.375rem; font-size: 0.875rem; background: white;">
                     <!-- Years will be populated by JS -->
@@ -1630,8 +1634,19 @@
           // Toggle Top Commissioners view
           function toggleTopCommissionersView() {
               topCommissionersShowValues = !topCommissionersShowValues;
-              const toggleText = document.getElementById('topCommissionersToggleText');
-              toggleText.textContent = topCommissionersShowValues ? 'Ver Reservas' : 'Ver Valores';
+              
+              // Update toggle icon and color
+              const toggleIcon = document.getElementById('topCommissionersToggleIcon');
+              if (topCommissionersShowValues) {
+                  // SVG para gráfico de valores (pie chart) - cor amarela
+                  toggleIcon.innerHTML = '<path d="M11 2v20c-5.07-.5-9-4.79-9-10s3.93-9.5 9-10zm2.03 0v8.99H22c-.47-4.74-4.24-8.52-8.97-8.99zm0 11.01V22c4.74-.47 8.5-4.25 8.97-8.99h-8.97z"/>';
+                  toggleIcon.style.color = '#ff9800'; // Amarelo website
+              } else {
+                  // SVG para contagem (bar chart) - cor azul
+                  toggleIcon.innerHTML = '<path d="M3 13h2v8H3zm4-8h2v16H7zm4-2h2v18h-2zm4 4h2v14h-2zm4-2h2v18h-2z"/>';
+                  toggleIcon.style.color = '#009cb6'; // Azul website
+              }
+              
               loadTopCommissioners();
           }
           
@@ -1644,9 +1659,18 @@
                   topCommissionersChart.destroy();
               }
               
-              const labels = data.map(item => item.name);
-              const values = data.map(item => item.total);
-              const counts = data.map(item => item.count || 0);
+              // Sort data based on current view (values or counts)
+              const sortedData = [...data].sort((a, b) => {
+                  if (topCommissionersShowValues) {
+                      return b.total - a.total; // Ordenar por valores (decrescente)
+                  } else {
+                      return b.count - a.count; // Ordenar por reservas (decrescente)
+                  }
+              });
+              
+              const labels = sortedData.map(item => item.name);
+              const values = sortedData.map(item => item.total);
+              const counts = sortedData.map(item => item.count || 0);
               
               const chartData = topCommissionersShowValues ? values : counts;
               const label = topCommissionersShowValues ? 'Total de Comissões (€)' : 'Número de Reservas';
@@ -1689,8 +1713,19 @@
           // Toggle Top Commissioners Yearly view
           function toggleTopCommissionersYearlyView() {
               topCommissionersYearlyShowValues = !topCommissionersYearlyShowValues;
-              const toggleText = document.getElementById('topCommissionersYearlyToggleText');
-              toggleText.textContent = topCommissionersYearlyShowValues ? 'Ver Reservas' : 'Ver Valores';
+              
+              // Update toggle icon and color
+              const toggleIcon = document.getElementById('topCommissionersYearlyToggleIcon');
+              if (topCommissionersYearlyShowValues) {
+                  // SVG para gráfico de valores (pie chart) - cor amarela
+                  toggleIcon.innerHTML = '<path d="M11 2v20c-5.07-.5-9-4.79-9-10s3.93-9.5 9-10zm2.03 0v8.99H22c-.47-4.74-4.24-8.52-8.97-8.99zm0 11.01V22c4.74-.47 8.5-4.25 8.97-8.99h-8.97z"/>';
+                  toggleIcon.style.color = '#ff9800'; // Amarelo website
+              } else {
+                  // SVG para contagem (bar chart) - cor azul
+                  toggleIcon.innerHTML = '<path d="M3 13h2v8H3zm4-8h2v16H7zm4-2h2v18h-2zm4 4h2v14h-2zm4-2h2v18h-2z"/>';
+                  toggleIcon.style.color = '#009cb6'; // Azul website
+              }
+              
               loadYearlyTop();
           }
           
@@ -1703,9 +1738,18 @@
                   topCommissionersYearlyChart.destroy();
               }
               
-              const labels = data.map(item => item.name);
-              const values = data.map(item => item.total);
-              const counts = data.map(item => item.count || 0);
+              // Sort data based on current view (values or counts)
+              const sortedData = [...data].sort((a, b) => {
+                  if (topCommissionersYearlyShowValues) {
+                      return b.total - a.total; // Ordenar por valores (decrescente)
+                  } else {
+                      return b.count - a.count; // Ordenar por reservas (decrescente)
+                  }
+              });
+              
+              const labels = sortedData.map(item => item.name);
+              const values = sortedData.map(item => item.total);
+              const counts = sortedData.map(item => item.count || 0);
               
               const chartData = topCommissionersYearlyShowValues ? values : counts;
               const label = topCommissionersYearlyShowValues ? 'Total de Comissões (€)' : 'Número de Reservas';
