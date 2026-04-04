@@ -268,12 +268,12 @@
                         </div>
                         
                         <!-- Coluna da direita - Imagem e Grupo -->
-                        <div style="display: table-cell; width: 40%; vertical-align: top; text-align: center; padding-left: 10px;">
+                        <div style="display: table-cell; width: 40%; vertical-align: middle; text-align: center; padding-left: 10px;">
                             {% if vehicle_image %}
-                            <div>
-                                <img src="{{ vehicle_image }}" alt="{{ vehicle_group }}" style="width: 80px; height: 50px; object-fit: cover;">
+                            <div style="margin-bottom: 12px;">
+                                <img src="{{ vehicle_image }}" alt="{{ vehicle_group }}" style="width: 100px; height: 60px; object-fit: cover; border-radius: 4px;">
                             </div>
-                            <div class="vehicle-name" style="margin-top: 8px;">
+                            <div class="vehicle-name">
                                 <span style="text-transform: uppercase; font-weight: 700; color: #009cb6;">GRUPO {{ vehicle_group }}</span>
                                 <br>
                                 <span style="font-size: 10px; color: #6b7280; font-weight: normal;">{{ vehicle_model }}</span>
