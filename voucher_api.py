@@ -39,22 +39,20 @@ vehicle_models = {
 
 # Vehicle name mapping for API
 vehicle_api_names = {
+    'A': 'kia picanto',
     'B': 'fiat panda',
-    'B1': 'peugeot 108',
-    'B2': 'fiat panda',
-    'D': 'opel corsa',
-    'E1': 'kia picanto',
+    'D': 'seat ibiza',
+    'E1': 'hyundai i10',
     'E2': 'citroen c3',
-    'F': 'ford focus',
-    'G': 'volkswagen golf',
-    'I': 'volkswagen passat',
-    'J': 'skoda octavia',
-    'K': 'opel insignia',
-    'L': 'volkswagen tiguan',
-    'M': 'nissan qashqai',
-    'N': 'toyota rav4',
-    'O': 'volkswagen sharan',
-    'P': 'citroen berlingo'
+    'F': 'seat arona',
+    'G': 'fiat 500',
+    'J1': 'peugeot 2008',
+    'J2': 'peugeot 308 sw',
+    'L1': 'citroen c3 aircross',
+    'L2': 'peugeot 308 sw',
+    'M1': 'dacia jogger',
+    'M2': 'citroen c4 picasso',
+    'N': 'toyota proace'
 }
 
 def create_message_with_attachment(credentials, to_email, subject, body, attachment_content, filename):
