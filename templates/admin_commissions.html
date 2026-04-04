@@ -617,9 +617,14 @@
             <div class="chart-card">
               <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
                 <h3 style="margin: 0;">Top 10 Comissionistas (<span id="topCommissionersMonthLabel">Mês Anterior</span>)</h3>
-                <select id="topCommissionersMonthSelect" onchange="loadTopCommissioners()" style="padding: 0.4rem 0.8rem; border: 1px solid #d1d5db; border-radius: 0.375rem; font-size: 0.875rem; background: white;">
-                  <!-- Months will be populated by JS -->
-                </select>
+                <div style="display: flex; gap: 0.5rem; align-items: center;">
+                  <button onclick="toggleTopCommissionersView()" style="padding: 0.4rem 0.8rem; border: 1px solid #d1d5db; border-radius: 0.375rem; font-size: 0.875rem; background: white; cursor: pointer;">
+                    <span id="topCommissionersToggleText">Ver Reservas</span>
+                  </button>
+                  <select id="topCommissionersMonthSelect" onchange="loadTopCommissioners()" style="padding: 0.4rem 0.8rem; border: 1px solid #d1d5db; border-radius: 0.375rem; font-size: 0.875rem; background: white;">
+                    <!-- Months will be populated by JS -->
+                  </select>
+                </div>
               </div>
               <canvas id="topCommissionersChart" style="max-height: 300px;"></canvas>
             </div>
@@ -628,9 +633,14 @@
             <div class="chart-card">
               <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
                 <h3 style="margin: 0;">Top 10 Comissionistas (Ano)</h3>
-                <select id="yearlyTopSelect" onchange="loadYearlyTop()" style="padding: 0.4rem 0.8rem; border: 1px solid #d1d5db; border-radius: 0.375rem; font-size: 0.875rem; background: white;">
-                  <!-- Years will be populated by JS -->
-                </select>
+                <div style="display: flex; gap: 0.5rem; align-items: center;">
+                  <button onclick="toggleTopCommissionersYearlyView()" style="padding: 0.4rem 0.8rem; border: 1px solid #d1d5db; border-radius: 0.375rem; font-size: 0.875rem; background: white; cursor: pointer;">
+                    <span id="topCommissionersYearlyToggleText">Ver Reservas</span>
+                  </button>
+                  <select id="yearlyTopSelect" onchange="loadYearlyTop()" style="padding: 0.4rem 0.8rem; border: 1px solid #d1d5db; border-radius: 0.375rem; font-size: 0.875rem; background: white;">
+                    <!-- Years will be populated by JS -->
+                  </select>
+                </div>
               </div>
               <canvas id="topCommissionersYearlyChart" style="max-height: 300px;"></canvas>
             </div>
@@ -907,6 +917,10 @@
           let commissionsSortDirection = 'desc';
           let brokersSortField = 'pickup_date';
           let brokersSortDirection = 'desc';
+          
+          // Toggle states for Top Commissioners charts
+          let topCommissionersShowValues = true; // true = valores, false = reservas
+          let topCommissionersYearlyShowValues = true; // true = valores, false = reservas
           
           // Load commissions on page load
           document.addEventListener('DOMContentLoaded', function() {
@@ -1613,6 +1627,14 @@
               }
           }
           
+          // Toggle Top Commissioners view
+          function toggleTopCommissionersView() {
+              topCommissionersShowValues = !topCommissionersShowValues;
+              const toggleText = document.getElementById('topCommissionersToggleText');
+              toggleText.textContent = topCommissionersShowValues ? 'Ver Reservas' : 'Ver Valores';
+              loadTopCommissioners();
+          }
+          
           // Initialize Top Commissioners Chart
           function initTopCommissionersChart(data) {
               const ctx = document.getElementById('topCommissionersChart');
@@ -1624,14 +1646,18 @@
               
               const labels = data.map(item => item.name);
               const values = data.map(item => item.total);
+              const counts = data.map(item => item.count || 0);
+              
+              const chartData = topCommissionersShowValues ? values : counts;
+              const label = topCommissionersShowValues ? 'Total de Comissões (€)' : 'Número de Reservas';
               
               topCommissionersChart = new Chart(ctx, {
                   type: 'bar',
                   data: {
                       labels: labels,
                       datasets: [{
-                          label: 'Total de Comissões (€)',
-                          data: values,
+                          label: label,
+                          data: chartData,
                           backgroundColor: '#009cb6',
                           borderColor: '#007a8c',
                           borderWidth: 1
@@ -1651,13 +1677,21 @@
                               beginAtZero: true,
                               ticks: {
                                   callback: function(value) {
-                                      return '€' + value.toFixed(0);
+                                      return topCommissionersShowValues ? '€' + value.toFixed(0) : value;
                                   }
                               }
                           }
                       }
                   }
               });
+          }
+          
+          // Toggle Top Commissioners Yearly view
+          function toggleTopCommissionersYearlyView() {
+              topCommissionersYearlyShowValues = !topCommissionersYearlyShowValues;
+              const toggleText = document.getElementById('topCommissionersYearlyToggleText');
+              toggleText.textContent = topCommissionersYearlyShowValues ? 'Ver Reservas' : 'Ver Valores';
+              loadYearlyTop();
           }
           
           // Initialize Top Commissioners Yearly Chart
@@ -1671,18 +1705,22 @@
               
               const labels = data.map(item => item.name);
               const values = data.map(item => item.total);
+              const counts = data.map(item => item.count || 0);
+              
+              const chartData = topCommissionersYearlyShowValues ? values : counts;
+              const label = topCommissionersYearlyShowValues ? 'Total de Comissões (€)' : 'Número de Reservas';
               
               // Alternate colors between blue and yellow
-              const colors = values.map((_, index) => index % 2 === 0 ? '#009cb6' : '#ffc107');
-              const borderColors = values.map((_, index) => index % 2 === 0 ? '#007a8c' : '#e0a800');
+              const colors = chartData.map((_, index) => index % 2 === 0 ? '#009cb6' : '#ffc107');
+              const borderColors = chartData.map((_, index) => index % 2 === 0 ? '#007a8c' : '#e0a800');
               
               topCommissionersYearlyChart = new Chart(ctx, {
                   type: 'bar',
                   data: {
                       labels: labels,
                       datasets: [{
-                          label: 'Total de Comissões (€)',
-                          data: values,
+                          label: label,
+                          data: chartData,
                           backgroundColor: colors,
                           borderColor: borderColors,
                           borderWidth: 1
@@ -1702,7 +1740,7 @@
                               beginAtZero: true,
                               ticks: {
                                   callback: function(value) {
-                                      return '€' + value.toFixed(0);
+                                      return topCommissionersYearlyShowValues ? '€' + value.toFixed(0) : value;
                                   }
                               }
                           }
