@@ -313,6 +313,43 @@ async def print_voucher(booking_id: int):
         traceback.print_exc()
         raise HTTPException(status_code=500, detail=f'Erro ao gerar PDF: {str(e)}')
 
+@router.get('/api/vehicles/list-images')
+async def list_vehicle_images():
+    """Lista todos os veículos com imagens na base de dados"""
+    try:
+        import psycopg2
+        import os
+        
+        DATABASE_URL = os.environ.get('DATABASE_URL')
+        conn = psycopg2.connect(DATABASE_URL)
+        cur = conn.cursor()
+        
+        cur.execute("""
+            SELECT vehicle_key, content_type, downloaded_at 
+            FROM vehicle_images 
+            ORDER BY vehicle_key
+        """)
+        
+        vehicles = []
+        for row in cur.fetchall():
+            vehicles.append({
+                'vehicle_key': row[0],
+                'content_type': row[1], 
+                'downloaded_at': row[2]
+            })
+        
+        cur.close()
+        conn.close()
+        
+        return {
+            'count': len(vehicles),
+            'vehicles': vehicles
+        }
+        
+    except Exception as e:
+        print(f"[VEHICLES] Error listing images: {e}")
+        return {'error': str(e), 'vehicles': []}
+
 @router.post('/api/commissioner/voucher/email/{booking_id}')
 async def email_voucher(booking_id: int, email_request: EmailRequest):
     """Send voucher by email"""
