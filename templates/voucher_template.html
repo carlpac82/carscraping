@@ -246,7 +246,11 @@
                     <img src="{{ vehicle_image }}" alt="{{ vehicle_group }}">
                 </div>
                 {% endif %}
-                <div class="vehicle-name">Grupo {{ vehicle_group }} - {{ vehicle_model }}</div>
+                <div class="vehicle-name">
+                    <span style="text-transform: uppercase; font-weight: 700; color: #009cb6;">GRUPO {{ vehicle_group }}</span>
+                    <br>
+                    <span style="font-size: 10px; color: #6b7280; font-weight: normal;">{{ vehicle_model }}</span>
+                </div>
                 <div class="info-grid">
                     <div class="info-row">
                         <div class="info-label">Levantamento</div>
