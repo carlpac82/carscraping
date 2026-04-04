@@ -13112,9 +13112,9 @@ async def admin_commissions_export_excel(request: Request):
             ws_comm[f'E{current_row}'] = commission
             
             # Format date and currency
-            ws_comm[f'B{current_row}'].number_format = 'DD/MM/YYYY HH:MM'
-            ws_comm[f'D{current_row}'].number_format = '€#,##0.00'
-            ws_comm[f'E{current_row}'].number_format = '€#,##0.00'
+            ws_comm[f'B{current_row}'].number_format = 'DD/MM/YYYY'
+            ws_comm[f'D{current_row}'].number_format = '#,##0.00'
+            ws_comm[f'E{current_row}'].number_format = '#,##0'
             
             current_row += 1
         
@@ -13229,8 +13229,8 @@ async def admin_commissions_export_excel(request: Request):
             ws_brokers[f'D{current_row}'] = base_price
             
             # Format date and currency
-            ws_brokers[f'B{current_row}'].number_format = 'DD/MM/YYYY HH:MM'
-            ws_brokers[f'D{current_row}'].number_format = '€#,##0.00'
+            ws_brokers[f'B{current_row}'].number_format = 'DD/MM/YYYY'
+            ws_brokers[f'D{current_row}'].number_format = '#,##0.00'
             
             current_row += 1
         
