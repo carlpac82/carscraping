@@ -4,15 +4,9 @@ from pydantic import BaseModel
 from datetime import datetime
 import psycopg2
 import os
-import pdfkit
+from weasyprint import HTML
+import io
 from jinja2 import Template
-import base64
-from email.mime.multipart import MIMEMultipart
-from email.mime.text import MIMEText
-from email.mime.base import MIMEBase
-from email import encoders
-from googleapiclient.discovery import build
-import logging
 
 router = APIRouter()
 
@@ -203,37 +197,9 @@ async def print_voucher(booking_id: int):
         print(f"[VOUCHER PRINT] HTML template rendered, length: {len(html_content)}")
         
         # Generate PDF with custom URL fetcher for images
-        print(f"[VOUCHER PRINT] Starting PDF generation with pdfkit")
-        
-        # Configurações do pdfkit para melhor compatibilidade com imagens
-        options = {
-            'page-size': 'A4',
-            'margin-top': '10mm',
-            'margin-right': '10mm',
-            'margin-bottom': '10mm',
-            'margin-left': '10mm',
-            'encoding': "UTF-8",
-            'no-outline': None,
-            'enable-local-file-access': None,
-            'images': True,
-            'javascript-delay': 1000,
-            'load-error-handling': 'ignore',
-            'load-media-error-handling': 'ignore'
-        }
-        
-        try:
-            pdf_file = pdfkit.from_string(html_content, False, options=options)
-            print(f"[VOUCHER PRINT] PDF generated successfully, size: {len(pdf_file)} bytes")
-        except Exception as e:
-            print(f"[VOUCHER PRINT] Error with pdfkit, trying without image options: {e}")
-            # Fallback com opções mínimas
-            options_fallback = {
-                'page-size': 'A4',
-                'encoding': "UTF-8",
-                'load-error-handling': 'ignore'
-            }
-            pdf_file = pdfkit.from_string(html_content, False, options=options_fallback)
-            print(f"[VOUCHER PRINT] PDF generated with fallback, size: {len(pdf_file)} bytes")
+        print(f"[VOUCHER PRINT] Starting PDF generation with WeasyPrint")
+        pdf_file = HTML(string=html_content).write_pdf()
+        print(f"[VOUCHER PRINT] PDF generated successfully, size: {len(pdf_file)} bytes")
         
         # Return PDF
         return StreamingResponse(
