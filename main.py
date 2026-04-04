@@ -12470,25 +12470,28 @@ async def admin_commissions_base_values_comparison(request: Request, month: Opti
                     except:
                         continue
                     
+                    # Normalize broker name for comparison (case-insensitive)
+                    broker_name_upper = broker_name.upper() if broker_name else ''
+                    
                     # Check which period this booking belongs to and categorize by broker
                     if pickup_date.month == previous_month and pickup_date.year == previous_month_year:
-                        if broker_name == 'AP':
+                        if broker_name_upper == 'AP':
                             data['previous_month']['ap'] += total_price
-                        elif broker_name == 'API-WEB':
+                        elif broker_name_upper == 'API-WEB':
                             data['previous_month']['api_web'] += total_price
                         else:
                             data['previous_month']['brokers'] += total_price
                     elif pickup_date.month == year_ago_month and pickup_date.year == year_ago_year:
-                        if broker_name == 'AP':
+                        if broker_name_upper == 'AP':
                             data['year_ago']['ap'] += total_price
-                        elif broker_name == 'API-WEB':
+                        elif broker_name_upper == 'API-WEB':
                             data['year_ago']['api_web'] += total_price
                         else:
                             data['year_ago']['brokers'] += total_price
                     elif pickup_date.month == two_years_ago_month and pickup_date.year == two_years_ago_year:
-                        if broker_name == 'AP':
+                        if broker_name_upper == 'AP':
                             data['two_years_ago']['ap'] += total_price
-                        elif broker_name == 'API-WEB':
+                        elif broker_name_upper == 'API-WEB':
                             data['two_years_ago']['api_web'] += total_price
                         else:
                             data['two_years_ago']['brokers'] += total_price
@@ -12576,10 +12579,13 @@ async def admin_commissions_distribution(request: Request, year: Optional[int] =
                     broker_name = row[0]
                     total_price = float(row[1]) if row[1] else 0
                     
+                    # Normalize broker name for comparison (case-insensitive)
+                    broker_name_upper = broker_name.upper() if broker_name else ''
+                    
                     # Categorize by broker
-                    if broker_name == 'AP':
+                    if broker_name_upper == 'AP':
                         data['ap'] += total_price
-                    elif broker_name == 'API-WEB':
+                    elif broker_name_upper == 'API-WEB':
                         data['api_web'] += total_price
                     else:
                         data['brokers'] += total_price
