@@ -1494,6 +1494,14 @@ try:
 except Exception as e:
     logging.warning(f"⚠️ Commissioners API not available: {e}")
 
+# Voucher API Router
+try:
+    from voucher_api import router as voucher_router
+    app.include_router(voucher_router)
+    logging.info("🎫 Voucher API endpoints loaded")
+except ImportError as e:
+    logging.warning(f"⚠️ Voucher API not available: {e}")
+
 # Startup event to run database migrations
 # TEMPORARILY DISABLED - Was causing app to crash on startup
 # Use /admin/migrate-schedule endpoint to run migration manually
