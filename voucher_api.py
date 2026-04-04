@@ -189,25 +189,36 @@ def render_voucher_template(booking_data):
 async def print_voucher(booking_id: int):
     """Generate and return voucher PDF"""
     try:
+        print(f"[VOUCHER PRINT] Starting PDF generation for booking {booking_id}")
         booking_data = get_booking_data(booking_id)
         
         if not booking_data:
+            print(f"[VOUCHER PRINT] Booking not found: {booking_id}")
             raise HTTPException(status_code=404, detail='Reserva não encontrada')
+        
+        print(f"[VOUCHER PRINT] Booking data loaded: {booking_data.get('voucher_number')}")
+        print(f"[VOUCHER PRINT] Vehicle image URL: {booking_data.get('vehicle_image')}")
         
         # Render HTML template
         html_content = render_voucher_template(booking_data)
+        print(f"[VOUCHER PRINT] HTML template rendered, length: {len(html_content)}")
         
         # Generate PDF with custom URL fetcher for images
         import urllib.request
         def custom_url_fetcher(url):
             """Custom URL fetcher with longer timeout for images"""
+            print(f"[VOUCHER PRINT] Fetching URL: {url}")
             try:
-                return urllib.request.urlopen(url, timeout=30).read()
+                data = urllib.request.urlopen(url, timeout=30).read()
+                print(f"[VOUCHER PRINT] Successfully loaded {url}, size: {len(data)} bytes")
+                return data
             except Exception as e:
-                print(f"Warning: Failed to load {url}: {e}")
+                print(f"[VOUCHER PRINT] Warning: Failed to load {url}: {e}")
                 return None
         
+        print(f"[VOUCHER PRINT] Starting PDF generation with WeasyPrint")
         pdf_file = HTML(string=html_content, url_fetcher=custom_url_fetcher).write_pdf()
+        print(f"[VOUCHER PRINT] PDF generated successfully, size: {len(pdf_file)} bytes")
         
         # Return PDF
         return StreamingResponse(
@@ -221,10 +232,10 @@ async def print_voucher(booking_id: int):
     except HTTPException:
         raise
     except Exception as e:
-        print(f"Error generating voucher PDF: {e}")
+        print(f"[VOUCHER PRINT] Error generating voucher PDF: {e}")
         import traceback
         traceback.print_exc()
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail=f'Erro ao gerar PDF: {str(e)}')
 
 @router.post('/api/commissioner/voucher/email/{booking_id}')
 async def email_voucher(booking_id: int, email_request: EmailRequest):
