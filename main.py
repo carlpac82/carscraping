@@ -12216,7 +12216,8 @@ async def admin_commissions_top_monthly(request: Request, month: Optional[str] =
                     ORDER BY cb.pickup_date DESC
                 """
                 
-                cur = con.execute(query, (target_year, target_month))
+                cur = con.cursor()
+                cur.execute(query, (target_year, target_month))
                 rows = cur.fetchall()
                 
                 # Calculate totals by commissioner
@@ -12296,7 +12297,8 @@ async def admin_commissions_top_yearly(request: Request, year: int = None):
                     AND strftime('%Y', cb.pickup_date) = ?
                 """
                 
-                cur = con.execute(query, (str(year),))
+                cur = con.cursor()
+                cur.execute(query, (str(year),))
                 rows = cur.fetchall()
                 
                 # Aggregate by commissioner
