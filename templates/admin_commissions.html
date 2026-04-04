@@ -2345,6 +2345,7 @@
                   
                   const [year, month] = selectedMonth.split('-');
                   const monthName = monthNames[parseInt(month) - 1];
+                  const previousYear = parseInt(year) - 1;
                   
                   brokerMonthlyChart = new Chart(ctx, {
                       type: 'bar',
@@ -2352,14 +2353,14 @@
                           labels: labels,
                           datasets: [
                               {
-                                  label: monthName,
+                                  label: `${monthName} ${year}`,
                                   data: currentMonthValues,
                                   backgroundColor: '#009cb6',
                                   borderColor: '#007a8c',
                                   borderWidth: 1
                               },
                               {
-                                  label: 'Ano Anterior',
+                                  label: `${monthName} ${previousYear}`,
                                   data: yearAgoValues,
                                   backgroundColor: '#ff9800',
                                   borderColor: '#e68900',
