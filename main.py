@@ -65130,12 +65130,6 @@ async def admin_brokers_monthly_comparison(request: Request, month: str):
                         brokers[broker_name]['year_ago_value'] += float(row[1])
                         brokers[broker_name]['year_ago_count'] += int(row[2])
                 
-                # Debug logging
-                logging.info(f"Broker monthly comparison - Month: {year}-{month_num}")
-                logging.info(f"Current month data rows: {len(current_data)}")
-                logging.info(f"Previous year data rows: {len(prev_year_data)}")
-                logging.info(f"Brokers result: {brokers}")
-                
                 return JSONResponse({
                     "ok": True,
                     "data": {
