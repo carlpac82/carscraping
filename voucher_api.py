@@ -8,6 +8,7 @@ import logging
 import io
 from jinja2 import Template
 from weasyprint import HTML, CSS
+from playwright.async_api import async_playwright
 
 router = APIRouter()
 
@@ -242,7 +243,7 @@ def render_voucher_template(booking_data):
 
 @router.get('/api/commissioner/voucher/print/{booking_id}')
 async def print_voucher(booking_id: int):
-    """Generate and return voucher PDF"""
+    """Generate and return voucher PDF using Playwright"""
     try:
         print(f"[VOUCHER PRINT] Starting PDF generation for booking {booking_id}")
         booking_data = get_booking_data(booking_id)
@@ -258,37 +259,37 @@ async def print_voucher(booking_id: int):
         html_content = render_voucher_template(booking_data)
         print(f"[VOUCHER PRINT] HTML template rendered, length: {len(html_content)}")
         
-        # Convert relative URLs to absolute for WeasyPrint
-        base_url = "https://rentalprices.pt"
-        html_content = html_content.replace('src="/api/vehicles/', f'src="{base_url}/api/vehicles/')
-        html_content = html_content.replace('src="https://rentalprices.pt/static/', f'src="{base_url}/static/')
+        print(f"[VOUCHER PRINT] Starting PDF generation with Playwright")
         
-        print(f"[VOUCHER PRINT] URLs converted to absolute")
-        print(f"[VOUCHER PRINT] Starting PDF generation with WeasyPrint")
+        # Generate PDF using Playwright
+        async with async_playwright() as p:
+            browser = await p.chromium.launch()
+            page = await browser.new_page()
+            
+            # Set content and wait for images to load
+            await page.set_content(html_content)
+            
+            # Wait for images to load (timeout 10 seconds)
+            try:
+                await page.wait_for_load_state('networkidle', timeout=10000)
+            except:
+                print("[VOUCHER PRINT] Network timeout, continuing anyway")
+            
+            # Generate PDF
+            pdf_content = await page.pdf(
+                format='A4',
+                print_background=True,
+                margin={
+                    'top': '1cm',
+                    'right': '1cm',
+                    'bottom': '1cm',
+                    'left': '1cm'
+                }
+            )
+            
+            await browser.close()
         
-        # Add print CSS for proper PDF generation
-        print_css = CSS(string="""
-        @page {
-            size: A4;
-            margin: 1cm;
-        }
-        body {
-            margin: 0;
-            padding: 0;
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-        }
-        .voucher-container {
-            max-width: 100%;
-            margin: 0;
-            padding: 0;
-        }
-        """)
-        
-        # Generate PDF using WeasyPrint
-        html_doc = HTML(string=html_content)
-        pdf_content = html_doc.write_pdf(stylesheets=[print_css])
-        
-        print(f"[VOUCHER PRINT] PDF generated successfully, size: {len(pdf_content)} bytes")
+        print(f"[VOUCHER PRINT] PDF generated successfully with Playwright, size: {len(pdf_content)} bytes")
         
         # Return PDF
         return StreamingResponse(
