@@ -65172,7 +65172,7 @@ async def admin_brokers_yearly_distribution(request: Request, year: str):
                     SELECT 'Comissionistas', COUNT(*) as reservation_count, COALESCE(SUM(price), 0) as total_value
                     FROM commission_bookings 
                     WHERE EXTRACT(YEAR FROM pickup_date) = %s
-                    AND broker_name IS NULL OR broker_name NOT IN ('ABBYCAR', 'DISCOVERCARS', 'RENTALCARS', 'ECONOMYCARS', 'CARGURU', 'API-WEB', 'AP')
+                    AND (broker_name IS NULL OR broker_name NOT IN ('ABBYCAR', 'DISCOVERCARS', 'RENTALCARS', 'ECONOMYCARS', 'CARGURU', 'API-WEB', 'AP'))
                 """ if USE_POSTGRES else """
                     SELECT broker_name, COUNT(*) as reservation_count, COALESCE(SUM(total_price), 0) as total_value
                     FROM broker_bookings 
