@@ -35,6 +35,26 @@ vehicle_models = {
     'P': 'Citroen Berlingo ou Similar'
 }
 
+# Vehicle name mapping for API
+vehicle_api_names = {
+    'B': 'fiat panda',
+    'B1': 'peugeot 108',
+    'B2': 'fiat panda',
+    'D': 'opel corsa',
+    'E1': 'kia picanto',
+    'E2': 'citroen c3',
+    'F': 'ford focus',
+    'G': 'volkswagen golf',
+    'I': 'volkswagen passat',
+    'J': 'skoda octavia',
+    'K': 'opel insignia',
+    'L': 'volkswagen tiguan',
+    'M': 'nissan qashqai',
+    'N': 'toyota rav4',
+    'O': 'volkswagen sharan',
+    'P': 'citroen berlingo'
+}
+
 def create_message_with_attachment(credentials, to_email, subject, body, attachment_content, filename):
     """Create email message with attachment"""
     # Create message
@@ -201,7 +221,7 @@ def get_booking_data(booking_id):
             'agent_email': result[21] or 'N/A',
             'agent_phone': result[22] or 'N/A',
             'booking_date': result[19].strftime('%d/%m/%Y às %H:%M') if result[19] else '',
-            'vehicle_image': f'https://rentalprices.pt/static/vehicles/{result[13]}.jpg' if result[13] else ''
+            'vehicle_image': f'/api/vehicles/{vehicle_api_names.get(result[13], result[13])}/photo' if result[13] else ''
         }
         
         return booking_data
