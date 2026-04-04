@@ -2,8 +2,7 @@
 <html lang="pt">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Voucher de Reserva - AutoPrudente</title>
+    <title>Voucher - AutoPrudente</title>
     <style>
         * {
             margin: 0;
@@ -12,463 +11,311 @@
         }
 
         body {
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
-            background: #ffffff;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: #fff;
             color: #1f2937;
-            line-height: 1.6;
+            font-size: 11px;
+            line-height: 1.4;
         }
 
         .voucher-container {
-            max-width: 800px;
-            margin: 0 auto;
-            padding: 40px;
+            max-width: 210mm;
+            margin: 0;
+            padding: 0;
         }
 
         .header {
+            background: #009cb6;
+            padding: 15px 20px;
             display: flex;
             justify-content: space-between;
-            align-items: flex-start;
-            margin-bottom: 40px;
-            padding-bottom: 30px;
-            border-bottom: 3px solid #009cb6;
-        }
-
-        .logo-section {
-            flex: 1;
-        }
-
-        .logo {
-            height: 60px;
-            width: auto;
-            margin-bottom: 15px;
-        }
-
-        .company-info {
-            font-size: 12px;
-            color: #6b7280;
-            line-height: 1.8;
-        }
-
-        .company-info strong {
-            color: #009cb6;
-            display: block;
-            margin-top: 8px;
-        }
-
-        .voucher-title {
-            text-align: right;
-            flex: 1;
-        }
-
-        .voucher-title h1 {
-            font-size: 32px;
-            color: #009cb6;
-            font-weight: 700;
-            margin-bottom: 8px;
-        }
-
-        .voucher-number {
-            font-size: 18px;
-            color: #6b7280;
-            font-weight: 500;
-        }
-
-        .voucher-date {
-            font-size: 13px;
-            color: #9ca3af;
-            margin-top: 5px;
-        }
-
-        .section {
-            margin-bottom: 30px;
-        }
-
-        .section-title {
-            font-size: 16px;
-            font-weight: 700;
-            color: #009cb6;
-            margin-bottom: 15px;
-            padding-bottom: 8px;
-            border-bottom: 2px solid #e5e7eb;
-            text-transform: uppercase;
-            letter-spacing: 0.5px;
-        }
-
-        .info-grid {
-            display: grid;
-            grid-template-columns: repeat(2, 1fr);
-            gap: 20px;
-        }
-
-        .info-item {
-            background: #f9fafb;
-            padding: 15px;
-            border-radius: 8px;
-            border-left: 3px solid #009cb6;
-        }
-
-        .info-label {
-            font-size: 11px;
-            text-transform: uppercase;
-            color: #6b7280;
-            font-weight: 600;
-            letter-spacing: 0.5px;
-            margin-bottom: 5px;
-        }
-
-        .info-value {
-            font-size: 15px;
-            color: #1f2937;
-            font-weight: 500;
-        }
-
-        .vehicle-section {
-            background: linear-gradient(135deg, #009cb6 0%, #007a8c 100%);
-            padding: 25px;
-            border-radius: 12px;
-            color: white;
-            margin-bottom: 30px;
-        }
-
-        .vehicle-content {
-            display: flex;
-            gap: 25px;
             align-items: center;
         }
 
-        .vehicle-image {
-            flex: 0 0 250px;
-            background: white;
-            border-radius: 8px;
+        .logo {
+            height: 40px;
+            width: auto;
+        }
+
+        .voucher-number {
+            color: white;
+            font-size: 16px;
+            font-weight: 600;
+        }
+
+        .content {
+            padding: 15px 20px;
+        }
+
+        .section {
+            margin-bottom: 12px;
+        }
+
+        .section-title {
+            font-size: 10px;
+            font-weight: 700;
+            color: #009cb6;
+            margin-bottom: 6px;
+            padding-bottom: 3px;
+            border-bottom: 1px solid #e5e7eb;
+            text-transform: uppercase;
+        }
+
+        .info-grid {
+            display: table;
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        .info-row {
+            display: table-row;
+        }
+
+        .info-label {
+            display: table-cell;
+            font-size: 9px;
+            text-transform: uppercase;
+            color: #6b7280;
+            font-weight: 600;
+            padding: 4px 8px;
+            width: 30%;
+            border-bottom: 1px solid #f3f4f6;
+        }
+
+        .info-value {
+            display: table-cell;
+            font-size: 10px;
+            color: #1f2937;
+            padding: 4px 8px;
+            border-bottom: 1px solid #f3f4f6;
+        }
+
+        .vehicle-section {
+            background: #f9fafb;
             padding: 10px;
+            border: 1px solid #e5e7eb;
+            margin-bottom: 12px;
+        }
+
+        .vehicle-name {
+            font-size: 12px;
+            font-weight: 700;
+            color: #009cb6;
+            margin-bottom: 6px;
+        }
+
+        .vehicle-image {
+            width: 120px;
+            float: right;
+            margin-left: 10px;
         }
 
         .vehicle-image img {
             width: 100%;
             height: auto;
             display: block;
-            border-radius: 4px;
-        }
-
-        .vehicle-details {
-            flex: 1;
-        }
-
-        .vehicle-details h2 {
-            font-size: 24px;
-            margin-bottom: 15px;
-            font-weight: 700;
-        }
-
-        .vehicle-details p {
-            font-size: 14px;
-            opacity: 0.95;
-            margin-bottom: 8px;
         }
 
         .payment-section {
-            background: #fef3c7;
-            border: 2px solid #f59e0b;
-            border-radius: 12px;
-            padding: 25px;
-            margin-bottom: 30px;
+            background: #f0f9ff;
+            border: 1px solid #009cb6;
+            padding: 10px;
+            margin-bottom: 12px;
         }
 
-        .payment-title {
-            font-size: 18px;
-            font-weight: 700;
-            color: #92400e;
-            margin-bottom: 20px;
+        .payment-row {
             display: flex;
-            align-items: center;
-            gap: 10px;
-        }
-
-        .payment-grid {
-            display: grid;
-            grid-template-columns: repeat(3, 1fr);
-            gap: 15px;
-            margin-bottom: 20px;
-        }
-
-        .payment-item {
-            background: white;
-            padding: 15px;
-            border-radius: 8px;
-            text-align: center;
+            justify-content: space-between;
+            padding: 4px 0;
+            border-bottom: 1px solid #e0f2fe;
         }
 
         .payment-label {
-            font-size: 11px;
+            font-size: 9px;
             text-transform: uppercase;
-            color: #92400e;
+            color: #6b7280;
             font-weight: 600;
-            margin-bottom: 8px;
         }
 
         .payment-value {
-            font-size: 24px;
+            font-size: 11px;
             font-weight: 700;
             color: #1f2937;
         }
 
         .payment-highlight {
-            background: #059669;
+            background: #009cb6;
             color: white;
-            padding: 20px;
-            border-radius: 8px;
+            padding: 8px;
+            margin-top: 6px;
             text-align: center;
         }
 
         .payment-highlight-label {
-            font-size: 13px;
+            font-size: 9px;
             text-transform: uppercase;
             font-weight: 600;
-            margin-bottom: 8px;
-            opacity: 0.9;
         }
 
         .payment-highlight-value {
-            font-size: 36px;
+            font-size: 18px;
             font-weight: 700;
+            margin-top: 3px;
         }
 
         .agent-section {
-            background: #eff6ff;
-            border-left: 4px solid #3b82f6;
-            padding: 20px;
-            border-radius: 8px;
-            margin-bottom: 30px;
-        }
-
-        .agent-title {
-            font-size: 14px;
-            font-weight: 700;
-            color: #1e40af;
+            background: #f9fafb;
+            border-left: 3px solid #009cb6;
+            padding: 8px;
             margin-bottom: 12px;
-            text-transform: uppercase;
-        }
-
-        .agent-info {
-            display: grid;
-            grid-template-columns: repeat(2, 1fr);
-            gap: 12px;
-        }
-
-        .agent-item {
-            font-size: 14px;
-            color: #1f2937;
-        }
-
-        .agent-item strong {
-            color: #1e40af;
-            font-weight: 600;
         }
 
         .footer {
-            margin-top: 40px;
-            padding-top: 30px;
-            border-top: 2px solid #e5e7eb;
+            margin-top: 12px;
+            padding-top: 8px;
+            border-top: 1px solid #e5e7eb;
             text-align: center;
-        }
-
-        .footer-contacts {
-            display: flex;
-            justify-content: center;
-            gap: 30px;
-            margin-bottom: 20px;
-            flex-wrap: wrap;
-        }
-
-        .footer-contact {
-            display: flex;
-            align-items: center;
-            gap: 8px;
-            font-size: 13px;
-            color: #6b7280;
-        }
-
-        .footer-contact svg {
-            width: 16px;
-            height: 16px;
-            color: #009cb6;
-        }
-
-        .footer-note {
-            font-size: 12px;
+            font-size: 8px;
             color: #9ca3af;
-            margin-top: 15px;
-            font-style: italic;
         }
 
-        @media print {
-            body {
-                background: white;
-            }
-            .voucher-container {
-                padding: 20px;
-            }
+        .contacts {
+            font-size: 9px;
+            color: #6b7280;
+            margin-bottom: 6px;
         }
     </style>
 </head>
 <body>
     <div class="voucher-container">
-        <!-- Header -->
         <div class="header">
-            <div class="logo-section">
-                <img src="https://rentalprices.pt/static/logo.png" alt="AutoPrudente" class="logo">
-                <div class="company-info">
-                    <strong>AutoPrudente - Rent a Car</strong>
-                    📍 Rua da Empresa, 123 - Faro, Portugal<br>
-                    📞 +351 289 123 456<br>
-                    📱 +351 912 345 678<br>
-                    💬 WhatsApp: +351 912 345 678<br>
-                    ✉️ info@autoprudente.pt<br>
-                    🌐 www.autoprudente.pt
-                </div>
-            </div>
-            <div class="voucher-title">
-                <h1>VOUCHER</h1>
-                <div class="voucher-number">#{{ voucher_number }}</div>
-                <div class="voucher-date">{{ created_date }}</div>
-            </div>
+            <img src="https://rentalprices.pt/static/logo.png" alt="AutoPrudente" class="logo">
+            <div class="voucher-number">VOUCHER {{ voucher_number }}</div>
         </div>
 
-        <!-- Agent Information -->
-        <div class="agent-section">
-            <div class="agent-title">🎯 Reserva Efetuada Por</div>
-            <div class="agent-info">
-                <div class="agent-item"><strong>Agente:</strong> {{ agent_name }}</div>
-                <div class="agent-item"><strong>Email:</strong> {{ agent_email }}</div>
-                <div class="agent-item"><strong>Telefone:</strong> {{ agent_phone }}</div>
-                <div class="agent-item"><strong>Data:</strong> {{ booking_date }}</div>
+        <div class="content">
+            <div class="agent-section">
+                <div class="section-title">Agente</div>
+                <div class="info-grid">
+                    <div class="info-row">
+                        <div class="info-label">Nome</div>
+                        <div class="info-value">{{ agent_name }}</div>
+                    </div>
+                    <div class="info-row">
+                        <div class="info-label">Email</div>
+                        <div class="info-value">{{ agent_email }}</div>
+                    </div>
+                    <div class="info-row">
+                        <div class="info-label">Telefone</div>
+                        <div class="info-value">{{ agent_phone }}</div>
+                    </div>
+                    <div class="info-row">
+                        <div class="info-label">Data Reserva</div>
+                        <div class="info-value">{{ booking_date }}</div>
+                    </div>
+                </div>
             </div>
-        </div>
 
-        <!-- Client Information -->
-        <div class="section">
-            <div class="section-title">👤 Dados do Cliente</div>
-            <div class="info-grid">
-                <div class="info-item">
-                    <div class="info-label">Nome Completo</div>
-                    <div class="info-value">{{ client_name }}</div>
+            <div class="section">
+                <div class="section-title">Cliente</div>
+                <div class="info-grid">
+                    <div class="info-row">
+                        <div class="info-label">Nome</div>
+                        <div class="info-value">{{ client_name }}</div>
+                    </div>
+                    <div class="info-row">
+                        <div class="info-label">Email</div>
+                        <div class="info-value">{{ client_email }}</div>
+                    </div>
+                    <div class="info-row">
+                        <div class="info-label">Telefone</div>
+                        <div class="info-value">{{ client_phone }}</div>
+                    </div>
+                    {% if hotel %}
+                    <div class="info-row">
+                        <div class="info-label">Hotel</div>
+                        <div class="info-value">{{ hotel }}{% if room_number %} - Quarto {{ room_number }}{% endif %}</div>
+                    </div>
+                    {% endif %}
                 </div>
-                <div class="info-item">
-                    <div class="info-label">Email</div>
-                    <div class="info-value">{{ client_email }}</div>
-                </div>
-                <div class="info-item">
-                    <div class="info-label">Telefone</div>
-                    <div class="info-value">{{ client_phone }}</div>
-                </div>
-                {% if hotel %}
-                <div class="info-item">
-                    <div class="info-label">Hotel</div>
-                    <div class="info-value">{{ hotel }}{% if room_number %} - Quarto {{ room_number }}{% endif %}</div>
-                </div>
-                {% endif %}
             </div>
-        </div>
 
-        <!-- Vehicle Section -->
-        <div class="vehicle-section">
-            <div class="vehicle-content">
+            <div class="vehicle-section">
                 {% if vehicle_image %}
                 <div class="vehicle-image">
                     <img src="{{ vehicle_image }}" alt="{{ vehicle_group }}">
                 </div>
                 {% endif %}
-                <div class="vehicle-details">
-                    <h2>{{ vehicle_group }}</h2>
-                    <p><strong>📅 Levantamento:</strong> {{ pickup_date }} às {{ pickup_time }}</p>
-                    <p><strong>📍 Local de Levantamento:</strong> {{ pickup_location }}</p>
-                    <p><strong>📅 Entrega:</strong> {{ dropoff_date }} às {{ dropoff_time }}</p>
-                    <p><strong>📍 Local de Entrega:</strong> {{ dropoff_location }}</p>
+                <div class="vehicle-name">{{ vehicle_group }}</div>
+                <div class="info-grid">
+                    <div class="info-row">
+                        <div class="info-label">Levantamento</div>
+                        <div class="info-value">{{ pickup_date }} {{ pickup_time }}</div>
+                    </div>
+                    <div class="info-row">
+                        <div class="info-label">Local Levantamento</div>
+                        <div class="info-value">{{ pickup_location }}</div>
+                    </div>
+                    <div class="info-row">
+                        <div class="info-label">Entrega</div>
+                        <div class="info-value">{{ dropoff_date }} {{ dropoff_time }}</div>
+                    </div>
+                    <div class="info-row">
+                        <div class="info-label">Local Entrega</div>
+                        <div class="info-value">{{ dropoff_location }}</div>
+                    </div>
                     {% if flight_number %}
-                    <p><strong>✈️ Voo:</strong> {{ flight_number }}</p>
+                    <div class="info-row">
+                        <div class="info-label">Voo</div>
+                        <div class="info-value">{{ flight_number }}</div>
+                    </div>
                     {% endif %}
+                    <div class="info-row">
+                        <div class="info-label">Dias</div>
+                        <div class="info-value">{{ rental_days }}</div>
+                    </div>
                 </div>
             </div>
-        </div>
 
-        <!-- Payment Section -->
-        <div class="payment-section">
-            <div class="payment-title">
-                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                    <rect x="1" y="4" width="22" height="16" rx="2" ry="2"></rect>
-                    <line x1="1" y1="10" x2="23" y2="10"></line>
-                </svg>
-                Informação de Pagamento
-            </div>
-            <div class="payment-grid">
-                <div class="payment-item">
+            <div class="payment-section">
+                <div class="section-title">Pagamento</div>
+                <div class="payment-row">
                     <div class="payment-label">Valor Total</div>
                     <div class="payment-value">€{{ total_price }}</div>
                 </div>
-                <div class="payment-item">
+                <div class="payment-row">
                     <div class="payment-label">Depósito Pago</div>
                     <div class="payment-value">€{{ deposit }}</div>
                 </div>
-                <div class="payment-item">
-                    <div class="payment-label">Dias de Aluguer</div>
-                    <div class="payment-value">{{ rental_days }}</div>
+                <div class="payment-highlight">
+                    <div class="payment-highlight-label">A Pagar no Levantamento</div>
+                    <div class="payment-highlight-value">€{{ amount_to_pay }}</div>
                 </div>
             </div>
-            <div class="payment-highlight">
-                <div class="payment-highlight-label">💰 A Pagar no Levantamento</div>
-                <div class="payment-highlight-value">€{{ amount_to_pay }}</div>
-            </div>
-        </div>
 
-        <!-- Extras -->
-        {% if extras and extras|length > 0 %}
-        <div class="section">
-            <div class="section-title">➕ Extras Incluídos</div>
-            <div class="info-grid">
-                {% for extra in extras %}
-                <div class="info-item">
-                    <div class="info-value">✓ {{ extra }}</div>
+            {% if extras and extras|length > 0 %}
+            <div class="section">
+                <div class="section-title">Extras</div>
+                <div class="info-grid">
+                    {% for extra in extras %}
+                    <div class="info-row">
+                        <div class="info-value" style="padding-left: 8px;">{{ extra }}</div>
+                    </div>
+                    {% endfor %}
                 </div>
-                {% endfor %}
             </div>
-        </div>
-        {% endif %}
+            {% endif %}
 
-        <!-- Observations -->
-        {% if observations %}
-        <div class="section">
-            <div class="section-title">📝 Observações</div>
-            <div class="info-item">
-                <div class="info-value">{{ observations }}</div>
+            {% if observations %}
+            <div class="section">
+                <div class="section-title">Observações</div>
+                <div class="info-value" style="padding: 6px 8px; font-size: 9px;">{{ observations }}</div>
             </div>
-        </div>
-        {% endif %}
+            {% endif %}
 
-        <!-- Footer -->
-        <div class="footer">
-            <div class="footer-contacts">
-                <div class="footer-contact">
-                    <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z"></path>
-                    </svg>
-                    +351 289 123 456
-                </div>
-                <div class="footer-contact">
-                    <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"></path>
-                    </svg>
-                    info@autoprudente.pt
-                </div>
-                <div class="footer-contact">
-                    <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"></path>
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"></path>
-                    </svg>
-                    Faro, Portugal
-                </div>
-            </div>
-            <div class="footer-note">
-                Este voucher é válido apenas para a reserva indicada. Por favor, apresente este documento no momento do levantamento da viatura.
+            <div class="footer">
+                <div class="contacts">Tel: +351 289 123 456 | Email: info@autoprudente.pt | Faro, Portugal</div>
+                Por favor, apresente este voucher no levantamento da viatura.
             </div>
         </div>
     </div>
