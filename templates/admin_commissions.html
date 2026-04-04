@@ -2851,17 +2851,39 @@
           function populateBrokerChartSelectors() {
               // Populate month selector
               const monthSelect = document.getElementById('brokerMonthSelect');
-              const currentYear = new Date().getFullYear();
-              const previousYear = currentYear - 1;
+              const now = new Date();
+              const currentYear = now.getFullYear();
+              const currentMonth = now.getMonth() + 1; // 1-12
               const months = ['Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho', 'Julho', 'Agosto', 'Setembro', 'Outubro', 'Novembro', 'Dezembro'];
               
+              // Calcular mês anterior
+              let previousMonth = currentMonth - 1;
+              let previousMonthYear = currentYear;
+              if (previousMonth === 0) {
+                  previousMonth = 12;
+                  previousMonthYear = currentYear - 1;
+              }
+              
               monthSelect.innerHTML = '';
-              // Add all 12 months of previous year (most recent first)
+              // Add months from current year (most recent first)
+              for (let month = currentMonth; month >= 1; month--) {
+                  const option = document.createElement('option');
+                  option.value = `${currentYear}-${month.toString().padStart(2, '0')}`;
+                  option.textContent = `${months[month - 1]} ${currentYear}`;
+                  if (month === previousMonth && currentYear === previousMonthYear) {
+                      option.selected = true; // Selecionar mês anterior
+                  }
+                  monthSelect.appendChild(option);
+              }
+              // Add all 12 months of previous year
+              const previousYear = currentYear - 1;
               for (let month = 12; month >= 1; month--) {
                   const option = document.createElement('option');
                   option.value = `${previousYear}-${month.toString().padStart(2, '0')}`;
                   option.textContent = `${months[month - 1]} ${previousYear}`;
-                  if (month === 3) option.selected = true; // Selecionar março por defeito
+                  if (month === previousMonth && previousYear === previousMonthYear) {
+                      option.selected = true; // Selecionar mês anterior se for do ano passado
+                  }
                   monthSelect.appendChild(option);
               }
               
@@ -2882,12 +2904,24 @@
               // Populate payment type month selector
               const paymentTypeMonthSelect = document.getElementById('paymentTypeMonthSelect');
               paymentTypeMonthSelect.innerHTML = '';
-              // Add all 12 months of previous year (most recent first)
+              // Add months from current year (most recent first)
+              for (let month = currentMonth; month >= 1; month--) {
+                  const option = document.createElement('option');
+                  option.value = `${currentYear}-${month.toString().padStart(2, '0')}`;
+                  option.textContent = `${months[month - 1]} ${currentYear}`;
+                  if (month === previousMonth && currentYear === previousMonthYear) {
+                      option.selected = true; // Selecionar mês anterior
+                  }
+                  paymentTypeMonthSelect.appendChild(option);
+              }
+              // Add all 12 months of previous year
               for (let month = 12; month >= 1; month--) {
                   const option = document.createElement('option');
                   option.value = `${previousYear}-${month.toString().padStart(2, '0')}`;
                   option.textContent = `${months[month - 1]} ${previousYear}`;
-                  if (month === 3) option.selected = true; // Selecionar março por defeito
+                  if (month === previousMonth && previousYear === previousMonthYear) {
+                      option.selected = true; // Selecionar mês anterior se for do ano passado
+                  }
                   paymentTypeMonthSelect.appendChild(option);
               }
           }
