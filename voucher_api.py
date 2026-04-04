@@ -259,10 +259,15 @@ async def print_voucher(booking_id: int):
         html_content = render_voucher_template(booking_data)
         print(f"[VOUCHER PRINT] HTML template rendered, length: {len(html_content)}")
         
+        # Convert to absolute URLs for Playwright
+        base_url = "https://carrental-api-5f8q.onrender.com"
+        html_content = html_content.replace('src="/api/vehicles/', f'src="{base_url}/api/vehicles/')
+        html_content = html_content.replace('src="https://rentalprices.pt/static/', f'src="{base_url}/static/')
+        
         # Fix vehicle image URL - replace spaces with proper encoding
         html_content = html_content.replace('/api/vehicles/fiat panda/photo', '/api/vehicles/fiatpanda/photo')
         
-        print(f"[VOUCHER PRINT] Fixed vehicle image URL")
+        print(f"[VOUCHER PRINT] Converted URLs to absolute: {base_url}")
         print(f"[VOUCHER PRINT] Starting PDF generation with Playwright")
         
         # Generate PDF using Playwright
