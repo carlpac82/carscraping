@@ -763,11 +763,11 @@
       <!-- Summary Cards -->
       <div class="summary-cards">
           <div class="summary-card">
-              <h3>Total de Reservas Brokers (Mês Anterior)</h3>
+              <h3 id="brokerReservationsTitle">Total de Reservas Brokers</h3>
               <p class="summary-value" id="brokerTotalReservations">0</p>
           </div>
           <div class="summary-card">
-              <h3>Valor Total Brokers (Mês Anterior)</h3>
+              <h3 id="brokerValueTitle">Valor Total Brokers</h3>
               <p class="summary-value" id="brokerTotalValue">€0.00</p>
           </div>
           <div class="summary-card">
@@ -1536,23 +1536,20 @@
           // Populate month selector for base values comparison
           function populateMonthSelector() {
               const select = document.getElementById('baseValuesMonthSelect');
-              const currentMonth = new Date().getMonth() + 1; // 1-12
               const currentYear = new Date().getFullYear();
+              const previousYear = currentYear - 1;
               const months = ['Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho', 'Julho', 'Agosto', 'Setembro', 'Outubro', 'Novembro', 'Dezembro'];
               
               select.innerHTML = '';
               
-              // Add last 12 months
-              for (let i = 0; i < 12; i++) {
-                  const date = new Date(currentYear, currentMonth - 1 - i, 1);
-                  const month = date.getMonth() + 1;
-                  const year = date.getFullYear();
+              // Add all 12 months of previous year (most recent first)
+              for (let month = 12; month >= 1; month--) {
                   const option = document.createElement('option');
-                  option.value = `${year}-${month.toString().padStart(2, '0')}`;
-                  option.textContent = `${months[month - 1]} ${year}`;
+                  option.value = `${previousYear}-${month.toString().padStart(2, '0')}`;
+                  option.textContent = `${months[month - 1]} ${previousYear}`;
                   
-                  // Select previous month by default
-                  if (i === 1) {
+                  // Select March (month 3) by default
+                  if (month === 3) {
                       option.selected = true;
                   }
                   
@@ -1563,23 +1560,20 @@
           // Populate month selector for top commissioners
           function populateTopCommissionersMonthSelector() {
               const select = document.getElementById('topCommissionersMonthSelect');
-              const currentMonth = new Date().getMonth() + 1; // 1-12
               const currentYear = new Date().getFullYear();
+              const previousYear = currentYear - 1;
               const months = ['Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho', 'Julho', 'Agosto', 'Setembro', 'Outubro', 'Novembro', 'Dezembro'];
               
               select.innerHTML = '';
               
-              // Add last 12 months
-              for (let i = 0; i < 12; i++) {
-                  const date = new Date(currentYear, currentMonth - 1 - i, 1);
-                  const month = date.getMonth() + 1;
-                  const year = date.getFullYear();
+              // Add all 12 months of previous year (most recent first)
+              for (let month = 12; month >= 1; month--) {
                   const option = document.createElement('option');
-                  option.value = `${year}-${month.toString().padStart(2, '0')}`;
-                  option.textContent = `${months[month - 1]} ${year}`;
+                  option.value = `${previousYear}-${month.toString().padStart(2, '0')}`;
+                  option.textContent = `${months[month - 1]} ${previousYear}`;
                   
-                  // Select previous month by default
-                  if (i === 1) {
+                  // Select March (month 3) by default
+                  if (month === 3) {
                       option.selected = true;
                   }
                   
@@ -2132,6 +2126,12 @@
           
           // Update broker summary cards
           function updateBrokerSummary(summary) {
+              // Update titles with month name
+              const monthName = summary.month_name || 'Mês Anterior';
+              document.getElementById('brokerReservationsTitle').textContent = `Total de Reservas Brokers (${monthName})`;
+              document.getElementById('brokerValueTitle').textContent = `Valor Total Brokers (${monthName})`;
+              
+              // Update values
               document.getElementById('brokerTotalReservations').textContent = summary.total_reservations || 0;
               document.getElementById('brokerTotalValue').textContent = `€${(summary.total_value || 0).toFixed(2)}`;
               document.getElementById('brokerTotalYear').textContent = summary.total_year_reservations || 0;
@@ -2712,19 +2712,17 @@
           function populateBrokerChartSelectors() {
               // Populate month selector
               const monthSelect = document.getElementById('brokerMonthSelect');
-              const currentMonth = new Date().getMonth() + 1;
               const currentYear = new Date().getFullYear();
+              const previousYear = currentYear - 1;
               const months = ['Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho', 'Julho', 'Agosto', 'Setembro', 'Outubro', 'Novembro', 'Dezembro'];
               
               monthSelect.innerHTML = '';
-              for (let i = 0; i < 12; i++) {
-                  const date = new Date(currentYear, currentMonth - 1 - i, 1);
-                  const month = date.getMonth() + 1;
-                  const year = date.getFullYear();
+              // Add all 12 months of previous year (most recent first)
+              for (let month = 12; month >= 1; month--) {
                   const option = document.createElement('option');
-                  option.value = `${year}-${month.toString().padStart(2, '0')}`;
-                  option.textContent = `${months[month - 1]} ${year}`;
-                  if (i === 1) option.selected = true; // Selecionar mês anterior por defeito
+                  option.value = `${previousYear}-${month.toString().padStart(2, '0')}`;
+                  option.textContent = `${months[month - 1]} ${previousYear}`;
+                  if (month === 3) option.selected = true; // Selecionar março por defeito
                   monthSelect.appendChild(option);
               }
               
@@ -2745,14 +2743,12 @@
               // Populate payment type month selector
               const paymentTypeMonthSelect = document.getElementById('paymentTypeMonthSelect');
               paymentTypeMonthSelect.innerHTML = '';
-              for (let i = 0; i < 12; i++) {
-                  const date = new Date(currentYear, currentMonth - 1 - i, 1);
-                  const month = date.getMonth() + 1;
-                  const year = date.getFullYear();
+              // Add all 12 months of previous year (most recent first)
+              for (let month = 12; month >= 1; month--) {
                   const option = document.createElement('option');
-                  option.value = `${year}-${month.toString().padStart(2, '0')}`;
-                  option.textContent = `${months[month - 1]} ${year}`;
-                  if (i === 1) option.selected = true; // Selecionar mês anterior por defeito
+                  option.value = `${previousYear}-${month.toString().padStart(2, '0')}`;
+                  option.textContent = `${months[month - 1]} ${previousYear}`;
+                  if (month === 3) option.selected = true; // Selecionar março por defeito
                   paymentTypeMonthSelect.appendChild(option);
               }
           }

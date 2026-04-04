@@ -65608,10 +65608,17 @@ async def admin_brokers_list(request: Request):
                 year_reservations = len([b for b in month_brokers if 
                     datetime.fromisoformat(b['pickup_date']).year == current_year])
                 
+                # Get month name
+                month_names = ['Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho', 
+                              'Julho', 'Agosto', 'Setembro', 'Outubro', 'Novembro', 'Dezembro']
+                month_name = month_names[previous_month - 1]
+                
                 summary = {
                     'total_reservations': month_reservations,
                     'total_value': month_value,
-                    'total_year_reservations': year_reservations
+                    'total_year_reservations': year_reservations,
+                    'month_name': month_name,
+                    'month_year': previous_month_year
                 }
                 
                 return JSONResponse({
