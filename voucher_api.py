@@ -15,6 +15,26 @@ class EmailRequest(BaseModel):
 
 DATABASE_URL = os.environ.get('DATABASE_URL')
 
+# Vehicle model mapping
+vehicle_models = {
+    'B': 'Fiat Panda ou Similar',
+    'B1': 'Peugeot 108 ou Similar',
+    'B2': 'Fiat Panda ou Similar',
+    'D': 'Opel Corsa ou Similar',
+    'E1': 'Kia Picanto ou Similar',
+    'E2': 'Citroen C3 ou Similar',
+    'F': 'Ford Focus ou Similar',
+    'G': 'Volkswagen Golf ou Similar',
+    'I': 'Volkswagen Passat ou Similar',
+    'J': 'Skoda Octavia ou Similar',
+    'K': 'Opel Insignia ou Similar',
+    'L': 'Volkswagen Tiguan ou Similar',
+    'M': 'Nissan Qashqai ou Similar',
+    'N': 'Toyota RAV4 ou Similar',
+    'O': 'Volkswagen Sharan ou Similar',
+    'P': 'Citroen Berlingo ou Similar'
+}
+
 def create_message_with_attachment(credentials, to_email, subject, body, attachment_content, filename):
     """Create email message with attachment"""
     # Create message
@@ -168,6 +188,7 @@ def get_booking_data(booking_id):
             'pickup_location': result[11],
             'dropoff_location': result[12],
             'vehicle_group': result[13],
+            'vehicle_model': vehicle_models.get(result[13], f'{result[13]} ou Similar'),
             'extras': extras,
             'flight_number': result[15],
             'observations': result[16],
