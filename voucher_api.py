@@ -165,19 +165,25 @@ async def print_voucher(booking_id: int):
 async def email_voucher(booking_id: int, email_request: EmailRequest):
     """Send voucher by email"""
     try:
+        print(f"[VOUCHER EMAIL] Starting email send for booking {booking_id}")
         recipient_email = email_request.email
         
         if not recipient_email:
+            print(f"[VOUCHER EMAIL] No email provided")
             raise HTTPException(status_code=400, detail='Email não fornecido')
         
+        print(f"[VOUCHER EMAIL] Fetching booking data for ID {booking_id}")
         booking_data = get_booking_data(booking_id)
         
         if not booking_data:
+            print(f"[VOUCHER EMAIL] Booking not found: {booking_id}")
             raise HTTPException(status_code=404, detail='Reserva não encontrada')
         
+        print(f"[VOUCHER EMAIL] Generating PDF for voucher {booking_data.get('voucher_number')}")
         # Generate PDF
         html_content = render_voucher_template(booking_data)
         pdf_file = HTML(string=html_content).write_pdf()
+        print(f"[VOUCHER EMAIL] PDF generated successfully, size: {len(pdf_file)} bytes")
         
         # Email configuration
         smtp_server = os.environ.get('SMTP_SERVER', 'smtp.gmail.com')
@@ -186,8 +192,11 @@ async def email_voucher(booking_id: int, email_request: EmailRequest):
         smtp_password = os.environ.get('SMTP_PASSWORD')
         from_email = os.environ.get('FROM_EMAIL', smtp_user)
         
+        print(f"[VOUCHER EMAIL] SMTP Config - Server: {smtp_server}, Port: {smtp_port}, User: {smtp_user[:5]}... (exists: {bool(smtp_user)})")
+        
         if not smtp_user or not smtp_password:
-            raise HTTPException(status_code=500, detail='Configuração de email não disponível')
+            print(f"[VOUCHER EMAIL] SMTP credentials not configured")
+            raise HTTPException(status_code=500, detail='Configuração de email não disponível. Contacte o administrador.')
         
         # Create email
         msg = MIMEMultipart()
@@ -236,23 +245,35 @@ async def email_voucher(booking_id: int, email_request: EmailRequest):
         msg.attach(MIMEText(email_body, 'html'))
         
         # Attach PDF
+        print(f"[VOUCHER EMAIL] Attaching PDF to email")
         pdf_attachment = MIMEApplication(pdf_file, _subtype='pdf')
         pdf_attachment.add_header('Content-Disposition', 'attachment', 
                                  filename=f'voucher_{booking_data["voucher_number"]}.pdf')
         msg.attach(pdf_attachment)
         
         # Send email
+        print(f"[VOUCHER EMAIL] Connecting to SMTP server {smtp_server}:{smtp_port}")
         with smtplib.SMTP(smtp_server, smtp_port) as server:
+            print(f"[VOUCHER EMAIL] Starting TLS")
             server.starttls()
+            print(f"[VOUCHER EMAIL] Logging in with user {smtp_user}")
             server.login(smtp_user, smtp_password)
+            print(f"[VOUCHER EMAIL] Sending email to {recipient_email}")
             server.send_message(msg)
         
+        print(f"[VOUCHER EMAIL] Email sent successfully to {recipient_email}")
         return {'ok': True, 'message': 'Voucher enviado com sucesso'}
         
-    except HTTPException:
+    except HTTPException as he:
+        print(f"[VOUCHER EMAIL] HTTP Exception: {he.detail}")
         raise
     except Exception as e:
-        print(f"Error sending voucher email: {e}")
+        print(f"[VOUCHER EMAIL] Error sending voucher email: {e}")
         import traceback
         traceback.print_exc()
-        raise HTTPException(status_code=500, detail=str(e))
+        error_msg = str(e)
+        if 'Authentication' in error_msg or 'login' in error_msg.lower():
+            error_msg = 'Erro de autenticação SMTP. Contacte o administrador.'
+        elif 'Connection' in error_msg or 'timeout' in error_msg.lower():
+            error_msg = 'Erro de conexão ao servidor de email. Tente novamente.'
+        raise HTTPException(status_code=500, detail=error_msg)
