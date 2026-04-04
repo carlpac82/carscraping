@@ -4,13 +4,7 @@ from pydantic import BaseModel
 from datetime import datetime
 import psycopg2
 import os
-from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, Image
-from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
-from reportlab.lib.pagesizes import A4
-from reportlab.lib.units import mm
-from reportlab.lib import colors
-import requests
-from io import BytesIO
+import pdfkit
 import io
 from jinja2 import Template
 
@@ -204,93 +198,23 @@ async def print_voucher(booking_id: int):
         
         print(f"[VOUCHER PRINT] Starting PDF generation with fpdf2")
         
-        # Generate PDF with ReportLab - HTML support + images
-        pdf_file = BytesIO()
-        doc = SimpleDocTemplate(pdf_file, pagesize=A4, rightMargin=20*mm, leftMargin=20*mm, topMargin=20*mm, bottomMargin=20*mm)
+        # Generate PDF with pdfkit - uses exact HTML template
+        options = {
+            'page-size': 'A4',
+            'margin-top': '10mm',
+            'margin-right': '10mm',
+            'margin-bottom': '10mm',
+            'margin-left': '10mm',
+            'encoding': "UTF-8",
+            'quiet': '',
+            'images': True,
+            'enable-local-file-access': None,
+            'disable-smart-shrinking': '',
+            'zoom': 1.0
+        }
         
-        # Story elements
-        story = []
-        styles = getSampleStyleSheet()
-        
-        # Custom styles
-        title_style = ParagraphStyle(
-            'CustomTitle',
-            parent=styles['Heading1'],
-            fontSize=24,
-            spaceAfter=30,
-            alignment=1,  # Center
-            textColor=colors.darkblue
-        )
-        
-        # Add logo
-        try:
-            logo_response = requests.get('https://rentalprices.pt/static/ap-heather.png', timeout=10)
-            if logo_response.status_code == 200:
-                logo = Image(BytesIO(logo_response.content), width=50*mm, height=20*mm)
-                story.append(logo)
-                story.append(Spacer(1, 10*mm))
-        except Exception as e:
-            print(f"[VOUCHER PRINT] Error loading logo: {e}")
-        
-        # Title
-        story.append(Paragraph(f"VOUCHER {booking_data.get('voucher_number')}", title_style))
-        story.append(Spacer(1, 20*mm))
-        
-        # Client section
-        story.append(Paragraph("<b>DADOS DO CLIENTE</b>", styles['Heading2']))
-        story.append(Spacer(1, 6*mm))
-        story.append(Paragraph(f"Nome: {booking_data.get('client_name')}", styles['Normal']))
-        story.append(Paragraph(f"Email: {booking_data.get('client_email')}", styles['Normal']))
-        story.append(Paragraph(f"Telefone: {booking_data.get('client_phone')}", styles['Normal']))
-        story.append(Spacer(1, 15*mm))
-        
-        # Vehicle section
-        story.append(Paragraph("<b>DADOS DO VEÍCULO</b>", styles['Heading2']))
-        story.append(Spacer(1, 6*mm))
-        story.append(Paragraph(f"Grupo: {booking_data.get('vehicle_group')}", styles['Normal']))
-        story.append(Paragraph(f"Modelo: {booking_data.get('vehicle_model')}", styles['Normal']))
-        
-        # Vehicle image
-        if booking_data.get('vehicle_image'):
-            try:
-                img_response = requests.get(booking_data['vehicle_image'], timeout=10)
-                if img_response.status_code == 200:
-                    vehicle_img = Image(BytesIO(img_response.content), width=60*mm, height=40*mm)
-                    story.append(Spacer(1, 10*mm))
-                    story.append(vehicle_img)
-            except Exception as e:
-                print(f"[VOUCHER PRINT] Error loading vehicle image: {e}")
-        
-        story.append(Spacer(1, 15*mm))
-        
-        # Dates section
-        story.append(Paragraph("<b>DATAS</b>", styles['Heading2']))
-        story.append(Spacer(1, 6*mm))
-        story.append(Paragraph(f"Levantamento: {booking_data.get('pickup_date')} as {booking_data.get('pickup_time')}", styles['Normal']))
-        story.append(Paragraph(f"Entrega: {booking_data.get('dropoff_date')} as {booking_data.get('dropoff_time')}", styles['Normal']))
-        story.append(Spacer(1, 15*mm))
-        
-        # Values section
-        story.append(Paragraph("<b>VALORES</b>", styles['Heading2']))
-        story.append(Spacer(1, 6*mm))
-        story.append(Paragraph(f"Total: EUR {booking_data.get('total_price')}", styles['Normal']))
-        story.append(Paragraph(f"Valor a pagar no levantamento: EUR {booking_data.get('amount_to_pay')}", styles['Normal']))
-        
-        # QR Code
-        try:
-            qr_response = requests.get('https://rentalprices.pt/static/check-in.png', timeout=10)
-            if qr_response.status_code == 200:
-                qr_code = Image(BytesIO(qr_response.content), width=30*mm, height=30*mm)
-                story.append(Spacer(1, 20*mm))
-                story.append(qr_code)
-        except Exception as e:
-            print(f"[VOUCHER PRINT] Error loading QR code: {e}")
-        
-        # Build PDF
-        doc.build(story)
-        pdf_file.seek(0)
-        pdf_content = pdf_file.getvalue()
-        print(f"[VOUCHER PRINT] PDF generated with ReportLab + HTML + images, size: {len(pdf_content)} bytes")
+        pdf_content = pdfkit.from_string(html_content, False, options=options)
+        print(f"[VOUCHER PRINT] PDF generated with pdfkit (exact HTML template), size: {len(pdf_content)} bytes")
         
         # Return PDF
         return StreamingResponse(
@@ -333,93 +257,23 @@ async def email_voucher(booking_id: int, email_request: EmailRequest):
         html_content = render_voucher_template(booking_data)
         print(f"[VOUCHER EMAIL] HTML template rendered, length: {len(html_content)}")
         
-        # Generate PDF with ReportLab - HTML support + images
-        pdf_file = BytesIO()
-        doc = SimpleDocTemplate(pdf_file, pagesize=A4, rightMargin=20*mm, leftMargin=20*mm, topMargin=20*mm, bottomMargin=20*mm)
+        # Generate PDF with pdfkit - uses exact HTML template
+        options = {
+            'page-size': 'A4',
+            'margin-top': '10mm',
+            'margin-right': '10mm',
+            'margin-bottom': '10mm',
+            'margin-left': '10mm',
+            'encoding': "UTF-8",
+            'quiet': '',
+            'images': True,
+            'enable-local-file-access': None,
+            'disable-smart-shrinking': '',
+            'zoom': 1.0
+        }
         
-        # Story elements
-        story = []
-        styles = getSampleStyleSheet()
-        
-        # Custom styles
-        title_style = ParagraphStyle(
-            'CustomTitle',
-            parent=styles['Heading1'],
-            fontSize=24,
-            spaceAfter=30,
-            alignment=1,  # Center
-            textColor=colors.darkblue
-        )
-        
-        # Add logo
-        try:
-            logo_response = requests.get('https://rentalprices.pt/static/ap-heather.png', timeout=10)
-            if logo_response.status_code == 200:
-                logo = Image(BytesIO(logo_response.content), width=50*mm, height=20*mm)
-                story.append(logo)
-                story.append(Spacer(1, 10*mm))
-        except Exception as e:
-            print(f"[VOUCHER EMAIL] Error loading logo: {e}")
-        
-        # Title
-        story.append(Paragraph(f"VOUCHER {booking_data.get('voucher_number')}", title_style))
-        story.append(Spacer(1, 20*mm))
-        
-        # Client section
-        story.append(Paragraph("<b>DADOS DO CLIENTE</b>", styles['Heading2']))
-        story.append(Spacer(1, 6*mm))
-        story.append(Paragraph(f"Nome: {booking_data.get('client_name')}", styles['Normal']))
-        story.append(Paragraph(f"Email: {booking_data.get('client_email')}", styles['Normal']))
-        story.append(Paragraph(f"Telefone: {booking_data.get('client_phone')}", styles['Normal']))
-        story.append(Spacer(1, 15*mm))
-        
-        # Vehicle section
-        story.append(Paragraph("<b>DADOS DO VEÍCULO</b>", styles['Heading2']))
-        story.append(Spacer(1, 6*mm))
-        story.append(Paragraph(f"Grupo: {booking_data.get('vehicle_group')}", styles['Normal']))
-        story.append(Paragraph(f"Modelo: {booking_data.get('vehicle_model')}", styles['Normal']))
-        
-        # Vehicle image
-        if booking_data.get('vehicle_image'):
-            try:
-                img_response = requests.get(booking_data['vehicle_image'], timeout=10)
-                if img_response.status_code == 200:
-                    vehicle_img = Image(BytesIO(img_response.content), width=60*mm, height=40*mm)
-                    story.append(Spacer(1, 10*mm))
-                    story.append(vehicle_img)
-            except Exception as e:
-                print(f"[VOUCHER EMAIL] Error loading vehicle image: {e}")
-        
-        story.append(Spacer(1, 15*mm))
-        
-        # Dates section
-        story.append(Paragraph("<b>DATAS</b>", styles['Heading2']))
-        story.append(Spacer(1, 6*mm))
-        story.append(Paragraph(f"Levantamento: {booking_data.get('pickup_date')} as {booking_data.get('pickup_time')}", styles['Normal']))
-        story.append(Paragraph(f"Entrega: {booking_data.get('dropoff_date')} as {booking_data.get('dropoff_time')}", styles['Normal']))
-        story.append(Spacer(1, 15*mm))
-        
-        # Values section
-        story.append(Paragraph("<b>VALORES</b>", styles['Heading2']))
-        story.append(Spacer(1, 6*mm))
-        story.append(Paragraph(f"Total: EUR {booking_data.get('total_price')}", styles['Normal']))
-        story.append(Paragraph(f"Valor a pagar no levantamento: EUR {booking_data.get('amount_to_pay')}", styles['Normal']))
-        
-        # QR Code
-        try:
-            qr_response = requests.get('https://rentalprices.pt/static/check-in.png', timeout=10)
-            if qr_response.status_code == 200:
-                qr_code = Image(BytesIO(qr_response.content), width=30*mm, height=30*mm)
-                story.append(Spacer(1, 20*mm))
-                story.append(qr_code)
-        except Exception as e:
-            print(f"[VOUCHER EMAIL] Error loading QR code: {e}")
-        
-        # Build PDF
-        doc.build(story)
-        pdf_file.seek(0)
-        pdf_content = pdf_file.getvalue()
-        print(f"[VOUCHER EMAIL] PDF generated with ReportLab + HTML + images, size: {len(pdf_content)} bytes")
+        pdf_content = pdfkit.from_string(html_content, False, options=options)
+        print(f"[VOUCHER EMAIL] PDF generated with pdfkit (exact HTML template), size: {len(pdf_content)} bytes")
         
         # Get Gmail OAuth credentials
         print(f"[VOUCHER EMAIL] Loading Gmail OAuth credentials")
