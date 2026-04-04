@@ -6,14 +6,7 @@ import psycopg2
 import os
 import logging
 import io
-import base64
-from email.mime.multipart import MIMEMultipart
-from email.mime.text import MIMEText
-from email.mime.base import MIMEBase
-from email import encoders
 from jinja2 import Template
-from google.oauth2.credentials import Credentials
-from googleapiclient.discovery import build
 
 router = APIRouter()
 
@@ -225,16 +218,59 @@ async def print_voucher(booking_id: int):
         
         print(f"[VOUCHER PRINT] Starting PDF generation with fpdf2")
         
-        # Use the original template HTML without extra CSS
+        # Use original template with print CSS
         template_content = html_content
-        print(f"[VOUCHER PRINT] Using original template, size: {len(template_content)} bytes")
         
-        # Return HTML as PDF for printing
+        # Add print CSS for proper printing
+        print_css = """
+        <style>
+        @media print {
+            @page {
+                size: A4;
+                margin: 1cm;
+            }
+            body {
+                margin: 0;
+                padding: 0;
+                -webkit-print-color-adjust: exact;
+                print-color-adjust: exact;
+            }
+            .voucher-container {
+                max-width: 100%;
+                margin: 0;
+                padding: 0;
+            }
+            .no-print {
+                display: none !important;
+            }
+        }
+        </style>
+        """
+        
+        # Insert print CSS
+        if '</head>' in template_content:
+            template_content = template_content.replace('</head>', print_css + '</head>')
+        
+        # Add print button
+        print_button = """
+        <div class="no-print" style="text-align: center; margin: 20px; padding: 20px; background: #f0f0f0;">
+            <button onclick="window.print()" style="padding: 10px 20px; font-size: 16px; background: #009cb6; color: white; border: none; border-radius: 5px; cursor: pointer;">
+                🖨️ Imprimir Voucher
+            </button>
+        </div>
+        """
+        
+        if '<body>' in template_content:
+            template_content = template_content.replace('<body>', '<body>' + print_button)
+        
+        print(f"[VOUCHER PRINT] Using original template with print CSS, size: {len(template_content)} bytes")
+        
+        # Return HTML for browser printing
         return Response(
             content=template_content,
-            media_type='application/pdf',
+            media_type='text/html',
             headers={
-                'Content-Disposition': f'inline; filename="voucher_{booking_data["voucher_number"]}.pdf"'
+                'Content-Disposition': f'inline; filename="voucher_{booking_data["voucher_number"]}.html"'
             }
         )
         
