@@ -197,84 +197,16 @@ async def print_voucher(booking_id: int):
         
         print(f"[VOUCHER PRINT] Starting PDF generation with fpdf2")
         
-        # Generate ultra-simple PDF - always works
-        import base64
+        # Use the original template HTML
+        template_content = html_content  # This is already the rendered template
+        print(f"[VOUCHER PRINT] Using original template, size: {len(template_content)} bytes")
         
-        # Create simple HTML content
-        simple_html = f"""
-        <!DOCTYPE html>
-        <html>
-        <head>
-            <meta charset="UTF-8">
-            <title>Voucher {booking_data.get('voucher_number')}</title>
-            <style>
-                body {{ font-family: Arial, sans-serif; margin: 20px; }}
-                .header {{ background: #009cb6; color: white; padding: 20px; text-align: center; }}
-                .section {{ margin: 20px 0; padding: 15px; border: 1px solid #ddd; }}
-                .label {{ font-weight: bold; }}
-            </style>
-        </head>
-        <body>
-            <div class="header">
-                <h1>VOUCHER {booking_data.get('voucher_number')}</h1>
-            </div>
-            
-            <div class="section">
-                <div class="label">Agente:</div>
-                <p>{booking_data.get('agent_name', 'N/A')}<br>
-                {booking_data.get('agent_email', 'N/A')}<br>
-                {booking_data.get('agent_phone', 'N/A')}</p>
-            </div>
-            
-            <div class="section">
-                <div class="label">Cliente:</div>
-                <p>{booking_data.get('client_name', 'N/A')}<br>
-                {booking_data.get('client_email', 'N/A')}<br>
-                {booking_data.get('client_phone', 'N/A')}</p>
-            </div>
-            
-            <div class="section">
-                <div class="label">Veículo:</div>
-                <p>Grupo: {booking_data.get('vehicle_group', 'N/A')}<br>
-                Modelo: {booking_data.get('vehicle_model', 'N/A')}</p>
-            </div>
-            
-            <div class="section">
-                <div class="label">Datas:</div>
-                <p>Levantamento: {booking_data.get('pickup_date', 'N/A')} as {booking_data.get('pickup_time', 'N/A')}<br>
-                Entrega: {booking_data.get('dropoff_date', 'N/A')} as {booking_data.get('dropoff_time', 'N/A')}</p>
-            </div>
-            
-            <div class="section">
-                <div class="label">Valores:</div>
-                <p>Total: EUR {booking_data.get('total_price', 'N/A')}<br>
-                Valor a pagar: EUR {booking_data.get('amount_to_pay', 'N/A')}</p>
-            </div>
-            
-            <div class="section">
-                <div class="label">Check-in Online:</div>
-                <p>Escaneie o QR code ou aceda a auto-prudente.com/online-checkin/</p>
-                <p>Localização: Ver no Google Maps</p>
-                <p>Telefone: +351 289 542 160</p>
-                <p>Email: info@auto-prudente.com</p>
-            </div>
-        </body>
-        </html>
-        """
-        
-        # Convert HTML to bytes (simple approach)
-        html_bytes = simple_html.encode('utf-8')
-        
-        # Create a simple PDF-like response
-        pdf_content = html_bytes  # For now, return HTML as PDF-like content
-        print(f"[VOUCHER PRINT] Simple PDF generated, size: {len(pdf_content)} bytes")
-        
-        # Return PDF
-        return StreamingResponse(
-            io.BytesIO(pdf_content),
-            media_type='application/pdf',
+        # Return HTML as PDF-like response
+        return Response(
+            content=template_content,
+            media_type='text/html',
             headers={
-                'Content-Disposition': f'inline; filename="voucher_{booking_data["voucher_number"]}.pdf"'
+                'Content-Disposition': f'inline; filename="voucher_{booking_data["voucher_number"]}.html"'
             }
         )
         
