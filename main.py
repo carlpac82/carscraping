@@ -65584,17 +65584,25 @@ async def admin_brokers_list(request: Request):
                     })
                 
                 # Calculate summary statistics
-                current_month = datetime.now().month
-                current_year = datetime.now().year
+                today = datetime.now()
+                current_year = today.year
                 
-                # Filter reservations for current month
+                # Calculate previous month
+                if today.month == 1:
+                    previous_month = 12
+                    previous_month_year = current_year - 1
+                else:
+                    previous_month = today.month - 1
+                    previous_month_year = current_year
+                
+                # Filter reservations for previous month
                 month_brokers = [b for b in brokers if b['pickup_date']]
                 month_reservations = len([b for b in month_brokers if 
-                    datetime.fromisoformat(b['pickup_date']).month == current_month and 
-                    datetime.fromisoformat(b['pickup_date']).year == current_year])
+                    datetime.fromisoformat(b['pickup_date']).month == previous_month and 
+                    datetime.fromisoformat(b['pickup_date']).year == previous_month_year])
                 month_value = sum([b['total_price'] for b in month_brokers if 
-                    datetime.fromisoformat(b['pickup_date']).month == current_month and 
-                    datetime.fromisoformat(b['pickup_date']).year == current_year])
+                    datetime.fromisoformat(b['pickup_date']).month == previous_month and 
+                    datetime.fromisoformat(b['pickup_date']).year == previous_month_year])
                 
                 # Filter reservations for current year
                 year_reservations = len([b for b in month_brokers if 
