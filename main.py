@@ -65196,6 +65196,33 @@ async def admin_brokers_yearly_distribution(request: Request, year: str):
                             'total_value': float(row[2] or 0)
                         }
                 
+                # Get commissioners data for the same year
+                commissioners_query = """
+                    SELECT COUNT(*) as reservation_count, COALESCE(SUM(cb.base_price), 0) as total_value
+                    FROM commission_bookings cb
+                    WHERE EXTRACT(YEAR FROM cb.pickup_date) = %s
+                    AND cb.commission_amount > 0
+                """ if USE_POSTGRES else """
+                    SELECT COUNT(*) as reservation_count, COALESCE(SUM(cb.base_price), 0) as total_value
+                    FROM commission_bookings cb
+                    WHERE strftime('%%Y', cb.pickup_date) = ?
+                    AND cb.commission_amount > 0
+                """
+                
+                if USE_POSTGRES:
+                    cur.execute(commissioners_query, (year_int,))
+                else:
+                    cur.execute(commissioners_query, (str(year),))
+                
+                commissioners_row = cur.fetchone()
+                
+                # Add commissioners as a single aggregated entry
+                if commissioners_row and commissioners_row[0] > 0:
+                    broker_groups['COMISSIONISTAS'] = {
+                        'reservation_count': commissioners_row[0],
+                        'total_value': float(commissioners_row[1] or 0)
+                    }
+                
                 brokers = []
                 for name, data in broker_groups.items():
                     brokers.append({
