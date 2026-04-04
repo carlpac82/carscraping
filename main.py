@@ -12713,6 +12713,7 @@ async def admin_commissions_print_pdf(request: Request):
         
         # Get query parameters
         month = request.query_params.get("month", "")
+        year = request.query_params.get("year", "")
         commissioner = request.query_params.get("commissioner", "")
         
         # Fetch commissions data
@@ -12735,6 +12736,11 @@ async def admin_commissions_print_pdf(request: Request):
                         # Filter by month using PostgreSQL EXTRACT
                         query += " AND EXTRACT(MONTH FROM cb.pickup_date) = %s"
                         params.append(int(month))
+                    
+                    if year:
+                        # Filter by year using PostgreSQL EXTRACT
+                        query += " AND EXTRACT(YEAR FROM cb.pickup_date) = %s"
+                        params.append(int(year))
                     
                     if commissioner:
                         # Filter by commissioner name
@@ -12762,6 +12768,11 @@ async def admin_commissions_print_pdf(request: Request):
                         # Filter by month using SQLite strftime
                         query += " AND CAST(strftime('%m', cb.pickup_date) AS INTEGER) = ?"
                         params.append(int(month))
+                    
+                    if year:
+                        # Filter by year using SQLite strftime
+                        query += " AND CAST(strftime('%Y', cb.pickup_date) AS INTEGER) = ?"
+                        params.append(int(year))
                     
                     if commissioner:
                         # Filter by commissioner name

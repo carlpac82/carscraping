@@ -1270,6 +1270,7 @@
           // Print commissions PDF
           function printCommissionsPDF() {
               const month = document.getElementById('monthFilter').value;
+              const year = document.getElementById('yearFilter').value;
               const commissioner = document.getElementById('commissionerFilter').value;
               
               let url = '/api/admin/commissions/print-pdf';
@@ -1277,6 +1278,9 @@
               
               if (month) {
                   params.append('month', month);
+              }
+              if (year) {
+                  params.append('year', year);
               }
               if (commissioner) {
                   params.append('commissioner', commissioner);
