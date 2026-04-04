@@ -65166,32 +65166,18 @@ async def admin_brokers_yearly_distribution(request: Request, year: str):
                     FROM broker_bookings 
                     WHERE EXTRACT(YEAR FROM pickup_date) = %s
                     GROUP BY broker_name
-                    
-                    UNION ALL
-                    
-                    SELECT 'Comissionistas', COUNT(*) as reservation_count, COALESCE(SUM(price), 0) as total_value
-                    FROM commission_bookings 
-                    WHERE EXTRACT(YEAR FROM pickup_date) = %s
-                    AND (broker_name IS NULL OR broker_name NOT IN ('ABBYCAR', 'DISCOVERCARS', 'RENTALCARS', 'ECONOMYCARS', 'CARGURU', 'API-WEB', 'AP'))
                 """ if USE_POSTGRES else """
                     SELECT broker_name, COUNT(*) as reservation_count, COALESCE(SUM(total_price), 0) as total_value
                     FROM broker_bookings 
                     WHERE strftime('%%Y', pickup_date) = ?
                     GROUP BY broker_name
-                    
-                    UNION ALL
-                    
-                    SELECT 'Comissionistas', COUNT(*) as reservation_count, COALESCE(SUM(price), 0) as total_value
-                    FROM commission_bookings 
-                    WHERE strftime('%%Y', pickup_date) = ?
-                    AND (broker_name IS NULL OR broker_name NOT IN ('ABBYCAR', 'DISCOVERCARS', 'RENTALCARS', 'ECONOMYCARS', 'CARGURU', 'API-WEB', 'AP'))
                 """
                 
                 cur = con.cursor()
                 if USE_POSTGRES:
-                    cur.execute(query, (year_int, year_int))
+                    cur.execute(query, (year_int,))
                 else:
-                    cur.execute(query, (str(year), str(year)))
+                    cur.execute(query, (str(year),))
                 
                 rows = cur.fetchall()
                 
