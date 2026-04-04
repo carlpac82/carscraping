@@ -4,9 +4,12 @@ from pydantic import BaseModel
 from datetime import datetime
 import psycopg2
 import os
-from weasyprint import HTML
+from reportlab.pdfgen import canvas
+from reportlab.lib.pagesizes import A4
+from reportlab.lib.utils import ImageReader
 import io
 from jinja2 import Template
+import urllib.request
 
 router = APIRouter()
 
@@ -196,10 +199,69 @@ async def print_voucher(booking_id: int):
         html_content = render_voucher_template(booking_data)
         print(f"[VOUCHER PRINT] HTML template rendered, length: {len(html_content)}")
         
-        # Generate PDF with custom URL fetcher for images
-        print(f"[VOUCHER PRINT] Starting PDF generation with WeasyPrint")
-        pdf_file = HTML(string=html_content).write_pdf()
-        print(f"[VOUCHER PRINT] PDF generated successfully, size: {len(pdf_file)} bytes")
+        print(f"[VOUCHER PRINT] Starting PDF generation with ReportLab")
+        
+        # Criar PDF com ReportLab
+        buffer = io.BytesIO()
+        p = canvas.Canvas(buffer, pagesize=A4)
+        width, height = A4
+        
+        # Header
+        p.setFont("Helvetica-Bold", 16)
+        p.drawString(50, height - 50, f"VOUCHER {booking_data.get('voucher_number')}")
+        
+        # Informações do cliente
+        p.setFont("Helvetica", 12)
+        y_position = height - 100
+        p.drawString(50, y_position, f"Cliente: {booking_data.get('client_name')}")
+        y_position -= 20
+        p.drawString(50, y_position, f"Email: {booking_data.get('client_email')}")
+        y_position -= 20
+        p.drawString(50, y_position, f"Telefone: {booking_data.get('client_phone')}")
+        
+        # Veículo
+        y_position -= 40
+        p.setFont("Helvetica-Bold", 12)
+        p.drawString(50, y_position, "Veículo:")
+        y_position -= 20
+        p.setFont("Helvetica", 12)
+        p.drawString(50, y_position, f"{booking_data.get('vehicle_group')}")
+        
+        # Datas
+        y_position -= 40
+        p.drawString(50, y_position, f"Levantamento: {booking_data.get('pickup_date')} {booking_data.get('pickup_time')}")
+        y_position -= 20
+        p.drawString(50, y_position, f"Entrega: {booking_data.get('dropoff_date')} {booking_data.get('dropoff_time')}")
+        
+        # Valores
+        y_position -= 40
+        p.setFont("Helvetica-Bold", 12)
+        p.drawString(50, y_position, "Valores:")
+        y_position -= 20
+        p.setFont("Helvetica", 12)
+        p.drawString(50, y_position, f"Total: €{booking_data.get('total_price')}")
+        y_position -= 20
+        p.drawString(50, y_position, f"Depósito: €{booking_data.get('deposit')}")
+        y_position -= 20
+        p.drawString(50, y_position, f"A Pagar: €{booking_data.get('amount_to_pay')}")
+        
+        # Tentar adicionar imagem do veículo se existir
+        if booking_data.get('vehicle_image'):
+            try:
+                print(f"[VOUCHER PRINT] Loading vehicle image: {booking_data.get('vehicle_image')}")
+                img_data = urllib.request.urlopen(booking_data.get('vehicle_image'), timeout=10).read()
+                img = ImageReader(io.BytesIO(img_data))
+                p.drawImage(img, 400, height - 200, width=150, height=100)
+                print(f"[VOUCHER PRINT] Vehicle image added")
+            except Exception as e:
+                print(f"[VOUCHER PRINT] Could not load vehicle image: {e}")
+        
+        p.showPage()
+        p.save()
+        
+        pdf_file = buffer.getvalue()
+        buffer.close()
+        print(f"[VOUCHER PRINT] PDF generated successfully with ReportLab, size: {len(pdf_file)} bytes")
         
         # Return PDF
         return StreamingResponse(
