@@ -4,7 +4,6 @@ from pydantic import BaseModel
 from datetime import datetime
 import psycopg2
 import os
-from fpdf import FPDF
 import io
 from jinja2 import Template
 
