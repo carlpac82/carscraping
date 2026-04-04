@@ -233,46 +233,54 @@
             </div>
 
             <div class="vehicle-section">
-                <div class="info-grid">
-                    <div class="info-row">
-                        <div class="info-label">Levantamento</div>
-                        <div class="info-value">{{ pickup_date }} {{ pickup_time }}</div>
-                    </div>
-                    <div class="info-row">
-                        <div class="info-label">Local Levantamento</div>
-                        <div class="info-value">{{ pickup_location }}</div>
-                    </div>
-                    <div class="info-row">
-                        <div class="info-label">Entrega</div>
-                        <div class="info-value">{{ dropoff_date }} {{ dropoff_time }}</div>
-                    </div>
-                    <div class="info-row">
-                        <div class="info-label">Local Entrega</div>
-                        <div class="info-value">{{ dropoff_location }}</div>
-                    </div>
-                    {% if flight_number %}
-                    <div class="info-row">
-                        <div class="info-label">Voo</div>
-                        <div class="info-value">{{ flight_number }}</div>
-                    </div>
-                    {% endif %}
-                    <div class="info-row">
-                        <div class="info-label">Dias</div>
-                        <div class="info-value">{{ rental_days }}</div>
-                    </div>
-                    {% if vehicle_image %}
-                    <div class="info-row" style="vertical-align: top;">
-                        <div class="info-label">&nbsp;</div>
-                        <div class="info-value">
-                            <img src="{{ vehicle_image }}" alt="{{ vehicle_group }}" style="width: 80px; height: 50px; object-fit: cover;">
-                            <div class="vehicle-name" style="margin-top: 4px;">
+                <div style="display: table; width: 100%;">
+                    <div style="display: table-row;">
+                        <!-- Coluna da esquerda - Campos -->
+                        <div style="display: table-cell; width: 60%; vertical-align: top;">
+                            <div class="info-grid">
+                                <div class="info-row">
+                                    <div class="info-label">Levantamento</div>
+                                    <div class="info-value">{{ pickup_date }} {{ pickup_time }}</div>
+                                </div>
+                                <div class="info-row">
+                                    <div class="info-label">Local Levantamento</div>
+                                    <div class="info-value">{{ pickup_location }}</div>
+                                </div>
+                                <div class="info-row">
+                                    <div class="info-label">Entrega</div>
+                                    <div class="info-value">{{ dropoff_date }} {{ dropoff_time }}</div>
+                                </div>
+                                <div class="info-row">
+                                    <div class="info-label">Local Entrega</div>
+                                    <div class="info-value">{{ dropoff_location }}</div>
+                                </div>
+                                {% if flight_number %}
+                                <div class="info-row">
+                                    <div class="info-label">Voo</div>
+                                    <div class="info-value">{{ flight_number }}</div>
+                                </div>
+                                {% endif %}
+                                <div class="info-row">
+                                    <div class="info-label">Dias</div>
+                                    <div class="info-value">{{ rental_days }}</div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- Coluna da direita - Imagem e Grupo -->
+                        <div style="display: table-cell; width: 40%; vertical-align: top; text-align: center; padding-left: 10px;">
+                            {% if vehicle_image %}
+                            <div>
+                                <img src="{{ vehicle_image }}" alt="{{ vehicle_group }}" style="width: 80px; height: 50px; object-fit: cover;">
+                            </div>
+                            <div class="vehicle-name" style="margin-top: 8px;">
                                 <span style="text-transform: uppercase; font-weight: 700; color: #009cb6;">GRUPO {{ vehicle_group }}</span>
                                 <br>
                                 <span style="font-size: 10px; color: #6b7280; font-weight: normal;">{{ vehicle_model }}</span>
                             </div>
+                            {% endif %}
                         </div>
                     </div>
-                    {% endif %}
                 </div>
             </div>
 
