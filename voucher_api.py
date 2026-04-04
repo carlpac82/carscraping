@@ -5,12 +5,15 @@ from datetime import datetime
 import psycopg2
 import os
 from weasyprint import HTML
-import smtplib
-from email.mime.multipart import MIMEMultipart
-from email.mime.text import MIMEText
-from email.mime.application import MIMEApplication
 import io
 from jinja2 import Template
+import base64
+from email.mime.multipart import MIMEMultipart
+from email.mime.text import MIMEText
+from email.mime.base import MIMEBase
+from email import encoders
+from googleapiclient.discovery import build
+import logging
 
 router = APIRouter()
 
@@ -22,6 +25,59 @@ DATABASE_URL = os.environ.get('DATABASE_URL')
 def get_db_connection():
     """Get database connection"""
     return psycopg2.connect(DATABASE_URL)
+
+def get_gmail_credentials():
+    """Load Gmail OAuth credentials from database (same as main.py)"""
+    from google.oauth2.credentials import Credentials
+    
+    conn = get_db_connection()
+    cur = conn.cursor()
+    
+    try:
+        cur.execute("""
+            SELECT access_token, refresh_token 
+            FROM oauth_tokens 
+            WHERE provider = 'google' 
+            ORDER BY updated_at DESC 
+            LIMIT 1
+        """)
+        row = cur.fetchone()
+        
+        if not row:
+            logging.error("❌ No OAuth access token found in database")
+            return None
+        
+        access_token = row[0]
+        refresh_token = row[1] if len(row) > 1 else None
+        
+        if not refresh_token or refresh_token.strip() == '':
+            logging.error("❌ No refresh_token found - Gmail must be reconnected in Admin Settings")
+            return None
+        
+        # Load OAuth client credentials from environment
+        client_id = os.getenv('GOOGLE_CLIENT_ID')
+        client_secret = os.getenv('GOOGLE_CLIENT_SECRET')
+        
+        if not client_id or not client_secret:
+            logging.error("❌ GOOGLE_CLIENT_ID or GOOGLE_CLIENT_SECRET not configured")
+            return None
+        
+        # Create credentials with refresh capability
+        credentials = Credentials(
+            token=access_token,
+            refresh_token=refresh_token,
+            token_uri="https://oauth2.googleapis.com/token",
+            client_id=client_id,
+            client_secret=client_secret,
+            scopes=['https://www.googleapis.com/auth/gmail.send']
+        )
+        
+        logging.info("✅ Gmail credentials loaded successfully")
+        return credentials
+        
+    finally:
+        cur.close()
+        conn.close()
 
 def get_booking_data(booking_id):
     """Get booking data with commissioner info"""
@@ -185,22 +241,16 @@ async def email_voucher(booking_id: int, email_request: EmailRequest):
         pdf_file = HTML(string=html_content).write_pdf()
         print(f"[VOUCHER EMAIL] PDF generated successfully, size: {len(pdf_file)} bytes")
         
-        # Email configuration
-        smtp_server = os.environ.get('SMTP_SERVER', 'smtp.gmail.com')
-        smtp_port = int(os.environ.get('SMTP_PORT', 587))
-        smtp_user = os.environ.get('SMTP_USER')
-        smtp_password = os.environ.get('SMTP_PASSWORD')
-        from_email = os.environ.get('FROM_EMAIL', smtp_user)
+        # Get Gmail OAuth credentials
+        print(f"[VOUCHER EMAIL] Loading Gmail OAuth credentials")
+        credentials = get_gmail_credentials()
         
-        print(f"[VOUCHER EMAIL] SMTP Config - Server: {smtp_server}, Port: {smtp_port}, User: {smtp_user[:5]}... (exists: {bool(smtp_user)})")
+        if not credentials:
+            print(f"[VOUCHER EMAIL] Gmail OAuth not configured")
+            raise HTTPException(status_code=500, detail='Gmail não está configurado. Vá a Admin Settings → Email e conecte o Gmail.')
         
-        if not smtp_user or not smtp_password:
-            print(f"[VOUCHER EMAIL] SMTP credentials not configured")
-            raise HTTPException(status_code=500, detail='Configuração de email não disponível. Contacte o administrador.')
-        
-        # Create email
+        # Create email message
         msg = MIMEMultipart()
-        msg['From'] = from_email
         msg['To'] = recipient_email
         msg['Subject'] = f'Voucher de Reserva - {booking_data["voucher_number"]}'
         
@@ -246,22 +296,26 @@ async def email_voucher(booking_id: int, email_request: EmailRequest):
         
         # Attach PDF
         print(f"[VOUCHER EMAIL] Attaching PDF to email")
-        pdf_attachment = MIMEApplication(pdf_file, _subtype='pdf')
-        pdf_attachment.add_header('Content-Disposition', 'attachment', 
-                                 filename=f'voucher_{booking_data["voucher_number"]}.pdf')
-        msg.attach(pdf_attachment)
+        part = MIMEBase('application', 'pdf')
+        part.set_payload(pdf_file)
+        encoders.encode_base64(part)
+        part.add_header('Content-Disposition', f'attachment; filename="voucher_{booking_data["voucher_number"]}.pdf"')
+        msg.attach(part)
         
-        # Send email
-        print(f"[VOUCHER EMAIL] Connecting to SMTP server {smtp_server}:{smtp_port}")
-        with smtplib.SMTP(smtp_server, smtp_port) as server:
-            print(f"[VOUCHER EMAIL] Starting TLS")
-            server.starttls()
-            print(f"[VOUCHER EMAIL] Logging in with user {smtp_user}")
-            server.login(smtp_user, smtp_password)
-            print(f"[VOUCHER EMAIL] Sending email to {recipient_email}")
-            server.send_message(msg)
+        # Send via Gmail API
+        print(f"[VOUCHER EMAIL] Sending email via Gmail API to {recipient_email}")
+        try:
+            service = build('gmail', 'v1', credentials=credentials)
+            raw_message = base64.urlsafe_b64encode(msg.as_bytes()).decode()
+            message_body = {'raw': raw_message}
+            
+            sent_message = service.users().messages().send(userId='me', body=message_body).execute()
+            print(f"[VOUCHER EMAIL] Email sent successfully! Message ID: {sent_message['id']}")
+            
+        except Exception as gmail_error:
+            print(f"[VOUCHER EMAIL] Gmail API error: {gmail_error}")
+            raise HTTPException(status_code=500, detail=f'Erro ao enviar email: {str(gmail_error)}')
         
-        print(f"[VOUCHER EMAIL] Email sent successfully to {recipient_email}")
         return {'ok': True, 'message': 'Voucher enviado com sucesso'}
         
     except HTTPException as he:
