@@ -724,7 +724,13 @@
           <button class="btn-primary" onclick="toggleSelectAll()">
               <span id="selectAllText">Selecionar Todas</span>
           </button>
-          <button class="btn-primary" onclick="printCommissionsPDF()" style="margin-left: auto;">
+          <button class="btn-primary" onclick="exportToExcel()" style="margin-left: auto;">
+              <svg style="display: inline-block; width: 1.25rem; height: 1.25rem; margin-right: 0.5rem; vertical-align: middle;" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+              </svg>
+              Exportar Excel
+          </button>
+          <button class="btn-primary" onclick="printCommissionsPDF()">
               <svg style="display: inline-block; width: 1.25rem; height: 1.25rem; margin-right: 0.5rem; vertical-align: middle;" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z"/>
               </svg>
@@ -1204,6 +1210,28 @@
               markUnpaidBtn.disabled = !hasSelection;
               
               selectAllText.textContent = selectedCommissions.size === allCommissions.length ? 'Deselecionar Todas' : 'Selecionar Todas';
+          }
+          
+          // Export to Excel
+          function exportToExcel() {
+              const month = document.getElementById('monthFilter').value;
+              const year = document.getElementById('yearFilter').value;
+              
+              let url = '/api/admin/commissions/export-excel';
+              const params = new URLSearchParams();
+              
+              if (month) {
+                  params.append('month', month);
+              }
+              if (year) {
+                  params.append('year', year);
+              }
+              
+              if (params.toString()) {
+                  url += '?' + params.toString();
+              }
+              
+              window.location.href = url;
           }
           
           // Print commissions PDF
