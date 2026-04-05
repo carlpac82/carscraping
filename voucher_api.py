@@ -348,6 +348,106 @@ async def list_vehicle_images():
         print(f"[VEHICLES] Error listing images: {e}")
         return {'error': str(e), 'vehicles': []}
 
+@router.post('/api/vehicles/download-group-photos')
+async def download_group_photos():
+    """Baixa imagens para grupos específicos do CarJet"""
+    try:
+        import httpx
+        import os
+        from datetime import datetime, timedelta
+        import random
+        
+        print("[GROUP PHOTOS] Starting download for vehicle groups...")
+        
+        # Mapeamento de grupos para modelos CarJet
+        group_models = {
+            'A': 'kia picanto',
+            'B': 'fiat panda', 
+            'D': 'seat ibiza',
+            'E1': 'hyundai i10',
+            'E2': 'citroen c3',
+            'F': 'seat arona',
+            'G': 'fiat 500',
+            'J1': 'peugeot 2008',
+            'J2': 'peugeot 308 sw',
+            'L1': 'citroen c3 aircross',
+            'L2': 'peugeot 308 sw',
+            'M1': 'dacia jogger',
+            'M2': 'citroen c4 picasso',
+            'N': 'toyota proace'
+        }
+        
+        # Datas para scraping (hoje + 5 dias)
+        days_offset = 5
+        start_date = datetime.now() + timedelta(days=days_offset)
+        end_date = start_date + timedelta(days=1)
+        
+        # Usar CarJet scraping
+        try:
+            from carjet_direct import scrape_carjet_direct
+            
+            print(f"[GROUP PHOTOS] Scraping CarJet for {start_date.strftime('%d/%m/%Y')}...")
+            results = scrape_carjet_direct("Faro", start_date, end_date, quick=1)
+            
+            downloaded = 0
+            for item in results:
+                car_name = item.get('car', '').strip().lower()
+                photo_url = item.get('photo', '')
+                
+                if not photo_url:
+                    continue
+                    
+                # Verificar se este carro corresponde a algum grupo
+                for group, model in group_models.items():
+                    if model in car_name or car_name in model:
+                        # Download da imagem
+                        try:
+                            response = httpx.get(photo_url, timeout=10)
+                            if response.status_code == 200:
+                                # Salvar na base de dados
+                                import psycopg2
+                                DATABASE_URL = os.environ.get('DATABASE_URL')
+                                conn = psycopg2.connect(DATABASE_URL)
+                                cur = conn.cursor()
+                                
+                                cur.execute("""
+                                    INSERT OR REPLACE INTO vehicle_images 
+                                    (vehicle_key, image_data, content_type, source_url, downloaded_at)
+                                    VALUES (%s, %s, %s, %s, %s)
+                                """, (model, response.content, 'image/jpeg', photo_url, datetime.now()))
+                                
+                                conn.commit()
+                                cur.close()
+                                conn.close()
+                                
+                                downloaded += 1
+                                print(f"[GROUP PHOTOS] Downloaded {model} for group {group}")
+                                break
+                                
+                        except Exception as e:
+                            print(f"[GROUP PHOTOS] Error downloading {car_name}: {e}")
+                            continue
+            
+            print(f"[GROUP PHOTOS] Download complete: {downloaded} images")
+            return {
+                'success': True,
+                'downloaded': downloaded,
+                'message': f'Downloaded {downloaded} vehicle group images'
+            }
+            
+        except ImportError:
+            return {
+                'success': False,
+                'error': 'carjet_direct module not available'
+            }
+            
+    except Exception as e:
+        print(f"[GROUP PHOTOS] Error: {e}")
+        return {
+            'success': False,
+            'error': str(e)
+        }
+
 @router.post('/api/commissioner/voucher/email/{booking_id}')
 async def email_voucher(booking_id: int, email_request: EmailRequest):
     """Send voucher by email"""
