@@ -216,54 +216,15 @@ def render_voucher_template(booking_data):
             if key in booking_data:
                 print(f"   {key}: {booking_data[key]} (type: {type(booking_data[key])})")
         
-        # DEBUG: Check if template contains variables
-        template_vars = []
-        import re
-        vars_found = re.findall(r'\{\{(\w+)\}\}', template_content)
-        print(f"[VOUCHER PDF] DEBUG - Template variables found: {vars_found}")
+        # Use Jinja2 Template instead of replace()
+        print(f"[VOUCHER PDF] DEBUG - Using Jinja2 Template engine...")
+        template = Template(template_content)
+        rendered_content = template.render(**booking_data)
         
-        # Replace template variables - ensure all values are strings
-        print(f"[VOUCHER PDF] DEBUG - Starting template replacement...")
+        print(f"[VOUCHER PDF] DEBUG - Template rendered successfully")
+        print(f"[VOUCHER PDF] DEBUG - Rendered length: {len(rendered_content)}")
         
-        # Test replacement with one field
-        original_voucher = template_content.count('{{voucher_number}}')
-        print(f"[VOUCHER PDF] DEBUG - Found {{voucher_number}} {original_voucher} times in template")
-        
-        template_content = template_content.replace('{{voucher_number}}', str(booking_data.get('voucher_number', '')))
-        after_replace = template_content.count('{{voucher_number}}')
-        print(f"[VOUCHER PDF] DEBUG - After replace, {{voucher_number}} appears {after_replace} times")
-        
-        # Continue with other replacements
-        template_content = template_content.replace('{{client_name}}', str(booking_data.get('client_name', '')))
-        template_content = template_content.replace('{{client_email}}', str(booking_data.get('client_email', '')))
-        template_content = template_content.replace('{{client_phone}}', str(booking_data.get('client_phone', '')))
-        template_content = template_content.replace('{{hotel}}', str(booking_data.get('hotel', '')))
-        template_content = template_content.replace('{{room_number}}', str(booking_data.get('room_number', '')))
-        template_content = template_content.replace('{{pickup_date}}', str(booking_data.get('pickup_date', '')))
-        template_content = template_content.replace('{{pickup_time}}', str(booking_data.get('pickup_time', '')))
-        template_content = template_content.replace('{{dropoff_date}}', str(booking_data.get('dropoff_date', '')))
-        template_content = template_content.replace('{{dropoff_time}}', str(booking_data.get('dropoff_time', '')))
-        template_content = template_content.replace('{{pickup_location}}', str(booking_data.get('pickup_location', '')))
-        template_content = template_content.replace('{{dropoff_location}}', str(booking_data.get('dropoff_location', '')))
-        template_content = template_content.replace('{{vehicle_group}}', str(booking_data.get('vehicle_group', '')))
-        template_content = template_content.replace('{{vehicle_name}}', str(booking_data.get('vehicle_name', '')))
-        template_content = template_content.replace('{{vehicle_image}}', str(booking_data.get('vehicle_image', '')))
-        template_content = template_content.replace('{{total_price}}', str(booking_data.get('total_price', '0')))
-        template_content = template_content.replace('{{deposit_amount}}', str(booking_data.get('deposit_amount', '0')))
-        template_content = template_content.replace('{{amount_to_pay}}', str(booking_data.get('amount_to_pay', '0')))
-        template_content = template_content.replace('{{flight_number}}', str(booking_data.get('flight_number', '')))
-        template_content = template_content.replace('{{observations}}', str(booking_data.get('observations', '')))
-        template_content = template_content.replace('{{agent_name}}', str(booking_data.get('agent_name', '')))
-        template_content = template_content.replace('{{agent_email}}', str(booking_data.get('agent_email', '')))
-        template_content = template_content.replace('{{agent_phone}}', str(booking_data.get('agent_phone', '')))
-        template_content = template_content.replace('{{booking_date}}', str(booking_data.get('booking_date', '')))
-        template_content = template_content.replace('{{rental_days}}', str(booking_data.get('rental_days', '')))
-        template_content = template_content.replace('{{vehicle_model}}', str(booking_data.get('vehicle_model', '')))
-        template_content = template_content.replace('{{deposit}}', str(booking_data.get('deposit', '0')))
-        
-        print(f"[VOUCHER PDF] Using template: {template_file} for language: {language}")
-        
-        return template_content
+        return rendered_content
         
     except Exception as e:
         print(f"[VOUCHER PDF] Error rendering voucher template: {e}")
