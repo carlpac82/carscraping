@@ -4611,19 +4611,26 @@
                 
                 console.log(`[DATE VALIDATION] After setting - pickupDate.value: ${pickupDateInput.value}, pickupDate.min: ${pickupDateInput.min}`);
                 
-                // Atualizar horas disponíveis para amanhã
-                updateAvailableTimeSlots('pickupTime', tomorrow);
-                updateAvailableTimeSlots('dropoffTime', tomorrow);
+                // Atualizar horas disponíveis para amanhã (se função existir)
+                if (typeof updateAvailableTimeSlots === 'function') {
+                    updateAvailableTimeSlots('pickupTime', tomorrow);
+                    updateAvailableTimeSlots('dropoffTime', tomorrow);
+                }
             } else {
                 // Dentro do horário - manter hoje
                 const todayStr = now.toISOString().split('T')[0];
+                console.log(`[DATE VALIDATION] Setting min and value to today: ${todayStr}`);
                 pickupDateInput.value = todayStr;
                 pickupDateInput.min = todayStr;  // Permitir hoje no calendário
                 dropoffDateInput.min = todayStr;
                 
-                // Atualizar horas disponíveis para hoje
-                updateAvailableTimeSlots('pickupTime', now);
-                updateAvailableTimeSlots('dropoffTime', now);
+                console.log(`[DATE VALIDATION] After setting - pickupDate.value: ${pickupDateInput.value}, pickupDate.min: ${pickupDateInput.min}`);
+                
+                // Atualizar horas disponíveis para hoje (se função existir)
+                if (typeof updateAvailableTimeSlots === 'function') {
+                    updateAvailableTimeSlots('pickupTime', now);
+                    updateAvailableTimeSlots('dropoffTime', now);
+                }
             }
             
             // Disparar change para atualizar horas
