@@ -100,26 +100,43 @@ def send_new_booking_notification(booking_id: int, booking_data: dict):
         template = Template(template_content)
         html_content = template.render(**notification_data)
         
-        # Create message
-        message = MIMEText(html_content, 'html')
+        # Get Gmail OAuth credentials (same as voucher email)
+        print(f"[NOTIFICATION] Loading Gmail OAuth credentials")
+        credentials = get_gmail_credentials()
+        
+        if not credentials:
+            print(f"[NOTIFICATION] Gmail OAuth not configured")
+            return False
+        
+        # Create email message
+        print(f"[NOTIFICATION] Creating email message")
+        from email.mime.multipart import MIMEMultipart
+        from email.mime.text import MIMEText
+        
+        message = MIMEMultipart()
         message['to'] = 'info@auto-prudente.com'
         message['subject'] = f"Nova Reserva - {booking_data.get('voucher_number', '')}"
+        message.attach(MIMEText(html_content, 'html'))
         
-        # Send via Gmail API
-        service = get_gmail_service()
-        draft = service.users().messages().create(
-            userId='me',
-            body={'raw': base64.urlsafe_b64encode(message.as_bytes()).decode()}
-        ).execute()
-        
-        # Send the message
-        service.users().messages().send(
-            userId='me',
-            body={'id': draft['id']}
-        ).execute()
-        
-        print(f"[NOTIFICATION] Email sent successfully to info@auto-prudente.com")
-        return True
+        # Send email via Gmail API
+        print(f"[NOTIFICATION] Sending email via Gmail API")
+        try:
+            service = build('gmail', 'v1', credentials=credentials)
+            # Encode message
+            import base64
+            from email import encoders
+            raw_message = base64.urlsafe_b64encode(message.as_bytes()).decode()
+            
+            message_body = {'raw': raw_message}
+            result = service.users().messages().send(userId='me', body=message_body).execute()
+            
+            print(f"[NOTIFICATION] Email sent successfully to info@auto-prudente.com")
+            print(f"[NOTIFICATION] Message ID: {result.get('id')}")
+            return True
+            
+        except Exception as e:
+            print(f"[NOTIFICATION] Error sending via Gmail API: {e}")
+            return False
         
     except Exception as e:
         print(f"[NOTIFICATION] Error sending notification: {e}")
