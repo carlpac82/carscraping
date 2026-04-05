@@ -311,7 +311,7 @@ def get_booking_data(booking_id):
             'extras': extras,
             'flight_number': result[15],
             'observations': result[16],
-            'deposit': f"{deposit:.2f}",
+            'deposit_amount': f"{deposit:.2f}",
             'total_price': f"{total_price:.2f}",
             'amount_to_pay': f"{amount_to_pay:.2f}",
             'rental_days': rental_days,
