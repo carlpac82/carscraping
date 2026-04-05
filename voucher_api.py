@@ -257,11 +257,11 @@ async def print_voucher(booking_id: int):
         html_content = render_voucher_template(booking_data)
         print(f"[VOUCHER PRINT] HTML template rendered, length: {len(html_content)}")
         
-        # Don't convert URLs - keep relative like in agent portal
-        # Only fix vehicle image URL - replace spaces with proper encoding
-        html_content = html_content.replace('/api/vehicles/fiat panda/photo', '/api/vehicles/fiatpanda/photo')
+        # Convert to absolute URLs for Playwright to ensure image loading
+        base_url = "https://carrental-api-5f8q.onrender.com"
+        html_content = html_content.replace('src="/api/vehicles/', f'src="{base_url}/api/vehicles/')
         
-        print(f"[VOUCHER PRINT] Keeping relative URLs like agent portal")
+        print(f"[VOUCHER PRINT] Converted to absolute URLs: {base_url}")
         print(f"[VOUCHER PRINT] Starting PDF generation with Playwright")
         
         # Generate PDF using Playwright
