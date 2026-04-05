@@ -339,6 +339,7 @@ def get_booking_data(booking_id):
                 cb.vehicle_group,
                 cb.extras,
                 cb.flight_number,
+                cb.language,
                 cb.observations,
                 cb.deposit,
                 cb.price,
@@ -400,11 +401,11 @@ def get_booking_data(booking_id):
             'total_price': f"{total_price:.2f}",
             'amount_to_pay': f"{amount_to_pay:.2f}",
             'rental_days': rental_days,
-            'created_date': result[20] if result[20] else '',
-            'agent_name': result[21] or 'N/A',
-            'agent_email': result[22] or 'N/A',
-            'agent_phone': result[23] or 'N/A',
-            'booking_date': result[20] if result[20] else '',
+            'created_date': result[19] if result[19] else '',
+            'agent_name': result[20] or 'N/A',
+            'agent_email': result[21] or 'N/A',
+            'agent_phone': result[22] or 'N/A',
+            'booking_date': result[19] if result[19] else '',
             'vehicle_image': f'/api/vehicles/{vehicle_api_names.get(result[13], result[13])}/photo' if result[13] else ''
         }
         
