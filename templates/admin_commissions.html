@@ -476,7 +476,7 @@
           box-sizing: border-box !important;
         }
         
-        .filters-section button {
+        .filters-section button:not(.btn-primary) {
           width: 50px !important;
           min-width: 50px !important;
           max-width: 50px !important;
@@ -516,7 +516,7 @@
         }
         
         .mb-4.flex.gap-2 button,
-        .filters-section button {
+        .filters-section button:not(.btn-primary) {
           padding: 10px !important;
           font-size: 13px !important;
           text-align: center !important;
@@ -535,7 +535,7 @@
         }
         
         .mb-4.flex.gap-2 button svg,
-        .filters-section button svg {
+        .filters-section button:not(.btn-primary) svg {
           width: 24px !important;
           height: 24px !important;
           min-width: 24px !important;
@@ -550,15 +550,15 @@
           display: none !important;
         }
         
-        /* Remover cores de fundo dos botões no mobile */
-        .mb-4.flex.gap-2 button,
-        .filters-section button {
+        /* Remover cores de fundo dos botões no mobile - exceto btn-primary */
+        .mb-4.flex.gap-2 button:not(.btn-primary),
+        .filters-section button:not(.btn-primary) {
           background-color: transparent !important;
           border-color: #d1d5db !important;
         }
         
-        .mb-4.flex.gap-2 button:hover,
-        .filters-section button:hover {
+        .mb-4.flex.gap-2 button:not(.btn-primary):hover,
+        .filters-section button:not(.btn-primary):hover {
           background-color: #f9fafb !important;
         }
         
@@ -1218,7 +1218,7 @@
                   <option value="">Todos</option>
               </select>
           </div>
-          <button onclick="loadCommissions()">Atualizar</button>
+          <button class="btn-primary" onclick="loadCommissions()">Atualizar</button>
       </div>
       
       <!-- Actions -->
