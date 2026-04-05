@@ -397,6 +397,9 @@
         
         .filter-group {
           margin-bottom: 0.75rem;
+          width: 100% !important;
+          min-width: 0 !important;
+          flex-shrink: 0 !important;
         }
         
         .filter-group label {
@@ -407,6 +410,29 @@
         .filter-group select {
           font-size: 13px;
           padding: 8px;
+          width: 100% !important;
+          min-width: 0 !important;
+          box-sizing: border-box !important;
+        }
+        
+        /* Corrigir layout da secção de filtros */
+        .filters-section {
+          padding: 0.75rem;
+          overflow-x: hidden !important;
+          width: 100% !important;
+        }
+        
+        .filters-section > div {
+          display: flex !important;
+          flex-direction: column !important;
+          gap: 0.75rem !important;
+          width: 100% !important;
+        }
+        
+        .filters-section button {
+          width: 100% !important;
+          min-width: 0 !important;
+          flex-shrink: 0 !important;
         }
         
         .action-buttons {
@@ -418,6 +444,31 @@
           width: 100%;
           padding: 10px;
           font-size: 13px;
+        }
+        
+        /* Corrigir layout dos botões de ação no mobile */
+        .mb-4.flex.gap-2 {
+          flex-direction: column !important;
+          gap: 8px !important;
+          width: 100% !important;
+          overflow-x: hidden !important;
+        }
+        
+        .mb-4.flex.gap-2 button {
+          width: 100% !important;
+          min-width: 0 !important;
+          flex-shrink: 0 !important;
+          padding: 10px !important;
+          font-size: 13px !important;
+          text-align: center !important;
+        }
+        
+        .mb-4.flex.gap-2 button[style*="margin-left"] {
+          margin-left: 0 !important;
+        }
+        
+        .mb-4.flex.gap-2 input[type="file"] {
+          display: none !important;
         }
         
         .commissions-table {
