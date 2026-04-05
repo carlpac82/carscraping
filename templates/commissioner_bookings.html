@@ -763,7 +763,8 @@
 
             /* Igualar comprimento dos campos de data nos filtros */
             .filter-group input[type="date"] {
-                width: 100%;
+                width: 100% !important;
+                box-sizing: border-box !important;
             }
 
             /* Prevenir scroll horizontal no modal */
@@ -774,7 +775,16 @@
             .form-group input,
             .form-group select {
                 width: 100% !important;
-                box-sizing: border-box;
+                box-sizing: border-box !important;
+            }
+
+            /* Forçar todos os inputs de data a terem o mesmo comprimento */
+            .form-group input[type="date"] {
+                width: 100% !important;
+                box-sizing: border-box !important;
+                -webkit-appearance: none;
+                -moz-appearance: none;
+                appearance: none;
             }
 
             .btn-submit,
