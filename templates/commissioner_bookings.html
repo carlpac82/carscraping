@@ -814,6 +814,31 @@
                 display: block !important;
             }
 
+            /* Fix para checkbox no mobile */
+            .form-group label[style*="flex"] {
+                display: flex !important;
+                align-items: center !important;
+                gap: 8px !important;
+                cursor: pointer !important;
+                flex-wrap: nowrap !important;
+                white-space: nowrap !important;
+                overflow: hidden !important;
+                text-overflow: ellipsis !important;
+            }
+
+            .form-group label[style*="flex"] span {
+                font-size: 13px !important;
+                line-height: 1.3 !important;
+                word-break: keep-all !important;
+                hyphens: none !important;
+            }
+
+            .form-group label[style*="flex"] input[type="checkbox"] {
+                width: auto !important;
+                flex-shrink: 0 !important;
+                margin: 0 !important;
+            }
+
             /* Prevenir scroll horizontal no modal */
             .modal-content {
                 overflow-x: hidden;
