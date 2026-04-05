@@ -5453,7 +5453,35 @@
             const pickupTime = document.getElementById('pickupTime');
             const dropoffDate = document.getElementById('dropoffDate');
             
+            // Validar se data selecionada é válida (respeitar horário de funcionamento)
+            const now = new Date();
+            const currentHour = now.getHours();
+            const currentMinute = now.getMinutes();
+            const currentTime = currentHour * 60 + currentMinute;
+            
+            // Horário de funcionamento: 09:30 - 12:30 e 15:00 - 17:00
+            const morningStart = 9 * 60 + 30;
+            const morningEnd = 12 * 60 + 30;
+            const afternoonStart = 15 * 60;
+            const afternoonEnd = 17 * 60;
+            
+            const isOutsideBusinessHours = 
+                currentTime < morningStart || 
+                (currentTime > morningEnd && currentTime < afternoonStart) || 
+                currentTime >= afternoonEnd;
+            
             if (pickupDate.value) {
+                const selectedDate = new Date(pickupDate.value + 'T00:00:00');
+                const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+                
+                // Se fora de horário e tentou selecionar hoje, forçar amanhã
+                if (isOutsideBusinessHours && selectedDate.getTime() === today.getTime()) {
+                    const tomorrow = new Date(now);
+                    tomorrow.setDate(tomorrow.getDate() + 1);
+                    pickupDate.value = tomorrow.toISOString().split('T')[0];
+                    alert('Auto Prudente está encerrada. A data foi ajustada para amanhã.');
+                }
+                
                 // Popular horários baseado na data
                 populateTimeSelects(pickupDate, pickupTime);
                 
