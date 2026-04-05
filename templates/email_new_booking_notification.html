@@ -80,8 +80,9 @@
             font-weight: 500;
         }
         
-        .vehicle-info {
-            background: #e0f2fe;
+        .vehicle-section {
+            background: #f0f9ff;
+            border: 1px solid #009cb6;
             border-radius: 8px;
             padding: 20px;
             margin-bottom: 20px;
@@ -91,7 +92,7 @@
             display: flex;
             align-items: center;
             gap: 12px;
-            margin-bottom: 12px;
+            margin-bottom: 16px;
         }
         
         .vehicle-icon {
@@ -106,12 +107,53 @@
             font-weight: bold;
         }
         
+        .vehicle-details {
+            display: table;
+            width: 100%;
+        }
+        
+        .vehicle-row {
+            display: table-row;
+        }
+        
+        .vehicle-label {
+            display: table-cell;
+            font-size: 12px;
+            font-weight: 600;
+            color: #6b7280;
+            text-transform: uppercase;
+            padding: 4px 8px 4px 0;
+            width: 30%;
+        }
+        
+        .vehicle-value {
+            display: table-cell;
+            font-size: 14px;
+            color: #1f2937;
+            padding: 4px 0;
+        }
+        
+        .vehicle-image-section {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+            margin-top: 16px;
+        }
+        
+        .vehicle-image {
+            width: 100px;
+            height: 60px;
+            object-fit: cover;
+            border-radius: 4px;
+            border: 1px solid #e5e7eb;
+        }
+        
         .price-info {
             background: #f0f9ff;
+            border: 1px solid #009cb6;
             border-radius: 8px;
             padding: 20px;
             margin-bottom: 20px;
-            border: 1px solid #bae6fd;
         }
         
         .price-row {
@@ -178,24 +220,29 @@
             .header, .content {
                 padding: 20px;
             }
+            
+            .vehicle-image-section {
+                flex-direction: column;
+                align-items: flex-start;
+            }
         }
     </style>
 </head>
 <body>
     <div class="container">
         <div class="header">
-            <h1>🚗 Nova Reserva Recebida</h1>
+            <h1>Nova Reserva Recebida</h1>
             <div class="subtitle">{{ voucher_number }}</div>
         </div>
         
         <div class="content">
             <div class="commissioner-info">
-                <strong>👤 Agente:</strong> {{ commissioner_name }}<br>
+                <strong>Agente:</strong> {{ commissioner_name }}<br>
                 <small>Reserva criada em: {{ booking_date }}</small>
             </div>
             
             <div class="booking-info">
-                <h3 style="margin: 0 0 16px 0; color: #009cb6;">📋 Informações do Cliente</h3>
+                <h3 style="margin: 0 0 16px 0; color: #009cb6;">Informações do Cliente</h3>
                 <div class="info-grid">
                     <div class="info-item">
                         <span class="info-label">Nome</span>
@@ -218,36 +265,48 @@
                 </div>
             </div>
             
-            <div class="vehicle-info">
+            <div class="vehicle-section">
                 <div class="vehicle-header">
                     <div class="vehicle-icon">{{ vehicle_group }}</div>
                     <div>
-                        <h3 style="margin: 0; color: #009cb6;">🚗 Veículo</h3>
+                        <h3 style="margin: 0; color: #009cb6;">Veículo</h3>
                         <div style="font-size: 14px; color: #6b7280;">{{ vehicle_model }}</div>
                     </div>
                 </div>
-                <div class="info-grid">
-                    <div class="info-item">
-                        <span class="info-label">Levantamento</span>
-                        <span class="info-value">{{ pickup_date }} {{ pickup_time }}</span>
+                
+                <div class="vehicle-details">
+                    <div class="vehicle-row">
+                        <div class="vehicle-label">Levantamento:</div>
+                        <div class="vehicle-value">{{ pickup_date }} {{ pickup_time }}</div>
                     </div>
-                    <div class="info-item">
-                        <span class="info-label">Local Levantamento</span>
-                        <span class="info-value">{{ pickup_location }}</span>
+                    <div class="vehicle-row">
+                        <div class="vehicle-label">Local Levantamento:</div>
+                        <div class="vehicle-value">{{ pickup_location }}</div>
                     </div>
-                    <div class="info-item">
-                        <span class="info-label">Entrega</span>
-                        <span class="info-value">{{ dropoff_date }} {{ dropoff_time }}</span>
+                    <div class="vehicle-row">
+                        <div class="vehicle-label">Entrega:</div>
+                        <div class="vehicle-value">{{ dropoff_date }} {{ dropoff_time }}</div>
                     </div>
-                    <div class="info-item">
-                        <span class="info-label">Local Entrega</span>
-                        <span class="info-value">{{ dropoff_location }}</span>
+                    <div class="vehicle-row">
+                        <div class="vehicle-label">Local Entrega:</div>
+                        <div class="vehicle-value">{{ dropoff_location }}</div>
                     </div>
                 </div>
+                
+                {% if vehicle_image %}
+                <div class="vehicle-image-section">
+                    <img src="https://rentalprices.pt{{ vehicle_image }}" alt="{{ vehicle_group }}" class="vehicle-image" 
+                         onerror="this.src='data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 width=%22100%22 height=%2260%22%3E%3Crect fill=%22%23e5e7eb%22 width=%22100%22 height=%2260%22/%3E%3Ctext x=%2250%%22 y=%2250%%22 text-anchor=%22middle%22 dy=%22.3em%22 fill=%22%23666%22 font-size=%2212%22%3E{{ vehicle_group }}%3C/text%3E%3C/svg%3E'">
+                    <div>
+                        <div style="font-size: 16px; font-weight: 700; color: #009cb6; text-transform: uppercase;">GRUPO {{ vehicle_group }}</div>
+                        <div style="font-size: 12px; color: #6b7280; margin-top: 4px;">{{ vehicle_model }}</div>
+                    </div>
+                </div>
+                {% endif %}
             </div>
             
             <div class="price-info">
-                <h3 style="margin: 0 0 16px 0; color: #009cb6;">💰 Valores</h3>
+                <h3 style="margin: 0 0 16px 0; color: #009cb6;">Valores</h3>
                 <div class="price-row">
                     <span>Valor Total</span>
                     <span>€{{ total_price }}</span>
@@ -264,7 +323,7 @@
             
             <div style="text-align: center;">
                 <a href="https://rentalprices.pt/admin/commissioner-bookings/{{ booking_id }}" class="action-button">
-                    ✅ Confirmar Reserva
+                    Confirmar Reserva
                 </a>
                 <div style="margin-top: 12px; font-size: 12px; color: #6b7280;">
                     Ao clicar, será redirecionado para a página da reserva onde pode confirmar e imprimir
@@ -273,7 +332,7 @@
             
             {% if observations %}
             <div style="background: #fef3c7; border-radius: 8px; padding: 16px; margin-bottom: 20px;">
-                <h4 style="margin: 0 0 8px 0; color: #92400e;">📝 Observações</h4>
+                <h4 style="margin: 0 0 8px 0; color: #92400e;">Observações</h4>
                 <div style="font-size: 14px; color: #78350f;">{{ observations }}</div>
             </div>
             {% endif %}
