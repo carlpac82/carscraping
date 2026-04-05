@@ -444,13 +444,14 @@
           font-size: 13px;
         }
         
-        /* Corrigir layout dos botões de ação no mobile */
+        /* Corrigir layout dos botões de ação no mobile - LINHA HORIZONTAL */
         .mb-4.flex.gap-2 {
-          flex-direction: column !important;
+          flex-direction: row !important;
           gap: 8px !important;
           width: 100% !important;
-          overflow-x: hidden !important;
-          align-items: stretch !important;
+          overflow-x: auto !important;
+          align-items: center !important;
+          justify-content: flex-start !important;
         }
         
         /* Ícones vs Textos nos botões */
@@ -485,12 +486,6 @@
           height: 24px !important;
           min-width: 24px !important;
           max-width: 24px !important;
-        }
-        
-        /* Garantir mesmo comprimento para botões Pago e Não Pago */
-        #markPaidBtn, #markUnpaidBtn {
-          min-width: 120px !important;
-          max-width: 120px !important;
         }
         
         .mb-4.flex.gap-2 button[style*="margin-left"] {
@@ -1189,17 +1184,17 @@
               </span>
           </button>
           <input type="file" id="uploadExcelInput" accept=".xlsx,.xls" style="display: none;" onchange="uploadExcelFile(event)">
-          <button onclick="document.getElementById('uploadExcelInput').click()" style="margin-left: auto; padding: 0.5rem; background: transparent; border: 1px solid #d1d5db; border-radius: 0.375rem; cursor: pointer;" title="Importar Excel">
+          <button onclick="document.getElementById('uploadExcelInput').click()" title="Importar Excel">
               <svg style="width: 1.5rem; height: 1.5rem;" fill="none" stroke="#009cb6" viewBox="0 0 24 24">
                   <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"></path>
               </svg>
           </button>
-          <button onclick="exportToExcel()" style="padding: 0.5rem; background: transparent; border: 1px solid #d1d5db; border-radius: 0.375rem; cursor: pointer;" title="Exportar Excel">
+          <button onclick="exportToExcel()" title="Exportar Excel">
               <svg style="width: 1.5rem; height: 1.5rem;" fill="none" stroke="#009cb6" viewBox="0 0 24 24">
                   <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
               </svg>
           </button>
-          <button onclick="printCommissionsPDF()" style="padding: 0.5rem; background: transparent; border: 1px solid #d1d5db; border-radius: 0.375rem; cursor: pointer;" title="Imprimir PDF">
+          <button onclick="printCommissionsPDF()" title="Imprimir PDF">
               <svg style="width: 1.5rem; height: 1.5rem;" fill="none" stroke="#009cb6" viewBox="0 0 24 24">
                   <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z"></path>
               </svg>
