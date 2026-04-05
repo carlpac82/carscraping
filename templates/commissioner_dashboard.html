@@ -2478,6 +2478,304 @@
                 grid-template-columns: repeat(2, 1fr);
             }
         }
+        
+        /* ===== MOBILE & TABLET RESPONSIVE ===== */
+        @media (max-width: 1024px) {
+            /* Tablet adjustments */
+            .container {
+                padding: 15px;
+            }
+            
+            .stats-grid {
+                grid-template-columns: repeat(2, 1fr);
+                gap: 12px;
+            }
+            
+            .modal-content {
+                max-width: 95%;
+            }
+            
+            .vehicle-grid {
+                grid-template-columns: repeat(2, 1fr);
+                gap: 12px;
+            }
+        }
+        
+        @media (max-width: 768px) {
+            /* Mobile adjustments */
+            body {
+                font-size: 14px;
+            }
+            
+            .header {
+                padding: 12px 15px;
+            }
+            
+            .header h1 {
+                font-size: 18px;
+            }
+            
+            .user-info {
+                font-size: 12px;
+            }
+            
+            .container {
+                padding: 10px;
+            }
+            
+            .stats-grid {
+                grid-template-columns: 1fr;
+                gap: 10px;
+            }
+            
+            .stat-card {
+                padding: 15px;
+            }
+            
+            .stat-card h3 {
+                font-size: 13px;
+            }
+            
+            .stat-card .value {
+                font-size: 22px;
+            }
+            
+            .section-header {
+                flex-direction: column;
+                gap: 12px;
+                align-items: flex-start;
+            }
+            
+            .filter-buttons {
+                width: 100%;
+                flex-wrap: wrap;
+                gap: 8px;
+            }
+            
+            .filter-btn {
+                padding: 8px 12px;
+                font-size: 13px;
+                flex: 1;
+                min-width: calc(50% - 4px);
+            }
+            
+            .btn-new-booking {
+                width: 100%;
+                justify-content: center;
+                padding: 12px;
+            }
+            
+            /* Modal adjustments */
+            .modal-overlay.active {
+                padding: 0;
+            }
+            
+            .modal-content {
+                max-width: 100%;
+                max-height: 100vh;
+                border-radius: 0;
+                margin: 0;
+            }
+            
+            .modal-header {
+                padding: 16px 20px;
+                border-radius: 0;
+            }
+            
+            .modal-header h2 {
+                font-size: 18px;
+            }
+            
+            .modal-body {
+                padding: 15px 20px;
+                max-height: calc(100vh - 200px);
+            }
+            
+            .wizard-step:not(:first-child) .modal-body {
+                max-height: calc(100vh - 220px);
+            }
+            
+            .modal-footer {
+                padding: 16px 20px;
+            }
+            
+            /* Progress indicator */
+            .progress-indicator {
+                padding: 15px 10px;
+                overflow-x: auto;
+            }
+            
+            .progress-step {
+                min-width: 60px;
+            }
+            
+            .step-number {
+                width: 32px;
+                height: 32px;
+                font-size: 14px;
+            }
+            
+            .step-label {
+                font-size: 11px;
+            }
+            
+            /* Form adjustments */
+            .form-row {
+                flex-direction: column;
+                gap: 15px;
+            }
+            
+            .form-group {
+                width: 100%;
+            }
+            
+            /* Vehicle grid */
+            .vehicle-grid {
+                grid-template-columns: 1fr;
+                gap: 12px;
+            }
+            
+            .vehicle-card {
+                padding: 12px;
+            }
+            
+            .vehicle-image {
+                height: 100px;
+            }
+            
+            /* Extras grid */
+            .extras-grid {
+                grid-template-columns: 1fr;
+                gap: 10px;
+            }
+            
+            /* Wizard navigation */
+            .wizard-navigation {
+                width: 100%;
+                flex-direction: column;
+                gap: 10px;
+            }
+            
+            .btn-previous,
+            .btn-next {
+                width: 100%;
+            }
+            
+            .btn-cancel {
+                width: 100%;
+                order: 3;
+            }
+            
+            /* Bookings table */
+            .bookings-table {
+                overflow-x: auto;
+                -webkit-overflow-scrolling: touch;
+            }
+            
+            .bookings-table table {
+                min-width: 600px;
+            }
+            
+            /* Booking cards for mobile */
+            .booking-card-mobile {
+                display: block;
+                background: white;
+                border-radius: 12px;
+                padding: 15px;
+                margin-bottom: 12px;
+                box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+            }
+            
+            .booking-card-mobile .booking-header {
+                display: flex;
+                justify-content: space-between;
+                align-items: center;
+                margin-bottom: 12px;
+                padding-bottom: 12px;
+                border-bottom: 1px solid #e5e7eb;
+            }
+            
+            .booking-card-mobile .booking-voucher {
+                font-size: 16px;
+                font-weight: 600;
+                color: #009cb6;
+            }
+            
+            .booking-card-mobile .booking-status {
+                padding: 4px 10px;
+                border-radius: 12px;
+                font-size: 12px;
+            }
+            
+            .booking-card-mobile .booking-details {
+                display: grid;
+                gap: 8px;
+                margin-bottom: 12px;
+            }
+            
+            .booking-card-mobile .detail-row {
+                display: flex;
+                justify-content: space-between;
+                font-size: 13px;
+            }
+            
+            .booking-card-mobile .detail-label {
+                color: #6b7280;
+            }
+            
+            .booking-card-mobile .detail-value {
+                font-weight: 500;
+                color: #1f2937;
+            }
+            
+            .booking-card-mobile .booking-actions {
+                display: flex;
+                gap: 8px;
+                flex-wrap: wrap;
+            }
+            
+            .booking-card-mobile .booking-actions button {
+                flex: 1;
+                min-width: calc(50% - 4px);
+                padding: 8px;
+                font-size: 13px;
+            }
+        }
+        
+        @media (max-width: 480px) {
+            /* Extra small mobile */
+            .header h1 {
+                font-size: 16px;
+            }
+            
+            .stat-card .value {
+                font-size: 20px;
+            }
+            
+            .filter-btn {
+                min-width: 100%;
+            }
+            
+            .progress-step {
+                min-width: 50px;
+            }
+            
+            .step-label {
+                font-size: 10px;
+            }
+            
+            .modal-header h2 {
+                font-size: 16px;
+            }
+            
+            .vehicle-card h3 {
+                font-size: 14px;
+            }
+            
+            .booking-card-mobile .booking-voucher {
+                font-size: 14px;
+            }
+        }
 
         .extra-item {
             border: 2px solid #e5e7eb;
