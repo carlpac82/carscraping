@@ -18,15 +18,27 @@
             background-color: #ffffff;
         }
         @media only screen and (max-width: 600px) {
-            div[style*="display: flex"] {
+            .vehicle-info {
                 display: block !important;
             }
-            img[style*="width: 150px"] {
+            .vehicle-image img {
                 width: 100% !important;
                 max-width: 300px !important;
+                height: auto !important;
             }
-            div[style*="display: grid"] {
+            .details-grid {
                 grid-template-columns: 1fr !important;
+            }
+            .checkin-section {
+                display: block !important;
+            }
+            .checkin-qr {
+                text-align: center !important;
+                margin: 20px 0 !important;
+            }
+            .checkin-qr img {
+                width: 120px !important;
+                height: 120px !important;
             }
         }
     </style>
@@ -71,7 +83,7 @@
         <h3 style="color: #00bcd4; margin: 0 0 15px 0; font-size: 18px;">Resumo da Reserva</h3>
         
         <!-- Vehicle Info with Image -->
-        <div style="display: flex; align-items: center; gap: 20px; margin-bottom: 20px; background: white; padding: 15px; border-radius: 8px; border: 1px solid #e0e0e0;">
+        <div class="vehicle-info" style="display: flex; align-items: center; gap: 20px; margin-bottom: 20px; background: white; padding: 15px; border-radius: 8px; border: 1px solid #e0e0e0;">
             <div style="flex: 1;">
                 <table width="100%" cellpadding="0" cellspacing="0" style="font-size: 14px;">
                     <tr>
@@ -88,13 +100,13 @@
                     </tr>
                 </table>
             </div>
-            <div style="flex-shrink: 0;">
+            <div class="vehicle-image" style="flex-shrink: 0;">
                 <img src="{{VEHICLE_IMAGE_URL}}" alt="{{VEHICLE_NAME}}" style="width: 150px; height: auto; border-radius: 8px; border: 1px solid #e0e0e0;">
             </div>
         </div>
 
         <!-- Dates and Times Grid -->
-        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-bottom: 20px;">
+        <div class="details-grid" style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-bottom: 20px;">
             <!-- Pickup -->
             <div style="background: white; padding: 15px; border-radius: 8px; border: 1px solid #e0e0e0;">
                 <h4 style="color: #00bcd4; margin: 0 0 10px 0; font-size: 16px;">Entrega</h4>
@@ -149,7 +161,7 @@
     <!-- Check-in Online Section -->
     <div style="padding: 20px; background-color: #f9f9f9;">
         <h3 style="color: #00bcd4; margin: 0 0 15px 0; font-size: 18px;">Check-in Online</h3>
-        <div style="display: flex; gap: 20px; align-items: center; justify-content: space-between; background: white; padding: 15px; border-radius: 8px; border: 1px solid #e0e0e0;">
+        <div class="checkin-section" style="display: flex; gap: 20px; align-items: center; justify-content: space-between; background: white; padding: 15px; border-radius: 8px; border: 1px solid #e0e0e0;">
             <div style="flex: 1;">
                 <p style="color: #666666; line-height: 1.6; margin: 0 0 12px 0; font-size: 14px;">
                     <strong>Economize tempo!</strong> Faça o check-in online antes da entrega.
@@ -176,7 +188,7 @@
                     </tr>
                 </table>
             </div>
-            <div style="flex-shrink: 0; text-align: center; display: flex; flex-direction: column; align-items: center; justify-content: center;">
+            <div class="checkin-qr" style="flex-shrink: 0; text-align: center;">
                 <a href="https://auto-prudente.com/online-checkin/" style="display: block;">
                     <img src="https://rentalprices.pt/static/check-in.png" alt="Check-in Online" style="width: 80px; height: 80px; display: block; border-radius: 8px; border: 1px solid #e0e0e0;">
                 </a>
