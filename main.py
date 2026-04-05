@@ -6003,7 +6003,7 @@ def require_role_access(request: Request, allowed_pages: list = None):
                 # Se tem permissão de Commissioner, adicionar rotas de agentes
                 if user_data.get("has_commissioner_access", False):
                     support_allowed_pages.extend([
-                        "/agentes/dashboard",
+                        "/admin/commissioner-bookings",
                         "/api/commissioners",
                         "/api/commissioner"
                     ])
@@ -11856,7 +11856,13 @@ async def admin_commissions(request: Request):
         logging.info(f"🔍 DEBUG: Redirecting to /login")
         return RedirectResponse(url="/login", status_code=HTTP_303_SEE_OTHER)
     logging.info(f"🔍 DEBUG: Rendering admin_commissions.html")
-    return templates.TemplateResponse("admin_commissions.html", {"request": request})
+    user_role = request.session.get("role", "user")
+    is_admin = request.session.get("is_admin", False)
+    return templates.TemplateResponse("admin_commissions.html", {
+        "request": request,
+        "user_role": user_role,
+        "is_admin": is_admin
+    })
 
 @app.get("/api/user-session")
 async def get_user_session(request: Request):
@@ -64477,7 +64483,14 @@ async def admin_commissioner_bookings_page(request: Request):
         return RedirectResponse(url="/login", status_code=HTTP_303_SEE_OTHER)
     
     user = request.session.get("user")
-    return templates.TemplateResponse("commissioner_bookings.html", {"request": request, "user": user})
+    user_role = request.session.get("role", "user")
+    is_admin = request.session.get("is_admin", False)
+    return templates.TemplateResponse("commissioner_bookings.html", {
+        "request": request,
+        "user": user,
+        "user_role": user_role,
+        "is_admin": is_admin
+    })
 
 @app.get("/admin/init-commissioners-tables")
 async def admin_init_commissioners_tables(request: Request):
