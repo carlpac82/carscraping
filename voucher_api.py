@@ -209,6 +209,19 @@ def render_voucher_template(booking_data):
         with open(template_path, 'r', encoding='utf-8') as f:
             template_content = f.read()
         
+        # DEBUG: Print all booking data
+        print(f"[VOUCHER PDF] DEBUG - Booking data keys: {list(booking_data.keys())}")
+        print(f"[VOUCHER PDF] DEBUG - Sample data:")
+        for key in ['voucher_number', 'client_name', 'vehicle_group', 'total_price', 'deposit']:
+            if key in booking_data:
+                print(f"   {key}: {booking_data[key]} (type: {type(booking_data[key])})")
+        
+        # DEBUG: Check if template contains variables
+        template_vars = []
+        import re
+        vars_found = re.findall(r'\{\{(\w+)\}\}', template_content)
+        print(f"[VOUCHER PDF] DEBUG - Template variables found: {vars_found}")
+        
         # Replace template variables - ensure all values are strings
         template_content = template_content.replace('{{voucher_number}}', str(booking_data.get('voucher_number', '')))
         template_content = template_content.replace('{{client_name}}', str(booking_data.get('client_name', '')))
