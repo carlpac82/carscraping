@@ -65184,9 +65184,8 @@ async def api_get_commissioner_bookings(request: Request):
 @app.post("/api/admin/manual-booking")
 async def create_manual_booking(request: Request):
     """Create a manual booking for a commissioner"""
-    try:
-        require_admin(request)
-    except HTTPException:
+    user = request.session.get('user')
+    if not user or not (user.get('is_admin') or user.get('has_commissioner_access')):
         return JSONResponse({"ok": False, "error": "Unauthorized"}, status_code=401)
     
     try:
@@ -65298,9 +65297,8 @@ async def create_manual_booking(request: Request):
 @app.put("/api/commission-bookings/{booking_id}/status")
 async def update_commission_booking_status(booking_id: int, request: Request):
     """Update the status of a commission booking"""
-    try:
-        require_commissions_management(request)
-    except HTTPException:
+    user = request.session.get('user')
+    if not user or not (user.get('is_admin') or user.get('has_commissioner_access')):
         return JSONResponse({"ok": False, "error": "Unauthorized"}, status_code=401)
     
     try:
@@ -65345,9 +65343,8 @@ async def update_commission_booking_status(booking_id: int, request: Request):
 @app.delete("/api/commission-bookings/{booking_id}")
 async def delete_commission_booking(booking_id: int, request: Request):
     """Delete a commission booking permanently from the database"""
-    try:
-        require_commissions_management(request)
-    except HTTPException:
+    user = request.session.get('user')
+    if not user or not (user.get('is_admin') or user.get('has_commissioner_access')):
         return JSONResponse({"ok": False, "error": "Unauthorized"}, status_code=401)
     
     try:
