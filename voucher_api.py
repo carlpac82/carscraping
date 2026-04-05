@@ -6,16 +6,8 @@ import psycopg2
 import os
 import logging
 import io
-import base64
-from email.mime.multipart import MIMEMultipart
-from email.mime.text import MIMEText
-from email.mime.base import MIMEBase
-from email import encoders
 from jinja2 import Template
-from weasyprint import HTML, CSS
 from playwright.async_api import async_playwright
-from PIL import Image, ImageDraw
-import numpy as np
 
 router = APIRouter()
 
@@ -61,41 +53,6 @@ vehicle_api_names = {
     'M2': 'citroen c4 picasso', # ✅
     'N': 'toyota proace'        # ✅
 }
-
-def remove_white_background(image_data):
-    """Remove fundo branco das imagens e retorna com transparência"""
-    try:
-        # Converter bytes para imagem PIL
-        img = Image.open(io.BytesIO(image_data))
-        
-        # Converter para RGBA se não for
-        if img.mode != 'RGBA':
-            img = img.convert('RGBA')
-        
-        # Criar máscara para pixels brancos/quase brancos
-        datas = img.getdata()
-        
-        new_data = []
-        for item in datas:
-            # Se o pixel for branco ou quase branco, tornar transparente
-            if item[0] > 240 and item[1] > 240 and item[2] > 240:  # RGB > 240 = branco/quase branco
-                new_data.append((255, 255, 255, 0))  # Transparente
-            else:
-                new_data.append(item)  # Manter pixel original
-        
-        # Aplicar nova data
-        img.putdata(new_data)
-        
-        # Converter para bytes
-        output = io.BytesIO()
-        img.save(output, format='PNG')
-        output.seek(0)
-        
-        return output.getvalue()
-        
-    except Exception as e:
-        print(f"[ERROR] Failed to remove background: {e}")
-        return image_data  # Retorna original se falhar
 
 def create_message_with_attachment(credentials, to_email, subject, body, attachment_content, filename):
     """Create email message with attachment"""
@@ -527,46 +484,6 @@ async def debug_vehicle_images(vehicle_name: str):
         
     except Exception as e:
         return {'error': str(e)}
-
-@router.get('/api/vehicles/{vehicle_name}/photo-transparent')
-async def get_vehicle_photo_transparent(vehicle_name: str):
-    """Retorna a foto de um veículo com fundo branco removido"""
-    from fastapi.responses import Response
-    
-    try:
-        # Normalizar nome do veículo
-        vehicle_key = vehicle_name.lower().strip()
-        
-        # Buscar imagem original
-        import psycopg2
-        DATABASE_URL = os.environ.get('DATABASE_URL')
-        conn = psycopg2.connect(DATABASE_URL)
-        cur = conn.cursor()
-        
-        cur.execute("SELECT image_data, content_type FROM vehicle_images WHERE vehicle_key = %s", (vehicle_key,))
-        row = cur.fetchone()
-        
-        if not row:
-            cur.close()
-            conn.close()
-            raise HTTPException(status_code=404, detail='Imagem não encontrada')
-        
-        image_data, content_type = row
-        cur.close()
-        conn.close()
-        
-        # Remover fundo branco
-        processed_image = remove_white_background(image_data)
-        
-        return Response(
-            content=processed_image,
-            media_type="image/png",  # Sempre PNG para transparência
-            headers={"Cache-Control": "public, max-age=3600"}
-        )
-        
-    except Exception as e:
-        print(f"[ERROR] Failed to get transparent photo: {e}")
-        raise HTTPException(status_code=500, detail=str(e))
 
 @router.post('/api/commissioner/voucher/email/{booking_id}')
 async def email_voucher(booking_id: int, email_request: EmailRequest):
