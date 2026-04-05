@@ -453,58 +453,6 @@
           align-items: stretch !important;
         }
         
-        /* Container para os primeiros 3 botões - criar linha separada */
-        .mb-4.flex.gap-2 {
-          display: flex !important;
-          flex-wrap: wrap !important;
-        }
-        
-        /* Primeiros 3 botões na mesma linha com alinhamento vertical */
-        .mb-4.flex.gap-2 > button:nth-child(-n+3) {
-          flex: 1 !important;
-          min-width: 0 !important;
-          max-width: none !important;
-          display: flex !important;
-          align-items: center !important;
-          justify-content: center !important;
-          height: auto !important;
-          min-height: 44px !important;
-        }
-        
-        /* Botões restantes também na mesma linha */
-        .mb-4.flex.gap-2 > button:nth-child(n+4) {
-          flex: 1 !important;
-          min-width: 0 !important;
-          display: flex !important;
-          align-items: center !important;
-          justify-content: center !important;
-          margin-left: 0 !important;
-        }
-        
-        /* Todos os botões na mesma linha no mobile */
-        @media (max-width: 768px) {
-          .mb-4.flex.gap-2 {
-            flex-direction: row !important;
-            flex-wrap: nowrap !important;
-            gap: 2px !important;
-            overflow-x: auto !important;
-            justify-content: flex-start !important;
-          }
-          
-          .mb-4.flex.gap-2 button {
-            flex: 0 0 auto !important;
-            min-width: 50px !important;
-            max-width: 80px !important;
-            height: 40px !important;
-            padding: 8px !important;
-            font-size: 11px !important;
-            text-align: center !important;
-            white-space: nowrap !important;
-            overflow: hidden !important;
-            text-overflow: ellipsis !important;
-          }
-        }
-        
         /* Ícones vs Textos nos botões */
         .btn-text-desktop {
           display: inline !important;
