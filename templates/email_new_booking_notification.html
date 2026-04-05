@@ -142,12 +142,16 @@
                         <td style="font-weight: bold; color: #333333;">Hora:</td>
                         <td style="color: #666666;">{{ pickup_time }}</td>
                     </tr>
+                    <tr>
+                        <td style="font-weight: bold; color: #333333; padding-top: 8px;">Local:</td>
+                        <td style="padding-top: 8px; color: #666666;">{{ pickup_location }}</td>
+                    </tr>
                 </table>
             </div>
             
             <!-- Dropoff -->
             <div class="grid-item" style="background: white; padding: 15px; border-radius: 8px; border: 1px solid #e0e0e0;">
-                <h4 style="color: #00bcd4; margin: 0 0 10px 0; font-size: 16px;">Entrega</h4>
+                <h4 style="color: #00bcd4; margin: 0 0 10px 0; font-size: 16px;">Devolução</h4>
                 <table width="100%" cellpadding="0" cellspacing="0" style="font-size: 14px;">
                     <tr>
                         <td style="font-weight: bold; color: #333333; padding-bottom: 5px;">Data:</td>
@@ -156,6 +160,10 @@
                     <tr>
                         <td style="font-weight: bold; color: #333333;">Hora:</td>
                         <td style="color: #666666;">{{ dropoff_time }}</td>
+                    </tr>
+                    <tr>
+                        <td style="font-weight: bold; color: #333333; padding-top: 8px;">Local:</td>
+                        <td style="padding-top: 8px; color: #666666;">{{ dropoff_location }}</td>
                     </tr>
                 </table>
             </div>
