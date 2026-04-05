@@ -171,13 +171,39 @@ def send_new_booking_notification(booking_id: int, booking_data: dict):
             
             print(f"[NOTIFICATION] URLs converted for PDF generation")
             
-            # Generate PDF using WeasyPrint with original template
-            from weasyprint import HTML, CSS
+            # Generate PDF using Playwright async (same as email_voucher that works)
+            from playwright.async_api import async_playwright
+            import asyncio
             
-            html_doc = HTML(string=voucher_html)
-            pdf_content = html_doc.write_pdf()
+            # Create async function to generate PDF
+            async def generate_pdf_async():
+                async with async_playwright() as p:
+                    browser = await p.chromium.launch()
+                    page = await browser.new_page()
+                    
+                    # Set content and wait for images to load
+                    await page.set_content(voucher_html)
+                    await page.wait_for_timeout(2000)  # Wait for images to load
+                    
+                    # Generate PDF
+                    pdf = await page.pdf(
+                        format='A4',
+                        print_background=True,
+                        margin={
+                            'top': '20px',
+                            'right': '20px',
+                            'bottom': '20px',
+                            'left': '20px'
+                        }
+                    )
+                    
+                    await browser.close()
+                    return pdf
             
-            print(f"[NOTIFICATION] Original voucher PDF generated, size: {len(pdf_content)} bytes")
+            # Run async function
+            pdf_content = asyncio.run(generate_pdf_async())
+            
+            print(f"[NOTIFICATION] Original voucher PDF generated with Playwright, size: {len(pdf_content)} bytes")
             
         except ImportError:
             print(f"[NOTIFICATION] WeasyPrint not available, using fallback")
