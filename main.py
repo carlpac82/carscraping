@@ -5953,6 +5953,38 @@ def require_commissions_management(request: Request):
     if not request.session.get("can_manage_commissions", False):
         raise HTTPException(status_code=403, detail="Commissions management permission required")
 
+def require_commissioner_access(request: Request):
+    """Require user to be admin OR have commissioner access permission"""
+    require_auth(request)
+    is_admin = request.session.get("is_admin", False)
+    if is_admin:
+        return  # Admin sempre tem acesso
+    
+    # Verificar se user tem permissão específica
+    username = request.session.get("username")
+    if username:
+        user_data = _get_user_by_username(username)
+        if user_data and user_data.get("has_commissioner_access", False):
+            return  # User tem permissão
+    
+    raise HTTPException(status_code=403, detail="Commissioner access permission required")
+
+def require_commissions_access(request: Request):
+    """Require user to be admin OR have commissions management permission"""
+    require_auth(request)
+    is_admin = request.session.get("is_admin", False)
+    if is_admin:
+        return  # Admin sempre tem acesso
+    
+    # Verificar se user tem permissão específica
+    username = request.session.get("username")
+    if username:
+        user_data = _get_user_by_username(username)
+        if user_data and user_data.get("can_manage_commissions", False):
+            return  # User tem permissão
+    
+    raise HTTPException(status_code=403, detail="Commissions management permission required")
+
 def require_role_access(request: Request, allowed_pages: list = None):
     """
     Restringe acesso baseado no role do utilizador.
@@ -64478,7 +64510,7 @@ async def admin_commissioners_page(request: Request):
 async def admin_commissioner_bookings_page(request: Request):
     """Admin commissioner bookings page - Manage bookings made by commissioners"""
     try:
-        require_admin(request)
+        require_commissioner_access(request)
     except HTTPException:
         return RedirectResponse(url="/login", status_code=HTTP_303_SEE_OTHER)
     
@@ -65042,7 +65074,7 @@ async def api_get_commissioners(request: Request):
 async def api_get_commissioner_bookings(request: Request):
     """API endpoint to get all bookings made by commissioners"""
     try:
-        require_admin(request)
+        require_commissioner_access(request)
     except HTTPException:
         return JSONResponse({"ok": False, "error": "Unauthorized"}, status_code=401)
     
@@ -65250,7 +65282,7 @@ async def create_manual_booking(request: Request):
 async def update_commission_booking_status(booking_id: int, request: Request):
     """Update the status of a commission booking"""
     try:
-        require_admin(request)
+        require_commissions_management(request)
     except HTTPException:
         return JSONResponse({"ok": False, "error": "Unauthorized"}, status_code=401)
     
@@ -65297,7 +65329,7 @@ async def update_commission_booking_status(booking_id: int, request: Request):
 async def delete_commission_booking(booking_id: int, request: Request):
     """Delete a commission booking permanently from the database"""
     try:
-        require_admin(request)
+        require_commissions_management(request)
     except HTTPException:
         return JSONResponse({"ok": False, "error": "Unauthorized"}, status_code=401)
     
