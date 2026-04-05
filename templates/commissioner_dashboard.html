@@ -6077,11 +6077,11 @@
                 
                 const data = await response.json();
                 
-                if (data.ok) {
+                if (data.success === true) {
                     alert('Voucher enviado com sucesso!');
                     closeEmailVoucherModal();
                 } else {
-                    alert('Erro ao enviar voucher: ' + (data.error || 'Erro desconhecido'));
+                    alert('Erro ao enviar voucher: ' + (data.error || data.message || 'Erro desconhecido'));
                 }
             } catch (error) {
                 console.error('Error sending voucher:', error);
