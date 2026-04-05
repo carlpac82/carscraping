@@ -1356,32 +1356,22 @@
                                                         <path d="M6 14h12v8H6z"></path>
                                                     </svg>
                                                 </button>
-                                                <div class="actions-dropdown">
-                                                    <button class="actions-dropdown-btn" onclick="toggleActionsDropdown(event, ${b.id})">
-                                                        Ações
-                                                        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                                            <path d="M6 9l6 6 6-6"></path>
-                                                        </svg>
+                                                ${b.status === 'pending' ? `
+                                                    <button class="btn-action btn-confirm" onclick="confirmBooking(${b.id})" title="Confirmar Reserva">
+                                                        ✓ Confirmar
                                                     </button>
-                                                    <div class="actions-dropdown-menu" id="dropdown-${b.id}">
-                                                        ${b.status === 'pending' ? `
-                                                            <button class="btn-confirm" onclick="confirmBooking(${b.id}); closeAllDropdowns()">
-                                                                ✓ Confirmar
-                                                            </button>
-                                                        ` : ''}
-                                                        <button class="btn-edit" onclick="editBooking(${b.id}); closeAllDropdowns()">
-                                                            ✎ Editar
-                                                        </button>
-                                                        ${b.status !== 'cancelled' ? `
-                                                            <button class="btn-cancel" onclick="cancelBooking(${b.id}); closeAllDropdowns()">
-                                                                ✕ Cancelar
-                                                            </button>
-                                                            <button class="btn-delete" onclick="deleteBooking(${b.id}); closeAllDropdowns()">
-                                                                🗑 Eliminar
-                                                            </button>
-                                                        ` : ''}
-                                                    </div>
-                                                </div>
+                                                ` : ''}
+                                                <button class="btn-action btn-edit" onclick="editBooking(${b.id})" title="Editar Reserva">
+                                                    ✎ Editar
+                                                </button>
+                                                ${b.status !== 'cancelled' ? `
+                                                    <button class="btn-action btn-cancel" onclick="cancelBooking(${b.id})" title="Cancelar Reserva">
+                                                        ✕ Cancelar
+                                                    </button>
+                                                    <button class="btn-action btn-delete" onclick="deleteBooking(${b.id})" title="Eliminar Reserva">
+                                                        🗑 Eliminar
+                                                    </button>
+                                                ` : ''}
                                             </div>
                                         </td>
                                     </tr>
