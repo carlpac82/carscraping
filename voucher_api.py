@@ -100,7 +100,65 @@ def send_new_booking_notification(booking_id: int, booking_data: dict):
         template = Template(template_content)
         html_content = template.render(**notification_data)
         
-        # Get Gmail OAuth credentials (same as voucher email)
+        # Generate PDF voucher for attachment
+        print(f"[NOTIFICATION] Generating PDF voucher for {booking_data.get('voucher_number')}")
+        
+        # Render HTML template for PDF
+        pdf_html_content = render_voucher_template(booking_data)
+        print(f"[NOTIFICATION] PDF HTML template rendered, length: {len(pdf_html_content)}")
+        
+        # Converter para URL absoluta para Playwright carregar imagem
+        pdf_html_content = pdf_html_content.replace('src="/api/vehicles/', 'src="https://rentalprices.pt/api/vehicles/')
+        # Fix encoding para espaços
+        pdf_html_content = pdf_html_content.replace('/fiat panda/photo', '/fiat%20panda/photo')
+        pdf_html_content = pdf_html_content.replace('/seat ibiza/photo', '/seat%20ibiza/photo')
+        pdf_html_content = pdf_html_content.replace('/hyundai i10/photo', '/hyundai%20i10/photo')
+        pdf_html_content = pdf_html_content.replace('/citroen c3/photo', '/citroen%20c3/photo')
+        pdf_html_content = pdf_html_content.replace('/seat arona/photo', '/seat%20arona/photo')
+        pdf_html_content = pdf_html_content.replace('/fiat 500/photo', '/fiat%20500/photo')
+        pdf_html_content = pdf_html_content.replace('/peugeot 2008/photo', '/peugeot%202008/photo')
+        pdf_html_content = pdf_html_content.replace('/peugeot 308 sw/photo', '/peugeot%20308%20sw/photo')
+        pdf_html_content = pdf_html_content.replace('/citroen c3 aircross/photo', '/citroen%20c3%20aircross/photo')
+        pdf_html_content = pdf_html_content.replace('/dacia jogger/photo', '/dacia%20jogger/photo')
+        pdf_html_content = pdf_html_content.replace('/citroen c4 picasso/photo', '/citroen%20c4%20picasso/photo')
+        pdf_html_content = pdf_html_content.replace('/toyota proace/photo', '/toyota%20proace/photo')
+        pdf_html_content = pdf_html_content.replace('/kia picanto/photo', '/kia%20picanto/photo')
+        
+        print(f"[NOTIFICATION] Converted to absolute URLs with encoding")
+        
+        # Generate PDF using Playwright
+        from playwright.async_api import async_playwright
+        import asyncio
+        
+        async def generate_pdf():
+            async with async_playwright() as p:
+                browser = await p.chromium.launch()
+                page = await browser.new_page()
+                
+                # Set content and wait for images to load
+                await page.set_content(pdf_html_content)
+                await page.wait_for_timeout(2000)  # Wait for images to load
+                
+                # Generate PDF
+                pdf_content = await page.pdf(
+                    format='A4',
+                    print_background=True,
+                    margin={
+                        'top': '20px',
+                        'right': '20px',
+                        'bottom': '20px',
+                        'left': '20px'
+                    }
+                )
+                
+                await browser.close()
+                return pdf_content
+        
+        # Run the async function
+        pdf_content = asyncio.run(generate_pdf())
+        print(f"[NOTIFICATION] PDF voucher generated, size: {len(pdf_content)} bytes")
+        
+        # Get Gmail OAuth credentials
         print(f"[NOTIFICATION] Loading Gmail OAuth credentials")
         credentials = get_gmail_credentials()
         
@@ -108,23 +166,28 @@ def send_new_booking_notification(booking_id: int, booking_data: dict):
             print(f"[NOTIFICATION] Gmail OAuth not configured")
             return False
         
-        # Create email message
-        print(f"[NOTIFICATION] Creating email message")
+        # Create email message with attachment
+        print(f"[NOTIFICATION] Creating email message with PDF attachment")
         from email.mime.multipart import MIMEMultipart
         from email.mime.text import MIMEText
+        from email.mime.application import MIMEApplication
+        import base64
         
         message = MIMEMultipart()
         message['to'] = 'info@auto-prudente.com'
         message['subject'] = f"Nova Reserva - {booking_data.get('voucher_number', '')}"
         message.attach(MIMEText(html_content, 'html'))
         
+        # Attach PDF
+        pdf_attachment = MIMEApplication(pdf_content, name=f"voucher_{booking_data.get('voucher_number', '')}.pdf")
+        pdf_attachment['Content-Disposition'] = f'attachment; filename="voucher_{booking_data.get("voucher_number", "")}.pdf"'
+        message.attach(pdf_attachment)
+        
         # Send email via Gmail API
         print(f"[NOTIFICATION] Sending email via Gmail API")
         try:
             service = build('gmail', 'v1', credentials=credentials)
             # Encode message
-            import base64
-            from email import encoders
             raw_message = base64.urlsafe_b64encode(message.as_bytes()).decode()
             
             message_body = {'raw': raw_message}
@@ -132,6 +195,7 @@ def send_new_booking_notification(booking_id: int, booking_data: dict):
             
             print(f"[NOTIFICATION] Email sent successfully to info@auto-prudente.com")
             print(f"[NOTIFICATION] Message ID: {result.get('id')}")
+            print(f"[NOTIFICATION] PDF voucher attached: voucher_{booking_data.get('voucher_number', '')}.pdf")
             return True
             
         except Exception as e:
