@@ -223,7 +223,17 @@ def render_voucher_template(booking_data):
         print(f"[VOUCHER PDF] DEBUG - Template variables found: {vars_found}")
         
         # Replace template variables - ensure all values are strings
+        print(f"[VOUCHER PDF] DEBUG - Starting template replacement...")
+        
+        # Test replacement with one field
+        original_voucher = template_content.count('{{voucher_number}}')
+        print(f"[VOUCHER PDF] DEBUG - Found {{voucher_number}} {original_voucher} times in template")
+        
         template_content = template_content.replace('{{voucher_number}}', str(booking_data.get('voucher_number', '')))
+        after_replace = template_content.count('{{voucher_number}}')
+        print(f"[VOUCHER PDF] DEBUG - After replace, {{voucher_number}} appears {after_replace} times")
+        
+        # Continue with other replacements
         template_content = template_content.replace('{{client_name}}', str(booking_data.get('client_name', '')))
         template_content = template_content.replace('{{client_email}}', str(booking_data.get('client_email', '')))
         template_content = template_content.replace('{{client_phone}}', str(booking_data.get('client_phone', '')))
