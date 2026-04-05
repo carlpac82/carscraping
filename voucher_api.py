@@ -37,22 +37,22 @@ vehicle_models = {
     'P': 'Citroen Berlingo ou Similar'
 }
 
-# Vehicle name mapping for API - NOMES EXATOS DA BASE DE DADOS
+# Vehicle name mapping for API - TODOS OS 13 GRUPOS COM NOMES EXATOS
 vehicle_api_names = {
-    'A': 'kia picanto',  # Procurar: não encontrado exato, usar este
-    'B': 'fiat panda',   # Procurar: não encontrado exato, usar este
-    'D': 'seat ibiza',   # ✅ EXISTE
-    'E1': 'hyundai i10', # Procurar: não encontrado exato, usar este
-    'E2': 'citroen c3',  # ✅ EXISTE
-    'F': 'seat arona',   # ✅ EXISTE
-    'G': '500',         # Procurar: fiat 500 não existe, usar 500
-    'J1': 'peugeot 2008', # Procurar: não encontrado exato, usar este
-    'J2': 'peugeot 308',  # Procurar: não encontrado exato, usar este
-    'L1': 'citroen c3',   # ✅ EXISTE (reutilizar)
-    'L2': 'peugeot 308',  # Procurar: não encontrado exato, usar este
-    'M1': 'dacia jogger', # ✅ EXISTE
-    'M2': 'citroen c4',   # ✅ EXISTE
-    'N': 'toyota proace'  # ✅ EXISTE
+    'A': 'kia picanto',         # ✅ ENCONTRADO
+    'B': 'fiat panda',          # ✅ ENCONTRADO
+    'D': 'seat ibiza',          # ✅ ENCONTRADO
+    'E1': 'hyundai i10',        # ✅ ENCONTRADO
+    'E2': 'citroen c3',         # ✅ ENCONTRADO
+    'F': 'seat arona',          # ✅ ENCONTRADO
+    'G': 'fiat 500',            # ✅ ENCONTRADO
+    'J1': 'peugeot 2008',       # ✅ ENCONTRADO
+    'J2': 'peugeot 308',        # ✅ ENCONTRADO
+    'L1': 'citroen c3 aircross', # ✅ ENCONTRADO
+    'L2': 'peugeot 308',        # ✅ ENCONTRADO
+    'M1': 'dacia jogger',       # ✅ ENCONTRADO
+    'M2': 'citroen c4',         # ✅ ENCONTRADO
+    'N': 'toyota proace'        # ✅ ENCONTRADO
 }
 
 def create_message_with_attachment(credentials, to_email, subject, body, attachment_content, filename):
