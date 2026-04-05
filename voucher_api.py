@@ -126,36 +126,17 @@ def send_new_booking_notification(booking_id: int, booking_data: dict):
         
         print(f"[NOTIFICATION] Converted to absolute URLs with encoding")
         
-        # Generate PDF using Playwright
-        from playwright.async_api import async_playwright
+        # Generate PDF using Playwright - synchronous approach
         import asyncio
+        try:
+            # Try to get current event loop
+            loop = asyncio.get_running_loop()
+            # If we're in a running loop, create a task
+            pdf_content = loop.run_until_complete(_generate_pdf_async(pdf_html_content))
+        except RuntimeError:
+            # No running loop, use asyncio.run()
+            pdf_content = asyncio.run(_generate_pdf_async(pdf_html_content))
         
-        async def generate_pdf():
-            async with async_playwright() as p:
-                browser = await p.chromium.launch()
-                page = await browser.new_page()
-                
-                # Set content and wait for images to load
-                await page.set_content(pdf_html_content)
-                await page.wait_for_timeout(2000)  # Wait for images to load
-                
-                # Generate PDF
-                pdf_content = await page.pdf(
-                    format='A4',
-                    print_background=True,
-                    margin={
-                        'top': '20px',
-                        'right': '20px',
-                        'bottom': '20px',
-                        'left': '20px'
-                    }
-                )
-                
-                await browser.close()
-                return pdf_content
-        
-        # Run the async function
-        pdf_content = asyncio.run(generate_pdf())
         print(f"[NOTIFICATION] PDF voucher generated, size: {len(pdf_content)} bytes")
         
         # Get Gmail OAuth credentials
@@ -205,6 +186,33 @@ def send_new_booking_notification(booking_id: int, booking_data: dict):
     except Exception as e:
         print(f"[NOTIFICATION] Error sending notification: {e}")
         return False
+
+async def _generate_pdf_async(pdf_html_content):
+    """Async function to generate PDF"""
+    from playwright.async_api import async_playwright
+    
+    async with async_playwright() as p:
+        browser = await p.chromium.launch()
+        page = await browser.new_page()
+        
+        # Set content and wait for images to load
+        await page.set_content(pdf_html_content)
+        await page.wait_for_timeout(2000)  # Wait for images to load
+        
+        # Generate PDF
+        pdf_content = await page.pdf(
+            format='A4',
+            print_background=True,
+            margin={
+                'top': '20px',
+                'right': '20px',
+                'bottom': '20px',
+                'left': '20px'
+            }
+        )
+        
+        await browser.close()
+        return pdf_content
 
 def render_email_template(booking_data):
     """Render email template with booking data and language support"""
