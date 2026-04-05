@@ -37,22 +37,22 @@ vehicle_models = {
     'P': 'Citroen Berlingo ou Similar'
 }
 
-# Vehicle name mapping for API - TODOS OS 13 GRUPOS COM NOMES EXATOS
+# Vehicle name mapping for API - NOMES EXATOS DO COMMISSIONER DASHBOARD
 vehicle_api_names = {
-    'A': 'kia picanto',         # ✅ ENCONTRADO
-    'B': 'fiat panda',          # ✅ ENCONTRADO
-    'D': 'seat ibiza',          # ✅ ENCONTRADO
-    'E1': 'hyundai i10',        # ✅ ENCONTRADO
-    'E2': 'citroen c3',         # ✅ ENCONTRADO
-    'F': 'seat arona',          # ✅ ENCONTRADO
-    'G': 'fiat 500',            # ✅ ENCONTRADO
-    'J1': 'peugeot 2008',       # ✅ ENCONTRADO
-    'J2': 'peugeot 308 sw',     # ✅ ENCONTRADO (STATION WAGON)
-    'L1': 'citroen c3 aircross', # ✅ ENCONTRADO
-    'L2': 'peugeot 308 sw',     # ✅ ENCONTRADO (STATION WAGON)
-    'M1': 'dacia jogger',       # ✅ ENCONTRADO
-    'M2': 'citroen c4',         # ✅ ENCONTRADO
-    'N': 'toyota proace'        # ✅ ENCONTRADO
+    'A': 'kia picanto',         # ✅
+    'B': 'fiat panda',          # ✅
+    'D': 'seat ibiza',          # ✅
+    'E1': 'hyundai i10',        # ✅
+    'E2': 'citroen c3',         # ✅
+    'F': 'seat arona',          # ✅
+    'G': 'fiat 500',            # ✅
+    'J1': 'peugeot 2008',       # ✅
+    'J2': 'peugeot 308 sw',     # ✅
+    'L1': 'citroen c3 aircross', # ✅
+    'L2': 'peugeot 308 sw',     # ✅
+    'M1': 'dacia jogger',       # ✅
+    'M2': 'citroen c4 picasso', # ✅ CORRIGIDO: era citroen c4
+    'N': 'toyota proace'        # ✅
 }
 
 def create_message_with_attachment(credentials, to_email, subject, body, attachment_content, filename):
