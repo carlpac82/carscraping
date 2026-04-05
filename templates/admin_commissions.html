@@ -526,6 +526,12 @@
           gap: 5px !important;
         }
         
+        /* Garantir mesmo comprimento para botões Pago e Não Pago */
+        #markPaidBtn, #markUnpaidBtn {
+          min-width: 120px !important;
+          max-width: 120px !important;
+        }
+        
         .mb-4.flex.gap-2 button[style*="margin-left"] {
           margin-left: 0 !important;
         }
@@ -1211,28 +1217,28 @@
       <!-- Actions -->
       <div class="mb-4 flex gap-2">
           <button class="btn-primary" onclick="markSelectedAsPaid(true)" disabled id="markPaidBtn">
-              <span class="btn-text-desktop">Marcar Selecionadas como Pagas</span>
+              <span class="btn-text-desktop">Pago</span>
               <span class="btn-icon-mobile">
-                  <svg style="width: 1.5rem; height: 1.5rem;" fill="white" stroke="#d1d5db" stroke-width="1.5" viewBox="0 0 24 24">
-                      <rect x="3" y="3" width="18" height="18" rx="2" ry="2" stroke="#d1d5db" stroke-width="1.5" fill="white"></rect>
+                  <svg style="width: 1.5rem; height: 1.5rem;" fill="white" stroke="#009cb6" stroke-width="1.5" viewBox="0 0 24 24">
+                      <rect x="3" y="3" width="18" height="18" rx="2" ry="2" stroke="#009cb6" stroke-width="1.5" fill="white"></rect>
                       <text x="12" y="16" text-anchor="middle" fill="#009cb6" font-size="12" font-weight="bold">€</text>
                   </svg>
               </span>
           </button>
           <button class="btn-primary" onclick="markSelectedAsPaid(false)" disabled id="markUnpaidBtn">
-              <span class="btn-text-desktop">Marcar Selecionadas como Não Pagas</span>
+              <span class="btn-text-desktop">Não Pago</span>
               <span class="btn-icon-mobile">
-                  <svg style="width: 1.5rem; height: 1.5rem;" fill="white" stroke="#d1d5db" stroke-width="1.5" viewBox="0 0 24 24">
-                      <rect x="3" y="3" width="18" height="18" rx="2" ry="2" stroke="#d1d5db" stroke-width="1.5" fill="white"></rect>
+                  <svg style="width: 1.5rem; height: 1.5rem;" fill="white" stroke="#eab308" stroke-width="1.5" viewBox="0 0 24 24">
+                      <rect x="3" y="3" width="18" height="18" rx="2" ry="2" stroke="#eab308" stroke-width="1.5" fill="white"></rect>
                       <text x="12" y="16" text-anchor="middle" fill="#eab308" font-size="12" font-weight="bold">€</text>
                   </svg>
               </span>
           </button>
           <button class="btn-primary" onclick="toggleSelectAll()">
-              <span class="btn-text-desktop" id="selectAllText">Selecionar Todas</span>
+              <span class="btn-text-desktop" id="selectAllText">Selecionar</span>
               <span class="btn-icon-mobile">
-                  <svg style="width: 1.5rem; height: 1.5rem;" fill="white" stroke="#d1d5db" stroke-width="1.5" viewBox="0 0 24 24">
-                      <rect x="3" y="3" width="18" height="18" rx="2" ry="2" stroke="#d1d5db" stroke-width="1.5" fill="white"></rect>
+                  <svg style="width: 1.5rem; height: 1.5rem;" fill="white" stroke="#009cb6" stroke-width="1.5" viewBox="0 0 24 24">
+                      <rect x="3" y="3" width="18" height="18" rx="2" ry="2" stroke="#009cb6" stroke-width="1.5" fill="white"></rect>
                       <polyline points="9 11 12 14 22 4" stroke="#009cb6" stroke-width="1.5" fill="none"></polyline>
                   </svg>
               </span>
