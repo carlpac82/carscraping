@@ -389,6 +389,120 @@
         }
       }
       
+      /* Mobile Responsive Styles */
+      @media (max-width: 768px) {
+        .filters-section {
+          padding: 0.75rem;
+        }
+        
+        .filter-group {
+          margin-bottom: 0.75rem;
+        }
+        
+        .filter-group label {
+          font-size: 12px;
+          margin-bottom: 4px;
+        }
+        
+        .filter-group select {
+          font-size: 13px;
+          padding: 8px;
+        }
+        
+        .action-buttons {
+          flex-direction: column;
+          gap: 8px;
+        }
+        
+        .action-buttons button {
+          width: 100%;
+          padding: 10px;
+          font-size: 13px;
+        }
+        
+        .commissions-table {
+          overflow-x: auto;
+          -webkit-overflow-scrolling: touch;
+        }
+        
+        .commissions-table table {
+          min-width: 900px;
+        }
+        
+        .commissions-table th,
+        .commissions-table td {
+          padding: 0.5rem;
+          font-size: 11px;
+        }
+        
+        .commissions-table th {
+          font-size: 10px;
+        }
+        
+        .stats-grid {
+          grid-template-columns: 1fr;
+          gap: 1rem;
+        }
+        
+        .stat-card {
+          padding: 1rem;
+        }
+        
+        .stat-card h3 {
+          font-size: 12px;
+        }
+        
+        .stat-card .stat-value {
+          font-size: 20px;
+        }
+        
+        .chart-card {
+          padding: 1rem;
+        }
+        
+        .chart-card h3 {
+          font-size: 14px;
+        }
+        
+        .top-list-item {
+          padding: 0.5rem;
+          font-size: 12px;
+        }
+        
+        .top-list-name {
+          font-size: 12px;
+        }
+        
+        .top-list-value {
+          font-size: 12px;
+        }
+      }
+      
+      @media (max-width: 480px) {
+        .container {
+          padding: 0 0.5rem;
+        }
+        
+        .filters-section {
+          padding: 0.5rem;
+        }
+        
+        .commissions-table th,
+        .commissions-table td {
+          padding: 0.4rem;
+          font-size: 10px;
+        }
+        
+        .stat-card .stat-value {
+          font-size: 18px;
+        }
+        
+        .action-buttons button {
+          padding: 8px;
+          font-size: 12px;
+        }
+      }
+      
       .chart-card {
         background: white;
         padding: 1.5rem;

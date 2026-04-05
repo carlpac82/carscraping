@@ -519,6 +519,151 @@
             color: #333;
             font-weight: 500;
         }
+
+        /* Mobile Responsive Styles */
+        @media (max-width: 768px) {
+            .filters-grid {
+                grid-template-columns: 1fr;
+                gap: 10px;
+            }
+
+            .filters-bar-header {
+                flex-direction: column;
+                gap: 12px;
+                align-items: stretch;
+            }
+
+            .btn-add-booking {
+                width: 100%;
+            }
+
+            .bookings-table {
+                overflow-x: auto;
+                -webkit-overflow-scrolling: touch;
+            }
+
+            table {
+                min-width: 800px;
+            }
+
+            th, td {
+                font-size: 11px;
+                padding: 8px 6px;
+            }
+
+            .actions {
+                position: relative;
+                display: flex;
+                gap: 6px;
+                align-items: center;
+            }
+
+            /* Dropdown de ações para mobile */
+            .actions-dropdown {
+                position: relative;
+            }
+
+            .actions-dropdown-btn {
+                padding: 6px 10px;
+                background: #e3f2fd;
+                color: #1976d2;
+                border: none;
+                border-radius: 6px;
+                cursor: pointer;
+                font-size: 11px;
+                font-weight: 600;
+                display: flex;
+                align-items: center;
+                gap: 4px;
+                white-space: nowrap;
+            }
+
+            .actions-dropdown-btn:hover {
+                background: #bbdefb;
+            }
+
+            .actions-dropdown-menu {
+                display: none;
+                position: absolute;
+                right: 0;
+                top: 100%;
+                margin-top: 4px;
+                background: white;
+                border-radius: 8px;
+                box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+                z-index: 1000;
+                min-width: 150px;
+                overflow: hidden;
+            }
+
+            .actions-dropdown-menu.active {
+                display: block;
+            }
+
+            .actions-dropdown-menu button {
+                width: 100%;
+                padding: 10px 15px;
+                border: none;
+                background: white;
+                text-align: left;
+                font-size: 12px;
+                font-weight: 600;
+                cursor: pointer;
+                transition: background 0.2s;
+                border-bottom: 1px solid #f0f0f0;
+            }
+
+            .actions-dropdown-menu button:last-child {
+                border-bottom: none;
+            }
+
+            .actions-dropdown-menu button:hover {
+                background: #f8f9fa;
+            }
+
+            .actions-dropdown-menu .btn-confirm {
+                color: #155724;
+            }
+
+            .actions-dropdown-menu .btn-edit {
+                color: #1976d2;
+            }
+
+            .actions-dropdown-menu .btn-cancel {
+                color: #c62828;
+            }
+
+            .actions-dropdown-menu .btn-delete {
+                color: #dc3545;
+            }
+
+            .btn-pdf {
+                padding: 6px 8px;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+            }
+        }
+
+        @media (max-width: 480px) {
+            .container {
+                padding: 0 0.5rem;
+            }
+
+            .filters-bar {
+                padding: 12px;
+            }
+
+            th, td {
+                font-size: 10px;
+                padding: 6px 4px;
+            }
+
+            .status-badge {
+                font-size: 10px;
+                padding: 3px 8px;
+            }
+        }
     </style>
 </head>
 <body class="bg-gray-50">
@@ -913,28 +1058,41 @@
                                     </td>
                                     <td>
                                         <div class="actions">
-                                            ${b.status === 'pending' ? `
-                                                <button class="btn-action btn-confirm" onclick="confirmBooking(${b.id})">
-                                                    Confirmar
-                                                </button>
-                                            ` : ''}
-                                            <button class="btn-action btn-edit" onclick="editBooking(${b.id})">
-                                                Editar
-                                            </button>
-                                            <button class="btn-action btn-pdf" onclick="printBookingPDF(${b.id})" title="Ver PDF">
+                                            <!-- Botão Imprimir sempre visível -->
+                                            <button class="btn-action btn-pdf" onclick="printBookingPDF(${b.id})" title="Imprimir PDF">
                                                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                                                     <path d="M6 9V2h12v7M6 18H4a2 2 0 01-2-2v-5a2 2 0 012-2h16a2 2 0 012 2v5a2 2 0 01-2 2h-2"></path>
                                                     <path d="M6 14h12v8H6z"></path>
                                                 </svg>
                                             </button>
-                                            ${b.status !== 'cancelled' ? `
-                                                <button class="btn-action btn-cancel" onclick="cancelBooking(${b.id})">
-                                                    Cancelar
+                                            
+                                            <!-- Dropdown com outras ações -->
+                                            <div class="actions-dropdown">
+                                                <button class="actions-dropdown-btn" onclick="toggleActionsDropdown(event, ${b.id})">
+                                                    Ações
+                                                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                                        <path d="M6 9l6 6 6-6"></path>
+                                                    </svg>
                                                 </button>
-                                                <button class="btn-action btn-delete" onclick="deleteBooking(${b.id})">
-                                                    Eliminar
-                                                </button>
-                                            ` : ''}
+                                                <div class="actions-dropdown-menu" id="dropdown-${b.id}">
+                                                    ${b.status === 'pending' ? `
+                                                        <button class="btn-confirm" onclick="confirmBooking(${b.id}); closeAllDropdowns()">
+                                                            ✓ Confirmar
+                                                        </button>
+                                                    ` : ''}
+                                                    <button class="btn-edit" onclick="editBooking(${b.id}); closeAllDropdowns()">
+                                                        ✎ Editar
+                                                    </button>
+                                                    ${b.status !== 'cancelled' ? `
+                                                        <button class="btn-cancel" onclick="cancelBooking(${b.id}); closeAllDropdowns()">
+                                                            ✕ Cancelar
+                                                        </button>
+                                                        <button class="btn-delete" onclick="deleteBooking(${b.id}); closeAllDropdowns()">
+                                                            🗑 Eliminar
+                                                        </button>
+                                                    ` : ''}
+                                                </div>
+                                            </div>
                                         </div>
                                     </td>
                                 </tr>
@@ -1189,6 +1347,34 @@
                 alert('Erro ao inserir reserva');
             }
         }
+
+        // Funções para controlar dropdown de ações
+        function toggleActionsDropdown(event, bookingId) {
+            event.stopPropagation();
+            const dropdown = document.getElementById(`dropdown-${bookingId}`);
+            const isActive = dropdown.classList.contains('active');
+            
+            // Fechar todos os dropdowns
+            closeAllDropdowns();
+            
+            // Abrir o dropdown clicado se não estava ativo
+            if (!isActive) {
+                dropdown.classList.add('active');
+            }
+        }
+
+        function closeAllDropdowns() {
+            document.querySelectorAll('.actions-dropdown-menu').forEach(menu => {
+                menu.classList.remove('active');
+            });
+        }
+
+        // Fechar dropdowns ao clicar fora
+        document.addEventListener('click', function(event) {
+            if (!event.target.closest('.actions-dropdown')) {
+                closeAllDropdowns();
+            }
+        });
 
         loadData();
     </script>
