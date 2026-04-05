@@ -650,7 +650,7 @@
             }
         }
 
-        @media (max-width: 480px) {
+        @media (max-width: 768px) {
             .container {
                 padding: 0 0.5rem;
             }
@@ -659,14 +659,127 @@
                 padding: 12px;
             }
 
-            th, td {
-                font-size: 10px;
-                padding: 6px 4px;
+            .filters-grid {
+                grid-template-columns: 1fr;
+                gap: 10px;
+            }
+
+            /* Esconder tabela em mobile */
+            .bookings-table table {
+                display: none;
+            }
+
+            /* Mostrar cards em mobile */
+            .bookings-table {
+                display: flex;
+                flex-direction: column;
+                gap: 12px;
+                padding: 10px;
+            }
+
+            /* Estilo dos cards mobile */
+            .booking-card {
+                background: white;
+                border-radius: 10px;
+                padding: 12px;
+                box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+                border-left: 4px solid #009cb6;
+            }
+
+            .booking-card-header {
+                display: flex;
+                justify-content: space-between;
+                align-items: center;
+                margin-bottom: 10px;
+                padding-bottom: 8px;
+                border-bottom: 1px solid #f0f0f0;
+            }
+
+            .booking-card-title {
+                font-weight: 600;
+                font-size: 13px;
+                color: #333;
+            }
+
+            .booking-card-row {
+                display: flex;
+                justify-content: space-between;
+                padding: 6px 0;
+                font-size: 12px;
+            }
+
+            .booking-card-label {
+                color: #666;
+                font-weight: 500;
+            }
+
+            .booking-card-value {
+                color: #333;
+                text-align: right;
+            }
+
+            .booking-card-actions {
+                margin-top: 10px;
+                padding-top: 10px;
+                border-top: 1px solid #f0f0f0;
+                display: flex;
+                gap: 6px;
+                justify-content: flex-end;
+            }
+
+            /* Ajustar modais para mobile */
+            .modal-content {
+                width: 95%;
+                max-width: 95%;
+                padding: 20px;
+                max-height: 85vh;
+            }
+
+            .modal-header h2 {
+                font-size: 18px;
+            }
+
+            .form-group {
+                margin-bottom: 12px;
+            }
+
+            .form-group label {
+                font-size: 12px;
+                margin-bottom: 4px;
+            }
+
+            .form-group input,
+            .form-group select,
+            .form-group textarea {
+                padding: 8px 10px;
+                font-size: 13px;
+                min-height: 38px;
+            }
+
+            .form-row {
+                grid-template-columns: 1fr !important;
+                gap: 12px !important;
+            }
+
+            .btn-submit,
+            .btn-modal-cancel {
+                padding: 10px 16px;
+                font-size: 13px;
             }
 
             .status-badge {
                 font-size: 10px;
                 padding: 3px 8px;
+            }
+
+            .btn-action {
+                padding: 6px 10px;
+                font-size: 11px;
+            }
+
+            .actions-dropdown-btn {
+                padding: 6px 10px;
+                font-size: 11px;
             }
         }
     </style>
@@ -1105,83 +1218,153 @@
                 return;
             }
 
-            content.innerHTML = `
-                <div class="bookings-table">
-                    <table>
-                        <thead>
-                            <tr>
-                                <th>Voucher</th>
-                                <th>Comissionista</th>
-                                <th>Veículo</th>
-                                <th>Levantamento</th>
-                                <th>Preço</th>
-                                <th>Depósito</th>
-                                <th>Status</th>
-                                <th>Ações</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            ${bookings.map(b => `
-                                <tr>
-                                    <td>${b.voucher_number || '-'}</td>
-                                    <td>${b.commissioner_name || 'N/A'}</td>
-                                    <td>${b.car_name}</td>
-                                    <td>
-                                        <div>${formatDate(b.pickup_date)}</div>
-                                        <div style="font-size: 12px; color: #999;">${b.pickup_location}</div>
-                                    </td>
-                                    <td style="font-weight: 600;">€${b.total_price}</td>
-                                    <td>${b.deposit > 0 ? '€' + b.deposit.toFixed(2) : '-'}</td>
-                                    <td>
-                                        <span class="status-badge status-${b.status}">
-                                            ${getStatusText(b.status)}
-                                        </span>
-                                    </td>
-                                    <td>
-                                        <div class="actions">
-                                            <!-- Botão Imprimir sempre visível -->
-                                            <button class="btn-action btn-pdf" onclick="printBookingPDF(${b.id})" title="Imprimir PDF">
-                                                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                                    <path d="M6 9V2h12v7M6 18H4a2 2 0 01-2-2v-5a2 2 0 012-2h16a2 2 0 012 2v5a2 2 0 01-2 2h-2"></path>
-                                                    <path d="M6 14h12v8H6z"></path>
-                                                </svg>
+            const isMobile = window.innerWidth <= 768;
+
+            if (isMobile) {
+                // Renderizar cards para mobile
+                content.innerHTML = `
+                    <div class="bookings-table">
+                        ${bookings.map(b => `
+                            <div class="booking-card">
+                                <div class="booking-card-header">
+                                    <div class="booking-card-title">${b.commissioner_name || 'N/A'}</div>
+                                    <span class="status-badge status-${b.status}">${getStatusText(b.status)}</span>
+                                </div>
+                                <div class="booking-card-row">
+                                    <span class="booking-card-label">Voucher:</span>
+                                    <span class="booking-card-value">${b.voucher_number || '-'}</span>
+                                </div>
+                                <div class="booking-card-row">
+                                    <span class="booking-card-label">Veículo:</span>
+                                    <span class="booking-card-value">${b.car_name}</span>
+                                </div>
+                                <div class="booking-card-row">
+                                    <span class="booking-card-label">Data:</span>
+                                    <span class="booking-card-value">${formatDate(b.pickup_date)}</span>
+                                </div>
+                                <div class="booking-card-row">
+                                    <span class="booking-card-label">Preço:</span>
+                                    <span class="booking-card-value" style="font-weight: 600;">€${b.total_price}</span>
+                                </div>
+                                <div class="booking-card-row">
+                                    <span class="booking-card-label">Depósito:</span>
+                                    <span class="booking-card-value">${b.deposit > 0 ? '€' + b.deposit.toFixed(2) : '-'}</span>
+                                </div>
+                                <div class="booking-card-actions">
+                                    <button class="btn-action btn-pdf" onclick="printBookingPDF(${b.id})" title="Imprimir">
+                                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                            <path d="M6 9V2h12v7M6 18H4a2 2 0 01-2-2v-5a2 2 0 012-2h16a2 2 0 012 2v5a2 2 0 01-2 2h-2"></path>
+                                            <path d="M6 14h12v8H6z"></path>
+                                        </svg>
+                                    </button>
+                                    <div class="actions-dropdown">
+                                        <button class="actions-dropdown-btn" onclick="toggleActionsDropdown(event, ${b.id})">
+                                            Ações
+                                            <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                                <path d="M6 9l6 6 6-6"></path>
+                                            </svg>
+                                        </button>
+                                        <div class="actions-dropdown-menu" id="dropdown-${b.id}">
+                                            ${b.status === 'pending' ? `
+                                                <button class="btn-confirm" onclick="confirmBooking(${b.id}); closeAllDropdowns()">
+                                                    ✓ Confirmar
+                                                </button>
+                                            ` : ''}
+                                            <button class="btn-edit" onclick="editBooking(${b.id}); closeAllDropdowns()">
+                                                ✎ Editar
                                             </button>
-                                            
-                                            <!-- Dropdown com outras ações -->
-                                            <div class="actions-dropdown">
-                                                <button class="actions-dropdown-btn" onclick="toggleActionsDropdown(event, ${b.id})">
-                                                    Ações
-                                                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                                        <path d="M6 9l6 6 6-6"></path>
+                                            ${b.status !== 'cancelled' ? `
+                                                <button class="btn-cancel" onclick="cancelBooking(${b.id}); closeAllDropdowns()">
+                                                    ✕ Cancelar
+                                                </button>
+                                                <button class="btn-delete" onclick="deleteBooking(${b.id}); closeAllDropdowns()">
+                                                    🗑 Eliminar
+                                                </button>
+                                            ` : ''}
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        `).join('')}
+                    </div>
+                `;
+            } else {
+                // Renderizar tabela para desktop
+                content.innerHTML = `
+                    <div class="bookings-table">
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>Voucher</th>
+                                    <th>Comissionista</th>
+                                    <th>Veículo</th>
+                                    <th>Levantamento</th>
+                                    <th>Preço</th>
+                                    <th>Depósito</th>
+                                    <th>Status</th>
+                                    <th>Ações</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                ${bookings.map(b => `
+                                    <tr>
+                                        <td>${b.voucher_number || '-'}</td>
+                                        <td>${b.commissioner_name || 'N/A'}</td>
+                                        <td>${b.car_name}</td>
+                                        <td>
+                                            <div>${formatDate(b.pickup_date)}</div>
+                                            <div style="font-size: 12px; color: #999;">${b.pickup_location}</div>
+                                        </td>
+                                        <td style="font-weight: 600;">€${b.total_price}</td>
+                                        <td>${b.deposit > 0 ? '€' + b.deposit.toFixed(2) : '-'}</td>
+                                        <td>
+                                            <span class="status-badge status-${b.status}">
+                                                ${getStatusText(b.status)}
+                                            </span>
+                                        </td>
+                                        <td>
+                                            <div class="actions">
+                                                <button class="btn-action btn-pdf" onclick="printBookingPDF(${b.id})" title="Imprimir PDF">
+                                                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                                        <path d="M6 9V2h12v7M6 18H4a2 2 0 01-2-2v-5a2 2 0 012-2h16a2 2 0 012 2v5a2 2 0 01-2 2h-2"></path>
+                                                        <path d="M6 14h12v8H6z"></path>
                                                     </svg>
                                                 </button>
-                                                <div class="actions-dropdown-menu" id="dropdown-${b.id}">
-                                                    ${b.status === 'pending' ? `
-                                                        <button class="btn-confirm" onclick="confirmBooking(${b.id}); closeAllDropdowns()">
-                                                            ✓ Confirmar
-                                                        </button>
-                                                    ` : ''}
-                                                    <button class="btn-edit" onclick="editBooking(${b.id}); closeAllDropdowns()">
-                                                        ✎ Editar
+                                                <div class="actions-dropdown">
+                                                    <button class="actions-dropdown-btn" onclick="toggleActionsDropdown(event, ${b.id})">
+                                                        Ações
+                                                        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                                            <path d="M6 9l6 6 6-6"></path>
+                                                        </svg>
                                                     </button>
-                                                    ${b.status !== 'cancelled' ? `
-                                                        <button class="btn-cancel" onclick="cancelBooking(${b.id}); closeAllDropdowns()">
-                                                            ✕ Cancelar
+                                                    <div class="actions-dropdown-menu" id="dropdown-${b.id}">
+                                                        ${b.status === 'pending' ? `
+                                                            <button class="btn-confirm" onclick="confirmBooking(${b.id}); closeAllDropdowns()">
+                                                                ✓ Confirmar
+                                                            </button>
+                                                        ` : ''}
+                                                        <button class="btn-edit" onclick="editBooking(${b.id}); closeAllDropdowns()">
+                                                            ✎ Editar
                                                         </button>
-                                                        <button class="btn-delete" onclick="deleteBooking(${b.id}); closeAllDropdowns()">
-                                                            🗑 Eliminar
-                                                        </button>
-                                                    ` : ''}
+                                                        ${b.status !== 'cancelled' ? `
+                                                            <button class="btn-cancel" onclick="cancelBooking(${b.id}); closeAllDropdowns()">
+                                                                ✕ Cancelar
+                                                            </button>
+                                                            <button class="btn-delete" onclick="deleteBooking(${b.id}); closeAllDropdowns()">
+                                                                🗑 Eliminar
+                                                            </button>
+                                                        ` : ''}
+                                                    </div>
                                                 </div>
                                             </div>
-                                        </div>
-                                    </td>
-                                </tr>
-                            `).join('')}
-                        </tbody>
-                    </table>
-                </div>
-            `;
+                                        </td>
+                                    </tr>
+                                `).join('')}
+                            </tbody>
+                        </table>
+                    </div>
+                `;
+            }
         }
 
         function formatDate(dateStr) {
