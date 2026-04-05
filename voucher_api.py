@@ -257,11 +257,27 @@ async def print_voucher(booking_id: int):
         html_content = render_voucher_template(booking_data)
         print(f"[VOUCHER PRINT] HTML template rendered, length: {len(html_content)}")
         
-        # Convert to absolute URLs for Playwright to ensure image loading
-        base_url = "https://carrental-api-5f8q.onrender.com"
+        # Convert to absolute URLs and fix encoding
+        base_url = "https://rentalprices.pt"
         html_content = html_content.replace('src="/api/vehicles/', f'src="{base_url}/api/vehicles/')
         
-        print(f"[VOUCHER PRINT] Converted to absolute URLs: {base_url}")
+        # Fix URL encoding for vehicle names with spaces
+        import urllib.parse
+        html_content = html_content.replace('/fiat panda/photo', '/fiat%20panda/photo')
+        html_content = html_content.replace('/seat ibiza/photo', '/seat%20ibiza/photo')
+        html_content = html_content.replace('/hyundai i10/photo', '/hyundai%20i10/photo')
+        html_content = html_content.replace('/citroen c3/photo', '/citroen%20c3/photo')
+        html_content = html_content.replace('/seat arona/photo', '/seat%20arona/photo')
+        html_content = html_content.replace('/fiat 500/photo', '/fiat%20500/photo')
+        html_content = html_content.replace('/peugeot 2008/photo', '/peugeot%202008/photo')
+        html_content = html_content.replace('/peugeot 308 sw/photo', '/peugeot%20308%20sw/photo')
+        html_content = html_content.replace('/citroen c3 aircross/photo', '/citroen%20c3%20aircross/photo')
+        html_content = html_content.replace('/dacia jogger/photo', '/dacia%20jogger/photo')
+        html_content = html_content.replace('/citroen c4/photo', '/citroen%20c4/photo')
+        html_content = html_content.replace('/toyota proace/photo', '/toyota%20proace/photo')
+        html_content = html_content.replace('/kia picanto/photo', '/kia%20picanto/photo')
+        
+        print(f"[VOUCHER PRINT] Converted to absolute URLs with encoding: {base_url}")
         print(f"[VOUCHER PRINT] Starting PDF generation with Playwright")
         
         # Generate PDF using Playwright
