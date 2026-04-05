@@ -33947,8 +33947,9 @@ async def upload_commissioner_booking_pdf_template(request: Request, pdf: Upload
 @app.get("/api/commissioner-booking-pdf/generate/{booking_id}")
 async def generate_commissioner_booking_pdf(booking_id: int, request: Request):
     """Gerar PDF do Livro de Reservas preenchido com dados da reserva"""
-    user = request.session.get('user')
-    if not user or not (user.get('is_admin') or user.get('has_commissioner_access')):
+    try:
+        require_commissioner_access(request)
+    except HTTPException:
         raise HTTPException(status_code=403, detail="Acesso negado")
     
     try:
@@ -65050,8 +65051,9 @@ async def admin_delete_all_commissioner_bookings(request: Request):
 @app.get("/api/commissioners")
 async def api_get_commissioners(request: Request):
     """API endpoint to get all commissioners"""
-    user = request.session.get('user')
-    if not user or not (user.get('is_admin') or user.get('has_commissioner_access')):
+    try:
+        require_commissioner_access(request)
+    except HTTPException:
         return JSONResponse({"ok": False, "error": "Unauthorized"}, status_code=401)
     
     try:
@@ -65184,8 +65186,9 @@ async def api_get_commissioner_bookings(request: Request):
 @app.post("/api/admin/manual-booking")
 async def create_manual_booking(request: Request):
     """Create a manual booking for a commissioner"""
-    user = request.session.get('user')
-    if not user or not (user.get('is_admin') or user.get('has_commissioner_access')):
+    try:
+        require_commissioner_access(request)
+    except HTTPException:
         return JSONResponse({"ok": False, "error": "Unauthorized"}, status_code=401)
     
     try:
@@ -65380,8 +65383,9 @@ async def delete_commission_booking(booking_id: int, request: Request):
 @app.get("/api/vehicle-groups")
 async def get_vehicle_groups(request: Request):
     """Get active vehicle groups for manual booking dropdown"""
-    user = request.session.get('user')
-    if not user or not (user.get('is_admin') or user.get('has_commissioner_access')):
+    try:
+        require_commissioner_access(request)
+    except HTTPException:
         return JSONResponse({"ok": False, "error": "Unauthorized"}, status_code=401)
     
     try:
