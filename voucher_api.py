@@ -81,7 +81,7 @@ def format_vehicle_name(vehicle_name):
     
     return ' '.join(formatted_words)
 
-def send_new_booking_notification(booking_id: int, booking_data: dict):
+async def send_new_booking_notification(booking_id: int, booking_data: dict):
     """Send notification email to Auto Prudente about new booking"""
     try:
         print(f"[NOTIFICATION] Sending new booking notification for {booking_data.get('voucher_number')}")
@@ -173,35 +173,29 @@ def send_new_booking_notification(booking_id: int, booking_data: dict):
             
             # Generate PDF using Playwright async (same as email_voucher that works)
             from playwright.async_api import async_playwright
-            import asyncio
             
-            # Create async function to generate PDF
-            async def generate_pdf_async():
-                async with async_playwright() as p:
-                    browser = await p.chromium.launch()
-                    page = await browser.new_page()
-                    
-                    # Set content and wait for images to load
-                    await page.set_content(voucher_html)
-                    await page.wait_for_timeout(2000)  # Wait for images to load
-                    
-                    # Generate PDF
-                    pdf = await page.pdf(
-                        format='A4',
-                        print_background=True,
-                        margin={
-                            'top': '20px',
-                            'right': '20px',
-                            'bottom': '20px',
-                            'left': '20px'
-                        }
-                    )
-                    
-                    await browser.close()
-                    return pdf
-            
-            # Run async function
-            pdf_content = asyncio.run(generate_pdf_async())
+            # Use await directly since function is now async
+            async with async_playwright() as p:
+                browser = await p.chromium.launch()
+                page = await browser.new_page()
+                
+                # Set content and wait for images to load
+                await page.set_content(voucher_html)
+                await page.wait_for_timeout(2000)  # Wait for images to load
+                
+                # Generate PDF
+                pdf_content = await page.pdf(
+                    format='A4',
+                    print_background=True,
+                    margin={
+                        'top': '20px',
+                        'right': '20px',
+                        'bottom': '20px',
+                        'left': '20px'
+                    }
+                )
+                
+                await browser.close()
             
             print(f"[NOTIFICATION] Original voucher PDF generated with Playwright, size: {len(pdf_content)} bytes")
             
