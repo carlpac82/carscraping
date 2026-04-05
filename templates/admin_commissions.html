@@ -547,20 +547,14 @@
           display: none !important;
         }
         
-        /* Estilo especial para botões no mobile */
-        .mb-4.flex.gap-2 button#markPaidBtn {
-          background-color: #009cb6 !important;
-          border-color: #009cb6 !important;
+        /* Remover cores de fundo dos botões no mobile */
+        .mb-4.flex.gap-2 button {
+          background-color: transparent !important;
+          border-color: #d1d5db !important;
         }
         
-        .mb-4.flex.gap-2 button#markUnpaidBtn {
-          background-color: #f59e0b !important;
-          border-color: #f59e0b !important;
-        }
-        
-        .mb-4.flex.gap-2 button:not(#markPaidBtn):not(#markUnpaidBtn) {
-          background-color: #6b7280 !important;
-          border-color: #6b7280 !important;
+        .mb-4.flex.gap-2 button:hover {
+          background-color: #f9fafb !important;
         }
         
         /* Reduzir tamanho dos separadores */
@@ -754,11 +748,14 @@
           width: 100% !important;
           max-width: 100% !important;
           overflow-x: hidden !important;
+          aspect-ratio: auto !important;
         }
         
         .dashboard-grid .chart-card canvas {
           max-width: 100% !important;
           height: 250px !important;
+          aspect-ratio: auto !important;
+          object-fit: contain !important;
         }
         
         /* Grid especial para Payment Type Charts */
@@ -770,6 +767,7 @@
         .dashboard-grid .chart-card h3 {
           font-size: 0.9rem !important;
           margin-bottom: 0.5rem !important;
+          white-space: normal !important;
         }
         
         .dashboard-grid .chart-card select {
@@ -780,6 +778,14 @@
         .dashboard-grid .chart-card button {
           font-size: 0.8rem !important;
           padding: 0.3rem 0.5rem !important;
+        }
+        
+        /* Corrigir gráficos do primeiro separador também */
+        .dashboard-grid canvas {
+          max-width: 100% !important;
+          height: 250px !important;
+          aspect-ratio: auto !important;
+          object-fit: contain !important;
         }
       }
       

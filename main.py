@@ -2394,11 +2394,14 @@ def _get_user_by_username(username: str) -> Optional[Dict[str, Any]]:
         with _db_lock:
             con = _db_connect()
             try:
+                logging.info(f"🔍 DEBUG _get_user_by_username: Buscando user '{username}'")
                 cur = con.execute("SELECT id, username, first_name, last_name, email, mobile, profile_picture_path, is_admin, enabled, role, has_commissioner_access, can_manage_commissions FROM users WHERE username=?", (username,))
                 r = cur.fetchone()
                 if not r:
+                    logging.info(f"🔍 DEBUG _get_user_by_username: User '{username}' não encontrado")
                     return None
-                return {
+                
+                user_data = {
                     "id": r[0],
                     "username": r[1],
                     "first_name": r[2] or "",
@@ -2412,6 +2415,16 @@ def _get_user_by_username(username: str) -> Optional[Dict[str, Any]]:
                     "has_commissioner_access": bool(r[10]) if r[10] is not None else False,
                     "can_manage_commissions": bool(r[11]) if r[11] is not None else False,
                 }
+                
+                logging.info(f"🔍 DEBUG _get_user_by_username: User '{username}' encontrado:")
+                logging.info(f"  - id: {user_data['id']}")
+                logging.info(f"  - is_admin: {user_data['is_admin']}")
+                logging.info(f"  - enabled: {user_data['enabled']}")
+                logging.info(f"  - role: {user_data['role']}")
+                logging.info(f"  - has_commissioner_access: {user_data['has_commissioner_access']}")
+                logging.info(f"  - can_manage_commissions: {user_data['can_manage_commissions']}")
+                
+                return user_data
             finally:
                 con.close()
     except Exception:
@@ -11991,7 +12004,7 @@ async def admin_commissions_summary(request: Request):
 async def admin_commissions_list(request: Request):
     """Get list of all commissions for admin"""
     try:
-        require_commissions_management(request)
+        require_commissions_access(request)
     except HTTPException:
         return JSONResponse({"ok": False, "error": "Unauthorized"}, status_code=403)
     
