@@ -34663,11 +34663,15 @@ async def vehicle_inspection_page(request: Request):
     except Exception:
         current_user = None
     
-    return templates.TemplateResponse("vehicle_inspection.html", {
+    response = templates.TemplateResponse("vehicle_inspection.html", {
         "request": request,
         "inspection_type": "checkout",
         "current_user": current_user
     })
+    response.headers["Cache-Control"] = "no-store, no-cache, must-revalidate, max-age=0"
+    response.headers["Pragma"] = "no-cache"
+    response.headers["Expires"] = "0"
+    return response
 
 @app.get("/vehicle-checkin", response_class=HTMLResponse)
 async def vehicle_checkin_page(request: Request):
