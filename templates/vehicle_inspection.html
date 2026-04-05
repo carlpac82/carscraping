@@ -680,6 +680,9 @@
     </style>
 </head>
 <body class="bg-[#009cb6] min-h-screen">
+    <script>
+        const current_user = {{ current_user | tojson | safe if current_user else 'null' }};
+    </script>
     <!-- Header with Logo -->
     <header class="bg-[#009cb6] shadow-md">
         <div class="max-w-7xl mx-auto px-4 py-3">
