@@ -384,8 +384,8 @@ def get_booking_data(booking_id):
         rental_days = (dropoff_date - pickup_date).days if pickup_date and dropoff_date else 0
         
         # Calculate amount to pay
-        total_price = float(result[18]) if result[18] else 0  # cb.price is at index 18
-        deposit = float(result[17]) if result[17] else 0       # cb.deposit is at index 17
+        total_price = float(result[19]) if result[19] else 0  # cb.price is at index 19
+        deposit = float(result[18]) if result[18] else 0       # cb.deposit is at index 18
         amount_to_pay = total_price - deposit
         
         # Parse extras
@@ -422,11 +422,11 @@ def get_booking_data(booking_id):
             'total_price': f"{total_price:.2f}",
             'amount_to_pay': f"{amount_to_pay:.2f}",
             'rental_days': rental_days,
-            'created_date': str(result[19]) if result[19] else '',  # Handle decimal/datetime safely
-            'agent_name': result[20] or 'N/A',      # c.name is at index 20
-            'agent_email': result[21] or 'N/A',    # c.email is at index 21
-            'agent_phone': result[22] or 'N/A',    # c.phone is at index 22
-            'booking_date': str(result[19]) if result[19] else '',  # Same as created_date
+            'created_date': str(result[20]) if result[20] else '',  # cb.created_at is at index 20
+            'agent_name': result[21] or 'N/A',      # c.name is at index 21
+            'agent_email': result[22] or 'N/A',    # c.email is at index 22
+            'agent_phone': result[23] or 'N/A',    # c.phone is at index 23
+            'booking_date': str(result[20]) if result[20] else '',  # Same as created_date
             'vehicle_image': f'/api/vehicles/{vehicle_api_names.get(result[13], result[13])}/photo' if result[13] else ''
         }
         
