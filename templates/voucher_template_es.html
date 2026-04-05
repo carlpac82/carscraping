@@ -30,303 +30,326 @@
             display: flex;
             justify-content: space-between;
             align-items: center;
+            min-height: 70px;
         }
 
-        .header img {
+        .logo {
             height: 40px;
             width: auto;
+            display: block;
         }
 
         .voucher-number {
-            background: rgba(255,255,255,0.2);
-            padding: 8px 15px;
-            border-radius: 6px;
-            color: #ffffff;
-            font-weight: bold;
-            font-size: 14px;
+            color: white;
+            font-size: 16px;
+            font-weight: 600;
         }
 
         .content {
-            padding: 20px;
+            padding: 15px 20px;
         }
 
         .section {
-            margin-bottom: 20px;
-            padding: 15px;
-            border: 1px solid #e5e7eb;
-            border-radius: 8px;
-            background: #ffffff;
+            margin-bottom: 12px;
         }
 
         .section-title {
+            font-size: 10px;
+            font-weight: 700;
             color: #009cb6;
-            font-size: 14px;
-            font-weight: bold;
-            margin-bottom: 10px;
+            margin-bottom: 6px;
+            padding-bottom: 3px;
+            border-bottom: 1px solid #e5e7eb;
             text-transform: uppercase;
         }
 
         .info-grid {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 10px;
-            margin-bottom: 15px;
+            display: table;
+            width: 100%;
+            border-collapse: collapse;
         }
 
-        .info-item {
-            display: flex;
-            justify-content: space-between;
-            padding: 5px 0;
-            border-bottom: 1px solid #f3f4f6;
-        }
-
-        .info-item:last-child {
-            border-bottom: none;
+        .info-row {
+            display: table-row;
         }
 
         .info-label {
-            font-weight: bold;
+            display: table-cell;
+            font-size: 9px;
+            text-transform: uppercase;
             color: #6b7280;
+            font-weight: 600;
+            padding: 4px 8px;
+            width: 30%;
+            border-bottom: 1px solid #f3f4f6;
+        }
+
+        .vehicle-section .info-label {
+            padding: 4px 8px 4px 0px;
+        }
+
+        .vehicle-section .info-value {
+            padding: 4px 8px 4px 88px;
         }
 
         .info-value {
+            display: table-cell;
+            font-size: 10px;
             color: #1f2937;
-            font-weight: 500;
+            padding: 4px 8px;
+            border-bottom: 1px solid #f3f4f6;
         }
 
-        .vehicle-info {
-            display: flex;
-            align-items: center;
-            gap: 15px;
-            margin-bottom: 15px;
+        .vehicle-section {
+            background: #f9fafb;
+            padding: 10px;
+            border: 1px solid #e5e7eb;
+            margin-bottom: 12px;
+        }
+
+        .vehicle-name {
+            font-size: 12px;
+            font-weight: 700;
+            color: #009cb6;
+            margin-bottom: 6px;
         }
 
         .vehicle-image {
             width: 120px;
-            height: 80px;
-            object-fit: cover;
-            border-radius: 6px;
-            border: 1px solid #e5e7eb;
+            float: right;
+            margin-left: 10px;
         }
 
-        .vehicle-details {
-            flex: 1;
+        .vehicle-image img {
+            width: 100%;
+            height: auto;
+            display: block;
         }
 
-        .vehicle-group {
-            font-size: 16px;
-            font-weight: bold;
-            color: #009cb6;
-            margin-bottom: 5px;
+        .payment-section {
+            background: #f0f9ff;
+            border: 1px solid #009cb6;
+            padding: 10px;
+            margin-bottom: 12px;
         }
 
-        .vehicle-name {
-            font-size: 14px;
+        .payment-row {
+            display: flex;
+            justify-content: space-between;
+            padding: 4px 0;
+            border-bottom: 1px solid #e0f2fe;
+        }
+
+        .payment-label {
+            font-size: 9px;
+            text-transform: uppercase;
+            color: #6b7280;
+            font-weight: 600;
+        }
+
+        .payment-value {
+            font-size: 11px;
+            font-weight: 700;
             color: #1f2937;
         }
 
-        .pricing {
+        .payment-highlight {
+            background: #009cb6;
+            color: white;
+            padding: 8px;
+            margin-top: 6px;
+            text-align: center;
+        }
+
+        .payment-highlight-label {
+            font-size: 9px;
+            text-transform: uppercase;
+            font-weight: 600;
+        }
+
+        .payment-highlight-value {
+            font-size: 18px;
+            font-weight: 700;
+            margin-top: 3px;
+        }
+
+        .agent-section {
             background: #f9fafb;
-            padding: 15px;
-            border-radius: 6px;
-        }
-
-        .pricing-row {
-            display: flex;
-            justify-content: space-between;
-            padding: 5px 0;
-            border-bottom: 1px solid #e5e7eb;
-        }
-
-        .pricing-row:last-child {
-            border-bottom: none;
-            font-weight: bold;
-            color: #009cb6;
-            font-size: 12px;
-        }
-
-        .checkin-section {
-            display: flex;
-            align-items: center;
-            gap: 15px;
-            margin-top: 15px;
-        }
-
-        .qr-code {
-            width: 60px;
-            height: 60px;
-            border: 1px solid #e5e7eb;
-            border-radius: 6px;
-        }
-
-        .checkin-info {
-            flex: 1;
-            font-size: 10px;
-            color: #6b7280;
-        }
-
-        .checkin-info a {
-            color: #009cb6;
-            text-decoration: none;
+            border-left: 3px solid #009cb6;
+            padding: 8px;
+            margin-bottom: 12px;
         }
 
         .footer {
-            margin-top: 30px;
-            padding: 15px;
-            background: #f9fafb;
-            border-radius: 6px;
+            margin-top: 12px;
+            padding-top: 8px;
+            border-top: 1px solid #e5e7eb;
             text-align: center;
-            font-size: 10px;
+            font-size: 8px;
+            color: #9ca3af;
+        }
+
+        .contacts {
+            font-size: 9px;
             color: #6b7280;
-        }
-
-        .important-info {
-            background: #fef3c7;
-            border: 1px solid #f59e0b;
-            border-radius: 6px;
-            padding: 10px;
-            margin: 15px 0;
-        }
-
-        .important-info h4 {
-            color: #d97706;
-            margin-bottom: 5px;
-            font-size: 11px;
-        }
-
-        .important-info ul {
-            margin: 0;
-            padding-left: 15px;
-            font-size: 10px;
-            color: #92400e;
-        }
-
-        @media print {
-            .voucher-container {
-                width: 210mm;
-                margin: 0;
-                padding: 0;
-            }
+            margin-bottom: 6px;
         }
     </style>
 </head>
 <body>
     <div class="voucher-container">
-        <!-- Header -->
         <div class="header">
-            <img src="https://rentalprices.pt/static/ap-heather.png" alt="Auto Prudente">
-            <div class="voucher-number">Voucher: {{voucher_number}}</div>
+            <img src="https://rentalprices.pt/static/ap-heather.png" alt="AutoPrudente" class="logo">
+            <div class="voucher-number">VOUCHER: {{ voucher_number }}</div>
         </div>
 
-        <!-- Content -->
         <div class="content">
-            <!-- Customer Information -->
-            <div class="section">
-                <div class="section-title">Informaciones del Cliente</div>
+            <div class="agent-section">
+                <div class="section-title">Agente</div>
                 <div class="info-grid">
-                    <div class="info-item">
-                        <span class="info-label">Nombre:</span>
-                        <span class="info-value">{{client_name}}</span>
+                    <div class="info-row">
+                        <div class="info-label">Nombre</div>
+                        <div class="info-value">{{ agent_name }}</div>
                     </div>
-                    <div class="info-item">
-                        <span class="info-label">Email:</span>
-                        <span class="info-value">{{client_email}}</span>
-                    </div>
-                    <div class="info-item">
-                        <span class="info-label">Teléfono:</span>
-                        <span class="info-value">{{client_phone}}</span>
-                    </div>
-                    <div class="info-item">
-                        <span class="info-label">Hotel:</span>
-                        <span class="info-value">{{hotel}} - {{room_number}}</span>
+                    <div class="info-row">
+                        <div class="info-label">Fecha Reserva</div>
+                        <div class="info-value">{{ booking_date }}</div>
                     </div>
                 </div>
             </div>
 
-            <!-- Vehicle Information -->
             <div class="section">
-                <div class="section-title">Informaciones del Vehículo</div>
-                <div class="vehicle-info">
-                    <div class="vehicle-details">
-                        <div class="vehicle-group">GRUPO {{vehicle_group}}</div>
-                        <div class="vehicle-name">{{vehicle_name}}</div>
-                    </div>
-                    <img src="{{vehicle_image}}" alt="Vehicle" class="vehicle-image">
-                </div>
-                
+                <div class="section-title">Cliente</div>
                 <div class="info-grid">
-                    <div class="info-item">
-                        <span class="info-label">Entrega:</span>
-                        <span class="info-value">{{pickup_date}} {{pickup_time}}</span>
+                    <div class="info-row">
+                        <div class="info-label">Nombre</div>
+                        <div class="info-value">{{ client_name }}</div>
                     </div>
-                    <div class="info-item">
-                        <span class="info-label">Devolución:</span>
-                        <span class="info-value">{{dropoff_date}} {{dropoff_time}}</span>
+                    <div class="info-row">
+                        <div class="info-label">Email</div>
+                        <div class="info-value">{{ client_email }}</div>
                     </div>
-                    <div class="info-item">
-                        <span class="info-label">Lugar Entrega:</span>
-                        <span class="info-value">{{pickup_location}}</span>
+                    <div class="info-row">
+                        <div class="info-label">Teléfono</div>
+                        <div class="info-value">{{ client_phone }}</div>
                     </div>
-                    <div class="info-item">
-                        <span class="info-label">Lugar Devolución:</span>
-                        <span class="info-value">{{dropoff_location}}</span>
+                    {% if hotel %}
+                    <div class="info-row">
+                        <div class="info-label">Hotel</div>
+                        <div class="info-value">{{ hotel }}{% if room_number %} - Habitación {{ room_number }}{% endif %}</div>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+
+            <div class="vehicle-section">
+                <div style="display: table; width: 100%;">
+                    <div style="display: table-row;">
+                        <!-- Columna izquierda - Campos -->
+                        <div style="display: table-cell; width: 60%; vertical-align: top;">
+                            <div class="info-grid" style="margin-left: 4px;">
+                                <div class="info-row">
+                                    <div class="info-label">Entrega:</div>
+                                    <div class="info-value">{{ pickup_date }} {{ pickup_time }}</div>
+                                </div>
+                                <div class="info-row">
+                                    <div class="info-label">Lugar Entrega:</div>
+                                    <div class="info-value">{{ pickup_location }}</div>
+                                </div>
+                                <div class="info-row">
+                                    <div class="info-label">Devolución:</div>
+                                    <div class="info-value">{{ dropoff_date }} {{ dropoff_time }}</div>
+                                </div>
+                                <div class="info-row">
+                                    <div class="info-label">Lugar Devolución:</div>
+                                    <div class="info-value">{{ dropoff_location }}</div>
+                                </div>
+                                <div class="info-row">
+                                    <div class="info-label">Días:</div>
+                                    <div class="info-value">{{ rental_days }}</div>
+                                </div>
+                                {% if flight_number %}
+                                <div class="info-row">
+                                    <div class="info-label">Vuelo:</div>
+                                    <div class="info-value">{{ flight_number }}</div>
+                                </div>
+                                {% endif %}
+                            </div>
+                        </div>
+                        
+                        <!-- Columna derecha - Imagen y Grupo -->
+                        <div style="display: table-cell; width: 40%; vertical-align: middle; text-align: center; padding-left: 10px;">
+                            {% if vehicle_image %}
+                            <div style="margin-bottom: 12px;">
+                                <img src="{{ vehicle_image }}" alt="{{ vehicle_group }}" style="width: 100px; height: 60px; object-fit: cover; border-radius: 4px; background: white;" onerror="this.src='data:image/svg+xml,&lt;svg xmlns=%22http://www.w3.org/2000/svg%22 width=%22100%22 height=%2260%22&gt;&lt;rect fill=%22%23e5e7eb%22 width=%22100%22 height=%2260%22/&gt;&lt;text x=%2250%%22 y=%2250%%22 text-anchor=%22middle%22 dy=%22.3em%22 fill=%22%23666%22 font-size=%2212%22&gt;{{ vehicle_group }}&lt;/text&gt;&lt;/svg&gt;'">
+                            </div>
+                            <div class="vehicle-name">
+                                <span style="text-transform: uppercase; font-weight: 700; color: #009cb6;">GRUPO {{ vehicle_group }}</span>
+                                <br>
+                                <span style="font-size: 10px; color: #6b7280; font-weight: normal;">{{ vehicle_model }}</span>
+                            </div>
+                            {% endif %}
+                        </div>
                     </div>
                 </div>
             </div>
 
-            <!-- Pricing -->
+            <div class="payment-section">
+                <div class="section-title">Pago</div>
+                <div class="payment-row">
+                    <div class="payment-label">Valor Total</div>
+                    <div class="payment-value">€{{ total_price }}</div>
+                </div>
+                <div class="payment-row">
+                    <div class="payment-label">Depósito Pagado</div>
+                    <div class="payment-value">€{{ deposit }}</div>
+                </div>
+                <div class="payment-highlight">
+                    <div class="payment-highlight-label">A Pagar en la Entrega</div>
+                    <div class="payment-highlight-value">€{{ amount_to_pay }}</div>
+                </div>
+            </div>
+
+            {% if extras and extras|length > 0 %}
             <div class="section">
-                <div class="section-title">Precios</div>
-                <div class="pricing">
-                    <div class="pricing-row">
-                        <span>Total Reserva:</span>
-                        <span>€{{total_price}}</span>
+                <div class="section-title">Extras</div>
+                <div class="info-grid">
+                    {% for extra in extras %}
+                    <div class="info-row">
+                        <div class="info-value" style="padding-left: 8px;">{{ extra }}</div>
                     </div>
-                    <div class="pricing-row">
-                        <span>Depósito:</span>
-                        <span>€{{deposit_amount}}</span>
-                    </div>
-                    <div class="pricing-row">
-                        <span>Cantidad a Pagar:</span>
-                        <span>€{{amount_to_pay}}</span>
-                    </div>
+                    {% endfor %}
                 </div>
             </div>
+            {% endif %}
 
-            <!-- Online Check-in -->
+            {% if observations %}
             <div class="section">
-                <div class="section-title">Check-in Online</div>
-                <p style="margin-bottom: 10px; font-size: 10px; color: #6b7280;">
-                    <strong>¡Ahorre tiempo!</strong> Haga el check-in online antes de la entrega.
-                </p>
-                <div class="checkin-section">
-                    <img src="https://rentalprices.pt/static/check-in.png" alt="QR Code" class="qr-code">
-                    <div class="checkin-info">
-                        <div><strong>Cómo:</strong> <a href="https://auto-prudente.com/online-checkin/">auto-prudente.com/online-checkin/</a></div>
-                        <div><strong>Ubicación:</strong> <a href="https://maps.app.goo.gl/pfagFEwTw1XoGc1g8">Ver en Google Maps</a></div>
-                        <div><strong>Contacto:</strong> +351 289 542 160 | info@auto-prudente.com</div>
+                <div class="section-title">Observaciones</div>
+                <div class="info-value" style="padding: 6px 8px; font-size: 9px;">{{ observations }}</div>
+            </div>
+            {% endif %}
+
+            <div class="section">
+                <div class="section-title">Check-in Online & Contactos</div>
+                <div style="display: flex; gap: 10px; align-items: flex-start; justify-content: space-between;">
+                    <div style="flex: 1; font-size: 9px; color: #1f2937; line-height: 1.5;">
+                        <div style="margin-bottom: 3px;"><strong>Check-in Online:</strong> Escanee el QR code o acceda a <a href="https://auto-prudente.com/online-checkin/" style="color: #009cb6; text-decoration: none;">🌐 auto-prudente.com/online-checkin/</a></div>
+                        <div style="margin-bottom: 3px;"><strong>Ubicación:</strong> <a href="https://maps.app.goo.gl/pfagFEwTw1XoGc1g8" style="color: #009cb6; text-decoration: none;">🌐 Ver en Google Maps</a></div>
+                        <div style="margin-bottom: 3px;"><strong>Teléfono:</strong> +351 289 542 160</div>
+                        <div><strong>Email:</strong> info@auto-prudente.com</div>
+                    </div>
+                    <div style="flex: 0 0 60px; text-align: right;">
+                        <a href="https://auto-prudente.com/online-checkin/" style="display: block;">
+                            <img src="https://rentalprices.pt/static/check-in.png" alt="Check-in Online" style="width: 60px; height: 60px; display: block;">
+                        </a>
+                        <div style="font-size: 7px; text-align: center; color: #6b7280; margin-top: 2px;">Check-in Online</div>
                     </div>
                 </div>
             </div>
 
-            <!-- Important Information -->
-            <div class="important-info">
-                <h4>Información Importante</h4>
-                <ul>
-                    <li>Por favor, presente este voucher en el momento de la entrega del vehículo</li>
-                    <li>Traiga su licencia de conducir válida, documento de identificación y tarjeta de crédito a nombre del conductor</li>
-                </ul>
-            </div>
-
-            <!-- Footer -->
             <div class="footer">
-                <div><strong>Auto Prudente Rent a Car</strong></div>
-                <div>Estrada de Santa Eulália, Edifício Onda do Mar Loja E, 8200-269 Albufeira</div>
-                <div>Teléfono: +351 289 542 160 | Email: info@auto-prudente.com</div>
-                <div>Sitio Web: www.auto-prudente.com</div>
-                <div style="margin-top: 10px; font-size: 9px;">
-                    Número Fiscal: PT 503 539 791 | © 2026 Auto Prudente Rent a Car. Todos los derechos reservados.
-                </div>
+                Por favor, presente este voucher en la entrega del vehículo.
             </div>
         </div>
     </div>
