@@ -714,6 +714,35 @@
                             <path d="M12 6v6l4 2" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
                         </svg>
                     </a>
+                    
+                    <!-- User Avatar with Logout -->
+                    {% if current_user %}
+                    <div class="relative group">
+                        <button class="flex items-center hover:scale-105 transition-transform">
+                            {% if current_user.profile_picture_path %}
+                            <img src="{{ current_user.profile_picture_path }}" alt="Profile" class="w-10 h-10 rounded-full object-cover border-2 border-white shadow-lg" />
+                            {% else %}
+                            <div class="w-10 h-10 rounded-full bg-gradient-to-br from-[#009cb6] to-[#0077a3] flex items-center justify-center text-white font-bold text-sm border-2 border-white shadow-lg">
+                                {{ (current_user.first_name[:1] or current_user.username[:1] or 'U') | upper }}
+                            </div>
+                            {% endif %}
+                        </button>
+                        
+                        <!-- Logout Dropdown -->
+                        <div class="absolute right-0 top-12 w-48 bg-white rounded-lg shadow-xl border border-gray-200 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all z-50">
+                            <div class="p-3 border-b border-gray-100">
+                                <p class="text-sm font-semibold text-gray-900">{{ (current_user.first_name + ' ' + current_user.last_name).strip() or current_user.username }}</p>
+                                <p class="text-xs text-gray-500">{{ current_user.email or current_user.username }}</p>
+                            </div>
+                            <a href="/logout" onclick="return confirm('Tem a certeza que deseja terminar a sessão?');" class="w-full text-left px-4 py-2 text-sm text-red-600 hover:bg-red-50 transition-colors flex items-center gap-2">
+                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"/>
+                                </svg>
+                                Terminar Sessão
+                            </a>
+                        </div>
+                    </div>
+                    {% endif %}
                 </div>
             </div>
         </div>
