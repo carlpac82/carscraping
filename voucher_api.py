@@ -80,8 +80,22 @@ def format_vehicle_name(vehicle_name):
     return ' '.join(formatted_words)
 
 def render_email_template(booking_data):
-    """Render email template with booking data"""
-    template_path = os.path.join(os.path.dirname(__file__), 'templates', 'email_voucher_pt.html')
+    """Render email template with booking data and language support"""
+    # Get language from booking data, default to 'pt'
+    language = booking_data.get('language', 'pt').lower()
+    
+    # Map language codes to template files
+    language_templates = {
+        'pt': 'email_voucher_pt.html',
+        'en': 'email_voucher_en.html', 
+        'fr': 'email_voucher_fr.html',
+        'es': 'email_voucher_es.html',
+        'de': 'email_voucher_de.html'
+    }
+    
+    # Get template file for language, fallback to Portuguese
+    template_file = language_templates.get(language, 'email_voucher_pt.html')
+    template_path = os.path.join(os.path.dirname(__file__), 'templates', template_file)
     
     try:
         with open(template_path, 'r', encoding='utf-8') as f:
@@ -132,6 +146,8 @@ def render_email_template(booking_data):
         template_content = template_content.replace('{{DEPOSIT_AMOUNT}}', f"{deposit_amount:.2f}")
         template_content = template_content.replace('{{AMOUNT_TO_PAY}}', f"{amount_to_pay:.2f}")
         template_content = template_content.replace('{{LOGO_URL}}', 'http://rentalprices.pt/static/ap-heather.png')
+        
+        print(f"[VOUCHER EMAIL] Using template: {template_file} for language: {language}")
         
         return template_content
         
@@ -310,16 +326,17 @@ def get_booking_data(booking_id):
             'vehicle_model': vehicle_models.get(result[13], f'{result[13]} ou Similar'),
             'extras': extras,
             'flight_number': result[15],
-            'observations': result[16],
+            'language': result[16] or 'pt',  # Add language field
+            'observations': result[17],
             'deposit_amount': f"{deposit:.2f}",
             'total_price': f"{total_price:.2f}",
             'amount_to_pay': f"{amount_to_pay:.2f}",
             'rental_days': rental_days,
-            'created_date': result[19].strftime('%d/%m/%Y') if result[19] else '',
-            'agent_name': result[20] or 'N/A',
-            'agent_email': result[21] or 'N/A',
-            'agent_phone': result[22] or 'N/A',
-            'booking_date': result[19].strftime('%d/%m/%Y às %H:%M') if result[19] else '',
+            'created_date': result[20].strftime('%d/%m/%Y') if result[20] else '',
+            'agent_name': result[21] or 'N/A',
+            'agent_email': result[22] or 'N/A',
+            'agent_phone': result[23] or 'N/A',
+            'booking_date': result[20].strftime('%d/%m/%Y às %H:%M') if result[20] else '',
             'vehicle_image': f'/api/vehicles/{vehicle_api_names.get(result[13], result[13])}/photo' if result[13] else ''
         }
         
