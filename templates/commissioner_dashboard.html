@@ -4598,6 +4598,7 @@
                 
                 const tomorrowStr = tomorrow.toISOString().split('T')[0];
                 pickupDateInput.value = tomorrowStr;
+                pickupDateInput.min = tomorrowStr;  // Bloquear hoje no calendário
                 dropoffDateInput.min = tomorrowStr;
                 
                 // Atualizar horas disponíveis para amanhã
@@ -4607,6 +4608,7 @@
                 // Dentro do horário - manter hoje
                 const todayStr = now.toISOString().split('T')[0];
                 pickupDateInput.value = todayStr;
+                pickupDateInput.min = todayStr;  // Permitir hoje no calendário
                 dropoffDateInput.min = todayStr;
                 
                 // Atualizar horas disponíveis para hoje
