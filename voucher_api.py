@@ -627,8 +627,8 @@ async def email_voucher(booking_id: int, email_request: EmailRequest):
         print(f"[VOUCHER EMAIL] Sending email via Gmail API")
         try:
             service = build('gmail', 'v1', credentials=credentials)
-            raw_message = base64.urlsafe_b64encode(message['raw']).decode()
-            message_body = {'raw': raw_message}
+            # message['raw'] já está codificado pela create_message_with_attachment
+            message_body = {'raw': message['raw']}
             
             sent_message = service.users().messages().send(userId='me', body=message_body).execute()
             print(f"[VOUCHER EMAIL] Email sent successfully: {sent_message['id']}")
