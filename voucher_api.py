@@ -212,9 +212,21 @@ def render_voucher_template(booking_data):
         # DEBUG: Print all booking data
         print(f"[VOUCHER PDF] DEBUG - Booking data keys: {list(booking_data.keys())}")
         print(f"[VOUCHER PDF] DEBUG - Sample data:")
-        for key in ['voucher_number', 'client_name', 'vehicle_group', 'total_price', 'deposit']:
+        for key in ['voucher_number', 'client_name', 'vehicle_group', 'total_price', 'deposit', 'agent_name', 'booking_date']:
             if key in booking_data:
                 print(f"   {key}: {booking_data[key]} (type: {type(booking_data[key])})")
+        
+        # DEBUG: Check specific problematic fields
+        print(f"[VOUCHER PDF] DEBUG - Agent details:")
+        print(f"   agent_name: '{booking_data.get('agent_name', 'NOT_FOUND')}'")
+        print(f"   agent_email: '{booking_data.get('agent_email', 'NOT_FOUND')}'")
+        print(f"   agent_phone: '{booking_data.get('agent_phone', 'NOT_FOUND')}'")
+        print(f"   booking_date: '{booking_data.get('booking_date', 'NOT_FOUND')}'")
+        print(f"   created_date: '{booking_data.get('created_date', 'NOT_FOUND')}'")
+        print(f"[VOUCHER PDF] DEBUG - Price details:")
+        print(f"   total_price: '{booking_data.get('total_price', 'NOT_FOUND')}'")
+        print(f"   deposit: '{booking_data.get('deposit', 'NOT_FOUND')}'")
+        print(f"   amount_to_pay: '{booking_data.get('amount_to_pay', 'NOT_FOUND')}'")
         
         # Use Jinja2 Template instead of replace()
         print(f"[VOUCHER PDF] DEBUG - Using Jinja2 Template engine...")
