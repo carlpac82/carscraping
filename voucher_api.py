@@ -422,11 +422,11 @@ def get_booking_data(booking_id):
             'total_price': f"{total_price:.2f}",
             'amount_to_pay': f"{amount_to_pay:.2f}",
             'rental_days': rental_days,
-            'created_date': result[19].strftime('%d/%m/%Y %H:%M:%S') if result[19] else '',  # cb.created_at is at index 19
+            'created_date': str(result[19]) if result[19] else '',  # Handle decimal/datetime safely
             'agent_name': result[20] or 'N/A',      # c.name is at index 20
             'agent_email': result[21] or 'N/A',    # c.email is at index 21
             'agent_phone': result[22] or 'N/A',    # c.phone is at index 22
-            'booking_date': result[19].strftime('%d/%m/%Y %H:%M:%S') if result[19] else '',  # Same as created_date
+            'booking_date': str(result[19]) if result[19] else '',  # Same as created_date
             'vehicle_image': f'/api/vehicles/{vehicle_api_names.get(result[13], result[13])}/photo' if result[13] else ''
         }
         
