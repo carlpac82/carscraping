@@ -267,14 +267,14 @@
             -webkit-backdrop-filter: blur(4px);
             backdrop-filter: blur(4px);
             z-index: 1000;
-            overflow-y: auto;
+            overflow: hidden;
         }
 
         .modal-overlay.active {
             display: flex;
-            align-items: flex-start;
+            align-items: center;
             justify-content: center;
-            padding: 40px 20px;
+            padding: 0;
         }
 
         .modal-content {
@@ -282,8 +282,12 @@
             border-radius: 16px;
             width: 100%;
             max-width: 1000px;
+            max-height: 90vh;
             margin: 0 auto;
             box-shadow: 0 20px 60px rgba(0, 0, 0, 0.15);
+            display: flex;
+            flex-direction: column;
+            position: relative;
         }
 
         .modal-header {
@@ -326,8 +330,14 @@
 
         .modal-body {
             padding: 20px 40px;
-            max-height: 65vh;
             overflow-y: auto;
+            flex: 1;
+            min-height: 0;
+        }
+        
+        /* Reduzir altura do body a partir do passo 2 para mostrar botões */
+        .wizard-step:not(:first-child) .modal-body {
+            max-height: 55vh;
         }
 
         .modal-body::-webkit-scrollbar {
@@ -618,9 +628,10 @@
             padding: 24px 40px;
             border-top: 1px solid #e5e7eb;
             display: flex;
-            gap: 12px;
-            background: #fafafa;
+            flex-shrink: 0;
+            background: white;
             border-radius: 0 0 16px 16px;
+            gap: 12px;
         }
 
         .btn-cancel {
