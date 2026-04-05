@@ -770,6 +770,30 @@
                 -webkit-appearance: none !important;
                 -moz-appearance: none !important;
                 appearance: none !important;
+                display: block !important;
+            }
+
+            /* Forçar o campo interno do input de data */
+            input[type="date"]::-webkit-datetime-edit {
+                width: 100% !important;
+                box-sizing: border-box !important;
+            }
+
+            input[type="date"]::-webkit-datetime-edit-text {
+                color: inherit !important;
+                padding: 0 !important;
+            }
+
+            input[type="date"]::-webkit-datetime-edit-month {
+                color: inherit !important;
+            }
+
+            input[type="date"]::-webkit-datetime-edit-day {
+                color: inherit !important;
+            }
+
+            input[type="date"]::-webkit-datetime-edit-year {
+                color: inherit !important;
             }
 
             /* Específico para filtros */
@@ -778,6 +802,7 @@
                 max-width: 100% !important;
                 min-width: 100% !important;
                 box-sizing: border-box !important;
+                display: block !important;
             }
 
             /* Específico para form-group */
@@ -786,6 +811,7 @@
                 max-width: 100% !important;
                 min-width: 100% !important;
                 box-sizing: border-box !important;
+                display: block !important;
             }
 
             /* Prevenir scroll horizontal no modal */
