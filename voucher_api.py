@@ -456,6 +456,7 @@ def render_voucher_template(booking_data):
         
         # Use Jinja2 Template instead of replace()
         print(f"[VOUCHER PDF] DEBUG - Using Jinja2 Template engine...")
+        from jinja2 import Template
         template = Template(template_content)
         rendered_content = template.render(**booking_data)
         
