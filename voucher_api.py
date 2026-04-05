@@ -601,9 +601,56 @@ async def email_voucher(booking_id: int, email_request: EmailRequest):
         # Convert HTML to bytes (simple approach)
         html_bytes = simple_html.encode('utf-8')
         
-        # Create a simple PDF-like response
-        pdf_content = html_bytes  # For now, return HTML as PDF-like content
-        print(f"[VOUCHER EMAIL] Simple PDF generated, size: {len(pdf_content)} bytes")
+        # Generate real PDF with Playwright (same as print function)
+        print(f"[VOUCHER EMAIL] Generating real PDF for voucher {booking_data['voucher_number']}")
+        
+        # Render HTML template
+        html_content = render_voucher_template(booking_data)
+        print(f"[VOUCHER EMAIL] HTML template rendered, length: {len(html_content)}")
+        
+        # Converter para URL absoluta para Playwright carregar imagem
+        html_content = html_content.replace('src="/api/vehicles/', 'src="https://rentalprices.pt/api/vehicles/')
+        # Fix encoding para espaços
+        html_content = html_content.replace('/fiat panda/photo', '/fiat%20panda/photo')
+        html_content = html_content.replace('/seat ibiza/photo', '/seat%20ibiza/photo')
+        html_content = html_content.replace('/hyundai i10/photo', '/hyundai%20i10/photo')
+        html_content = html_content.replace('/citroen c3/photo', '/citroen%20c3/photo')
+        html_content = html_content.replace('/seat arona/photo', '/seat%20arona/photo')
+        html_content = html_content.replace('/fiat 500/photo', '/fiat%20500/photo')
+        html_content = html_content.replace('/peugeot 2008/photo', '/peugeot%202008/photo')
+        html_content = html_content.replace('/peugeot 308 sw/photo', '/peugeot%20308%20sw/photo')
+        html_content = html_content.replace('/citroen c3 aircross/photo', '/citroen%20c3%20aircross/photo')
+        html_content = html_content.replace('/dacia jogger/photo', '/dacia%20jogger/photo')
+        html_content = html_content.replace('/citroen c4 picasso/photo', '/citroen%20c4%20picasso/photo')
+        html_content = html_content.replace('/toyota proace/photo', '/toyota%20proace/photo')
+        html_content = html_content.replace('/kia picanto/photo', '/kia%20picanto/photo')
+        
+        print(f"[VOUCHER EMAIL] Converted to absolute URLs with encoding")
+        
+        # Generate PDF using Playwright
+        async with async_playwright() as p:
+            browser = await p.chromium.launch()
+            page = await browser.new_page()
+            
+            # Set content and wait for images to load
+            await page.set_content(html_content)
+            await page.wait_for_timeout(2000)  # Wait for images to load
+            
+            # Generate PDF
+            pdf_content = await page.pdf(
+                format='A4',
+                print_background=True,
+                margin={
+                    'top': '20px',
+                    'right': '20px',
+                    'bottom': '20px',
+                    'left': '20px'
+                }
+            )
+            
+            await browser.close()
+        
+        print(f"[VOUCHER EMAIL] Real PDF generated, size: {len(pdf_content)} bytes")
         
         # Get Gmail OAuth credentials
         print(f"[VOUCHER EMAIL] Loading Gmail OAuth credentials")
