@@ -5951,16 +5951,32 @@ def require_commissions_management(request: Request):
     """Require user to be admin OR have commissioner access permission"""
     require_auth(request)
     is_admin = request.session.get("is_admin", False)
+    username = request.session.get("username")
+    
+    logging.info(f"🔍 DEBUG require_commissions_management:")
+    logging.info(f"  - is_admin: {is_admin}")
+    logging.info(f"  - username: {username}")
+    logging.info(f"  - session keys: {list(request.session.keys())}")
+    
     if is_admin:
+        logging.info("  - Admin access granted")
         return  # Admin sempre tem acesso
     
     # Verificar se user tem permissão específica
-    username = request.session.get("username")
     if username:
         user_data = _get_user_by_username(username)
-        if user_data and user_data.get("has_commissioner_access", False):
-            return  # User tem permissão
+        logging.info(f"  - user_data: {user_data}")
+        if user_data:
+            has_commissioner_access = user_data.get("has_commissioner_access", False)
+            user_role = user_data.get("role", "")
+            logging.info(f"  - has_commissioner_access: {has_commissioner_access}")
+            logging.info(f"  - user_role: {user_role}")
+            
+            if has_commissioner_access:
+                logging.info("  - Commissioner access granted")
+                return  # User tem permissão
     
+    logging.info("  - Access denied")
     raise HTTPException(status_code=403, detail="Commissions management permission required")
 
 def require_commissioner_access(request: Request):
