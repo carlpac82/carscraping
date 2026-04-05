@@ -11890,10 +11890,18 @@ async def admin_commissions(request: Request):
     logging.info(f"🔍 DEBUG: Rendering admin_commissions.html")
     user_role = request.session.get("role", "user")
     is_admin = request.session.get("is_admin", False)
+    
+    # Load current_user for support users
+    current_user = None
+    username = request.session.get('username')
+    if username:
+        current_user = _get_user_by_username(username)
+    
     return templates.TemplateResponse("admin_commissions.html", {
         "request": request,
         "user_role": user_role,
-        "is_admin": is_admin
+        "is_admin": is_admin,
+        "current_user": current_user
     })
 
 @app.get("/api/user-session")
@@ -64517,11 +64525,19 @@ async def admin_commissioner_bookings_page(request: Request):
     user = request.session.get("user")
     user_role = request.session.get("role", "user")
     is_admin = request.session.get("is_admin", False)
+    
+    # Load current_user for support users
+    current_user = None
+    username = request.session.get('username')
+    if username:
+        current_user = _get_user_by_username(username)
+    
     return templates.TemplateResponse("commissioner_bookings.html", {
         "request": request,
         "user": user,
         "user_role": user_role,
-        "is_admin": is_admin
+        "is_admin": is_admin,
+        "current_user": current_user
     })
 
 @app.get("/admin/init-commissioners-tables")
