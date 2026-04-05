@@ -129,90 +129,57 @@ def send_new_booking_notification(booking_id: int, booking_data: dict):
         
         print(f"[NOTIFICATION] Converted to absolute URLs with encoding")
         
-        # Generate PDF using synchronous approach - create a simple PDF without Playwright
-        print(f"[NOTIFICATION] Generating simple PDF voucher for {booking_data.get('voucher_number')}")
+        # Generate PDF using synchronous approach - use the original voucher template
+        print(f"[NOTIFICATION] Generating PDF voucher using original template for {booking_data.get('voucher_number')}")
         
         try:
-            # Create a simple HTML to PDF conversion without Playwright
+            # Load the original voucher template (Portuguese) as requested by user
+            template_path = os.path.join(os.path.dirname(__file__), 'templates', 'voucher_template_pt.html')
+            with open(template_path, 'r', encoding='utf-8') as f:
+                voucher_template_content = f.read()
+            
+            # Prepare template data with all required fields
+            voucher_data = booking_data.copy()
+            voucher_data['language'] = 'pt'  # Force Portuguese
+            
+            # Render the voucher template
+            from jinja2 import Template
+            template = Template(voucher_template_content)
+            voucher_html = template.render(**voucher_data)
+            
+            print(f"[NOTIFICATION] Original voucher template rendered, length: {len(voucher_html)}")
+            
+            # Convert URLs for PDF generation
+            voucher_html = voucher_html.replace('src="/api/vehicles/', 'src="https://rentalprices.pt/api/vehicles/')
+            voucher_html = voucher_html.replace('src="https://rentalprices.pt/api/vehicles/', 'src="https://rentalprices.pt/api/vehicles/')
+            
+            # Fix encoding para espaços
+            voucher_html = voucher_html.replace('/fiat panda/photo', '/fiat%20panda/photo')
+            voucher_html = voucher_html.replace('/seat ibiza/photo', '/seat%20ibiza/photo')
+            voucher_html = voucher_html.replace('/hyundai i10/photo', '/hyundai%20i10/photo')
+            voucher_html = voucher_html.replace('/citroen c3/photo', '/citroen%20c3/photo')
+            voucher_html = voucher_html.replace('/seat arona/photo', '/seat%20arona/photo')
+            voucher_html = voucher_html.replace('/fiat 500/photo', '/fiat%20500/photo')
+            voucher_html = voucher_html.replace('/peugeot 2008/photo', '/peugeot%202008/photo')
+            voucher_html = voucher_html.replace('/peugeot 308 sw/photo', '/peugeot%20308%20sw/photo')
+            voucher_html = voucher_html.replace('/citroen c3 aircross/photo', '/citroen%20c3%20aircross/photo')
+            voucher_html = voucher_html.replace('/dacia jogger/photo', '/dacia%20jogger/photo')
+            voucher_html = voucher_html.replace('/citroen c4 picasso/photo', '/citroen%20c4%20picasso/photo')
+            voucher_html = voucher_html.replace('/toyota proace/photo', '/toyota%20proace/photo')
+            voucher_html = voucher_html.replace('/kia picanto/photo', '/kia%20picanto/photo')
+            
+            print(f"[NOTIFICATION] URLs converted for PDF generation")
+            
+            # Generate PDF using WeasyPrint with original template
             from weasyprint import HTML, CSS
             
-            # Create simple HTML content for PDF
-            simple_pdf_html = f"""
-            <!DOCTYPE html>
-            <html>
-            <head>
-                <meta charset="UTF-8">
-                <title>Voucher {booking_data.get('voucher_number')}</title>
-                <style>
-                    @page {{ size: A4; margin: 20px; }}
-                    body {{ font-family: Arial, sans-serif; margin: 20px; }}
-                    .header {{ background: #009cb6; color: white; padding: 20px; text-align: center; }}
-                    .section {{ margin: 20px 0; padding: 15px; border: 1px solid #ddd; }}
-                    .label {{ font-weight: bold; }}
-                    .vehicle-info {{ display: flex; align-items: center; gap: 20px; }}
-                    .vehicle-image {{ width: 120px; height: 80px; object-fit: cover; }}
-                </style>
-            </head>
-            <body>
-                <div class="header">
-                    <h1>VOUCHER {booking_data.get('voucher_number')}</h1>
-                </div>
-                
-                <div class="section">
-                    <div class="label">Agente:</div>
-                    <p>{booking_data.get('agent_name', 'N/A')}<br>
-                    {booking_data.get('agent_email', 'N/A')}<br>
-                    {booking_data.get('agent_phone', 'N/A')}</p>
-                </div>
-                
-                <div class="section">
-                    <div class="label">Cliente:</div>
-                    <p>{booking_data.get('client_name', 'N/A')}<br>
-                    {booking_data.get('client_email', 'N/A')}<br>
-                    {booking_data.get('client_phone', 'N/A')}</p>
-                </div>
-                
-                <div class="section">
-                    <div class="label">Veículo:</div>
-                    <div class="vehicle-info">
-                        <div>
-                            <strong>GRUPO {booking_data.get('vehicle_group', 'N/A')}</strong><br>
-                            {booking_data.get('vehicle_model', 'N/A')}
-                        </div>
-                    </div>
-                </div>
-                
-                <div class="section">
-                    <div class="label">Datas:</div>
-                    <p><strong>Levantamento:</strong> {booking_data.get('pickup_date', 'N/A')} {booking_data.get('pickup_time', 'N/A')}<br>
-                    <strong>Local:</strong> {booking_data.get('pickup_location', 'N/A')}<br>
-                    <strong>Entrega:</strong> {booking_data.get('dropoff_date', 'N/A')} {booking_data.get('dropoff_time', 'N/A')}<br>
-                    <strong>Local:</strong> {booking_data.get('dropoff_location', 'N/A')}</p>
-                </div>
-                
-                <div class="section">
-                    <div class="label">Valores:</div>
-                    <p>Total: €{booking_data.get('total_price', 'N/A')}<br>
-                    Depósito: €{booking_data.get('deposit', 'N/A')}<br>
-                    A Pagar: €{booking_data.get('amount_to_pay', 'N/A')}</p>
-                </div>
-                
-                <div class="section">
-                    <div class="label">Observações:</div>
-                    <p>{booking_data.get('observations', 'N/A')}</p>
-                </div>
-            </body>
-            </html>
-            """
-            
-            # Generate PDF using WeasyPrint
-            html_doc = HTML(string=simple_pdf_html)
+            html_doc = HTML(string=voucher_html)
             pdf_content = html_doc.write_pdf()
             
-            print(f"[NOTIFICATION] Simple PDF generated, size: {len(pdf_content)} bytes")
+            print(f"[NOTIFICATION] Original voucher PDF generated, size: {len(pdf_content)} bytes")
             
         except ImportError:
-            print(f"[NOTIFICATION] WeasyPrint not available, creating fallback PDF")
+            print(f"[NOTIFICATION] WeasyPrint not available, using fallback")
             # Fallback: create a simple text-based PDF
             import reportlab
             from reportlab.pdfgen import canvas
