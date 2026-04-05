@@ -2394,7 +2394,7 @@ def _get_user_by_username(username: str) -> Optional[Dict[str, Any]]:
         with _db_lock:
             con = _db_connect()
             try:
-                cur = con.execute("SELECT id, username, first_name, last_name, email, mobile, profile_picture_path, is_admin, enabled FROM users WHERE username=?", (username,))
+                cur = con.execute("SELECT id, username, first_name, last_name, email, mobile, profile_picture_path, is_admin, enabled, can_access_commissioner, can_access_commissions FROM users WHERE username=?", (username,))
                 r = cur.fetchone()
                 if not r:
                     return None
@@ -2408,6 +2408,8 @@ def _get_user_by_username(username: str) -> Optional[Dict[str, Any]]:
                     "profile_picture_path": r[6] or "",
                     "is_admin": bool(r[7]),
                     "enabled": bool(r[8]),
+                    "can_access_commissioner": bool(r[9]) if len(r) > 9 else False,
+                    "can_access_commissions": bool(r[10]) if len(r) > 10 else False,
                 }
             finally:
                 con.close()
