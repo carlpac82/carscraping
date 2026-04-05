@@ -96,7 +96,7 @@ def render_email_template(booking_data):
         template_content = template_content.replace('{{TOTAL_PRICE}}', str(booking_data.get('total_price', '0')))
         template_content = template_content.replace('{{DEPOSIT_AMOUNT}}', str(booking_data.get('deposit_amount', '0')))
         template_content = template_content.replace('{{AMOUNT_TO_PAY}}', str(booking_data.get('amount_to_pay', '0')))
-        template_content = template_content.replace('{{LOGO_URL}}', 'https://rentalprices.pt/static/ap-heather.png')
+        template_content = template_content.replace('{{LOGO_URL}}', 'http://rentalprices.pt/static/ap-heather.png')
         
         return template_content
         
