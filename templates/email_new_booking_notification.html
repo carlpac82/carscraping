@@ -6,11 +6,13 @@
     <title>Nova Reserva - {{ voucher_number }}</title>
     <style>
         body {
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
             background-color: #f8fafc;
             margin: 0;
             padding: 20px;
             color: #1f2937;
+            font-size: 14px;
+            line-height: 1.5;
         }
         
         .container {
@@ -41,10 +43,21 @@
             font-size: 16px;
             font-weight: 600;
             color: white;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
         }
         
         .content {
             padding: 30px;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+        }
+        
+        .commissioner-info {
+            background: #fef3c7;
+            border-radius: 8px;
+            padding: 16px;
+            margin-bottom: 20px;
+            border-left: 4px solid #f59e0b;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
         }
         
         .booking-info {
@@ -53,6 +66,7 @@
             padding: 20px;
             margin-bottom: 20px;
             border-left: 4px solid #009cb6;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
         }
         
         .info-grid {
@@ -73,12 +87,14 @@
             color: #6b7280;
             text-transform: uppercase;
             margin-bottom: 4px;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
         }
         
         .info-value {
             font-size: 14px;
             color: #1f2937;
             font-weight: 500;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
         }
         
         .vehicle-section {
@@ -87,25 +103,49 @@
             border-radius: 8px;
             padding: 20px;
             margin-bottom: 20px;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
         }
         
         .vehicle-header {
             display: flex;
             align-items: center;
-            gap: 12px;
+            gap: 16px;
             margin-bottom: 16px;
         }
         
-        .vehicle-icon {
-            width: 40px;
-            height: 40px;
-            background: #009cb6;
-            border-radius: 8px;
+        .vehicle-image-section {
             display: flex;
             align-items: center;
-            justify-content: center;
-            color: white;
-            font-weight: bold;
+            gap: 16px;
+            margin-bottom: 20px;
+        }
+        
+        .vehicle-image {
+            width: 120px;
+            height: 80px;
+            object-fit: cover;
+            border-radius: 8px;
+            border: 1px solid #e5e7eb;
+        }
+        
+        .vehicle-info {
+            flex: 1;
+        }
+        
+        .vehicle-group {
+            font-size: 18px;
+            font-weight: 700;
+            color: #009cb6;
+            text-transform: uppercase;
+            margin: 0 0 4px 0;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+        }
+        
+        .vehicle-model {
+            font-size: 16px;
+            color: #6b7280;
+            margin: 0;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
         }
         
         .vehicle-details {
@@ -125,6 +165,7 @@
             text-transform: uppercase;
             padding: 4px 8px 4px 0;
             width: 30%;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
         }
         
         .vehicle-value {
@@ -132,21 +173,7 @@
             font-size: 14px;
             color: #1f2937;
             padding: 4px 0;
-        }
-        
-        .vehicle-image-section {
-            display: flex;
-            align-items: center;
-            gap: 16px;
-            margin-top: 16px;
-        }
-        
-        .vehicle-image {
-            width: 100px;
-            height: 60px;
-            object-fit: cover;
-            border-radius: 4px;
-            border: 1px solid #e5e7eb;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
         }
         
         .price-info {
@@ -155,6 +182,7 @@
             border-radius: 8px;
             padding: 20px;
             margin-bottom: 20px;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
         }
         
         .price-row {
@@ -184,6 +212,8 @@
             margin: 20px 0;
             transition: all 0.3s ease;
             box-shadow: 0 4px 6px rgba(0, 156, 182, 0.2);
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            font-size: 16px;
         }
         
         .action-button:hover {
@@ -198,14 +228,7 @@
             font-size: 12px;
             color: #6b7280;
             border-top: 1px solid #e5e7eb;
-        }
-        
-        .commissioner-info {
-            background: #fef3c7;
-            border-radius: 8px;
-            padding: 16px;
-            margin-bottom: 20px;
-            border-left: 4px solid #f59e0b;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
         }
         
         @media (max-width: 600px) {
@@ -226,15 +249,20 @@
                 flex-direction: column;
                 align-items: flex-start;
             }
+            
+            .vehicle-image {
+                width: 100px;
+                height: 70px;
+            }
         }
     </style>
 </head>
 <body>
     <div class="container">
         <div class="header">
-        <img src="https://rentalprices.pt/static/ap-heather.png" alt="Auto Prudente" class="header-logo">
-        <div class="header-voucher">{{ voucher_number }}</div>
-    </div>
+            <img src="https://rentalprices.pt/static/ap-heather.png" alt="Auto Prudente" class="header-logo">
+            <div class="header-voucher">{{ voucher_number }}</div>
+        </div>
         
         <div class="content">
             <div class="commissioner-info">
@@ -267,13 +295,16 @@
             </div>
             
             <div class="vehicle-section">
-                <div class="vehicle-header">
-                    <div class="vehicle-icon">{{ vehicle_group }}</div>
-                    <div>
-                        <h3 style="margin: 0; color: #009cb6;">Veículo</h3>
-                        <div style="font-size: 14px; color: #6b7280;">{{ vehicle_model }}</div>
+                {% if vehicle_image %}
+                <div class="vehicle-image-section">
+                    <img src="https://rentalprices.pt{{ vehicle_image }}" alt="{{ vehicle_group }}" class="vehicle-image" 
+                         onerror="this.src='data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 width=%22120%22 height=%2280%22%3E%3Crect fill=%22%23e5e7eb%22 width=%22120%22 height=%2280%22/%3E%3Ctext x=%2260%22 y=%2240%22 text-anchor=%22middle%22 dy=%22.3em%22 fill=%22%23666%22 font-size=%2214%22 font-family=%22sans-serif%22%3E{{ vehicle_group }}%3C/text%3E%3C/svg%3E'">
+                    <div class="vehicle-info">
+                        <div class="vehicle-group">GRUPO {{ vehicle_group }}</div>
+                        <div class="vehicle-model">{{ vehicle_model }}</div>
                     </div>
                 </div>
+                {% endif %}
                 
                 <div class="vehicle-details">
                     <div class="vehicle-row">
@@ -293,17 +324,6 @@
                         <div class="vehicle-value">{{ dropoff_location }}</div>
                     </div>
                 </div>
-                
-                {% if vehicle_image %}
-                <div class="vehicle-image-section">
-                    <img src="https://rentalprices.pt{{ vehicle_image }}" alt="{{ vehicle_group }}" class="vehicle-image" 
-                         onerror="this.src='data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 width=%22100%22 height=%2260%22%3E%3Crect fill=%22%23e5e7eb%22 width=%22100%22 height=%2260%22/%3E%3Ctext x=%2250%%22 y=%2250%%22 text-anchor=%22middle%22 dy=%22.3em%22 fill=%22%23666%22 font-size=%2212%22%3E{{ vehicle_group }}%3C/text%3E%3C/svg%3E'">
-                    <div>
-                        <div style="font-size: 16px; font-weight: 700; color: #009cb6; text-transform: uppercase;">GRUPO {{ vehicle_group }}</div>
-                        <div style="font-size: 12px; color: #6b7280; margin-top: 4px;">{{ vehicle_model }}</div>
-                    </div>
-                </div>
-                {% endif %}
             </div>
             
             <div class="price-info">
