@@ -1,5 +1,5 @@
 from fastapi import APIRouter, HTTPException, Response
-from fastapi.responses import StreamingResponse
+from fastapi.responses import StreamingResponse, JSONResponse
 from pydantic import BaseModel
 from datetime import datetime
 import psycopg2
@@ -680,7 +680,10 @@ async def email_voucher(booking_id: int, email_request: EmailRequest):
             sent_message = service.users().messages().send(userId='me', body=message_body).execute()
             print(f"[VOUCHER EMAIL] Email sent successfully: {sent_message['id']}")
             
-            return {"message": "Voucher enviado com sucesso", "message_id": sent_message['id']}
+            return JSONResponse(
+                status_code=200,
+                content={"message": "Voucher enviado com sucesso", "message_id": sent_message['id']}
+            )
             
         except Exception as e:
             print(f"[VOUCHER EMAIL] Error sending email: {e}")
