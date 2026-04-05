@@ -1,0 +1,334 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <title>Voucher - AutoPrudente</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: #fff;
+            color: #1f2937;
+            font-size: 11px;
+            line-height: 1.4;
+        }
+
+        .voucher-container {
+            max-width: 210mm;
+            margin: 0;
+            padding: 0;
+        }
+
+        .header {
+            background: #009cb6;
+            padding: 15px 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .header img {
+            height: 40px;
+            width: auto;
+        }
+
+        .voucher-number {
+            background: rgba(255,255,255,0.2);
+            padding: 8px 15px;
+            border-radius: 6px;
+            color: #ffffff;
+            font-weight: bold;
+            font-size: 14px;
+        }
+
+        .content {
+            padding: 20px;
+        }
+
+        .section {
+            margin-bottom: 20px;
+            padding: 15px;
+            border: 1px solid #e5e7eb;
+            border-radius: 8px;
+            background: #ffffff;
+        }
+
+        .section-title {
+            color: #009cb6;
+            font-size: 14px;
+            font-weight: bold;
+            margin-bottom: 10px;
+            text-transform: uppercase;
+        }
+
+        .info-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+            margin-bottom: 15px;
+        }
+
+        .info-item {
+            display: flex;
+            justify-content: space-between;
+            padding: 5px 0;
+            border-bottom: 1px solid #f3f4f6;
+        }
+
+        .info-item:last-child {
+            border-bottom: none;
+        }
+
+        .info-label {
+            font-weight: bold;
+            color: #6b7280;
+        }
+
+        .info-value {
+            color: #1f2937;
+            font-weight: 500;
+        }
+
+        .vehicle-info {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            margin-bottom: 15px;
+        }
+
+        .vehicle-image {
+            width: 120px;
+            height: 80px;
+            object-fit: cover;
+            border-radius: 6px;
+            border: 1px solid #e5e7eb;
+        }
+
+        .vehicle-details {
+            flex: 1;
+        }
+
+        .vehicle-group {
+            font-size: 16px;
+            font-weight: bold;
+            color: #009cb6;
+            margin-bottom: 5px;
+        }
+
+        .vehicle-name {
+            font-size: 14px;
+            color: #1f2937;
+        }
+
+        .pricing {
+            background: #f9fafb;
+            padding: 15px;
+            border-radius: 6px;
+        }
+
+        .pricing-row {
+            display: flex;
+            justify-content: space-between;
+            padding: 5px 0;
+            border-bottom: 1px solid #e5e7eb;
+        }
+
+        .pricing-row:last-child {
+            border-bottom: none;
+            font-weight: bold;
+            color: #009cb6;
+            font-size: 12px;
+        }
+
+        .checkin-section {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            margin-top: 15px;
+        }
+
+        .qr-code {
+            width: 60px;
+            height: 60px;
+            border: 1px solid #e5e7eb;
+            border-radius: 6px;
+        }
+
+        .checkin-info {
+            flex: 1;
+            font-size: 10px;
+            color: #6b7280;
+        }
+
+        .checkin-info a {
+            color: #009cb6;
+            text-decoration: none;
+        }
+
+        .footer {
+            margin-top: 30px;
+            padding: 15px;
+            background: #f9fafb;
+            border-radius: 6px;
+            text-align: center;
+            font-size: 10px;
+            color: #6b7280;
+        }
+
+        .important-info {
+            background: #fef3c7;
+            border: 1px solid #f59e0b;
+            border-radius: 6px;
+            padding: 10px;
+            margin: 15px 0;
+        }
+
+        .important-info h4 {
+            color: #d97706;
+            margin-bottom: 5px;
+            font-size: 11px;
+        }
+
+        .important-info ul {
+            margin: 0;
+            padding-left: 15px;
+            font-size: 10px;
+            color: #92400e;
+        }
+
+        @media print {
+            .voucher-container {
+                width: 210mm;
+                margin: 0;
+                padding: 0;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="voucher-container">
+        <!-- Header -->
+        <div class="header">
+            <img src="https://rentalprices.pt/static/ap-heather.png" alt="Auto Prudente">
+            <div class="voucher-number">Voucher: {{voucher_number}}</div>
+        </div>
+
+        <!-- Content -->
+        <div class="content">
+            <!-- Customer Information -->
+            <div class="section">
+                <div class="section-title">Informaciones del Cliente</div>
+                <div class="info-grid">
+                    <div class="info-item">
+                        <span class="info-label">Nombre:</span>
+                        <span class="info-value">{{client_name}}</span>
+                    </div>
+                    <div class="info-item">
+                        <span class="info-label">Email:</span>
+                        <span class="info-value">{{client_email}}</span>
+                    </div>
+                    <div class="info-item">
+                        <span class="info-label">Teléfono:</span>
+                        <span class="info-value">{{client_phone}}</span>
+                    </div>
+                    <div class="info-item">
+                        <span class="info-label">Hotel:</span>
+                        <span class="info-value">{{hotel}} - {{room_number}}</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Vehicle Information -->
+            <div class="section">
+                <div class="section-title">Informaciones del Vehículo</div>
+                <div class="vehicle-info">
+                    <div class="vehicle-details">
+                        <div class="vehicle-group">GRUPO {{vehicle_group}}</div>
+                        <div class="vehicle-name">{{vehicle_name}}</div>
+                    </div>
+                    <img src="{{vehicle_image}}" alt="Vehicle" class="vehicle-image">
+                </div>
+                
+                <div class="info-grid">
+                    <div class="info-item">
+                        <span class="info-label">Entrega:</span>
+                        <span class="info-value">{{pickup_date}} {{pickup_time}}</span>
+                    </div>
+                    <div class="info-item">
+                        <span class="info-label">Devolución:</span>
+                        <span class="info-value">{{dropoff_date}} {{dropoff_time}}</span>
+                    </div>
+                    <div class="info-item">
+                        <span class="info-label">Lugar Entrega:</span>
+                        <span class="info-value">{{pickup_location}}</span>
+                    </div>
+                    <div class="info-item">
+                        <span class="info-label">Lugar Devolución:</span>
+                        <span class="info-value">{{dropoff_location}}</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Pricing -->
+            <div class="section">
+                <div class="section-title">Precios</div>
+                <div class="pricing">
+                    <div class="pricing-row">
+                        <span>Total Reserva:</span>
+                        <span>€{{total_price}}</span>
+                    </div>
+                    <div class="pricing-row">
+                        <span>Depósito:</span>
+                        <span>€{{deposit_amount}}</span>
+                    </div>
+                    <div class="pricing-row">
+                        <span>Cantidad a Pagar:</span>
+                        <span>€{{amount_to_pay}}</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Online Check-in -->
+            <div class="section">
+                <div class="section-title">Check-in Online</div>
+                <p style="margin-bottom: 10px; font-size: 10px; color: #6b7280;">
+                    <strong>¡Ahorre tiempo!</strong> Haga el check-in online antes de la entrega.
+                </p>
+                <div class="checkin-section">
+                    <img src="https://rentalprices.pt/static/check-in.png" alt="QR Code" class="qr-code">
+                    <div class="checkin-info">
+                        <div><strong>Cómo:</strong> <a href="https://auto-prudente.com/online-checkin/">auto-prudente.com/online-checkin/</a></div>
+                        <div><strong>Ubicación:</strong> <a href="https://maps.app.goo.gl/pfagFEwTw1XoGc1g8">Ver en Google Maps</a></div>
+                        <div><strong>Contacto:</strong> +351 289 542 160 | info@auto-prudente.com</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Important Information -->
+            <div class="important-info">
+                <h4>Información Importante</h4>
+                <ul>
+                    <li>Por favor, presente este voucher en el momento de la entrega del vehículo</li>
+                    <li>Traiga su licencia de conducir válida, documento de identificación y tarjeta de crédito a nombre del conductor</li>
+                </ul>
+            </div>
+
+            <!-- Footer -->
+            <div class="footer">
+                <div><strong>Auto Prudente Rent a Car</strong></div>
+                <div>Estrada de Santa Eulália, Edifício Onda do Mar Loja E, 8200-269 Albufeira</div>
+                <div>Teléfono: +351 289 542 160 | Email: info@auto-prudente.com</div>
+                <div>Sitio Web: www.auto-prudente.com</div>
+                <div style="margin-top: 10px; font-size: 9px;">
+                    Número Fiscal: PT 503 539 791 | © 2026 Auto Prudente Rent a Car. Todos los derechos reservados.
+                </div>
+            </div>
+        </div>
+    </div>
+</body>
+</html>

@@ -169,6 +169,74 @@ def render_email_template(booking_data):
         </html>
         """
 
+def render_voucher_template(booking_data):
+    """Render voucher template with booking data and language support"""
+    # Get language from booking data, default to 'pt'
+    language = booking_data.get('language', 'pt').lower()
+    
+    # Map language codes to template files
+    language_templates = {
+        'pt': 'voucher_template_pt.html',
+        'en': 'voucher_template_en.html', 
+        'fr': 'voucher_template_fr.html',
+        'es': 'voucher_template_es.html',
+        'de': 'voucher_template_de.html'
+    }
+    
+    # Get template file for language, fallback to Portuguese
+    template_file = language_templates.get(language, 'voucher_template_pt.html')
+    template_path = os.path.join(os.path.dirname(__file__), 'templates', template_file)
+    
+    try:
+        with open(template_path, 'r', encoding='utf-8') as f:
+            template_content = f.read()
+        
+        # Replace template variables
+        template_content = template_content.replace('{{voucher_number}}', booking_data.get('voucher_number', ''))
+        template_content = template_content.replace('{{client_name}}', booking_data.get('client_name', ''))
+        template_content = template_content.replace('{{client_email}}', booking_data.get('client_email', ''))
+        template_content = template_content.replace('{{client_phone}}', booking_data.get('client_phone', ''))
+        template_content = template_content.replace('{{hotel}}', booking_data.get('hotel', ''))
+        template_content = template_content.replace('{{room_number}}', booking_data.get('room_number', ''))
+        template_content = template_content.replace('{{pickup_date}}', booking_data.get('pickup_date', ''))
+        template_content = template_content.replace('{{pickup_time}}', booking_data.get('pickup_time', ''))
+        template_content = template_content.replace('{{dropoff_date}}', booking_data.get('dropoff_date', ''))
+        template_content = template_content.replace('{{dropoff_time}}', booking_data.get('dropoff_time', ''))
+        template_content = template_content.replace('{{pickup_location}}', booking_data.get('pickup_location', ''))
+        template_content = template_content.replace('{{dropoff_location}}', booking_data.get('dropoff_location', ''))
+        template_content = template_content.replace('{{vehicle_group}}', booking_data.get('vehicle_group', ''))
+        template_content = template_content.replace('{{vehicle_name}}', booking_data.get('vehicle_name', ''))
+        template_content = template_content.replace('{{vehicle_image}}', booking_data.get('vehicle_image', ''))
+        template_content = template_content.replace('{{total_price}}', booking_data.get('total_price', '0'))
+        template_content = template_content.replace('{{deposit_amount}}', booking_data.get('deposit_amount', '0'))
+        template_content = template_content.replace('{{amount_to_pay}}', booking_data.get('amount_to_pay', '0'))
+        template_content = template_content.replace('{{flight_number}}', booking_data.get('flight_number', ''))
+        template_content = template_content.replace('{{observations}}', booking_data.get('observations', ''))
+        
+        print(f"[VOUCHER PDF] Using template: {template_file} for language: {language}")
+        
+        return template_content
+        
+    except Exception as e:
+        print(f"[VOUCHER PDF] Error rendering voucher template: {e}")
+        # Fallback to simple HTML
+        return f"""
+        <!DOCTYPE html>
+        <html>
+        <head>
+            <title>Voucher - AutoPrudente</title>
+        </head>
+        <body>
+            <h1>Voucher {booking_data.get('voucher_number', '')}</h1>
+            <p>Cliente: {booking_data.get('client_name', '')}</p>
+            <p>Veículo: {booking_data.get('vehicle_name', '')}</p>
+            <p>Entrega: {booking_data.get('pickup_date', '')} {booking_data.get('pickup_time', '')}</p>
+            <p>Recolha: {booking_data.get('dropoff_date', '')} {booking_data.get('dropoff_time', '')}</p>
+            <p>Valor a pagar: €{booking_data.get('amount_to_pay', '0')}</p>
+        </body>
+        </html>
+        """
+
 def create_message_with_attachment(credentials, to_email, subject, body, attachment_content, filename):
     """Create email message with attachment"""
     # Create message
