@@ -4574,6 +4574,8 @@
             const currentMinute = now.getMinutes();
             const currentTime = currentHour * 60 + currentMinute;
             
+            console.log(`[DATE VALIDATION] Current time: ${currentHour}:${currentMinute} (${currentTime} minutes)`);
+            
             // Horário de funcionamento: 09:30 - 12:30 e 15:00 - 17:00
             const morningStart = 9 * 60 + 30;  // 09:30 = 570 minutos
             const morningEnd = 12 * 60 + 30;    // 12:30 = 750 minutos
@@ -4583,11 +4585,18 @@
             const pickupDateInput = document.getElementById('pickupDate');
             const dropoffDateInput = document.getElementById('dropoffDate');
             
+            if (!pickupDateInput || !dropoffDateInput) {
+                console.error('[DATE VALIDATION] Date inputs not found in DOM!');
+                return;
+            }
+            
             // Verificar se está fora do horário de funcionamento
             const isOutsideBusinessHours = 
                 currentTime < morningStart || 
                 (currentTime > morningEnd && currentTime < afternoonStart) || 
                 currentTime >= afternoonEnd;
+            
+            console.log(`[DATE VALIDATION] Outside business hours: ${isOutsideBusinessHours}`);
             
             if (isOutsideBusinessHours) {
                 // Definir para amanhã
@@ -4595,9 +4604,12 @@
                 tomorrow.setDate(tomorrow.getDate() + 1);
                 
                 const tomorrowStr = tomorrow.toISOString().split('T')[0];
+                console.log(`[DATE VALIDATION] Setting min and value to tomorrow: ${tomorrowStr}`);
                 pickupDateInput.value = tomorrowStr;
                 pickupDateInput.min = tomorrowStr;  // Bloquear hoje no calendário
                 dropoffDateInput.min = tomorrowStr;
+                
+                console.log(`[DATE VALIDATION] After setting - pickupDate.value: ${pickupDateInput.value}, pickupDate.min: ${pickupDateInput.min}`);
                 
                 // Atualizar horas disponíveis para amanhã
                 updateAvailableTimeSlots('pickupTime', tomorrow);
