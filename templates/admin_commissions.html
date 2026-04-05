@@ -741,6 +741,46 @@
         .top-list-value {
           font-size: 12px;
         }
+        
+        /* Mobile layout para gráficos do terceiro separador */
+        .dashboard-grid {
+          grid-template-columns: 1fr !important;
+          gap: 1rem !important;
+          width: 100% !important;
+          overflow-x: hidden !important;
+        }
+        
+        .dashboard-grid .chart-card {
+          width: 100% !important;
+          max-width: 100% !important;
+          overflow-x: hidden !important;
+        }
+        
+        .dashboard-grid .chart-card canvas {
+          max-width: 100% !important;
+          height: 250px !important;
+        }
+        
+        /* Grid especial para Payment Type Charts */
+        .dashboard-grid .chart-card div[style*="grid-template-columns"] {
+          grid-template-columns: 1fr !important;
+          gap: 1rem !important;
+        }
+        
+        .dashboard-grid .chart-card h3 {
+          font-size: 0.9rem !important;
+          margin-bottom: 0.5rem !important;
+        }
+        
+        .dashboard-grid .chart-card select {
+          font-size: 0.8rem !important;
+          padding: 0.3rem 0.5rem !important;
+        }
+        
+        .dashboard-grid .chart-card button {
+          font-size: 0.8rem !important;
+          padding: 0.3rem 0.5rem !important;
+        }
       }
       
       @media (max-width: 480px) {
