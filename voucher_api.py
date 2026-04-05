@@ -422,7 +422,7 @@ def get_booking_data(booking_id):
             'flight_number': result[15],
             'language': result[16] or 'pt',  # Add language field
             'observations': result[17],
-            'deposit_amount': f"{deposit:.2f}",
+            'deposit': f"{deposit:.2f}",
             'total_price': f"{total_price:.2f}",
             'amount_to_pay': f"{amount_to_pay:.2f}",
             'rental_days': rental_days,
