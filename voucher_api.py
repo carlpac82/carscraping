@@ -103,9 +103,12 @@ def send_new_booking_notification(booking_id: int, booking_data: dict):
         # Generate PDF voucher for attachment - use same method as voucher email
         print(f"[NOTIFICATION] Generating PDF voucher for {booking_data.get('voucher_number')}")
         
-        # Render HTML template for PDF (same as voucher)
-        pdf_html_content = render_voucher_template(booking_data)
-        print(f"[NOTIFICATION] PDF HTML template rendered, length: {len(pdf_html_content)}")
+        # Render HTML template for PDF (force Portuguese for Auto Prudente)
+        # Override language to always use Portuguese for Auto Prudente notifications
+        booking_data_for_pdf = booking_data.copy()
+        booking_data_for_pdf['language'] = 'pt'
+        pdf_html_content = render_voucher_template(booking_data_for_pdf)
+        print(f"[NOTIFICATION] PDF HTML template rendered (PT), length: {len(pdf_html_content)}")
         
         # Converter para URL absoluta para Playwright carregar imagem (same as voucher)
         pdf_html_content = pdf_html_content.replace('src="/api/vehicles/', 'src="https://rentalprices.pt/api/vehicles/')
