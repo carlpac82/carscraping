@@ -1,368 +1,221 @@
 <!DOCTYPE html>
 <html lang="pt">
 <head>
-    <meta charset="UTF-8">
+    <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Nova Reserva - {{ voucher_number }}</title>
     <style>
         body {
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
-            background-color: #f8fafc;
             margin: 0;
-            padding: 20px;
-            color: #1f2937;
-            font-size: 14px;
-            line-height: 1.5;
+            padding: 0;
+            font-family: Arial, sans-serif;
+            background-color: #f4f4f4;
         }
-        
-        .container {
+        .email-container {
             max-width: 600px;
+            min-width: 320px;
             margin: 0 auto;
-            background: white;
-            border-radius: 12px;
-            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-            overflow: hidden;
+            background-color: #ffffff;
         }
-        
-        .header {
-            background: linear-gradient(135deg, #009cb6 0%, #007a8f 100%);
-            padding: 30px;
-            color: white;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-        }
-        
-        .header-logo {
-            height: 40px;
-            width: auto;
-            display: block;
-        }
-        
-        .header-voucher {
-            font-size: 16px;
-            font-weight: 600;
-            color: white;
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-        }
-        
-        .content {
-            padding: 30px;
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-        }
-        
-        .commissioner-info {
-            background: #fef3c7;
-            border-radius: 8px;
-            padding: 16px;
-            margin-bottom: 20px;
-            border-left: 4px solid #f59e0b;
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-        }
-        
-        .booking-info {
-            background: #f8fafc;
-            border-radius: 8px;
-            padding: 20px;
-            margin-bottom: 20px;
-            border-left: 4px solid #009cb6;
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-        }
-        
-        .info-grid {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 16px;
-            margin-bottom: 16px;
-        }
-        
-        .info-item {
-            display: flex;
-            flex-direction: column;
-        }
-        
-        .info-label {
-            font-size: 12px;
-            font-weight: 600;
-            color: #6b7280;
-            text-transform: uppercase;
-            margin-bottom: 4px;
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-        }
-        
-        .info-value {
-            font-size: 14px;
-            color: #1f2937;
-            font-weight: 500;
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-        }
-        
-        .vehicle-section {
-            background: #f0f9ff;
-            border: 1px solid #009cb6;
-            border-radius: 8px;
-            padding: 20px;
-            margin-bottom: 20px;
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-        }
-        
-        .vehicle-header {
-            display: flex;
-            align-items: center;
-            gap: 16px;
-            margin-bottom: 16px;
-        }
-        
-        .vehicle-image-section {
-            display: flex;
-            align-items: center;
-            gap: 16px;
-            margin-bottom: 20px;
-        }
-        
-        .vehicle-image {
-            width: 120px;
-            height: 80px;
-            object-fit: cover;
-            border-radius: 8px;
-            border: 1px solid #e5e7eb;
-        }
-        
-        .vehicle-info {
-            flex: 1;
-        }
-        
-        .vehicle-group {
-            font-size: 18px;
-            font-weight: 700;
-            color: #009cb6;
-            text-transform: uppercase;
-            margin: 0 0 4px 0;
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-        }
-        
-        .vehicle-model {
-            font-size: 16px;
-            color: #6b7280;
-            margin: 0;
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-        }
-        
-        .vehicle-details {
-            display: table;
-            width: 100%;
-        }
-        
-        .vehicle-row {
-            display: table-row;
-        }
-        
-        .vehicle-label {
-            display: table-cell;
-            font-size: 12px;
-            font-weight: 600;
-            color: #6b7280;
-            text-transform: uppercase;
-            padding: 4px 8px 4px 0;
-            width: 30%;
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-        }
-        
-        .vehicle-value {
-            display: table-cell;
-            font-size: 14px;
-            color: #1f2937;
-            padding: 4px 0;
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-        }
-        
-        .price-info {
-            background: #f0f9ff;
-            border: 1px solid #009cb6;
-            border-radius: 8px;
-            padding: 20px;
-            margin-bottom: 20px;
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-        }
-        
-        .price-row {
-            display: flex;
-            justify-content: space-between;
-            padding: 8px 0;
-            border-bottom: 1px solid #e0f2fe;
-        }
-        
-        .price-row:last-child {
-            border-bottom: none;
-            padding-top: 12px;
-            font-weight: 600;
-            font-size: 16px;
-            color: #009cb6;
-        }
-        
-        .action-button {
-            display: inline-block;
-            background: linear-gradient(135deg, #009cb6 0%, #007a8f 100%);
-            color: white;
-            text-decoration: none;
-            padding: 16px 32px;
-            border-radius: 8px;
-            font-weight: 600;
-            text-align: center;
-            margin: 20px 0;
-            transition: all 0.3s ease;
-            box-shadow: 0 4px 6px rgba(0, 156, 182, 0.2);
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-            font-size: 16px;
-        }
-        
-        .action-button:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 6px 12px rgba(0, 156, 182, 0.3);
-        }
-        
-        .footer {
-            background: #f8fafc;
-            padding: 20px;
-            text-align: center;
-            font-size: 12px;
-            color: #6b7280;
-            border-top: 1px solid #e5e7eb;
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-        }
-        
-        @media (max-width: 600px) {
-            .info-grid {
-                grid-template-columns: 1fr;
+        @media only screen and (max-width: 600px) {
+            .details-grid {
+                display: block !important;
             }
-            
-            .container {
-                margin: 10px;
-                border-radius: 8px;
-            }
-            
-            .header, .content {
-                padding: 20px;
-            }
-            
-            .vehicle-image-section {
-                flex-direction: column;
-                align-items: flex-start;
-            }
-            
-            .vehicle-image {
-                width: 100px;
-                height: 70px;
+            .grid-item {
+                width: 100% !important;
+                margin-bottom: 15px !important;
             }
         }
     </style>
 </head>
-<body>
-    <div class="container">
-        <div class="header">
-            <img src="https://rentalprices.pt/static/ap-heather.png" alt="Auto Prudente" class="header-logo">
-            <div class="header-voucher">{{ voucher_number }}</div>
+<body style="margin: 0; padding: 0; font-family: Arial, sans-serif; background-color: #f4f4f4;">
+    <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="margin: 0; padding: 0;">
+        <tr>
+            <td align="center" style="padding: 0;">
+                <table role="presentation" width="600" cellpadding="0" cellspacing="0" border="0" style="margin: 0 auto; background-color: #ffffff; width: 600px !important;">
+                    <tr>
+                        <td style="padding: 0;">
+    
+    <!-- Header -->
+    <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="background: linear-gradient(135deg, #00bcd4 0%, #0097a7 100%); background-color: #00bcd4;">
+        <tr>
+            <td style="padding: 20px;">
+                <table width="100%" cellpadding="0" cellspacing="0">
+                    <tr>
+                        <td style="width: 50%; text-align: left; vertical-align: middle;">
+                            <img src="http://rentalprices.pt/static/ap-heather.png" alt="Auto Prudente" style="height: 50px; width: auto;">
+                        </td>
+                        <td style="width: 50%; text-align: right; vertical-align: middle;">
+                            <div style="background: rgba(255,255,255,0.2); padding: 10px 15px; border-radius: 6px; display: inline-block;">
+                                <span style="color: #ffffff; font-size: 16px; font-weight: bold;">{{ voucher_number }}</span>
+                            </div>
+                        </td>
+                    </tr>
+                </table>
+            </td>
+        </tr>
+    </table>
+
+    <!-- Agent Info -->
+    <div style="padding: 20px;">
+        <h2 style="color: #333333; margin: 0 0 15px 0; font-size: 18px;">Nova Reserva Recebida</h2>
+        <div style="background-color: #fff3cd; border: 1px solid #ffeaa7; border-radius: 8px; padding: 15px; margin-bottom: 20px;">
+            <table width="100%" cellpadding="0" cellspacing="0" style="font-size: 14px;">
+                <tr>
+                    <td style="font-weight: bold; color: #856404; padding-bottom: 5px;">Agente:</td>
+                    <td style="padding-bottom: 5px; color: #856404; font-weight: 600;">{{ commissioner_name }}</td>
+                </tr>
+                <tr>
+                    <td style="font-weight: bold; color: #856404;">Data:</td>
+                    <td style="color: #856404;">{{ booking_date }}</td>
+                </tr>
+            </table>
         </div>
-        
-        <div class="content">
-            <div class="commissioner-info">
-                <strong>Agente:</strong> {{ commissioner_name }}<br>
-                <small>Reserva criada em: {{ booking_date }}</small>
-            </div>
-            
-            <div class="booking-info">
-                <h3 style="margin: 0 0 16px 0; color: #009cb6;">Informações do Cliente</h3>
-                <div class="info-grid">
-                    <div class="info-item">
-                        <span class="info-label">Nome</span>
-                        <span class="info-value">{{ client_name }}</span>
-                    </div>
-                    <div class="info-item">
-                        <span class="info-label">Email</span>
-                        <span class="info-value">{{ client_email }}</span>
-                    </div>
-                    <div class="info-item">
-                        <span class="info-label">Telefone</span>
-                        <span class="info-value">{{ client_phone }}</span>
-                    </div>
-                    {% if hotel %}
-                    <div class="info-item">
-                        <span class="info-label">Hotel</span>
-                        <span class="info-value">{{ hotel }}{% if room_number %} - Quarto {{ room_number }}{% endif %}</span>
-                    </div>
-                    {% endif %}
-                </div>
-            </div>
-            
-            <div class="vehicle-section">
-                {% if vehicle_image %}
-                <div class="vehicle-image-section">
-                    <img src="https://rentalprices.pt{{ vehicle_image }}" alt="{{ vehicle_group }}" class="vehicle-image" 
-                         onerror="this.src='data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 width=%22120%22 height=%2280%22%3E%3Crect fill=%22%23e5e7eb%22 width=%22120%22 height=%2280%22/%3E%3Ctext x=%2260%22 y=%2240%22 text-anchor=%22middle%22 dy=%22.3em%22 fill=%22%23666%22 font-size=%2214%22 font-family=%22sans-serif%22%3E{{ vehicle_group }}%3C/text%3E%3C/svg%3E'">
-                    <div class="vehicle-info">
-                        <div class="vehicle-group">GRUPO {{ vehicle_group }}</div>
-                        <div class="vehicle-model">{{ vehicle_model }}</div>
-                    </div>
-                </div>
-                {% endif %}
-                
-                <div class="vehicle-details">
-                    <div class="vehicle-row">
-                        <div class="vehicle-label">Levantamento:</div>
-                        <div class="vehicle-value">{{ pickup_date }} {{ pickup_time }}</div>
-                    </div>
-                    <div class="vehicle-row">
-                        <div class="vehicle-label">Local Levantamento:</div>
-                        <div class="vehicle-value">{{ pickup_location }}</div>
-                    </div>
-                    <div class="vehicle-row">
-                        <div class="vehicle-label">Entrega:</div>
-                        <div class="vehicle-value">{{ dropoff_date }} {{ dropoff_time }}</div>
-                    </div>
-                    <div class="vehicle-row">
-                        <div class="vehicle-label">Local Entrega:</div>
-                        <div class="vehicle-value">{{ dropoff_location }}</div>
-                    </div>
-                </div>
-            </div>
-            
-            <div class="price-info">
-                <h3 style="margin: 0 0 16px 0; color: #009cb6;">Valores</h3>
-                <div class="price-row">
-                    <span>Valor Total</span>
-                    <span>€{{ total_price }}</span>
-                </div>
-                <div class="price-row">
-                    <span>Depósito Pago</span>
-                    <span>€{{ deposit }}</span>
-                </div>
-                <div class="price-row">
-                    <span>A Pagar no Levantamento</span>
-                    <span>€{{ amount_to_pay }}</span>
-                </div>
-            </div>
-            
-            <div style="text-align: center;">
-                <a href="https://rentalprices.pt/api/commissioner-booking/confirm-and-print/{{ booking_id }}" class="action-button">
-                    Confirmar Reserva
-                </a>
-                <div style="margin-top: 12px; font-size: 12px; color: #6b7280;">
-                    Ao clicar, a reserva será confirmada e o PDF será aberto para impressão
-                </div>
-            </div>
-            
-            {% if observations %}
-            <div style="background: #fef3c7; border-radius: 8px; padding: 16px; margin-bottom: 20px;">
-                <h4 style="margin: 0 0 8px 0; color: #92400e;">Observações</h4>
-                <div style="font-size: 14px; color: #78350f;">{{ observations }}</div>
-            </div>
-            {% endif %}
-        </div>
-        
-        <div class="footer">
-            <p>Este email foi gerado automaticamente pelo sistema de reservas da Auto Prudente.</p>
-            <p>© 2026 Auto Prudente Rent a Car - Todos os direitos reservados</p>
-        </div>
+        <p style="color: #666666; line-height: 1.6; margin: 0 0 12px 0; font-size: 14px;">Uma nova reserva foi criada no portal de agentes. Segue abaixo os detalhes:</p>
     </div>
+
+    <!-- Resumo da Reserva -->
+    <div style="padding: 20px; background-color: #f9f9f9;">
+        <h3 style="color: #00bcd4; margin: 0 0 15px 0; font-size: 18px;">Detalhes da Reserva</h3>
+        
+        <!-- Vehicle Info with Image -->
+        <div style="margin-bottom: 20px; background: white; padding: 15px; border-radius: 8px; border: 1px solid #e0e0e0;">
+            <table width="100%" cellpadding="0" cellspacing="0" border="0">
+                <tr>
+                    <td style="width: 65%; vertical-align: top; padding-right: 15px;">
+                        <table width="100%" cellpadding="0" cellspacing="0" style="font-size: 14px;">
+                            <tr>
+                                <td style="font-weight: bold; color: #333333; padding-bottom: 8px;">Cliente:</td>
+                                <td style="padding-bottom: 8px; color: #1f2937; font-weight: 600;">{{ client_name }}</td>
+                            </tr>
+                            <tr>
+                                <td style="font-weight: bold; color: #333333; padding-bottom: 8px;">Email:</td>
+                                <td style="padding-bottom: 8px; color: #666666;">{{ client_email }}</td>
+                            </tr>
+                            <tr>
+                                <td style="font-weight: bold; color: #333333; padding-bottom: 8px;">Telefone:</td>
+                                <td style="padding-bottom: 8px; color: #666666;">{{ client_phone }}</td>
+                            </tr>
+                            {% if hotel %}
+                            <tr>
+                                <td style="font-weight: bold; color: #333333; padding-bottom: 8px;">Hotel:</td>
+                                <td style="padding-bottom: 8px; color: #666666;">{{ hotel }}{% if room_number %} - Quarto {{ room_number }}{% endif %}</td>
+                            </tr>
+                            {% endif %}
+                            <tr>
+                                <td style="font-weight: bold; color: #333333; padding-bottom: 8px;">Veículo:</td>
+                                <td style="padding-bottom: 8px; color: #666666;">
+                                    <div style="font-size: 16px; font-weight: bold; color: #00bcd4; margin-bottom: 3px;">GRUPO {{ vehicle_group }}</div>
+                                    <div style="font-size: 14px; color: #666666;">{{ vehicle_model }}</div>
+                                </td>
+                            </tr>
+                            <tr>
+                                <td style="font-weight: bold; color: #333333; padding-bottom: 8px;">Local Levantamento:</td>
+                                <td style="padding-bottom: 8px; color: #666666;">{{ pickup_location }}</td>
+                            </tr>
+                            <tr>
+                                <td style="font-weight: bold; color: #333333;">Local Entrega:</td>
+                                <td style="color: #666666;">{{ dropoff_location }}</td>
+                            </tr>
+                        </table>
+                    </td>
+                    <td style="width: 35%; vertical-align: top; text-align: center;">
+                        {% if vehicle_image %}
+                        <img src="https://rentalprices.pt{{ vehicle_image }}" alt="{{ vehicle_group }}" style="width: 120px; height: auto; border-radius: 8px; border: 1px solid #e0e0e0; max-width: 100%;">
+                        {% endif %}
+                    </td>
+                </tr>
+            </table>
+        </div>
+
+        <!-- Dates and Times Grid -->
+        <div class="details-grid" style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-bottom: 20px;">
+            <!-- Pickup -->
+            <div class="grid-item" style="background: white; padding: 15px; border-radius: 8px; border: 1px solid #e0e0e0;">
+                <h4 style="color: #00bcd4; margin: 0 0 10px 0; font-size: 16px;">Levantamento</h4>
+                <table width="100%" cellpadding="0" cellspacing="0" style="font-size: 14px;">
+                    <tr>
+                        <td style="font-weight: bold; color: #333333; padding-bottom: 5px;">Data:</td>
+                        <td style="padding-bottom: 5px; color: #666666;">{{ pickup_date }}</td>
+                    </tr>
+                    <tr>
+                        <td style="font-weight: bold; color: #333333;">Hora:</td>
+                        <td style="color: #666666;">{{ pickup_time }}</td>
+                    </tr>
+                </table>
+            </div>
+            
+            <!-- Dropoff -->
+            <div class="grid-item" style="background: white; padding: 15px; border-radius: 8px; border: 1px solid #e0e0e0;">
+                <h4 style="color: #00bcd4; margin: 0 0 10px 0; font-size: 16px;">Entrega</h4>
+                <table width="100%" cellpadding="0" cellspacing="0" style="font-size: 14px;">
+                    <tr>
+                        <td style="font-weight: bold; color: #333333; padding-bottom: 5px;">Data:</td>
+                        <td style="padding-bottom: 5px; color: #666666;">{{ dropoff_date }}</td>
+                    </tr>
+                    <tr>
+                        <td style="font-weight: bold; color: #333333;">Hora:</td>
+                        <td style="color: #666666;">{{ dropoff_time }}</td>
+                    </tr>
+                </table>
+            </div>
+        </div>
+
+        <!-- Prices -->
+        <div style="background: white; padding: 15px; border-radius: 8px; border: 1px solid #e0e0e0; margin-bottom: 20px;">
+            <h4 style="color: #00bcd4; margin: 0 0 15px 0; font-size: 16px;">Valores</h4>
+            <table width="100%" cellpadding="0" cellspacing="0" style="font-size: 14px;">
+                <tr>
+                    <td style="font-weight: bold; color: #333333; padding-bottom: 8px;">Valor Total:</td>
+                    <td style="padding-bottom: 8px; color: #666666;">€{{ total_price }}</td>
+                </tr>
+                <tr>
+                    <td style="font-weight: bold; color: #333333; padding-bottom: 8px;">Depósito Pago:</td>
+                    <td style="padding-bottom: 8px; color: #666666;">€{{ deposit }}</td>
+                </tr>
+                <tr>
+                    <td style="font-weight: bold; color: #00bcd4; font-size: 16px;">A Pagar no Levantamento:</td>
+                    <td style="color: #00bcd4; font-size: 16px; font-weight: bold;">€{{ amount_to_pay }}</td>
+                </tr>
+            </table>
+        </div>
+
+        <!-- Action Button -->
+        <div style="text-align: center; margin-bottom: 20px;">
+            <a href="https://rentalprices.pt/api/commissioner-booking/confirm-and-print/{{ booking_id }}" 
+               style="display: inline-block; background: linear-gradient(135deg, #00bcd4 0%, #0097a7 100%); color: white; text-decoration: none; padding: 15px 30px; border-radius: 6px; font-weight: bold; font-size: 16px;">
+                Confirmar Reserva
+            </a>
+            <div style="margin-top: 10px; font-size: 12px; color: #666666;">
+                Ao clicar, a reserva será confirmada e o PDF será aberto para impressão
+            </div>
+        </div>
+
+        {% if observations %}
+        <!-- Observations -->
+        <div style="background: #fff3cd; border: 1px solid #ffeaa7; border-radius: 8px; padding: 15px; margin-bottom: 20px;">
+            <h4 style="color: #856404; margin: 0 0 10px 0; font-size: 16px;">Observações</h4>
+            <p style="color: #856404; margin: 0; font-size: 14px;">{{ observations }}</p>
+        </div>
+        {% endif %}
+
+    </div>
+
+    <!-- Footer -->
+    <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="background-color: #f9f9f9; border-top: 1px solid #e0e0e0;">
+        <tr>
+            <td style="padding: 20px; text-align: center;">
+                <p style="color: #666666; margin: 0 0 10px 0; font-size: 12px;">Este email foi gerado automaticamente pelo sistema de reservas da Auto Prudente.</p>
+                <p style="color: #666666; margin: 0; font-size: 12px;">© 2026 Auto Prudente Rent a Car - Todos os direitos reservados</p>
+            </td>
+        </tr>
+    </table>
+
+                        </td>
+                    </tr>
+                </table>
+            </td>
+        </tr>
+    </table>
 </body>
 </html>
