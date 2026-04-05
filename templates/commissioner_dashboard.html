@@ -4503,6 +4503,11 @@
         }
 
         function openNewBookingModal() {
+            // IMPORTANTE: Definir min ANTES de abrir modal para browser respeitar
+            // Verificar se escritório está fechado e definir dia seguinte
+            setDefaultPickupDate();
+            
+            // Agora abrir modal (calendário vai respeitar o min já definido)
             document.getElementById('newBookingModal').classList.add('active');
             resetNewBookingForm();
             // Reset wizard to step 1
@@ -4517,9 +4522,6 @@
                 valueAdjustment: 0,
                 depositAmount: 0
             };
-            
-            // Verificar se escritório está fechado e definir dia seguinte
-            setDefaultPickupDate();
             
             // Pré-preencher locais de entrega/recolha com default_location do comissionista
             setDefaultLocations();
@@ -4633,8 +4635,9 @@
                 }
             }
             
-            // Disparar change para atualizar horas
-            pickupDateInput.dispatchEvent(new Event('change'));
+            // NÃO disparar change aqui - pode resetar o min do calendário
+            // O change será disparado quando user selecionar data manualmente
+            // pickupDateInput.dispatchEvent(new Event('change'));
         }
 
         // ===== WIZARD NAVIGATION =====
@@ -5464,6 +5467,17 @@
             document.getElementById('daysDisplay').textContent = `${days} dia${days !== 1 ? 's' : ''}`;
         }
 
+        // Event listener 'input' para bloquear seleção inválida em tempo real
+        document.getElementById('pickupDate').addEventListener('input', function(e) {
+            const pickupDate = e.target;
+            const minDate = pickupDate.getAttribute('min');
+            
+            if (minDate && pickupDate.value && pickupDate.value < minDate) {
+                console.log(`[CALENDAR BLOCK] Tentou selecionar ${pickupDate.value}, mas min é ${minDate}. Resetando para min.`);
+                pickupDate.value = minDate;
+            }
+        });
+        
         // Event listeners para popular horários quando data muda
         document.getElementById('pickupDate').addEventListener('change', function() {
             const pickupDate = document.getElementById('pickupDate');
