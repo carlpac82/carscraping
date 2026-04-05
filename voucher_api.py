@@ -9,6 +9,8 @@ import io
 from jinja2 import Template
 from weasyprint import HTML, CSS
 from playwright.async_api import async_playwright
+from PIL import Image, ImageDraw
+import numpy as np
 
 router = APIRouter()
 
@@ -51,9 +53,44 @@ vehicle_api_names = {
     'L1': 'citroen c3 aircross', # ✅
     'L2': 'peugeot 308 sw',     # ✅
     'M1': 'dacia jogger',       # ✅
-    'M2': 'citroen c4 picasso', # ✅ CORRIGIDO: era citroen c4
+    'M2': 'citroen c4 picasso', # ✅
     'N': 'toyota proace'        # ✅
 }
+
+def remove_white_background(image_data):
+    """Remove fundo branco das imagens e retorna com transparência"""
+    try:
+        # Converter bytes para imagem PIL
+        img = Image.open(io.BytesIO(image_data))
+        
+        # Converter para RGBA se não for
+        if img.mode != 'RGBA':
+            img = img.convert('RGBA')
+        
+        # Criar máscara para pixels brancos/quase brancos
+        datas = img.getdata()
+        
+        new_data = []
+        for item in datas:
+            # Se o pixel for branco ou quase branco, tornar transparente
+            if item[0] > 240 and item[1] > 240 and item[2] > 240:  # RGB > 240 = branco/quase branco
+                new_data.append((255, 255, 255, 0))  # Transparente
+            else:
+                new_data.append(item)  # Manter pixel original
+        
+        # Aplicar nova data
+        img.putdata(new_data)
+        
+        # Converter para bytes
+        output = io.BytesIO()
+        img.save(output, format='PNG')
+        output.seek(0)
+        
+        return output.getvalue()
+        
+    except Exception as e:
+        print(f"[ERROR] Failed to remove background: {e}")
+        return image_data  # Retorna original se falhar
 
 def create_message_with_attachment(credentials, to_email, subject, body, attachment_content, filename):
     """Create email message with attachment"""
@@ -257,27 +294,11 @@ async def print_voucher(booking_id: int):
         html_content = render_voucher_template(booking_data)
         print(f"[VOUCHER PRINT] HTML template rendered, length: {len(html_content)}")
         
-        # Convert to absolute URLs and fix encoding
-        base_url = "https://rentalprices.pt"
-        html_content = html_content.replace('src="/api/vehicles/', f'src="{base_url}/api/vehicles/')
+        # Usar imagens transparentes (sem fundo branco)
+        html_content = html_content.replace('/api/vehicles/', '/api/vehicles/')
+        html_content = html_content.replace('/photo', '/photo-transparent')
         
-        # Fix URL encoding for vehicle names with spaces
-        import urllib.parse
-        html_content = html_content.replace('/fiat panda/photo', '/fiat%20panda/photo')
-        html_content = html_content.replace('/seat ibiza/photo', '/seat%20ibiza/photo')
-        html_content = html_content.replace('/hyundai i10/photo', '/hyundai%20i10/photo')
-        html_content = html_content.replace('/citroen c3/photo', '/citroen%20c3/photo')
-        html_content = html_content.replace('/seat arona/photo', '/seat%20arona/photo')
-        html_content = html_content.replace('/fiat 500/photo', '/fiat%20500/photo')
-        html_content = html_content.replace('/peugeot 2008/photo', '/peugeot%202008/photo')
-        html_content = html_content.replace('/peugeot 308 sw/photo', '/peugeot%20308%20sw/photo')
-        html_content = html_content.replace('/citroen c3 aircross/photo', '/citroen%20c3%20aircross/photo')
-        html_content = html_content.replace('/dacia jogger/photo', '/dacia%20jogger/photo')
-        html_content = html_content.replace('/citroen c4/photo', '/citroen%20c4/photo')
-        html_content = html_content.replace('/toyota proace/photo', '/toyota%20proace/photo')
-        html_content = html_content.replace('/kia picanto/photo', '/kia%20picanto/photo')
-        
-        print(f"[VOUCHER PRINT] Converted to absolute URLs with encoding: {base_url}")
+        print(f"[VOUCHER PRINT] Using transparent images (no white background)")
         print(f"[VOUCHER PRINT] Starting PDF generation with Playwright")
         
         # Generate PDF using Playwright
@@ -506,6 +527,46 @@ async def debug_vehicle_images(vehicle_name: str):
         
     except Exception as e:
         return {'error': str(e)}
+
+@router.get('/api/vehicles/{vehicle_name}/photo-transparent')
+async def get_vehicle_photo_transparent(vehicle_name: str):
+    """Retorna a foto de um veículo com fundo branco removido"""
+    from fastapi.responses import Response
+    
+    try:
+        # Normalizar nome do veículo
+        vehicle_key = vehicle_name.lower().strip()
+        
+        # Buscar imagem original
+        import psycopg2
+        DATABASE_URL = os.environ.get('DATABASE_URL')
+        conn = psycopg2.connect(DATABASE_URL)
+        cur = conn.cursor()
+        
+        cur.execute("SELECT image_data, content_type FROM vehicle_images WHERE vehicle_key = %s", (vehicle_key,))
+        row = cur.fetchone()
+        
+        if not row:
+            cur.close()
+            conn.close()
+            raise HTTPException(status_code=404, detail='Imagem não encontrada')
+        
+        image_data, content_type = row
+        cur.close()
+        conn.close()
+        
+        # Remover fundo branco
+        processed_image = remove_white_background(image_data)
+        
+        return Response(
+            content=processed_image,
+            media_type="image/png",  # Sempre PNG para transparência
+            headers={"Cache-Control": "public, max-age=3600"}
+        )
+        
+    except Exception as e:
+        print(f"[ERROR] Failed to get transparent photo: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
 
 @router.post('/api/commissioner/voucher/email/{booking_id}')
 async def email_voucher(booking_id: int, email_request: EmailRequest):
