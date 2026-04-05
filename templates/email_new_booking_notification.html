@@ -102,26 +102,15 @@
                                 <td style="padding-bottom: 8px; color: #666666;">{{ hotel }}{% if room_number %} - Quarto {{ room_number }}{% endif %}</td>
                             </tr>
                             {% endif %}
-                            <tr>
-                                <td style="font-weight: bold; color: #333333; padding-bottom: 8px;">Veículo:</td>
-                                <td style="padding-bottom: 8px; color: #666666;">
-                                    <div style="font-size: 16px; font-weight: bold; color: #00bcd4; margin-bottom: 3px;">GRUPO {{ vehicle_group }}</div>
-                                    <div style="font-size: 14px; color: #666666;">{{ vehicle_model }}</div>
-                                </td>
-                            </tr>
-                            <tr>
-                                <td style="font-weight: bold; color: #333333; padding-bottom: 8px;">Local Levantamento:</td>
-                                <td style="padding-bottom: 8px; color: #666666;">{{ pickup_location }}</td>
-                            </tr>
-                            <tr>
-                                <td style="font-weight: bold; color: #333333;">Local Entrega:</td>
-                                <td style="color: #666666;">{{ dropoff_location }}</td>
-                            </tr>
                         </table>
                     </td>
-                    <td style="width: 35%; vertical-align: top; text-align: center;">
+                    <td style="width: 35%; vertical-align: middle; text-align: center;">
                         {% if vehicle_image %}
-                        <img src="https://rentalprices.pt{{ vehicle_image }}" alt="{{ vehicle_group }}" style="width: 120px; height: auto; border-radius: 8px; border: 1px solid #e0e0e0; max-width: 100%;">
+                        <div style="margin-bottom: 10px;">
+                            <img src="https://rentalprices.pt{{ vehicle_image }}" alt="{{ vehicle_group }}" style="width: 120px; height: auto; border-radius: 8px; border: 1px solid #e0e0e0; max-width: 100%;">
+                        </div>
+                        <div style="font-size: 16px; font-weight: bold; color: #00bcd4; margin-bottom: 3px;">GRUPO {{ vehicle_group }}</div>
+                        <div style="font-size: 14px; color: #666666;">{{ vehicle_model }}</div>
                         {% endif %}
                     </td>
                 </tr>
