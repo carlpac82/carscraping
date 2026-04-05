@@ -192,11 +192,18 @@ def render_voucher_template(booking_data):
     print(f"[VOUCHER PDF] Template path: {template_path}")
     print(f"[VOUCHER PDF] Template exists: {os.path.exists(template_path)}")
     
+    # List all templates available
+    templates_dir = os.path.join(os.path.dirname(__file__), 'templates')
+    available_templates = [f for f in os.listdir(templates_dir) if f.startswith('voucher_template_')]
+    print(f"[VOUCHER PDF] Available templates: {available_templates}")
+    
     # Fallback to Portuguese if template doesn't exist
     if not os.path.exists(template_path):
         print(f"[VOUCHER PDF] Template not found, falling back to Portuguese")
         template_file = 'voucher_template_pt.html'
         template_path = os.path.join(os.path.dirname(__file__), 'templates', template_file)
+        print(f"[VOUCHER PDF] Fallback template path: {template_path}")
+        print(f"[VOUCHER PDF] Fallback template exists: {os.path.exists(template_path)}")
     
     try:
         with open(template_path, 'r', encoding='utf-8') as f:
