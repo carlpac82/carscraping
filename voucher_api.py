@@ -464,6 +464,49 @@ async def download_group_photos():
             'error': str(e)
         }
 
+@router.get('/api/debug/vehicle-images/{vehicle_name}')
+async def debug_vehicle_images(vehicle_name: str):
+    """Debug endpoint to check vehicle images in database"""
+    try:
+        import psycopg2
+        import os
+        
+        DATABASE_URL = os.environ.get('DATABASE_URL')
+        conn = psycopg2.connect(DATABASE_URL)
+        cur = conn.cursor()
+        
+        # Normalize like the main endpoint
+        vehicle_key = vehicle_name.lower().strip()
+        
+        # Check exact match
+        cur.execute("SELECT vehicle_key, content_type, length(image_data) as size FROM vehicle_images WHERE vehicle_key = %s", (vehicle_key,))
+        exact = cur.fetchone()
+        
+        # Check partial matches
+        cur.execute("SELECT vehicle_key, length(image_data) as size FROM vehicle_images WHERE vehicle_key ILIKE %s ORDER BY vehicle_key LIMIT 5", (f'%{vehicle_name}%',))
+        partial = cur.fetchall()
+        
+        # Check all similar
+        cur.execute("SELECT vehicle_key, length(image_data) as size FROM vehicle_images WHERE vehicle_key ILIKE %s ORDER BY vehicle_key LIMIT 10", (f'%{vehicle_key.split()[0]}%',))
+        similar = cur.fetchall()
+        
+        cur.close()
+        conn.close()
+        
+        return {
+            'searching_for': vehicle_name,
+            'normalized_key': vehicle_key,
+            'exact_match': {
+                'found': exact is not None,
+                'data': exact
+            },
+            'partial_matches': partial,
+            'similar_matches': similar
+        }
+        
+    except Exception as e:
+        return {'error': str(e)}
+
 @router.post('/api/commissioner/voucher/email/{booking_id}')
 async def email_voucher(booking_id: int, email_request: EmailRequest):
     """Send voucher by email"""
