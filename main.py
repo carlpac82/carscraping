@@ -65050,9 +65050,8 @@ async def admin_delete_all_commissioner_bookings(request: Request):
 @app.get("/api/commissioners")
 async def api_get_commissioners(request: Request):
     """API endpoint to get all commissioners"""
-    try:
-        require_admin(request)
-    except HTTPException:
+    user = request.session.get('user')
+    if not user or not (user.get('is_admin') or user.get('has_commissioner_access')):
         return JSONResponse({"ok": False, "error": "Unauthorized"}, status_code=401)
     
     try:
@@ -65384,9 +65383,8 @@ async def delete_commission_booking(booking_id: int, request: Request):
 @app.get("/api/vehicle-groups")
 async def get_vehicle_groups(request: Request):
     """Get active vehicle groups for manual booking dropdown"""
-    try:
-        require_admin(request)
-    except HTTPException:
+    user = request.session.get('user')
+    if not user or not (user.get('is_admin') or user.get('has_commissioner_access')):
         return JSONResponse({"ok": False, "error": "Unauthorized"}, status_code=401)
     
     try:
