@@ -426,15 +426,6 @@ def get_booking_data(booking_id):
         cur.close()
         conn.close()
 
-def render_voucher_template(booking_data):
-    """Render voucher template with Jinja2"""
-    template_path = os.path.join(os.path.dirname(__file__), 'templates', 'voucher_template.html')
-    with open(template_path, 'r', encoding='utf-8') as f:
-        template_content = f.read()
-    
-    template = Template(template_content)
-    return template.render(**booking_data)
-
 @router.get('/api/commissioner/voucher/print/{booking_id}')
 async def print_voucher(booking_id: int):
     """Generate and return voucher PDF using Playwright"""
