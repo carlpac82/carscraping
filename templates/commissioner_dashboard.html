@@ -4380,12 +4380,10 @@
                 console.log('Segunda limpeza de extras concluída');
             }, 100);
             
-            // Definir data mínima (hoje)
+            // Definir data mínima será feito pela validação de horário abaixo
             const today = new Date();
-            const todayStr = today.toISOString().split('T')[0];
             const pickupDateInput = document.getElementById('pickupDate');
             const dropoffDateInput = document.getElementById('dropoffDate');
-            pickupDateInput.min = todayStr;
             
             // Carregar veículos se ainda não foram carregados
             if (vehicleGroups.length === 0) {
