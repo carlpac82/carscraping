@@ -97,6 +97,7 @@ def send_new_booking_notification(booking_id: int, booking_data: dict):
         notification_data['booking_date'] = booking_data.get('created_date', '')
         
         # Render template
+        from jinja2 import Template
         template = Template(template_content)
         html_content = template.render(**notification_data)
         
