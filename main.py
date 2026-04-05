@@ -2394,7 +2394,7 @@ def _get_user_by_username(username: str) -> Optional[Dict[str, Any]]:
         with _db_lock:
             con = _db_connect()
             try:
-                cur = con.execute("SELECT id, username, first_name, last_name, email, mobile, profile_picture_path, is_admin, enabled FROM users WHERE username=?", (username,))
+                cur = con.execute("SELECT id, username, first_name, last_name, email, mobile, profile_picture_path, is_admin, enabled, role, has_commissioner_access, can_manage_commissions FROM users WHERE username=?", (username,))
                 r = cur.fetchone()
                 if not r:
                     return None
@@ -2408,6 +2408,9 @@ def _get_user_by_username(username: str) -> Optional[Dict[str, Any]]:
                     "profile_picture_path": r[6] or "",
                     "is_admin": bool(r[7]),
                     "enabled": bool(r[8]),
+                    "role": r[9] or "user",
+                    "has_commissioner_access": bool(r[10]) if r[10] is not None else False,
+                    "can_manage_commissions": bool(r[11]) if r[11] is not None else False,
                 }
             finally:
                 con.close()
@@ -5973,8 +5976,9 @@ def require_role_access(request: Request, allowed_pages: list = None):
     user_role = request.session.get("role", "")
     current_path = request.url.path
     
-    # Role "support" (atendimento): apenas WhatsApp e Inspeção de Veículos
+    # Role "support" (atendimento): WhatsApp + Inspeção de Veículos + permissões opcionais
     if user_role == "support":
+        # Páginas base permitidas para todos os users support
         support_allowed_pages = [
             "/whatsapp",
             "/api/whatsapp",
@@ -5990,11 +5994,33 @@ def require_role_access(request: Request, allowed_pages: list = None):
             "/api/current-user",
             "/api/user-settings"
         ]
+        
+        # Adicionar páginas baseadas em permissões individuais
+        username = request.session.get("username", "")
+        if username:
+            user_data = _get_user_by_username(username)
+            if user_data:
+                # Se tem permissão de Commissioner, adicionar rotas de agentes
+                if user_data.get("has_commissioner_access", False):
+                    support_allowed_pages.extend([
+                        "/agentes/dashboard",
+                        "/api/commissioners",
+                        "/api/commissioner"
+                    ])
+                
+                # Se tem permissão de Commissions, adicionar rotas de comissões
+                if user_data.get("can_manage_commissions", False):
+                    support_allowed_pages.extend([
+                        "/admin/commissions",
+                        "/api/commissions",
+                        "/api/commission"
+                    ])
+        
         is_allowed = any(current_path.startswith(page) for page in support_allowed_pages)
         if not is_allowed:
             raise HTTPException(
                 status_code=403, 
-                detail="Acesso negado. Role 'support' só pode aceder a WhatsApp e Inspeção de Veículos."
+                detail="Acesso negado. Não tem permissão para aceder a esta página."
             )
         return
     
