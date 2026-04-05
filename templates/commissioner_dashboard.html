@@ -5474,12 +5474,11 @@
                 const selectedDate = new Date(pickupDate.value + 'T00:00:00');
                 const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
                 
-                // Se fora de horário e tentou selecionar hoje, forçar amanhã
+                // Se fora de horário e tentou selecionar hoje, forçar amanhã silenciosamente
                 if (isOutsideBusinessHours && selectedDate.getTime() === today.getTime()) {
                     const tomorrow = new Date(now);
                     tomorrow.setDate(tomorrow.getDate() + 1);
                     pickupDate.value = tomorrow.toISOString().split('T')[0];
-                    alert('Auto Prudente está encerrada. A data foi ajustada para amanhã.');
                 }
                 
                 // Popular horários baseado na data
