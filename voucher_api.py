@@ -747,6 +747,36 @@ async def debug_vehicle_images(vehicle_name: str):
     except Exception as e:
         return {'error': str(e)}
 
+@router.get('/api/commissioner-booking/confirm-and-print/{booking_id}')
+async def confirm_and_print_booking(booking_id: int):
+    """Confirm booking and redirect to PDF for printing"""
+    try:
+        print(f"[CONFIRM PRINT] Confirming booking {booking_id}")
+        
+        # Update booking status to confirmed
+        conn = get_db_connection()
+        cur = conn.cursor()
+        
+        cur.execute("""
+            UPDATE commission_bookings 
+            SET status = 'confirmed', updated_at = CURRENT_TIMESTAMP 
+            WHERE id = %s
+        """, (booking_id,))
+        
+        conn.commit()
+        cur.close()
+        conn.close()
+        
+        print(f"[CONFIRM PRINT] Booking {booking_id} confirmed successfully")
+        
+        # Redirect to PDF generation
+        from fastapi.responses import RedirectResponse
+        return RedirectResponse(url=f"/api/commissioner-booking-pdf/generate/{booking_id}")
+        
+    except Exception as e:
+        print(f"[CONFIRM PRINT] Error confirming booking: {e}")
+        raise HTTPException(status_code=500, detail='Erro ao confirmar reserva')
+
 @router.post('/api/commissioner/voucher/email/{booking_id}')
 async def email_voucher(booking_id: int, email_request: EmailRequest):
     """Send voucher by email"""
