@@ -271,6 +271,7 @@ def get_booking_data(booking_id):
             'pickup_location': result[11],
             'dropoff_location': result[12],
             'vehicle_group': result[13],
+            'vehicle_name': vehicle_api_names.get(result[13], result[13]),  # Add vehicle name
             'vehicle_model': vehicle_models.get(result[13], f'{result[13]} ou Similar'),
             'extras': extras,
             'flight_number': result[15],
