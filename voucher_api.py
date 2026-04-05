@@ -14,6 +14,8 @@ from email import encoders
 from jinja2 import Template
 from playwright.async_api import async_playwright
 from googleapiclient.discovery import build
+import os
+import json
 
 router = APIRouter()
 
@@ -78,6 +80,50 @@ def format_vehicle_name(vehicle_name):
             formatted_words.append(word.capitalize())
     
     return ' '.join(formatted_words)
+
+def send_new_booking_notification(booking_id: int, booking_data: dict):
+    """Send notification email to Auto Prudente about new booking"""
+    try:
+        print(f"[NOTIFICATION] Sending new booking notification for {booking_data.get('voucher_number')}")
+        
+        # Load notification template
+        template_path = os.path.join(os.path.dirname(__file__), 'templates', 'email_new_booking_notification.html')
+        with open(template_path, 'r', encoding='utf-8') as f:
+            template_content = f.read()
+        
+        # Prepare template data
+        notification_data = booking_data.copy()
+        notification_data['booking_id'] = booking_id
+        notification_data['booking_date'] = booking_data.get('created_date', '')
+        
+        # Render template
+        template = Template(template_content)
+        html_content = template.render(**notification_data)
+        
+        # Create message
+        message = MIMEText(html_content, 'html')
+        message['to'] = 'info@auto-prudente.com'
+        message['subject'] = f"Nova Reserva - {booking_data.get('voucher_number', '')}"
+        
+        # Send via Gmail API
+        service = get_gmail_service()
+        draft = service.users().messages().create(
+            userId='me',
+            body={'raw': base64.urlsafe_b64encode(message.as_bytes()).decode()}
+        ).execute()
+        
+        # Send the message
+        service.users().messages().send(
+            userId='me',
+            body={'id': draft['id']}
+        ).execute()
+        
+        print(f"[NOTIFICATION] Email sent successfully to info@auto-prudente.com")
+        return True
+        
+    except Exception as e:
+        print(f"[NOTIFICATION] Error sending notification: {e}")
+        return False
 
 def render_email_template(booking_data):
     """Render email template with booking data and language support"""

@@ -325,6 +325,16 @@ async def create_booking(booking: BookingCreate, request: Request):
     conn.commit()
     conn.close()
     
+    # Send notification to Auto Prudente
+    try:
+        from voucher_api import get_booking_data, send_new_booking_notification
+        booking_data = get_booking_data(booking_id)
+        if booking_data:
+            send_new_booking_notification(booking_id, booking_data)
+    except Exception as e:
+        print(f"[BOOKING] Error sending notification: {e}")
+        # Don't fail the booking creation if notification fails
+    
     return {
         "ok": True,
         "booking_id": booking_id,
