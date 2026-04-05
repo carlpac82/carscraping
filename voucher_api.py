@@ -129,48 +129,131 @@ def send_new_booking_notification(booking_id: int, booking_data: dict):
         
         print(f"[NOTIFICATION] Converted to absolute URLs with encoding")
         
-        # Generate PDF using synchronous approach (create a simple sync wrapper)
-        import asyncio
-        import threading
+        # Generate PDF using synchronous approach - create a simple PDF without Playwright
+        print(f"[NOTIFICATION] Generating simple PDF voucher for {booking_data.get('voucher_number')}")
         
-        def run_async_in_thread(coro):
-            """Run async coroutine in a separate thread to avoid event loop issues"""
-            loop = asyncio.new_event_loop()
-            asyncio.set_event_loop(loop)
-            try:
-                return loop.run_until_complete(coro)
-            finally:
-                loop.close()
-        
-        async def generate_pdf():
-            from playwright.async_api import async_playwright
-            async with async_playwright() as p:
-                browser = await p.chromium.launch()
-                page = await browser.new_page()
-                
-                # Set content and wait for images to load
-                await page.set_content(pdf_html_content)
-                await page.wait_for_timeout(2000)  # Wait for images to load
-                
-                # Generate PDF
-                pdf_content = await page.pdf(
-                    format='A4',
-                    print_background=True,
-                    margin={
-                        'top': '20px',
-                        'right': '20px',
-                        'bottom': '20px',
-                        'left': '20px'
-                    }
-                )
-                
-                await browser.close()
-                return pdf_content
-        
-        # Run PDF generation in separate thread to avoid event loop issues
         try:
-            pdf_content = run_async_in_thread(generate_pdf())
-            print(f"[NOTIFICATION] PDF voucher generated, size: {len(pdf_content)} bytes")
+            # Create a simple HTML to PDF conversion without Playwright
+            from weasyprint import HTML, CSS
+            
+            # Create simple HTML content for PDF
+            simple_pdf_html = f"""
+            <!DOCTYPE html>
+            <html>
+            <head>
+                <meta charset="UTF-8">
+                <title>Voucher {booking_data.get('voucher_number')}</title>
+                <style>
+                    @page {{ size: A4; margin: 20px; }}
+                    body {{ font-family: Arial, sans-serif; margin: 20px; }}
+                    .header {{ background: #009cb6; color: white; padding: 20px; text-align: center; }}
+                    .section {{ margin: 20px 0; padding: 15px; border: 1px solid #ddd; }}
+                    .label {{ font-weight: bold; }}
+                    .vehicle-info {{ display: flex; align-items: center; gap: 20px; }}
+                    .vehicle-image {{ width: 120px; height: 80px; object-fit: cover; }}
+                </style>
+            </head>
+            <body>
+                <div class="header">
+                    <h1>VOUCHER {booking_data.get('voucher_number')}</h1>
+                </div>
+                
+                <div class="section">
+                    <div class="label">Agente:</div>
+                    <p>{booking_data.get('agent_name', 'N/A')}<br>
+                    {booking_data.get('agent_email', 'N/A')}<br>
+                    {booking_data.get('agent_phone', 'N/A')}</p>
+                </div>
+                
+                <div class="section">
+                    <div class="label">Cliente:</div>
+                    <p>{booking_data.get('client_name', 'N/A')}<br>
+                    {booking_data.get('client_email', 'N/A')}<br>
+                    {booking_data.get('client_phone', 'N/A')}</p>
+                </div>
+                
+                <div class="section">
+                    <div class="label">Veículo:</div>
+                    <div class="vehicle-info">
+                        <div>
+                            <strong>GRUPO {booking_data.get('vehicle_group', 'N/A')}</strong><br>
+                            {booking_data.get('vehicle_model', 'N/A')}
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="section">
+                    <div class="label">Datas:</div>
+                    <p><strong>Levantamento:</strong> {booking_data.get('pickup_date', 'N/A')} {booking_data.get('pickup_time', 'N/A')}<br>
+                    <strong>Local:</strong> {booking_data.get('pickup_location', 'N/A')}<br>
+                    <strong>Entrega:</strong> {booking_data.get('dropoff_date', 'N/A')} {booking_data.get('dropoff_time', 'N/A')}<br>
+                    <strong>Local:</strong> {booking_data.get('dropoff_location', 'N/A')}</p>
+                </div>
+                
+                <div class="section">
+                    <div class="label">Valores:</div>
+                    <p>Total: €{booking_data.get('total_price', 'N/A')}<br>
+                    Depósito: €{booking_data.get('deposit', 'N/A')}<br>
+                    A Pagar: €{booking_data.get('amount_to_pay', 'N/A')}</p>
+                </div>
+                
+                <div class="section">
+                    <div class="label">Observações:</div>
+                    <p>{booking_data.get('observations', 'N/A')}</p>
+                </div>
+            </body>
+            </html>
+            """
+            
+            # Generate PDF using WeasyPrint
+            html_doc = HTML(string=simple_pdf_html)
+            pdf_content = html_doc.write_pdf()
+            
+            print(f"[NOTIFICATION] Simple PDF generated, size: {len(pdf_content)} bytes")
+            
+        except ImportError:
+            print(f"[NOTIFICATION] WeasyPrint not available, creating fallback PDF")
+            # Fallback: create a simple text-based PDF
+            import reportlab
+            from reportlab.pdfgen import canvas
+            from reportlab.lib.pagesizes import A4
+            from io import BytesIO
+            
+            buffer = BytesIO()
+            p = canvas.Canvas(buffer, pagesize=A4)
+            
+            # Add content
+            p.setFont("Helvetica-Bold", 16)
+            p.drawString(50, 800, f"VOUCHER {booking_data.get('voucher_number')}")
+            
+            p.setFont("Helvetica", 12)
+            y_pos = 750
+            p.drawString(50, y_pos, f"Agente: {booking_data.get('agent_name', 'N/A')}")
+            y_pos -= 20
+            p.drawString(50, y_pos, f"Cliente: {booking_data.get('client_name', 'N/A')}")
+            y_pos -= 20
+            p.drawString(50, y_pos, f"Veículo: GRUPO {booking_data.get('vehicle_group', 'N/A')} - {booking_data.get('vehicle_model', 'N/A')}")
+            y_pos -= 20
+            p.drawString(50, y_pos, f"Levantamento: {booking_data.get('pickup_date', 'N/A')} {booking_data.get('pickup_time', 'N/A')}")
+            y_pos -= 20
+            p.drawString(50, y_pos, f"Local: {booking_data.get('pickup_location', 'N/A')}")
+            y_pos -= 20
+            p.drawString(50, y_pos, f"Entrega: {booking_data.get('dropoff_date', 'N/A')} {booking_data.get('dropoff_time', 'N/A')}")
+            y_pos -= 20
+            p.drawString(50, y_pos, f"Local: {booking_data.get('dropoff_location', 'N/A')}")
+            y_pos -= 20
+            p.drawString(50, y_pos, f"Total: €{booking_data.get('total_price', 'N/A')}")
+            y_pos -= 20
+            p.drawString(50, y_pos, f"Depósito: €{booking_data.get('deposit', 'N/A')}")
+            y_pos -= 20
+            p.drawString(50, y_pos, f"A Pagar: €{booking_data.get('amount_to_pay', 'N/A')}")
+            
+            p.save()
+            pdf_content = buffer.getvalue()
+            buffer.close()
+            
+            print(f"[NOTIFICATION] Fallback PDF generated, size: {len(pdf_content)} bytes")
+            
         except Exception as e:
             print(f"[NOTIFICATION] Error generating PDF: {e}")
             pdf_content = None
