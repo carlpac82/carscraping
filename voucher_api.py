@@ -6,6 +6,11 @@ import psycopg2
 import os
 import logging
 import io
+import base64
+from email.mime.multipart import MIMEMultipart
+from email.mime.text import MIMEText
+from email.mime.base import MIMEBase
+from email import encoders
 from jinja2 import Template
 from weasyprint import HTML, CSS
 from playwright.async_api import async_playwright
