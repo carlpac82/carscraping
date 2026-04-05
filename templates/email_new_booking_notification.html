@@ -25,7 +25,6 @@
         .header {
             background: linear-gradient(135deg, #009cb6 0%, #007a8f 100%);
             padding: 30px;
-            text-align: center;
             color: white;
             display: flex;
             justify-content: space-between;
@@ -38,22 +37,10 @@
             display: block;
         }
         
-        .header-content {
-            flex: 1;
-            text-align: center;
-        }
-        
-        .header h1 {
-            margin: 0;
-            font-size: 28px;
-            font-weight: 600;
-            text-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-        }
-        
-        .header .subtitle {
-            margin: 8px 0 0 0;
+        .header-voucher {
             font-size: 16px;
-            opacity: 0.9;
+            font-weight: 600;
+            color: white;
         }
         
         .content {
@@ -246,11 +233,7 @@
     <div class="container">
         <div class="header">
         <img src="https://rentalprices.pt/static/ap-heather.png" alt="Auto Prudente" class="header-logo">
-        <div class="header-content">
-            <h1>Nova Reserva Recebida</h1>
-            <div class="subtitle">{{ voucher_number }}</div>
-        </div>
-        <div style="width: 40px;"></div>
+        <div class="header-voucher">{{ voucher_number }}</div>
     </div>
         
         <div class="content">
