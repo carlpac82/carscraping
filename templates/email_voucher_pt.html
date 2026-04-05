@@ -19,26 +19,31 @@
         }
         @media only screen and (max-width: 600px) {
             .vehicle-info {
-                display: block !important;
+                display: flex !important;
+                flex-direction: column !important;
+                gap: 15px !important;
+            }
+            .vehicle-image {
+                align-self: center !important;
             }
             .vehicle-image img {
-                width: 100% !important;
-                max-width: 300px !important;
+                width: 120px !important;
                 height: auto !important;
             }
             .details-grid {
                 grid-template-columns: 1fr !important;
             }
             .checkin-section {
-                display: block !important;
+                display: flex !important;
+                flex-direction: column !important;
+                gap: 15px !important;
             }
             .checkin-qr {
-                text-align: center !important;
-                margin: 20px 0 !important;
+                align-self: center !important;
             }
             .checkin-qr img {
-                width: 120px !important;
-                height: 120px !important;
+                width: 80px !important;
+                height: 80px !important;
             }
         }
     </style>
