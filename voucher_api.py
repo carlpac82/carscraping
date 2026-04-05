@@ -414,7 +414,7 @@ def get_booking_data(booking_id):
             'agent_name': result[20] or 'N/A',
             'agent_email': result[21] or 'N/A',
             'agent_phone': result[22] or 'N/A',
-            'booking_date': result[19] if result[19] else '',
+            'booking_date': result[19].strftime('%d/%m/%Y %H:%M:%S') if result[19] else '',
             'vehicle_image': f'/api/vehicles/{vehicle_api_names.get(result[13], result[13])}/photo' if result[13] else ''
         }
         
