@@ -100,14 +100,14 @@ def send_new_booking_notification(booking_id: int, booking_data: dict):
         template = Template(template_content)
         html_content = template.render(**notification_data)
         
-        # Generate PDF voucher for attachment
+        # Generate PDF voucher for attachment - use same method as voucher email
         print(f"[NOTIFICATION] Generating PDF voucher for {booking_data.get('voucher_number')}")
         
-        # Render HTML template for PDF
+        # Render HTML template for PDF (same as voucher)
         pdf_html_content = render_voucher_template(booking_data)
         print(f"[NOTIFICATION] PDF HTML template rendered, length: {len(pdf_html_content)}")
         
-        # Converter para URL absoluta para Playwright carregar imagem
+        # Converter para URL absoluta para Playwright carregar imagem (same as voucher)
         pdf_html_content = pdf_html_content.replace('src="/api/vehicles/', 'src="https://rentalprices.pt/api/vehicles/')
         # Fix encoding para espaços
         pdf_html_content = pdf_html_content.replace('/fiat panda/photo', '/fiat%20panda/photo')
@@ -126,18 +126,51 @@ def send_new_booking_notification(booking_id: int, booking_data: dict):
         
         print(f"[NOTIFICATION] Converted to absolute URLs with encoding")
         
-        # Generate PDF using Playwright - synchronous approach
+        # Generate PDF using synchronous approach (create a simple sync wrapper)
         import asyncio
-        try:
-            # Try to get current event loop
-            loop = asyncio.get_running_loop()
-            # If we're in a running loop, create a task
-            pdf_content = loop.run_until_complete(_generate_pdf_async(pdf_html_content))
-        except RuntimeError:
-            # No running loop, use asyncio.run()
-            pdf_content = asyncio.run(_generate_pdf_async(pdf_html_content))
+        import threading
         
-        print(f"[NOTIFICATION] PDF voucher generated, size: {len(pdf_content)} bytes")
+        def run_async_in_thread(coro):
+            """Run async coroutine in a separate thread to avoid event loop issues"""
+            loop = asyncio.new_event_loop()
+            asyncio.set_event_loop(loop)
+            try:
+                return loop.run_until_complete(coro)
+            finally:
+                loop.close()
+        
+        async def generate_pdf():
+            from playwright.async_api import async_playwright
+            async with async_playwright() as p:
+                browser = await p.chromium.launch()
+                page = await browser.new_page()
+                
+                # Set content and wait for images to load
+                await page.set_content(pdf_html_content)
+                await page.wait_for_timeout(2000)  # Wait for images to load
+                
+                # Generate PDF
+                pdf_content = await page.pdf(
+                    format='A4',
+                    print_background=True,
+                    margin={
+                        'top': '20px',
+                        'right': '20px',
+                        'bottom': '20px',
+                        'left': '20px'
+                    }
+                )
+                
+                await browser.close()
+                return pdf_content
+        
+        # Run PDF generation in separate thread to avoid event loop issues
+        try:
+            pdf_content = run_async_in_thread(generate_pdf())
+            print(f"[NOTIFICATION] PDF voucher generated, size: {len(pdf_content)} bytes")
+        except Exception as e:
+            print(f"[NOTIFICATION] Error generating PDF: {e}")
+            pdf_content = None
         
         # Get Gmail OAuth credentials
         print(f"[NOTIFICATION] Loading Gmail OAuth credentials")
@@ -147,36 +180,41 @@ def send_new_booking_notification(booking_id: int, booking_data: dict):
             print(f"[NOTIFICATION] Gmail OAuth not configured")
             return False
         
-        # Create email message with attachment
+        # Create email message using same method as voucher
         print(f"[NOTIFICATION] Creating email message with PDF attachment")
-        from email.mime.multipart import MIMEMultipart
-        from email.mime.text import MIMEText
-        from email.mime.application import MIMEApplication
-        import base64
         
-        message = MIMEMultipart()
-        message['to'] = 'info@auto-prudente.com'
-        message['subject'] = f"Nova Reserva - {booking_data.get('voucher_number', '')}"
-        message.attach(MIMEText(html_content, 'html'))
+        if pdf_content:
+            # Use the same create_message_with_attachment function as voucher
+            message = create_message_with_attachment(
+                credentials,
+                'info@auto-prudente.com',
+                f"Nova Reserva - {booking_data.get('voucher_number', '')}",
+                html_content,  # HTML notification body
+                pdf_content,
+                f"voucher_{booking_data.get('voucher_number', '')}.pdf"
+            )
+            print(f"[NOTIFICATION] PDF attached: voucher_{booking_data.get('voucher_number', '')}.pdf")
+        else:
+            # Send without PDF if generation failed
+            from email.mime.multipart import MIMEMultipart
+            from email.mime.text import MIMEText
+            import base64
+            
+            message_obj = MIMEMultipart()
+            message_obj['to'] = 'info@auto-prudente.com'
+            message_obj['subject'] = f"Nova Reserva - {booking_data.get('voucher_number', '')}"
+            message_obj.attach(MIMEText(html_content, 'html'))
+            message = {'raw': base64.urlsafe_b64encode(message_obj.as_bytes()).decode()}
+            print(f"[NOTIFICATION] Sending email without PDF attachment")
         
-        # Attach PDF
-        pdf_attachment = MIMEApplication(pdf_content, name=f"voucher_{booking_data.get('voucher_number', '')}.pdf")
-        pdf_attachment['Content-Disposition'] = f'attachment; filename="voucher_{booking_data.get("voucher_number", "")}.pdf"'
-        message.attach(pdf_attachment)
-        
-        # Send email via Gmail API
+        # Send email via Gmail API (same as voucher)
         print(f"[NOTIFICATION] Sending email via Gmail API")
         try:
             service = build('gmail', 'v1', credentials=credentials)
-            # Encode message
-            raw_message = base64.urlsafe_b64encode(message.as_bytes()).decode()
-            
-            message_body = {'raw': raw_message}
-            result = service.users().messages().send(userId='me', body=message_body).execute()
+            result = service.users().messages().send(userId='me', body=message).execute()
             
             print(f"[NOTIFICATION] Email sent successfully to info@auto-prudente.com")
             print(f"[NOTIFICATION] Message ID: {result.get('id')}")
-            print(f"[NOTIFICATION] PDF voucher attached: voucher_{booking_data.get('voucher_number', '')}.pdf")
             return True
             
         except Exception as e:
