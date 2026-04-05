@@ -13,6 +13,7 @@ from email.mime.base import MIMEBase
 from email import encoders
 from jinja2 import Template
 from playwright.async_api import async_playwright
+from googleapiclient.discovery import build
 
 router = APIRouter()
 
