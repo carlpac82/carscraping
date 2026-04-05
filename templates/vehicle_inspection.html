@@ -707,24 +707,6 @@
                         </svg>
                     </a>
                     
-                    {% if current_user and current_user.can_access_commissioner %}
-                    <!-- Commissioner Icon -->
-                    <a href="/agentes/dashboard" class="p-2 hover:bg-[#0088a0] rounded-lg transition-all group" title="Portal do Agente">
-                        <svg class="w-5 h-5 text-white group-hover:text-[#f6b511] transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"/>
-                        </svg>
-                    </a>
-                    {% endif %}
-                    
-                    {% if current_user and current_user.can_access_commissions %}
-                    <!-- Commissions Icon -->
-                    <a href="/admin/commissions" class="p-2 hover:bg-[#0088a0] rounded-lg transition-all group" title="Comissões">
-                        <svg class="w-5 h-5 text-white group-hover:text-[#f6b511] transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
-                        </svg>
-                    </a>
-                    {% endif %}
-                    
                     <!-- History Icon -->
                     <a href="/inspection-history" class="p-2 hover:bg-[#0088a0] rounded-lg transition-all group" title="Histórico">
                         <svg class="w-5 h-5 text-white group-hover:text-[#f6b511] transition-colors" fill="currentColor" viewBox="0 0 24 24">
@@ -732,35 +714,6 @@
                             <path d="M12 6v6l4 2" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
                         </svg>
                     </a>
-                    
-                    <!-- User Avatar with Logout -->
-                    {% if current_user %}
-                    <div class="relative group">
-                        <button class="flex items-center hover:scale-105 transition-transform">
-                            {% if current_user.profile_picture_path %}
-                            <img src="{{ current_user.profile_picture_path }}" alt="Profile" class="w-10 h-10 rounded-full object-cover border-2 border-white shadow-lg" />
-                            {% else %}
-                            <div class="w-10 h-10 rounded-full bg-gradient-to-br from-[#009cb6] to-[#0077a3] flex items-center justify-center text-white font-bold text-sm border-2 border-white shadow-lg">
-                                {{ (current_user.first_name[:1] or current_user.username[:1] or 'U') | upper }}
-                            </div>
-                            {% endif %}
-                        </button>
-                        
-                        <!-- Logout Dropdown -->
-                        <div class="absolute right-0 top-12 w-48 bg-white rounded-lg shadow-xl border border-gray-200 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all z-50">
-                            <div class="p-3 border-b border-gray-100">
-                                <p class="text-sm font-semibold text-gray-900">{{ (current_user.first_name + ' ' + current_user.last_name).strip() or current_user.username }}</p>
-                                <p class="text-xs text-gray-500">{{ current_user.email or current_user.username }}</p>
-                            </div>
-                            <a href="/logout" onclick="return confirm('Tem a certeza que deseja terminar a sessão?');" class="w-full text-left px-4 py-2 text-sm text-red-600 hover:bg-red-50 transition-colors flex items-center gap-2">
-                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"/>
-                                </svg>
-                                Terminar Sessão
-                            </a>
-                        </div>
-                    </div>
-                    {% endif %}
                 </div>
             </div>
         </div>
