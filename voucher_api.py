@@ -47,9 +47,9 @@ vehicle_api_names = {
     'F': 'seat arona',          # ✅ ENCONTRADO
     'G': 'fiat 500',            # ✅ ENCONTRADO
     'J1': 'peugeot 2008',       # ✅ ENCONTRADO
-    'J2': 'peugeot 308',        # ✅ ENCONTRADO
+    'J2': 'peugeot 308 sw',     # ✅ ENCONTRADO (STATION WAGON)
     'L1': 'citroen c3 aircross', # ✅ ENCONTRADO
-    'L2': 'peugeot 308',        # ✅ ENCONTRADO
+    'L2': 'peugeot 308 sw',     # ✅ ENCONTRADO (STATION WAGON)
     'M1': 'dacia jogger',       # ✅ ENCONTRADO
     'M2': 'citroen c4',         # ✅ ENCONTRADO
     'N': 'toyota proace'        # ✅ ENCONTRADO
