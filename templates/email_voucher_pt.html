@@ -1,0 +1,212 @@
+<!DOCTYPE html>
+<html lang="pt">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Voucher de Reserva - Auto Prudente</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            font-family: Arial, sans-serif;
+            background-color: #f4f4f4;
+        }
+        .email-container {
+            max-width: 600px;
+            min-width: 320px;
+            margin: 0 auto;
+            background-color: #ffffff;
+        }
+        @media only screen and (max-width: 600px) {
+            div[style*="display: flex"] {
+                display: block !important;
+            }
+            img[style*="width: 150px"] {
+                width: 100% !important;
+                max-width: 300px !important;
+            }
+            div[style*="display: grid"] {
+                grid-template-columns: 1fr !important;
+            }
+        }
+    </style>
+</head>
+<body style="margin: 0; padding: 0; font-family: Arial, sans-serif; background-color: #f4f4f4;">
+    <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="margin: 0; padding: 0;">
+        <tr>
+            <td align="center" style="padding: 0;">
+                <table role="presentation" width="600" cellpadding="0" cellspacing="0" border="0" style="margin: 0 auto; background-color: #ffffff; width: 600px !important;">
+                    <tr>
+                        <td style="padding: 0;">
+    
+    <!-- Header -->
+    <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="background: linear-gradient(135deg, #00bcd4 0%, #0097a7 100%); background-color: #00bcd4;">
+        <tr>
+            <td style="padding: 20px;">
+                <table width="100%" cellpadding="0" cellspacing="0">
+                    <tr>
+                        <td style="width: 50%; text-align: left; vertical-align: middle;">
+                            <img src="{{LOGO_URL}}" alt="Auto Prudente" style="height: 50px; width: auto;">
+                        </td>
+                        <td style="width: 50%; text-align: right; vertical-align: middle;">
+                            <div style="background: rgba(255,255,255,0.2); padding: 10px 15px; border-radius: 6px; display: inline-block;">
+                                <span style="color: #ffffff; font-size: 16px; font-weight: bold;">Voucher: {{VOUCHER_NUMBER}}</span>
+                            </div>
+                        </td>
+                    </tr>
+                </table>
+            </td>
+        </tr>
+    </table>
+
+    <!-- Greeting -->
+    <div style="padding: 20px;">
+        <h2 style="color: #333333; margin: 0 0 15px 0; font-size: 18px;">Olá {{CLIENT_FIRST_NAME}},</h2>
+        <p style="color: #666666; line-height: 1.6; margin: 0 0 12px 0; font-size: 14px;">Agradecemos a sua reserva na Auto Prudente Rent a Car!</p>
+        <p style="color: #666666; line-height: 1.6; margin: 0 0 12px 0; font-size: 14px;">Segue abaixo os detalhes da sua reserva.</p>
+    </div>
+
+    <!-- Resumo da Reserva -->
+    <div style="padding: 20px; background-color: #f9f9f9;">
+        <h3 style="color: #00bcd4; margin: 0 0 15px 0; font-size: 18px;">Resumo da Reserva</h3>
+        
+        <!-- Vehicle Info with Image -->
+        <div style="display: flex; align-items: center; gap: 20px; margin-bottom: 20px; background: white; padding: 15px; border-radius: 8px; border: 1px solid #e0e0e0;">
+            <div style="flex: 1;">
+                <table width="100%" cellpadding="0" cellspacing="0" style="font-size: 14px;">
+                    <tr>
+                        <td style="font-weight: bold; color: #333333; padding-bottom: 8px;">Cliente:</td>
+                        <td style="padding-bottom: 8px; color: #1f2937; font-weight: 600;">{{CLIENT_NAME}}</td>
+                    </tr>
+                    <tr>
+                        <td style="font-weight: bold; color: #333333; padding-bottom: 8px;">Veículo:</td>
+                        <td style="padding-bottom: 8px; color: #666666;">{{VEHICLE_GROUP}} - {{VEHICLE_NAME}}</td>
+                    </tr>
+                    <tr>
+                        <td style="font-weight: bold; color: #333333; padding-bottom: 8px;">Local:</td>
+                        <td style="padding-bottom: 8px; color: #666666;">{{PICKUP_LOCATION}}</td>
+                    </tr>
+                </table>
+            </div>
+            <div style="flex-shrink: 0;">
+                <img src="{{VEHICLE_IMAGE_URL}}" alt="{{VEHICLE_NAME}}" style="width: 150px; height: auto; border-radius: 8px; border: 1px solid #e0e0e0;">
+            </div>
+        </div>
+
+        <!-- Dates and Times Grid -->
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-bottom: 20px;">
+            <!-- Pickup -->
+            <div style="background: white; padding: 15px; border-radius: 8px; border: 1px solid #e0e0e0;">
+                <h4 style="color: #00bcd4; margin: 0 0 10px 0; font-size: 16px;">Entrega</h4>
+                <table width="100%" cellpadding="0" cellspacing="0" style="font-size: 13px;">
+                    <tr>
+                        <td style="font-weight: bold; color: #333333; padding-bottom: 5px;">Data:</td>
+                        <td style="padding-bottom: 5px; color: #666666;">{{PICKUP_DATE}}</td>
+                    </tr>
+                    <tr>
+                        <td style="font-weight: bold; color: #333333; padding-bottom: 5px;">Hora:</td>
+                        <td style="padding-bottom: 5px; color: #666666;">{{PICKUP_TIME}}</td>
+                    </tr>
+                </table>
+            </div>
+            
+            <!-- Dropoff -->
+            <div style="background: white; padding: 15px; border-radius: 8px; border: 1px solid #e0e0e0;">
+                <h4 style="color: #00bcd4; margin: 0 0 10px 0; font-size: 16px;">Recolha</h4>
+                <table width="100%" cellpadding="0" cellspacing="0" style="font-size: 13px;">
+                    <tr>
+                        <td style="font-weight: bold; color: #333333; padding-bottom: 5px;">Data:</td>
+                        <td style="padding-bottom: 5px; color: #666666;">{{DROPOFF_DATE}}</td>
+                    </tr>
+                    <tr>
+                        <td style="font-weight: bold; color: #333333; padding-bottom: 5px;">Hora:</td>
+                        <td style="padding-bottom: 5px; color: #666666;">{{DROPOFF_TIME}}</td>
+                    </tr>
+                </table>
+            </div>
+        </div>
+
+        <!-- Pricing -->
+        <div style="background: white; padding: 15px; border-radius: 8px; border: 1px solid #e0e0e0;">
+            <h4 style="color: #00bcd4; margin: 0 0 15px 0; font-size: 16px;">Valores</h4>
+            <table width="100%" cellpadding="8" cellspacing="0" style="font-size: 14px;">
+                <tr>
+                    <td style="font-weight: bold; color: #333333; border-bottom: 1px solid #f0f0f0;">Total da Reserva:</td>
+                    <td style="text-align: right; border-bottom: 1px solid #f0f0f0; color: #1f2937; font-weight: 600;">€{{TOTAL_PRICE}}</td>
+                </tr>
+                <tr>
+                    <td style="font-weight: bold; color: #333333; border-bottom: 1px solid #f0f0f0;">Depósito/Caução:</td>
+                    <td style="text-align: right; border-bottom: 1px solid #f0f0f0; color: #666666;">€{{DEPOSIT_AMOUNT}}</td>
+                </tr>
+                <tr>
+                    <td style="font-weight: bold; color: #333333;">Valor a Pagar:</td>
+                    <td style="text-align: right; color: #00bcd4; font-weight: 600; font-size: 16px;">€{{AMOUNT_TO_PAY}}</td>
+                </tr>
+            </table>
+        </div>
+    </div>
+
+    <!-- Important Information -->
+    <div style="padding: 20px;">
+        <h3 style="color: #00bcd4; margin: 0 0 15px 0; font-size: 18px;">Informações Importantes</h3>
+        <ul style="color: #666666; line-height: 1.6; margin: 0; padding-left: 20px; font-size: 14px;">
+            <li>Por favor, apresente este voucher no momento da entrega do veículo</li>
+            <li>Leve consigo carta de condução válida e documento de identificação</li>
+            <li>O depósito será devolvido no final do aluguer, desde que o veículo seja devolvido nas mesmas condições</li>
+            <li>Qualquer avaria ou excesso de quilómetros será debitado ao depósito</li>
+        </ul>
+    </div>
+
+    <!-- Contact Information -->
+    <div style="padding: 20px; background-color: #f9f9f9;">
+        <h3 style="color: #00bcd4; margin: 0 0 15px 0; font-size: 18px;">Contactos</h3>
+        <table width="100%" cellpadding="8" cellspacing="0" style="font-size: 14px;">
+            <tr>
+                <td style="font-weight: bold; color: #333333; width: 30%;">Telefone:</td>
+                <td style="color: #666666;">+351 289 542 160</td>
+            </tr>
+            <tr>
+                <td style="font-weight: bold; color: #333333;">Email:</td>
+                <td style="color: #666666;">info@auto-prudente.com</td>
+            </tr>
+            <tr>
+                <td style="font-weight: bold; color: #333333;">Website:</td>
+                <td style="color: #666666;">www.auto-prudente.com</td>
+            </tr>
+        </table>
+    </div>
+
+    <!-- Separator Line -->
+    <div style="height: 2px; background: linear-gradient(to right, transparent, #00bcd4, transparent); margin: 30px 20px;"></div>
+
+    <!-- Footer -->
+    <div style="background-color: #00bcd4; padding: 20px; text-align: center;">
+        <p style="color: #ffffff; margin: 0; font-size: 11px; opacity: 0.8;">© 2026 Auto Prudente Rent a Car. Todos os direitos reservados.</p>
+    </div>
+    
+    <!-- Legal Footer -->
+    <div style="background-color: #f4f4f4; padding: 20px; text-align: center; border-top: 1px solid #e0e0e0;">
+        <div style="max-width: 560px; margin: 0 auto;">
+            <p style="color: #666666; margin: 0 0 12px 0; font-size: 11px; line-height: 1.6; text-align: justify;">
+                Está a receber este email porque efetuou uma reserva com a Auto Prudente Rent a Car. 
+                Na qualidade de responsável pelo tratamento de dados, a Auto Prudente Rent a Car Unipessoal, Lda. processa os seus dados pessoais para lhe enviar informações 
+                e serviços relacionados com o seu aluguer, tratamento relacionado com a execução do seu contrato de aluguer de viatura. 
+                Para mais informações sobre como a Auto Prudente Rent a Car processa os seus dados pessoais e os seus direitos ao abrigo da lei de proteção de dados, 
+                consulte a nossa política de privacidade.
+            </p>
+            <p style="color: #666666; margin: 0; font-size: 10px; line-height: 1.5;">
+                <strong>Auto Prudente Rent a Car Unipessoal, Lda.</strong> - Número Fiscal: PT 503 539 791<br>
+                Sede: Estrada de Santa Eulália, Edifício Onda do Mar Loja E, 8200-269 Albufeira<br>
+                Telefone +351 289 542 160 | E-mail: info@auto-prudente.com
+            </p>
+        </div>
+    </div>
+    
+                        </td>
+                    </tr>
+                </table>
+            </td>
+        </tr>
+    </table>
+</body>
+</html>

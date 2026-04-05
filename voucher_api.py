@@ -60,6 +60,64 @@ vehicle_api_names = {
     'N': 'toyota proace'        # ✅
 }
 
+def render_email_template(booking_data):
+    """Render email template with booking data"""
+    template_path = os.path.join(os.path.dirname(__file__), 'templates', 'email_voucher_pt.html')
+    
+    try:
+        with open(template_path, 'r', encoding='utf-8') as f:
+            template_content = f.read()
+        
+        # Extract first name from client name
+        client_name = booking_data.get('client_name', '')
+        client_first_name = client_name.split(' ')[0] if client_name else 'Cliente'
+        
+        # Format dates
+        pickup_date = booking_data.get('pickup_date', '')
+        pickup_time = booking_data.get('pickup_time', '')
+        dropoff_date = booking_data.get('dropoff_date', '')
+        dropoff_time = booking_data.get('dropoff_time', '')
+        
+        # Get vehicle image URL (absolute)
+        vehicle_image_url = f"https://rentalprices.pt/api/vehicles/{booking_data.get('vehicle_name', '').replace(' ', '%20')}/photo"
+        
+        # Replace template variables
+        template_content = template_content.replace('{{CLIENT_FIRST_NAME}}', client_first_name)
+        template_content = template_content.replace('{{CLIENT_NAME}}', client_name)
+        template_content = template_content.replace('{{VOUCHER_NUMBER}}', booking_data.get('voucher_number', ''))
+        template_content = template_content.replace('{{VEHICLE_GROUP}}', booking_data.get('vehicle_group', ''))
+        template_content = template_content.replace('{{VEHICLE_NAME}}', booking_data.get('vehicle_name', ''))
+        template_content = template_content.replace('{{VEHICLE_IMAGE_URL}}', vehicle_image_url)
+        template_content = template_content.replace('{{PICKUP_LOCATION}}', booking_data.get('pickup_location', ''))
+        template_content = template_content.replace('{{PICKUP_DATE}}', pickup_date)
+        template_content = template_content.replace('{{PICKUP_TIME}}', pickup_time)
+        template_content = template_content.replace('{{DROPOFF_DATE}}', dropoff_date)
+        template_content = template_content.replace('{{DROPOFF_TIME}}', dropoff_time)
+        template_content = template_content.replace('{{TOTAL_PRICE}}', str(booking_data.get('total_price', '0')))
+        template_content = template_content.replace('{{DEPOSIT_AMOUNT}}', str(booking_data.get('deposit_amount', '0')))
+        template_content = template_content.replace('{{AMOUNT_TO_PAY}}', str(booking_data.get('amount_to_pay', '0')))
+        template_content = template_content.replace('{{LOGO_URL}}', 'https://rentalprices.pt/static/images/logo.png')
+        
+        return template_content
+        
+    except Exception as e:
+        print(f"[VOUCHER EMAIL] Error rendering email template: {e}")
+        # Fallback to simple HTML
+        return f"""
+        <html>
+        <body>
+            <h2>Olá {client_first_name},</h2>
+            <p>Agradecemos a sua reserva na Auto Prudente Rent a Car!</p>
+            <p>Voucher: {booking_data.get('voucher_number', '')}</p>
+            <p>Veículo: {booking_data.get('vehicle_name', '')}</p>
+            <p>Entrega: {pickup_date} {pickup_time}</p>
+            <p>Recolha: {dropoff_date} {dropoff_time}</p>
+            <p>Valor a pagar: €{booking_data.get('amount_to_pay', '0')}</p>
+            <p>O voucher está em anexo.</p>
+        </body>
+        </html>
+        """
+
 def create_message_with_attachment(credentials, to_email, subject, body, attachment_content, filename):
     """Create email message with attachment"""
     # Create message
@@ -660,12 +718,15 @@ async def email_voucher(booking_id: int, email_request: EmailRequest):
             print(f"[VOUCHER EMAIL] Gmail OAuth not configured")
             raise HTTPException(status_code=500, detail='Gmail não está configurado. Vá a Admin Settings → Email e conecte o Gmail.')
         
-        # Create email message
+        # Create email message with HTML template body
+        print(f"[VOUCHER EMAIL] Rendering email template")
+        email_body = render_email_template(booking_data)
+        
         message = create_message_with_attachment(
             credentials, 
             email_request.email, 
             f"Voucher {booking_data['voucher_number']}", 
-            f"Anexo o voucher para a reserva {booking_data['voucher_number']}.",
+            email_body,  # HTML template body
             pdf_content,  
             f"voucher_{booking_data['voucher_number']}.pdf"
         )
