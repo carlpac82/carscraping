@@ -299,11 +299,6 @@ async def print_voucher(booking_id: int):
         html_content = render_voucher_template(booking_data)
         print(f"[VOUCHER PRINT] HTML template rendered, length: {len(html_content)}")
         
-        # Usar imagens transparentes (sem fundo branco)
-        html_content = html_content.replace('/api/vehicles/', '/api/vehicles/')
-        html_content = html_content.replace('/photo', '/photo-transparent')
-        
-        print(f"[VOUCHER PRINT] Using transparent images (no white background)")
         print(f"[VOUCHER PRINT] Starting PDF generation with Playwright")
         
         # Generate PDF using Playwright
