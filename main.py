@@ -5948,10 +5948,20 @@ def require_admin(request: Request):
         raise HTTPException(status_code=403, detail="Forbidden")
 
 def require_commissions_management(request: Request):
-    """Require user to have commissions management permission"""
+    """Require user to be admin OR have commissioner access permission"""
     require_auth(request)
-    if not request.session.get("can_manage_commissions", False):
-        raise HTTPException(status_code=403, detail="Commissions management permission required")
+    is_admin = request.session.get("is_admin", False)
+    if is_admin:
+        return  # Admin sempre tem acesso
+    
+    # Verificar se user tem permissão específica
+    username = request.session.get("username")
+    if username:
+        user_data = _get_user_by_username(username)
+        if user_data and user_data.get("has_commissioner_access", False):
+            return  # User tem permissão
+    
+    raise HTTPException(status_code=403, detail="Commissions management permission required")
 
 def require_commissioner_access(request: Request):
     """Require user to be admin OR have commissioner access permission"""
