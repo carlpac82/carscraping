@@ -587,17 +587,21 @@
             </svg>
           </a>
           
+          {% if current_user and current_user.has_commissioner_access %}
           <a href="/admin/commissioner-bookings" class="p-2 text-white/90 hover:text-white hover:bg-white/10 transition-all" title="Reservas de Comissionistas">
             <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01"/>
             </svg>
           </a>
+          {% endif %}
           
+          {% if current_user and current_user.can_manage_commissions %}
           <a href="/admin/commissions" class="p-2 text-white/90 hover:text-white hover:bg-white/10 transition-all" title="Gestão de Comissões">
             <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/>
             </svg>
           </a>
+          {% endif %}
           
           <a href="/damage-report" class="p-2 text-white/90 hover:text-white hover:bg-white/10 transition-all" title="Damage Report">
             <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
