@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="pt">
 <head>
     <meta charset="UTF-8">
     <title>Voucher - AutoPrudente</title>
@@ -205,24 +205,24 @@
 
         <div class="content">
             <div class="agent-section">
-                <div class="section-title">Agent</div>
+                <div class="section-title">Agente</div>
                 <div class="info-grid">
                     <div class="info-row">
-                        <div class="info-label">Name</div>
+                        <div class="info-label">Nome</div>
                         <div class="info-value">{{ agent_name }}</div>
                     </div>
                     <div class="info-row">
-                        <div class="info-label">Booking Date</div>
+                        <div class="info-label">Data Reserva</div>
                         <div class="info-value">{{ booking_date }}</div>
                     </div>
                 </div>
             </div>
 
             <div class="section">
-                <div class="section-title">Customer</div>
+                <div class="section-title">Cliente</div>
                 <div class="info-grid">
                     <div class="info-row">
-                        <div class="info-label">Name</div>
+                        <div class="info-label">Nome</div>
                         <div class="info-value">{{ client_name }}</div>
                     </div>
                     <div class="info-row">
@@ -230,13 +230,13 @@
                         <div class="info-value">{{ client_email }}</div>
                     </div>
                     <div class="info-row">
-                        <div class="info-label">Phone</div>
+                        <div class="info-label">Telefone</div>
                         <div class="info-value">{{ client_phone }}</div>
                     </div>
                     {% if hotel %}
                     <div class="info-row">
                         <div class="info-label">Hotel</div>
-                        <div class="info-value">{{ hotel }}{% if room_number %} - Room {{ room_number }}{% endif %}</div>
+                        <div class="info-value">{{ hotel }}{% if room_number %} - Quarto {{ room_number }}{% endif %}</div>
                     </div>
                     {% endif %}
                 </div>
@@ -245,46 +245,46 @@
             <div class="vehicle-section">
                 <div style="display: table; width: 100%;">
                     <div style="display: table-row;">
-                        <!-- Left column - Fields -->
+                        <!-- Coluna da esquerda - Campos -->
                         <div style="display: table-cell; width: 60%; vertical-align: top;">
                             <div class="info-grid" style="margin-left: 4px;">
                                 <div class="info-row">
-                                    <div class="info-label">Pickup:</div>
+                                    <div class="info-label">Levantamento:</div>
                                     <div class="info-value">{{ pickup_date }} {{ pickup_time }}</div>
                                 </div>
                                 <div class="info-row">
-                                    <div class="info-label">Pickup Location:</div>
+                                    <div class="info-label">Local Levantamento:</div>
                                     <div class="info-value">{{ pickup_location }}</div>
                                 </div>
                                 <div class="info-row">
-                                    <div class="info-label">Dropoff:</div>
+                                    <div class="info-label">Entrega:</div>
                                     <div class="info-value">{{ dropoff_date }} {{ dropoff_time }}</div>
                                 </div>
                                 <div class="info-row">
-                                    <div class="info-label">Dropoff Location:</div>
+                                    <div class="info-label">Local Entrega:</div>
                                     <div class="info-value">{{ dropoff_location }}</div>
                                 </div>
                                 <div class="info-row">
-                                    <div class="info-label">Days:</div>
+                                    <div class="info-label">Dias:</div>
                                     <div class="info-value">{{ rental_days }}</div>
                                 </div>
                                 {% if flight_number %}
                                 <div class="info-row">
-                                    <div class="info-label">Flight:</div>
+                                    <div class="info-label">Voo:</div>
                                     <div class="info-value">{{ flight_number }}</div>
                                 </div>
                                 {% endif %}
                             </div>
                         </div>
                         
-                        <!-- Right column - Image and Group -->
+                        <!-- Coluna da direita - Imagem e Grupo -->
                         <div style="display: table-cell; width: 40%; vertical-align: middle; text-align: center; padding-left: 10px;">
                             {% if vehicle_image %}
                             <div style="margin-bottom: 12px;">
                                 <img src="{{ vehicle_image }}" alt="{{ vehicle_group }}" style="width: 100px; height: 60px; object-fit: cover; border-radius: 4px; background: white;" onerror="this.src='data:image/svg+xml,&lt;svg xmlns=%22http://www.w3.org/2000/svg%22 width=%22100%22 height=%2260%22&gt;&lt;rect fill=%22%23e5e7eb%22 width=%22100%22 height=%2260%22/&gt;&lt;text x=%2250%%22 y=%2250%%22 text-anchor=%22middle%22 dy=%22.3em%22 fill=%22%23666%22 font-size=%2212%22&gt;{{ vehicle_group }}&lt;/text&gt;&lt;/svg&gt;'">
                             </div>
                             <div class="vehicle-name">
-                                <span style="text-transform: uppercase; font-weight: 700; color: #009cb6;">GROUP {{ vehicle_group }}</span>
+                                <span style="text-transform: uppercase; font-weight: 700; color: #009cb6;">GRUPO {{ vehicle_group }}</span>
                                 <br>
                                 <span style="font-size: 10px; color: #6b7280; font-weight: normal;">{{ vehicle_model }}</span>
                             </div>
@@ -295,17 +295,17 @@
             </div>
 
             <div class="payment-section">
-                <div class="section-title">Payment</div>
+                <div class="section-title">Pagamento</div>
                 <div class="payment-row">
-                    <div class="payment-label">Total Value</div>
+                    <div class="payment-label">Valor Total</div>
                     <div class="payment-value">€{{ total_price }}</div>
                 </div>
                 <div class="payment-row">
-                    <div class="payment-label">Deposit Paid</div>
+                    <div class="payment-label">Depósito Pago</div>
                     <div class="payment-value">€{{ deposit }}</div>
                 </div>
                 <div class="payment-highlight">
-                    <div class="payment-highlight-label">To Pay at Pickup</div>
+                    <div class="payment-highlight-label">A Pagar no Levantamento</div>
                     <div class="payment-highlight-value">€{{ amount_to_pay }}</div>
                 </div>
             </div>
@@ -325,31 +325,31 @@
 
             {% if observations %}
             <div class="section">
-                <div class="section-title">Observations</div>
+                <div class="section-title">Observações</div>
                 <div class="info-value" style="padding: 6px 8px; font-size: 9px;">{{ observations }}</div>
             </div>
             {% endif %}
 
             <div class="section">
-                <div class="section-title">Online Check-in & Contacts</div>
+                <div class="section-title">Check-in Online & Contactos</div>
                 <div style="display: flex; gap: 10px; align-items: flex-start; justify-content: space-between;">
                     <div style="flex: 1; font-size: 9px; color: #1f2937; line-height: 1.5;">
-                        <div style="margin-bottom: 3px;"><strong>Online Check-in:</strong> Scan the QR code or visit <a href="https://auto-prudente.com/online-checkin/" style="color: #009cb6; text-decoration: none;">🌐 auto-prudente.com/online-checkin/</a></div>
-                        <div style="margin-bottom: 3px;"><strong>Location:</strong> <a href="https://maps.app.goo.gl/pfagFEwTw1XoGc1g8" style="color: #009cb6; text-decoration: none;">🌐 View on Google Maps</a></div>
-                        <div style="margin-bottom: 3px;"><strong>Phone:</strong> +351 289 542 160</div>
+                        <div style="margin-bottom: 3px;"><strong>Check-in Online:</strong> Escaneie o QR code ou aceda a <a href="https://auto-prudente.com/online-checkin/" style="color: #009cb6; text-decoration: none;">🌐 auto-prudente.com/online-checkin/</a></div>
+                        <div style="margin-bottom: 3px;"><strong>Localização:</strong> <a href="https://maps.app.goo.gl/pfagFEwTw1XoGc1g8" style="color: #009cb6; text-decoration: none;">🌐 Ver no Google Maps</a></div>
+                        <div style="margin-bottom: 3px;"><strong>Telefone:</strong> +351 289 542 160</div>
                         <div><strong>Email:</strong> info@auto-prudente.com</div>
                     </div>
                     <div style="flex: 0 0 60px; text-align: right;">
                         <a href="https://auto-prudente.com/online-checkin/" style="display: block;">
-                            <img src="https://rentalprices.pt/static/check-in.png" alt="Online Check-in" style="width: 60px; height: 60px; display: block;">
+                            <img src="https://rentalprices.pt/static/check-in.png" alt="Check-in Online" style="width: 60px; height: 60px; display: block;">
                         </a>
-                        <div style="font-size: 7px; text-align: center; color: #6b7280; margin-top: 2px;">Online Check-in</div>
+                        <div style="font-size: 7px; text-align: center; color: #6b7280; margin-top: 2px;">Check-in Online</div>
                     </div>
                 </div>
             </div>
 
             <div class="footer">
-                Please present this voucher at vehicle pickup.
+                Por favor, apresente este voucher no levantamento da viatura.
             </div>
         </div>
     </div>
