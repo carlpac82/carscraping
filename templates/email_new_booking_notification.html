@@ -27,6 +27,20 @@
             padding: 30px;
             text-align: center;
             color: white;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .header-logo {
+            height: 40px;
+            width: auto;
+            display: block;
+        }
+        
+        .header-content {
+            flex: 1;
+            text-align: center;
         }
         
         .header h1 {
@@ -231,9 +245,13 @@
 <body>
     <div class="container">
         <div class="header">
+        <img src="https://rentalprices.pt/static/ap-heather.png" alt="Auto Prudente" class="header-logo">
+        <div class="header-content">
             <h1>Nova Reserva Recebida</h1>
             <div class="subtitle">{{ voucher_number }}</div>
         </div>
+        <div style="width: 40px;"></div>
+    </div>
         
         <div class="content">
             <div class="commissioner-info">
