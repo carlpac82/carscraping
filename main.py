@@ -33947,7 +33947,9 @@ async def upload_commissioner_booking_pdf_template(request: Request, pdf: Upload
 @app.get("/api/commissioner-booking-pdf/generate/{booking_id}")
 async def generate_commissioner_booking_pdf(booking_id: int, request: Request):
     """Gerar PDF do Livro de Reservas preenchido com dados da reserva"""
-    require_admin(request)
+    user = request.session.get('user')
+    if not user or not (user.get('is_admin') or user.get('has_commissioner_access')):
+        raise HTTPException(status_code=403, detail="Acesso negado")
     
     try:
         from reportlab.pdfgen import canvas

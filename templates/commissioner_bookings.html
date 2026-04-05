@@ -299,7 +299,7 @@
         .actions {
             display: flex;
             gap: 8px;
-            flex-wrap: wrap;
+            flex-wrap: nowrap;
             align-items: center;
         }
 
@@ -759,6 +759,22 @@
             .form-row {
                 grid-template-columns: 1fr !important;
                 gap: 12px !important;
+            }
+
+            /* Igualar comprimento dos campos de data nos filtros */
+            .filter-group input[type="date"] {
+                width: 100%;
+            }
+
+            /* Prevenir scroll horizontal no modal */
+            .modal-content {
+                overflow-x: hidden;
+            }
+
+            .form-group input,
+            .form-group select {
+                width: 100% !important;
+                box-sizing: border-box;
             }
 
             .btn-submit,
