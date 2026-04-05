@@ -680,10 +680,7 @@ async def email_voucher(booking_id: int, email_request: EmailRequest):
             sent_message = service.users().messages().send(userId='me', body=message_body).execute()
             print(f"[VOUCHER EMAIL] Email sent successfully: {sent_message['id']}")
             
-            return JSONResponse(
-                status_code=200,
-                content={"message": "Voucher enviado com sucesso", "message_id": sent_message['id']}
-            )
+            return {"success": True, "message": "Voucher enviado com sucesso", "message_id": sent_message['id']}
             
         except Exception as e:
             print(f"[VOUCHER EMAIL] Error sending email: {e}")
