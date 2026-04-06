@@ -3243,6 +3243,18 @@
                 color: #1f2937;
             }
             
+            /* Reduzir tamanho do texto para cliente e email no mobile */
+            .booking-card-mobile .detail-row:has([data-client-info]) .detail-value {
+                font-size: 11px;
+                max-width: 60%;
+                word-break: break-word;
+            }
+            
+            /* Reduzir tamanho do preço no mobile */
+            .booking-card-mobile .detail-row:has([data-price]) .detail-value {
+                font-size: 12px;
+            }
+            
             .booking-card-mobile .booking-actions {
                 display: flex;
                 gap: 8px;
@@ -4506,7 +4518,7 @@
                             <div class="booking-status status-badge status-${booking.status}">${statusMap[booking.status] || booking.status}</div>
                         </div>
                         <div class="booking-details">
-                            <div class="detail-row">
+                            <div class="detail-row" data-client-info>
                                 <span class="detail-label">Cliente:</span>
                                 <span class="detail-value">${booking.client_name || 'N/A'}</span>
                             </div>
@@ -4518,7 +4530,7 @@
                                 <span class="detail-label">Data:</span>
                                 <span class="detail-value">${new Date(booking.pickup_date).toLocaleDateString('pt-PT')}</span>
                             </div>
-                            <div class="detail-row">
+                            <div class="detail-row" data-price>
                                 <span class="detail-label">Total:</span>
                                 <span class="detail-value">€${(booking.price || 0).toFixed(2)}</span>
                             </div>
