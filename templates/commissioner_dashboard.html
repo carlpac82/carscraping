@@ -2682,6 +2682,10 @@
             
             .modal-footer {
                 padding: 16px 20px;
+                padding-bottom: calc(16px + env(safe-area-inset-bottom));
+                background: white;
+                position: relative;
+                z-index: 100;
             }
             
             /* Progress indicator */
@@ -2699,15 +2703,21 @@
             }
             
             .wizard-step {
-                min-width: 75px;
-                max-width: 75px;
-                flex: 0 0 75px;
+                min-width: 70px;
+                max-width: 70px;
+                flex: 0 0 70px;
             }
             
             .step-number {
-                width: 38px;
-                height: 38px;
-                font-size: 15px;
+                width: 36px !important;
+                height: 36px !important;
+                min-width: 36px !important;
+                min-height: 36px !important;
+                max-width: 36px !important;
+                max-height: 36px !important;
+                font-size: 14px;
+                border-radius: 50% !important;
+                flex-shrink: 0;
             }
             
             .step-label {
@@ -2715,7 +2725,8 @@
                 white-space: nowrap;
                 overflow: visible;
                 text-align: center;
-                max-width: 75px;
+                max-width: 70px;
+                line-height: 1.2;
             }
             
             /* Form adjustments */
