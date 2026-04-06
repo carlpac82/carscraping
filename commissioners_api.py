@@ -156,7 +156,10 @@ async def commissioner_login(login: CommissionerLogin, request: Request):
     conn.close()
     
     if not result:
-        raise HTTPException(status_code=401, detail="Invalid credentials")
+        return JSONResponse(
+            {"ok": False, "error": "Utilizador ou palavra passe errados"}, 
+            status_code=401
+        )
     
     commissioner = dict(result) if hasattr(result, 'keys') else {
         'id': result[0],
@@ -171,7 +174,10 @@ async def commissioner_login(login: CommissionerLogin, request: Request):
         raise HTTPException(status_code=403, detail="Account disabled")
     
     if not verify_password(login.password, commissioner['password_hash']):
-        raise HTTPException(status_code=401, detail="Invalid credentials")
+        return JSONResponse(
+            {"ok": False, "error": "Utilizador ou palavra passe errados"}, 
+            status_code=401
+        )
     
     # Set session
     request.session["auth"] = True  # Required for require_auth() to work

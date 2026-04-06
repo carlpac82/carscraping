@@ -1563,7 +1563,12 @@ except ImportError as e:
 # Exception handler to ensure CORS headers on all responses (including errors)
 @app.exception_handler(HTTPException)
 async def http_exception_handler(request: Request, exc: HTTPException):
-    """Ensure CORS headers are included in error responses"""
+    """Handle HTTP exceptions with proper CORS and redirect logic"""
+    # Redirect to login on unauthorized/forbidden, but not for API endpoints
+    if exc.status_code in (401, 403) and not request.url.path.startswith("/api/"):
+        return RedirectResponse(url="/login", status_code=HTTP_303_SEE_OTHER)
+    
+    # For API endpoints, return JSON response with CORS headers
     return JSONResponse(
         status_code=exc.status_code,
         content={"ok": False, "error": exc.detail},
@@ -1571,7 +1576,7 @@ async def http_exception_handler(request: Request, exc: HTTPException):
             "Access-Control-Allow-Origin": "*",
             "Access-Control-Allow-Credentials": "true",
             "Access-Control-Allow-Methods": "*",
-            "Access-Control-Allow-Headers": "*",
+            "Access-Control-Allow-Headers": "*"
         }
     )
 

@@ -233,16 +233,7 @@
                     body: JSON.stringify({ username, password })
                 });
 
-                let data;
-                try {
-                    const responseText = await response.text();
-                    console.log('Resposta bruta do servidor:', responseText);
-                    data = JSON.parse(responseText);
-                } catch (jsonError) {
-                    console.error('Erro ao processar JSON:', jsonError);
-                    // Se não conseguir processar JSON, assume erro de conexão
-                    throw jsonError;
-                }
+                const data = await response.json();
 
                 if (data.ok) {
                     if (data.needs_email) {
