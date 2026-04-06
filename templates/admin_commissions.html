@@ -1783,7 +1783,9 @@
               markPaidBtn.disabled = !hasSelection;
               markUnpaidBtn.disabled = !hasSelection;
               
-              selectAllText.textContent = selectedCommissions.size === allCommissions.length ? 'Deselecionar Todas' : 'Selecionar Todas';
+              if (selectAllText) {
+                  selectAllText.textContent = selectedCommissions.size === allCommissions.length ? 'Deselecionar Todas' : 'Selecionar Todas';
+              }
           }
           
           // Export to Excel
