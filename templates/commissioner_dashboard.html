@@ -5476,6 +5476,14 @@
             document.getElementById('summaryClientName').textContent = clientName;
             document.getElementById('summaryClientPhone').textContent = clientPhone;
             document.getElementById('summaryClientEmail').textContent = clientEmail;
+            
+            console.log('🔍 DADOS DO CLIENTE NO PASSO 5:');
+            console.log('Nome:', clientName);
+            console.log('Telefone:', clientPhone);
+            console.log('Email:', clientEmail);
+            console.log('Elemento nome:', document.getElementById('summaryClientName'));
+            console.log('Elemento telefone:', document.getElementById('summaryClientPhone'));
+            console.log('Elemento email:', document.getElementById('summaryClientEmail'));
 
             // Preencher hotel se existir
             if (hotel) {
