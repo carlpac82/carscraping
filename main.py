@@ -65404,14 +65404,14 @@ async def update_commission_booking(booking_id: int, request: Request):
                     cur = con.cursor()
                     cur.execute("""
                         UPDATE commission_bookings
-                        SET customer_name = %s,
-                            customer_email = %s,
-                            customer_phone = %s,
+                        SET client_name = %s,
+                            client_email = %s,
+                            client_phone = %s,
                             pickup_date = %s,
-                            return_date = %s,
+                            dropoff_date = %s,
                             pickup_location = %s,
-                            return_location = %s,
-                            total_price = %s,
+                            dropoff_location = %s,
+                            price = %s,
                             updated_at = CURRENT_TIMESTAMP
                         WHERE id = %s
                     """, (
@@ -65428,14 +65428,14 @@ async def update_commission_booking(booking_id: int, request: Request):
                 else:
                     cur = con.execute("""
                         UPDATE commission_bookings
-                        SET customer_name = ?,
-                            customer_email = ?,
-                            customer_phone = ?,
+                        SET client_name = ?,
+                            client_email = ?,
+                            client_phone = ?,
                             pickup_date = ?,
-                            return_date = ?,
+                            dropoff_date = ?,
                             pickup_location = ?,
-                            return_location = ?,
-                            total_price = ?,
+                            dropoff_location = ?,
+                            price = ?,
                             updated_at = CURRENT_TIMESTAMP
                         WHERE id = ?
                     """, (
