@@ -13021,7 +13021,14 @@ async def admin_commissions_print_pdf(request: Request):
         # Month name for title
         month_name = ""
         if month:
-            month_name = datetime(2026, int(month), 1).strftime('%B de %Y')
+            # Portuguese month names
+            month_names_pt = {
+                1: 'Janeiro', 2: 'Fevereiro', 3: 'Março', 4: 'Abril',
+                5: 'Maio', 6: 'Junho', 7: 'Julho', 8: 'Agosto',
+                9: 'Setembro', 10: 'Outubro', 11: 'Novembro', 12: 'Dezembro'
+            }
+            month_int = int(month)
+            month_name = f"{month_names_pt.get(month_int, '')} de {year if year else datetime.now().year}"
         
         # Store signature data for page callback
         current_commissioner_signature = {}
