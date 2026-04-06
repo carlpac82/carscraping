@@ -3515,24 +3515,24 @@
     <div class="container">
         <div class="stats-grid">
             <div class="stat-card">
-                <h3>Total de Reservas</h3>
-                <div class="value" id="totalBookings">0</div>
-                <div class="subtext" id="bookingsMonthText">Reservas <span id="currentMonth"></span></div>
+                <h3>Reservas Mês Corrente</h3>
+                <div class="value" id="currentMonthBookings">0</div>
+                <div class="subtext">Reservas <span id="currentMonth"></span></div>
             </div>
             <div class="stat-card">
-                <h3>Comissão (<span id="currentYear"></span>)</h3>
-                <div class="value" id="totalCommission">€0</div>
-                <div class="subtext">Total reservas do ano</div>
+                <h3>Reservas do Ano</h3>
+                <div class="value" id="yearBookings">0</div>
+                <div class="subtext">Total reservas <span id="currentYear"></span></div>
             </div>
             <div class="stat-card">
-                <h3 id="monthCommissionTitle">Este Mês</h3>
-                <div class="value" id="monthCommission">€0</div>
-                <div class="subtext">Comissão <span id="commissionMonth"></span> recebida</div>
+                <h3>Comissão Recebida Mês Corrente</h3>
+                <div class="value" id="paidMonthCommission">€0</div>
+                <div class="subtext">Comissão paga <span id="commissionMonth"></span></div>
             </div>
             <div class="stat-card">
-                <h3>Taxa Média</h3>
-                <div class="value" id="avgRate">0%</div>
-                <div class="subtext">Comissão anual recebida</div>
+                <h3>Comissão Recebida do Ano</h3>
+                <div class="value" id="paidYearCommission">€0</div>
+                <div class="subtext">Comissão paga <span id="currentYear"></span></div>
             </div>
         </div>
 
@@ -4443,25 +4443,37 @@
         }
 
         function updateStats() {
-            const totalBookings = allBookings.length;
-            const totalCommission = allBookings.reduce((sum, b) => sum + (b.commission_amount || 0), 0);
-            
             const now = new Date();
-            const thisMonth = allBookings.filter(b => {
-                const bookingDate = new Date(b.booking_date);
-                return bookingDate.getMonth() === now.getMonth() && 
-                       bookingDate.getFullYear() === now.getFullYear();
-            });
-            const monthCommission = thisMonth.reduce((sum, b) => sum + (b.commission_amount || 0), 0);
+            const currentYear = now.getFullYear();
+            const currentMonth = now.getMonth();
             
-            const avgRate = totalBookings > 0 
-                ? (allBookings.reduce((sum, b) => sum + (b.commission_rate || 0), 0) / totalBookings)
-                : 0;
+            // Reservas mês corrente
+            const currentMonthBookings = allBookings.filter(b => {
+                const bookingDate = new Date(b.created_at);
+                return bookingDate.getMonth() === currentMonth && 
+                       bookingDate.getFullYear() === currentYear;
+            });
+            
+            // Reservas do ano
+            const yearBookings = allBookings.filter(b => {
+                const bookingDate = new Date(b.created_at);
+                return bookingDate.getFullYear() === currentYear;
+            });
+            
+            // Comissão recebida mês corrente (só marcadas como pagas)
+            const paidMonthCommission = currentMonthBookings
+                .filter(b => b.commission_paid === true || b.commission_paid === 'true')
+                .reduce((sum, b) => sum + (b.commission_amount || 0), 0);
+            
+            // Comissão recebida do ano (só marcadas como pagas)
+            const paidYearCommission = yearBookings
+                .filter(b => b.commission_paid === true || b.commission_paid === 'true')
+                .reduce((sum, b) => sum + (b.commission_amount || 0), 0);
 
-            document.getElementById('totalBookings').textContent = totalBookings;
-            document.getElementById('totalCommission').textContent = `€${totalCommission.toFixed(2)}`;
-            document.getElementById('monthCommission').textContent = `€${monthCommission.toFixed(2)}`;
-            document.getElementById('avgRate').textContent = `${avgRate.toFixed(1)}%`;
+            document.getElementById('currentMonthBookings').textContent = currentMonthBookings.length;
+            document.getElementById('yearBookings').textContent = yearBookings.length;
+            document.getElementById('paidMonthCommission').textContent = `€${paidMonthCommission.toFixed(2)}`;
+            document.getElementById('paidYearCommission').textContent = `€${paidYearCommission.toFixed(2)}`;
         }
 
         function renderBookings() {
@@ -5984,14 +5996,7 @@
                 currentYearElement.textContent = currentYear;
             }
             
-            // Atualizar título do mês se necessário (ex: "Este Mês" -> "[Nome do Mês]")
-            const monthCommissionTitle = document.getElementById('monthCommissionTitle');
-            if (monthCommissionTitle) {
-                // Capitalizar primeira letra do mês
-                const capitalizedMonth = currentMonth.charAt(0).toUpperCase() + currentMonth.slice(1);
-                monthCommissionTitle.textContent = capitalizedMonth;
-            }
-            
+                        
             console.log(`📅 Textos atualizados: ${currentMonth} ${currentYear}`);
         }
 
