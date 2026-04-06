@@ -5416,7 +5416,23 @@
                     return true;
 
                 case 4: // Cliente
-                    return true; // Validação será feita no submit
+                    const firstName = document.getElementById('clientFirstName').value.trim();
+                    const lastName = document.getElementById('clientLastName').value.trim();
+                    const email = document.getElementById('clientEmail').value.trim();
+                    
+                    if (!firstName || !lastName || !email) {
+                        alert('Por favor, preencha todos os campos obrigatórios do cliente (Primeiro Nome, Último Nome e Email).');
+                        return false;
+                    }
+                    
+                    // Validar formato do email
+                    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+                    if (!emailRegex.test(email)) {
+                        alert('Por favor, insira um email válido.');
+                        return false;
+                    }
+                    
+                    return true;
 
                 default:
                     return true;
