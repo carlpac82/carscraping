@@ -13093,9 +13093,6 @@ async def admin_commissions_print_pdf(request: Request):
             
             elements.append(table)
         
-        # Store signature data for page callback
-        current_commissioner_signature = {}
-        
         # Custom page template to add signature fields at bottom
         def add_signature_fields(canvas, doc):
             canvas.saveState()
