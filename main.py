@@ -13131,19 +13131,19 @@ async def admin_commissions_print_pdf(request: Request):
             
             # Date field (automático)
             if paid_date:
-                from datetime import date as date_type
+                from datetime import date as date_type, datetime as datetime_type
                 if isinstance(paid_date, str):
                     try:
-                        paid_date_obj = datetime.fromisoformat(paid_date)
+                        paid_date_obj = datetime.fromisoformat(paid_date.replace('Z', '+00:00'))
                     except:
                         paid_date_obj = None
-                elif isinstance(paid_date, date_type):
+                elif isinstance(paid_date, date_type) and not isinstance(paid_date, datetime_type):
                     paid_date_obj = datetime.combine(paid_date, datetime.min.time())
                 else:
                     paid_date_obj = paid_date
                 
                 if paid_date_obj:
-                    date_text = f"Recebido a {paid_date_obj.strftime('%d/%m/%Y')}"
+                    date_text = f"Recebido a {paid_date_obj.strftime('%d/%m/%Y às %H:%M')}"
                 else:
                     date_text = "Recebido a"
             else:
