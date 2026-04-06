@@ -4526,11 +4526,7 @@
                                 <span class="detail-label">Depósito:</span>
                                 <span class="detail-value">${booking.deposit > 0 ? '€' + (booking.deposit || 0).toFixed(2) : '-'}</span>
                             </div>
-                            <div class="detail-row">
-                                <span class="detail-label">Comissão:</span>
-                                <span class="detail-value">€${(booking.commission_amount || 0).toFixed(2)}</span>
-                            </div>
-                        </div>
+                                                    </div>
                         <div class="booking-actions">
                             <button class="btn-details" onclick="printVoucher(${booking.id})" title="Imprimir Voucher">
                                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#009cb6" stroke-width="2">
@@ -4569,8 +4565,7 @@
                                 <th>Data</th>
                                 <th>Valor Total</th>
                                 <th>Depósito</th>
-                                <th>Comissão</th>
-                                <th>Ações</th>
+                                                                <th>Ações</th>
                                 <th>Detalhes</th>
                                 <th>Status</th>
                             </tr>
@@ -4584,8 +4579,7 @@
                                     <td>${new Date(booking.pickup_date).toLocaleDateString('pt-PT')}</td>
                                     <td>€${(booking.price || 0).toFixed(2)}</td>
                                     <td>${booking.deposit > 0 ? '€' + (booking.deposit || 0).toFixed(2) : '-'}</td>
-                                    <td class="commission-value">€${(booking.commission_amount || 0).toFixed(2)}</td>
-                                    <td style="display: flex; gap: 5px;">
+                                                                        <td style="display: flex; gap: 5px;">
                                         <button class="btn-details" onclick="printVoucher(${booking.id})" title="Imprimir Voucher" style="padding: 0.4rem; background: transparent; border: 1px solid #d1d5db; border-radius: 0.375rem; cursor: pointer;">
                                             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#009cb6" stroke-width="2">
                                                 <polyline points="6 9 6 2 18 2 18 9"></polyline>
