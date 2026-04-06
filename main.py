@@ -65419,7 +65419,7 @@ async def update_commission_booking(booking_id: int, request: Request):
                     # Recalculate commission values
                     base_price = new_price
                     base_price_without_vat = base_price / 1.23
-                    commission_amount = base_price_without_vat * (commission_rate / 100.0)
+                    commission_amount = base_price_without_vat * (float(commission_rate) / 100.0)
                     
                     cur.execute("""
                         UPDATE commission_bookings
@@ -65467,7 +65467,7 @@ async def update_commission_booking(booking_id: int, request: Request):
                     # Recalculate commission values
                     base_price = new_price
                     base_price_without_vat = base_price / 1.23
-                    commission_amount = base_price_without_vat * (commission_rate / 100.0)
+                    commission_amount = base_price_without_vat * (float(commission_rate) / 100.0)
                     
                     cur.execute("""
                         UPDATE commission_bookings
