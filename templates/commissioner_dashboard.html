@@ -2676,6 +2676,33 @@
                 width: 100%;
             }
             
+            /* FORÇAR largura inputs date no mobile - CRÍTICO */
+            .form-group input[type="date"] {
+                width: 100% !important;
+                min-width: 100% !important;
+                max-width: 100% !important;
+                box-sizing: border-box !important;
+                display: block !important;
+            }
+            
+            #pickupDate,
+            #dropoffDate {
+                width: 100% !important;
+                min-width: 100% !important;
+                max-width: 100% !important;
+                box-sizing: border-box !important;
+                display: block !important;
+            }
+            
+            input[type="date"]::-webkit-datetime-edit {
+                width: 100%;
+            }
+            
+            input[type="date"]::-webkit-calendar-picker-indicator {
+                position: absolute;
+                right: 12px;
+            }
+            
             /* Vehicle grid */
             .vehicle-grid {
                 grid-template-columns: 1fr;
