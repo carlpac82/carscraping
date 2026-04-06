@@ -3559,7 +3559,7 @@
                         <div class="form-row">
                             <div class="form-group">
                                 <label>Data Entrega *</label>
-                                <input type="date" id="pickupDate" required min="">
+                                <input type="date" id="pickupDate" required min="" onload="this.min = new Date().toISOString().split('T')[0]">
                             </div>
                             <div class="form-group">
                                 <label>Hora Entrega *</label>
@@ -3579,7 +3579,7 @@
                         <div class="form-row">
                             <div class="form-group">
                                 <label>Data Recolha *</label>
-                                <input type="date" id="dropoffDate" required min="">
+                                <input type="date" id="dropoffDate" required min="" onload="this.min = new Date().toISOString().split('T')[0]">
                             </div>
                             <div class="form-group">
                                 <label>Hora Recolha *</label>
@@ -5146,6 +5146,7 @@
 
         function setDefaultPickupDate() {
             const now = new Date();
+            const todayStr = now.toISOString().split('T')[0];
             const currentHour = now.getHours();
             const currentMinute = now.getMinutes();
             const currentTime = currentHour * 60 + currentMinute;
@@ -5166,6 +5167,10 @@
                 return;
             }
             
+            // SEMPRE definir data mínima como hoje para bloquear datas anteriores
+            pickupDateInput.min = todayStr;
+            dropoffDateInput.min = todayStr;
+            
             // Verificar se está fora do horário de funcionamento
             const isOutsideBusinessHours = 
                 currentTime < morningStart || 
@@ -5180,10 +5185,9 @@
                 tomorrow.setDate(tomorrow.getDate() + 1);
                 
                 const tomorrowStr = tomorrow.toISOString().split('T')[0];
-                console.log(`[DATE VALIDATION] Setting min and value to tomorrow: ${tomorrowStr}`);
+                console.log(`[DATE VALIDATION] Setting value to tomorrow: ${tomorrowStr}`);
                 pickupDateInput.value = tomorrowStr;
-                pickupDateInput.min = tomorrowStr;  // Bloquear hoje no calendário
-                dropoffDateInput.min = tomorrowStr;
+                dropoffDateInput.min = tomorrowStr;  // Dropoff não pode ser antes do pickup
                 
                 console.log(`[DATE VALIDATION] After setting - pickupDate.value: ${pickupDateInput.value}, pickupDate.min: ${pickupDateInput.min}`);
                 
@@ -5194,11 +5198,8 @@
                 }
             } else {
                 // Dentro do horário - manter hoje
-                const todayStr = now.toISOString().split('T')[0];
-                console.log(`[DATE VALIDATION] Setting min and value to today: ${todayStr}`);
+                console.log(`[DATE VALIDATION] Setting value to today: ${todayStr}`);
                 pickupDateInput.value = todayStr;
-                pickupDateInput.min = todayStr;  // Permitir hoje no calendário
-                dropoffDateInput.min = todayStr;
                 
                 console.log(`[DATE VALIDATION] After setting - pickupDate.value: ${pickupDateInput.value}, pickupDate.min: ${pickupDateInput.min}`);
                 
@@ -5209,9 +5210,35 @@
                 }
             }
             
-            // NÃO disparar change aqui - pode resetar o min do calendário
-            // O change será disparado quando user selecionar data manualmente
-            // pickupDateInput.dispatchEvent(new Event('change'));
+            // Adicionar event listeners para validação contínua
+            pickupDateInput.addEventListener('change', function() {
+                const selectedDate = new Date(this.value + 'T00:00:00');
+                const today = new Date();
+                today.setHours(0, 0, 0, 0);
+                
+                if (selectedDate < today) {
+                    alert('Não é possível selecionar datas anteriores a hoje.');
+                    this.value = todayStr;
+                    return;
+                }
+                
+                // Atualizar data mínima do dropoff
+                dropoffDateInput.min = this.value;
+                if (dropoffDateInput.value && dropoffDateInput.value < this.value) {
+                    dropoffDateInput.value = this.value;
+                }
+            });
+            
+            dropoffDateInput.addEventListener('change', function() {
+                const selectedDate = new Date(this.value + 'T00:00:00');
+                const pickupDate = new Date(pickupDateInput.value + 'T00:00:00');
+                
+                if (selectedDate < pickupDate) {
+                    alert('A data de recolha não pode ser anterior à data de entrega.');
+                    this.value = pickupDateInput.value;
+                    return;
+                }
+            });
         }
 
         // ===== WIZARD NAVIGATION =====
