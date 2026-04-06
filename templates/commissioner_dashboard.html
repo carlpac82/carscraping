@@ -216,6 +216,15 @@
         .bookings-table tr:hover {
             background: #f8f9fa;
         }
+        
+        /* Desktop: mostrar tabela, ocultar cards */
+        .bookings-table {
+            display: table;
+        }
+        
+        .booking-card-mobile {
+            display: none;
+        }
 
         .status-badge {
             display: inline-block;
@@ -3062,12 +3071,7 @@
             
             /* Bookings table */
             .bookings-table {
-                overflow-x: auto;
-                -webkit-overflow-scrolling: touch;
-            }
-            
-            .bookings-table table {
-                min-width: 600px;
+                display: none;
             }
             
             /* Booking cards for mobile */
