@@ -2685,29 +2685,37 @@
             }
             
             /* Progress indicator */
-            .progress-indicator {
+            .wizard-progress {
                 padding: 15px 10px;
                 overflow-x: auto;
+                overflow-y: hidden;
+                -webkit-overflow-scrolling: touch;
+                justify-content: flex-start;
+                gap: 8px;
             }
             
-            .progress-step {
-                min-width: 60px;
+            .wizard-progress::before {
+                display: none;
             }
             
             .wizard-step {
-                min-width: 70px;
+                min-width: 75px;
+                max-width: 75px;
+                flex: 0 0 75px;
             }
             
             .step-number {
-                width: 36px;
-                height: 36px;
+                width: 38px;
+                height: 38px;
                 font-size: 15px;
             }
             
             .step-label {
-                font-size: 10px;
+                font-size: 9px;
                 white-space: nowrap;
                 overflow: visible;
+                text-align: center;
+                max-width: 75px;
             }
             
             /* Form adjustments */
