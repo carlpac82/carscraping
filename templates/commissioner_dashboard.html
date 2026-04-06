@@ -2646,14 +2646,19 @@
             }
             
             .modal-header {
-                padding: 18px 20px;
+                padding: 16px 20px;
                 border-radius: 0;
+                min-height: 60px;
+                display: flex;
+                align-items: center;
             }
             
             .modal-header h2 {
-                font-size: 20px;
+                font-size: 18px;
                 font-weight: 700;
                 text-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
+                white-space: nowrap;
+                overflow: visible;
             }
             
             .modal-close {
@@ -4650,6 +4655,11 @@
             const modal = document.getElementById('newBookingModal');
             modal.classList.add('active');
             
+            // Bloquear scroll do body no mobile
+            if (window.innerWidth <= 768) {
+                document.body.style.overflow = 'hidden';
+            }
+            
             // Limpar TODOS os extras (desmarcar checkboxes e zerar quantidades)
             const extraCheckboxes = ['extraGPS', 'extraAirport', 'extraYoungDriver', 'extraSeniorDriver', 'extraTripToSpain'];
             extraCheckboxes.forEach(id => {
@@ -4806,6 +4816,10 @@
             modal.classList.remove('active');
             document.getElementById('newBookingForm').reset();
             selectedVehicle = null;
+            
+            // Restaurar scroll do body
+            document.body.style.overflow = '';
+            
             // Reset wizard to step 1
             currentWizardStep = 1;
             updateWizardUI();
@@ -4818,6 +4832,11 @@
             
             // Agora abrir modal (calendário vai respeitar o min já definido)
             document.getElementById('newBookingModal').classList.add('active');
+            
+            // Bloquear scroll do body no mobile
+            if (window.innerWidth <= 768) {
+                document.body.style.overflow = 'hidden';
+            }
             resetNewBookingForm();
             // Reset wizard to step 1
             currentWizardStep = 1;
