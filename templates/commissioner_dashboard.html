@@ -5510,35 +5510,10 @@
             const hotel = document.getElementById('clientHotel').value;
             const roomNumber = document.getElementById('clientRoom').value;
 
-            // Debug dos valores obtidos
-            console.log('🔍 DADOS OBTIDOS DO FORMULÁRIO:');
-            console.log('firstName:', firstName);
-            console.log('lastName:', lastName);
-            console.log('clientPhone:', clientPhone);
-            console.log('clientEmail:', clientEmail);
-            console.log('clientName completo:', clientName);
-            console.log('Elemento firstName existe:', !!document.getElementById('clientFirstName'));
-            console.log('Valor firstName:', document.getElementById('clientFirstName').value);
-
-            document.getElementById('summaryClientName').textContent = clientName || 'NOME NÃO PREENCHIDO';
-            document.getElementById('summaryClientPhone').textContent = clientPhone || 'TELEFONE NÃO PREENCHIDO';
-            document.getElementById('summaryClientEmail').textContent = clientEmail || 'EMAIL NÃO PREENCHIDO';
-            
-            // Verificar se os elementos existem e foram preenchidos
-            const nameElement = document.getElementById('summaryClientName');
-            const phoneElement = document.getElementById('summaryClientPhone');
-            const emailElement = document.getElementById('summaryClientEmail');
-            
-            console.log('🔍 ELEMENTOS APÓS PREENCHIMENTO:');
-            console.log('Elemento nome:', nameElement);
-            console.log('Conteúdo nome:', nameElement ? nameElement.textContent : 'Elemento não encontrado');
-            console.log('Estilo computado nome:', nameElement ? window.getComputedStyle(nameElement).color : 'N/A');
-            console.log('Elemento telefone:', phoneElement);
-            console.log('Conteúdo telefone:', phoneElement ? phoneElement.textContent : 'Elemento não encontrado');
-            console.log('Estilo computado telefone:', phoneElement ? window.getComputedStyle(phoneElement).color : 'N/A');
-            console.log('Elemento email:', emailElement);
-            console.log('Conteúdo email:', emailElement ? emailElement.textContent : 'Elemento não encontrado');
-            console.log('Estilo computado email:', emailElement ? window.getComputedStyle(emailElement).color : 'N/A');
+            // Preencher dados do cliente
+            document.getElementById('summaryClientName').textContent = clientName;
+            document.getElementById('summaryClientPhone').textContent = clientPhone;
+            document.getElementById('summaryClientEmail').textContent = clientEmail;
 
             // Preencher hotel se existir
             if (hotel) {

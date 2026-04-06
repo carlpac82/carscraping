@@ -12228,8 +12228,8 @@ async def admin_commissions_dashboard_stats(request: Request):
                             commissioner_totals_previous_month[commissioner_name] = 0
                         commissioner_totals_previous_month[commissioner_name] += commission_amount
                     
-                    # Current year total
-                    if pickup_date.year == current_year:
+                    # Current year total (só comissões pagas)
+                    if pickup_date.year == current_year and commission_paid:
                         total_year += commission_amount
                         monthly_data_current_year[pickup_date.month] += commission_amount
                     
