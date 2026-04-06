@@ -2703,8 +2703,7 @@
                 overflow-x: auto;
                 overflow-y: hidden;
                 -webkit-overflow-scrolling: touch;
-                justify-content: center;
-                gap: 8px;
+                justify-content: space-between;
                 min-height: 80px;
             }
             
@@ -2713,9 +2712,13 @@
             }
             
             .wizard-step {
-                min-width: 85px;
-                max-width: 85px;
-                flex: 0 0 85px;
+                display: flex;
+                flex-direction: column;
+                align-items: center;
+                gap: 8px;
+                position: relative;
+                z-index: 1;
+                flex: 1;
             }
             
             .step-number {
@@ -2732,10 +2735,12 @@
             
             .step-label {
                 font-size: 9px;
+                font-weight: 600;
+                color: #9ca3af;
+                text-align: center;
+                transition: all 0.3s;
                 white-space: nowrap;
                 overflow: visible;
-                text-align: center;
-                max-width: 85px;
                 line-height: 1.2;
             }
             
