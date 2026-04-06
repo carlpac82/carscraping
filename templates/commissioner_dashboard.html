@@ -171,13 +171,25 @@
             border-radius: 8px;
             cursor: pointer;
             font-size: 14px;
+            font-weight: 600;
+            color: #1f2937;
             transition: all 0.3s;
         }
 
         .filter-btn.active {
-            background: #667eea;
+            background: linear-gradient(135deg, #009cb6 0%, #007a8f 100%);
             color: white;
-            border-color: #667eea;
+            border-color: #009cb6;
+            box-shadow: 0 2px 8px rgba(0, 156, 182, 0.25);
+        }
+        
+        .filter-btn:hover {
+            border-color: #009cb6;
+            color: #009cb6;
+        }
+        
+        .filter-btn.active:hover {
+            color: white;
         }
 
         .bookings-table {
