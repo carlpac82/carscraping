@@ -13001,7 +13001,7 @@ async def admin_commissions_print_pdf(request: Request):
             elements.append(Spacer(1, 0.3*cm))
             
             # Table data
-            data = [['Voucher', 'Data Entrega', 'Nº Dias', 'Comissão']]
+            data = [['Voucher', 'Data Entrega', 'Nº Dias', 'Valor']]
             
             total_commission = 0
             for comm in commissions:
@@ -13218,6 +13218,8 @@ async def admin_commissions_export_excel(request: Request):
         # Group by commissioner
         current_row = 2
         current_commissioner = None
+        commissioner_totals = {}  # Store totals for each commissioner
+        grand_total = 0  # Store grand total of all commissions
         
         for row_data in commissioners_data:
             commissioner_name = row_data[0]
@@ -13230,12 +13232,21 @@ async def admin_commissions_export_excel(request: Request):
             # New commissioner - add header row
             if commissioner_name != current_commissioner:
                 if current_commissioner:
-                    current_row += 1
+                    # Add total row for previous commissioner
+                    total_row = current_row
+                    ws_comm[f'D{total_row}'] = 'TOTAL:'
+                    ws_comm[f'E{total_row}'] = commissioner_totals[current_commissioner]
+                    ws_comm[f'D{total_row}'].font = Font(bold=True)
+                    ws_comm[f'E{total_row}'].font = Font(bold=True)
+                    ws_comm[f'D{total_row}'].number_format = '#,##0'
+                    ws_comm[f'E{total_row}'].number_format = '#,##0'
+                    current_row += 2
                 
                 ws_comm[f'A{current_row}'] = commissioner_name
                 ws_comm[f'A{current_row}'].font = Font(bold=True)
                 current_row += 1
                 current_commissioner = commissioner_name
+                commissioner_totals[commissioner_name] = 0
             
             # Add data row
             ws_comm[f'A{current_row}'] = voucher
@@ -13249,7 +13260,34 @@ async def admin_commissions_export_excel(request: Request):
             ws_comm[f'D{current_row}'].number_format = '#,##0.00'
             ws_comm[f'E{current_row}'].number_format = '#,##0'
             
+            # Update totals
+            commissioner_totals[current_commissioner] += commission
+            grand_total += commission
+            
             current_row += 1
+        
+        # Add total row for last commissioner
+        if current_commissioner:
+            total_row = current_row
+            ws_comm[f'D{total_row}'] = 'TOTAL:'
+            ws_comm[f'E{total_row}'] = commissioner_totals[current_commissioner]
+            ws_comm[f'D{total_row}'].font = Font(bold=True)
+            ws_comm[f'E{total_row}'].font = Font(bold=True)
+            ws_comm[f'D{total_row}'].number_format = '#,##0'
+            ws_comm[f'E{total_row}'].number_format = '#,##0'
+            current_row += 2
+        
+        # Add grand total row
+        ws_comm[f'D{current_row}'] = 'TOTAL GERAL:'
+        ws_comm[f'E{current_row}'] = grand_total
+        ws_comm[f'D{current_row}'].font = Font(bold=True)
+        ws_comm[f'E{current_row}'].font = Font(bold=True)
+        ws_comm[f'D{current_row}'].fill = PatternFill(start_color="009cb6", end_color="009cb6", fill_type="solid")
+        ws_comm[f'E{current_row}'].fill = PatternFill(start_color="009cb6", end_color="009cb6", fill_type="solid")
+        ws_comm[f'D{current_row}'].font = Font(bold=True, color="FFFFFF")
+        ws_comm[f'E{current_row}'].font = Font(bold=True, color="FFFFFF")
+        ws_comm[f'D{current_row}'].number_format = '#,##0'
+        ws_comm[f'E{current_row}'].number_format = '#,##0'
         
         # Adjust column widths
         ws_comm.column_dimensions['A'].width = 25
@@ -13336,6 +13374,8 @@ async def admin_commissions_export_excel(request: Request):
         # Group by broker
         current_row = 2
         current_broker = None
+        broker_totals = {}  # Store totals for each broker
+        brokers_grand_total = 0  # Store grand total of all broker base prices
         
         for row_data in brokers_data:
             broker_name = row_data[0]
@@ -13348,12 +13388,21 @@ async def admin_commissions_export_excel(request: Request):
             # New broker - add header row
             if broker_name != current_broker:
                 if current_broker:
-                    current_row += 1
+                    # Add total row for previous broker
+                    total_row = current_row
+                    ws_brokers[f'C{total_row}'] = 'TOTAL:'
+                    ws_brokers[f'D{total_row}'] = broker_totals[current_broker]
+                    ws_brokers[f'C{total_row}'].font = Font(bold=True)
+                    ws_brokers[f'D{total_row}'].font = Font(bold=True)
+                    ws_brokers[f'C{total_row}'].number_format = '#,##0'
+                    ws_brokers[f'D{total_row}'].number_format = '#,##0.00'
+                    current_row += 2
                 
                 ws_brokers[f'A{current_row}'] = broker_name
                 ws_brokers[f'A{current_row}'].font = Font(bold=True)
                 current_row += 1
                 current_broker = broker_name
+                broker_totals[broker_name] = 0
             
             # Add data row
             ws_brokers[f'A{current_row}'] = voucher
@@ -13365,12 +13414,39 @@ async def admin_commissions_export_excel(request: Request):
             ws_brokers[f'B{current_row}'].number_format = 'DD/MM/YYYY'
             ws_brokers[f'D{current_row}'].number_format = '#,##0.00'
             
+            # Update totals
+            broker_totals[current_broker] += base_price
+            brokers_grand_total += base_price
+            
             current_row += 1
+        
+        # Add total row for last broker
+        if current_broker:
+            total_row = current_row
+            ws_brokers[f'C{total_row}'] = 'TOTAL:'
+            ws_brokers[f'D{total_row}'] = broker_totals[current_broker]
+            ws_brokers[f'C{total_row}'].font = Font(bold=True)
+            ws_brokers[f'D{total_row}'].font = Font(bold=True)
+            ws_brokers[f'C{total_row}'].number_format = '#,##0'
+            ws_brokers[f'D{total_row}'].number_format = '#,##0.00'
+            current_row += 2
+        
+        # Add grand total row for brokers
+        ws_brokers[f'C{current_row}'] = 'TOTAL GERAL:'
+        ws_brokers[f'D{current_row}'] = brokers_grand_total
+        ws_brokers[f'C{current_row}'].font = Font(bold=True)
+        ws_brokers[f'D{current_row}'].font = Font(bold=True)
+        ws_brokers[f'C{current_row}'].fill = PatternFill(start_color="009cb6", end_color="009cb6", fill_type="solid")
+        ws_brokers[f'D{current_row}'].fill = PatternFill(start_color="009cb6", end_color="009cb6", fill_type="solid")
+        ws_brokers[f'C{current_row}'].font = Font(bold=True, color="FFFFFF")
+        ws_brokers[f'D{current_row}'].font = Font(bold=True, color="FFFFFF")
+        ws_brokers[f'C{current_row}'].number_format = '#,##0'
+        ws_brokers[f'D{current_row}'].number_format = '#,##0.00'
         
         # Adjust column widths
         ws_brokers.column_dimensions['A'].width = 25
         ws_brokers.column_dimensions['B'].width = 20
-        ws_brokers.column_dimensions['C'].width = 10
+        ws_brokers.column_dimensions['C'].width = 15  # Increased from 10 to accommodate "TOTAL GERAL:"
         ws_brokers.column_dimensions['D'].width = 15
         
         # Save to BytesIO
@@ -45948,13 +46024,13 @@ async def export_caralliance_excel(request: Request):
             bottom=Side(style='thin', color='000000')
         )
         
-        # Set column widths to match original Excel
-        ws_meta.column_dimensions['A'].width = 20
-        ws_meta.column_dimensions['B'].width = 15
-        ws_meta.column_dimensions['C'].width = 10
-        ws_meta.column_dimensions['D'].width = 12
-        ws_meta.column_dimensions['E'].width = 12
-        ws_meta.column_dimensions['F'].width = 10
+        # Adjust column widths
+        ws_meta.column_dimensions['A'].width = 25  # Broker
+        ws_meta.column_dimensions['B'].width = 20  # Client
+        ws_meta.column_dimensions['C'].width = 15  # Date
+        ws_meta.column_dimensions['D'].width = 15  # Total
+        ws_meta.column_dimensions['E'].width = 15  # Commission
+        ws_meta.column_dimensions['F'].width = 15  # Commission %
         ws_meta.column_dimensions['G'].width = 12
         
         # Apply blue background to label cells in column A
