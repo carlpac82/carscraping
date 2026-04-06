@@ -13122,7 +13122,6 @@ async def admin_commissions_print_pdf(request: Request):
             # Reset alpha
             canvas.setFillAlpha(1)
             canvas.setFillColor(colors.HexColor('#555555'))
-            canvas.setFont('Helvetica', 9)
             
             # Get signature data for current page
             sig_data = current_commissioner_signature.get('data', {})
@@ -13144,21 +13143,27 @@ async def admin_commissions_print_pdf(request: Request):
                     paid_date_obj = paid_date
                 
                 if paid_date_obj:
-                    date_text = f"Recebido a {paid_date_obj.strftime('%d/%m/%Y às %H:%M')}"
+                    date_text = f"{paid_date_obj.strftime('%d/%m/%Y às %H:%M')}"
                 else:
-                    date_text = "Recebido a"
+                    date_text = ""
             else:
-                date_text = "Recebido a"
+                date_text = ""
             
-            canvas.drawString(center_x + 0.3*cm, bottom_margin + 2.8*cm, date_text)
+            canvas.setFont('Helvetica-Bold', 9)
+            canvas.drawString(center_x + 0.3*cm, bottom_margin + 2.8*cm, "Recebido a ")
+            canvas.setFont('Helvetica', 9)
+            if date_text:
+                canvas.drawString(center_x + 0.3*cm + canvas.stringWidth("Recebido a ", 'Helvetica-Bold', 9), bottom_margin + 2.8*cm, date_text)
             
             # Name field
+            canvas.setFont('Helvetica-Bold', 9)
+            canvas.drawString(center_x + 0.3*cm, bottom_margin + 1.6*cm, "Nome: ")
+            canvas.setFont('Helvetica', 9)
             if receiver_name:
-                canvas.drawString(center_x + 0.3*cm, bottom_margin + 1.6*cm, f"Nome: {receiver_name}")
-            else:
-                canvas.drawString(center_x + 0.3*cm, bottom_margin + 1.6*cm, "Nome:")
+                canvas.drawString(center_x + 0.3*cm + canvas.stringWidth("Nome: ", 'Helvetica-Bold', 9), bottom_margin + 1.6*cm, receiver_name)
             
             # Signature field
+            canvas.setFont('Helvetica-Bold', 9)
             canvas.drawString(center_x + 0.3*cm, bottom_margin + 0.3*cm, "Assinatura:")
             
             # Draw signature image if available (maior)
