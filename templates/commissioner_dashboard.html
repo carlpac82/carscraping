@@ -3559,7 +3559,7 @@
                         <div class="form-row">
                             <div class="form-group">
                                 <label>Data Entrega *</label>
-                                <input type="date" id="pickupDate" required min="" onload="this.min = new Date().toISOString().split('T')[0]">
+                                <input type="date" id="pickupDate" required min="">
                             </div>
                             <div class="form-group">
                                 <label>Hora Entrega *</label>
@@ -3579,7 +3579,7 @@
                         <div class="form-row">
                             <div class="form-group">
                                 <label>Data Recolha *</label>
-                                <input type="date" id="dropoffDate" required min="" onload="this.min = new Date().toISOString().split('T')[0]">
+                                <input type="date" id="dropoffDate" required min="">
                             </div>
                             <div class="form-group">
                                 <label>Hora Recolha *</label>
@@ -5923,6 +5923,18 @@
 
         // Event listeners
         document.addEventListener('DOMContentLoaded', function() {
+            // BLOQUEAR DATAS ANTERIORES IMEDIATAMENTE
+            const today = new Date().toISOString().split('T')[0];
+            const pickupDateInput = document.getElementById('pickupDate');
+            const dropoffDateInput = document.getElementById('dropoffDate');
+            
+            if (pickupDateInput) {
+                pickupDateInput.min = today;
+            }
+            if (dropoffDateInput) {
+                dropoffDateInput.min = today;
+            }
+            
             // Auto-preencher local de recolha quando seleciona local de entrega
             const pickupLocation = document.getElementById('pickupLocation');
             const dropoffLocation = document.getElementById('dropoffLocation');
