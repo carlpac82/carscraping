@@ -65385,8 +65385,9 @@ async def update_commission_booking_status(booking_id: int, request: Request):
 @app.put("/api/commission-bookings/{booking_id}")
 async def update_commission_booking(booking_id: int, request: Request):
     """Update a commission booking with all fields"""
-    user = request.session.get('user')
-    if not user or not (user.get('is_admin') or user.get('has_commissioner_access')):
+    try:
+        require_commissioner_access(request)
+    except HTTPException:
         return JSONResponse({"ok": False, "error": "Unauthorized"}, status_code=401)
     
     try:
