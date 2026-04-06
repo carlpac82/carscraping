@@ -3016,30 +3016,37 @@
             }
             
             .summary-pricing {
-                text-align: left;
-                margin-top: 16px;
+                text-align: center;
+                margin-top: 20px;
             }
             
             .summary-total {
                 width: 100%;
                 text-align: center;
                 display: block;
+                margin: 16px 0;
             }
             
             .confirmation-section {
-                margin-top: 12px;
+                margin-top: 20px;
+                text-align: center;
             }
             
             .confirmation-item {
-                padding: 8px 0;
+                padding: 12px 0;
+                display: flex;
+                justify-content: center;
+                align-items: center;
+                gap: 12px;
             }
             
             .confirmation-label {
                 font-size: 13px;
+                margin: 0;
             }
             
             .confirmation-text-btn {
-                padding: 6px 16px;
+                padding: 8px 16px;
                 font-size: 13px;
             }
             
@@ -3434,8 +3441,8 @@
                     <div class="wizard-step-content active" data-step="1">
                         <h3>Datas, Horários e Locais</h3>
                         
-                        <!-- Entrega: Data e Hora lado a lado -->
-                        <div class="form-row date-time-row">
+                        <!-- Entrega: Data, Hora e Local na mesma linha -->
+                        <div class="form-row">
                             <div class="form-group">
                                 <label>Data Entrega *</label>
                                 <input type="date" id="pickupDate" required min="">
@@ -3446,10 +3453,6 @@
                                     <option value="">Selecione a hora</option>
                                 </select>
                             </div>
-                        </div>
-                        
-                        <!-- Local de Entrega -->
-                        <div class="form-row">
                             <div class="form-group">
                                 <label>Local de Entrega *</label>
                                 <select id="pickupLocation" required>
@@ -3458,8 +3461,8 @@
                             </div>
                         </div>
                         
-                        <!-- Recolha: Data e Hora lado a lado -->
-                        <div class="form-row date-time-row">
+                        <!-- Recolha: Data, Hora e Local na mesma linha -->
+                        <div class="form-row">
                             <div class="form-group">
                                 <label>Data Recolha *</label>
                                 <input type="date" id="dropoffDate" required min="">
@@ -3470,10 +3473,6 @@
                                     <option value="">Selecione a hora</option>
                                 </select>
                             </div>
-                        </div>
-                        
-                        <!-- Local de Recolha -->
-                        <div class="form-row">
                             <div class="form-group">
                                 <label>Local de Recolha *</label>
                                 <select id="dropoffLocation" required>
