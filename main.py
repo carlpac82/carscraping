@@ -1822,8 +1822,8 @@ def _ensure_rental_agreement_tables():
 
 @app.exception_handler(HTTPException)
 async def http_exception_handler(request: Request, exc: HTTPException):
-    # Redirect to login on unauthorized/forbidden
-    if exc.status_code in (401, 403):
+    # Redirect to login on unauthorized/forbidden, but not for API endpoints
+    if exc.status_code in (401, 403) and not request.url.path.startswith("/api/"):
         return RedirectResponse(url="/login", status_code=HTTP_303_SEE_OTHER)
 
 # --- Admin: Test email ---
@@ -65830,7 +65830,10 @@ async def api_commissioners_login(request: Request):
         username = data.get("username", "").strip()
         password = data.get("password", "")
         
+        print(f"DEBUG: Login attempt for username: '{username}'")
+        
         if not username or not password:
+            print(f"DEBUG: Missing username or password")
             return JSONResponse({"ok": False, "error": "Utilizador e senha são obrigatórios"}, status_code=400)
         
         with _db_lock:
@@ -65849,13 +65852,20 @@ async def api_commissioners_login(request: Request):
                     )
                 row = cur.fetchone()
                 
+                print(f"DEBUG: User found: {row is not None}")
+                
                 if not row:
+                    print(f"DEBUG: User not found or disabled")
                     return JSONResponse({"ok": False, "error": "Utilizador ou senha incorretos"}, status_code=401)
                 
                 commissioner_id, name, email, password_hash = row
+                print(f"DEBUG: Password hash exists: {bool(password_hash)}")
                 
                 # Verify password
-                if not _verify_password(password, password_hash):
+                password_ok = _verify_password(password, password_hash)
+                print(f"DEBUG: Password verification result: {password_ok}")
+                
+                if not password_ok:
                     return JSONResponse({"ok": False, "error": "Utilizador ou senha incorretos"}, status_code=401)
                 
                 # Check if email exists
