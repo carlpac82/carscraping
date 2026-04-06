@@ -1830,7 +1830,7 @@ async def http_exception_handler(request: Request, exc: HTTPException):
 @app.get("/admin/price-validation", response_class=HTMLResponse)
 async def admin_price_validation(request: Request):
     try:
-        require_admin(request)
+        require_commissions_management(request)
     except HTTPException:
         return RedirectResponse(url="/login", status_code=HTTP_303_SEE_OTHER)
     return templates.TemplateResponse("price_validation_rules.html", {"request": request})
@@ -1839,7 +1839,7 @@ async def admin_price_validation(request: Request):
 async def admin_export_db(request: Request):
     """Temporary endpoint to export database"""
     try:
-        require_admin(request)
+        require_commissions_management(request)
     except HTTPException:
         return JSONResponse({"error": "Unauthorized"}, status_code=401)
     
@@ -1856,7 +1856,7 @@ async def admin_export_db(request: Request):
 async def admin_export_vehicles_json(request: Request):
     """Export vehicles as JSON"""
     try:
-        require_admin(request)
+        require_commissions_management(request)
     except HTTPException:
         return JSONResponse({"error": "Unauthorized"}, status_code=401)
     
@@ -1881,7 +1881,7 @@ async def admin_export_vehicles_json(request: Request):
 @app.post("/admin/test-email", response_class=HTMLResponse)
 async def admin_test_email_send(request: Request, to: str = Form("")):
     try:
-        require_admin(request)
+        require_commissions_management(request)
     except HTTPException:
         return RedirectResponse(url="/login", status_code=HTTP_303_SEE_OTHER)
     err = None
@@ -6354,7 +6354,7 @@ async def whatsapp_dashboard(request: Request):
 @app.get("/admin", response_class=HTMLResponse)
 async def admin_root(request: Request, section: str = None):
     try:
-        require_admin(request)
+        require_commissions_management(request)
     except HTTPException:
         return RedirectResponse(url="/login", status_code=HTTP_303_SEE_OTHER)
     
@@ -6371,7 +6371,7 @@ async def admin_root(request: Request, section: str = None):
 async def admin_abbycar_insurance_page(request: Request):
     """ABBYCAR Insurance Pricing Configuration Page"""
     try:
-        require_admin(request)
+        require_commissions_management(request)
     except HTTPException:
         return RedirectResponse(url="/login", status_code=HTTP_303_SEE_OTHER)
     
@@ -6383,7 +6383,7 @@ async def admin_abbycar_insurance_page(request: Request):
 async def admin_whatsapp_settings(request: Request):
     """WhatsApp Settings - Templates, Quick Replies, Automations, Facebook Connection"""
     try:
-        require_admin(request)
+        require_commissions_management(request)
     except HTTPException:
         return RedirectResponse(url="/login", status_code=HTTP_303_SEE_OTHER)
     
@@ -6502,7 +6502,7 @@ async def checkout_mapper_page(request: Request):
 async def commissioner_booking_mapper_page(request: Request):
     """Página dedicada para mapeamento de campos do PDF Livro de Reservas"""
     try:
-        require_admin(request)
+        require_commissions_management(request)
     except HTTPException:
         return RedirectResponse(url="/login", status_code=HTTP_303_SEE_OTHER)
     
@@ -6550,7 +6550,7 @@ async def vehicle_damage_test_page(request: Request):
 @app.get("/admin/env-summary")
 async def admin_env_summary(request: Request):
     try:
-        require_admin(request)
+        require_commissions_management(request)
     except HTTPException:
         return RedirectResponse(url="/login", status_code=HTTP_303_SEE_OTHER)
     try:
@@ -6573,7 +6573,7 @@ async def admin_env_summary(request: Request):
 async def admin_list_files(request: Request):
     """Listar todos os ficheiros guardados na base de dados"""
     try:
-        require_admin(request)
+        require_commissions_management(request)
     except HTTPException:
         return RedirectResponse(url="/login", status_code=HTTP_303_SEE_OTHER)
     try:
@@ -6609,7 +6609,7 @@ async def admin_list_files(request: Request):
 async def admin_get_file(request: Request, file_id: int):
     """Recuperar ficheiro da base de dados"""
     try:
-        require_admin(request)
+        require_commissions_management(request)
     except HTTPException:
         return RedirectResponse(url="/login", status_code=HTTP_303_SEE_OTHER)
     try:
@@ -6642,7 +6642,7 @@ async def admin_get_file(request: Request, file_id: int):
 @app.get("/admin/adjust-preview")
 async def admin_adjust_preview(request: Request, price: str, url: str):
     try:
-        require_admin(request)
+        require_commissions_management(request)
     except HTTPException:
         return RedirectResponse(url="/login", status_code=HTTP_303_SEE_OTHER)
     try:
@@ -6676,7 +6676,7 @@ async def admin_adjust_preview(request: Request, price: str, url: str):
 async def admin_commissioner_pricing_page(request: Request):
     """Página de gestão de preços dos comissionistas"""
     try:
-        require_admin(request)
+        require_commissions_management(request)
     except HTTPException:
         return RedirectResponse(url="/login", status_code=HTTP_303_SEE_OTHER)
     
@@ -6806,7 +6806,7 @@ async def api_save_commissioner_pricing(request: Request):
     """API endpoint to save commissioner pricing configuration"""
     logging.info("🔵 POST /api/commissioner-pricing called")
     try:
-        require_admin(request)
+        require_commissions_management(request)
         logging.info("✅ Admin authentication passed")
     except HTTPException:
         logging.error("❌ Admin authentication failed")
@@ -6888,7 +6888,7 @@ async def api_save_commissioner_pricing(request: Request):
 async def admin_set_test_periods(request: Request):
     """Temporarily set test periods for seasons"""
     try:
-        require_admin(request)
+        require_commissions_management(request)
     except HTTPException:
         return JSONResponse({"ok": False, "error": "Unauthorized"}, status_code=401)
     
@@ -6922,7 +6922,7 @@ async def admin_set_test_periods(request: Request):
 async def admin_migrate_pricing_fields(request: Request):
     """Migrate commission_bookings table to add pricing fields"""
     try:
-        require_admin(request)
+        require_commissions_management(request)
     except HTTPException:
         return JSONResponse({"ok": False, "error": "Unauthorized"}, status_code=401)
     
@@ -6977,7 +6977,7 @@ async def admin_migrate_pricing_fields(request: Request):
 async def set_test_insurance_pricing(request: Request):
     """Set test insurance pricing by group, season and day ranges"""
     try:
-        require_admin(request)
+        require_commissions_management(request)
     except HTTPException:
         return JSONResponse({"ok": False, "error": "Unauthorized"}, status_code=401)
     
@@ -7100,7 +7100,7 @@ async def set_test_insurance_pricing(request: Request):
 async def admin_migrate_schedule(request: Request):
     """Admin endpoint to manually run schedule columns migration"""
     try:
-        require_admin(request)
+        require_commissions_management(request)
     except HTTPException:
         return JSONResponse({"ok": False, "error": "Unauthorized"}, status_code=401)
     
@@ -7157,7 +7157,7 @@ async def admin_migrate_schedule(request: Request):
 @app.get("/admin/settings", response_class=HTMLResponse)
 async def admin_settings_page(request: Request):
     try:
-        require_admin(request)
+        require_commissions_management(request)
     except HTTPException:
         return RedirectResponse(url="/login", status_code=HTTP_303_SEE_OTHER)
     cj_pct, cj_off = _get_carjet_adjustment()
@@ -7206,7 +7206,7 @@ async def admin_settings_save(
     smtp_tls: str = Form("")
 ):
     try:
-        require_admin(request)
+        require_commissions_management(request)
     except HTTPException:
         return RedirectResponse(url="/login", status_code=HTTP_303_SEE_OTHER)
     err = None
@@ -7275,7 +7275,7 @@ async def admin_settings_save(
 async def admin_contracts_page(request: Request):
     """Admin contracts configuration page"""
     try:
-        require_admin(request)
+        require_commissions_management(request)
     except HTTPException:
         return RedirectResponse(url="/login", status_code=302)
     
@@ -7300,7 +7300,7 @@ async def admin_contracts_page(request: Request):
 async def admin_contracts_save(request: Request):
     """Save admin contracts configuration"""
     try:
-        require_admin(request)
+        require_commissions_management(request)
     except HTTPException:
         return RedirectResponse(url="/login", status_code=302)
     
@@ -7353,7 +7353,7 @@ async def admin_contracts_save(request: Request):
 async def upload_checkout_terms_conditions(request: Request, tc_file: UploadFile = File(...)):
     """Upload do PDF dos Termos e Condições para Check-out"""
     try:
-        require_admin(request)
+        require_commissions_management(request)
     except HTTPException:
         return RedirectResponse(url="/login", status_code=302)
     
@@ -7408,7 +7408,7 @@ async def upload_checkout_terms_conditions(request: Request, tc_file: UploadFile
 @app.post("/admin/users/{user_id}/toggle-enabled")
 async def admin_users_toggle_enabled(request: Request, user_id: int):
     try:
-        require_admin(request)
+        require_commissions_management(request)
     except HTTPException:
         return RedirectResponse(url="/login", status_code=HTTP_303_SEE_OTHER)
     with _db_lock:
@@ -7452,7 +7452,7 @@ async def admin_users_toggle_enabled(request: Request, user_id: int):
 @app.post("/admin/users/{user_id}/reset-password")
 async def admin_users_reset_password(request: Request, user_id: int):
     try:
-        require_admin(request)
+        require_commissions_management(request)
     except HTTPException:
         return RedirectResponse(url="/login", status_code=HTTP_303_SEE_OTHER)
     gen_pw = secrets.token_urlsafe(8)
@@ -7486,7 +7486,7 @@ async def admin_users_reset_password(request: Request, user_id: int):
 @app.get("/admin/users/{user_id}/edit", response_class=HTMLResponse)
 async def admin_users_edit(request: Request, user_id: int):
     try:
-        require_admin(request)
+        require_commissions_management(request)
     except HTTPException:
         return RedirectResponse(url="/login", status_code=HTTP_303_SEE_OTHER)
     with _db_lock:
@@ -7520,7 +7520,7 @@ async def admin_users_edit_post(
 ):
     import sys
     try:
-        require_admin(request)
+        require_commissions_management(request)
     except HTTPException:
         return RedirectResponse(url="/login", status_code=HTTP_303_SEE_OTHER)
     
@@ -7570,7 +7570,7 @@ async def admin_users_edit_post(
 @app.post("/admin/users/{user_id}/delete")
 async def admin_users_delete(request: Request, user_id: int):
     try:
-        require_admin(request)
+        require_commissions_management(request)
     except HTTPException:
         return RedirectResponse(url="/login", status_code=HTTP_303_SEE_OTHER)
     # prevent deleting self
@@ -7597,7 +7597,7 @@ async def admin_update_inspection_permissions(request: Request, user_id: int):
     Body: {role: "user|receptionist|support|admin", can_access_inspection: 0|1, has_commissioner_access: 0|1, can_manage_commissions: 0|1}
     """
     try:
-        require_admin(request)
+        require_commissions_management(request)
     except HTTPException:
         return JSONResponse({"ok": False, "error": "Unauthorized"}, status_code=403)
     
@@ -7637,7 +7637,7 @@ async def admin_update_inspection_permissions(request: Request, user_id: int):
 async def admin_get_whatsapp_config(request: Request):
     """Get WhatsApp connection configuration"""
     try:
-        require_admin(request)
+        require_commissions_management(request)
     except HTTPException:
         return JSONResponse({"ok": False, "error": "Unauthorized"}, status_code=403)
     
@@ -7858,7 +7858,7 @@ async def refresh_whatsapp_token_endpoint(request: Request):
 async def admin_save_whatsapp_config(request: Request):
     """Save WhatsApp connection configuration"""
     try:
-        require_admin(request)
+        require_commissions_management(request)
     except HTTPException:
         return JSONResponse({"ok": False, "error": "Unauthorized"}, status_code=403)
     
@@ -8725,7 +8725,7 @@ async def whatsapp_webhook_receive(request: Request):
 async def admin_test_whatsapp_connection(request: Request):
     """Test WhatsApp API connection"""
     try:
-        require_admin(request)
+        require_commissions_management(request)
     except HTTPException:
         return JSONResponse({"ok": False, "error": "Unauthorized"}, status_code=403)
     
@@ -8792,7 +8792,7 @@ async def admin_test_whatsapp_connection(request: Request):
 async def set_whatsapp_profile_picture(request: Request, file: UploadFile = File(None)):
     """Set WhatsApp Business profile picture - supports custom upload or default logo"""
     try:
-        require_admin(request)
+        require_commissions_management(request)
     except HTTPException:
         return JSONResponse({"ok": False, "error": "Unauthorized"}, status_code=403)
     
@@ -11340,7 +11340,7 @@ async def delete_message(request: Request, message_id: str):
 async def delete_all_whatsapp_contacts(request: Request):
     """Delete ALL WhatsApp conversations and messages from database - ADMIN ONLY"""
     try:
-        require_admin(request)
+        require_commissions_management(request)
     except HTTPException:
         return JSONResponse({"ok": False, "error": "Unauthorized"}, status_code=403)
     
@@ -11387,7 +11387,7 @@ async def delete_all_whatsapp_contacts(request: Request):
 async def create_whatsapp_contacts_table(request: Request):
     """Create whatsapp_contacts table if it doesn't exist"""
     try:
-        require_admin(request)
+        require_commissions_management(request)
     except HTTPException:
         return JSONResponse({"ok": False, "error": "Unauthorized"}, status_code=403)
     
@@ -11515,7 +11515,7 @@ async def create_whatsapp_contacts_table(request: Request):
 async def migrate_conversations_to_contacts(request: Request):
     """Migrate existing conversations to use whatsapp_contacts table properly"""
     try:
-        require_admin(request)
+        require_commissions_management(request)
     except HTTPException:
         return JSONResponse({"ok": False, "error": "Unauthorized"}, status_code=403)
     
@@ -11603,7 +11603,7 @@ async def migrate_conversations_to_contacts(request: Request):
 async def fix_whatsapp_messages_debug(request: Request):
     """Debug and fix message data - remove sender names and verify directions"""
     try:
-        require_admin(request)
+        require_commissions_management(request)
     except HTTPException:
         return JSONResponse({"ok": False, "error": "Unauthorized"}, status_code=403)
     
@@ -11862,7 +11862,7 @@ async def fix_schema_page(request: Request):
 async def admin_backup(request: Request):
     """Backup & Restore page"""
     try:
-        require_admin(request)
+        require_commissions_management(request)
     except HTTPException:
         return RedirectResponse(url="/login", status_code=HTTP_303_SEE_OTHER)
     return templates.TemplateResponse("admin_backup.html", {"request": request})
@@ -11870,7 +11870,7 @@ async def admin_backup(request: Request):
 @app.get("/admin/users", response_class=HTMLResponse)
 async def admin_users(request: Request):
     try:
-        require_admin(request)
+        require_commissions_management(request)
     except HTTPException:
         return RedirectResponse(url="/login", status_code=HTTP_303_SEE_OTHER)
     users = []
@@ -11910,7 +11910,7 @@ async def admin_users(request: Request):
 @app.get("/admin/users/new", response_class=HTMLResponse)
 async def admin_users_new(request: Request):
     try:
-        require_admin(request)
+        require_commissions_management(request)
     except HTTPException:
         return RedirectResponse(url="/login", status_code=HTTP_303_SEE_OTHER)
     return templates.TemplateResponse("admin_new_user.html", {"request": request, "error": None})
@@ -12818,7 +12818,7 @@ async def admin_commissions_mark_unpaid(request: Request):
 async def admin_commissions_print_pdf(request: Request):
     """Generate PDF report of commissions by commissioner"""
     try:
-        require_admin(request)
+        require_commissions_management(request)
     except HTTPException:
         return JSONResponse({"ok": False, "error": "Unauthorized"}, status_code=403)
     
@@ -13112,7 +13112,7 @@ async def admin_commissions_print_pdf(request: Request):
 async def admin_commissions_export_excel(request: Request):
     """Generate Excel report of commissions and brokers for selected month/year"""
     try:
-        require_admin(request)
+        require_commissions_management(request)
     except HTTPException:
         return JSONResponse({"ok": False, "error": "Unauthorized"}, status_code=403)
     
@@ -13477,7 +13477,7 @@ async def admin_commissions_export_excel(request: Request):
 async def upload_commissions_excel(request: Request, file: UploadFile = File(...)):
     """Upload and import commissions from Excel file"""
     try:
-        require_admin(request)
+        require_commissions_management(request)
         
         # Read Excel file
         import io
@@ -13642,7 +13642,7 @@ async def upload_commissions_excel(request: Request, file: UploadFile = File(...
 async def admin_disable_b1_b2_groups(request: Request):
     """Disable B1 and B2 vehicle groups - Admin only"""
     try:
-        require_admin(request)
+        require_commissions_management(request)
         
         with _db_lock:
             con = _db_connect()
@@ -13666,7 +13666,7 @@ async def admin_disable_b1_b2_groups(request: Request):
 async def admin_migrate_commission_payment(request: Request):
     """Migrate commission payment columns - Admin only"""
     try:
-        require_admin(request)
+        require_commissions_management(request)
         
         conn = get_db()
         cursor = conn.cursor()
@@ -13742,7 +13742,7 @@ async def admin_users_new_post(
     picture: Optional[UploadFile] = File(None),
 ):
     try:
-        require_admin(request)
+        require_commissions_management(request)
     except HTTPException:
         return RedirectResponse(url="/login", status_code=HTTP_303_SEE_OTHER)
     import sys
@@ -22091,7 +22091,7 @@ async def admin_price_automation_settings(request: Request):
 @app.get("/admin/vehicles", response_class=HTMLResponse)
 async def admin_vehicles_page(request: Request):
     """Página de gestão de frota"""
-    require_admin(request)
+    require_commissions_management(request)
     
     return templates.TemplateResponse("admin_vehicles.html", {
         "request": request
@@ -22100,7 +22100,7 @@ async def admin_vehicles_page(request: Request):
 @app.get("/admin/fleet-management", response_class=HTMLResponse)
 async def admin_fleet_management(request: Request):
     """Página de gestão de frota (iframe-friendly)"""
-    require_admin(request)
+    require_commissions_management(request)
     
     return templates.TemplateResponse("admin_fleet_management.html", {
         "request": request
@@ -33548,7 +33548,7 @@ async def save_checkout_coordinates(request: Request):
 @app.get("/api/commissioner-booking-pdf/get-template")
 async def get_commissioner_booking_pdf_template(request: Request):
     """Obter o template PDF do Livro de Reservas para o mapeador"""
-    require_admin(request)
+    require_commissions_management(request)
     
     try:
         pdf_path = "Livro de Reservas.pdf"
@@ -33568,7 +33568,7 @@ async def get_commissioner_booking_pdf_template(request: Request):
 @app.get("/api/commissioner-booking-pdf/get-coordinates")
 async def get_commissioner_booking_coordinates(request: Request):
     """Obter coordenadas dos campos do PDF Livro de Reservas"""
-    require_admin(request)
+    require_commissions_management(request)
     
     try:
         conn = _db_connect()
@@ -33628,7 +33628,7 @@ async def get_commissioner_booking_coordinates(request: Request):
 @app.post("/api/commissioner-booking-pdf/save-coordinate")
 async def save_commissioner_booking_coordinate(request: Request):
     """Guardar uma coordenada de campo do PDF Livro de Reservas"""
-    require_admin(request)
+    require_commissions_management(request)
     
     try:
         data = await request.json()
@@ -33680,7 +33680,7 @@ async def save_commissioner_booking_coordinate(request: Request):
 @app.post("/api/commissioner-booking-pdf/save-coordinates")
 async def save_commissioner_booking_coordinates(request: Request):
     """Guardar múltiplas coordenadas de campos do PDF Livro de Reservas"""
-    require_admin(request)
+    require_commissions_management(request)
     
     try:
         data = await request.json()
@@ -33747,7 +33747,7 @@ async def save_commissioner_booking_coordinates(request: Request):
 async def clean_extra_coordinates(request: Request):
     """Limpar coordenadas de campos extras antigos que não devem ser usados"""
     try:
-        require_admin(request)
+        require_commissions_management(request)
     except HTTPException:
         return JSONResponse({"ok": False, "error": "Unauthorized"}, status_code=401)
     
@@ -33802,7 +33802,7 @@ async def clean_extra_coordinates(request: Request):
 async def list_commissioner_booking_coordinates(request: Request):
     """Listar todas as coordenadas dos campos do PDF"""
     try:
-        require_admin(request)
+        require_commissions_management(request)
     except HTTPException:
         return JSONResponse({"ok": False, "error": "Unauthorized"}, status_code=401)
     
@@ -33858,7 +33858,7 @@ async def list_commissioner_booking_coordinates(request: Request):
 async def clear_all_commissioner_bookings(request: Request):
     """Limpar todas as reservas do commissioner (PERIGO:操作 irreversível)"""
     try:
-        require_admin(request)
+        require_commissions_management(request)
     except HTTPException:
         return JSONResponse({"ok": False, "error": "Unauthorized"}, status_code=401)
     
@@ -33904,7 +33904,7 @@ async def clear_all_commissioner_bookings(request: Request):
 async def admin_migrate_booking_confirmation_fields(request: Request):
     """Add total_amount and value_adjustment fields to commission_bookings table - Admin only"""
     try:
-        require_admin(request)
+        require_commissions_management(request)
     except HTTPException:
         return JSONResponse({"ok": False, "error": "Unauthorized"}, status_code=401)
     
@@ -33969,7 +33969,7 @@ async def admin_migrate_booking_confirmation_fields(request: Request):
 async def clean_unknown_booking_coordinates(request: Request):
     """Limpar campos desconhecidos/numéricos da tabela de coordenadas"""
     try:
-        require_admin(request)
+        require_commissions_management(request)
     except HTTPException:
         return JSONResponse({"ok": False, "error": "Unauthorized"}, status_code=401)
     
@@ -34035,7 +34035,7 @@ async def clean_unknown_booking_coordinates(request: Request):
 @app.post("/api/commissioner-booking-pdf/upload-template")
 async def upload_commissioner_booking_pdf_template(request: Request, pdf: UploadFile = File(...)):
     """Upload do PDF template do Livro de Reservas"""
-    require_admin(request)
+    require_commissions_management(request)
     
     try:
         # Ler o conteúdo do PDF
@@ -59722,7 +59722,7 @@ async def update_vehicle_from_inspection(request: Request):
 @app.post("/api/admin/vehicles/import-excel")
 async def import_vehicles_from_excel(request: Request):
     """Importar veículos do ficheiro Frota.xlsx"""
-    require_admin(request)
+    require_commissions_management(request)
     
     try:
         import pandas as pd
@@ -60762,7 +60762,7 @@ Cordialement,
 @app.post("/api/admin/fix-swap-license-plate")
 async def fix_swap_license_plate(request: Request):
     """Fix rental_agreement license_plate after swap"""
-    require_admin(request)
+    require_commissions_management(request)
     
     try:
         data = await request.json()
@@ -60845,7 +60845,7 @@ async def fix_swap_license_plate(request: Request):
 @app.post("/api/admin/fix-replaced-inspections")
 async def fix_replaced_inspections(request: Request):
     """Temporary endpoint to fix inspection status for swapped vehicles"""
-    require_admin(request)
+    require_commissions_management(request)
     
     try:
         data = await request.json()
@@ -60905,7 +60905,7 @@ async def fix_replaced_inspections(request: Request):
 @app.post("/api/admin/fix-ra-6932")
 async def fix_ra_6932(request: Request):
     """Temporary endpoint to fix RA 6932 - copy inspection from AS-78-RH to AT-28-NX"""
-    require_admin(request)
+    require_commissions_management(request)
     
     try:
         with _db_lock:
@@ -61085,7 +61085,7 @@ async def fix_ra_6932(request: Request):
 @app.get("/api/admin/check-all-inspections-as78rh")
 async def check_all_inspections_as78rh(request: Request):
     """Check all inspections for AS-78-RH"""
-    require_admin(request)
+    require_commissions_management(request)
     
     try:
         conn = _db_connect()
@@ -61136,7 +61136,7 @@ async def check_all_inspections_as78rh(request: Request):
 @app.get("/api/admin/check-all-inspections-at28nx")
 async def check_all_inspections_at28nx(request: Request):
     """Check all inspections for AT-28-NX"""
-    require_admin(request)
+    require_commissions_management(request)
     
     try:
         conn = _db_connect()
@@ -61187,7 +61187,7 @@ async def check_all_inspections_at28nx(request: Request):
 @app.get("/api/admin/check-inspection-384")
 async def check_inspection_384(request: Request):
     """Check what's in inspection ID 384"""
-    require_admin(request)
+    require_commissions_management(request)
     
     try:
         conn = _db_connect()
@@ -61259,7 +61259,7 @@ async def check_inspection_384(request: Request):
 @app.post("/api/admin/fix-inspection-384-photos")
 async def fix_inspection_384_photos(request: Request):
     """Copy ALL data from AS-78-RH inspection 363 to AT-28-NX inspection 384"""
-    require_admin(request)
+    require_commissions_management(request)
     
     try:
         conn = _db_connect()
@@ -61347,7 +61347,7 @@ async def fix_inspection_384_photos(request: Request):
 @app.get("/api/admin/debug-vehicle-availability/{plate}")
 async def debug_vehicle_availability(request: Request, plate: str):
     """Debug endpoint to investigate why a vehicle is not available"""
-    require_admin(request)
+    require_commissions_management(request)
     
     try:
         with _db_lock:
@@ -61487,7 +61487,7 @@ async def debug_vehicle_availability(request: Request, plate: str):
 @app.post("/api/admin/insert-missing-swap")
 async def insert_missing_swap(request: Request):
     """Manually insert the missing swap record for RA 06761"""
-    require_admin(request)
+    require_commissions_management(request)
     
     try:
         data = await request.json()
@@ -61547,7 +61547,7 @@ async def insert_missing_swap(request: Request):
 @app.get("/api/admin/check-swaps")
 async def check_swaps(request: Request, ra: str = None):
     """Check vehicle_swaps table for debugging"""
-    require_admin(request)
+    require_commissions_management(request)
     
     try:
         with _db_lock:
@@ -61626,7 +61626,7 @@ async def check_swaps(request: Request, ra: str = None):
 @app.post("/api/admin/delete-rental-agreement")
 async def delete_rental_agreement(request: Request):
     """Delete a rental agreement and its associated inspections"""
-    require_admin(request)
+    require_commissions_management(request)
     
     try:
         data = await request.json()
@@ -61717,7 +61717,7 @@ async def delete_rental_agreement(request: Request):
 @app.get("/api/admin/vehicles")
 async def get_vehicles(request: Request):
     """Listar todos os veículos"""
-    require_admin(request)
+    require_commissions_management(request)
     
     try:
         with _db_lock:
@@ -61769,7 +61769,7 @@ async def get_vehicles(request: Request):
 @app.post("/api/admin/vehicles")
 async def create_vehicle(request: Request):
     """Criar novo veículo"""
-    require_admin(request)
+    require_commissions_management(request)
     
     try:
         data = await request.json()
@@ -61828,7 +61828,7 @@ async def create_vehicle(request: Request):
 @app.put("/api/admin/vehicles/{vehicle_id}")
 async def update_vehicle(vehicle_id: int, request: Request):
     """Atualizar veículo existente"""
-    require_admin(request)
+    require_commissions_management(request)
     
     try:
         data = await request.json()
@@ -61890,7 +61890,7 @@ async def update_vehicle(vehicle_id: int, request: Request):
 @app.delete("/api/admin/vehicles/{vehicle_id}")
 async def delete_vehicle(vehicle_id: int, request: Request):
     """Remover veículo"""
-    require_admin(request)
+    require_commissions_management(request)
     
     try:
         with _db_lock:
@@ -61929,7 +61929,7 @@ async def delete_vehicle(vehicle_id: int, request: Request):
 @app.get("/api/admin/vehicles/stats")
 async def get_vehicles_stats(request: Request):
     """Estatísticas da frota"""
-    require_admin(request)
+    require_commissions_management(request)
     
     try:
         with _db_lock:
@@ -62590,7 +62590,7 @@ async def update_inspections_from_ra(request: Request):
 @app.post("/api/admin/revert-emergency-fix")
 async def revert_emergency_fix_endpoint(request: Request):
     """REVERT: Add back the removed character to restore original base64"""
-    require_admin(request)
+    require_commissions_management(request)
     
     try:
         conn = _db_connect()
@@ -62648,7 +62648,7 @@ async def revert_emergency_fix_endpoint(request: Request):
 @app.post("/api/admin/emergency-fix-base64")
 async def emergency_fix_base64_endpoint(request: Request):
     """EMERGENCY: Remove 1 character from base64 to compensate for old code bug"""
-    require_admin(request)
+    require_commissions_management(request)
     
     try:
         conn = _db_connect()
@@ -62730,7 +62730,7 @@ async def emergency_fix_base64_endpoint(request: Request):
 @app.post("/api/admin/fix-self-checkout-photos/{inspection_number}")
 async def fix_self_checkout_photos(request: Request, inspection_number: str):
     """FIX: Correct base64 padding for self-checkout photos"""
-    require_admin(request)
+    require_commissions_management(request)
     
     try:
         conn = _db_connect()
@@ -62821,7 +62821,7 @@ async def fix_self_checkout_photos(request: Request, inspection_number: str):
 @app.get("/api/admin/diagnose-inspection/{inspection_number}")
 async def diagnose_inspection_photos(request: Request, inspection_number: str):
     """DIAGNOSTIC: Check photos for specific inspection"""
-    require_admin(request)
+    require_commissions_management(request)
     
     try:
         conn = _db_connect()
@@ -62880,7 +62880,7 @@ async def diagnose_inspection_photos(request: Request, inspection_number: str):
 @app.get("/api/admin/diagnose-photos")
 async def diagnose_photos_format(request: Request):
     """DIAGNOSTIC: Check format of photos in database"""
-    require_admin(request)
+    require_commissions_management(request)
     
     try:
         conn = _db_connect()
@@ -62968,7 +62968,7 @@ async def diagnose_photos_format(request: Request):
 @app.post("/api/admin/fix-base64-padding")
 async def fix_base64_padding_emergency(request: Request):
     """EMERGENCY: Fix base64 padding in database for photos and signatures"""
-    require_admin(request)
+    require_commissions_management(request)
     
     try:
         conn = _db_connect()
@@ -64625,7 +64625,7 @@ async def commissioner_dashboard_page(request: Request):
 async def admin_commissioners_page(request: Request):
     """Admin commissioners management page - Manage commissioners (add/edit/delete)"""
     try:
-        require_admin(request)
+        require_commissions_management(request)
     except HTTPException:
         return RedirectResponse(url="/login", status_code=HTTP_303_SEE_OTHER)
     
@@ -64662,7 +64662,7 @@ async def admin_commissioner_bookings_page(request: Request):
 async def admin_init_commissioners_tables(request: Request):
     """Initialize commissioners and bookings tables - Admin only"""
     try:
-        require_admin(request)
+        require_commissions_management(request)
     except HTTPException:
         return JSONResponse({"ok": False, "error": "Unauthorized"}, status_code=401)
     
@@ -64779,7 +64779,7 @@ async def admin_init_commissioners_tables(request: Request):
 async def admin_add_all_commissioners(request: Request):
     """Add all commissioners from predefined list - Admin only"""
     try:
-        require_admin(request)
+        require_commissions_management(request)
     except HTTPException:
         return JSONResponse({"ok": False, "error": "Unauthorized"}, status_code=401)
     
@@ -64800,7 +64800,7 @@ async def admin_add_all_commissioners(request: Request):
 async def admin_migrate_add_voucher_prefix(request: Request):
     """Add voucher_prefix column to commissioners table - Admin only"""
     try:
-        require_admin(request)
+        require_commissions_management(request)
     except HTTPException:
         return JSONResponse({"ok": False, "error": "Unauthorized"}, status_code=401)
     
@@ -64850,7 +64850,7 @@ async def admin_migrate_add_voucher_prefix(request: Request):
 async def admin_migrate_complete_commissioners_schema(request: Request):
     """Complete migration: Add missing columns (phone, voucher_prefix) and create commission_bookings table - Admin only"""
     try:
-        require_admin(request)
+        require_commissions_management(request)
     except HTTPException:
         return JSONResponse({"ok": False, "error": "Unauthorized"}, status_code=401)
     
@@ -64979,7 +64979,7 @@ async def admin_migrate_complete_commissioners_schema(request: Request):
 async def admin_migrate_add_insurance_type(request: Request):
     """Add insurance_type column to commission_bookings table - Admin only"""
     try:
-        require_admin(request)
+        require_commissions_management(request)
     except HTTPException:
         return JSONResponse({"ok": False, "error": "Unauthorized"}, status_code=401)
     
@@ -65014,7 +65014,7 @@ async def admin_migrate_add_insurance_type(request: Request):
 async def admin_migrate_add_default_location(request: Request):
     """Add default_location column to commissioners table - Admin only"""
     try:
-        require_admin(request)
+        require_commissions_management(request)
     except HTTPException:
         return JSONResponse({"ok": False, "error": "Unauthorized"}, status_code=401)
     
@@ -65049,7 +65049,7 @@ async def admin_migrate_add_default_location(request: Request):
 async def admin_migrate_set_default_commission(request: Request):
     """Set default commission rate to 15% for all commissioners - Admin only"""
     try:
-        require_admin(request)
+        require_commissions_management(request)
     except HTTPException:
         return JSONResponse({"ok": False, "error": "Unauthorized"}, status_code=401)
     
@@ -65085,7 +65085,7 @@ async def admin_migrate_set_default_commission(request: Request):
 async def admin_migrate_add_commission_columns(request: Request):
     """Add commission_rate and commission_amount columns to commission_bookings table - Admin only"""
     try:
-        require_admin(request)
+        require_commissions_management(request)
     except HTTPException:
         return JSONResponse({"ok": False, "error": "Unauthorized"}, status_code=401)
     
@@ -65126,7 +65126,7 @@ async def admin_migrate_add_commission_columns(request: Request):
 async def admin_delete_all_commissioner_bookings(request: Request):
     """Delete ALL commissioner bookings - Admin only - USE WITH CAUTION"""
     try:
-        require_admin(request)
+        require_commissions_management(request)
     except HTTPException:
         return JSONResponse({"ok": False, "error": "Unauthorized"}, status_code=401)
     
