@@ -13168,6 +13168,8 @@ async def admin_commissions_print_pdf(request: Request):
                     from PIL import Image
                     import io
                     
+                    logging.info(f"🔍 PDF: Tentando desenhar assinatura (primeiros 50 chars): {signature_base64[:50]}")
+                    
                     # Remove data URL prefix if present
                     if 'base64,' in signature_base64:
                         signature_base64 = signature_base64.split('base64,')[1]
@@ -13175,6 +13177,8 @@ async def admin_commissions_print_pdf(request: Request):
                     # Decode base64 to image
                     img_data = base64.b64decode(signature_base64)
                     img = Image.open(io.BytesIO(img_data))
+                    
+                    logging.info(f"🔍 PDF: Imagem carregada com sucesso: {img.size}")
                     
                     # Save to temporary buffer
                     img_buffer = io.BytesIO()
@@ -13193,8 +13197,13 @@ async def admin_commissions_print_pdf(request: Request):
                         preserveAspectRatio=True,
                         mask='auto'
                     )
+                    logging.info(f"🔍 PDF: Assinatura desenhada com sucesso")
                 except Exception as e:
-                    print(f"Error drawing signature: {e}")
+                    logging.error(f"❌ PDF: Erro ao desenhar assinatura: {e}")
+                    import traceback
+                    logging.error(traceback.format_exc())
+            else:
+                logging.warning(f"⚠️ PDF: Sem dados de assinatura para desenhar")
             
             canvas.restoreState()
         
