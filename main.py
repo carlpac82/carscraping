@@ -13112,14 +13112,14 @@ async def admin_commissions_print_pdf(request: Request):
             canvas.setFillColor(colors.HexColor('#009cb6'))
             canvas.setFillAlpha(0.08)
             
-            # Recebido field
-            canvas.rect(center_x, bottom_margin + 2.2*cm, box_width, 0.8*cm, fill=1, stroke=0)
+            # Recebido field (data automática)
+            canvas.rect(center_x, bottom_margin + 2.5*cm, box_width, 0.8*cm, fill=1, stroke=0)
             
             # Nome field
-            canvas.rect(center_x, bottom_margin + 1.1*cm, box_width, 0.8*cm, fill=1, stroke=0)
+            canvas.rect(center_x, bottom_margin + 1.3*cm, box_width, 0.8*cm, fill=1, stroke=0)
             
-            # Assinatura field
-            canvas.rect(center_x, bottom_margin, box_width, 0.8*cm, fill=1, stroke=0)
+            # Assinatura field (maior)
+            canvas.rect(center_x, bottom_margin, box_width, 1*cm, fill=1, stroke=0)
             
             # Reset alpha
             canvas.setFillAlpha(1)
@@ -13132,7 +13132,7 @@ async def admin_commissions_print_pdf(request: Request):
             receiver_name = sig_data.get('receiver_name')
             signature_base64 = sig_data.get('signature')
             
-            # Date field
+            # Date field (automático)
             if paid_date:
                 from datetime import date as date_type
                 if isinstance(paid_date, str):
@@ -13146,24 +13146,24 @@ async def admin_commissions_print_pdf(request: Request):
                     paid_date_obj = paid_date
                 
                 if paid_date_obj:
-                    date_text = f"Recebido a {paid_date_obj.strftime('%d / %m / %Y')}"
+                    date_text = f"Recebido a {paid_date_obj.strftime('%d/%m/%Y')}"
                 else:
-                    date_text = "Recebido a _____ / _____ / ________"
+                    date_text = "Recebido a"
             else:
-                date_text = "Recebido a _____ / _____ / ________"
+                date_text = "Recebido a"
             
-            canvas.drawString(center_x + 0.3*cm, bottom_margin + 2.5*cm, date_text)
+            canvas.drawString(center_x + 0.3*cm, bottom_margin + 2.8*cm, date_text)
             
             # Name field
             if receiver_name:
-                canvas.drawString(center_x + 0.3*cm, bottom_margin + 1.4*cm, f"Nome: {receiver_name}")
+                canvas.drawString(center_x + 0.3*cm, bottom_margin + 1.6*cm, f"Nome: {receiver_name}")
             else:
-                canvas.drawString(center_x + 0.3*cm, bottom_margin + 1.4*cm, "Nome:")
+                canvas.drawString(center_x + 0.3*cm, bottom_margin + 1.6*cm, "Nome:")
             
             # Signature field
             canvas.drawString(center_x + 0.3*cm, bottom_margin + 0.3*cm, "Assinatura:")
             
-            # Draw signature image if available
+            # Draw signature image if available (maior)
             if signature_base64:
                 try:
                     import base64
@@ -13183,9 +13183,9 @@ async def admin_commissions_print_pdf(request: Request):
                     img.save(img_buffer, format='PNG')
                     img_buffer.seek(0)
                     
-                    # Draw image on canvas
-                    sig_width = 4*cm
-                    sig_height = 0.7*cm
+                    # Draw image on canvas (maior)
+                    sig_width = 6*cm
+                    sig_height = 0.9*cm
                     canvas.drawImage(
                         img_buffer,
                         center_x + 2.5*cm,
