@@ -12956,11 +12956,12 @@ async def admin_commissions_print_pdf(request: Request):
                     }
                 
                 # Capture signature data (row[6]=signature, row[7]=receiver_name, row[8]=paid_date)
-                if len(row) > 6 and row[6]:
+                # Only update if not already set (use first non-null value found)
+                if len(row) > 6 and row[6] and not commissioners_signature_data[commissioner_name]['signature']:
                     commissioners_signature_data[commissioner_name]['signature'] = row[6]
-                if len(row) > 7 and row[7]:
+                if len(row) > 7 and row[7] and not commissioners_signature_data[commissioner_name]['receiver_name']:
                     commissioners_signature_data[commissioner_name]['receiver_name'] = row[7]
-                if len(row) > 8 and row[8]:
+                if len(row) > 8 and row[8] and not commissioners_signature_data[commissioner_name]['paid_date']:
                     commissioners_signature_data[commissioner_name]['paid_date'] = row[8]
                 
                 # Calculate number of days
