@@ -13167,6 +13167,7 @@ async def admin_commissions_print_pdf(request: Request):
                     import base64
                     from PIL import Image
                     import io
+                    from reportlab.lib.utils import ImageReader
                     
                     logging.info(f"🔍 PDF: Tentando desenhar assinatura (primeiros 50 chars): {signature_base64[:50]}")
                     
@@ -13185,11 +13186,14 @@ async def admin_commissions_print_pdf(request: Request):
                     img.save(img_buffer, format='PNG')
                     img_buffer.seek(0)
                     
+                    # Use ImageReader for BytesIO objects
+                    img_reader = ImageReader(img_buffer)
+                    
                     # Draw image on canvas (maior)
                     sig_width = 6*cm
                     sig_height = 0.9*cm
                     canvas.drawImage(
-                        img_buffer,
+                        img_reader,
                         center_x + 2.5*cm,
                         bottom_margin + 0.05*cm,
                         width=sig_width,
