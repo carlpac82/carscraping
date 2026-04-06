@@ -12943,11 +12943,25 @@ async def admin_commissions_print_pdf(request: Request):
         
         # Group commissions by commissioner
         commissioners_data = {}
+        commissioners_signature_data = {}
         for row in rows:
             try:
                 commissioner_name = row[5] if len(row) > 5 and row[5] else "Sem Comissionista"
                 if commissioner_name not in commissioners_data:
                     commissioners_data[commissioner_name] = []
+                    commissioners_signature_data[commissioner_name] = {
+                        'signature': None,
+                        'receiver_name': None,
+                        'paid_date': None
+                    }
+                
+                # Capture signature data (row[6]=signature, row[7]=receiver_name, row[8]=paid_date)
+                if len(row) > 6 and row[6]:
+                    commissioners_signature_data[commissioner_name]['signature'] = row[6]
+                if len(row) > 7 and row[7]:
+                    commissioners_signature_data[commissioner_name]['receiver_name'] = row[7]
+                if len(row) > 8 and row[8]:
+                    commissioners_signature_data[commissioner_name]['paid_date'] = row[8]
                 
                 # Calculate number of days
                 # Handle both string and datetime.date objects
@@ -13008,10 +13022,16 @@ async def admin_commissions_print_pdf(request: Request):
         if month:
             month_name = datetime(2026, int(month), 1).strftime('%B de %Y')
         
+        # Store signature data for page callback
+        current_commissioner_signature = {}
+        
         # Generate PDF for each commissioner
         for idx, (commissioner_name, commissions) in enumerate(commissioners_data.items()):
             if idx > 0:
                 elements.append(PageBreak())
+            
+            # Set current commissioner signature data for page callback
+            current_commissioner_signature['data'] = commissioners_signature_data.get(commissioner_name, {})
             
             # Title
             title_text = f"{commissioner_name}"
@@ -13073,6 +13093,9 @@ async def admin_commissions_print_pdf(request: Request):
             
             elements.append(table)
         
+        # Store signature data for page callback
+        current_commissioner_signature = {}
+        
         # Custom page template to add signature fields at bottom
         def add_signature_fields(canvas, doc):
             canvas.saveState()
@@ -13103,10 +13126,77 @@ async def admin_commissions_print_pdf(request: Request):
             canvas.setFillColor(colors.HexColor('#555555'))
             canvas.setFont('Helvetica', 9)
             
-            # Text labels - centered
-            canvas.drawString(center_x + 0.3*cm, bottom_margin + 2.5*cm, "Recebido a _____ / _____ / ________")
-            canvas.drawString(center_x + 0.3*cm, bottom_margin + 1.4*cm, "Nome:")
+            # Get signature data for current page
+            sig_data = current_commissioner_signature.get('data', {})
+            paid_date = sig_data.get('paid_date')
+            receiver_name = sig_data.get('receiver_name')
+            signature_base64 = sig_data.get('signature')
+            
+            # Date field
+            if paid_date:
+                from datetime import date as date_type
+                if isinstance(paid_date, str):
+                    try:
+                        paid_date_obj = datetime.fromisoformat(paid_date)
+                    except:
+                        paid_date_obj = None
+                elif isinstance(paid_date, date_type):
+                    paid_date_obj = datetime.combine(paid_date, datetime.min.time())
+                else:
+                    paid_date_obj = paid_date
+                
+                if paid_date_obj:
+                    date_text = f"Recebido a {paid_date_obj.strftime('%d / %m / %Y')}"
+                else:
+                    date_text = "Recebido a _____ / _____ / ________"
+            else:
+                date_text = "Recebido a _____ / _____ / ________"
+            
+            canvas.drawString(center_x + 0.3*cm, bottom_margin + 2.5*cm, date_text)
+            
+            # Name field
+            if receiver_name:
+                canvas.drawString(center_x + 0.3*cm, bottom_margin + 1.4*cm, f"Nome: {receiver_name}")
+            else:
+                canvas.drawString(center_x + 0.3*cm, bottom_margin + 1.4*cm, "Nome:")
+            
+            # Signature field
             canvas.drawString(center_x + 0.3*cm, bottom_margin + 0.3*cm, "Assinatura:")
+            
+            # Draw signature image if available
+            if signature_base64:
+                try:
+                    import base64
+                    from PIL import Image
+                    import io
+                    
+                    # Remove data URL prefix if present
+                    if 'base64,' in signature_base64:
+                        signature_base64 = signature_base64.split('base64,')[1]
+                    
+                    # Decode base64 to image
+                    img_data = base64.b64decode(signature_base64)
+                    img = Image.open(io.BytesIO(img_data))
+                    
+                    # Save to temporary buffer
+                    img_buffer = io.BytesIO()
+                    img.save(img_buffer, format='PNG')
+                    img_buffer.seek(0)
+                    
+                    # Draw image on canvas
+                    sig_width = 4*cm
+                    sig_height = 0.7*cm
+                    canvas.drawImage(
+                        img_buffer,
+                        center_x + 2.5*cm,
+                        bottom_margin + 0.05*cm,
+                        width=sig_width,
+                        height=sig_height,
+                        preserveAspectRatio=True,
+                        mask='auto'
+                    )
+                except Exception as e:
+                    print(f"Error drawing signature: {e}")
             
             canvas.restoreState()
         
