@@ -1892,30 +1892,157 @@
               window.open(url, '_blank');
           }
           
+          // Signature canvas variables
+          let signatureCanvas = null;
+          let signatureCtx = null;
+          let isDrawing = false;
+          let pendingPaidStatus = false;
+          
           // Mark selected as paid/unpaid
           async function markSelectedAsPaid(paid) {
               if (selectedCommissions.size === 0) return;
               
-              if (!confirm(`Tem certeza que deseja marcar ${selectedCommissions.size} comissões como ${paid ? 'pagas' : 'não pagas'}?`)) {
+              if (paid) {
+                  pendingPaidStatus = true;
+                  openSignatureModal();
+              } else {
+                  if (!confirm(`Tem certeza que deseja marcar ${selectedCommissions.size} comissões como não pagas?`)) {
+                      return;
+                  }
+                  await submitPaymentStatus(false, null, null);
+              }
+          }
+          
+          // Open signature modal
+          function openSignatureModal() {
+              const modal = document.getElementById('signatureModal');
+              modal.style.display = 'flex';
+              
+              signatureCanvas = document.getElementById('signatureCanvas');
+              signatureCtx = signatureCanvas.getContext('2d');
+              
+              signatureCtx.strokeStyle = '#000';
+              signatureCtx.lineWidth = 2;
+              signatureCtx.lineCap = 'round';
+              signatureCtx.lineJoin = 'round';
+              
+              signatureCanvas.addEventListener('mousedown', startDrawing);
+              signatureCanvas.addEventListener('mousemove', draw);
+              signatureCanvas.addEventListener('mouseup', stopDrawing);
+              signatureCanvas.addEventListener('mouseout', stopDrawing);
+              
+              signatureCanvas.addEventListener('touchstart', handleTouchStart);
+              signatureCanvas.addEventListener('touchmove', handleTouchMove);
+              signatureCanvas.addEventListener('touchend', stopDrawing);
+              
+              document.getElementById('receiverNameInput').value = '';
+              clearSignature();
+          }
+          
+          // Close signature modal
+          function closeSignatureModal() {
+              const modal = document.getElementById('signatureModal');
+              modal.style.display = 'none';
+              pendingPaidStatus = false;
+          }
+          
+          // Clear signature
+          function clearSignature() {
+              if (signatureCtx && signatureCanvas) {
+                  signatureCtx.clearRect(0, 0, signatureCanvas.width, signatureCanvas.height);
+              }
+          }
+          
+          // Drawing functions
+          function startDrawing(e) {
+              isDrawing = true;
+              const rect = signatureCanvas.getBoundingClientRect();
+              signatureCtx.beginPath();
+              signatureCtx.moveTo(e.clientX - rect.left, e.clientY - rect.top);
+          }
+          
+          function draw(e) {
+              if (!isDrawing) return;
+              const rect = signatureCanvas.getBoundingClientRect();
+              signatureCtx.lineTo(e.clientX - rect.left, e.clientY - rect.top);
+              signatureCtx.stroke();
+          }
+          
+          function stopDrawing() {
+              isDrawing = false;
+          }
+          
+          function handleTouchStart(e) {
+              e.preventDefault();
+              const touch = e.touches[0];
+              const mouseEvent = new MouseEvent('mousedown', {
+                  clientX: touch.clientX,
+                  clientY: touch.clientY
+              });
+              signatureCanvas.dispatchEvent(mouseEvent);
+          }
+          
+          function handleTouchMove(e) {
+              e.preventDefault();
+              const touch = e.touches[0];
+              const mouseEvent = new MouseEvent('mousemove', {
+                  clientX: touch.clientX,
+                  clientY: touch.clientY
+              });
+              signatureCanvas.dispatchEvent(mouseEvent);
+          }
+          
+          // Submit signature
+          async function submitSignature() {
+              const receiverName = document.getElementById('receiverNameInput').value.trim();
+              
+              if (!receiverName) {
+                  alert('Por favor, insira o nome do recebedor');
                   return;
               }
               
+              const signatureData = signatureCanvas.toDataURL('image/png');
+              
+              if (!signatureData || signatureData === signatureCanvas.toDataURL('image/png', 0)) {
+                  const emptyCanvas = document.createElement('canvas');
+                  emptyCanvas.width = signatureCanvas.width;
+                  emptyCanvas.height = signatureCanvas.height;
+                  if (signatureData === emptyCanvas.toDataURL('image/png')) {
+                      alert('Por favor, assine no campo de assinatura');
+                      return;
+                  }
+              }
+              
+              closeSignatureModal();
+              await submitPaymentStatus(true, receiverName, signatureData);
+          }
+          
+          // Submit payment status
+          async function submitPaymentStatus(paid, receiverName, signatureData) {
               try {
                   const endpoint = paid ? '/api/admin/commissions/mark-paid' : '/api/admin/commissions/mark-unpaid';
+                  const body = {
+                      commission_ids: Array.from(selectedCommissions)
+                  };
+                  
+                  if (paid && receiverName && signatureData) {
+                      body.receiver_name = receiverName;
+                      body.signature = signatureData;
+                  }
+                  
                   const response = await fetch(endpoint, {
                       method: 'POST',
                       headers: {
                           'Content-Type': 'application/json',
                       },
-                      body: JSON.stringify({
-                          commission_ids: Array.from(selectedCommissions)
-                      })
+                      body: JSON.stringify(body)
                   });
                   
                   const data = await response.json();
                   if (data.ok) {
                       selectedCommissions.clear();
                       loadCommissions();
+                      alert('Comissões atualizadas com sucesso!');
                   } else {
                       alert('Erro ao atualizar comissões: ' + data.error);
                   }
@@ -3488,5 +3615,30 @@
               }
           }
       </script>
+      
+      <!-- Signature Modal -->
+      <div id="signatureModal" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 9999; align-items: center; justify-content: center;">
+          <div style="background: white; border-radius: 12px; padding: 24px; max-width: 500px; width: 90%; box-shadow: 0 4px 6px rgba(0,0,0,0.1);">
+              <h3 style="margin: 0 0 20px 0; font-size: 20px; font-weight: 600; color: #1f2937;">Assinatura Digital</h3>
+              
+              <div style="margin-bottom: 16px;">
+                  <label style="display: block; margin-bottom: 8px; font-weight: 500; color: #374151;">Nome do Recebedor:</label>
+                  <input type="text" id="receiverNameInput" placeholder="Digite o nome completo" style="width: 100%; padding: 10px; border: 1px solid #d1d5db; border-radius: 6px; font-size: 14px;">
+              </div>
+              
+              <div style="margin-bottom: 16px;">
+                  <label style="display: block; margin-bottom: 8px; font-weight: 500; color: #374151;">Assinatura:</label>
+                  <div style="border: 2px solid #d1d5db; border-radius: 8px; background: #f9fafb;">
+                      <canvas id="signatureCanvas" width="450" height="200" style="display: block; cursor: crosshair; touch-action: none;"></canvas>
+                  </div>
+                  <button onclick="clearSignature()" style="margin-top: 8px; padding: 6px 12px; background: #ef4444; color: white; border: none; border-radius: 6px; font-size: 13px; cursor: pointer;">Limpar Assinatura</button>
+              </div>
+              
+              <div style="display: flex; gap: 12px; justify-content: flex-end; margin-top: 24px;">
+                  <button onclick="closeSignatureModal()" style="padding: 10px 20px; background: #6b7280; color: white; border: none; border-radius: 6px; font-weight: 500; cursor: pointer;">Cancelar</button>
+                  <button onclick="submitSignature()" style="padding: 10px 20px; background: #009cb6; color: white; border: none; border-radius: 6px; font-weight: 500; cursor: pointer;">Confirmar Pagamento</button>
+              </div>
+          </div>
+      </div>
     </body>
 </html>
