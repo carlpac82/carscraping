@@ -65402,6 +65402,25 @@ async def update_commission_booking(booking_id: int, request: Request):
             try:
                 if USE_POSTGRES:
                     cur = con.cursor()
+                    # Get current booking data to recalculate commission
+                    cur.execute("""
+                        SELECT commissioner_id, commission_rate, price
+                        FROM commission_bookings
+                        WHERE id = %s
+                    """, (booking_id,))
+                    current_data = cur.fetchone()
+                    
+                    if not current_data:
+                        return JSONResponse({"ok": False, "error": "Booking not found"}, status_code=404)
+                    
+                    commissioner_id, commission_rate, old_price = current_data
+                    new_price = float(data['total_price'])
+                    
+                    # Recalculate commission values
+                    base_price = new_price
+                    base_price_without_vat = base_price / 1.23
+                    commission_amount = base_price_without_vat * (commission_rate / 100.0)
+                    
                     cur.execute("""
                         UPDATE commission_bookings
                         SET client_name = %s,
@@ -65412,6 +65431,8 @@ async def update_commission_booking(booking_id: int, request: Request):
                             pickup_location = %s,
                             dropoff_location = %s,
                             price = %s,
+                            base_price = %s,
+                            commission_amount = %s,
                             updated_at = CURRENT_TIMESTAMP
                         WHERE id = %s
                     """, (
@@ -65422,11 +65443,33 @@ async def update_commission_booking(booking_id: int, request: Request):
                         data['return_date'],
                         data.get('pickup_location', ''),
                         data.get('return_location', ''),
-                        float(data['total_price']),
+                        new_price,
+                        base_price,
+                        commission_amount,
                         booking_id
                     ))
                 else:
-                    cur = con.execute("""
+                    cur = con.cursor()
+                    # Get current booking data to recalculate commission
+                    cur.execute("""
+                        SELECT commissioner_id, commission_rate, price
+                        FROM commission_bookings
+                        WHERE id = ?
+                    """, (booking_id,))
+                    current_data = cur.fetchone()
+                    
+                    if not current_data:
+                        return JSONResponse({"ok": False, "error": "Booking not found"}, status_code=404)
+                    
+                    commissioner_id, commission_rate, old_price = current_data
+                    new_price = float(data['total_price'])
+                    
+                    # Recalculate commission values
+                    base_price = new_price
+                    base_price_without_vat = base_price / 1.23
+                    commission_amount = base_price_without_vat * (commission_rate / 100.0)
+                    
+                    cur.execute("""
                         UPDATE commission_bookings
                         SET client_name = ?,
                             client_email = ?,
@@ -65436,6 +65479,8 @@ async def update_commission_booking(booking_id: int, request: Request):
                             pickup_location = ?,
                             dropoff_location = ?,
                             price = ?,
+                            base_price = ?,
+                            commission_amount = ?,
                             updated_at = CURRENT_TIMESTAMP
                         WHERE id = ?
                     """, (
@@ -65446,7 +65491,9 @@ async def update_commission_booking(booking_id: int, request: Request):
                         data['return_date'],
                         data.get('pickup_location', ''),
                         data.get('return_location', ''),
-                        float(data['total_price']),
+                        new_price,
+                        base_price,
+                        commission_amount,
                         booking_id
                     ))
                 
@@ -65483,7 +65530,8 @@ async def delete_commission_booking(booking_id: int, request: Request):
                         WHERE id = %s
                     """, (booking_id,))
                 else:
-                    cur = con.execute("""
+                    cur = con.cursor()
+                    cur.execute("""
                         DELETE FROM commission_bookings
                         WHERE id = ?
                     """, (booking_id,))
