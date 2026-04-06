@@ -1578,6 +1578,7 @@
           // Render commissions table/cards
           function renderCommissions() {
               const tbody = document.getElementById('commissionsTableBody');
+              const tableContainer = tbody.closest('.commissions-table');
               let filteredCommissions = filterCommissions();
               
               // Apply sorting
@@ -1606,6 +1607,12 @@
               
               // Check if mobile
               const isMobile = window.innerWidth <= 768;
+              
+              // Remove existing mobile cards if any
+              const existingCards = tableContainer.querySelector('.commissions-cards');
+              if (existingCards) {
+                  existingCards.remove();
+              }
               
               if (isMobile) {
                   // Render cards for mobile
@@ -1656,7 +1663,12 @@
                   });
                   
                   cardsHTML += '</div>';
-                  tbody.innerHTML = cardsHTML;
+                  
+                  // Insert cards after the table
+                  tableContainer.insertAdjacentHTML('beforeend', cardsHTML);
+                  
+                  // Clear tbody
+                  tbody.innerHTML = '';
               } else {
                   // Render table for desktop
                   tbody.innerHTML = '';
