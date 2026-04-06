@@ -2893,14 +2893,19 @@
             }
             
             .summary-vehicle-card {
-                flex-direction: column;
-                align-items: flex-start;
+                flex-direction: row;
+                align-items: center;
+                gap: 12px;
+                padding: 12px;
+                background: #f9fafb;
+                border-radius: 8px;
             }
             
             .summary-vehicle-image {
-                width: 100%;
-                height: 100px;
-                margin-bottom: 8px;
+                width: 80px;
+                height: 60px;
+                margin-bottom: 0;
+                flex-shrink: 0;
             }
             
             .summary-vehicle-image img {
@@ -2909,36 +2914,63 @@
                 object-fit: contain;
             }
             
+            .summary-vehicle-details {
+                flex: 1;
+                min-width: 0;
+            }
+            
             .summary-vehicle-group {
-                font-size: 11px !important;
-                margin-bottom: 2px !important;
+                font-size: 10px !important;
+                margin-bottom: 1px !important;
+                font-weight: 700 !important;
+                color: #009cb6 !important;
             }
             
             .summary-vehicle-name {
-                font-size: 14px !important;
-                margin-bottom: 6px !important;
+                font-size: 13px !important;
+                margin-bottom: 4px !important;
+                font-weight: 600 !important;
+                line-height: 1.2 !important;
             }
             
             .summary-vehicle-features {
-                font-size: 11px !important;
+                font-size: 10px !important;
+                display: flex;
+                gap: 6px;
+                flex-wrap: wrap;
             }
             
             .summary-dates {
-                font-size: 11px !important;
+                font-size: 10px !important;
+                margin-top: 8px;
+            }
+            
+            .summary-pickup,
+            .summary-dropoff {
+                margin-bottom: 6px;
             }
             
             .summary-dates-text {
-                font-size: 11px !important;
-                line-height: 1.3 !important;
+                font-size: 10px !important;
+                line-height: 1.2 !important;
+                color: #4b5563 !important;
             }
             
             .summary-label {
-                font-size: 10px !important;
-                margin-bottom: 2px !important;
+                font-size: 9px !important;
+                margin-bottom: 1px !important;
+                text-transform: uppercase;
+                letter-spacing: 0.3px;
+                font-weight: 600 !important;
+                color: #6b7280 !important;
             }
             
-            .summary-dates {
-                width: 100%;
+            .summary-section {
+                margin-bottom: 12px;
+            }
+            
+            .summary-layout {
+                gap: 12px;
             }
             
             .confirmation-contact {
