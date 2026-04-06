@@ -1234,16 +1234,15 @@
         }
 
         .btn-previous {
-            background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);
-            color: white;
-            border: none;
+            background: white;
+            color: #009cb6;
+            border: 1.5px solid #009cb6;
             padding: 12px 24px;
             border-radius: 8px;
             cursor: pointer;
             font-size: 14px;
             font-weight: 600;
             transition: all 0.3s;
-            box-shadow: 0 2px 8px rgba(245, 158, 11, 0.25);
         }
         
         .btn-next {
@@ -1260,6 +1259,9 @@
         }
 
         .btn-previous:hover {
+            background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);
+            color: white;
+            border-color: #f59e0b;
             transform: translateY(-1px);
             box-shadow: 0 4px 12px rgba(245, 158, 11, 0.35);
         }
@@ -2624,12 +2626,23 @@
             }
             
             .modal-header {
-                padding: 16px 20px;
+                padding: 18px 20px;
                 border-radius: 0;
             }
             
             .modal-header h2 {
-                font-size: 18px;
+                font-size: 20px;
+                font-weight: 700;
+                text-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
+            }
+            
+            .modal-close {
+                width: 32px;
+                height: 32px;
+                font-size: 22px;
+                font-weight: 700;
+                background: rgba(239, 68, 68, 0.95);
+                box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
             }
             
             .modal-body {
