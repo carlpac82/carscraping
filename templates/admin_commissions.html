@@ -1918,6 +1918,18 @@
               const modal = document.getElementById('signatureModal');
               modal.style.display = 'flex';
               
+              // Calculate total of selected commissions
+              let totalAmount = 0;
+              selectedCommissions.forEach(commissionId => {
+                  const commission = allCommissions.find(c => c.id === commissionId);
+                  if (commission) {
+                      totalAmount += commission.commission_amount || 0;
+                  }
+              });
+              
+              // Update total amount in modal
+              document.getElementById('totalCommissionsAmount').textContent = `€${totalAmount.toFixed(2)}`;
+              
               signatureCanvas = document.getElementById('signatureCanvas');
               signatureCtx = signatureCanvas.getContext('2d');
               
@@ -3620,6 +3632,11 @@
       <div id="signatureModal" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 9999; align-items: center; justify-content: center;">
           <div style="background: white; border-radius: 12px; padding: 24px; max-width: 500px; width: 90%; box-shadow: 0 4px 6px rgba(0,0,0,0.1);">
               <h3 style="margin: 0 0 20px 0; font-size: 20px; font-weight: 600; color: #1f2937;">Assinatura Digital</h3>
+              
+              <div style="margin-bottom: 20px; padding: 16px; background: #f0f9ff; border-left: 4px solid #009cb6; border-radius: 6px;">
+                  <p style="margin: 0 0 8px 0; font-size: 15px; font-weight: 600; color: #1f2937;">Confirmação de Recebimento</p>
+                  <p style="margin: 0; font-size: 14px; color: #374151;">Confirmo o recebimento do valor total de <strong id="totalCommissionsAmount" style="color: #009cb6; font-size: 18px;">€0.00</strong></p>
+              </div>
               
               <div style="margin-bottom: 16px;">
                   <label style="display: block; margin-bottom: 8px; font-weight: 500; color: #374151;">Nome do Recebedor:</label>
