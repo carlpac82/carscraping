@@ -12994,7 +12994,7 @@ async def admin_commissions_print_pdf(request: Request):
                 elements.append(PageBreak())
             
             # Title
-            title_text = f"Comissões - {commissioner_name}"
+            title_text = f"{commissioner_name}"
             if month_name:
                 title_text += f" - {month_name}"
             elements.append(Paragraph(title_text, title_style))
