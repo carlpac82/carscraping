@@ -3231,7 +3231,9 @@
             .booking-card-mobile .detail-row {
                 display: flex;
                 justify-content: space-between;
-                font-size: 13px;
+                font-size: 11px;
+                align-items: center;
+                min-height: auto;
             }
             
             .booking-card-mobile .detail-label {
@@ -3245,21 +3247,42 @@
             
             /* Reduzir tamanho do texto para cliente e email no mobile */
             .booking-card-mobile .detail-row[data-client-info] .detail-value {
-                font-size: 10px;
-                max-width: 55%;
+                font-size: 9px !important;
+                max-width: 50% !important;
                 word-break: break-word;
-                line-height: 1.2;
+                line-height: 1.1;
+                flex-shrink: 0;
+            }
+            
+            .booking-card-mobile .detail-row[data-client-info] .detail-label {
+                font-size: 9px !important;
+                flex-shrink: 0;
+                margin-right: 4px;
             }
             
             /* Reduzir tamanho do preço no mobile */
             .booking-card-mobile .detail-row[data-price] .detail-value {
-                font-size: 11px;
+                font-size: 9px !important;
                 font-weight: 600;
+                flex-shrink: 0;
+            }
+            
+            .booking-card-mobile .detail-row[data-price] .detail-label {
+                font-size: 9px !important;
+                flex-shrink: 0;
+                margin-right: 4px;
             }
             
             /* Reduzir tamanho do depósito no mobile */
             .booking-card-mobile .detail-row:nth-child(5) .detail-value {
-                font-size: 11px;
+                font-size: 9px !important;
+                flex-shrink: 0;
+            }
+            
+            .booking-card-mobile .detail-row:nth-child(5) .detail-label {
+                font-size: 9px !important;
+                flex-shrink: 0;
+                margin-right: 4px;
             }
             
             .booking-card-mobile .booking-actions {

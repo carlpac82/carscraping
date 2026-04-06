@@ -235,7 +235,7 @@
 
                 const data = await response.json();
 
-                if (response.ok && data.ok) {
+                if (data.ok) {
                     if (data.needs_email) {
                         successMessage.textContent = 'Login realizado com sucesso! Por favor, configure seu email.';
                         successMessage.style.display = 'block';
@@ -251,7 +251,7 @@
                         }, 1000);
                     }
                 } else {
-                    errorMessage.textContent = data.error || 'Utilizador ou senha incorretos';
+                    errorMessage.textContent = data.error || 'Utilizador ou palavra passe errados';
                     errorMessage.style.display = 'block';
                     loginBtn.disabled = false;
                     loginBtn.textContent = 'Entrar';
