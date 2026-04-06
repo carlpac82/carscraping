@@ -65382,6 +65382,88 @@ async def update_commission_booking_status(booking_id: int, request: Request):
         return JSONResponse({"ok": False, "error": str(e)}, status_code=500)
 
 
+@app.put("/api/commission-bookings/{booking_id}")
+async def update_commission_booking(booking_id: int, request: Request):
+    """Update a commission booking with all fields"""
+    user = request.session.get('user')
+    if not user or not (user.get('is_admin') or user.get('has_commissioner_access')):
+        return JSONResponse({"ok": False, "error": "Unauthorized"}, status_code=401)
+    
+    try:
+        data = await request.json()
+        
+        # Validate required fields
+        if 'pickup_date' not in data or 'return_date' not in data or 'total_price' not in data:
+            return JSONResponse({"ok": False, "error": "Required fields missing"}, status_code=400)
+        
+        with _db_lock:
+            con = _db_connect()
+            try:
+                if USE_POSTGRES:
+                    cur = con.cursor()
+                    cur.execute("""
+                        UPDATE commission_bookings
+                        SET customer_name = %s,
+                            customer_email = %s,
+                            customer_phone = %s,
+                            pickup_date = %s,
+                            return_date = %s,
+                            pickup_location = %s,
+                            return_location = %s,
+                            total_price = %s,
+                            updated_at = CURRENT_TIMESTAMP
+                        WHERE id = %s
+                    """, (
+                        data.get('customer_name', ''),
+                        data.get('customer_email', ''),
+                        data.get('customer_phone', ''),
+                        data['pickup_date'],
+                        data['return_date'],
+                        data.get('pickup_location', ''),
+                        data.get('return_location', ''),
+                        float(data['total_price']),
+                        booking_id
+                    ))
+                else:
+                    cur = con.execute("""
+                        UPDATE commission_bookings
+                        SET customer_name = ?,
+                            customer_email = ?,
+                            customer_phone = ?,
+                            pickup_date = ?,
+                            return_date = ?,
+                            pickup_location = ?,
+                            return_location = ?,
+                            total_price = ?,
+                            updated_at = CURRENT_TIMESTAMP
+                        WHERE id = ?
+                    """, (
+                        data.get('customer_name', ''),
+                        data.get('customer_email', ''),
+                        data.get('customer_phone', ''),
+                        data['pickup_date'],
+                        data['return_date'],
+                        data.get('pickup_location', ''),
+                        data.get('return_location', ''),
+                        float(data['total_price']),
+                        booking_id
+                    ))
+                
+                if cur.rowcount == 0:
+                    return JSONResponse({"ok": False, "error": "Booking not found"}, status_code=404)
+                
+                con.commit()
+                return JSONResponse({"ok": True, "message": "Booking updated successfully"})
+                
+            finally:
+                con.close()
+                
+    except Exception as e:
+        print(f"Error updating booking: {e}")
+        traceback.print_exc()
+        return JSONResponse({"ok": False, "error": str(e)}, status_code=500)
+
+
 @app.delete("/api/commission-bookings/{booking_id}")
 async def delete_commission_booking(booking_id: int, request: Request):
     """Delete a commission booking permanently from the database"""

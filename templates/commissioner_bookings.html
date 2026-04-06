@@ -1608,7 +1608,7 @@
             };
 
             try {
-                const response = await fetch(`/api/bookings/${id}`, {
+                const response = await fetch(`/api/commission-bookings/${id}`, {
                     method: 'PUT',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify(data)
