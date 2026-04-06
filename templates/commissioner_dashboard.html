@@ -4467,8 +4467,8 @@
 
             document.getElementById('currentMonthBookings').textContent = currentMonthBookings.length;
             document.getElementById('yearBookings').textContent = yearBookings.length;
-            document.getElementById('paidMonthCommission').textContent = `€${paidMonthCommission.toFixed(2)}`;
-            document.getElementById('paidYearCommission').textContent = `€${paidYearCommission.toFixed(2)}`;
+            document.getElementById('paidMonthCommission').textContent = `€${Math.round(paidMonthCommission)}`;
+            document.getElementById('paidYearCommission').textContent = `€${Math.round(paidYearCommission)}`;
         }
 
         function renderBookings() {
