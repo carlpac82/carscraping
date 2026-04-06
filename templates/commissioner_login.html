@@ -233,28 +233,12 @@
                     body: JSON.stringify({ username, password })
                 });
 
-                if (!response.ok) {
-                    // HTTP error (401, 403, 500, etc.)
-                    if (response.status === 401) {
-                        errorMessage.textContent = 'Utilizador ou senha incorretos';
-                    } else if (response.status === 403) {
-                        errorMessage.textContent = 'Conta desativada. Contacte o administrador.';
-                    } else {
-                        errorMessage.textContent = 'Erro no servidor. Tente novamente.';
-                    }
-                    errorMessage.style.display = 'block';
-                    loginBtn.disabled = false;
-                    loginBtn.textContent = 'Entrar';
-                    return;
-                }
-
                 const data = await response.json();
 
-                if (data.ok) {
+                if (response.ok && data.ok) {
                     if (data.needs_email) {
-                        currentCommissionerId = data.commissioner_id;
-                        infoMessage.textContent = 'Por favor, insira o seu email para continuar.';
-                        infoMessage.style.display = 'block';
+                        successMessage.textContent = 'Login realizado com sucesso! Por favor, configure seu email.';
+                        successMessage.style.display = 'block';
                         loginForm.style.display = 'none';
                         emailForm.style.display = 'block';
                         loginBtn.disabled = false;
