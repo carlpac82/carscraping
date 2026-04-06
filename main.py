@@ -5917,7 +5917,9 @@ def get_user_from_session(request: Request):
         "email": "",
         "profile_picture_path": "",
         "is_admin": request.session.get("is_admin", False),
-        "role": request.session.get("role", "user")
+        "role": request.session.get("role", "user"),
+        "has_commissioner_access": False,
+        "can_manage_commissions": False
     }
     
     # Fetch complete user data from database
@@ -5930,14 +5932,16 @@ def get_user_from_session(request: Request):
                 if is_postgres:
                     cursor = conn.cursor()
                     cursor.execute("""
-                        SELECT first_name, last_name, email, profile_picture_path 
+                        SELECT first_name, last_name, email, profile_picture_path,
+                               has_commissioner_access, can_manage_commissions
                         FROM users 
                         WHERE username = %s
                     """, (username,))
                 else:
                     cursor = conn.cursor()
                     cursor.execute("""
-                        SELECT first_name, last_name, email, profile_picture_path 
+                        SELECT first_name, last_name, email, profile_picture_path,
+                               has_commissioner_access, can_manage_commissions
                         FROM users 
                         WHERE username = ?
                     """, (username,))
@@ -5948,6 +5952,8 @@ def get_user_from_session(request: Request):
                     user_data["last_name"] = row[1] or ""
                     user_data["email"] = row[2] or ""
                     user_data["profile_picture_path"] = row[3] or ""
+                    user_data["has_commissioner_access"] = row[4] or False
+                    user_data["can_manage_commissions"] = row[5] or False
             finally:
                 conn.close()
     except Exception as e:
@@ -5981,11 +5987,13 @@ def require_commissions_management(request: Request):
         logging.info(f"  - user_data: {user_data}")
         if user_data:
             has_commissioner_access = user_data.get("has_commissioner_access", False)
+            can_manage_commissions = user_data.get("can_manage_commissions", False)
             user_role = user_data.get("role", "")
             logging.info(f"  - has_commissioner_access: {has_commissioner_access}")
+            logging.info(f"  - can_manage_commissions: {can_manage_commissions}")
             logging.info(f"  - user_role: {user_role}")
             
-            if has_commissioner_access:
+            if has_commissioner_access or can_manage_commissions:
                 logging.info("  - Commissioner access granted")
                 return  # User tem permissão
     
@@ -12004,7 +12012,7 @@ async def admin_commissions_summary(request: Request):
 async def admin_commissions_list(request: Request):
     """Get list of all commissions for admin"""
     try:
-        require_commissions_access(request)
+        require_commissions_management(request)
     except HTTPException:
         return JSONResponse({"ok": False, "error": "Unauthorized"}, status_code=403)
     
@@ -12726,7 +12734,7 @@ async def admin_commissions_distribution(request: Request, year: Optional[int] =
 
 @app.post("/api/admin/commissions/mark-paid")
 async def admin_commissions_mark_paid(request: Request):
-    """Mark commissions as paid"""
+    """Mark commissions as paid with signature"""
     try:
         require_commissions_management(request)
     except HTTPException:
@@ -12735,9 +12743,17 @@ async def admin_commissions_mark_paid(request: Request):
     try:
         body = await request.json()
         commission_ids = body.get("commission_ids", [])
+        signature_data = body.get("signature", "")
+        receiver_name = body.get("receiver_name", "")
         
         if not commission_ids:
             return JSONResponse({"ok": False, "error": "No commission IDs provided"}, status_code=400)
+        
+        if not signature_data:
+            return JSONResponse({"ok": False, "error": "Signature is required"}, status_code=400)
+        
+        if not receiver_name or not receiver_name.strip():
+            return JSONResponse({"ok": False, "error": "Receiver name is required"}, status_code=400)
         
         # Get current user full name for paid_by field
         user = get_user_from_session(request)
@@ -12749,15 +12765,17 @@ async def admin_commissions_mark_paid(request: Request):
         with _db_lock:
             con = _db_connect()
             try:
-                # Update commissions
+                # Update commissions with signature and receiver name
                 placeholders = ",".join(["%s"] * len(commission_ids))
                 con.execute(f"""
                     UPDATE commission_bookings 
                     SET commission_paid = TRUE, 
                         commission_paid_date = NOW(),
-                        commission_paid_by = %s
+                        commission_paid_by = %s,
+                        commission_signature = %s,
+                        commission_receiver_name = %s
                     WHERE id IN ({placeholders})
-                """, [user_full_name] + commission_ids)
+                """, [user_full_name, signature_data, receiver_name.strip()] + commission_ids)
                 con.commit()
                 
                 return JSONResponse({
@@ -12847,7 +12865,8 @@ async def admin_commissions_print_pdf(request: Request):
                     query = """
                         SELECT 
                             cb.id, cb.voucher_number, cb.pickup_date, cb.dropoff_date,
-                            cb.commission_amount, c.name as commissioner_name
+                            cb.commission_amount, c.name as commissioner_name,
+                            cb.commission_signature, cb.commission_receiver_name, cb.commission_paid_date
                         FROM commission_bookings cb
                         LEFT JOIN commissioners c ON cb.commissioner_id = c.id
                         WHERE cb.commission_amount > 0
@@ -12879,7 +12898,8 @@ async def admin_commissions_print_pdf(request: Request):
                     query = """
                         SELECT 
                             cb.id, cb.voucher_number, cb.pickup_date, cb.dropoff_date,
-                            cb.commission_amount, c.name as commissioner_name
+                            cb.commission_amount, c.name as commissioner_name,
+                            cb.commission_signature, cb.commission_receiver_name, cb.commission_paid_date
                         FROM commission_bookings cb
                         LEFT JOIN commissioners c ON cb.commissioner_id = c.id
                         WHERE cb.commission_amount > 0
@@ -13705,6 +13725,28 @@ async def admin_migrate_commission_payment(request: Request):
                 results.append("commission_paid_by: ALREADY EXISTS")
             else:
                 results.append(f"commission_paid_by: ERROR - {e}")
+        
+        # Add commission_signature column (stores base64 image data)
+        try:
+            cursor.execute("ALTER TABLE commission_bookings ADD COLUMN commission_signature TEXT")
+            conn.commit()
+            results.append("commission_signature: CREATED")
+        except Exception as e:
+            if "already exists" in str(e).lower():
+                results.append("commission_signature: ALREADY EXISTS")
+            else:
+                results.append(f"commission_signature: ERROR - {e}")
+        
+        # Add commission_receiver_name column
+        try:
+            cursor.execute("ALTER TABLE commission_bookings ADD COLUMN commission_receiver_name TEXT")
+            conn.commit()
+            results.append("commission_receiver_name: CREATED")
+        except Exception as e:
+            if "already exists" in str(e).lower():
+                results.append("commission_receiver_name: ALREADY EXISTS")
+            else:
+                results.append(f"commission_receiver_name: ERROR - {e}")
         
         # Add can_manage_commissions to users table
         try:

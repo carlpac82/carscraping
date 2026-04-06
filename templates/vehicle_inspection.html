@@ -19,8 +19,8 @@
             // DEBUG: Current User Info
             console.log('=== DEBUG CURRENT USER ===');
             console.log('current_user:', {{ current_user | tojson | safe }});
-            console.log('has_commissioner_access:', {{ current_user.has_commissioner_access | tojson | safe if current_user else 'null' }});
-            console.log('can_manage_commissions:', {{ current_user.can_manage_commissions | tojson | safe if current_user else 'null' }});
+            console.log('has_commissioner_access:', {{ (current_user.has_commissioner_access | default(false)) | tojson | safe if current_user else 'null' }});
+            console.log('can_manage_commissions:', {{ (current_user.can_manage_commissions | default(false)) | tojson | safe if current_user else 'null' }});
             console.log('========================');
             
             const urlParams = new URLSearchParams(window.location.search);
