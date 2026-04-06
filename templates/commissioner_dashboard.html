@@ -2881,28 +2881,20 @@
                 padding: 0;
             }
             
-            .summary-section {
-                margin-bottom: 16px;
-            }
-            
-            .summary-layout {
-                flex-direction: column;
-                gap: 16px;
-            }
-            
-            .summary-vehicle-dates-row {
-                display: flex;
+            /* Passo 5 - Compactar para mobile */
+            .summary-vehicle-card {
+                flex-direction: row;
                 align-items: center;
-                gap: 12px;
-                padding: 12px;
-                background: white;
-                border-radius: 8px;
-                border: 1px solid #e5e7eb;
+                gap: 10px;
+                padding: 10px;
+                background: #f9fafb;
+                border-radius: 6px;
             }
             
             .summary-vehicle-image {
-                width: 80px;
-                height: 60px;
+                width: 70px;
+                height: 50px;
+                margin-bottom: 0;
                 flex-shrink: 0;
             }
             
@@ -2912,27 +2904,23 @@
                 object-fit: contain;
             }
             
-            .summary-vehicle-info {
+            .summary-vehicle-details {
                 flex: 1;
                 min-width: 0;
-                padding-right: 8px;
             }
             
             .summary-vehicle-group {
-                font-size: 10px !important;
-                margin-bottom: 2px !important;
+                font-size: 9px !important;
+                margin-bottom: 1px !important;
                 font-weight: 700 !important;
                 color: #009cb6 !important;
-                text-transform: uppercase;
-                letter-spacing: 0.3px;
             }
             
             .summary-vehicle-name {
-                font-size: 13px !important;
-                margin-bottom: 4px !important;
+                font-size: 12px !important;
+                margin-bottom: 3px !important;
                 font-weight: 600 !important;
-                line-height: 1.2 !important;
-                color: #1f2937 !important;
+                line-height: 1.1 !important;
             }
             
             .summary-vehicle-features {
@@ -2942,30 +2930,30 @@
                 flex-wrap: wrap;
             }
             
-            .summary-dates-compact {
-                display: flex;
-                flex-direction: column;
-                gap: 8px;
-                padding-left: 8px;
-                border-left: 3px solid #009cb6;
+            .summary-dates {
+                font-size: 9px !important;
+                margin-top: 6px;
             }
             
-            .summary-date-item {
-                display: flex;
-                flex-direction: column;
-                gap: 2px;
+            .summary-pickup,
+            .summary-dropoff {
+                margin-bottom: 8px;
+                padding: 8px;
+                background: white;
+                border-radius: 4px;
+                border-left: 3px solid #009cb6;
             }
             
             .summary-dates-text {
                 font-size: 9px !important;
-                line-height: 1.3 !important;
+                line-height: 1.4 !important;
                 color: #1f2937 !important;
                 font-weight: 500 !important;
             }
             
             .summary-label {
                 font-size: 8px !important;
-                margin-bottom: 0 !important;
+                margin-bottom: 4px !important;
                 text-transform: uppercase;
                 letter-spacing: 0.5px;
                 font-weight: 700 !important;
@@ -3841,28 +3829,28 @@
                         <div class="booking-summary">
                             <!-- Veículo e Datas -->
                             <div class="summary-section">
-                                <div class="summary-vehicle-dates-row">
-                                    <!-- Imagem do Veículo -->
-                                    <div class="summary-vehicle-image">
-                                        <img id="summaryVehicleImageStep5" src="" alt="Veículo selecionado" onerror="this.src='data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 width=%2280%22 height=%2260%22><rect fill=%22%23f3f4f6%22 width=%2280%22 height=%2260%22/><text x=%2250%%22 y=%2250%%22 text-anchor=%22middle%22 dy=%22.3em%22 fill=%22%23666%22 font-size=%2212%22>Carro</text></svg>'">
-                                    </div>
-                                    
-                                    <!-- Grupo e Modelo -->
-                                    <div class="summary-vehicle-info">
-                                        <div class="summary-vehicle-group" id="summaryVehicleGroupStep5">-</div>
-                                        <div class="summary-vehicle-name" id="summaryVehicleNameStep5">-</div>
-                                        <div class="summary-vehicle-features" id="summaryVehicleFeaturesStep5">
-                                            <!-- Features serão preenchidas dinamicamente -->
+                                <div class="summary-layout">
+                                    <!-- Veículo com Foto -->
+                                    <div class="summary-vehicle-card">
+                                        <div class="summary-vehicle-image">
+                                            <img id="summaryVehicleImageStep5" src="" alt="Veículo selecionado" onerror="this.src='data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 width=%2280%22 height=%2260%22><rect fill=%22%23f3f4f6%22 width=%2280%22 height=%2260%22/><text x=%2250%%22 y=%2250%%22 text-anchor=%22middle%22 dy=%22.3em%22 fill=%22%23666%22 font-size=%2212%22>Carro</text></svg>'">
+                                        </div>
+                                        <div class="summary-vehicle-details">
+                                            <div class="summary-vehicle-group" id="summaryVehicleGroupStep5">-</div>
+                                            <div class="summary-vehicle-name" id="summaryVehicleNameStep5">-</div>
+                                            <div class="summary-vehicle-features" id="summaryVehicleFeaturesStep5">
+                                                <!-- Features serão preenchidas dinamicamente -->
+                                            </div>
                                         </div>
                                     </div>
                                     
-                                    <!-- Datas -->
-                                    <div class="summary-dates-compact">
-                                        <div class="summary-date-item">
+                                    <!-- Datas e Locais -->
+                                    <div class="summary-dates">
+                                        <div class="summary-pickup">
                                             <div class="summary-label">Entrega</div>
                                             <div class="summary-dates-text" id="summaryPickupText">-</div>
                                         </div>
-                                        <div class="summary-date-item">
+                                        <div class="summary-dropoff">
                                             <div class="summary-label">Recolha</div>
                                             <div class="summary-dates-text" id="summaryDropoffText">-</div>
                                         </div>
