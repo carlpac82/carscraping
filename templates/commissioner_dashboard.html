@@ -2232,13 +2232,37 @@
         .summary-contact-details {
             display: flex;
             flex-direction: column;
-            gap: 1px;
-            font-size: 11px;
-            color: #6b7280;
+            gap: 4px;
+            font-size: 14px;
+            color: #000000;
+            font-weight: 500;
         }
         
         .summary-contact-details span {
-            color: #6b7280 !important;
+            color: #1f2937 !important;
+            font-weight: 600 !important;
+            font-size: 12px !important;
+        }
+        
+        /* Forçar visibilidade dos elementos de contato do cliente */
+        #summaryClientName,
+        #summaryClientPhone,
+        #summaryClientEmail {
+            color: #000000 !important;
+            visibility: visible !important;
+            display: block !important;
+            font-weight: 600 !important;
+        }
+        
+        /* Garantir visibilidade em todos os dispositivos */
+        @media screen and (min-width: 769px) {
+            #summaryClientName,
+            #summaryClientPhone,
+            #summaryClientEmail {
+                color: #000000 !important;
+                font-weight: 600 !important;
+                font-size: 14px !important;
+            }
         }
 
         /* Valores e Confirmações */
@@ -2458,9 +2482,9 @@
         }
 
         .summary-value {
-            font-size: 14px;
-            font-weight: 500;
-            color: #1f2937;
+            font-size: 16px;
+            font-weight: 600;
+            color: #000000;
             line-height: 1.4;
         }
 
@@ -3069,8 +3093,21 @@
             
             .summary-contact-details span {
                 display: block;
-                margin-bottom: 4px;
-                font-weight: 500;
+                margin-bottom: 8px;
+                font-weight: 700 !important;
+                color: #000000 !important;
+                font-size: 16px !important;
+                line-height: 1.4;
+            }
+            
+            /* Forçar visibilidade dos elementos de contato do cliente no mobile */
+            #summaryClientName,
+            #summaryClientPhone,
+            #summaryClientEmail {
+                color: #000000 !important;
+                visibility: visible !important;
+                display: block !important;
+                font-weight: 600 !important;
             }
             
             .summary-pricing {
@@ -3483,7 +3520,7 @@
                 <div class="subtext" id="bookingsMonthText">Reservas <span id="currentMonth"></span></div>
             </div>
             <div class="stat-card">
-                <h3>Comissão Total</h3>
+                <h3>Comissão (<span id="currentYear"></span>)</h3>
                 <div class="value" id="totalCommission">€0</div>
                 <div class="subtext">Total reservas do ano</div>
             </div>
@@ -5473,17 +5510,35 @@
             const hotel = document.getElementById('clientHotel').value;
             const roomNumber = document.getElementById('clientRoom').value;
 
-            document.getElementById('summaryClientName').textContent = clientName;
-            document.getElementById('summaryClientPhone').textContent = clientPhone;
-            document.getElementById('summaryClientEmail').textContent = clientEmail;
+            // Debug dos valores obtidos
+            console.log('🔍 DADOS OBTIDOS DO FORMULÁRIO:');
+            console.log('firstName:', firstName);
+            console.log('lastName:', lastName);
+            console.log('clientPhone:', clientPhone);
+            console.log('clientEmail:', clientEmail);
+            console.log('clientName completo:', clientName);
+            console.log('Elemento firstName existe:', !!document.getElementById('clientFirstName'));
+            console.log('Valor firstName:', document.getElementById('clientFirstName').value);
+
+            document.getElementById('summaryClientName').textContent = clientName || 'NOME NÃO PREENCHIDO';
+            document.getElementById('summaryClientPhone').textContent = clientPhone || 'TELEFONE NÃO PREENCHIDO';
+            document.getElementById('summaryClientEmail').textContent = clientEmail || 'EMAIL NÃO PREENCHIDO';
             
-            console.log('🔍 DADOS DO CLIENTE NO PASSO 5:');
-            console.log('Nome:', clientName);
-            console.log('Telefone:', clientPhone);
-            console.log('Email:', clientEmail);
-            console.log('Elemento nome:', document.getElementById('summaryClientName'));
-            console.log('Elemento telefone:', document.getElementById('summaryClientPhone'));
-            console.log('Elemento email:', document.getElementById('summaryClientEmail'));
+            // Verificar se os elementos existem e foram preenchidos
+            const nameElement = document.getElementById('summaryClientName');
+            const phoneElement = document.getElementById('summaryClientPhone');
+            const emailElement = document.getElementById('summaryClientEmail');
+            
+            console.log('🔍 ELEMENTOS APÓS PREENCHIMENTO:');
+            console.log('Elemento nome:', nameElement);
+            console.log('Conteúdo nome:', nameElement ? nameElement.textContent : 'Elemento não encontrado');
+            console.log('Estilo computado nome:', nameElement ? window.getComputedStyle(nameElement).color : 'N/A');
+            console.log('Elemento telefone:', phoneElement);
+            console.log('Conteúdo telefone:', phoneElement ? phoneElement.textContent : 'Elemento não encontrado');
+            console.log('Estilo computado telefone:', phoneElement ? window.getComputedStyle(phoneElement).color : 'N/A');
+            console.log('Elemento email:', emailElement);
+            console.log('Conteúdo email:', emailElement ? emailElement.textContent : 'Elemento não encontrado');
+            console.log('Estilo computado email:', emailElement ? window.getComputedStyle(emailElement).color : 'N/A');
 
             // Preencher hotel se existir
             if (hotel) {
@@ -5946,6 +6001,12 @@
             const commissionMonthElement = document.getElementById('commissionMonth');
             if (commissionMonthElement) {
                 commissionMonthElement.textContent = currentMonth;
+            }
+            
+            // Atualizar "Comissão (ano)" com o ano atual
+            const currentYearElement = document.getElementById('currentYear');
+            if (currentYearElement) {
+                currentYearElement.textContent = currentYear;
             }
             
             // Atualizar título do mês se necessário (ex: "Este Mês" -> "[Nome do Mês]")
