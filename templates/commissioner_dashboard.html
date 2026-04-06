@@ -3480,22 +3480,22 @@
             <div class="stat-card">
                 <h3>Total de Reservas</h3>
                 <div class="value" id="totalBookings">0</div>
-                <div class="subtext">Todas as reservas</div>
+                <div class="subtext" id="bookingsMonthText">Reservas <span id="currentMonth"></span></div>
             </div>
             <div class="stat-card">
                 <h3>Comissão Total</h3>
                 <div class="value" id="totalCommission">€0</div>
-                <div class="subtext">Acumulado</div>
+                <div class="subtext">Total reservas do ano</div>
             </div>
             <div class="stat-card">
-                <h3>Este Mês</h3>
+                <h3 id="monthCommissionTitle">Este Mês</h3>
                 <div class="value" id="monthCommission">€0</div>
-                <div class="subtext">Comissão mensal</div>
+                <div class="subtext">Comissão <span id="commissionMonth"></span> recebida</div>
             </div>
             <div class="stat-card">
                 <h3>Taxa Média</h3>
                 <div class="value" id="avgRate">0%</div>
-                <div class="subtext">Comissão média</div>
+                <div class="subtext">Comissão anual recebida</div>
             </div>
         </div>
 
@@ -5929,8 +5929,41 @@
             }
         }
 
+        // Função para atualizar textos dos cards com mês e ano atual
+        function updateMonthYearTexts() {
+            const now = new Date();
+            const months = ['janeiro', 'fevereiro', 'março', 'abril', 'maio', 'junho', 'julho', 'agosto', 'setembro', 'outubro', 'novembro', 'dezembro'];
+            const currentMonth = months[now.getMonth()];
+            const currentYear = now.getFullYear();
+            
+            // Atualizar "Reservas [mês atual]"
+            const currentMonthElement = document.getElementById('currentMonth');
+            if (currentMonthElement) {
+                currentMonthElement.textContent = currentMonth;
+            }
+            
+            // Atualizar "Comissão [mês atual] recebida"
+            const commissionMonthElement = document.getElementById('commissionMonth');
+            if (commissionMonthElement) {
+                commissionMonthElement.textContent = currentMonth;
+            }
+            
+            // Atualizar título do mês se necessário (ex: "Este Mês" -> "[Nome do Mês]")
+            const monthCommissionTitle = document.getElementById('monthCommissionTitle');
+            if (monthCommissionTitle) {
+                // Capitalizar primeira letra do mês
+                const capitalizedMonth = currentMonth.charAt(0).toUpperCase() + currentMonth.slice(1);
+                monthCommissionTitle.textContent = capitalizedMonth;
+            }
+            
+            console.log(`📅 Textos atualizados: ${currentMonth} ${currentYear}`);
+        }
+
         // Event listeners
         document.addEventListener('DOMContentLoaded', function() {
+            // ATUALIZAR TEXTOS DOS CARDS COM MÊS E ANO ATUAL
+            updateMonthYearTexts();
+            
             // BLOQUEAR DATAS ANTERIORES IMEDIATAMENTE
             const today = new Date().toISOString().split('T')[0];
             const pickupDateInput = document.getElementById('pickupDate');
