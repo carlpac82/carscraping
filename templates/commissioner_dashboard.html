@@ -3244,15 +3244,22 @@
             }
             
             /* Reduzir tamanho do texto para cliente e email no mobile */
-            .booking-card-mobile .detail-row:has([data-client-info]) .detail-value {
-                font-size: 11px;
-                max-width: 60%;
+            .booking-card-mobile .detail-row[data-client-info] .detail-value {
+                font-size: 10px;
+                max-width: 55%;
                 word-break: break-word;
+                line-height: 1.2;
             }
             
             /* Reduzir tamanho do preço no mobile */
-            .booking-card-mobile .detail-row:has([data-price]) .detail-value {
-                font-size: 12px;
+            .booking-card-mobile .detail-row[data-price] .detail-value {
+                font-size: 11px;
+                font-weight: 600;
+            }
+            
+            /* Reduzir tamanho do depósito no mobile */
+            .booking-card-mobile .detail-row:nth-child(5) .detail-value {
+                font-size: 11px;
             }
             
             .booking-card-mobile .booking-actions {
