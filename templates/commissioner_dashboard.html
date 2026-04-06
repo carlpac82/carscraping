@@ -557,9 +557,22 @@
         /* Forçar largura igual para inputs date */
         .form-group input[type="date"] {
             width: 100% !important;
-            -webkit-appearance: none;
-            -moz-appearance: none;
-            appearance: none;
+            min-width: 100% !important;
+            max-width: 100% !important;
+            box-sizing: border-box !important;
+            -webkit-appearance: none !important;
+            -moz-appearance: none !important;
+            appearance: none !important;
+        }
+        
+        /* Forçar largura para IDs específicos de data */
+        #pickupDate,
+        #dropoffDate {
+            width: 100% !important;
+            min-width: 100% !important;
+            max-width: 100% !important;
+            box-sizing: border-box !important;
+            display: block !important;
         }
 
         /* Converter texto para maiúsculas */
