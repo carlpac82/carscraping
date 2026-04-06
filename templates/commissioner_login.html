@@ -233,7 +233,13 @@
                     body: JSON.stringify({ username, password })
                 });
 
-                const data = await response.json();
+                let data;
+                try {
+                    data = await response.json();
+                } catch (jsonError) {
+                    // Se não conseguir processar JSON, assume erro de conexão
+                    throw jsonError;
+                }
 
                 if (data.ok) {
                     if (data.needs_email) {
@@ -257,6 +263,7 @@
                     loginBtn.textContent = 'Entrar';
                 }
             } catch (error) {
+                console.error('Login error:', error);
                 errorMessage.textContent = 'Erro de conexão. Verifique a sua internet.';
                 errorMessage.style.display = 'block';
                 loginBtn.disabled = false;
