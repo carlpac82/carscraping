@@ -2748,6 +2748,7 @@
                 max-width: 100% !important;
                 box-sizing: border-box !important;
                 display: block !important;
+                padding-right: 40px !important;
             }
             
             #pickupDate,
@@ -2761,13 +2762,37 @@
                 display: block !important;
             }
             
+            #pickupDate,
+            #dropoffDate {
+                padding-right: 40px !important;
+            }
+            
+            /* Forçar largura interna do input date */
             input[type="date"]::-webkit-datetime-edit {
-                width: 100%;
+                width: 100% !important;
+                min-width: 100% !important;
+                display: inline-block !important;
+                padding-right: 0 !important;
+            }
+            
+            input[type="date"]::-webkit-datetime-edit-fields-wrapper {
+                width: 100% !important;
+                min-width: 100% !important;
             }
             
             input[type="date"]::-webkit-calendar-picker-indicator {
-                position: absolute;
-                right: 12px;
+                position: absolute !important;
+                right: 12px !important;
+                width: 20px !important;
+                height: 20px !important;
+            }
+            
+            /* Forçar espaço mesmo quando vazio */
+            input[type="date"]::-webkit-datetime-edit-text,
+            input[type="date"]::-webkit-datetime-edit-month-field,
+            input[type="date"]::-webkit-datetime-edit-day-field,
+            input[type="date"]::-webkit-datetime-edit-year-field {
+                min-width: 1em !important;
             }
             
             /* Vehicle grid */
