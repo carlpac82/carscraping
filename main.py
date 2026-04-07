@@ -65247,7 +65247,17 @@ async def admin_migrate_complete_commissioners_schema(request: Request):
                 except Exception as e:
                     results.append(f"⚠️ Voucher_prefix column: {str(e)}")
                 
-                # 3. Generate voucher_prefix for commissioners that don't have one
+                # 3. Add is_hotel column to commissioners
+                try:
+                    cursor.execute("""
+                        ALTER TABLE commissioners 
+                        ADD COLUMN IF NOT EXISTS is_hotel BOOLEAN DEFAULT FALSE
+                    """)
+                    results.append("✅ Added is_hotel column to commissioners")
+                except Exception as e:
+                    results.append(f"⚠️ Is_hotel column: {str(e)}")
+                
+                # 4. Generate voucher_prefix for commissioners that don't have one
                 cursor.execute("SELECT id, name, voucher_prefix FROM commissioners")
                 commissioners = cursor.fetchall()
                 updated_prefixes = 0
@@ -65394,6 +65404,12 @@ async def admin_migrate_add_default_location(request: Request):
                 cursor.execute("""
                     ALTER TABLE commissioners 
                     ADD COLUMN IF NOT EXISTS default_location VARCHAR(255)
+                """)
+                
+                # Add is_hotel column
+                cursor.execute("""
+                    ALTER TABLE commissioners 
+                    ADD COLUMN IF NOT EXISTS is_hotel BOOLEAN DEFAULT FALSE
                 """)
                 
                 con.commit()
