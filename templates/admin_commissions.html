@@ -602,8 +602,14 @@
         }
         
         /* Show commissioners cards and hide table in mobile */
-        #commissioners-tab .commissioners-cards {
-          display: flex !important;
+        @media (max-width: 768px) {
+          #commissioners-tab .commissioners-cards {
+            display: flex !important;
+          }
+          
+          #commissioners-tab .commissions-table {
+            display: none !important;
+          }
         }
         
         #commissioners-tab .commissions-table {
