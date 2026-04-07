@@ -3986,11 +3986,15 @@
               document.getElementById('voucher_prefix').value = commissioner.voucher_prefix || '';
               document.getElementById('email').value = commissioner.email;
               document.getElementById('commission_rate').value = commissioner.commission_rate || 15.0;
-              document.getElementById('default_location').value = commissioner.default_location || '';
               document.getElementById('is_active').value = commissioner.enabled.toString();
               document.getElementById('is_hotel').checked = commissioner.is_hotel || false;
               document.getElementById('password').placeholder = 'Deixe em branco para manter a atual';
-              loadDeliveryLocations(); // Carregar locais quando abre modal
+              
+              // Carregar locais primeiro, depois definir o valor
+              loadDeliveryLocations().then(() => {
+                  document.getElementById('default_location').value = commissioner.default_location || '';
+              });
+              
               document.getElementById('commissionerModal').style.display = 'flex';
           }
           
