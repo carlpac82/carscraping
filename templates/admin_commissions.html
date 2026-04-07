@@ -4098,9 +4098,23 @@
                   return;
               }
               
+              const commissioner = allCommissioners.find(c => c.id === commissionerId);
+              if (!commissioner) {
+                  alert('Comissionista não encontrado!');
+                  return;
+              }
+              
               try {
-                  const response = await fetch(`/api/admin/commissioners/${commissionerId}/send-instructions`, {
-                      method: 'POST'
+                  const response = await fetch('/api/admin/commissioners/send-instructions', {
+                      method: 'POST',
+                      headers: {
+                          'Content-Type': 'application/json'
+                      },
+                      body: JSON.stringify({
+                          commissioner_id: commissionerId,
+                          name: commissioner.name,
+                          username: commissioner.username
+                      })
                   });
                   
                   const data = await response.json();
