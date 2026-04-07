@@ -41,6 +41,7 @@ class CommissionerCreate(BaseModel):
     commission_rate: float = 15.0
     enabled: bool = True
     is_hotel: bool = False
+    default_location: Optional[str] = None
 
 class CommissionerUpdate(BaseModel):
     name: Optional[str] = None
