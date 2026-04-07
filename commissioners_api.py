@@ -1315,9 +1315,8 @@ async def get_commissions_list(request: Request):
             "ok": False,
             "error": str(e)
         }, status_code=500)
-@router.get('/api/agentes/manual-pdf')
-async def generate_agentes_manual_pdf():
-    """Generate and return Agentes Portal Manual PDF"""
+async def get_agentes_manual_pdf_bytes():
+    """Generate and return Agentes Portal Manual PDF as bytes"""
     try:
         print("[AGENTES MANUAL] Starting PDF generation")
         
@@ -1380,12 +1379,23 @@ async def generate_agentes_manual_pdf():
             await browser.close()
         
         print(f"[AGENTES MANUAL] PDF generated successfully, size: {len(pdf_content)} bytes")
+        return pdf_content
+        
+    except Exception as e:
+        import traceback
+        print(f"[AGENTES MANUAL] Error generating PDF: {e}")
+        print(traceback.format_exc())
+        raise e
+
+@router.get('/api/agentes/manual-pdf')
+async def generate_agentes_manual_pdf():
+    """Generate and return Agentes Portal Manual PDF"""
+    try:
+        pdf_content = await get_agentes_manual_pdf_bytes()
         
         # Return PDF
         from fastapi.responses import StreamingResponse
         import io
-        
-        pdf_stream = io.BytesIO(pdf_content)
         
         return StreamingResponse(
             io.BytesIO(pdf_content),
@@ -1482,7 +1492,7 @@ async def send_commissioner_instructions(request: Request):
         html_content = html_content.replace('{{password}}', temp_password)
         
         # Generate PDF manual attachment
-        pdf_content = await generate_agentes_manual_pdf()
+        pdf_content = await get_agentes_manual_pdf_bytes()
         
         # Send email using Gmail OAuth
         from email.mime.multipart import MIMEMultipart
