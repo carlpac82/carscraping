@@ -1813,3 +1813,105 @@ async def get_admin_commissioner_locations():
         print(f"Error getting commissioner locations: {e}")
         print(traceback.format_exc())
         return JSONResponse({"ok": False, "error": str(e)}, status_code=500)
+
+@router.get("/api/admin/commissioners/schedule-settings")
+async def get_admin_schedule_settings(commissioner_id: int):
+    """Get schedule settings for a specific commissioner (admin only)"""
+    try:
+        conn = get_db()
+        cursor = conn.cursor()
+        
+        cursor.execute("""
+            SELECT 
+                weekday_start_morning, weekday_end_morning,
+                weekday_start_afternoon, weekday_end_afternoon,
+                sunday_start_morning, sunday_end_morning,
+                sunday_start_afternoon, sunday_end_afternoon,
+                time_interval_minutes
+            FROM commissioners
+            WHERE id = %s
+        """, (commissioner_id,))
+        
+        result = cursor.fetchone()
+        conn.close()
+        
+        if not result:
+            # Return defaults if not found
+            return JSONResponse({
+                "ok": True,
+                "settings": {
+                    "weekday_start_morning": "09:30",
+                    "weekday_end_morning": "13:00",
+                    "weekday_start_afternoon": "14:00",
+                    "weekday_end_afternoon": "18:30",
+                    "sunday_start_morning": "09:30",
+                    "sunday_end_morning": "13:00",
+                    "sunday_start_afternoon": "14:00",
+                    "sunday_end_afternoon": "18:00",
+                    "time_interval_minutes": 30
+                }
+            })
+        
+        return JSONResponse({
+            "ok": True,
+            "settings": {
+                "weekday_start_morning": result[0],
+                "weekday_end_morning": result[1],
+                "weekday_start_afternoon": result[2],
+                "weekday_end_afternoon": result[3],
+                "sunday_start_morning": result[4],
+                "sunday_end_morning": result[5],
+                "sunday_start_afternoon": result[6],
+                "sunday_end_afternoon": result[7],
+                "time_interval_minutes": result[8]
+            }
+        })
+        
+    except Exception as e:
+        import traceback
+        print(f"Error in get_admin_schedule_settings: {e}")
+        print(traceback.format_exc())
+        return JSONResponse({"ok": False, "error": str(e)}, status_code=500)
+
+@router.post("/api/admin/commissioners/schedule-settings")
+async def update_admin_schedule_settings(commissioner_id: int, settings: ScheduleSettings):
+    """Update schedule settings for a specific commissioner (admin only)"""
+    try:
+        conn = get_db()
+        cursor = conn.cursor()
+        
+        cursor.execute("""
+            UPDATE commissioners
+            SET weekday_start_morning = %s,
+                weekday_end_morning = %s,
+                weekday_start_afternoon = %s,
+                weekday_end_afternoon = %s,
+                sunday_start_morning = %s,
+                sunday_end_morning = %s,
+                sunday_start_afternoon = %s,
+                sunday_end_afternoon = %s,
+                time_interval_minutes = %s
+            WHERE id = %s
+        """, (
+            settings.weekday_start_morning,
+            settings.weekday_end_morning,
+            settings.weekday_start_afternoon,
+            settings.weekday_end_afternoon,
+            settings.sunday_start_morning,
+            settings.sunday_end_morning,
+            settings.sunday_start_afternoon,
+            settings.sunday_end_afternoon,
+            settings.time_interval_minutes,
+            commissioner_id
+        ))
+        
+        conn.commit()
+        conn.close()
+        
+        return JSONResponse({"ok": True, "message": "Schedule settings updated successfully"})
+        
+    except Exception as e:
+        import traceback
+        print(f"Error in update_admin_schedule_settings: {e}")
+        print(traceback.format_exc())
+        return JSONResponse({"ok": False, "error": str(e)}, status_code=500)
