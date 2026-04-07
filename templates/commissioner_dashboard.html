@@ -4845,10 +4845,21 @@
             if (defaultLocation && sortedLocations.includes(defaultLocation)) {
                 pickupSelect.value = defaultLocation;
                 dropoffSelect.value = defaultLocation;
-                console.log('✅ Locais preenchidos com default:', defaultLocation);
+                console.log('× Locais preenchidos com default:', defaultLocation);
             }
             
-            console.log('📍 Dropdowns populados com', sortedLocations.length, 'locais da API');
+            // Auto-preencher campo hotel se comissionista é hotel
+            if (currentCommissioner && currentCommissioner.is_hotel && currentCommissioner.name) {
+                const commissionerName = currentCommissioner.name;
+                if (sortedLocations.includes(commissionerName)) {
+                    hotelSelect.value = commissionerName;
+                    console.log('× Campo hotel preenchido automaticamente (comissionista é hotel):', commissionerName);
+                } else {
+                    console.log('× Nome do comissionista não encontrado na lista de hotéis:', commissionerName);
+                }
+            }
+            
+            console.log('× Dropdowns populados com', sortedLocations.length, 'locais da API');
         }
 
         let currentCommissioner = null;

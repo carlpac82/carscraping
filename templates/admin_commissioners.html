@@ -539,6 +539,13 @@
                     </select>
                 </div>
 
+                <div class="form-group">
+                    <label for="is_hotel">
+                        <input type="checkbox" id="is_hotel" value="true">
+                        É Hotel
+                    </label>
+                </div>
+
                 <div class="form-actions">
                     <button type="button" class="btn-cancel" onclick="closeModal()">Cancelar</button>
                     <button type="submit" class="btn-submit">Salvar</button>
@@ -825,6 +832,7 @@
             
             document.getElementById('default_location').value = defaultLocation;
             document.getElementById('is_active').value = commissioner.enabled.toString();
+            document.getElementById('is_hotel').checked = commissioner.is_hotel || false;
             document.getElementById('password').placeholder = 'Deixe em branco para manter a atual';
             document.getElementById('commissionerModal').classList.add('active');
         }
@@ -844,7 +852,8 @@
                 email: document.getElementById('email').value,
                 commission_rate: parseFloat(document.getElementById('commission_rate').value),
                 default_location: document.getElementById('default_location').value || null,
-                is_active: document.getElementById('is_active').value === 'true'
+                is_active: document.getElementById('is_active').value === 'true',
+                is_hotel: document.getElementById('is_hotel').checked
             };
 
             const password = document.getElementById('password').value;
