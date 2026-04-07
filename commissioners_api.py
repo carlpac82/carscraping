@@ -1523,17 +1523,24 @@ async def send_commissioner_instructions(request: Request):
         # Create email message with HTML template body
         print(f"[EMAIL INSTRUCTIONS] Creating email message")
         
-        msg = MIMEMultipart('mixed')
+        # Use same method as voucher_api - MIMEMultipart('related')
+        msg = MIMEMultipart('related')
         msg['Subject'] = "Instruções Portal de Agentes - Auto Prudente"
         msg['From'] = "info@auto-prudente.com"
         msg['To'] = email
         
+        print(f"[EMAIL INSTRUCTIONS] Message headers set: Subject={msg['Subject']}, From={msg['From']}, To={msg['To']}")
+        
         # Attach HTML content
         html_part = MIMEText(html_content, 'html', 'utf-8')
         msg.attach(html_part)
+        print(f"[EMAIL INSTRUCTIONS] HTML content attached, size: {len(html_content)} bytes")
         
         # Attach PDF manual if generated successfully
         if pdf_content:
+            print(f"[EMAIL INSTRUCTIONS] Starting PDF attachment process...")
+            print(f"[EMAIL INSTRUCTIONS] PDF content size: {len(pdf_content)} bytes")
+            
             from email.mime.base import MIMEBase
             from email import encoders
             
@@ -1542,16 +1549,50 @@ async def send_commissioner_instructions(request: Request):
             encoders.encode_base64(part)
             part.add_header('Content-Disposition', f'attachment; filename="Manual_Portal_Agentes_AutoPrudente.pdf"')
             msg.attach(part)
+            
+            print(f"[EMAIL INSTRUCTIONS] PDF attachment details:")
+            print(f"[EMAIL INSTRUCTIONS] - MIME type: application/pdf")
+            print(f"[EMAIL INSTRUCTIONS] - Filename: Manual_Portal_Agentes_AutoPrudente.pdf")
+            print(f"[EMAIL INSTRUCTIONS] - Content-Disposition: attachment")
+            print(f"[EMAIL INSTRUCTIONS] - Encoded with base64")
             print(f"[EMAIL INSTRUCTIONS] PDF attached successfully")
         else:
             print(f"[EMAIL INSTRUCTIONS] Email sent without PDF attachment due to generation error")
         
-        # Create message with attachment (same as voucher_api.py)
-        from email.mime.base import MIMEBase
-        from email import encoders
+        # Debug: Print message structure before sending
+        print(f"[EMAIL INSTRUCTIONS] Message structure:")
+        print(f"[EMAIL INSTRUCTIONS] - Total parts: {len(msg.get_payload())}")
+        for i, part in enumerate(msg.get_payload()):
+            print(f"[EMAIL INSTRUCTIONS] - Part {i}: {part.get_content_type()}")
+            if hasattr(part, 'get_filename'):
+                print(f"[EMAIL INSTRUCTIONS]   - Filename: {part.get_filename()}")
         
         # Convert message to raw format for Gmail API
-        message = {'raw': base64.urlsafe_b64encode(msg.as_bytes()).decode()}
+        message_bytes = msg.as_bytes()
+        print(f"[EMAIL INSTRUCTIONS] Message bytes size: {len(message_bytes)}")
+        message = {'raw': base64.urlsafe_b64encode(message_bytes).decode()}
+        print(f"[EMAIL INSTRUCTIONS] Message encoded size: {len(message['raw'])} characters")
+        
+        # Alternative: Use exact voucher_api function as fallback
+        print(f"[EMAIL INSTRUCTIONS] Trying alternative method using voucher_api function...")
+        try:
+            import sys
+            sys.path.append('/app')
+            from voucher_api import create_message_with_attachment
+            
+            message = create_message_with_attachment(
+                credentials,
+                email,
+                "Instruções Portal de Agentes - Auto Prudente",
+                html_content,
+                pdf_content,
+                "Manual_Portal_Agentes_AutoPrudente.pdf"
+            )
+            print(f"[EMAIL INSTRUCTIONS] Alternative message created using voucher_api function")
+            
+        except Exception as alt_error:
+            print(f"[EMAIL INSTRUCTIONS] Alternative method failed: {alt_error}")
+            # Continue with original method
         
         # Send email
         print(f"[EMAIL INSTRUCTIONS] Sending email via Gmail API")
@@ -1559,18 +1600,34 @@ async def send_commissioner_instructions(request: Request):
             from googleapiclient.discovery import build
             service = build('gmail', 'v1', credentials=credentials)
             
+            # Debug: Print Gmail API service info
+            print(f"[EMAIL INSTRUCTIONS] Gmail API service created successfully")
+            
             sent_message = service.users().messages().send(userId='me', body=message).execute()
             print(f"[EMAIL INSTRUCTIONS] Email sent successfully: {sent_message['id']}")
+            
+            # Debug: Check sent message details
+            print(f"[EMAIL INSTRUCTIONS] Sent message details:")
+            print(f"[EMAIL INSTRUCTIONS] - ID: {sent_message.get('id')}")
+            print(f"[EMAIL INSTRUCTIONS] - Label IDs: {sent_message.get('labelIds')}")
+            print(f"[EMAIL INSTRUCTIONS] - Thread ID: {sent_message.get('threadId')}")
             
             conn.close()
             return JSONResponse({
                 "ok": True, 
                 "message": f"Instruções enviadas para {email}",
-                "temp_password": temp_password
+                "temp_password": temp_password,
+                "debug": {
+                    "pdf_size": len(pdf_content) if pdf_content else 0,
+                    "message_parts": len(msg.get_payload()),
+                    "gmail_message_id": sent_message['id']
+                }
             })
             
         except Exception as e:
             print(f"[EMAIL INSTRUCTIONS] Error sending email: {e}")
+            import traceback
+            print(f"[EMAIL INSTRUCTIONS] Full traceback: {traceback.format_exc()}")
             conn.close()
             return JSONResponse({"ok": False, "error": f"Erro ao enviar email: {str(e)}"}, status_code=500)
             
