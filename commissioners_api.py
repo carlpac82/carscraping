@@ -1412,7 +1412,7 @@ async def send_commissioner_instructions(request: Request):
             return JSONResponse({"ok": False, "error": "Missing required fields"}, status_code=400)
         
         # Get commissioner details including email
-        conn = _db_connect()
+        conn = get_db()
         cursor = conn.cursor()
         
         cursor.execute("""
