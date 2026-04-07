@@ -27,6 +27,7 @@ class CommissionerCreate(BaseModel):
     username: str
     password: str
     enabled: bool = True
+    is_hotel: bool = False
 
 class CommissionerUpdate(BaseModel):
     name: Optional[str] = None
@@ -38,6 +39,7 @@ class CommissionerUpdate(BaseModel):
     password: Optional[str] = None
     enabled: Optional[bool] = None
     commission_rate: Optional[float] = None
+    is_hotel: Optional[bool] = None
 
 class CommissionerLogin(BaseModel):
     username: str
@@ -212,7 +214,7 @@ async def get_current_commissioner_info(request: Request):
     cursor = conn.cursor()
     
     cursor.execute("""
-        SELECT id, name, email, phone, voucher_prefix, username, enabled, default_location
+        SELECT id, name, email, phone, voucher_prefix, username, enabled, default_location, is_hotel
         FROM commissioners
         WHERE id = %s
     """, (commissioner_id,))
@@ -231,7 +233,8 @@ async def get_current_commissioner_info(request: Request):
         'voucher_prefix': result[4],
         'username': result[5],
         'enabled': result[6],
-        'default_location': result[7] if len(result) > 7 else None
+        'default_location': result[7] if len(result) > 7 else None,
+        'is_hotel': result[8] if len(result) > 8 else False
     }
     
     return {
@@ -427,7 +430,7 @@ async def get_all_commissioners():
     cursor = conn.cursor()
     
     cursor.execute("""
-        SELECT id, name, email, phone, voucher_prefix, username, enabled, created_at, default_location, commission_rate
+        SELECT id, name, email, phone, voucher_prefix, username, enabled, created_at, default_location, commission_rate, is_hotel
         FROM commissioners
         ORDER BY name
     """)
@@ -448,6 +451,7 @@ async def get_all_commissioners():
             'created_at': str(comm[7]),
             'default_location': comm[8] if len(comm) > 8 else None,
             'commission_rate': float(comm[9]) if len(comm) > 9 and comm[9] else 15.0,
+            'is_hotel': comm[10] if len(comm) > 10 else False,
             'total_bookings': 0
         })
     
@@ -464,12 +468,12 @@ async def create_commissioner(commissioner: CommissionerCreate):
     try:
         # First insert without voucher_prefix to get the ID
         cursor.execute("""
-            INSERT INTO commissioners (name, email, phone, username, password_hash, enabled)
-            VALUES (%s, %s, %s, %s, %s, %s)
+            INSERT INTO commissioners (name, email, phone, username, password_hash, enabled, is_hotel)
+            VALUES (%s, %s, %s, %s, %s, %s, %s)
             RETURNING id
         """, (
             commissioner.name, commissioner.email, commissioner.phone,
-            commissioner.username, password_hash, commissioner.enabled
+            commissioner.username, password_hash, commissioner.enabled, commissioner.is_hotel
         ))
         
         commissioner_id = cursor.fetchone()[0]
@@ -531,6 +535,9 @@ async def update_commissioner(commissioner_id: int, update: CommissionerUpdate):
     if update.enabled is not None:
         updates.append("enabled = %s")
         params.append(update.enabled)
+    if update.is_hotel is not None:
+        updates.append("is_hotel = %s")
+        params.append(update.is_hotel)
     
     if not updates:
         conn.close()
