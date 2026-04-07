@@ -4391,37 +4391,83 @@
               });
               
               const tbody = document.getElementById('commissionersTableBody');
+              const cardsContainer = document.getElementById('commissionersCardsContainer');
               
               if (!tbody) return;
               
+              // Render filtered table for desktop
               if (filteredCommissioners.length === 0) {
                   tbody.innerHTML = '<tr><td colspan="4" class="text-center py-4">Nenhum comissionista encontrado</td></tr>';
-                  return;
+              } else {
+                  tbody.innerHTML = '';
+                  filteredCommissioners.forEach(commissioner => {
+                      const row = document.createElement('tr');
+                      row.innerHTML = `
+                          <td>${commissioner.name || 'Sem nome'}</td>
+                          <td>${commissioner.total_bookings || 0}</td>
+                          <td>${commissioner.enabled ? '<span style="color: #10b981;">Ativo</span>' : '<span style="color: #ef4444;">Inativo</span>'}</td>
+                          <td>
+                              <button onclick="sendInstructionsEmail(${commissioner.id}, '${commissioner.email}')" class="text-[#009cb6] hover:underline mr-2" title="Enviar instruções">
+                                  <svg width="16" height="16" fill="currentColor" viewBox="0 0 24 24">
+                                      <path d="M20 4H4c-1.1 0-1.99.9-1.99 2L2 18c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2zm0 4l-8 5-8-5V6l8 5 8-5v2z"/>
+                                  </svg>
+                              </button>
+                              <button onclick="editCommissioner(${commissioner.id})" class="text-[#009cb6] hover:underline" title="Editar">
+                                  <svg width="16" height="16" fill="currentColor" viewBox="0 0 24 24">
+                                      <path d="M3 17.25V21h3.75L17.81 9.94l-3.75-3.75L3 17.25zM20.71 7.04c.39-.39.39-1.02 0-1.41l-2.34-2.34c-.39-.39-1.02-.39-1.41 0l-1.83 1.83 3.75 3.75 1.83-1.83z"/>
+                                  </svg>
+                              </button>
+                          </td>
+                      `;
+                      tbody.appendChild(row);
+                  });
               }
               
-              tbody.innerHTML = '';
-              
-              filteredCommissioners.forEach(commissioner => {
-                  const row = document.createElement('tr');
-                  row.innerHTML = `
-                      <td>${commissioner.name || 'Sem nome'}</td>
-                      <td>${commissioner.total_bookings || 0}</td>
-                      <td>${commissioner.enabled ? '<span style="color: #10b981;">Ativo</span>' : '<span style="color: #ef4444;">Inativo</span>'}</td>
-                      <td>
-                          <button onclick="sendInstructionsEmail(${commissioner.id}, '${commissioner.email}')" class="text-[#009cb6] hover:underline mr-2" title="Enviar instruções">
-                              <svg width="16" height="16" fill="currentColor" viewBox="0 0 24 24">
-                                  <path d="M20 4H4c-1.1 0-1.99.9-1.99 2L2 18c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2zm0 4l-8 5-8-5V6l8 5 8-5v2z"/>
-                              </svg>
-                          </button>
-                          <button onclick="editCommissioner(${commissioner.id})" class="text-[#009cb6] hover:underline" title="Editar">
-                              <svg width="16" height="16" fill="currentColor" viewBox="0 0 24 24">
-                                  <path d="M3 17.25V21h3.75L17.81 9.94l-3.75-3.75L3 17.25zM20.71 7.04c.39-.39.39-1.02 0-1.41l-2.34-2.34c-.39-.39-1.02-.39-1.41 0l-1.83 1.83 3.75 3.75 1.83-1.83z"/>
-                              </svg>
-                          </button>
-                      </td>
-                  `;
-                  tbody.appendChild(row);
-              });
+              // Render filtered cards for mobile
+              if (cardsContainer) {
+                  if (filteredCommissioners.length === 0) {
+                      cardsContainer.innerHTML = '<div class="text-center py-8 text-gray-500">Nenhum comissionista encontrado</div>';
+                  } else {
+                      cardsContainer.innerHTML = '';
+                      filteredCommissioners.forEach(commissioner => {
+                          const card = document.createElement('div');
+                          card.className = 'commissioner-card';
+                          card.innerHTML = `
+                              <div class="commissioner-card-header">
+                                  <div class="commissioner-card-title">${commissioner.name || 'Sem nome'}</div>
+                                  <div class="commissioner-card-status ${commissioner.enabled ? 'active' : 'inactive'}">
+                                      ${commissioner.enabled ? 'Ativo' : 'Inativo'}
+                                  </div>
+                              </div>
+                              <div class="commissioner-card-info">
+                                  <div class="commissioner-card-info-item">
+                                      <div class="commissioner-card-info-label">Reservas</div>
+                                      <div class="commissioner-card-info-value">${commissioner.total_bookings || 0}</div>
+                                  </div>
+                                  <div class="commissioner-card-info-item">
+                                      <div class="commissioner-card-info-label">Email</div>
+                                      <div class="commissioner-card-info-value" style="font-size: 12px; word-break: break-all;">${commissioner.email || 'N/A'}</div>
+                                  </div>
+                              </div>
+                              <div class="commissioner-card-actions">
+                                  <button class="email" onclick="sendInstructionsEmail(${commissioner.id}, '${commissioner.email}')" title="Enviar instruções">
+                                      <svg width="14" height="14" fill="currentColor" viewBox="0 0 24 24">
+                                          <path d="M20 4H4c-1.1 0-1.99.9-1.99 2L2 18c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2zm0 4l-8 5-8-5V6l8 5 8-5v2z"/>
+                                      </svg>
+                                      Email
+                                  </button>
+                                  <button class="edit" onclick="editCommissioner(${commissioner.id})" title="Editar">
+                                      <svg width="14" height="14" fill="currentColor" viewBox="0 0 24 24">
+                                          <path d="M3 17.25V21h3.75L17.81 9.94l-3.75-3.75L3 17.25zM20.71 7.04c.39-.39.39-1.02 0-1.41l-2.34-2.34c-.39-.39-1.02-.39-1.41 0l-1.83 1.83 3.75 3.75 1.83-1.83z"/>
+                                      </svg>
+                                      Editar
+                                  </button>
+                              </div>
+                          `;
+                          cardsContainer.appendChild(card);
+                      });
+                  }
+              }
           }
           
           // Modal functions for commissioners
