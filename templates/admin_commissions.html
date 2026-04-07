@@ -3934,6 +3934,7 @@
               document.getElementById('commissionerForm').reset();
               document.getElementById('commissionerId').value = '';
               document.getElementById('password').placeholder = 'Digite a senha';
+              loadDeliveryLocations(); // Carregar locais quando abre modal
               document.getElementById('commissionerModal').style.display = 'flex';
           }
           
@@ -3952,6 +3953,7 @@
               document.getElementById('is_active').value = commissioner.enabled.toString();
               document.getElementById('is_hotel').checked = commissioner.is_hotel || false;
               document.getElementById('password').placeholder = 'Deixe em branco para manter a atual';
+              loadDeliveryLocations(); // Carregar locais quando abre modal
               document.getElementById('commissionerModal').style.display = 'flex';
           }
           
@@ -3964,7 +3966,7 @@
           // Load delivery locations for the modal
           async function loadDeliveryLocations() {
               try {
-                  const response = await fetch('/api/locations');
+                  const response = await fetch('/api/commissioners/locations');
                   const data = await response.json();
                   if (data.ok) {
                       deliveryLocations = data.locations;
@@ -3976,9 +3978,11 @@
                           option.textContent = location;
                           select.appendChild(option);
                       });
+                  } else {
+                      console.error('Error loading locations:', data.error);
                   }
               } catch (error) {
-                  console.error('Error loading delivery locations:', error);
+                  console.error('Error loading locations:', error);
               }
           }
           
