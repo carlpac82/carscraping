@@ -4044,13 +4044,8 @@
                           is_hotel: document.getElementById('is_hotel').checked
                       };
                       
-                      // Password is always required for new commissioners
+                      // Password is optional for new commissioners (will be generated automatically)
                       const password = document.getElementById('password').value;
-                      if (!commissionerId && (!password || password === '')) {
-                          showAlert('Erro', 'Password é obrigatório para criar novo comissionista');
-                          return;
-                      }
-                      
                       if (password && password !== '') {
                           data.password = password;
                       }
@@ -4072,7 +4067,11 @@
                           const result = await response.json();
                           
                           if (result.ok || result.success) {
-                              showNotification('Comissionista salvo com sucesso!', 'success');
+                              let message = 'Comissionista salvo com sucesso!';
+                              if (result.generated_password) {
+                                  message += `\n\nPassword gerada automaticamente:\n${result.generated_password}`;
+                              }
+                              showNotification(message, 'success');
                               closeCommissionerModal();
                               loadCommissioners();
                           } else {

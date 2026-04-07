@@ -3,7 +3,7 @@ Commissioners API Endpoints
 Handles commissioner management and booking creation
 """
 
-from fastapi import APIRouter, HTTPException, Depends, Request
+from fastapi import APIRouter, HTTPException, Depends
 from fastapi.responses import JSONResponse
 from pydantic import BaseModel, EmailStr
 from typing import Optional, List
@@ -11,7 +11,19 @@ from datetime import datetime, date, time
 import hashlib
 import json
 import psycopg2
+import secrets
+import string
+from passlib.context import CryptContext
 from database import get_db
+import logging
+import traceback
+
+pwd_context = CryptContext(schemes=["bcrypt"], default="bcrypt")
+
+def generate_password(length=12):
+    alphabet = string.ascii_letters + string.digits + string.punctuation
+    password = ''.join(secrets.choice(alphabet) for i in range(length))
+    return password
 
 router = APIRouter()
 
@@ -464,7 +476,15 @@ async def create_commissioner(commissioner: CommissionerCreate):
     conn = get_db()
     cursor = conn.cursor()
     
-    password_hash = hash_password(commissioner.password)
+    # Generate password automatically if not provided
+    if not commissioner.password or commissioner.password.strip() == "":
+        generated_password = generate_password()
+        password = generated_password
+    else:
+        password = commissioner.password
+        generated_password = None
+    
+    password_hash = hash_password(password)
     
     try:
         # First insert without voucher_prefix to get the ID
@@ -496,7 +516,11 @@ async def create_commissioner(commissioner: CommissionerCreate):
         conn.commit()
         conn.close()
         
-        return {"success": True, "id": commissioner_id, "voucher_prefix": voucher_prefix}
+        response = {"success": True, "id": commissioner_id, "voucher_prefix": voucher_prefix}
+        if generated_password:
+            response["generated_password"] = generated_password
+        
+        return response
     except Exception as e:
         conn.close()
         raise HTTPException(status_code=400, detail=str(e))
