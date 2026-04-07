@@ -37,7 +37,7 @@ class CommissionerCreate(BaseModel):
     phone: Optional[str] = None
     voucher_prefix: Optional[str] = None
     username: str
-    password: str
+    password: Optional[str] = None  # Password opcional - será gerada automaticamente se não fornecida
     commission_rate: float = 15.0
     enabled: bool = True
     is_hotel: bool = False
