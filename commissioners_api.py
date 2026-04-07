@@ -1782,3 +1782,29 @@ async def send_instructions_batch(request: Request):
         print(f"Error in batch email send: {e}")
         print(traceback.format_exc())
         return JSONResponse({"ok": False, "error": str(e)}, status_code=500)
+
+@router.get("/api/admin/commissioners/locations")
+async def get_admin_commissioner_locations():
+    """Get all commissioner locations (admin only) - for dropdowns in admin interface"""
+    try:
+        conn = get_db()
+        cursor = conn.cursor()
+        
+        cursor.execute("""
+            SELECT DISTINCT name 
+            FROM commissioners 
+            WHERE enabled = TRUE
+            ORDER BY name
+        """)
+        
+        locations = [row[0] for row in cursor.fetchall() if row[0]]
+        
+        conn.close()
+        
+        return {"ok": True, "locations": locations}
+        
+    except Exception as e:
+        import traceback
+        print(f"Error getting commissioner locations: {e}")
+        print(traceback.format_exc())
+        return JSONResponse({"ok": False, "error": str(e)}, status_code=500)

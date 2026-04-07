@@ -4003,7 +4003,7 @@
           // Load delivery locations for the modal
           async function loadDeliveryLocations() {
               try {
-                  const response = await fetch('/api/commissioners/locations');
+                  const response = await fetch('/api/admin/commissioners/locations');
                   const data = await response.json();
                   if (data.ok) {
                       deliveryLocations = data.locations;
