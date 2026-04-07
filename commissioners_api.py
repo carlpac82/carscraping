@@ -1315,3 +1315,86 @@ async def get_commissions_list(request: Request):
             "ok": False,
             "error": str(e)
         }, status_code=500)
+@router.get('/api/agentes/manual-pdf')
+async def generate_agentes_manual_pdf():
+    """Generate and return Agentes Portal Manual PDF"""
+    try:
+        print("[AGENTES MANUAL] Starting PDF generation")
+        
+        # Load the HTML template
+        template_path = "/app/templates/agentes_manual.html"
+        try:
+            with open(template_path, 'r', encoding='utf-8') as f:
+                html_content = f.read()
+        except FileNotFoundError:
+            # Fallback for local development
+            template_path = "templates/agentes_manual.html"
+            with open(template_path, 'r', encoding='utf-8') as f:
+                html_content = f.read()
+        
+        print("[AGENTES MANUAL] Template loaded successfully")
+        
+        # Convert relative URLs to absolute URLs
+        import re
+        base_url = "https://rentalprices.pt"
+        
+        # Convert logo URL
+        html_content = re.sub(
+            r'src="https://rentalprices\.pt/static/',
+            f'src="{base_url}/static/',
+            html_content
+        )
+        
+        # Convert other URLs
+        html_content = re.sub(
+            r'href="https://auto-prudente\.com/',
+            f'href="https://auto-prudente.com/',
+            html_content
+        )
+        
+        print("[AGENTES MANUAL] URLs converted to absolute")
+        
+        # Generate PDF using Playwright
+        from playwright.async_api import async_playwright
+        
+        async with async_playwright() as p:
+            browser = await p.chromium.launch()
+            page = await browser.new_page()
+            
+            # Set content and wait for images
+            await page.set_content(html_content)
+            await page.wait_for_timeout(2000)
+            
+            # Generate PDF
+            pdf_content = await page.pdf(
+                format='A4',
+                print_background=True,
+                margin={
+                    'top': '10mm',
+                    'bottom': '10mm',
+                    'left': '10mm',
+                    'right': '10mm'
+                }
+            )
+            
+            await browser.close()
+        
+        print(f"[AGENTES MANUAL] PDF generated successfully, size: {len(pdf_content)} bytes")
+        
+        # Return PDF
+        from fastapi.responses import StreamingResponse
+        import io
+        
+        pdf_stream = io.BytesIO(pdf_content)
+        
+        return StreamingResponse(
+            io.BytesIO(pdf_content),
+            media_type="application/pdf",
+            headers={"Content-Disposition": "inline; filename=Manual_Portal_Agentes_AutoPrudente.pdf"}
+        )
+        
+    except Exception as e:
+        import traceback
+        print(f"[AGENTES MANUAL] Error generating PDF: {e}")
+        print(traceback.format_exc())
+        return JSONResponse({"ok": False, "error": str(e)}, status_code=500)

@@ -1,0 +1,495 @@
+<!DOCTYPE html>
+<html lang="pt">
+<head>
+    <meta charset="UTF-8">
+    <title>Manual do Portal de Agentes - AutoPrudente</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: #fff;
+            color: #1f2937;
+            font-size: 11px;
+            line-height: 1.4;
+        }
+
+        .container {
+            max-width: 210mm;
+            margin: 0;
+            padding: 0;
+        }
+
+        .header {
+            background: #009cb6;
+            padding: 15px 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            min-height: 70px;
+        }
+
+        .logo {
+            height: 40px;
+            width: auto;
+            display: block;
+        }
+
+        .title {
+            color: white;
+            font-size: 18px;
+            font-weight: 600;
+        }
+
+        .content {
+            padding: 20px;
+        }
+
+        .section {
+            margin-bottom: 25px;
+        }
+
+        .section-title {
+            font-size: 14px;
+            font-weight: 600;
+            color: #009cb6;
+            margin-bottom: 10px;
+            border-bottom: 2px solid #009cb6;
+            padding-bottom: 5px;
+        }
+
+        .subsection-title {
+            font-size: 12px;
+            font-weight: 600;
+            color: #374151;
+            margin: 15px 0 8px 0;
+        }
+
+        .step {
+            margin: 12px 0;
+            padding-left: 20px;
+            position: relative;
+        }
+
+        .step-number {
+            position: absolute;
+            left: 0;
+            top: 0;
+            background: #009cb6;
+            color: white;
+            width: 16px;
+            height: 16px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 9px;
+            font-weight: 600;
+        }
+
+        .step-content {
+            font-size: 10px;
+            line-height: 1.5;
+        }
+
+        .highlight {
+            background: #fef3c7;
+            padding: 8px 12px;
+            border-left: 4px solid #f59e0b;
+            margin: 10px 0;
+            font-size: 10px;
+        }
+
+        .info-box {
+            background: #f0f9ff;
+            border: 1px solid #0ea5e9;
+            border-radius: 4px;
+            padding: 10px;
+            margin: 10px 0;
+            font-size: 10px;
+        }
+
+        .warning-box {
+            background: #fef2f2;
+            border: 1px solid #ef4444;
+            border-radius: 4px;
+            padding: 10px;
+            margin: 10px 0;
+            font-size: 10px;
+        }
+
+        .footer {
+            background: #f3f4f6;
+            padding: 20px;
+            border-top: 3px solid #009cb6;
+            font-size: 9px;
+            line-height: 1.6;
+        }
+
+        .footer-title {
+            font-size: 11px;
+            font-weight: 600;
+            color: #009cb6;
+            margin-bottom: 8px;
+        }
+
+        .contact-info {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 15px;
+            margin-top: 10px;
+        }
+
+        .contact-column {
+            display: flex;
+            flex-direction: column;
+            gap: 5px;
+        }
+
+        .contact-item {
+            display: flex;
+            align-items: flex-start;
+            gap: 5px;
+        }
+
+        .contact-label {
+            font-weight: 600;
+            min-width: 60px;
+        }
+
+        ul {
+            margin: 8px 0;
+            padding-left: 15px;
+        }
+
+        li {
+            margin: 4px 0;
+        }
+
+        .code {
+            background: #f3f4f6;
+            padding: 2px 4px;
+            border-radius: 3px;
+            font-family: monospace;
+            font-size: 9px;
+        }
+
+        .screenshot-placeholder {
+            background: #f9fafb;
+            border: 1px dashed #d1d5db;
+            padding: 20px;
+            text-align: center;
+            color: #6b7280;
+            font-size: 9px;
+            margin: 10px 0;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <img src="https://rentalprices.pt/static/logo-autoprudente.png" alt="Auto Prudente" class="logo">
+            <div class="title">Manual do Portal de Agentes</div>
+        </div>
+
+        <div class="content">
+            <div class="section">
+                <div class="section-title">Bem-vindo ao Portal de Agentes Auto Prudente</div>
+                <p>Este manual irá guia-lo através do processo de reservas no nosso portal de agentes. O sistema foi desenhado para ser simples e eficiente.</p>
+                
+                <div class="highlight">
+                    <strong>Importante:</strong> Antes de começar, certifique-se que tem as suas credenciais de acesso. Se ainda não tem, contacte-nes.
+                </div>
+            </div>
+
+            <div class="section">
+                <div class="section-title">1. Acesso ao Portal</div>
+                
+                <div class="subsection-title">1.1 Endereço do Portal</div>
+                <div class="step">
+                    <div class="step-number">1</div>
+                    <div class="step-content">
+                        Aceda a: <span class="code">https://auto-prudente.com/agentes</span>
+                    </div>
+                </div>
+
+                <div class="subsection-title">1.2 Login</div>
+                <div class="step">
+                    <div class="step-number">1</div>
+                    <div class="step-content">
+                        Insira o seu <strong>username</strong> e <strong>password</strong>
+                    </div>
+                </div>
+                <div class="step">
+                    <div class="step-number">2</div>
+                    <div class="step-content">
+                        Clique em "Entrar"
+                    </div>
+                </div>
+
+                <div class="info-box">
+                    <strong>Primeiro Acesso?</strong> Se é a primeira vez que acede, ser-lhe-á pedido para atualizar o seu email.
+                </div>
+            </div>
+
+            <div class="section">
+                <div class="section-title">2. Dashboard</div>
+                <p>Ao fazer login, será redirecionado para o dashboard onde pode:</p>
+                <ul>
+                    <li>Ver as suas reservas recentes</li>
+                    <li>Criar novas reservas</li>
+                    <li>Aceder aos vouchers</li>
+                    <li>Consultar a sua comissão</li>
+                </ul>
+
+                <div class="subsection-title">2.1 Criar Nova Reserva</div>
+                <div class="step">
+                    <div class="step-number">1</div>
+                    <div class="step-content">
+                        Clique no botão "Nova Reserva"
+                    </div>
+                </div>
+            </div>
+
+            <div class="section">
+                <div class="section-title">3. Processo de Reserva - Passo a Passo</div>
+
+                <div class="subsection-title">Passo 1: Local e Datas</div>
+                <div class="step">
+                    <div class="step-number">1</div>
+                    <div class="step-content">
+                        <strong>Local de Levantamento:</strong> Selecione o local onde o cliente vai levantar o veículo
+                    </div>
+                </div>
+                <div class="step">
+                    <div class="step-number">2</div>
+                    <div class="step-content">
+                        <strong>Data de Levantamento:</strong> Selecione a data e hora
+                    </div>
+                </div>
+                <div class="step">
+                    <div class="step-number">3</div>
+                    <div class="step-content">
+                        <strong>Data de Devolução:</strong> Selecione a data e hora de devolução
+                    </div>
+                </div>
+                <div class="step">
+                    <div class="step-number">4</div>
+                    <div class="step-content">
+                        Clique em "Ver Disponibilidade"
+                    </div>
+                </div>
+
+                <div class="warning-box">
+                    <strong>Atenção:</strong> Verifique sempre as datas antes de continuar. Erros nas datas podem afetar a disponibilidade e preços.
+                </div>
+
+                <div class="subsection-title">Passo 2: Seleção de Veículo</div>
+                <div class="step">
+                    <div class="step-number">1</div>
+                    <div class="step-content">
+                        Serão apresentados os veículos disponíveis para as datas selecionadas
+                    </div>
+                </div>
+                <div class="step">
+                    <div class="step-number">2</div>
+                    <div class="step-content">
+        Cada veículo mostra: grupo, modelo, características (portas, lugares, AC)
+                    </div>
+                </div>
+                <div class="step">
+                    <div class="step-number">3</div>
+                    <div class="step-content">
+                        <strong>Grupos Indisponíveis:</strong> Se um grupo não tiver disponibilidade, aparecerá com um badge "SEM DISPONIBILIDADE"
+                    </div>
+                </div>
+                <div class="step">
+                    <div class="step-number">4</div>
+                    <div class="step-content">
+                        Clique no veículo desejado para selecionar
+                    </div>
+                </div>
+
+                <div class="subsection-title">Passo 3: Extras e Proteções</div>
+                <div class="step">
+                    <div class="step-number">1</div>
+                    <div class="step-content">
+                        <strong>Seguros:</strong> Escolha entre as opções disponíveis
+                    </div>
+                </div>
+                <div class="step">
+                    <div class="step-number">2</div>
+                    <div class="step-content">
+                        <strong>Extras:</strong> Adicione cadeira para bebé, GPS, etc. (se disponível)
+                    </div>
+                </div>
+                <div class="step">
+                    <div class="step-number">3</div>
+                    <div class="step-content">
+                        O preço será atualizado automaticamente
+                    </div>
+                </div>
+
+                <div class="subsection-title">Passo 4: Dados do Cliente</div>
+                <div class="step">
+                    <div class="step-number">1</div>
+                    <div class="step-content">
+                        <strong>Nome:</strong> Primeiro e último nome do cliente
+                    </div>
+                </div>
+                <div class="step">
+                    <div class="step-number">2</div>
+                    <div class="step-content">
+                        <strong>Email:</strong> Email válido para envio do voucher
+                    </div>
+                </div>
+                <div class="step">
+                    <div class="step-number">3</div>
+                    <div class="step-content">
+                        <strong>Telefone:</strong> Telemóvel com código do país
+                    </div>
+                </div>
+                <div class="step">
+                    <div class="step-number">4</div>
+                    <div class="step-content">
+                        <strong>Hotel (Opcional):</strong> Se for comissionista hotel, este campo pode ser preenchido automaticamente
+                    </div>
+                </div>
+                <div class="step">
+                    <div class="step-number">5</div>
+                    <div class="step-content">
+                        <strong>Número do Quarto (Opcional):</strong> Para clientes de hotel
+                    </div>
+                </div>
+
+                <div class="highlight">
+                    <strong>Para Comissionistas Hotéis:</strong> Se foi marcado como hotel no sistema, o campo "Hotel" será preenchido automaticamente com o nome do seu estabelecimento.
+                </div>
+
+                <div class="subsection-title">Passo 5: Confirmação</div>
+                <div class="step">
+                    <div class="step-number">1</div>
+                    <div class="step-content">
+                        Revise todos os detalhes da reserva
+                    </div>
+                </div>
+                <div class="step">
+                    <div class="step-number">2</div>
+                    <div class="step-content">
+                        Verifique datas, veículo, extras e dados do cliente
+                    </div>
+                </div>
+                <div class="step">
+                    <div class="step-number">3</div>
+                    <div class="step-content">
+                        Clique em "Confirmar Reserva"
+                    </div>
+                </div>
+            </div>
+
+            <div class="section">
+                <div class="section-title">4. Após a Reserva</div>
+
+                <div class="subsection-title">4.1 Voucher</div>
+                <ul>
+                    <li>O voucher é gerado automaticamente após confirmação</li>
+                    <li>É enviado por email para o cliente</li>
+                    <li>Também fica disponível no dashboard para download</li>
+                    <li>O voucher contém todos os detalhes da reserva</li>
+                </ul>
+
+                <div class="subsection-title">4.2 Comissão</div>
+                <ul>
+                    <li>A sua comissão é calculada automaticamente</li>
+                    <li>Pode consultar o valor no dashboard</li>
+                    <li>As comissões são processadas mensalmente</li>
+                </ul>
+
+                <div class="subsection-title">4.3 Gestão de Reservas</div>
+                <ul>
+                    <li>Ver todas as suas reservas no dashboard</li>
+                    <li>Consultar detalhes de cada reserva</li>
+                    <li>Download de vouchers</li>
+                    <li>Verificar status das reservas</li>
+                </ul>
+            </div>
+
+            <div class="section">
+                <div class="section-title">5. Dicas Importantes</div>
+                
+                <div class="subsection-title">5.1 Boas Práticas</div>
+                <ul>
+                    <li>Verifique sempre a disponibilidade antes de prometer veículos</li>
+                    <li>Confirme os dados do cliente (email e telefone)</li>
+                    <li>Guarde uma cópia do voucher para seu registo</li>
+                    <li>Comunique alterações atempadamente</li>
+                </ul>
+
+                <div class="subsection-title">5.2 Problemas Comuns</div>
+                <ul>
+                    <li><strong>Sem disponibilidade:</strong> Tente datas alternativas</li>
+                    <li><strong>Email inválido:</strong> Verifique o email antes de confirmar</li>
+                    <li><strong>Erro no sistema:</strong> Recarregue a página e tente novamente</li>
+                </ul>
+
+                <div class="warning-box">
+                    <strong>Importante:</strong> Não crie reservas falsas ou de teste. Isto afeta a disponibilidade real e pode resultar na suspensão da sua conta.
+                </div>
+            </div>
+
+            <div class="section">
+                <div class="section-title">6. Suporte e Contactos</div>
+                <p>Se tiver alguma dúvida ou problema, não hesite em contactar-nos:</p>
+                <ul>
+                    <li><strong>Telefone:</strong> +351 289 542 160</li>
+                    <li><strong>WhatsApp:</strong> +351 965 525 487</li>
+                    <li><strong>Email:</strong> info@auto-prudente.com</li>
+                </ul>
+
+                <div class="info-box">
+                    <strong>Horário de Atendimento:</strong> Segunda a Sábado, 09:00 - 19:00
+                </div>
+            </div>
+        </div>
+
+        <div class="footer">
+            <div class="footer-title">Auto Prudente, Rent a Car</div>
+            
+            <div class="contact-info">
+                <div class="contact-column">
+                    <div class="contact-item">
+                        <span class="contact-label">Morada:</span>
+                        <span>Estrada de Santa Eulália, Edifício Ondas do Mar<br>Loja E, 8200-269 Albufeira</span>
+                    </div>
+                    <div class="contact-item">
+                        <span class="contact-label">Telefone:</span>
+                        <span>+351 289 542 160</span>
+                    </div>
+                    <div class="contact-item">
+                        <span class="contact-label">WhatsApp:</span>
+                        <span>+351 965 525 487</span>
+                    </div>
+                </div>
+                <div class="contact-column">
+                    <div class="contact-item">
+                        <span class="contact-label">Email:</span>
+                        <span>info@auto-prudente.com</span>
+                    </div>
+                    <div class="contact-item">
+                        <span class="contact-label">Website:</span>
+                        <span>www.auto-prudente.com</span>
+                    </div>
+                    <div class="contact-item">
+                        <span class="contact-label">Nota:</span>
+                        <span>Chamada para rede fixa nacional</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</body>
+</html>
