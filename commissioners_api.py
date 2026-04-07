@@ -1416,7 +1416,7 @@ async def send_commissioner_instructions(request: Request):
         cursor = conn.cursor()
         
         cursor.execute("""
-            SELECT email, username 
+            SELECT email, username, password 
             FROM commissioners 
             WHERE id = %s
         """, (commissioner_id,))
@@ -1426,16 +1426,33 @@ async def send_commissioner_instructions(request: Request):
             conn.close()
             return JSONResponse({"ok": False, "error": "Commissioner not found"}, status_code=404)
         
-        email, db_username = result
+        email, db_username, existing_password = result
         
         if not email:
             conn.close()
             return JSONResponse({"ok": False, "error": "Commissioner has no email address"}, status_code=400)
         
-        # Generate a temporary password (you might want to use a more secure method)
-        import random
-        import string
-        temp_password = ''.join(random.choices(string.ascii_letters + string.digits, k=8))
+        # Check if commissioner already has a password
+        if existing_password and existing_password.strip():
+            # Use existing password
+            temp_password = existing_password
+            print(f"[EMAIL INSTRUCTIONS] Using existing password for {email}")
+        else:
+            # Generate a temporary password (you might want to use a more secure method)
+            import random
+            import string
+            temp_password = ''.join(random.choices(string.ascii_letters + string.digits, k=8))
+            
+            # Update the commissioner with the new password
+            cursor.execute("""
+                UPDATE commissioners 
+                SET password = %s 
+                WHERE id = %s
+            """, (temp_password, commissioner_id))
+            
+            print(f"[EMAIL INSTRUCTIONS] Generated new password for {email}")
+        
+        conn.commit()
         
         # Load email template
         template_path = "/app/templates/email_commissioner_instructions.html"
