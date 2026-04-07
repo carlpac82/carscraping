@@ -460,6 +460,21 @@
             pointer-events: none;
         }
 
+        .unavailable-message {
+            background: linear-gradient(135deg, #ef4444, #dc2626);
+            color: white;
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-size: 10px;
+            font-weight: 500;
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            text-align: center;
+            line-height: 1.2;
+            margin: 2px;
+            box-shadow: 0 1px 3px rgba(220, 38, 38, 0.3);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+        }
+
         .vehicle-card-header {
             background: #009cb6;
             color: white;
@@ -6103,7 +6118,6 @@
                     const isUnavailable = unavailableGroups.includes(vehicle.code);
                     return `
                     <div class="vehicle-card ${isUnavailable ? 'unavailable' : ''}" onclick="selectVehicle('${vehicle.code}', ${isUnavailable})" data-code="${vehicle.code}">
-                        ${isUnavailable ? '<div class="unavailable-badge">Sem disponibilidade</div>' : ''}
                         <div class="vehicle-card-header">
                             <div class="vehicle-group">GROUP <span class="group-letter">${vehicle.code}</span></div>
                         </div>
@@ -6115,6 +6129,7 @@
                                 <div class="vehicle-feature"><img src="/static/Icones-Caracteristicas/${String(vehicle.seats).includes('-') ? vehicle.seats + ' L' : vehicle.seats + 'L'}.png" alt="${vehicle.seats} lugares"></div>
                                 <div class="vehicle-feature"><img src="/static/Icones-Caracteristicas/${vehicle.doors}P.png" alt="${vehicle.doors} portas"></div>
                                 ${vehicle.transmission === 'automatic' ? '<div class="vehicle-feature"><img src="/static/Icones-Caracteristicas/automatico.png" alt="Automático"></div>' : ''}
+                                ${isUnavailable ? '<div class="unavailable-message">Sem disponibilidade</div>' : ''}
                             </div>
                         </div>
                     </div>
