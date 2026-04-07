@@ -9,6 +9,7 @@ itsdangerous==2.2.0
 python-multipart==0.0.9
 httpx==0.27.0
 aiohttp==3.9.1
+passlib[bcrypt]==1.7.4
 
 # Headless browser for exact UI scraping
 playwright==1.55.0
