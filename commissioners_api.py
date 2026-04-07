@@ -1534,9 +1534,14 @@ async def send_commissioner_instructions(request: Request):
         
         # Attach PDF manual if generated successfully
         if pdf_content:
-            pdf_part = MIMEApplication(pdf_content, Name="Manual_Portal_Agentes_AutoPrudente.pdf")
-            pdf_part['Content-Disposition'] = f'attachment; filename="Manual_Portal_Agentes_AutoPrudente.pdf"'
-            msg.attach(pdf_part)
+            from email.mime.base import MIMEBase
+            from email import encoders
+            
+            part = MIMEBase('application', 'pdf')
+            part.set_payload(pdf_content)
+            encoders.encode_base64(part)
+            part.add_header('Content-Disposition', f'attachment; filename="Manual_Portal_Agentes_AutoPrudente.pdf"')
+            msg.attach(part)
             print(f"[EMAIL INSTRUCTIONS] PDF attached successfully")
         else:
             print(f"[EMAIL INSTRUCTIONS] Email sent without PDF attachment due to generation error")
