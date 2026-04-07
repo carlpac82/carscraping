@@ -2400,7 +2400,7 @@ def _get_user_by_username(username: str) -> Optional[Dict[str, Any]]:
             con = _db_connect()
             try:
                 logging.info(f"🔍 DEBUG _get_user_by_username: Buscando user '{username}'")
-                cur = con.execute("SELECT id, username, first_name, last_name, email, mobile, profile_picture_path, is_admin, enabled, role, has_commissioner_access, can_manage_commissions FROM users WHERE username=?", (username,))
+                cur = con.execute("SELECT id, username, first_name, last_name, email, mobile, profile_picture_path, is_admin, enabled, role, has_commissioner_access, can_manage_commissions, can_manage_commissioners FROM users WHERE username=?", (username,))
                 r = cur.fetchone()
                 if not r:
                     logging.info(f"🔍 DEBUG _get_user_by_username: User '{username}' não encontrado")
@@ -2419,6 +2419,7 @@ def _get_user_by_username(username: str) -> Optional[Dict[str, Any]]:
                     "role": r[9] or "user",
                     "has_commissioner_access": bool(r[10]) if r[10] is not None else False,
                     "can_manage_commissions": bool(r[11]) if r[11] is not None else False,
+                    "can_manage_commissioners": bool(r[12]) if r[12] is not None else False,
                 }
                 
                 logging.info(f"🔍 DEBUG _get_user_by_username: User '{username}' encontrado:")
@@ -12047,7 +12048,13 @@ async def admin_users(request: Request):
                 con.close()
     except Exception:
         return JSONResponse({"ok": False, "error": "Failed to load users"}, status_code=500)
-    return templates.TemplateResponse("admin_users.html", {"request": request, "users": users})
+    # Get current user for JavaScript reference
+    username = request.session.get('username')
+    current_user = None
+    if username:
+        current_user = _get_user_by_username(username)
+    
+    return templates.TemplateResponse("admin_users.html", {"request": request, "users": users, "current_user": current_user})
 
 
 @app.get("/admin/users/new", response_class=HTMLResponse)
@@ -12079,12 +12086,16 @@ async def admin_commissions(request: Request):
     if username:
         current_user = _get_user_by_username(username)
     
-    return templates.TemplateResponse("admin_commissions.html", {
+    response = templates.TemplateResponse("admin_commissions.html", {
         "request": request,
         "user_role": user_role,
         "is_admin": is_admin,
         "current_user": current_user
     })
+    response.headers["Cache-Control"] = "no-store, no-cache, must-revalidate, max-age=0"
+    response.headers["Pragma"] = "no-cache"
+    response.headers["Expires"] = "0"
+    return response
 
 @app.get("/api/user-session")
 async def get_user_session(request: Request):

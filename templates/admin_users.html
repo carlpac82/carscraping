@@ -3,6 +3,9 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
+    {% if current_user %}
+    <meta name="current-user-id" content="{{ current_user.id }}" />
+    {% endif %}
     <title>Admin • Users</title>
     <link rel="icon" type="image/png" href="/static/autoprudente-favicon.png?v=2" />
     <script src="https://cdn.tailwindcss.com"></script>
@@ -191,6 +194,14 @@
             }
             
             showNotification('User permissions updated successfully!', 'success');
+            
+            // If updating permissions for current user, refresh the page to update session
+            const currentUserId = document.querySelector('meta[name="current-user-id"]')?.content;
+            if (currentUserId && parseInt(currentUserId) === userId) {
+              setTimeout(() => {
+                window.location.reload();
+              }, 1500);
+            }
           } else {
             showNotification('Error updating permissions: ' + (data.error || 'Unknown error'), 'error');
           }
