@@ -685,12 +685,21 @@
             const select = document.getElementById('default_location');
             select.innerHTML = '<option value="">Selecione um local...</option>';
             
+            console.log('DEBUG admin_commissioners: deliveryLocations:', deliveryLocations);
+            
             deliveryLocations.forEach(location => {
                 const option = document.createElement('option');
                 option.value = location;
                 option.textContent = location;
+                console.log('DEBUG admin_commissioners: Adding option:', location, 'value:', option.value);
                 select.appendChild(option);
             });
+            
+            // Verificar opções após criar
+            console.log('DEBUG admin_commissioners: All options in select:');
+            for (let i = 0; i < select.options.length; i++) {
+                console.log(`  Option ${i}: value="${select.options[i].value}" text="${select.options[i].textContent}"`);
+            }
         }
 
         // ========== COMISSIONISTAS ==========
