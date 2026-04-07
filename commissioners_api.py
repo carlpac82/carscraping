@@ -518,8 +518,7 @@ async def create_commissioner(commissioner: CommissionerCreate):
         conn.close()
         
         response = {"success": True, "id": commissioner_id, "voucher_prefix": voucher_prefix}
-        if generated_password:
-            response["generated_password"] = generated_password
+        # Não incluir password na resposta por segurança
         
         return response
     except Exception as e:
