@@ -4036,16 +4036,20 @@
                       const data = {
                           name: document.getElementById('name').value,
                           username: document.getElementById('username').value,
-                          voucher_prefix: document.getElementById('voucher_prefix').value,
-                          email: document.getElementById('email').value,
-                          commission_rate: parseFloat(document.getElementById('commission_rate').value),
-                          default_location: document.getElementById('default_location').value,
+                          voucher_prefix: document.getElementById('voucher_prefix').value || null,
+                          email: document.getElementById('email').value || null,
+                          phone: null, // Campo não existe no frontend mas é esperado pelo backend
                           enabled: document.getElementById('is_active').value === 'true',
                           is_hotel: document.getElementById('is_hotel').checked
                       };
                       
-                      // Only include password if it's not empty and not the placeholder
+                      // Password is always required for new commissioners
                       const password = document.getElementById('password').value;
+                      if (!commissionerId && (!password || password === '')) {
+                          showAlert('Erro', 'Password é obrigatório para criar novo comissionista');
+                          return;
+                      }
+                      
                       if (password && password !== '') {
                           data.password = password;
                       }
