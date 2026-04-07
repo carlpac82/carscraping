@@ -3920,6 +3920,14 @@
           // Modal functions for commissioners
           let deliveryLocations = [];
           
+          function openCreateModal() {
+              document.getElementById('modalTitle').textContent = 'Novo Comissionista';
+              document.getElementById('commissionerForm').reset();
+              document.getElementById('commissionerId').value = '';
+              document.getElementById('password').placeholder = 'Digite a senha';
+              document.getElementById('commissionerModal').style.display = 'flex';
+          }
+          
           function editCommissioner(id) {
               const commissioner = allCommissioners.find(c => c.id === id);
               if (!commissioner) return;
@@ -3942,14 +3950,6 @@
               document.getElementById('commissionerModal').style.display = 'none';
               document.getElementById('commissionerForm').reset();
               document.getElementById('commissionerId').value = '';
-          }
-          
-          function openCreateModal() {
-              document.getElementById('modalTitle').textContent = 'Novo Comissionista';
-              document.getElementById('commissionerForm').reset();
-              document.getElementById('commissionerId').value = '';
-              document.getElementById('password').placeholder = 'Digite a senha';
-              document.getElementById('commissionerModal').style.display = 'flex';
           }
           
           // Load delivery locations for the modal
