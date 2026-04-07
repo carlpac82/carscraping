@@ -1416,7 +1416,7 @@ async def send_commissioner_instructions(request: Request):
         cursor = conn.cursor()
         
         cursor.execute("""
-            SELECT email, username, password 
+            SELECT email, username, password_hash 
             FROM commissioners 
             WHERE id = %s
         """, (commissioner_id,))
@@ -1426,29 +1426,42 @@ async def send_commissioner_instructions(request: Request):
             conn.close()
             return JSONResponse({"ok": False, "error": "Commissioner not found"}, status_code=404)
         
-        email, db_username, existing_password = result
+        email, db_username, existing_password_hash = result
         
         if not email:
             conn.close()
             return JSONResponse({"ok": False, "error": "Commissioner has no email address"}, status_code=400)
         
         # Check if commissioner already has a password
-        if existing_password and existing_password.strip():
-            # Use existing password
-            temp_password = existing_password
-            print(f"[EMAIL INSTRUCTIONS] Using existing password for {email}")
-        else:
-            # Generate a temporary password (you might want to use a more secure method)
+        if existing_password_hash and existing_password_hash.strip():
+            # Use existing password (we need to decode it or generate a new one)
+            # For now, generate a new temporary password for simplicity
             import random
             import string
             temp_password = ''.join(random.choices(string.ascii_letters + string.digits, k=8))
             
-            # Update the commissioner with the new password
+            # Update the commissioner with the new password hash
+            new_password_hash = hash_password(temp_password)
             cursor.execute("""
                 UPDATE commissioners 
-                SET password = %s 
+                SET password_hash = %s 
                 WHERE id = %s
-            """, (temp_password, commissioner_id))
+            """, (new_password_hash, commissioner_id))
+            
+            print(f"[EMAIL INSTRUCTIONS] Generated new password for {email}")
+        else:
+            # Generate a temporary password
+            import random
+            import string
+            temp_password = ''.join(random.choices(string.ascii_letters + string.digits, k=8))
+            
+            # Update the commissioner with the new password hash
+            new_password_hash = hash_password(temp_password)
+            cursor.execute("""
+                UPDATE commissioners 
+                SET password_hash = %s 
+                WHERE id = %s
+            """, (new_password_hash, commissioner_id))
             
             print(f"[EMAIL INSTRUCTIONS] Generated new password for {email}")
         
