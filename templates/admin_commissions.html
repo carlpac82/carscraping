@@ -634,14 +634,25 @@
           padding: 10px;
         }
         
-        /* Desktop: esconder cards explicitamente */
+        /* Desktop: esconder cards explicitamente - regra mais forte */
         @media (min-width: 769px) {
+          .commissioners-cards {
+            display: none !important;
+            visibility: hidden !important;
+            height: 0 !important;
+            overflow: hidden !important;
+          }
+          
           #commissioners-tab .commissioners-cards {
             display: none !important;
+            visibility: hidden !important;
+            height: 0 !important;
+            overflow: hidden !important;
           }
           
           #commissioners-tab .commissions-table {
             display: block !important;
+            visibility: visible !important;
           }
         }
         
