@@ -868,6 +868,111 @@
         font-weight: 600;
         color: #374151;
       }
+      
+      /* Modal styles for commissioners */
+      .modal {
+          display: none;
+          position: fixed;
+          top: 0;
+          left: 0;
+          width: 100%;
+          height: 100%;
+          background: rgba(0, 0, 0, 0.5);
+          z-index: 1000;
+          align-items: center;
+          justify-content: center;
+      }
+
+      .modal-content {
+          background: white;
+          border-radius: 20px;
+          padding: 30px;
+          width: 90%;
+          max-width: 500px;
+          max-height: 90vh;
+          overflow-y: auto;
+      }
+
+      .modal-header {
+          display: flex;
+          justify-content: space-between;
+          align-items: center;
+          margin-bottom: 20px;
+      }
+
+      .modal-header h2 {
+          font-size: 22px;
+          color: #333;
+      }
+
+      .btn-close {
+          background: none;
+          border: none;
+          font-size: 24px;
+          cursor: pointer;
+          color: #999;
+      }
+
+      .form-group {
+          margin-bottom: 20px;
+      }
+
+      .form-group label {
+          display: block;
+          margin-bottom: 8px;
+          color: #333;
+          font-weight: 500;
+          font-size: 14px;
+      }
+
+      .form-group input, .form-group select {
+          width: 100%;
+          padding: 12px 15px;
+          border: 2px solid #e0e0e0;
+          border-radius: 10px;
+          font-size: 15px;
+          transition: all 0.3s;
+      }
+
+      .form-group input:focus, .form-group select:focus {
+          outline: none;
+          border-color: #009cb6;
+          box-shadow: 0 0 0 3px rgba(0, 156, 182, 0.1);
+      }
+
+      .form-actions {
+          display: flex;
+          gap: 10px;
+          margin-top: 25px;
+      }
+
+      .btn-cancel {
+          flex: 1;
+          padding: 12px;
+          background: #f0f0f0;
+          color: #666;
+          border: none;
+          border-radius: 10px;
+          cursor: pointer;
+          font-size: 15px;
+          font-weight: 600;
+      }
+
+      .btn-submit {
+          flex: 2;
+          padding: 12px;
+          background: #009cb6;
+          color: white;
+          border: none;
+          border-radius: 10px;
+          cursor: pointer;
+          font-size: 15px;
+          font-weight: 600;
+      }
+
+      .btn-submit:hover {
+          background: #0077a3;
+      }
     </style>
     <script>
       if (window.location.search.includes("iframe=1")) {
@@ -3821,12 +3926,121 @@
                                   <path d="M20 4H4c-1.1 0-1.99.9-1.99 2L2 18c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2zm0 4l-8 5-8-5V6l8 5 8-5v2z"/>
                               </svg>
                           </button>
-                          <a href="/admin/commissioners/${commissioner.id}/edit" class="text-[#009cb6] hover:underline">Editar</a>
+                          <button onclick="editCommissioner(${commissioner.id})" class="text-[#009cb6] hover:underline">Editar</button>
                       </td>
                   `;
                   tbody.appendChild(row);
               });
           }
+          
+          // Modal functions for commissioners
+          let deliveryLocations = [];
+          
+          function editCommissioner(id) {
+              const commissioner = allCommissioners.find(c => c.id === id);
+              if (!commissioner) return;
+
+              document.getElementById('modalTitle').textContent = 'Editar Comissionista';
+              document.getElementById('commissionerId').value = commissioner.id;
+              document.getElementById('name').value = commissioner.name;
+              document.getElementById('username').value = commissioner.username || '';
+              document.getElementById('voucher_prefix').value = commissioner.voucher_prefix || '';
+              document.getElementById('email').value = commissioner.email;
+              document.getElementById('commission_rate').value = commissioner.commission_rate || 15.0;
+              document.getElementById('default_location').value = commissioner.default_location || '';
+              document.getElementById('is_active').value = commissioner.enabled.toString();
+              document.getElementById('is_hotel').checked = commissioner.is_hotel || false;
+              document.getElementById('password').placeholder = 'Deixe em branco para manter a atual';
+              document.getElementById('commissionerModal').style.display = 'block';
+          }
+          
+          function closeCommissionerModal() {
+              document.getElementById('commissionerModal').style.display = 'none';
+              document.getElementById('commissionerForm').reset();
+              document.getElementById('commissionerId').value = '';
+          }
+          
+          // Load delivery locations for the modal
+          async function loadDeliveryLocations() {
+              try {
+                  const response = await fetch('/api/locations');
+                  const data = await response.json();
+                  if (data.ok) {
+                      deliveryLocations = data.locations;
+                      const select = document.getElementById('default_location');
+                      select.innerHTML = '<option value="">Selecione...</option>';
+                      deliveryLocations.forEach(location => {
+                          const option = document.createElement('option');
+                          option.value = location;
+                          option.textContent = location;
+                          select.appendChild(option);
+                      });
+                  }
+              } catch (error) {
+                  console.error('Error loading delivery locations:', error);
+              }
+          }
+          
+          // Handle form submission
+          document.addEventListener('DOMContentLoaded', function() {
+              const form = document.getElementById('commissionerForm');
+              if (form) {
+                  form.addEventListener('submit', async function(e) {
+                      e.preventDefault();
+                      
+                      const formData = new FormData(form);
+                      const commissionerId = document.getElementById('commissionerId').value;
+                      
+                      const data = {
+                          name: document.getElementById('name').value,
+                          username: document.getElementById('username').value,
+                          voucher_prefix: document.getElementById('voucher_prefix').value,
+                          email: document.getElementById('email').value,
+                          commission_rate: parseFloat(document.getElementById('commission_rate').value),
+                          default_location: document.getElementById('default_location').value,
+                          enabled: document.getElementById('is_active').value === 'true',
+                          is_hotel: document.getElementById('is_hotel').checked
+                      };
+                      
+                      // Only include password if it's not empty and not the placeholder
+                      const password = document.getElementById('password').value;
+                      if (password && password !== '') {
+                          data.password = password;
+                      }
+                      
+                      try {
+                          const url = commissionerId ? 
+                              `/api/admin/commissioners/${commissionerId}` : 
+                              '/api/admin/commissioners';
+                          const method = commissionerId ? 'PUT' : 'POST';
+                          
+                          const response = await fetch(url, {
+                              method: method,
+                              headers: {
+                                  'Content-Type': 'application/json'
+                              },
+                              body: JSON.stringify(data)
+                          });
+                          
+                          const result = await response.json();
+                          
+                          if (result.ok || result.success) {
+                              showNotification('Comissionista salvo com sucesso!', 'success');
+                              closeCommissionerModal();
+                              loadCommissioners();
+                          } else {
+                              showNotification('Erro ao salvar comissionista: ' + (result.error || 'Unknown error'), 'error');
+                          }
+                      } catch (error) {
+                          console.error('Error saving commissioner:', error);
+                          showNotification('Erro ao salvar comissionista', 'error');
+                      }
+                  });
+              }
+              
+              // Load delivery locations when page loads
+              loadDeliveryLocations();
+          });
           
           function toggleCommissionerSelection(commissionerId) {
               if (selectedCommissioners.has(commissionerId)) {
@@ -3972,6 +4186,77 @@
                   <button onclick="closeSignatureModal()" style="flex: 1; padding: 10px; background: #f3f4f6; color: #374151; border: none; border-radius: 6px; font-size: 14px; font-weight: 500; cursor: pointer; transition: all 0.2s;">Cancelar</button>
                   <button onclick="submitSignature()" style="flex: 1; padding: 10px; background: #009cb6; color: white; border: none; border-radius: 6px; font-size: 14px; font-weight: 500; cursor: pointer; transition: all 0.2s;">Confirmar</button>
               </div>
+          </div>
+      </div>
+      
+      <!-- Modal Create/Edit Commissioner -->
+      <div id="commissionerModal" class="modal">
+          <div class="modal-content">
+              <div class="modal-header">
+                  <h2 id="modalTitle">Novo Comissionista</h2>
+                  <button class="btn-close" onclick="closeCommissionerModal()">&times;</button>
+              </div>
+
+              <form id="commissionerForm">
+                  <input type="hidden" id="commissionerId">
+                  
+                  <div class="form-group">
+                      <label for="name">Nome Completo</label>
+                      <input type="text" id="name" required>
+                  </div>
+
+                  <div class="form-group">
+                      <label for="username">Username</label>
+                      <input type="text" id="username" required>
+                  </div>
+
+                  <div class="form-group">
+                      <label for="voucher_prefix">Série do Voucher</label>
+                      <input type="text" id="voucher_prefix" required maxlength="10">
+                  </div>
+
+                  <div class="form-group">
+                      <label for="email">Email</label>
+                      <input type="email" id="email" required>
+                  </div>
+
+                  <div class="form-group">
+                      <label for="password">Senha</label>
+                      <input type="password" id="password" placeholder="Deixe em branco para manter a atual">
+                  </div>
+
+                  <div class="form-group">
+                      <label for="commission_rate">Taxa de Comissão (%)</label>
+                      <input type="number" id="commission_rate" step="0.1" min="0" max="100" required>
+                  </div>
+
+                  <div class="form-group">
+                      <label for="default_location">Local de Entrega Padrão</label>
+                      <select id="default_location">
+                          <option value="">Carregando locais...</option>
+                      </select>
+                  </div>
+
+                  <div class="form-group">
+                      <label for="is_active">Status</label>
+                      <select id="is_active">
+                          <option value="true">Ativo</option>
+                          <option value="false">Inativo</option>
+                      </select>
+                  </div>
+
+                  <div class="form-group">
+                      <label for="is_hotel">
+                          <input type="checkbox" id="is_hotel" value="true">
+                          É Hotel
+                      </label>
+                  </div>
+
+                  <div class="form-actions">
+                      <button type="button" class="btn-cancel" onclick="closeCommissionerModal()">Cancelar</button>
+                      <button type="submit" class="btn-submit">Salvar</button>
+                  </div>
+              </form>
           </div>
       </div>
     </body>
