@@ -1494,13 +1494,30 @@ async def send_commissioner_instructions(request: Request):
         # Generate PDF manual attachment
         pdf_content = await get_agentes_manual_pdf_bytes()
         
-        # Send email using Gmail OAuth
+        # Send email using Gmail OAuth (same method as commissioner vouchers)
         from email.mime.multipart import MIMEMultipart
         from email.mime.text import MIMEText
         from email.mime.application import MIMEApplication
         import base64
         
-        # Create email message
+        # Get Gmail OAuth credentials (same as voucher_api.py)
+        print(f"[EMAIL INSTRUCTIONS] Loading Gmail OAuth credentials")
+        
+        # Import the get_gmail_credentials function from voucher_api
+        import sys
+        sys.path.append('/app')
+        from voucher_api import get_gmail_credentials
+        
+        credentials = get_gmail_credentials()
+        
+        if not credentials:
+            print(f"[EMAIL INSTRUCTIONS] Gmail OAuth not configured")
+            conn.close()
+            return JSONResponse({"ok": False, "error": "Gmail não está configurado. Vá a Admin Settings -> Email e conecte o Gmail."}, status_code=500)
+        
+        # Create email message with HTML template body
+        print(f"[EMAIL INSTRUCTIONS] Creating email message")
+        
         msg = MIMEMultipart('alternative')
         msg['Subject'] = "Instruções Portal de Agentes - Auto Prudente"
         msg['From'] = "info@auto-prudente.com"
@@ -1515,32 +1532,33 @@ async def send_commissioner_instructions(request: Request):
         pdf_part['Content-Disposition'] = f'attachment; filename="Manual_Portal_Agentes_AutoPrudente.pdf"'
         msg.attach(pdf_part)
         
-        # Get Gmail OAuth credentials and send
-        from google.oauth2.credentials import Credentials
-        from google.auth.transport.requests import Request
-        from googleapiclient.discovery import build
-        from email.utils import formataddr
+        # Create message with attachment (same as voucher_api.py)
+        from email.mime.base import MIMEBase
+        from email import encoders
         
-        # Load credentials (you'll need to implement this based on your OAuth setup)
-        creds = None
-        # TODO: Implement OAuth token loading
+        # Convert message to raw format for Gmail API
+        message = {'raw': base64.urlsafe_b64encode(msg.as_bytes()).decode()}
         
-        if creds and creds.valid:
-            service = build('gmail', 'v1', credentials=creds)
-            message = {'raw': base64.urlsafe_b64encode(msg.as_bytes()).decode()}
+        # Send email
+        print(f"[EMAIL INSTRUCTIONS] Sending email via Gmail API")
+        try:
+            from googleapiclient.discovery import build
+            service = build('gmail', 'v1', credentials=credentials)
             
-            result = service.users().messages().send(userId='me', body=message).execute()
-            print(f"[EMAIL INSTRUCTIONS] Email sent to {email}, message ID: {result['id']}")
+            sent_message = service.users().messages().send(userId='me', body=message).execute()
+            print(f"[EMAIL INSTRUCTIONS] Email sent successfully: {sent_message['id']}")
             
             conn.close()
             return JSONResponse({
                 "ok": True, 
                 "message": f"Instruções enviadas para {email}",
-                "temp_password": temp_password  # You might want to display this to the admin
+                "temp_password": temp_password
             })
-        else:
+            
+        except Exception as e:
+            print(f"[EMAIL INSTRUCTIONS] Error sending email: {e}")
             conn.close()
-            return JSONResponse({"ok": False, "error": "Email authentication failed"}, status_code=500)
+            return JSONResponse({"ok": False, "error": f"Erro ao enviar email: {str(e)}"}, status_code=500)
             
     except Exception as e:
         import traceback
