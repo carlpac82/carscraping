@@ -14005,13 +14005,6 @@ async def api_admin_group_a_status_post(request: Request):
         print(f"Error updating Group A status: {e}")
         traceback.print_exc()
         return JSONResponse({"ok": False, "error": str(e)}, status_code=500)
-                })
-            finally:
-                con.close()
-    except HTTPException as e:
-        return JSONResponse({"ok": False, "error": str(e)}, status_code=403)
-    except Exception as e:
-        return JSONResponse({"ok": False, "error": str(e)}, status_code=500)
 
 @app.get("/admin/migrate-commission-payment")
 async def admin_migrate_commission_payment(request: Request):
