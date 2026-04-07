@@ -705,12 +705,19 @@
         // ========== COMISSIONISTAS ==========
         async function loadCommissioners() {
             try {
+                console.log('DEBUG admin_commissioners: Loading commissioners...');
                 const response = await fetch('/api/admin/commissioners');
                 const data = await response.json();
 
                 if (data.ok) {
+                    console.log('DEBUG admin_commissioners: Loaded commissioners:', data.commissioners);
+                    console.log('DEBUG admin_commissioners: Previous commissioners count:', commissioners ? commissioners.length : 'undefined');
                     commissioners = data.commissioners;
+                    console.log('DEBUG admin_commissioners: New commissioners count:', commissioners.length);
+                    console.log('DEBUG admin_commissioners: Updated commissioners array:', commissioners);
                     renderCommissioners();
+                } else {
+                    console.log('DEBUG admin_commissioners: Error loading commissioners:', data);
                 }
             } catch (error) {
                 console.error('Error loading commissioners:', error);
