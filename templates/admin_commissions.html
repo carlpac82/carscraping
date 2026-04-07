@@ -1560,27 +1560,12 @@
         <div id="commissioners-tab" class="tab-content">
           <h3 style="font-size: 1.1rem; font-weight: 600; margin-bottom: 1.5rem; color: #374151;">Gestão de Comissionistas</h3>
           
-          <!-- Search Bar -->
-          <div style="margin-bottom: 20px;">
+          <!-- Search and New Button -->
+          <div style="display: flex; gap: 10px; margin-bottom: 20px; align-items: center;">
               <input type="text" id="searchCommissioners" placeholder="Pesquisar por nome, email ou série..." 
-                     style="width: 100%; padding: 12px; border: 1px solid #ddd; border-radius: 8px; font-size: 14px;"
+                     style="flex: 1; padding: 12px; border: 1px solid #ddd; border-radius: 8px; font-size: 14px;"
                      oninput="filterCommissioners()">
-          </div>
-          
-          <!-- Actions -->
-          <div class="mb-4 flex gap-2 justify-between items-center">
-            <div class="flex gap-2">
-              <a href="/admin/commissioners/new" class="btn-primary">Novo Comissionista</a>
-              <button class="btn-primary" onclick="toggleSelectAllCommissioners()">
-                <span id="selectAllCommissionersText">Selecionar Todos</span>
-              </button>
-              <button class="btn-primary" onclick="sendInstructionsToSelected()" disabled id="sendInstructionsBtn">
-                Enviar Instruções Selecionados
-              </button>
-            </div>
-            <div class="text-sm text-gray-600">
-              <span id="commissionersResultsCount">0</span> comissionistas encontrados
-            </div>
+              <button class="btn-primary" onclick="openCreateModal()">+ Novo Comissionista</button>
           </div>
           
           <!-- Commissioners Table -->
@@ -1588,7 +1573,6 @@
             <table>
               <thead>
                 <tr>
-                  <th><input type="checkbox" id="selectAllCommissioners" onchange="toggleAllCommissionersSelection()"></th>
                   <th>Nome</th>
                   <th>Reservas</th>
                   <th>Status</th>
@@ -1597,7 +1581,7 @@
               </thead>
               <tbody id="commissionersTableBody">
                 <tr>
-                  <td colspan="5" class="text-center py-4">Carregando...</td>
+                  <td colspan="4" class="text-center py-4">Carregando...</td>
                 </tr>
               </tbody>
             </table>
@@ -3849,14 +3833,11 @@
           
           function renderCommissioners() {
               const tbody = document.getElementById('commissionersTableBody');
-              const resultsCount = document.getElementById('commissionersResultsCount');
               
-              if (!tbody || !resultsCount) return;
-              
-              resultsCount.textContent = allCommissioners.length;
+              if (!tbody) return;
               
               if (allCommissioners.length === 0) {
-                  tbody.innerHTML = '<tr><td colspan="5" class="text-center py-4">Nenhum comissionista encontrado</td></tr>';
+                  tbody.innerHTML = '<tr><td colspan="4" class="text-center py-4">Nenhum comissionista encontrado</td></tr>';
                   return;
               }
               
@@ -3865,7 +3846,6 @@
               allCommissioners.forEach(commissioner => {
                   const row = document.createElement('tr');
                   row.innerHTML = `
-                      <td><input type="checkbox" data-id="${commissioner.id}" onchange="toggleCommissionerSelection(${commissioner.id})"></td>
                       <td>${commissioner.name || 'Sem nome'}</td>
                       <td>${commissioner.total_bookings || 0}</td>
                       <td>${commissioner.enabled ? '<span style="color: #10b981;">Ativo</span>' : '<span style="color: #ef4444;">Inativo</span>'}</td>
@@ -3875,7 +3855,7 @@
                                   <path d="M20 4H4c-1.1 0-1.99.9-1.99 2L2 18c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2zm0 4l-8 5-8-5V6l8 5 8-5v2z"/>
                               </svg>
                           </button>
-                          <a href="/admin/commissioners/${commissioner.id}/edit" class="text-[#009cb6] hover:underline">Editar</a>
+                          <button onclick="editCommissioner(${commissioner.id})" class="text-[#009cb6] hover:underline">Editar</button>
                       </td>
                   `;
                   tbody.appendChild(row);
@@ -3900,14 +3880,11 @@
               });
               
               const tbody = document.getElementById('commissionersTableBody');
-              const resultsCount = document.getElementById('commissionersResultsCount');
               
-              if (!tbody || !resultsCount) return;
-              
-              resultsCount.textContent = filteredCommissioners.length;
+              if (!tbody) return;
               
               if (filteredCommissioners.length === 0) {
-                  tbody.innerHTML = '<tr><td colspan="5" class="text-center py-4">Nenhum comissionista encontrado</td></tr>';
+                  tbody.innerHTML = '<tr><td colspan="4" class="text-center py-4">Nenhum comissionista encontrado</td></tr>';
                   return;
               }
               
@@ -3916,7 +3893,6 @@
               filteredCommissioners.forEach(commissioner => {
                   const row = document.createElement('tr');
                   row.innerHTML = `
-                      <td><input type="checkbox" data-id="${commissioner.id}" onchange="toggleCommissionerSelection(${commissioner.id})"></td>
                       <td>${commissioner.name || 'Sem nome'}</td>
                       <td>${commissioner.total_bookings || 0}</td>
                       <td>${commissioner.enabled ? '<span style="color: #10b981;">Ativo</span>' : '<span style="color: #ef4444;">Inativo</span>'}</td>
