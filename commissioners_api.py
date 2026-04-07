@@ -1636,3 +1636,149 @@ async def send_commissioner_instructions(request: Request):
         print(f"Error sending instructions email: {e}")
         print(traceback.format_exc())
         return JSONResponse({"ok": False, "error": str(e)}, status_code=500)
+
+@router.post("/send-instructions-batch")
+async def send_instructions_batch(request: Request):
+    """Send instructions email to multiple commissioners"""
+    try:
+        # Get request data
+        data = await request.json()
+        commissioner_ids = data.get('commissioner_ids', [])
+        
+        if not commissioner_ids:
+            return JSONResponse({"ok": False, "error": "Nenhum comissionista selecionado"}, status_code=400)
+        
+        print(f"[BATCH EMAIL] Starting batch send to {len(commissioner_ids)} commissioners")
+        
+        # Get database connection
+        conn = get_db()
+        cursor = conn.cursor()
+        
+        # Get commissioners details
+        placeholders = ', '.join(['%s'] * len(commissioner_ids))
+        query = f"""
+            SELECT id, email, username, first_name, last_name, password_hash 
+            FROM commissioners 
+            WHERE id IN ({placeholders}) AND enabled = true
+        """
+        cursor.execute(query, commissioner_ids)
+        commissioners = cursor.fetchall()
+        
+        if not commissioners:
+            conn.close()
+            return JSONResponse({"ok": False, "error": "Nenhum comissionista ativo encontrado"}, status_code=404)
+        
+        # Get Gmail OAuth credentials
+        import sys
+        sys.path.append('/app')
+        from voucher_api import get_gmail_credentials
+        
+        credentials = get_gmail_credentials()
+        
+        if not credentials:
+            conn.close()
+            return JSONResponse({"ok": False, "error": "Gmail não está configurado"}, status_code=500)
+        
+        # Load email template
+        template_path = os.path.join(os.path.dirname(__file__), 'templates', 'email_commissioner_instructions.html')
+        with open(template_path, 'r', encoding='utf-8') as f:
+            template_content = f.read()
+        
+        # Generate PDF manual attachment
+        try:
+            pdf_content = await get_agentes_manual_pdf_bytes()
+            print(f"[BATCH EMAIL] PDF generated successfully: {len(pdf_content)} bytes")
+        except Exception as pdf_error:
+            print(f"[BATCH EMAIL] Error generating PDF: {pdf_error}")
+            pdf_content = None
+        
+        sent_count = 0
+        failed_count = 0
+        failed_emails = []
+        
+        # Send email to each commissioner
+        for commissioner in commissioners:
+            commissioner_id, email, username, first_name, last_name, password_hash = commissioner
+            
+            try:
+                # Generate new temporary password
+                import random
+                import string
+                temp_password = ''.join(random.choices(string.ascii_letters + string.digits, k=8))
+                
+                # Hash new password
+                import hashlib
+                salt = "AutoPrudente2024"
+                password_hash_new = hashlib.sha256((temp_password + salt).encode()).hexdigest()
+                
+                # Update password in database
+                cursor.execute(
+                    "UPDATE commissioners SET password_hash = %s WHERE id = %s",
+                    (password_hash_new, commissioner_id)
+                )
+                conn.commit()
+                
+                # Replace placeholders in template
+                html_content = template_content.replace('{{username}}', username)
+                html_content = html_content.replace('{{password}}', temp_password)
+                
+                # Create email message
+                from email.mime.multipart import MIMEMultipart
+                from email.mime.text import MIMEText
+                from email.mime.base import MIMEBase
+                from email import encoders
+                import base64
+                
+                msg = MIMEMultipart('related')
+                msg['Subject'] = "Instruções Portal de Agentes - Auto Prudente"
+                msg['From'] = "info@auto-prudente.com"
+                msg['To'] = email
+                
+                # Attach HTML content
+                html_part = MIMEText(html_content, 'html', 'utf-8')
+                msg.attach(html_part)
+                
+                # Attach PDF if available
+                if pdf_content:
+                    part = MIMEBase('application', 'pdf')
+                    part.set_payload(pdf_content)
+                    encoders.encode_base64(part)
+                    part.add_header('Content-Disposition', f'attachment; filename="Manual_Portal_Agentes_AutoPrudente.pdf"')
+                    msg.attach(part)
+                
+                # Send email via Gmail API
+                message_bytes = msg.as_bytes()
+                message = {'raw': base64.urlsafe_b64encode(message_bytes).decode()}
+                
+                from googleapiclient.discovery import build
+                service = build('gmail', 'v1', credentials=credentials)
+                service.users().messages().send(userId='me', body=message).execute()
+                
+                sent_count += 1
+                print(f"[BATCH EMAIL] Successfully sent to {email}")
+                
+            except Exception as e:
+                failed_count += 1
+                failed_emails.append(email)
+                print(f"[BATCH EMAIL] Failed to send to {email}: {e}")
+        
+        conn.close()
+        
+        # Return results
+        result_message = f"Enviadas {sent_count} instruções com sucesso"
+        if failed_count > 0:
+            result_message += f", {failed_count} falharam"
+        
+        return JSONResponse({
+            "ok": True,
+            "message": result_message,
+            "sent_count": sent_count,
+            "failed_count": failed_count,
+            "failed_emails": failed_emails
+        })
+        
+    except Exception as e:
+        import traceback
+        print(f"Error in batch email send: {e}")
+        print(traceback.format_exc())
+        return JSONResponse({"ok": False, "error": str(e)}, status_code=500)

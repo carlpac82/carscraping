@@ -60,6 +60,7 @@
               <th class="text-left px-4 py-2">Inspection</th>
               <th class="text-left px-4 py-2">Commissioner</th>
               <th class="text-left px-4 py-2">Commissions</th>
+              <th class="text-left px-4 py-2">Gestão de Comissionistas</th>
               <th class="text-left px-4 py-2">Enabled</th>
               <th class="text-left px-4 py-2">Actions</th>
             </tr>
@@ -96,6 +97,12 @@
                   <span class="ml-2 text-xs">{% if u.can_manage_commissions %}Yes{% else %}No{% endif %}</span>
                 </label>
               </td>
+              <td class="px-4 py-2">
+                <label class="inline-flex items-center cursor-pointer">
+                  <input type="checkbox" class="commissioner-management-toggle" data-user-id="{{ u.id }}" {% if u.can_manage_commissioners %}checked{% endif %} onchange="handlePermissionChange({{ u.id }})">
+                  <span class="ml-2 text-xs">{% if u.can_manage_commissioners %}Yes{% else %}No{% endif %}</span>
+                </label>
+              </td>
               <td class="px-4 py-2">{% if u.enabled %}Yes{% else %}No{% endif %}</td>
               <td class="px-4 py-2">
                 <div class="flex items-center gap-3">
@@ -125,16 +132,18 @@
         const inspectionToggle = row.querySelector('.inspection-toggle');
         const commissionerToggle = row.querySelector('.commissioner-toggle');
         const commissionsToggle = row.querySelector('.commissions-toggle');
+        const commissionerManagementToggle = row.querySelector('.commissioner-management-toggle');
         
         const role = roleSelect.value;
         const canAccess = inspectionToggle.checked ? 1 : 0;
         const hasCommissionerAccess = commissionerToggle.checked ? 1 : 0;
         const canManageCommissions = commissionsToggle.checked ? 1 : 0;
+        const canManageCommissioners = commissionerManagementToggle.checked ? 1 : 0;
         
-        updateInspectionPermission(userId, role, canAccess, hasCommissionerAccess, canManageCommissions);
+        updateInspectionPermission(userId, role, canAccess, hasCommissionerAccess, canManageCommissions, canManageCommissioners);
       }
       
-      async function updateInspectionPermission(userId, role, canAccess, hasCommissionerAccess, canManageCommissions) {
+      async function updateInspectionPermission(userId, role, canAccess, hasCommissionerAccess, canManageCommissions, canManageCommissioners) {
         const submitButton = document.querySelector(`button[onclick="submitNewUser()"]`);
         const originalButtonText = submitButton ? submitButton.innerHTML : '';
         
@@ -148,7 +157,8 @@
               role: role,
               can_access_inspection: canAccess,
               has_commissioner_access: hasCommissionerAccess,
-              can_manage_commissions: canManageCommissions
+              can_manage_commissions: canManageCommissions,
+              can_manage_commissioners: canManageCommissioners
             }),
           });
 
@@ -164,6 +174,7 @@
               const inspectionCell = row.querySelector('.inspection-toggle').nextElementSibling;
               const commissionerCell = row.querySelector('.commissioner-toggle').nextElementSibling;
               const commissionsCell = row.querySelector('.commissions-toggle').nextElementSibling;
+              const commissionerManagementCell = row.querySelector('.commissioner-management-toggle').nextElementSibling;
               
               if (inspectionCell) {
                 inspectionCell.textContent = canAccess ? 'Yes' : 'No';
@@ -173,6 +184,9 @@
               }
               if (commissionsCell) {
                 commissionsCell.textContent = canManageCommissions ? 'Yes' : 'No';
+              }
+              if (commissionerManagementCell) {
+                commissionerManagementCell.textContent = canManageCommissioners ? 'Yes' : 'No';
               }
             }
             

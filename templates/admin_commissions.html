@@ -1084,6 +1084,9 @@
           <button class="tab-button active" onclick="switchTab('dashboard')">Dashboard</button>
           <button class="tab-button" onclick="switchTab('commissions')">Gestão de Comissões</button>
           <button class="tab-button" onclick="switchTab('brokers')">Gestão de Brokers</button>
+          {% if current_user and current_user.role == 'support' and current_user.can_manage_commissioners %}
+          <button class="tab-button" onclick="switchTab('commissioners')">Gestão de Comissionistas</button>
+          {% endif %}
         </div>
         
         <!-- Tab 1: Dashboard -->
@@ -1446,6 +1449,52 @@
           </table>
       </div>
         </div>
+        
+        <!-- Tab 4: Gestão de Comissionistas -->
+        {% if current_user and current_user.role == 'support' and current_user.can_manage_commissioners %}
+        <div id="commissioners-tab" class="tab-content">
+          <h3 style="font-size: 1.1rem; font-weight: 600; margin-bottom: 1.5rem; color: #374151;">Gestão de Comissionistas</h3>
+          
+          <!-- Actions -->
+          <div class="mb-4 flex gap-2 justify-between items-center">
+            <div class="flex gap-2">
+              <a href="/admin/commissioners/new" class="btn-primary">Novo Comissionista</a>
+              <button class="btn-primary" onclick="toggleSelectAllCommissioners()">
+                <span id="selectAllCommissionersText">Selecionar Todos</span>
+              </button>
+              <button class="btn-primary" onclick="sendInstructionsToSelected()" disabled id="sendInstructionsBtn">
+                Enviar Instruções Selecionados
+              </button>
+            </div>
+            <div class="text-sm text-gray-600">
+              <span id="commissionersResultsCount">0</span> comissionistas encontrados
+            </div>
+          </div>
+          
+          <!-- Commissioners Table -->
+          <div class="commissions-table">
+            <table>
+              <thead>
+                <tr>
+                  <th><input type="checkbox" id="selectAllCommissioners" onchange="toggleAllCommissionersSelection()"></th>
+                  <th>Nome</th>
+                  <th>Email</th>
+                  <th>Username</th>
+                  <th>Telefone</th>
+                  <th>Comissão (%)</th>
+                  <th>Ativo</th>
+                  <th>Ações</th>
+                </tr>
+              </thead>
+              <tbody id="commissionersTableBody">
+                <tr>
+                  <td colspan="8" class="text-center py-4">Carregando...</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+        {% endif %}
       </div>
       </main>
       
@@ -1455,12 +1504,16 @@
           let selectedCommissions = new Set();
           let allBrokers = [];
           let selectedBrokers = new Set();
+          let allCommissioners = [];
+          let selectedCommissioners = new Set();
           
           // Sorting variables
           let commissionsSortField = 'pickup_date';
           let commissionsSortDirection = 'desc';
           let brokersSortField = 'pickup_date';
           let brokersSortDirection = 'desc';
+          let commissionersSortField = 'name';
+          let commissionersSortDirection = 'asc';
           
           // Toggle states for Top Commissioners charts
           let topCommissionersShowValues = true; // true = valores, false = reservas
@@ -1485,6 +1538,12 @@
                   loadBrokerMonthlyComparison();
                   loadBrokerYearlyDistribution();
                   loadBrokerTopByValue();
+              }
+              
+              // Load commissioner data if Commissioners tab is active by default
+              const commissionersTab = document.getElementById('commissioners-tab');
+              if (commissionersTab && commissionersTab.classList.contains('active')) {
+                  loadCommissioners();
               }
               
               // Add event listeners to filters to auto-update
@@ -2127,6 +2186,11 @@
                   loadBrokerTopByValue();
                   loadPaymentTypeMonthly();
                   loadPaymentTypeYearly();
+              }
+              
+              // Load commissioner data if switching to commissioners
+              if (tabName === 'commissioners') {
+                  loadCommissioners();
               }
           }
           
@@ -3654,6 +3718,177 @@
                       option.selected = true; // Selecionar mês anterior se for do ano passado
                   }
                   paymentTypeMonthSelect.appendChild(option);
+              }
+          }
+          
+          // Commissioners functions
+          async function loadCommissioners() {
+              try {
+                  const response = await fetch('/api/admin/commissioners');
+                  const data = await response.json();
+                  
+                  if (data.ok) {
+                      allCommissioners = data.commissioners;
+                      renderCommissioners();
+                  } else {
+                      console.error('Error loading commissioners:', data.error);
+                  }
+              } catch (error) {
+                  console.error('Error loading commissioners:', error);
+              }
+          }
+          
+          function renderCommissioners() {
+              const tbody = document.getElementById('commissionersTableBody');
+              const resultsCount = document.getElementById('commissionersResultsCount');
+              
+              if (!tbody || !resultsCount) return;
+              
+              resultsCount.textContent = allCommissioners.length;
+              
+              if (allCommissioners.length === 0) {
+                  tbody.innerHTML = '<tr><td colspan="8" class="text-center py-4">Nenhum comissionista encontrado</td></tr>';
+                  return;
+              }
+              
+              tbody.innerHTML = '';
+              
+              allCommissioners.forEach(commissioner => {
+                  const row = document.createElement('tr');
+                  row.innerHTML = `
+                      <td><input type="checkbox" data-id="${commissioner.id}" onchange="toggleCommissionerSelection(${commissioner.id})"></td>
+                      <td>${commissioner.first_name} ${commissioner.last_name}</td>
+                      <td>${commissioner.email}</td>
+                      <td>${commissioner.username}</td>
+                      <td>${commissioner.phone || '-'}</td>
+                      <td>${commissioner.commission_percentage || '-'}</td>
+                      <td>${commissioner.enabled ? 'Sim' : 'Não'}</td>
+                      <td>
+                          <a href="/admin/commissioners/${commissioner.id}/edit" class="text-[#009cb6] hover:underline mr-2">Editar</a>
+                          <button onclick="sendInstructionsEmail(${commissioner.id}, '${commissioner.email}')" class="text-[#009cb6] hover:underline" title="Enviar instruções">
+                              <svg width="16" height="16" fill="currentColor" viewBox="0 0 24 24">
+                                  <path d="M20 4H4c-1.1 0-1.99.9-1.99 2L2 18c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2zm0 4l-8 5-8-5V6l8 5 8-5v2z"/>
+                              </svg>
+                          </button>
+                      </td>
+                  `;
+                  tbody.appendChild(row);
+              });
+          }
+          
+          function toggleCommissionerSelection(commissionerId) {
+              if (selectedCommissioners.has(commissionerId)) {
+                  selectedCommissioners.delete(commissionerId);
+              } else {
+                  selectedCommissioners.add(commissionerId);
+              }
+              updateCommissionerButtons();
+          }
+          
+          function toggleAllCommissionersSelection() {
+              const selectAllCheckbox = document.getElementById('selectAllCommissioners');
+              const checkboxes = document.querySelectorAll('#commissionersTableBody input[type="checkbox"]');
+              
+              if (selectAllCheckbox.checked) {
+                  checkboxes.forEach(checkbox => {
+                      const commissionerId = parseInt(checkbox.dataset.id);
+                      selectedCommissioners.add(commissionerId);
+                      checkbox.checked = true;
+                  });
+              } else {
+                  checkboxes.forEach(checkbox => {
+                      const commissionerId = parseInt(checkbox.dataset.id);
+                      selectedCommissioners.delete(commissionerId);
+                      checkbox.checked = false;
+                  });
+              }
+              updateCommissionerButtons();
+          }
+          
+          function toggleSelectAllCommissioners() {
+              const selectAllCheckbox = document.getElementById('selectAllCommissioners');
+              const selectAllText = document.getElementById('selectAllCommissionersText');
+              
+              if (selectAllCheckbox.checked) {
+                  selectAllCheckbox.checked = false;
+                  selectAllText.textContent = 'Selecionar Todos';
+              } else {
+                  selectAllCheckbox.checked = true;
+                  selectAllText.textContent = 'Limpar Seleção';
+              }
+              toggleAllCommissionersSelection();
+          }
+          
+          function updateCommissionerButtons() {
+              const sendBtn = document.getElementById('sendInstructionsBtn');
+              if (sendBtn) {
+                  sendBtn.disabled = selectedCommissioners.size === 0;
+              }
+          }
+          
+          async function sendInstructionsEmail(commissionerId, email) {
+              if (!confirm(`Tem certeza que deseja enviar instruções para ${email}?`)) {
+                  return;
+              }
+              
+              try {
+                  const response = await fetch(`/api/admin/commissioners/${commissionerId}/send-instructions`, {
+                      method: 'POST'
+                  });
+                  
+                  const data = await response.json();
+                  
+                  if (data.ok) {
+                      alert('Instruções enviadas com sucesso!');
+                  } else {
+                      alert('Erro ao enviar instruções: ' + (data.error || 'Erro desconhecido'));
+                  }
+              } catch (error) {
+                  console.error('Error sending instructions:', error);
+                  alert('Erro ao enviar instruções. Tente novamente.');
+              }
+          }
+          
+          async function sendInstructionsToSelected() {
+              if (selectedCommissioners.size === 0) {
+                  alert('Por favor, selecione pelo menos um comissionista.');
+                  return;
+              }
+              
+              if (!confirm(`Tem certeza que deseja enviar instruções para ${selectedCommissioners.size} comissionista(s) selecionado(s)?`)) {
+                  return;
+              }
+              
+              try {
+                  const response = await fetch('/api/admin/commissioners/send-instructions-batch', {
+                      method: 'POST',
+                      headers: {
+                          'Content-Type': 'application/json'
+                      },
+                      body: JSON.stringify({
+                          commissioner_ids: Array.from(selectedCommissioners)
+                      })
+                  });
+                  
+                  const data = await response.json();
+                  
+                  if (data.ok) {
+                      alert(`Instruções enviadas com sucesso para ${data.sent_count} comissionista(s)!`);
+                      selectedCommissioners.clear();
+                      updateCommissionerButtons();
+                      
+                      // Uncheck all checkboxes
+                      document.querySelectorAll('#commissionersTableBody input[type="checkbox"]').forEach(checkbox => {
+                          checkbox.checked = false;
+                      });
+                      document.getElementById('selectAllCommissioners').checked = false;
+                      document.getElementById('selectAllCommissionersText').textContent = 'Selecionar Todos';
+                  } else {
+                      alert('Erro ao enviar instruções: ' + (data.error || 'Erro desconhecido'));
+                  }
+              } catch (error) {
+                  console.error('Error sending batch instructions:', error);
+                  alert('Erro ao enviar instruções. Tente novamente.');
               }
           }
       </script>

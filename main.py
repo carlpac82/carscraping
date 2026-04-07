@@ -7736,7 +7736,7 @@ async def admin_users_delete(request: Request, user_id: int):
 async def admin_update_inspection_permissions(request: Request, user_id: int):
     """
     Update user role and inspection access permission.
-    Body: {role: "user|receptionist|support|admin", can_access_inspection: 0|1, has_commissioner_access: 0|1, can_manage_commissions: 0|1}
+    Body: {role: "user|receptionist|support|admin", can_access_inspection: 0|1, has_commissioner_access: 0|1, can_manage_commissions: 0|1, can_manage_commissioners: 0|1}
     """
     try:
         require_commissions_management(request)
