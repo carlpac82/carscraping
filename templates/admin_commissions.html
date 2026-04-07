@@ -818,6 +818,141 @@
           font-size: 10px;
         }
         
+        /* Mobile improvements for Commissioners Tab */
+        #commissioners-tab .commissions-table {
+          overflow-x: auto;
+          -webkit-overflow-scrolling: touch;
+        }
+        
+        #commissioners-tab .commissions-table table {
+          min-width: 600px;
+          width: 100%;
+        }
+        
+        #commissioners-tab .commissions-table th:nth-child(1),
+        #commissioners-tab .commissions-table td:nth-child(1) {
+          min-width: 150px;
+          text-align: left;
+        }
+        
+        #commissioners-tab .commissions-table th:nth-child(2),
+        #commissioners-tab .commissions-table td:nth-child(2) {
+          min-width: 80px;
+          text-align: center;
+        }
+        
+        #commissioners-tab .commissions-table th:nth-child(3),
+        #commissioners-tab .commissions-table td:nth-child(3) {
+          min-width: 80px;
+          text-align: center;
+        }
+        
+        #commissioners-tab .commissions-table th:nth-child(4),
+        #commissioners-tab .commissions-table td:nth-child(4) {
+          min-width: 120px;
+          text-align: center;
+        }
+        
+        /* Search and button layout mobile */
+        #commissioners-tab .search-container {
+          display: flex !important;
+          flex-direction: column !important;
+          gap: 10px !important;
+          margin-bottom: 20px !important;
+        }
+        
+        #commissioners-tab #searchCommissioners {
+          width: 100% !important;
+          margin-bottom: 0 !important;
+          font-size: 16px !important; /* Better for mobile */
+          padding: 14px !important; /* Larger touch target */
+        }
+        
+        #commissioners-tab .btn-primary {
+          width: 100% !important;
+          padding: 14px !important;
+          font-size: 16px !important; /* Better for mobile */
+          min-height: 48px !important; /* Minimum touch target */
+        }
+        
+        /* Better touch targets for action buttons */
+        #commissioners-tab .commissions-table button {
+          padding: 8px !important;
+          min-width: 40px !important;
+          min-height: 40px !important;
+          margin: 0 2px !important;
+        }
+        
+        #commissioners-tab .commissions-table button svg {
+          width: 18px !important;
+          height: 18px !important;
+        }
+      }
+      
+      /* Tablet improvements for Commissioners Tab */
+      @media (max-width: 1024px) and (min-width: 769px) {
+        #commissioners-tab .commissions-table {
+          overflow-x: auto;
+          -webkit-overflow-scrolling: touch;
+        }
+        
+        #commissioners-tab .commissions-table table {
+          min-width: 550px;
+          width: 100%;
+        }
+        
+        #commissioners-tab .commissions-table th:nth-child(1),
+        #commissioners-tab .commissions-table td:nth-child(1) {
+          min-width: 140px;
+        }
+        
+        #commissioners-tab .commissions-table th:nth-child(2),
+        #commissioners-tab .commissions-table td:nth-child(2) {
+          min-width: 70px;
+        }
+        
+        #commissioners-tab .commissions-table th:nth-child(3),
+        #commissioners-tab .commissions-table td:nth-child(3) {
+          min-width: 70px;
+        }
+        
+        #commissioners-tab .commissions-table th:nth-child(4),
+        #commissioners-tab .commissions-table td:nth-child(4) {
+          min-width: 110px;
+        }
+        
+        /* Search layout for tablets */
+        #commissioners-tab .search-container {
+          flex-direction: row !important;
+          gap: 10px !important;
+        }
+        
+        #commissioners-tab #searchCommissioners {
+          flex: 1 !important;
+          font-size: 14px !important;
+          padding: 12px !important;
+        }
+        
+        #commissioners-tab .btn-primary {
+          width: auto !important;
+          min-width: 180px !important;
+          padding: 12px 16px !important;
+          font-size: 14px !important;
+        }
+        
+        /* Touch targets for tablets */
+        #commissioners-tab .commissions-table button {
+          padding: 6px !important;
+          min-width: 36px !important;
+          min-height: 36px !important;
+        }
+        
+        #commissioners-tab .commissions-table button svg {
+          width: 16px !important;
+          height: 16px !important;
+        }
+      }
+        
         .stat-card .stat-value {
           font-size: 18px;
         }
@@ -826,7 +961,6 @@
           padding: 8px;
           font-size: 12px;
         }
-      }
       
       .chart-card {
         background: white;
@@ -1561,7 +1695,7 @@
           <h3 style="font-size: 1.1rem; font-weight: 600; margin-bottom: 1.5rem; color: #374151;">Gestão de Comissionistas</h3>
           
           <!-- Search and New Button -->
-          <div style="display: flex; gap: 10px; margin-bottom: 20px; align-items: center;">
+          <div class="search-container" style="display: flex; gap: 10px; margin-bottom: 20px; align-items: center;">
               <input type="text" id="searchCommissioners" placeholder="Pesquisar por nome, email ou série..." 
                      style="flex: 1; padding: 12px; border: 1px solid #ddd; border-radius: 8px; font-size: 14px;"
                      oninput="filterCommissioners()">
