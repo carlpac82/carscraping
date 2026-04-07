@@ -1523,7 +1523,7 @@ async def send_commissioner_instructions(request: Request):
         # Create email message with HTML template body
         print(f"[EMAIL INSTRUCTIONS] Creating email message")
         
-        msg = MIMEMultipart('alternative')
+        msg = MIMEMultipart('mixed')
         msg['Subject'] = "Instruções Portal de Agentes - Auto Prudente"
         msg['From'] = "info@auto-prudente.com"
         msg['To'] = email
