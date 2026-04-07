@@ -4036,7 +4036,7 @@
                       const data = {
                           name: document.getElementById('name').value,
                           username: document.getElementById('username').value,
-                          voucher_prefix: document.getElementById('voucher_prefix').value || null,
+                          voucher_prefix: document.getElementById('voucher_prefix').value || '',
                           email: document.getElementById('email').value || null,
                           phone: null, // Campo não existe no frontend mas é esperado pelo backend
                           commission_rate: parseFloat(document.getElementById('commission_rate').value),
