@@ -634,6 +634,17 @@
           padding: 10px;
         }
         
+        /* Desktop: esconder cards explicitamente */
+        @media (min-width: 769px) {
+          #commissioners-tab .commissioners-cards {
+            display: none !important;
+          }
+          
+          #commissioners-tab .commissions-table {
+            display: block !important;
+          }
+        }
+        
         .commissioner-card {
           background: white;
           border-radius: 10px;
