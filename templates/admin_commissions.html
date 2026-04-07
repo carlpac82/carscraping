@@ -3816,13 +3816,50 @@
           
           // Commissioners functions
           function showNotification(message, type = 'success') {
-              // Simple notification using alert for now
-              if (type === 'success') {
-                  alert(message);
-              } else {
-                  alert('Erro: ' + message);
-              }
+              // Use custom modal instead of alert
+              showAlert(type === 'success' ? 'Sucesso' : 'Erro', message);
           }
+          
+          function showAlert(title, message) {
+              document.getElementById('alertTitle').textContent = title;
+              document.getElementById('alertMessage').textContent = message;
+              document.getElementById('alertModal').style.display = 'flex';
+          }
+          
+          function showConfirm(title, message) {
+              return new Promise((resolve) => {
+                  document.getElementById('confirmTitle').textContent = title;
+                  document.getElementById('confirmMessage').textContent = message;
+                  document.getElementById('confirmModal').style.display = 'flex';
+                  
+                  const handleConfirm = () => {
+                      document.getElementById('confirmModal').style.display = 'none';
+                      document.getElementById('confirmOk').removeEventListener('click', handleConfirm);
+                      document.getElementById('confirmCancel').removeEventListener('click', handleCancel);
+                      resolve(true);
+                  };
+                  
+                  const handleCancel = () => {
+                      document.getElementById('confirmModal').style.display = 'none';
+                      document.getElementById('confirmOk').removeEventListener('click', handleConfirm);
+                      document.getElementById('confirmCancel').removeEventListener('click', handleCancel);
+                      resolve(false);
+                  };
+                  
+                  document.getElementById('confirmOk').addEventListener('click', handleConfirm);
+                  document.getElementById('confirmCancel').addEventListener('click', handleCancel);
+              });
+          }
+          
+          // Setup alert modal close button
+          document.addEventListener('DOMContentLoaded', function() {
+              const alertOkBtn = document.getElementById('alertOk');
+              if (alertOkBtn) {
+                  alertOkBtn.addEventListener('click', function() {
+                      document.getElementById('alertModal').style.display = 'none';
+                  });
+              }
+          });
           
           async function loadCommissioners() {
               try {
@@ -4098,13 +4135,14 @@
           }
           
           async function sendInstructionsEmail(commissionerId, email) {
-              if (!confirm(`Tem certeza que deseja enviar instruções para ${email}?`)) {
+              const confirmed = await showConfirm('Enviar Instruções', `Deseja enviar instruções para ${email}?`);
+              if (!confirmed) {
                   return;
               }
               
               const commissioner = allCommissioners.find(c => c.id === commissionerId);
               if (!commissioner) {
-                  alert('Comissionista não encontrado!');
+                  showAlert('Erro', 'Comissionista não encontrado!');
                   return;
               }
               
@@ -4124,13 +4162,13 @@
                   const data = await response.json();
                   
                   if (data.ok) {
-                      alert('Instruções enviadas com sucesso!');
+                      showAlert('Sucesso', 'Instruções enviadas com sucesso!');
                   } else {
-                      alert('Erro ao enviar instruções: ' + (data.error || 'Erro desconhecido'));
+                      showAlert('Erro', 'Erro ao enviar instruções: ' + (data.error || 'Erro desconhecido'));
                   }
               } catch (error) {
                   console.error('Error sending instructions:', error);
-                  alert('Erro ao enviar instruções. Tente novamente.');
+                  showAlert('Erro', 'Erro ao enviar instruções. Tente novamente.');
               }
           }
           
@@ -4276,6 +4314,37 @@
                       <button type="submit" class="btn-submit">Salvar</button>
                   </div>
               </form>
+          </div>
+      </div>
+
+      <!-- Custom Confirmation Modal -->
+      <div id="confirmModal" class="modal" style="display: none;">
+          <div class="modal-content" style="max-width: 400px; text-align: center;">
+              <div class="modal-header" style="justify-content: center; border-bottom: none;">
+                  <h3 id="confirmTitle">Confirmar Ação</h3>
+              </div>
+              <div style="padding: 20px 0;">
+                  <p id="confirmMessage" style="margin: 0; font-size: 16px; color: #333;"></p>
+              </div>
+              <div class="form-actions" style="margin-top: 20px;">
+                  <button id="confirmCancel" class="btn-cancel">Cancelar</button>
+                  <button id="confirmOk" class="btn-submit">Confirmar</button>
+              </div>
+          </div>
+      </div>
+
+      <!-- Custom Alert Modal -->
+      <div id="alertModal" class="modal" style="display: none;">
+          <div class="modal-content" style="max-width: 400px; text-align: center;">
+              <div class="modal-header" style="justify-content: center; border-bottom: none;">
+                  <h3 id="alertTitle">Mensagem</h3>
+              </div>
+              <div style="padding: 20px 0;">
+                  <p id="alertMessage" style="margin: 0; font-size: 16px; color: #333;"></p>
+              </div>
+              <div class="form-actions" style="margin-top: 20px;">
+                  <button id="alertOk" class="btn-submit" style="flex: 1;">OK</button>
+              </div>
           </div>
       </div>
     </body>
