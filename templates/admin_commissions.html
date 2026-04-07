@@ -3863,11 +3863,22 @@
           
           async function loadCommissioners() {
               try {
+                  console.log('DEBUG admin_commissions: Loading commissioners...');
                   const response = await fetch('/api/admin/commissioners');
                   const data = await response.json();
                   
                   if (data.ok) {
+                      console.log('DEBUG admin_commissions: Loaded commissioners:', data.commissioners);
+                      console.log('DEBUG admin_commissions: Previous allCommissioners count:', allCommissioners.length);
                       allCommissioners = data.commissioners;
+                      console.log('DEBUG admin_commissions: New allCommissioners count:', allCommissioners.length);
+                      
+                      // Verificar AUTO PRUDENTE especificamente
+                      const autoPrudente = allCommissioners.find(c => c.name === 'AUTO PRUDENTE');
+                      if (autoPrudente) {
+                          console.log('DEBUG admin_commissions: AUTO PRUDENTE default_location:', autoPrudente.default_location);
+                      }
+                      
                       renderCommissioners();
                   } else {
                       console.error('Error loading commissioners:', data.error);
