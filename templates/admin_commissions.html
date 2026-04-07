@@ -4072,6 +4072,7 @@
                       }
                       
                       try {
+                          console.log('DEBUG admin_commissions: Enviando dados para backend:', data);
                           const url = commissionerId ? 
                               `/api/admin/commissioners/${commissionerId}` : 
                               '/api/admin/commissioners';
