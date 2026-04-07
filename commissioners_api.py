@@ -1492,7 +1492,12 @@ async def send_commissioner_instructions(request: Request):
         html_content = html_content.replace('{{password}}', temp_password)
         
         # Generate PDF manual attachment
-        pdf_content = await get_agentes_manual_pdf_bytes()
+        try:
+            pdf_content = await get_agentes_manual_pdf_bytes()
+            print(f"[EMAIL INSTRUCTIONS] PDF generated successfully: {len(pdf_content)} bytes")
+        except Exception as pdf_error:
+            print(f"[EMAIL INSTRUCTIONS] Error generating PDF: {pdf_error}")
+            pdf_content = None
         
         # Send email using Gmail OAuth (same method as commissioner vouchers)
         from email.mime.multipart import MIMEMultipart
@@ -1527,10 +1532,14 @@ async def send_commissioner_instructions(request: Request):
         html_part = MIMEText(html_content, 'html', 'utf-8')
         msg.attach(html_part)
         
-        # Attach PDF manual
-        pdf_part = MIMEApplication(pdf_content, Name="Manual_Portal_Agentes_AutoPrudente.pdf")
-        pdf_part['Content-Disposition'] = f'attachment; filename="Manual_Portal_Agentes_AutoPrudente.pdf"'
-        msg.attach(pdf_part)
+        # Attach PDF manual if generated successfully
+        if pdf_content:
+            pdf_part = MIMEApplication(pdf_content, Name="Manual_Portal_Agentes_AutoPrudente.pdf")
+            pdf_part['Content-Disposition'] = f'attachment; filename="Manual_Portal_Agentes_AutoPrudente.pdf"'
+            msg.attach(pdf_part)
+            print(f"[EMAIL INSTRUCTIONS] PDF attached successfully")
+        else:
+            print(f"[EMAIL INSTRUCTIONS] Email sent without PDF attachment due to generation error")
         
         # Create message with attachment (same as voucher_api.py)
         from email.mime.base import MIMEBase
