@@ -6090,30 +6090,49 @@
         function renderVehicleGrid() {
             const grid = document.getElementById('vehicleGrid');
             
-            // Grupos não disponíveis (exemplo fictício - pode ser configurado dinamicamente)
-            const unavailableGroups = []; // Adicione códigos aqui para marcar como indisponível, ex: ['F', 'J1']
+            // Grupos não disponíveis (será carregado da API)
+            const unavailableGroups = []; // Será preenchido dinamicamente
             
-            grid.innerHTML = vehicleGroups.map(vehicle => {
-                const isUnavailable = unavailableGroups.includes(vehicle.code);
-                return `
-                <div class="vehicle-card ${isUnavailable ? 'unavailable' : ''}" onclick="selectVehicle('${vehicle.code}', ${isUnavailable})" data-code="${vehicle.code}">
-                    ${isUnavailable ? '<div class="unavailable-badge">Grupo não disponível</div>' : ''}
-                    <div class="vehicle-card-header">
-                        <div class="vehicle-group">GROUP <span class="group-letter">${vehicle.code}</span></div>
-                    </div>
-                    <div class="vehicle-card-body">
-                        <img src="${vehicle.image}" alt="${vehicle.name}" onerror="this.src='data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 width=%22200%22 height=%22100%22><rect fill=%22%23e5e7eb%22 width=%22200%22 height=%22100%22/><text x=%2250%%22 y=%2250%%22 text-anchor=%22middle%22 dy=%22.3em%22 fill=%22%23666%22>Grupo ${vehicle.code}</text></svg>'">
-                        <div class="vehicle-model">${vehicle.name}</div>
-                        <div class="vehicle-features">
-                            ${vehicle.ac ? '<div class="vehicle-feature"><img src="/static/Icones-Caracteristicas/AC.png" alt="A/C"></div>' : ''}
-                            <div class="vehicle-feature"><img src="/static/Icones-Caracteristicas/${String(vehicle.seats).includes('-') ? vehicle.seats + ' L' : vehicle.seats + 'L'}.png" alt="${vehicle.seats} lugares"></div>
-                            <div class="vehicle-feature"><img src="/static/Icones-Caracteristicas/${vehicle.doors}P.png" alt="${vehicle.doors} portas"></div>
-                            ${vehicle.transmission === 'automatic' ? '<div class="vehicle-feature"><img src="/static/Icones-Caracteristicas/automatico.png" alt="Automático"></div>' : ''}
+            // Verificar se o grupo A está desativado
+            checkGroupAAvailability().then(isGroupADisabled => {
+                if (isGroupADisabled) {
+                    unavailableGroups.push('A');
+                }
+                
+                grid.innerHTML = vehicleGroups.map(vehicle => {
+                    const isUnavailable = unavailableGroups.includes(vehicle.code);
+                    return `
+                    <div class="vehicle-card ${isUnavailable ? 'unavailable' : ''}" onclick="selectVehicle('${vehicle.code}', ${isUnavailable})" data-code="${vehicle.code}">
+                        ${isUnavailable ? '<div class="unavailable-badge">Sem disponibilidade</div>' : ''}
+                        <div class="vehicle-card-header">
+                            <div class="vehicle-group">GROUP <span class="group-letter">${vehicle.code}</span></div>
+                        </div>
+                        <div class="vehicle-card-body">
+                            <img src="${vehicle.image}" alt="${vehicle.name}" onerror="this.src='data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 width=%22200%22 height=%22100%22><rect fill=%22%23e5e7eb%22 width=%22200%22 height=%22100%22/><text x=%2250%%22 y=%2250%%22 text-anchor=%22middle%22 dy=%22.3em%22 fill=%22%23666%22>Grupo ${vehicle.code}</text></svg>'">
+                            <div class="vehicle-model">${vehicle.name}</div>
+                            <div class="vehicle-features">
+                                ${vehicle.ac ? '<div class="vehicle-feature"><img src="/static/Icones-Caracteristicas/AC.png" alt="A/C"></div>' : ''}
+                                <div class="vehicle-feature"><img src="/static/Icones-Caracteristicas/${String(vehicle.seats).includes('-') ? vehicle.seats + ' L' : vehicle.seats + 'L'}.png" alt="${vehicle.seats} lugares"></div>
+                                <div class="vehicle-feature"><img src="/static/Icones-Caracteristicas/${vehicle.doors}P.png" alt="${vehicle.doors} portas"></div>
+                                ${vehicle.transmission === 'automatic' ? '<div class="vehicle-feature"><img src="/static/Icones-Caracteristicas/automatico.png" alt="Automático"></div>' : ''}
+                            </div>
                         </div>
                     </div>
-                </div>
-            `;
-            }).join('');
+                `;
+                }).join('');
+            });
+        }
+
+        // Função para verificar disponibilidade do grupo A
+        async function checkGroupAAvailability() {
+            try {
+                const response = await fetch('/api/admin/group-a-status');
+                const data = await response.json();
+                return data.disabled === true;
+            } catch (error) {
+                console.error('Error checking group A availability:', error);
+                return false; // Se houver erro, assume que está disponível
+            }
         }
 
         let selectedVehicleData = null;
@@ -6121,6 +6140,7 @@
         function selectVehicle(code, isUnavailable) {
             // Não permitir seleção de grupos indisponíveis
             if (isUnavailable) {
+                alert('Sem disponibilidade');
                 return;
             }
             

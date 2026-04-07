@@ -107,6 +107,32 @@
       
       <div class="bg-white rounded shadow p-6 space-y-6">
         
+        <!-- Configuração do Grupo A -->
+        <div class="border-b pb-6">
+          <h3 class="text-md font-semibold text-gray-800 mb-4 flex items-center gap-2">
+            <svg class="w-5 h-5 text-[#009cb6]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+            </svg>
+            <span>Configuração do Grupo A</span>
+          </h3>
+          
+          <div class="space-y-4">
+            <div class="flex items-center justify-between">
+              <div>
+                <label class="text-sm font-medium text-gray-700">Grupo A</label>
+                <p class="text-xs text-gray-500 mt-1">Ativar ou desativar a disponibilidade do Grupo A para reservas</p>
+              </div>
+              <div class="flex items-center gap-3">
+                <label class="relative inline-flex items-center cursor-pointer">
+                  <input type="checkbox" id="group_a_enabled" class="sr-only peer" checked>
+                  <div class="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-[#009cb6]"></div>
+                  <span class="ml-3 text-sm font-medium text-gray-700">Habilitado</span>
+                </label>
+              </div>
+            </div>
+          </div>
+        </div>
+        
         <!-- Preços dos Extras -->
         <div class="border-b pb-6">
           <h3 class="text-md font-semibold text-gray-800 mb-4 flex items-center gap-2">
@@ -698,6 +724,19 @@
         });
       }
       
+      // Carregar status do Grupo A
+      async function loadGroupAStatus() {
+        try {
+          const response = await fetch('/api/admin/group-a-status');
+          const data = await response.json();
+          if (data.ok) {
+            document.getElementById('group_a_enabled').checked = !data.disabled;
+          }
+        } catch (error) {
+          console.error('Erro ao carregar status do Grupo A:', error);
+        }
+      }
+      
       async function loadPricing() {
         try {
           const response = await fetch('/api/commissioner-pricing');
@@ -786,7 +825,11 @@
                 });
               });
             }
+            
+            // Carregar status do Grupo A
+            await loadGroupAStatus();
           }
+        
         } catch (error) {
           console.error('Erro ao carregar preços:', error);
         }
@@ -891,19 +934,46 @@
             body: JSON.stringify(pricing)
           });
           
-          console.log('📥 Resposta recebida:', response.status, response.statusText);
+          console.log(' Resposta recebida:', response.status, response.statusText);
           const data = await response.json();
-          console.log('📄 Dados da resposta:', data);
+          console.log(' Dados da resposta:', data);
           
           if (data.ok) {
-            showNotification('✅ Preços guardados com sucesso!', 'success');
+            showNotification(' Preços guardados com sucesso!', 'success');
+            
+            // Salvar status do Grupo A
+            await saveGroupAStatus();
+            
             loadPricing();
           } else {
             showNotification('Erro ao guardar preços: ' + (data.error || 'Erro desconhecido'), 'error');
           }
         } catch (error) {
-          console.error('❌ Erro ao guardar preços:', error);
+          console.error('Erro ao guardar preços:', error);
           showNotification('Erro ao guardar preços: ' + error.message, 'error');
+        }
+      }
+      
+      // Salvar status do Grupo A
+      async function saveGroupAStatus() {
+        try {
+          const isEnabled = document.getElementById('group_a_enabled').checked;
+          const response = await fetch('/api/admin/group-a-status', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+              disabled: !isEnabled
+            })
+          });
+          
+          const data = await response.json();
+          if (!data.ok) {
+            console.error('Erro ao salvar status do Grupo A:', data.error);
+          }
+        } catch (error) {
+          console.error('Erro ao salvar status do Grupo A:', error);
         }
       }
       
@@ -1047,6 +1117,48 @@
         initializeGroupPricingTable();
         createInsurancePricingTables();
         loadPricing();
+        
+        // Adicionar event listener para o toggle do Grupo A
+        const groupAToggle = document.getElementById('group_a_enabled');
+        if (groupAToggle) {
+          groupAToggle.addEventListener('change', saveGroupAStatus);
+        }
+      });
+      
+      // Função para salvar o status do Grupo A
+      async function saveGroupAStatus() {
+        const isEnabled = document.getElementById('group_a_enabled').checked;
+        
+        try {
+          const response = await fetch('/api/admin/group-a-status', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+              disabled: !isEnabled
+            })
+          });
+          
+          const data = await response.json();
+          if (data.ok) {
+            showNotification('Status do Grupo A atualizado com sucesso!', 'success');
+          } else {
+            showNotification('Erro ao atualizar status do Grupo A', 'error');
+            // Reverter o toggle se houver erro
+            document.getElementById('group_a_enabled').checked = isEnabled;
+          }
+        } catch (error) {
+          console.error('Erro ao salvar status do Grupo A:', error);
+          showNotification('Erro ao atualizar status do Grupo A', 'error');
+          // Reverter o toggle se houver erro
+          document.getElementById('group_a_enabled').checked = isEnabled;
+        }
+      }
+      
+      // Adicionar event listener para o toggle do Grupo A
+      document.getElementById('group_a_enabled').addEventListener('change', async function() {
+        await saveGroupAStatus();
       });
     </script>
   </body>

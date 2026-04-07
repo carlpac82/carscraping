@@ -6897,6 +6897,135 @@ async def api_save_commissioner_pricing(request: Request):
         traceback.print_exc()
         return JSONResponse({"ok": False, "error": str(e)}, status_code=500)
 
+@app.get("/api/admin/group-a-status")
+async def api_get_group_a_status(request: Request):
+    """Get Group A availability status"""
+    try:
+        require_commissions_management(request)
+    except HTTPException:
+        return JSONResponse({"ok": False, "error": "Unauthorized"}, status_code=401)
+    
+    try:
+        # Verificar disponibilidade automática baseada no número de carros disponíveis
+        auto_disabled = False
+        available_count = 0
+        
+        with _db_lock:
+            conn = _db_connect()
+            is_postgres = _is_postgresql_connection(conn)
+            
+            try:
+                if is_postgres:
+                    with conn.cursor() as cur:
+                        # Contar carros disponíveis do Grupo A
+                        cur.execute("""
+                            SELECT COUNT(*) as available_count
+                            FROM vehicles v
+                            WHERE v.grupo = 'A'
+                            AND v.status = 'disponivel'
+                            AND v.matricula NOT IN (
+                                SELECT DISTINCT ra.license_plate
+                                FROM rental_agreements ra
+                                WHERE ra.license_plate IS NOT NULL
+                                AND EXISTS (
+                                    SELECT 1 FROM vehicle_inspections vi
+                                    WHERE vi.contract_number LIKE ra.rental_agreement_number || '%'
+                                    AND vi.inspection_type = 'checkin'
+                                    AND COALESCE(vi.status, '') != 'replaced'
+                                )
+                                AND NOT EXISTS (
+                                    SELECT 1 FROM vehicle_inspections vi
+                                    WHERE vi.contract_number LIKE ra.rental_agreement_number || '%'
+                                    AND vi.inspection_type = 'checkout'
+                                    AND COALESCE(vi.status, '') != 'replaced'
+                                )
+                            )
+                        """)
+                        result = cur.fetchone()
+                        available_count = result[0] if result else 0
+                else:
+                    with conn.cursor() as cur:
+                        # Contar carros disponíveis do Grupo A (SQLite)
+                        cur.execute("""
+                            SELECT COUNT(*) as available_count
+                            FROM vehicles v
+                            WHERE v.grupo = 'A'
+                            AND v.status = 'disponivel'
+                            AND v.matricula NOT IN (
+                                SELECT DISTINCT ra.license_plate
+                                FROM rental_agreements ra
+                                WHERE ra.license_plate IS NOT NULL
+                                AND EXISTS (
+                                    SELECT 1 FROM vehicle_inspections vi
+                                    WHERE vi.contract_number LIKE ra.rental_agreement_number || '%'
+                                    AND vi.inspection_type = 'checkin'
+                                    AND COALESCE(vi.status, '') != 'replaced'
+                                )
+                                AND NOT EXISTS (
+                                    SELECT 1 FROM vehicle_inspections vi
+                                    WHERE vi.contract_number LIKE ra.rental_agreement_number || '%'
+                                    AND vi.inspection_type = 'checkout'
+                                    AND COALESCE(vi.status, '') != 'replaced'
+                                )
+                            )
+                        """)
+                        result = cur.fetchone()
+                        available_count = result[0] if result else 0
+            finally:
+                conn.close()
+        
+        # Desativar automaticamente se houver 3 ou menos carros disponíveis
+        auto_disabled = available_count <= 3
+        
+        # Obter status manual do Grupo A das settings
+        manual_disabled_setting = _get_setting("group_a_disabled", "false").lower()
+        manual_disabled = manual_disabled_setting == "true"
+        
+        # O Grupo A está desativado se estiver manualmente desativado OU automaticamente desativado
+        disabled = manual_disabled or auto_disabled
+        
+        logging.info(f"Group A status check: available={available_count}, auto_disabled={auto_disabled}, manual_disabled={manual_disabled}, final_disabled={disabled}")
+        
+        return JSONResponse({
+            "ok": True,
+            "disabled": disabled,
+            "available_count": available_count,
+            "auto_disabled": auto_disabled,
+            "manual_disabled": manual_disabled
+        })
+        
+    except Exception as e:
+        logging.error(f"Error getting Group A status: {e}")
+        traceback.print_exc()
+        return JSONResponse({"ok": False, "error": str(e)}, status_code=500)
+
+@app.post("/api/admin/group-a-status")
+async def api_set_group_a_status(request: Request):
+    """Set Group A availability status"""
+    try:
+        require_commissions_management(request)
+    except HTTPException:
+        return JSONResponse({"ok": False, "error": "Unauthorized"}, status_code=401)
+    
+    try:
+        data = await request.json()
+        disabled = data.get("disabled", False)
+        
+        # Salvar status do Grupo A nas settings
+        _set_setting("group_a_disabled", str(disabled).lower())
+        
+        logging.info(f"Group A status updated: disabled={disabled}")
+        
+        return JSONResponse({
+            "ok": True,
+            "disabled": disabled
+        })
+        
+    except Exception as e:
+        logging.error(f"Error setting Group A status: {e}")
+        traceback.print_exc()
+        return JSONResponse({"ok": False, "error": str(e)}, status_code=500)
+
 @app.get("/admin/set-test-periods")
 async def admin_set_test_periods(request: Request):
     """Temporarily set test periods for seasons"""
@@ -13792,6 +13921,90 @@ async def admin_disable_b1_b2_groups(request: Request):
                 return JSONResponse({
                     "ok": True,
                     "message": "Groups B1 and B2 have been disabled"
+                })
+            finally:
+                con.close()
+    except Exception as e:
+        print(f"Error disabling B1/B2 groups: {e}")
+        traceback.print_exc()
+        return JSONResponse({"ok": False, "error": str(e)}, status_code=500)
+
+@app.get("/api/admin/group-a-status")
+async def api_admin_group_a_status_get(request: Request):
+    """Get Group A availability status - Admin only"""
+    try:
+        require_commissions_management(request)
+        
+        with _db_lock:
+            con = _db_connect()
+            try:
+                # Check if Group A is disabled
+                if USE_POSTGRES:
+                    cur = con.cursor()
+                    cur.execute("SELECT disabled FROM group_a_settings WHERE id = 1")
+                else:
+                    cur = con.execute("SELECT disabled FROM group_a_settings WHERE id = 1")
+                result = cur.fetchone()
+                
+                # If no record exists, create it with default enabled (disabled = 0)
+                if not result:
+                    if USE_POSTGRES:
+                        cur.execute("INSERT INTO group_a_settings (id, disabled) VALUES (1, 0)")
+                    else:
+                        cur.execute("INSERT INTO group_a_settings (id, disabled) VALUES (1, 0)")
+                    con.commit()
+                    disabled = 0
+                else:
+                    disabled = result[0] if result[0] is not None else 0
+                
+                return JSONResponse({
+                    "ok": True,
+                    "disabled": bool(disabled)
+                })
+            finally:
+                con.close()
+    except Exception as e:
+        print(f"Error getting Group A status: {e}")
+        traceback.print_exc()
+        return JSONResponse({"ok": False, "error": str(e)}, status_code=500)
+
+@app.post("/api/admin/group-a-status")
+async def api_admin_group_a_status_post(request: Request):
+    """Update Group A availability status - Admin only"""
+    try:
+        require_commissions_management(request)
+        
+        data = await request.json()
+        disabled = data.get("disabled", False)
+        
+        with _db_lock:
+            con = _db_connect()
+            try:
+                # Update or insert Group A status
+                if USE_POSTGRES:
+                    cur = con.cursor()
+                    cur.execute("""
+                        INSERT INTO group_a_settings (id, disabled) 
+                        VALUES (1, %s) 
+                        ON CONFLICT (id) DO UPDATE SET disabled = %s
+                    """, (1 if disabled else 0, 1 if disabled else 0))
+                else:
+                    cur = con.execute("""
+                        INSERT OR REPLACE INTO group_a_settings (id, disabled) 
+                        VALUES (1, ?)
+                    """, (1 if disabled else 0,))
+                con.commit()
+                
+                return JSONResponse({
+                    "ok": True,
+                    "disabled": disabled
+                })
+            finally:
+                con.close()
+    except Exception as e:
+        print(f"Error updating Group A status: {e}")
+        traceback.print_exc()
+        return JSONResponse({"ok": False, "error": str(e)}, status_code=500)
                 })
             finally:
                 con.close()
