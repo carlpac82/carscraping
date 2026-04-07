@@ -3979,6 +3979,9 @@
               const commissioner = allCommissioners.find(c => c.id === id);
               if (!commissioner) return;
 
+              console.log('DEBUG: Commissioner data:', commissioner);
+              console.log('DEBUG: default_location:', commissioner.default_location);
+
               document.getElementById('modalTitle').textContent = 'Editar Comissionista';
               document.getElementById('commissionerId').value = commissioner.id;
               document.getElementById('name').value = commissioner.name;
@@ -3992,7 +3995,9 @@
               
               // Carregar locais primeiro, depois definir o valor
               loadDeliveryLocations().then(() => {
+                  console.log('DEBUG: Setting default_location to:', commissioner.default_location || '');
                   document.getElementById('default_location').value = commissioner.default_location || '';
+                  console.log('DEBUG: default_location value after setting:', document.getElementById('default_location').value);
               });
               
               document.getElementById('commissionerModal').style.display = 'flex';
