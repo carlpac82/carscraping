@@ -851,18 +851,8 @@ async def get_commissioner_locations(request: Request):
         if not commissioner_id:
             return JSONResponse({"ok": False, "error": "Not authenticated"}, status_code=401)
         
-        conn = get_db()
-        cursor = conn.cursor()
-        
-        cursor.execute("""
-            SELECT DISTINCT name 
-            FROM commissioners 
-            WHERE enabled = TRUE
-            ORDER BY name
-        """)
-        
-        locations = [row[0] for row in cursor.fetchall() if row[0]]
-        conn.close()
+        # Return standard delivery locations
+        locations = ["Albufeira", "Aeroporto de Faro"]
         
         return JSONResponse({
             "ok": True,
@@ -1813,19 +1803,8 @@ async def send_instructions_batch(request: Request):
 async def get_admin_commissioner_locations():
     """Get all commissioner locations (admin only) - for dropdowns in admin interface"""
     try:
-        conn = get_db()
-        cursor = conn.cursor()
-        
-        cursor.execute("""
-            SELECT DISTINCT name 
-            FROM commissioners 
-            WHERE enabled = TRUE
-            ORDER BY name
-        """)
-        
-        locations = [row[0] for row in cursor.fetchall() if row[0]]
-        
-        conn.close()
+        # Return standard delivery locations
+        locations = ["Albufeira", "Aeroporto de Faro"]
         
         return {"ok": True, "locations": locations}
         
