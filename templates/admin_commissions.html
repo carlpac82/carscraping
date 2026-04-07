@@ -3815,6 +3815,15 @@
           }
           
           // Commissioners functions
+          function showNotification(message, type = 'success') {
+              // Simple notification using alert for now
+              if (type === 'success') {
+                  alert(message);
+              } else {
+                  alert('Erro: ' + message);
+              }
+          }
+          
           async function loadCommissioners() {
               try {
                   const response = await fetch('/api/admin/commissioners');
