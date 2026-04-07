@@ -589,10 +589,16 @@
           overflow-x: hidden;
         }
         
-        .commissions-table table {
+        /* Only hide commissions table, show commissioners table */
+        .commissions-table:not(.commissioners-table) table {
           min-width: auto;
           width: 100%;
           display: none;
+        }
+        
+        /* Ensure commissioners table is visible */
+        #commissioners-tab .commissions-table table {
+          display: table !important;
         }
         
         /* Cards para mobile */
@@ -886,6 +892,63 @@
         #commissioners-tab .commissions-table button svg {
           width: 18px !important;
           height: 18px !important;
+        }
+        
+        /* Modal improvements for mobile */
+        #commissionerModal .modal-content {
+          width: 95% !important;
+          max-width: 400px !important;
+          padding: 20px !important;
+          margin: 10px !important;
+          max-height: 85vh !important;
+        }
+        
+        #commissionerModal .modal-header {
+          margin-bottom: 15px !important;
+        }
+        
+        #commissionerModal .modal-header h2 {
+          font-size: 18px !important;
+        }
+        
+        #commissionerModal .form-group {
+          margin-bottom: 15px !important;
+        }
+        
+        #commissionerModal .form-group label {
+          font-size: 14px !important;
+          margin-bottom: 5px !important;
+        }
+        
+        #commissionerModal .form-group input,
+        #commissionerModal .form-group select {
+          width: 100% !important;
+          padding: 12px !important;
+          font-size: 16px !important; /* Prevent zoom on iOS */
+          border-radius: 8px !important;
+        }
+        
+        #commissionerModal .form-actions {
+          display: flex !important;
+          flex-direction: column !important;
+          gap: 10px !important;
+          margin-top: 20px !important;
+        }
+        
+        #commissionerModal .btn-cancel,
+        #commissionerModal .btn-submit {
+          width: 100% !important;
+          padding: 14px !important;
+          font-size: 16px !important;
+          min-height: 48px !important;
+          border-radius: 8px !important;
+        }
+        
+        #commissionerModal .btn-close {
+          font-size: 20px !important;
+          padding: 5px !important;
+          min-width: 40px !important;
+          min-height: 40px !important;
         }
       }
       
