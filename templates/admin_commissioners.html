@@ -750,6 +750,7 @@
                             <th style="padding: 12px; text-align: center; font-weight: 600; color: #333;">Taxa</th>
                             <th style="padding: 12px; text-align: center; font-weight: 600; color: #333;">Reservas</th>
                             <th style="padding: 12px; text-align: center; font-weight: 600; color: #333;">Status</th>
+                            <th style="padding: 12px; text-align: center; font-weight: 600; color: #333;">Email</th>
                             <th style="padding: 12px; text-align: center; font-weight: 600; color: #333;">Ações</th>
                         </tr>
                     </thead>
@@ -764,6 +765,11 @@
                                     <span class="status-badge status-${c.enabled ? 'active' : 'inactive'}">
                                         ${c.enabled ? 'Ativo' : 'Inativo'}
                                     </span>
+                                </td>
+                                <td style="padding: 12px; text-align: center;">
+                                    <button onclick="sendInstructionsEmail(${c.id}, '${c.name}', '${c.username}')" style="background: #009cb6; color: white; border: none; padding: 8px 12px; border-radius: 4px; cursor: pointer; font-size: 16px;" title="Enviar instruções por email">
+                                        <span style="font-size: 16px;">&#x2709;</span>
+                                    </button>
                                 </td>
                                 <td style="padding: 12px; text-align: center; white-space: nowrap;">
                                     <button onclick="editCommissioner(${c.id})" style="background: #009cb6; color: white; border: none; padding: 6px 12px; border-radius: 4px; cursor: pointer; margin-right: 5px; font-size: 13px;">Editar</button>
@@ -933,6 +939,34 @@
             } catch (error) {
                 console.error('Error deleting commissioner:', error);
                 alert('Erro ao excluir comissionista');
+            }
+        }
+
+        async function sendInstructionsEmail(id, name, username) {
+            if (!confirm(`Enviar instruções por email para ${name}?`)) return;
+
+            try {
+                const response = await fetch('/api/admin/commissioners/send-instructions', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        commissioner_id: id,
+                        name: name,
+                        username: username
+                    })
+                });
+
+                const result = await response.json();
+                if (result.success || result.ok) {
+                    alert('Instruções enviadas com sucesso para ' + name);
+                } else {
+                    alert('Erro: ' + (result.error || 'Erro ao enviar instruções'));
+                }
+            } catch (error) {
+                console.error('Error sending instructions:', error);
+                alert('Erro ao enviar instruções');
             }
         }
 

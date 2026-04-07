@@ -1,0 +1,250 @@
+<!DOCTYPE html>
+<html lang="pt">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Instruções Portal de Agentes - Auto Prudente</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: #f8f9fa;
+            color: #1f2937;
+            line-height: 1.6;
+        }
+
+        .email-container {
+            max-width: 600px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 8px;
+            overflow: hidden;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+
+        .header {
+            background: #009cb6;
+            padding: 20px 30px;
+            text-align: center;
+        }
+
+        .logo {
+            height: 40px;
+            margin-bottom: 10px;
+        }
+
+        .header-title {
+            color: white;
+            font-size: 24px;
+            font-weight: 600;
+        }
+
+        .content {
+            padding: 40px 30px;
+        }
+
+        .greeting {
+            font-size: 18px;
+            font-weight: 600;
+            margin-bottom: 20px;
+            color: #1f2937;
+        }
+
+        .intro {
+            font-size: 16px;
+            margin-bottom: 30px;
+            color: #4b5563;
+        }
+
+        .portal-link {
+            background: #f0f9ff;
+            border: 2px solid #009cb6;
+            border-radius: 8px;
+            padding: 20px;
+            text-align: center;
+            margin: 30px 0;
+        }
+
+        .portal-link a {
+            color: #009cb6;
+            text-decoration: none;
+            font-weight: 600;
+            font-size: 18px;
+        }
+
+        .portal-link a:hover {
+            text-decoration: underline;
+        }
+
+        .access-data {
+            background: #f8f9fa;
+            border-radius: 8px;
+            padding: 25px;
+            margin: 30px 0;
+        }
+
+        .access-data h3 {
+            color: #1f2937;
+            font-size: 18px;
+            margin-bottom: 20px;
+            font-weight: 600;
+        }
+
+        .access-field {
+            margin-bottom: 15px;
+        }
+
+        .access-field label {
+            display: block;
+            font-weight: 600;
+            color: #374151;
+            margin-bottom: 5px;
+            font-size: 14px;
+        }
+
+        .access-field .value {
+            background: white;
+            padding: 12px 15px;
+            border-radius: 6px;
+            border: 1px solid #e5e7eb;
+            font-family: 'Courier New', monospace;
+            font-size: 16px;
+            color: #1f2937;
+        }
+
+        .warning {
+            background: #fef3c7;
+            border-left: 4px solid #f59e0b;
+            padding: 20px;
+            margin: 30px 0;
+            border-radius: 0 8px 8px 0;
+        }
+
+        .warning strong {
+            color: #92400e;
+            display: block;
+            margin-bottom: 8px;
+        }
+
+        .contact {
+            color: #92400e;
+        }
+
+        .signature {
+            margin-top: 40px;
+            padding-top: 30px;
+            border-top: 1px solid #e5e7eb;
+        }
+
+        .signature p {
+            color: #6b7280;
+            font-size: 14px;
+        }
+
+        .signature strong {
+            color: #1f2937;
+            font-size: 16px;
+        }
+
+        .footer {
+            background: #f8f9fa;
+            padding: 20px 30px;
+            text-align: center;
+            border-top: 1px solid #e5e7eb;
+        }
+
+        .footer p {
+            color: #6b7280;
+            font-size: 12px;
+        }
+
+        @media (max-width: 600px) {
+            .content {
+                padding: 30px 20px;
+            }
+            
+            .portal-link {
+                padding: 15px;
+            }
+            
+            .access-data {
+                padding: 20px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="email-container">
+        <div class="header">
+            <img src="https://rentalprices.pt/static/ap-heather.png" alt="Auto Prudente" class="logo">
+            <div class="header-title">Portal de Agentes</div>
+        </div>
+
+        <div class="content">
+            <div class="greeting">Caro Parceiro,</div>
+            
+            <div class="intro">
+                Temos o prazer de apresentar o nosso novo Portal de Agentes, criado para tornar o processo de reservas mais rápido, simples e eficiente.
+            </div>
+            
+            <div class="intro">
+                Através desta plataforma, poderá efetuar reservas diretamente no nosso website, com acesso dedicado aos nossos parceiros.
+            </div>
+
+            <div class="portal-link">
+                <div style="margin-bottom: 10px; font-weight: 600; color: #374151;">Aceda ao portal aqui:</div>
+                <a href="https://rentalprices.pt/agentes/dashboard">
+                    <span style="font-size: 20px;">&#x1F310;</span> rentalprices.pt/agentes/dashboard
+                </a>
+            </div>
+
+            <div class="access-data">
+                <h3>Dados de acesso:</h3>
+                
+                <div class="access-field">
+                    <label>Username:</label>
+                    <div class="value">{{username}}</div>
+                </div>
+                
+                <div class="access-field">
+                    <label>Password:</label>
+                    <div class="value">{{password}}</div>
+                </div>
+            </div>
+
+            <div class="intro">
+                Enviamos também em anexo as instruções de utilização, com todos os passos necessários para usar a plataforma.
+            </div>
+
+            <div class="warning">
+                <strong>Atenção!</strong>
+                <div>Pedimos, por favor, que antes de concluir qualquer reserva, confirme sempre por telefone o preço e a disponibilidade através do número:</div>
+                <div class="contact">289 542 160</div>
+            </div>
+
+            <div class="intro">
+                Caso tenha alguma dúvida ou necessite de apoio, não hesite em contactar-nos teremos todo o gosto em ajudar.
+            </div>
+
+            <div class="intro">
+                Agradecemos, desde já, a sua preferência e parceria.
+            </div>
+
+            <div class="signature">
+                <p>Com os melhores cumprimentos,</p>
+                <p><strong>Marina Prudente</strong></p>
+            </div>
+        </div>
+
+        <div class="footer">
+            <p>Auto Prudente, Rent a Car | Estrada de Santa Eulália, Edifício Ondas do Mar Loja E, 8200-269 Albufeira</p>
+            <p>Telefone: +351 289 542 160 | Email: info@auto-prudente.com</p>
+        </div>
+    </div>
+</body>
+</html>

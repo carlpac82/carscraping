@@ -1398,3 +1398,112 @@ async def generate_agentes_manual_pdf():
         print(f"[AGENTES MANUAL] Error generating PDF: {e}")
         print(traceback.format_exc())
         return JSONResponse({"ok": False, "error": str(e)}, status_code=500)
+
+@router.post('/api/admin/commissioners/send-instructions')
+async def send_commissioner_instructions(request: Request):
+    """Send instructions email to commissioner with access data and manual PDF"""
+    try:
+        data = await request.json()
+        commissioner_id = data.get('commissioner_id')
+        name = data.get('name')
+        username = data.get('username')
+        
+        if not commissioner_id or not name or not username:
+            return JSONResponse({"ok": False, "error": "Missing required fields"}, status_code=400)
+        
+        # Get commissioner details including email
+        conn = _db_connect()
+        cursor = conn.cursor()
+        
+        cursor.execute("""
+            SELECT email, username 
+            FROM commissioners 
+            WHERE id = %s
+        """, (commissioner_id,))
+        
+        result = cursor.fetchone()
+        if not result:
+            conn.close()
+            return JSONResponse({"ok": False, "error": "Commissioner not found"}, status_code=404)
+        
+        email, db_username = result
+        
+        if not email:
+            conn.close()
+            return JSONResponse({"ok": False, "error": "Commissioner has no email address"}, status_code=400)
+        
+        # Generate a temporary password (you might want to use a more secure method)
+        import random
+        import string
+        temp_password = ''.join(random.choices(string.ascii_letters + string.digits, k=8))
+        
+        # Load email template
+        template_path = "/app/templates/email_commissioner_instructions.html"
+        try:
+            with open(template_path, 'r', encoding='utf-8') as f:
+                template_content = f.read()
+        except FileNotFoundError:
+            template_path = "templates/email_commissioner_instructions.html"
+            with open(template_path, 'r', encoding='utf-8') as f:
+                template_content = f.read()
+        
+        # Replace placeholders
+        html_content = template_content.replace('{{username}}', db_username)
+        html_content = html_content.replace('{{password}}', temp_password)
+        
+        # Generate PDF manual attachment
+        pdf_content = await generate_agentes_manual_pdf()
+        
+        # Send email using Gmail OAuth
+        from email.mime.multipart import MIMEMultipart
+        from email.mime.text import MIMEText
+        from email.mime.application import MIMEApplication
+        import base64
+        
+        # Create email message
+        msg = MIMEMultipart('alternative')
+        msg['Subject'] = "Instruções Portal de Agentes - Auto Prudente"
+        msg['From'] = "info@auto-prudente.com"
+        msg['To'] = email
+        
+        # Attach HTML content
+        html_part = MIMEText(html_content, 'html', 'utf-8')
+        msg.attach(html_part)
+        
+        # Attach PDF manual
+        pdf_part = MIMEApplication(pdf_content, Name="Manual_Portal_Agentes_AutoPrudente.pdf")
+        pdf_part['Content-Disposition'] = f'attachment; filename="Manual_Portal_Agentes_AutoPrudente.pdf"'
+        msg.attach(pdf_part)
+        
+        # Get Gmail OAuth credentials and send
+        from google.oauth2.credentials import Credentials
+        from google.auth.transport.requests import Request
+        from googleapiclient.discovery import build
+        from email.utils import formataddr
+        
+        # Load credentials (you'll need to implement this based on your OAuth setup)
+        creds = None
+        # TODO: Implement OAuth token loading
+        
+        if creds and creds.valid:
+            service = build('gmail', 'v1', credentials=creds)
+            message = {'raw': base64.urlsafe_b64encode(msg.as_bytes()).decode()}
+            
+            result = service.users().messages().send(userId='me', body=message).execute()
+            print(f"[EMAIL INSTRUCTIONS] Email sent to {email}, message ID: {result['id']}")
+            
+            conn.close()
+            return JSONResponse({
+                "ok": True, 
+                "message": f"Instruções enviadas para {email}",
+                "temp_password": temp_password  # You might want to display this to the admin
+            })
+        else:
+            conn.close()
+            return JSONResponse({"ok": False, "error": "Email authentication failed"}, status_code=500)
+            
+    except Exception as e:
+        import traceback
+        print(f"Error sending instructions email: {e}")
+        print(traceback.format_exc())
+        return JSONResponse({"ok": False, "error": str(e)}, status_code=500)
