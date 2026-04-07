@@ -4039,6 +4039,7 @@
                           voucher_prefix: document.getElementById('voucher_prefix').value || null,
                           email: document.getElementById('email').value || null,
                           phone: null, // Campo não existe no frontend mas é esperado pelo backend
+                          commission_rate: parseFloat(document.getElementById('commission_rate').value),
                           enabled: document.getElementById('is_active').value === 'true',
                           is_hotel: document.getElementById('is_hotel').checked
                       };

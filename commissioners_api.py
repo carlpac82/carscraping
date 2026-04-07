@@ -26,6 +26,7 @@ class CommissionerCreate(BaseModel):
     voucher_prefix: Optional[str] = None
     username: str
     password: str
+    commission_rate: float = 15.0
     enabled: bool = True
     is_hotel: bool = False
 
@@ -468,12 +469,13 @@ async def create_commissioner(commissioner: CommissionerCreate):
     try:
         # First insert without voucher_prefix to get the ID
         cursor.execute("""
-            INSERT INTO commissioners (name, email, phone, username, password_hash, enabled, is_hotel)
-            VALUES (%s, %s, %s, %s, %s, %s, %s)
+            INSERT INTO commissioners (name, email, phone, username, password_hash, commission_rate, enabled, is_hotel)
+            VALUES (%s, %s, %s, %s, %s, %s, %s, %s)
             RETURNING id
         """, (
             commissioner.name, commissioner.email, commissioner.phone,
-            commissioner.username, password_hash, commissioner.enabled, commissioner.is_hotel
+            commissioner.username, password_hash, commissioner.commission_rate, 
+            commissioner.enabled, commissioner.is_hotel
         ))
         
         commissioner_id = cursor.fetchone()[0]
