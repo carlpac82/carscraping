@@ -4518,6 +4518,49 @@
                 return bookingDate.getFullYear() === currentYear &&
                        bookingDate >= cutoffDate;
             });
+
+            // Debug detalhado das datas
+            console.log('DEBUG: Análise detalhada das reservas:');
+            console.log('  Total de reservas:', allBookings.length);
+            console.log('  Data de corte:', cutoffDate.toISOString());
+            console.log('  Mês atual:', currentMonth, 'Ano:', currentYear);
+            
+            // Verificar reservas do mês atual
+            const allCurrentMonthBookings = allBookings.filter(b => {
+                const bookingDate = new Date(b.created_at);
+                return bookingDate.getMonth() === currentMonth && 
+                       bookingDate.getFullYear() === currentYear;
+            });
+            console.log('  Todas reservas abril 2026:', allCurrentMonthBookings.length);
+            
+            // Verificar quantas reservas do mês atual são antes da data de corte
+            const oldCurrentMonthBookings = allCurrentMonthBookings.filter(b => {
+                const bookingDate = new Date(b.created_at);
+                return bookingDate < cutoffDate;
+            });
+            console.log('  Reservas abril 2026 antes de 1 março:', oldCurrentMonthBookings.length);
+            
+            // Verificar reservas do ano
+            const allYearBookings = allBookings.filter(b => {
+                const bookingDate = new Date(b.created_at);
+                return bookingDate.getFullYear() === currentYear;
+            });
+            console.log('  Todas reservas 2026:', allYearBookings.length);
+            
+            // Verificar quantas reservas do ano são antes da data de corte
+            const oldYearBookings = allYearBookings.filter(b => {
+                const bookingDate = new Date(b.created_at);
+                return bookingDate < cutoffDate;
+            });
+            console.log('  Reservas 2026 antes de 1 março:', oldYearBookings.length);
+            
+            // Mostrar primeiras reservas antigas
+            if (oldYearBookings.length > 0) {
+                console.log('  Primeiras reservas antigas:', oldYearBookings.slice(0, 5).map(b => ({
+                    created_at: b.created_at,
+                    commission_paid: b.commission_paid
+                })));
+            }
             
             // Comissão recebida mês anterior (só marcadas como pagas e após março 2026)
             const paidMonthCommission = allBookings
