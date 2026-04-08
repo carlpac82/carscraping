@@ -4531,6 +4531,29 @@
             const paidYearCount = yearBookings
                 .filter(b => b.commission_paid === true || b.commission_paid === 'true').length;
             
+            // Debug detalhado dos valores de commission_paid
+            const commissionPaidValues = currentMonthBookings.map(b => b.commission_paid);
+            const uniqueValues = [...new Set(commissionPaidValues)];
+            console.log('DEBUG: Valores únicos de commission_paid:', uniqueValues);
+            console.log('DEBUG: Primeiros 10 valores de commission_paid:', commissionPaidValues.slice(0, 10));
+            
+            // Verificar conversão de tipos
+            const trueCount = currentMonthBookings.filter(b => b.commission_paid === true).length;
+            const stringTrueCount = currentMonthBookings.filter(b => b.commission_paid === 'true').length;
+            const falseCount = currentMonthBookings.filter(b => b.commission_paid === false).length;
+            const stringFalseCount = currentMonthBookings.filter(b => b.commission_paid === 'false').length;
+            const nullCount = currentMonthBookings.filter(b => b.commission_paid === null).length;
+            const undefinedCount = currentMonthBookings.filter(b => b.commission_paid === undefined).length;
+            
+            console.log('DEBUG: Análise de tipos:');
+            console.log('  true (boolean):', trueCount);
+            console.log('  "true" (string):', stringTrueCount);
+            console.log('  false (boolean):', falseCount);
+            console.log('  "false" (string):', stringFalseCount);
+            console.log('  null:', nullCount);
+            console.log('  undefined:', undefinedCount);
+            console.log('  Total:', currentMonthBookings.length);
+            
             console.log('DEBUG: Comissões pagas mês:', paidMonthCount, 'de', currentMonthBookings.length);
             console.log('DEBUG: Comissões pagas ano:', paidYearCount, 'de', yearBookings.length);
             console.log('DEBUG: Valor comissão mês:', paidMonthCommission);
