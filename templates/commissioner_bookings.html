@@ -1342,13 +1342,13 @@
 
             const isMobile = window.innerWidth <= 768;
 
-            // Filtrar valores para reservas antes de março 2025 e não pagas
+            // Filtrar valores para reservas antes de março 2026 e não pagas
             const filteredBookings = bookings.map(b => {
                 const bookingDate = new Date(b.created_at);
-                const cutoffDate = new Date('2025-03-01');
+                const cutoffDate = new Date('2026-03-01');
                 
                 if (bookingDate < cutoffDate || !b.commission_paid) {
-                    // Zerar valores de comissão para reservas antes de março 2025 ou não pagas
+                    // Zerar valores de comissão para reservas antes de março 2026 ou não pagas
                     return {
                         ...b,
                         commission_rate: 0.0,

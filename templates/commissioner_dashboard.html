@@ -4498,34 +4498,37 @@
             const now = new Date();
             const currentYear = now.getFullYear();
             const currentMonth = now.getMonth();
+            const cutoffDate = new Date('2026-03-01');
             
-            // Reservas mês corrente
+            // Reservas mês corrente (após março 2026)
             const currentMonthBookings = allBookings.filter(b => {
                 const bookingDate = new Date(b.created_at);
                 return bookingDate.getMonth() === currentMonth && 
-                       bookingDate.getFullYear() === currentYear;
+                       bookingDate.getFullYear() === currentYear &&
+                       bookingDate >= cutoffDate;
             });
             
-            // Reservas do ano
+            // Reservas do ano (após março 2026)
             const yearBookings = allBookings.filter(b => {
                 const bookingDate = new Date(b.created_at);
-                return bookingDate.getFullYear() === currentYear;
+                return bookingDate.getFullYear() === currentYear &&
+                       bookingDate >= cutoffDate;
             });
             
-            // Comissão recebida mês corrente (só marcadas como pagas)
+            // Comissão recebida mês corrente (só marcadas como pagas e após março 2026)
             const paidMonthCommission = currentMonthBookings
                 .filter(b => b.commission_paid === true || b.commission_paid === 'true')
                 .reduce((sum, b) => sum + (b.commission_amount || 0), 0);
             
-            // Comissão recebida do ano (só marcadas como pagas)
+            // Comissão recebida do ano (só marcadas como pagas e após março 2026)
             const paidYearCommission = yearBookings
                 .filter(b => b.commission_paid === true || b.commission_paid === 'true')
                 .reduce((sum, b) => sum + (b.commission_amount || 0), 0);
 
             document.getElementById('currentMonthBookings').textContent = currentMonthBookings.length;
             document.getElementById('yearBookings').textContent = yearBookings.length;
-            document.getElementById('paidMonthCommission').textContent = `€${Math.round(paidMonthCommission)}`;
-            document.getElementById('paidYearCommission').textContent = `€${Math.round(paidYearCommission)}`;
+            document.getElementById('paidMonthCommission').textContent = `Paid: ${Math.round(paidMonthCommission)}`;
+            document.getElementById('paidYearCommission').textContent = `Paid: ${Math.round(paidYearCommission)}`;
         }
 
         function renderBookings() {
