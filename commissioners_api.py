@@ -380,7 +380,14 @@ async def get_commissioner_bookings(request: Request):
                pickup_location, dropoff_location, vehicle_group, extras,
                price, status, created_at, updated_at, deposit,
                hotel, room_number, flight_number, observations,
-               commission_rate, commission_amount,
+               CASE 
+                   WHEN DATE(created_at) < '2026-03-01' THEN 0.0
+                   ELSE commission_rate 
+               END as commission_rate,
+               CASE 
+                   WHEN DATE(created_at) < '2026-03-01' THEN 0.0
+                   ELSE commission_amount 
+               END as commission_amount,
                base_price, premium_insurance, road_tax, extras_total, 
                rental_days, total_amount, value_adjustment,
                commission_paid, commission_paid_date, commission_paid_by
