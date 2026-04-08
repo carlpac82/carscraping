@@ -1342,11 +1342,27 @@
 
             const isMobile = window.innerWidth <= 768;
 
+            // Filtrar valores para reservas antes de março 2026
+            const filteredBookings = bookings.map(b => {
+                const bookingDate = new Date(b.created_at);
+                const cutoffDate = new Date('2026-03-01');
+                
+                if (bookingDate < cutoffDate) {
+                    // Zerar valores de comissão para reservas antes de março 2026
+                    return {
+                        ...b,
+                        commission_rate: 0.0,
+                        commission_amount: 0.0
+                    };
+                }
+                return b;
+            });
+
             if (isMobile) {
                 // Renderizar cards para mobile
                 content.innerHTML = `
                     <div class="bookings-table">
-                        ${bookings.map(b => `
+                        ${filteredBookings.map(b => `
                             <div class="booking-card">
                                 <div class="booking-card-header">
                                     <div class="booking-card-title">${b.commissioner_name || 'N/A'}</div>
@@ -1366,11 +1382,15 @@
                                 </div>
                                 <div class="booking-card-row">
                                     <span class="booking-card-label">Preço:</span>
-                                    <span class="booking-card-value" style="font-weight: 600;">€${b.total_price}</span>
+                                    <span class="booking-card-value" style="font-weight: 600;">${b.commission_rate > 0 ? 'Commission: ' + (b.commission_rate || 0) + '%' : 'No commission'}</span>
+                                </div>
+                                <div class="booking-card-row">
+                                    <span class="booking-card-label">Commission:</span>
+                                    <span class="booking-card-value" style="font-weight: 600;">${b.commission_amount > 0 ? 'Commission: ' + (b.commission_amount || 0) + '%' : 'No commission'}</span>
                                 </div>
                                 <div class="booking-card-row">
                                     <span class="booking-card-label">Depósito:</span>
-                                    <span class="booking-card-value">${b.deposit > 0 ? '€' + b.deposit.toFixed(2) : '-'}</span>
+                                    <span class="booking-card-value">${b.deposit > 0 ? 'Commission: ' + b.deposit.toFixed(2) : '-'}</span>
                                 </div>
                                 <div class="booking-card-actions">
                                     <button class="btn-action btn-pdf" onclick="printBookingPDF(${b.id})" title="Imprimir">
@@ -1389,18 +1409,18 @@
                                         <div class="actions-dropdown-menu" id="dropdown-${b.id}">
                                             ${b.status === 'pending' ? `
                                                 <button class="btn-confirm" onclick="confirmBooking(${b.id}); closeAllDropdowns()">
-                                                    ✓ Confirmar
+                                                    Commission Confirm
                                                 </button>
                                             ` : ''}
                                             <button class="btn-edit" onclick="editBooking(${b.id}); closeAllDropdowns()">
-                                                ✎ Editar
+                                                Commission Edit
                                             </button>
                                             ${b.status !== 'cancelled' ? `
                                                 <button class="btn-cancel" onclick="cancelBooking(${b.id}); closeAllDropdowns()">
-                                                    ✕ Cancelar
+                                                    Commission Cancel
                                                 </button>
                                                 <button class="btn-delete" onclick="deleteBooking(${b.id}); closeAllDropdowns()">
-                                                    🗑 Eliminar
+                                                    Commission Delete
                                                 </button>
                                             ` : ''}
                                         </div>
@@ -1421,14 +1441,14 @@
                                     <th>Comissionista</th>
                                     <th>Veículo</th>
                                     <th>Levantamento</th>
-                                    <th>Preço</th>
-                                    <th>Depósito</th>
+                                    <th>Commission Rate</th>
+                                    <th>Commission Amount</th>
                                     <th>Status</th>
                                     <th>Ações</th>
                                 </tr>
                             </thead>
                             <tbody>
-                                ${bookings.map(b => `
+                                ${filteredBookings.map(b => `
                                     <tr>
                                         <td>${b.voucher_number || '-'}</td>
                                         <td>${b.commissioner_name || 'N/A'}</td>
@@ -1437,8 +1457,8 @@
                                             <div>${formatDate(b.pickup_date)}</div>
                                             <div style="font-size: 12px; color: #999;">${b.pickup_location}</div>
                                         </td>
-                                        <td style="font-weight: 600;">€${b.total_price}</td>
-                                        <td>${b.deposit > 0 ? '€' + b.deposit.toFixed(2) : '-'}</td>
+                                        <td style="font-weight: 600;">${b.commission_rate > 0 ? b.commission_rate + '%' : 'No commission'}</td>
+                                        <td style="font-weight: 600;">${b.commission_amount > 0 ? 'Commission: ' + b.commission_amount.toFixed(2) : 'No commission'}</td>
                                         <td>
                                             <span class="status-badge status-${b.status}">
                                                 ${getStatusText(b.status)}
@@ -1454,18 +1474,18 @@
                                                 </button>
                                                 ${b.status === 'pending' ? `
                                                     <button class="btn-action btn-confirm" onclick="confirmBooking(${b.id})" title="Confirmar Reserva">
-                                                        ✓ Confirmar
+                                                        Commission Confirm
                                                     </button>
                                                 ` : ''}
                                                 <button class="btn-action btn-edit" onclick="editBooking(${b.id})" title="Editar Reserva">
-                                                    ✎ Editar
+                                                    Commission Edit
                                                 </button>
                                                 ${b.status !== 'cancelled' ? `
                                                     <button class="btn-action btn-cancel" onclick="cancelBooking(${b.id})" title="Cancelar Reserva">
-                                                        ✕ Cancelar
+                                                        Commission Cancel
                                                     </button>
                                                     <button class="btn-action btn-delete" onclick="deleteBooking(${b.id})" title="Eliminar Reserva">
-                                                        🗑 Eliminar
+                                                        Commission Delete
                                                     </button>
                                                 ` : ''}
                                             </div>
