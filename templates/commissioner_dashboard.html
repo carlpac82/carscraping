@@ -4504,68 +4504,69 @@
             const previousMonth = currentMonth === 0 ? 11 : currentMonth - 1;
             const previousMonthYear = currentMonth === 0 ? currentYear - 1 : currentYear;
             
-            // Reservas mês corrente (após março 2026)
+            // Reservas mês corrente (após março 2026) - usar pickup_date (data da reserva)
             const currentMonthBookings = allBookings.filter(b => {
-                const bookingDate = new Date(b.created_at);
+                const bookingDate = new Date(b.pickup_date);
                 return bookingDate.getMonth() === currentMonth && 
                        bookingDate.getFullYear() === currentYear &&
                        bookingDate >= cutoffDate;
             });
             
-            // Reservas do ano (após março 2026)
+            // Reservas do ano (após março 2026) - usar pickup_date (data da reserva)
             const yearBookings = allBookings.filter(b => {
-                const bookingDate = new Date(b.created_at);
+                const bookingDate = new Date(b.pickup_date);
                 return bookingDate.getFullYear() === currentYear &&
                        bookingDate >= cutoffDate;
             });
 
             // Debug detalhado das datas
-            console.log('DEBUG: Análise detalhada das reservas:');
+            console.log('DEBUG: Análise detalhada das reservas (usando pickup_date):');
             console.log('  Total de reservas:', allBookings.length);
             console.log('  Data de corte:', cutoffDate.toISOString());
             console.log('  Mês atual:', currentMonth, 'Ano:', currentYear);
             
             // Verificar reservas do mês atual
             const allCurrentMonthBookings = allBookings.filter(b => {
-                const bookingDate = new Date(b.created_at);
+                const bookingDate = new Date(b.pickup_date);
                 return bookingDate.getMonth() === currentMonth && 
                        bookingDate.getFullYear() === currentYear;
             });
-            console.log('  Todas reservas abril 2026:', allCurrentMonthBookings.length);
+            console.log('  Todas reservas abril 2026 (pickup_date):', allCurrentMonthBookings.length);
             
             // Verificar quantas reservas do mês atual são antes da data de corte
             const oldCurrentMonthBookings = allCurrentMonthBookings.filter(b => {
-                const bookingDate = new Date(b.created_at);
+                const bookingDate = new Date(b.pickup_date);
                 return bookingDate < cutoffDate;
             });
-            console.log('  Reservas abril 2026 antes de 1 março:', oldCurrentMonthBookings.length);
+            console.log('  Reservas abril 2026 antes de 1 março (pickup_date):', oldCurrentMonthBookings.length);
             
             // Verificar reservas do ano
             const allYearBookings = allBookings.filter(b => {
-                const bookingDate = new Date(b.created_at);
+                const bookingDate = new Date(b.pickup_date);
                 return bookingDate.getFullYear() === currentYear;
             });
-            console.log('  Todas reservas 2026:', allYearBookings.length);
+            console.log('  Todas reservas 2026 (pickup_date):', allYearBookings.length);
             
             // Verificar quantas reservas do ano são antes da data de corte
             const oldYearBookings = allYearBookings.filter(b => {
-                const bookingDate = new Date(b.created_at);
+                const bookingDate = new Date(b.pickup_date);
                 return bookingDate < cutoffDate;
             });
-            console.log('  Reservas 2026 antes de 1 março:', oldYearBookings.length);
+            console.log('  Reservas 2026 antes de 1 março (pickup_date):', oldYearBookings.length);
             
             // Mostrar primeiras reservas antigas
             if (oldYearBookings.length > 0) {
                 console.log('  Primeiras reservas antigas:', oldYearBookings.slice(0, 5).map(b => ({
+                    pickup_date: b.pickup_date,
                     created_at: b.created_at,
                     commission_paid: b.commission_paid
                 })));
             }
             
-            // Comissão recebida mês anterior (só marcadas como pagas e após março 2026)
+            // Comissão recebida mês anterior (só marcadas como pagas e após março 2026) - usar pickup_date
             const paidMonthCommission = allBookings
                 .filter(b => {
-                    const bookingDate = new Date(b.created_at);
+                    const bookingDate = new Date(b.pickup_date);
                     return bookingDate.getMonth() === previousMonth && 
                            bookingDate.getFullYear() === previousMonthYear &&
                            bookingDate >= cutoffDate &&
@@ -4573,10 +4574,10 @@
                 })
                 .reduce((sum, b) => sum + (b.commission_amount || 0), 0);
             
-            // Comissão recebida do ano (só marcadas como pagas e após março 2026)
+            // Comissão recebida do ano (só marcadas como pagas e após março 2026) - usar pickup_date
             const paidYearCommission = allBookings
                 .filter(b => {
-                    const bookingDate = new Date(b.created_at);
+                    const bookingDate = new Date(b.pickup_date);
                     return bookingDate.getFullYear() === currentYear &&
                            bookingDate >= cutoffDate &&
                            (b.commission_paid === true || b.commission_paid === 'true');
@@ -4586,7 +4587,7 @@
             // Debug: verificar quantas comissões pagas existem
             const paidMonthCount = allBookings
                 .filter(b => {
-                    const bookingDate = new Date(b.created_at);
+                    const bookingDate = new Date(b.pickup_date);
                     return bookingDate.getMonth() === previousMonth && 
                            bookingDate.getFullYear() === previousMonthYear &&
                            bookingDate >= cutoffDate &&
@@ -4594,7 +4595,7 @@
                 }).length;
             const paidYearCount = allBookings
                 .filter(b => {
-                    const bookingDate = new Date(b.created_at);
+                    const bookingDate = new Date(b.pickup_date);
                     return bookingDate.getFullYear() === currentYear &&
                            bookingDate >= cutoffDate &&
                            (b.commission_paid === true || b.commission_paid === 'true');
