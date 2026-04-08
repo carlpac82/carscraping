@@ -4525,10 +4525,21 @@
                 .filter(b => b.commission_paid === true || b.commission_paid === 'true')
                 .reduce((sum, b) => sum + (b.commission_amount || 0), 0);
 
+            // Debug: verificar quantas comissões pagas existem
+            const paidMonthCount = currentMonthBookings
+                .filter(b => b.commission_paid === true || b.commission_paid === 'true').length;
+            const paidYearCount = yearBookings
+                .filter(b => b.commission_paid === true || b.commission_paid === 'true').length;
+            
+            console.log('DEBUG: Comissões pagas mês:', paidMonthCount, 'de', currentMonthBookings.length);
+            console.log('DEBUG: Comissões pagas ano:', paidYearCount, 'de', yearBookings.length);
+            console.log('DEBUG: Valor comissão mês:', paidMonthCommission);
+            console.log('DEBUG: Valor comissão ano:', paidYearCommission);
+
             document.getElementById('currentMonthBookings').textContent = currentMonthBookings.length;
             document.getElementById('yearBookings').textContent = yearBookings.length;
-            document.getElementById('paidMonthCommission').textContent = `€${Math.round(paidMonthCommission)}`;
-            document.getElementById('paidYearCommission').textContent = `€${Math.round(paidYearCommission)}`;
+            document.getElementById('paidMonthCommission').textContent = `Paid: ${Math.round(paidMonthCommission)}`;
+            document.getElementById('paidYearCommission').textContent = `Paid: ${Math.round(paidYearCommission)}`;
         }
 
         function renderBookings() {
