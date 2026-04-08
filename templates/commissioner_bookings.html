@@ -1285,6 +1285,25 @@
 
                 if (bookingsData.ok) {
                     allBookings = bookingsData.bookings;
+                    console.log('DEBUG BOOKINGS: Recebidas', allBookings.length, 'reservas');
+                    
+                    // Verificar anos das reservas
+                    const years = [...new Set(allBookings.map(b => new Date(b.created_at).getFullYear()))];
+                    console.log('DEBUG BOOKINGS: Anos encontrados:', years);
+                    
+                    // Verificar reservas antes de março 2026
+                    const cutoffDate = new Date('2026-03-01');
+                    const oldBookings = allBookings.filter(b => new Date(b.created_at) < cutoffDate);
+                    console.log('DEBUG BOOKINGS: Reservas antes de março 2026:', oldBookings.length);
+                    
+                    // Mostrar primeiras 5 reservas antigas
+                    if (oldBookings.length > 0) {
+                        console.log('DEBUG BOOKINGS: Primeiras reservas antigas:', oldBookings.slice(0, 5).map(b => ({
+                            created_at: b.created_at,
+                            commission_paid: b.commission_paid,
+                            commission_amount: b.commission_amount
+                        })));
+                    }
                 }
 
                 if (commissData.ok) {
