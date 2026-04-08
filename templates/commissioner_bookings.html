@@ -1276,7 +1276,7 @@
         async function loadData() {
             try {
                 const [bookingsRes, commissRes] = await Promise.all([
-                    fetch('/api/commissioner-bookings'),
+                    fetch('/api/commissioners/bookings'),
                     fetch('/api/commissioners')
                 ]);
 
