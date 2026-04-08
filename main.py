@@ -19,6 +19,8 @@ import base64
 from contextlib import asynccontextmanager
 from concurrent.futures import ThreadPoolExecutor
 import threading
+import time
+from collections import defaultdict, deque
 
 # Configure logging level based on environment
 # WARNING in production (Railway), INFO in development
@@ -1908,6 +1910,142 @@ async def unhandled_exception_handler(request: Request, exc: Exception):
 
 # --- Prices response cache (memory) ---
 _PRICES_CACHE: Dict[str, Tuple[float, Dict[str, Any]]] = {}
+
+# --- Rate Limiting e Cache para /api/get_inspection ---
+# Rate limiting inteligente por IP (só bloqueia floods, não uso normal)
+from collections import defaultdict, deque
+_INSPECTION_RATE_LIMIT: Dict[str, deque] = {}  # IP -> timestamps das requisições
+_INSPECTION_RATE_LIMIT_LOCK = threading.Lock()
+
+# Cache para imagens base64 (evita re-encoding)
+_INSPECTION_IMAGE_CACHE: Dict[str, str] = {}  # image_hash -> base64_string
+_INSPECTION_IMAGE_CACHE_LOCK = threading.Lock()
+_MAX_IMAGE_CACHE_SIZE = 1000  # Limite para evitar memory leak
+
+# Cache para respostas completas (RA/plate/type -> response)
+_INSPECTION_RESPONSE_CACHE: Dict[str, Tuple[float, Dict[str, Any]]] = {}
+_INSPECTION_RESPONSE_CACHE_LOCK = threading.Lock()
+_INSPECTION_CACHE_TTL = 300  # 5 minutos de cache para respostas
+
+def _get_client_ip(request: Request) -> str:
+    """Extrai IP real do cliente (considera proxies)"""
+    # Tentar obter IP real de vários headers
+    forwarded_for = request.headers.get("X-Forwarded-For")
+    if forwarded_for:
+        # Pega o primeiro IP da lista
+        return forwarded_for.split(",")[0].strip()
+    
+    real_ip = request.headers.get("X-Real-IP")
+    if real_ip:
+        return real_ip.strip()
+    
+    # Fallback para IP da conexão
+    return request.client.host if request.client else "unknown"
+
+def _is_rate_limited(ip: str) -> bool:
+    """
+    Rate limiting inteligente:
+    - Máximo 10 requisições por minuto por IP
+    - Máximo 30 requisições por 5 minutos por IP
+    - Bloqueia apenas floods extremos
+    """
+    now = time.time()
+    
+    with _INSPECTION_RATE_LIMIT_LOCK:
+        # Inicializar fila do IP se não existir
+        if ip not in _INSPECTION_RATE_LIMIT:
+            _INSPECTION_RATE_LIMIT[ip] = deque()
+        
+        timestamps = _INSPECTION_RATE_LIMIT[ip]
+        
+        # Remover timestamps antigos (mais de 5 minutos)
+        while timestamps and timestamps[0] < now - 300:
+            timestamps.popleft()
+        
+        # Verificar limites
+        recent_count = len([t for t in timestamps if t > now - 60])  # Último minuto
+        total_count = len(timestamps)  # Últimos 5 minutos
+        
+        # Bloquear apenas se exceder limites razoáveis
+        if recent_count > 10 or total_count > 30:
+            logging.warning(f"Rate limit exceeded for IP {ip}: {recent_count}/min, {total_count}/5min")
+            return True
+        
+        # Adicionar timestamp atual
+        timestamps.append(now)
+        
+        # Limpar IPs antigos para evitar memory leak
+        if len(_INSPECTION_RATE_LIMIT) > 10000:
+            _INSPECTION_RATE_LIMIT.clear()
+        
+        return False
+
+def _get_image_cache_key(image_data: bytes) -> str:
+    """Gera chave de cache para imagem baseada no hash"""
+    return hashlib.md5(image_data).hexdigest()
+
+def _cache_image_base64(image_data: bytes, base64_string: str) -> str:
+    """Cache de imagem base64 para evitar re-encoding"""
+    cache_key = _get_image_cache_key(image_data)
+    
+    with _INSPECTION_IMAGE_CACHE_LOCK:
+        # Limpar cache se exceder tamanho máximo
+        if len(_INSPECTION_IMAGE_CACHE) > _MAX_IMAGE_CACHE_SIZE:
+            # Remover metade mais antiga (simples FIFO)
+            keys_to_remove = list(_INSPECTION_IMAGE_CACHE.keys())[:_MAX_IMAGE_CACHE_SIZE // 2]
+            for key in keys_to_remove:
+                del _INSPECTION_IMAGE_CACHE[key]
+        
+        # Adicionar ao cache
+        _INSPECTION_IMAGE_CACHE[cache_key] = base64_string
+    
+    return base64_string
+
+def _get_cached_image_base64(image_data: bytes) -> Optional[str]:
+    """Obtém imagem base64 do cache se existir"""
+    cache_key = _get_image_cache_key(image_data)
+    
+    with _INSPECTION_IMAGE_CACHE_LOCK:
+        return _INSPECTION_IMAGE_CACHE.get(cache_key)
+
+def _get_inspection_cache_key(plate: str, ra: str, type: str) -> str:
+    """Gera chave de cache para resposta completa"""
+    return f"{plate.lower()}:{ra.lower()}:{type}"
+
+def _get_cached_inspection_response(plate: str, ra: str, type: str) -> Optional[Dict[str, Any]]:
+    """Obtém resposta completa do cache se não estiver expirada"""
+    cache_key = _get_inspection_cache_key(plate, ra, type)
+    
+    with _INSPECTION_RESPONSE_CACHE_LOCK:
+        if cache_key in _INSPECTION_RESPONSE_CACHE:
+            timestamp, response = _INSPECTION_RESPONSE_CACHE[cache_key]
+            age = time.time() - timestamp
+            
+            if age < _INSPECTION_CACHE_TTL:
+                return response
+            else:
+                # Remover entrada expirada
+                del _INSPECTION_RESPONSE_CACHE[cache_key]
+    
+    return None
+
+def _cache_inspection_response(plate: str, ra: str, type: str, response: Dict[str, Any]) -> None:
+    """Salva resposta completa no cache"""
+    cache_key = _get_inspection_cache_key(plate, ra, type)
+    
+    with _INSPECTION_RESPONSE_CACHE_LOCK:
+        # Limpar cache se exceder tamanho
+        if len(_INSPECTION_RESPONSE_CACHE) > 500:
+            # Remover entradas mais antigas
+            now = time.time()
+            expired_keys = [
+                key for key, (ts, _) in _INSPECTION_RESPONSE_CACHE.items()
+                if now - ts > _INSPECTION_CACHE_TTL
+            ]
+            for key in expired_keys:
+                del _INSPECTION_RESPONSE_CACHE[key]
+        
+        _INSPECTION_RESPONSE_CACHE[cache_key] = (time.time(), response)
 
 async def _compute_prices_for(url: str) -> Dict[str, Any]:
     headers = {"User-Agent": "Mozilla/5.0 (compatible; PriceTracker/1.0)"}
@@ -43094,19 +43232,153 @@ async def email_preview_warning(request: Request, lang: str = "pt"):
         return HTMLResponse(content=f"<h1>Erro ao carregar preview Warning</h1><pre>{str(e)}</pre>")
 
 
+# Rate limiting e cache para /api/get_inspection
+import time
+from collections import defaultdict
+from functools import lru_cache
+
+# Rate limiting por IP - permite uso normal mas bloqueia floods
+_rate_limit_cache = defaultdict(list)
+_rate_limit_window = 60  # 1 minuto
+_rate_limit_max_requests = 30  # máximo 30 requisições por minuto por IP (uso normal permitido)
+_flood_threshold = 10  # mais de 10 requisições em 10 segundos = flood
+
+# Cache para requisições repetidas (melhora performance)
+_inspections_cache = {}
+_cache_timeout = 30  # cache por 30 segundos
+
+# Cache para imagens base64 (evita re-encoding)
+_image_base64_cache = {}
+_image_cache_timeout = 300  # cache por 5 minutos para imagens
+
+def _efficient_base64_encode(image_data, image_type='jpeg'):
+    """
+    Codificação eficiente de base64 que evita múltiplas cópias em memória.
+    Usa cache para imagens já processadas.
+    """
+    # Verificar cache primeiro
+    cache_key = f"{hash(image_data) if isinstance(image_data, (bytes, memoryview)) else hash(str(image_data))}_{image_type}"
+    
+    if cache_key in _image_base64_cache:
+        cached_data, timestamp = _image_base64_cache[cache_key]
+        if time.time() - timestamp < _image_cache_timeout:
+            return cached_data
+        else:
+            del _image_base64_cache[cache_key]
+    
+    # Codificar de forma eficiente
+    if isinstance(image_data, memoryview):
+        # Codificar diretamente de memoryview para base64 (evita cópia intermediária)
+        import base64
+        image_base64 = base64.b64encode(image_data).decode('utf-8')
+    elif isinstance(image_data, bytes):
+        # Codificar bytes diretamente
+        import base64
+        image_base64 = base64.b64encode(image_data).decode('utf-8')
+    elif isinstance(image_data, str):
+        # Já é string - validar e limpar se necessário
+        if image_data.startswith('data:image'):
+            return image_data  # Já está no formato correto
+        else:
+            # Assumir que é base64 puro - validar
+            try:
+                import base64
+                decoded = base64.b64decode(image_data)
+                image_base64 = base64.b64encode(decoded).decode('utf-8')
+            except Exception:
+                return None  # Base64 inválido
+    else:
+        return None
+    
+    # Adicionar prefixo data URL
+    if image_type == 'png':
+        result = f"data:image/png;base64,{image_base64}"
+    else:
+        result = f"data:image/jpeg;base64,{image_base64}"
+    
+    # Armazenar no cache
+    _image_base64_cache[cache_key] = (result, time.time())
+    
+    return result
+
+def _is_rate_limited(client_ip: str) -> tuple[bool, str]:
+    """Verifica se IP está em flood - permite uso normal"""
+    now = time.time()
+    
+    # Limpar entradas antigas
+    _rate_limit_cache[client_ip] = [
+        req_time for req_time in _rate_limit_cache[client_ip] 
+        if now - req_time < _rate_limit_window
+    ]
+    
+    # Verificar flood (múltiplas requisições rápidas)
+    recent_requests = [
+        req_time for req_time in _rate_limit_cache[client_ip]
+        if now - req_time < 10  # últimos 10 segundos
+    ]
+    
+    if len(recent_requests) > _flood_threshold:
+        return True, f"Flood detectado: {len(recent_requests)} requisições em 10 segundos"
+    
+    # Verificar limite geral (uso normal)
+    if len(_rate_limit_cache[client_ip]) >= _rate_limit_max_requests:
+        return True, f"Limite excedido: {len(_rate_limit_cache[client_ip])} requisições em 1 minuto"
+    
+    # Adicionar requisição atual
+    _rate_limit_cache[client_ip].append(now)
+    return False, ""
+
+def _get_cache_key(plate: str, ra: str, type: str) -> str:
+    """Gera chave de cache para requisição"""
+    return f"{plate}_{ra}_{type}"
+
+def _get_cached_inspection(cache_key: str) -> dict:
+    """Obtém inspeção do cache se ainda válida"""
+    if cache_key in _inspections_cache:
+        cached_data, timestamp = _inspections_cache[cache_key]
+        if time.time() - timestamp < _cache_timeout:
+            return cached_data
+        else:
+            del _inspections_cache[cache_key]
+    return None
+
+def _cache_inspection(cache_key: str, data: dict):
+    """Armazena inspeção no cache"""
+    _inspections_cache[cache_key] = (data, time.time())
+
 @app.get("/api/get_inspection")
 async def get_inspection(request: Request, plate: str, ra: str, type: str = 'checkout'):
     """Get inspection data (photos and damages) for pickup process"""
-    print(f"🔍 GET /api/get_inspection called with plate={plate}, ra={ra}, type={type}", flush=True)
-    logging.info(f"🔍 GET /api/get_inspection called with plate={plate}, ra={ra}, type={type}")
+    print(f"Ø GET /api/get_inspection called with plate={plate}, ra={ra}, type={type}", flush=True)
+    logging.info(f"Ø GET /api/get_inspection called with plate={plate}, ra={ra}, type={type}")
     
     try:
         require_auth(request)
-        print(f"✅ Auth passed", flush=True)
+        print(f"Ø Auth passed", flush=True)
     except HTTPException as e:
-        print(f"❌ Unauthorized access to get_inspection: {e}", flush=True)
-        logging.warning("❌ Unauthorized access to get_inspection")
+        print(f"Ø Unauthorized access to get_inspection: {e}", flush=True)
+        logging.warning("Ø Unauthorized access to get_inspection")
         return JSONResponse({"success": False, "error": "Unauthorized"}, status_code=403)
+    
+    # Rate limiting - só bloqueia floods, não uso normal
+    client_ip = request.client.host
+    is_limited, limit_reason = _is_rate_limited(client_ip)
+    if is_limited:
+        print(f"Ø RATE LIMIT: {limit_reason} from IP {client_ip}", flush=True)
+        logging.warning(f"Ø RATE LIMIT: {limit_reason} from IP {client_ip}")
+        return JSONResponse({
+            "success": False, 
+            "error": "Too many requests - please try again in a moment"
+        }, status_code=429)
+    
+    # Verificar cache primeiro
+    cache_key = _get_cache_key(plate, ra, type)
+    cached_result = _get_cached_inspection(cache_key)
+    if cached_result:
+        print(f"Ø CACHE HIT: {cache_key}", flush=True)
+        return JSONResponse(cached_result)
+    
+    print(f"Ø CACHE MISS: {cache_key}", flush=True)
     
     try:
         logging.info("📊 Connecting to database...")
@@ -43267,19 +43539,12 @@ async def get_inspection(request: Request, plate: str, ra: str, type: str = 'che
                 photo_type = photo_row[1]
                 image_data = photo_row[3]
                 if image_data:
-                    # Convert bytes/memoryview to base64 string
-                    if isinstance(image_data, (bytes, memoryview)):
-                        # Convert memoryview to bytes if needed
-                        if isinstance(image_data, memoryview):
-                            image_data = image_data.tobytes()
-                        image_base64 = base64.b64encode(image_data).decode('utf-8')
-                        # Use PNG for damage_croqui, JPEG for others
-                        if photo_type == 'damage_croqui':
-                            image_data_url = f"data:image/png;base64,{image_base64}"
-                        else:
-                            image_data_url = f"data:image/jpeg;base64,{image_base64}"
-                    else:
-                        # String: validate and clean base64
+                    # Use efficient base64 encoding with cache
+                    image_type = 'png' if photo_type == 'damage_croqui' else 'jpeg'
+                    image_data_url = _efficient_base64_encode(image_data, image_type)
+                    
+                    if image_data_url is None and isinstance(image_data, str):
+                        # String: validate and clean base64 (fallback if efficient encoding fails)
                         if isinstance(image_data, str):
                             # If already has data URL prefix, extract and validate base64 part
                             if image_data.startswith('data:image'):
@@ -43451,13 +43716,17 @@ async def get_inspection(request: Request, plate: str, ra: str, type: str = 'che
             logging.info(f"🖼️ [PostgreSQL] Has damage_croqui: {damage_croqui is not None}")
             logging.info(f"🔄 [PostgreSQL] Has swap_history: {swap_history is not None}")
             
-            return JSONResponse({
+            # Cache do resultado antes de retornar
+            result_data = {
                 "success": True,
                 "inspection": inspection,
                 "photos": photos,
                 "damages": damages,
                 "swap_history": swap_history
-            })
+            }
+            _cache_inspection(cache_key, result_data)
+            
+            return JSONResponse(result_data)
             
         else:
             # SQLite
@@ -43545,17 +43814,11 @@ async def get_inspection(request: Request, plate: str, ra: str, type: str = 'che
             
             photos = []
             for photo_row in cursor.fetchall():
-                import base64
                 image_data = photo_row[3]
                 if image_data:
-                    # Convert bytes/memoryview to base64 string
-                    if isinstance(image_data, (bytes, memoryview)):
-                        # Convert memoryview to bytes if needed
-                        if isinstance(image_data, memoryview):
-                            image_data = image_data.tobytes()
-                        image_base64 = base64.b64encode(image_data).decode('utf-8')
-                        image_data_url = f"data:image/jpeg;base64,{image_base64}"
-                    else:
+                    # Usar codificação eficiente com cache
+                    image_data_url = _efficient_base64_encode(image_data, 'jpeg')
+                    if not image_data_url:
                         image_data_url = image_data
                     
                     photos.append({
