@@ -132,9 +132,8 @@ def populate_commissioners():
             
             # Insert commissioner
             cursor.execute("""
-                INSERT INTO commissioners (name, email, phone, voucher_prefix, username, password_hash, active)
-                VALUES (%s, %s, %s, %s, %s, %s, %s)
-                ON CONFLICT (username) DO NOTHING
+                INSERT INTO commissioners (name, email, phone, voucher_prefix, username, password_hash, enabled)
+                VALUES (?, ?, ?, ?, ?, ?, ?)
             """, (name, None, None, prefix, username, password_hash, True))
             
             if cursor.rowcount > 0:
