@@ -314,7 +314,7 @@ async def create_booking(booking: BookingCreate, request: Request):
     voucher_number = generate_voucher_number(commissioner_id, commissioner_data['voucher_prefix'])
     
     # Calculate commission based on pickup_date
-    # Before April 1, 2026: (base_price / 1.23) * commission_rate (with VAT deduction)
+    # Before April 1, 2026: (base_price / 1.23) * 15% (with VAT deduction)
     # After April 1, 2026: base_price * commission_rate (no VAT deduction)
     commission_rate = float(commissioner_data.get('commission_rate', 20.0))
     
@@ -325,11 +325,11 @@ async def create_booking(booking: BookingCreate, request: Request):
         pickup_date = datetime.strptime(pickup_date, '%Y-%m-%d').date()
     
     if pickup_date > cutoff_date:
-        # After April 1, 2026: no VAT deduction
+        # After April 1, 2026: no VAT deduction with current commission rate
         commission_amount = booking.base_price * (commission_rate / 100.0)
     else:
-        # Before April 1, 2026: with VAT deduction
-        commission_amount = (booking.base_price / 1.23) * (commission_rate / 100.0)
+        # Before April 1, 2026: with VAT deduction using 15% rate
+        commission_amount = (booking.base_price / 1.23) * 0.15
     
     # Insert booking
     cursor.execute("""

@@ -66032,21 +66032,19 @@ async def create_manual_booking(request: Request):
                 # Use manual voucher if provided, otherwise NULL (no voucher for manual bookings)
                 voucher_number = manual_voucher if manual_voucher else None
                 
-                # Calculate commission: base_price without VAT (23%) * commission_rate
-                # Special rule: 20% commission for bookings with pickup_date after April 1st
+                # Calculate commission based on pickup_date
+                # Before April 1, 2026: (base_price / 1.23) * commission_rate (with VAT deduction)
+                # After April 1, 2026: base_price * commission_rate (no VAT deduction)
                 from datetime import datetime
                 pickup_dt = datetime.strptime(pickup_date, '%Y-%m-%d')
-                april_1st_2025 = datetime(2025, 4, 1)
+                april_1st_2026 = datetime(2026, 4, 1)
                 
-                if pickup_dt > april_1st_2025:
-                    # Use 20% commission for bookings after April 1st
-                    actual_commission_rate = 20.0
+                if pickup_dt > april_1st_2026:
+                    # After April 1, 2026: no VAT deduction
+                    commission_amount = base_price * (commission_rate / 100.0)
                 else:
-                    # Use commissioner's rate for bookings before or on April 1st
-                    actual_commission_rate = commission_rate
-                
-                base_price_without_vat = base_price / 1.23
-                commission_amount = base_price_without_vat * (actual_commission_rate / 100.0)
+                    # Before April 1, 2026: with VAT deduction
+                    commission_amount = (base_price / 1.23) * (commission_rate / 100.0)
                 
                 # Insert booking
                 if USE_POSTGRES:
