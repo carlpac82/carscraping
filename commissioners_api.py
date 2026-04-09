@@ -1872,6 +1872,55 @@ async def get_admin_commissioner_locations():
         print(traceback.format_exc())
         return JSONResponse({"ok": False, "error": str(e)}, status_code=500)
 
+@router.post("/api/admin/commissioners/update-all-to-20-percent")
+async def update_all_commissioners_to_20_percent():
+    """Update all commissioners to 20% commission rate (admin only)"""
+    try:
+        conn = get_db()
+        cursor = conn.cursor()
+        
+        # Verificar quantos comissionistas existem
+        cursor.execute("SELECT COUNT(*) FROM commissioners")
+        total_count = cursor.fetchone()[0]
+        
+        # Verificar quantos já estão com 20%
+        cursor.execute("SELECT COUNT(*) FROM commissioners WHERE commission_rate = 20")
+        already_20_count = cursor.fetchone()[0]
+        
+        # Verificar quantos estão com 15%
+        cursor.execute("SELECT COUNT(*) FROM commissioners WHERE commission_rate = 15")
+        with_15_count = cursor.fetchone()[0]
+        
+        # Atualizar todos os comissionistas para 20%
+        cursor.execute("""
+            UPDATE commissioners 
+            SET commission_rate = 20, updated_at = CURRENT_TIMESTAMP
+            WHERE commission_rate != 20
+        """)
+        
+        updated_count = cursor.rowcount
+        conn.commit()
+        
+        # Verificar resultado final
+        cursor.execute("SELECT COUNT(*) FROM commissioners WHERE commission_rate = 20")
+        final_20_count = cursor.fetchone()[0]
+        
+        conn.close()
+        
+        return {
+            "ok": True,
+            "message": f"Updated {updated_count} commissioners to 20%",
+            "total_commissioners": total_count,
+            "already_20_percent": already_20_count,
+            "with_15_percent": with_15_count,
+            "updated_count": updated_count,
+            "final_20_percent": final_20_count
+        }
+        
+    except Exception as e:
+        print(traceback.format_exc())
+        return JSONResponse({"ok": False, "error": str(e)}, status_code=500)
+
 @router.get("/api/admin/commissioners/schedule-settings")
 async def get_admin_schedule_settings(commissioner_id: int):
     """Get schedule settings for a specific commissioner (admin only)"""
