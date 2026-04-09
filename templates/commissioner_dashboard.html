@@ -3585,7 +3585,11 @@
             </div>
             <div class="stat-card">
                 <h3>Comissão <span id="currentYear">2026</span></h3>
-                <div class="value" id="paidYearCommission">€0</div>
+                <div class="value" id="paidYearCommission">0</div>
+            </div>
+            <div class="stat-card">
+                <h3>Taxa de Comissão</h3>
+                <div class="value" id="commissionRate">20%</div>
             </div>
         </div>
 
@@ -4456,6 +4460,10 @@
                 currentCommissioner = commissioner; // Guardar para usar no formulário
                 const firstName = commissioner.name.split(' ')[0];
                 document.getElementById('welcomeMessage').innerHTML = `Bem-vindo <strong>${firstName}</strong>`;
+                
+                // Atualizar taxa de comissão
+                const commissionRate = commissioner.commission_rate || 20.0;
+                document.getElementById('commissionRate').textContent = `${commissionRate}%`;
 
                 await loadBookings();
                 await loadCommissionerPricing();
