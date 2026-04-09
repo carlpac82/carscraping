@@ -2542,6 +2542,12 @@
               // Update total amount in modal
               document.getElementById('totalCommissionsAmount').textContent = `â\x82¬${Math.round(totalAmount)}`;
               
+              // Forçar atualização visual para evitar cache
+              document.getElementById('totalCommissionsAmount').style.display = 'none';
+              setTimeout(() => {
+                  document.getElementById('totalCommissionsAmount').style.display = 'block';
+              }, 10);
+              
               signatureCanvas = document.getElementById('signatureCanvas');
               signatureCtx = signatureCanvas.getContext('2d');
               
