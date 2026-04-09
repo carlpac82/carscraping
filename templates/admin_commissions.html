@@ -4358,8 +4358,8 @@
                   tbody.appendChild(row);
               });
               
-              // Render cards for mobile
-              if (cardsContainer) {
+              // Render cards for mobile only
+              if (cardsContainer && window.innerWidth <= 768) {
                   cardsContainer.innerHTML = '';
                   allCommissioners.forEach(commissioner => {
                       const card = document.createElement('div');
@@ -4451,8 +4451,8 @@
                   });
               }
               
-              // Render filtered cards for mobile
-              if (cardsContainer) {
+              // Render filtered cards for mobile only
+              if (cardsContainer && window.innerWidth <= 768) {
                   if (filteredCommissioners.length === 0) {
                       cardsContainer.innerHTML = '<div class="text-center py-8 text-gray-500">Nenhum comissionista encontrado</div>';
                   } else {
