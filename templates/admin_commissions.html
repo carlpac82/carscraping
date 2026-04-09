@@ -4358,6 +4358,11 @@
                   tbody.appendChild(row);
               });
               
+              // Always clear cards container on desktop
+              if (cardsContainer && window.innerWidth > 768) {
+                  cardsContainer.innerHTML = '';
+              }
+              
               // Render cards for mobile only
               if (cardsContainer && window.innerWidth <= 768) {
                   cardsContainer.innerHTML = '';
@@ -4449,6 +4454,11 @@
                       `;
                       tbody.appendChild(row);
                   });
+              }
+              
+              // Always clear cards container on desktop
+              if (cardsContainer && window.innerWidth > 768) {
+                  cardsContainer.innerHTML = '';
               }
               
               // Render filtered cards for mobile only
