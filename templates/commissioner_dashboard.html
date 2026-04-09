@@ -6261,12 +6261,17 @@
         // Função para verificar disponibilidade do grupo A
         async function checkGroupAAvailability() {
             try {
-                const response = await fetch('/api/admin/group-a-status');
+                const response = await fetch('/api/commissioners/group-a-status');
+                if (!response.ok) {
+                    console.error('API response not ok:', response.status, response.statusText);
+                    return true; // Se houver erro na API, assume que está desativado por segurança
+                }
                 const data = await response.json();
+                console.log('Group A status response:', data);
                 return data.disabled === true;
             } catch (error) {
                 console.error('Error checking group A availability:', error);
-                return false; // Se houver erro, assume que está disponível
+                return true; // Se houver erro, assume que está desativado por segurança
             }
         }
 
