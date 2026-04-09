@@ -313,11 +313,10 @@ async def create_booking(booking: BookingCreate, request: Request):
     # Generate voucher number
     voucher_number = generate_voucher_number(commissioner_id, commissioner_data['voucher_prefix'])
     
-    # Calculate commission: base_price without VAT (23%) * commission_rate (20%)
-    # Formula: (base_price / 1.23) * 0.20
+    # Calculate commission: base_price * commission_rate (20%)
+    # Formula: base_price * 0.20
     commission_rate = float(commissioner_data.get('commission_rate', 20.0))
-    base_price_without_vat = booking.base_price / 1.23
-    commission_amount = base_price_without_vat * (commission_rate / 100.0)
+    commission_amount = booking.base_price * (commission_rate / 100.0)
     
     # Insert booking
     cursor.execute("""
