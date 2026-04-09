@@ -381,11 +381,11 @@ async def get_commissioner_bookings(request: Request):
                price, status, created_at, updated_at, deposit,
                hotel, room_number, flight_number, observations,
 CASE 
-                   WHEN DATE(created_at) < '2026-03-11' THEN 0.0
+                   WHEN DATE(pickup_date) < '2026-03-11' THEN 0.0
                    ELSE commission_rate 
                END as commission_rate,
                CASE 
-                   WHEN DATE(created_at) < '2026-03-11' THEN 0.0
+                   WHEN DATE(pickup_date) < '2026-03-11' THEN 0.0
                    ELSE commission_amount 
                END as commission_amount,
                base_price, premium_insurance, road_tax, extras_total, 
@@ -393,8 +393,8 @@ CASE
                commission_paid, commission_paid_date, commission_paid_by
         FROM commission_bookings
         WHERE commissioner_id = %s
-        AND DATE(created_at) >= '2026-03-01'
-        ORDER BY created_at DESC
+        AND DATE(pickup_date) >= '2026-03-11'
+        ORDER BY pickup_date DESC
     """, (commissioner_id,))
     
     bookings = cursor.fetchall()
