@@ -7043,6 +7043,16 @@ async def api_get_group_a_status(request: Request):
         require_commissions_management(request)
     except HTTPException:
         return JSONResponse({"ok": False, "error": "Unauthorized"}, status_code=401)
+
+@app.get("/api/commissioners/group-a-status")
+async def api_commissioners_get_group_a_status(request: Request):
+    """Get Group A availability status - for commissioners"""
+    try:
+        # Verificar se está autenticado como comissionista
+        if not request.session.get("commissioner_id"):
+            return JSONResponse({"ok": False, "error": "Not authenticated"}, status_code=401)
+    except:
+        return JSONResponse({"ok": False, "error": "Authentication failed"}, status_code=401)
     
     try:
         # Verificar disponibilidade automática baseada no número de carros disponíveis
@@ -7116,11 +7126,12 @@ async def api_get_group_a_status(request: Request):
         # Desativar automaticamente se houver 3 ou menos carros disponíveis
         auto_disabled = available_count <= 3
         
-        # Obter status manual do Grupo A das settings
+        # Obter ID do comissionista autenticado
+        # Obter status manual do Grupo A das settings (global)
         manual_disabled_setting = _get_setting("group_a_disabled", "false").lower()
         manual_disabled = manual_disabled_setting == "true"
         
-        # O Grupo A está desativado se estiver manualmente desativado OU automaticamente desativado
+        # O Grupo A está desativado se estiver desativado globalmente OU automaticamente
         disabled = manual_disabled or auto_disabled
         
         logging.info(f"Group A status check: available={available_count}, auto_disabled={auto_disabled}, manual_disabled={manual_disabled}, final_disabled={disabled}")
@@ -7162,6 +7173,30 @@ async def api_set_group_a_status(request: Request):
         
     except Exception as e:
         logging.error(f"Error setting Group A status: {e}")
+        traceback.print_exc()
+        return JSONResponse({"ok": False, "error": str(e)}, status_code=500)
+
+@app.get("/admin/force-disable-group-a")
+async def admin_force_disable_group_a(request: Request):
+    """Force disable Group A for commissioners"""
+    try:
+        require_commissions_management(request)
+    except HTTPException:
+        return JSONResponse({"ok": False, "error": "Unauthorized"}, status_code=401)
+    
+    try:
+        # Forçar desativação do Grupo A nas settings
+        _set_setting("group_a_disabled", "true")
+        
+        logging.info("Group A force disabled for commissioners")
+        
+        return JSONResponse({
+            "ok": True,
+            "message": "Group A has been force disabled for commissioners"
+        })
+        
+    except Exception as e:
+        logging.error(f"Error force disabling Group A: {e}")
         traceback.print_exc()
         return JSONResponse({"ok": False, "error": str(e)}, status_code=500)
 
@@ -65998,8 +66033,20 @@ async def create_manual_booking(request: Request):
                 voucher_number = manual_voucher if manual_voucher else None
                 
                 # Calculate commission: base_price without VAT (23%) * commission_rate
+                # Special rule: 20% commission for bookings with pickup_date after April 1st
+                from datetime import datetime
+                pickup_dt = datetime.strptime(pickup_date, '%Y-%m-%d')
+                april_1st_2025 = datetime(2025, 4, 1)
+                
+                if pickup_dt > april_1st_2025:
+                    # Use 20% commission for bookings after April 1st
+                    actual_commission_rate = 20.0
+                else:
+                    # Use commissioner's rate for bookings before or on April 1st
+                    actual_commission_rate = commission_rate
+                
                 base_price_without_vat = base_price / 1.23
-                commission_amount = base_price_without_vat * (commission_rate / 100.0)
+                commission_amount = base_price_without_vat * (actual_commission_rate / 100.0)
                 
                 # Insert booking
                 if USE_POSTGRES:

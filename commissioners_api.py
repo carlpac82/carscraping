@@ -38,7 +38,7 @@ class CommissionerCreate(BaseModel):
     voucher_prefix: Optional[str] = None
     username: str
     password: Optional[str] = None  # Password opcional - será gerada automaticamente se não fornecida
-    commission_rate: float = 15.0
+    commission_rate: float = 20.0
     enabled: bool = True
     is_hotel: bool = False
     default_location: Optional[str] = None
@@ -307,15 +307,15 @@ async def create_booking(booking: BookingCreate, request: Request):
         'name': commissioner[0],
         'email': commissioner[1],
         'voucher_prefix': commissioner[2],
-        'commission_rate': commissioner[3] if len(commissioner) > 3 else 15.0
+        'commission_rate': commissioner[3] if len(commissioner) > 3 else 20.0
     }
     
     # Generate voucher number
     voucher_number = generate_voucher_number(commissioner_id, commissioner_data['voucher_prefix'])
     
-    # Calculate commission: base_price without VAT (23%) * commission_rate (15%)
-    # Formula: (base_price / 1.23) * 0.15
-    commission_rate = float(commissioner_data.get('commission_rate', 15.0))
+    # Calculate commission: base_price without VAT (23%) * commission_rate (20%)
+    # Formula: (base_price / 1.23) * 0.20
+    commission_rate = float(commissioner_data.get('commission_rate', 20.0))
     base_price_without_vat = booking.base_price / 1.23
     commission_amount = base_price_without_vat * (commission_rate / 100.0)
     
@@ -539,8 +539,15 @@ async def update_commissioner(commissioner_id: int, update: CommissionerUpdate):
     conn = get_db()
     cursor = conn.cursor()
     
+    # Get current commissioner data to check if commission_rate is being changed
+    cursor.execute("SELECT commission_rate FROM commissioners WHERE id = %s", (commissioner_id,))
+    current_commissioner = cursor.fetchone()
+    current_rate = float(current_commissioner[0]) if current_commissioner else 15.0
+    
     updates = []
     params = []
+    commission_rate_changed = False
+    new_rate = None
     
     if update.name is not None:
         updates.append("name = %s")
@@ -563,6 +570,8 @@ async def update_commissioner(commissioner_id: int, update: CommissionerUpdate):
     if update.commission_rate is not None:
         updates.append("commission_rate = %s")
         params.append(update.commission_rate)
+        commission_rate_changed = True
+        new_rate = update.commission_rate
     if update.password is not None:
         updates.append("password_hash = %s")
         params.append(hash_password(update.password))
@@ -584,6 +593,23 @@ async def update_commissioner(commissioner_id: int, update: CommissionerUpdate):
         SET {', '.join(updates)}
         WHERE id = %s
     """, params)
+    
+    # If commission rate changed, recalculate commissions for bookings after April 1, 2026
+    if commission_rate_changed and new_rate is not None:
+        cutoff_date = date(2026, 4, 1)
+        
+        # Update commission amounts for bookings with pickup_date > 2026-04-01
+        cursor.execute("""
+            UPDATE commission_bookings 
+            SET commission_amount = loyalty_card * %s,
+                updated_at = CURRENT_TIMESTAMP
+            WHERE commissioner_id = %s
+            AND pickup_date > %s
+            AND loyalty_card > 0
+        """, (new_rate / 100.0, commissioner_id, cutoff_date))
+        
+        updated_bookings = cursor.rowcount
+        logging.info(f"Updated {updated_bookings} commission bookings for commissioner {commissioner_id} to new rate {new_rate}%")
     
     conn.commit()
     conn.close()

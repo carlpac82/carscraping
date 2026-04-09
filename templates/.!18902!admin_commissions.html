@@ -1,0 +1,2542 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Gestão de Comissões - CarScraping Admin</title>
+    <link rel="icon" type="image/png" href="/static/autoprudente-favicon.png?v=2" />
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+      /* Fix header styles */
+      header {
+        all: revert;
+        display: block !important;
+        width: 100% !important;
+        position: relative !important;
+      }
+      
+      header .bg-\[009cb6\] {
+        background-color: #009cb6 !important;
+        background: #009cb6 !important;
+      }
+      
+      header .border-b {
+        border-bottom: 1px solid rgba(255,255,255,0.1) !important;
+      }
+      
+      header .mx-auto {
+        margin-left: auto !important;
+        margin-right: auto !important;
+      }
+      
+      header .max-w-6xl {
+        max-width: 72rem !important;
+      }
+      
+      header .px-4 {
+        padding-left: 1rem !important;
+        padding-right: 1rem !important;
+      }
+      
+      header .py-3 {
+        padding-top: 0.75rem !important;
+        padding-bottom: 0.75rem !important;
+      }
+      
+      header .flex {
+        display: flex !important;
+      }
+      
+      header .items-center {
+        align-items: center !important;
+      }
+      
+      header .justify-between {
+        justify-content: space-between !important;
+      }
+      
+      header .gap-3 {
+        gap: 0.75rem !important;
+      }
+      
+      header .inline-flex {
+        display: inline-flex !important;
+      }
+      
+      header .h-12 {
+        height: 3rem !important;
+      }
+      
+      header .w-auto {
+        width: auto !important;
+      }
+      
+      header .w-5 {
+        width: 1.25rem !important;
+      }
+      
+      header .h-5 {
+        height: 1.25rem !important;
+      }
+      
+      header .w-6 {
+        width: 1.5rem !important;
+      }
+      
+      header .h-6 {
+        height: 1.5rem !important;
+      }
+      
+      header .p-2 {
+        padding: 0.5rem !important;
+      }
+      
+      header .px-3 {
+        padding-left: 0.75rem !important;
+        padding-right: 0.75rem !important;
+      }
+      
+      header .py-2 {
+        padding-top: 0.5rem !important;
+        padding-bottom: 0.5rem !important;
+      }
+      
+      header .text-white\/90 {
+        color: rgba(255,255,255,0.9) !important;
+      }
+      
+      header .hover\:text-white:hover {
+        color: white !important;
+      }
+      
+      header .hover\:bg-white\/10:hover {
+        background-color: rgba(255,255,255,0.1) !important;
+      }
+      
+      header .transition-all {
+        transition: all 0.2s ease !important;
+      }
+      
+      header .rounded {
+        border-radius: 0.375rem !important;
+      }
+      
+      header .text-sm {
+        font-size: 0.875rem !important;
+      }
+      
+      header .font-semibold {
+        font-weight: 600 !important;
+      }
+      
+      header .relative {
+        position: relative !important;
+      }
+      
+      header .desktop-nav {
+        display: flex !important;
+      }
+      
+      header .mobile-menu-btn {
+        display: none !important;
+      }
+      
+      @media (max-width: 768px) {
+        header .desktop-nav {
+          display: none !important;
+        }
+        
+        header .mobile-menu-btn {
+          display: flex !important;
+        }
+      }
+      
+      .mobile-menu-btn { display: none; background: none; border: none; color: white; padding: 8px; }
+      .mobile-menu { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.5); z-index: 9999; backdrop-filter: blur(4px); }
+      .mobile-menu.active { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 12px; padding: 20px; }
+      .mobile-menu a { background: white; box-shadow: 0 1px 3px rgba(0,0,0,0.1); color: #1f2937; font-size: 18px; padding: 16px; width: 100%; max-width: 400px; text-align: center; border-radius: 8px; transition: all 0.2s; display: flex; align-items: center; justify-content: center; gap: 12px; }
+      .mobile-menu a:hover { box-shadow: 0 4px 6px rgba(0,0,0,0.1); transform: translateY(-2px); }
+      .mobile-menu a svg { color: #009cb6; width: 24px; height: 24px; }
+      .mobile-menu-close { position: absolute; top: 20px; right: 20px; background: white; box-shadow: 0 1px 3px rgba(0,0,0,0.1); border: none; color: #1f2937; font-size: 24px; cursor: pointer; width: 40px; height: 40px; border-radius: 50%; display: flex; align-items: center; justify-content: center; }
+      
+      body {
+        font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+        min-height: 100vh;
+      }
+      
+      /* Fix main container centering */
+      main {
+        width: 100% !important;
+        margin-left: auto !important;
+        margin-right: auto !important;
+      }
+      
+      /* Ensure tabs container is centered */
+      .tabs-container {
+        width: 100% !important;
+        margin-left: auto !important;
+        margin-right: auto !important;
+      }
+      
+      img[alt="Profile"], img[src*="profile"], .profile-picture {
+        border-radius: 50% !important;
+      }
+      .summary-cards {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+        gap: 1rem;
+        margin-bottom: 2rem;
+      }
+      .summary-card {
+        background: white;
+        padding: 1.5rem;
+        border-radius: 0.5rem;
+        box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+      }
+      .summary-card h3 {
+        font-size: 0.875rem;
+        color: #6b7280;
+        margin-bottom: 0.5rem;
+      }
+      .summary-value {
+        font-size: 1.5rem;
+        font-weight: 600;
+        color: #009cb6;
+      }
+      .filters-section {
+        background: white;
+        padding: 1rem;
+        border-radius: 0.5rem;
+        box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+        margin-bottom: 2rem;
+        display: flex;
+        gap: 1rem;
+        align-items: end;
+      }
+      .filter-group {
+        display: flex;
+        flex-direction: column;
+        gap: 0.25rem;
+      }
+      .filter-group label {
+        font-size: 0.875rem;
+        font-weight: 500;
+        color: #374151;
+      }
+      .filter-group select {
+        padding: 0.5rem;
+        border: 1px solid #d1d5db;
+        border-radius: 0.375rem;
+        font-size: 0.875rem;
+      }
+      .btn-primary {
+        background: #009cb6;
+        color: white;
+        padding: 0.5rem 1rem;
+        border-radius: 0.375rem;
+        font-size: 0.875rem;
+        transition: background-color 0.2s;
+        border: none;
+      }
+      .btn-primary:hover {
+        background: #0077a3 !important;
+      }
+      .btn-primary:active,
+      .btn-primary:focus {
+        background: #0077a3 !important;
+        outline: none;
+      }
+      .btn-primary:disabled {
+        opacity: 0.5;
+        cursor: not-allowed;
+      }
+      .commissions-table {
+        background: white;
+        border-radius: 0.5rem;
+        box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+        overflow: hidden;
+      }
+      .commissions-table table {
+        width: 100%;
+        border-collapse: collapse;
+      }
+      .commissions-table th,
+      .commissions-table td {
+        padding: 0.75rem;
+        text-align: center;
+        border-bottom: 1px solid #e5e7eb;
+      }
+      .commissions-table th {
+        background: #f9fafb;
+        font-weight: 600;
+        color: #374151;
+        font-size: 11px;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+      }
+      .commissions-table td {
+        font-size: 12px;
+        color: #555;
+      }
+      .commissions-table td:nth-child(6),
+      .commissions-table td:nth-child(7),
+      .commissions-table td:nth-child(8) {
+        text-align: right;
+      }
+      .commissions-table tbody tr:hover {
+        background: #f9fafb !important;
+      }
+      .sortable {
+        cursor: pointer;
+        user-select: none;
+        position: relative;
+      }
+      .sortable:hover {
+        background: #f3f4f6;
+      }
+      .sortable::after {
+        content: ' ↕';
+        font-size: 0.8em;
+        color: #9ca3af;
+        position: absolute;
+        right: 8px;
+        top: 50%;
+        transform: translateY(-50%);
+      }
+      .sortable.asc::after {
+        content: ' ↑';
+        color: #009cb6;
+      }
+      .sortable.desc::after {
+        content: ' ↓';
+        color: #009cb6;
+      }
+      .status-badge {
+        display: inline-block;
+        padding: 6px 16px;
+        border-radius: 16px;
+        font-size: 11px;
+        font-weight: 600;
+        text-transform: uppercase;
+        letter-spacing: 0.3px;
+        min-width: 95px;
+        text-align: center;
+      }
+      .status-paid {
+        background: #009cb6;
+        color: white;
+      }
+      .status-unpaid {
+        background: #ffc107;
+        color: #333;
+      }
+      
+      /* Tabs styles */
+      .tabs-container {
+        background: white;
+        border-radius: 0.5rem;
+        box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+        margin-bottom: 2rem;
+      }
+      .tabs-header {
+        display: flex;
+        border-bottom: 2px solid #e5e7eb;
+        padding: 0;
+      }
+      .tab-button {
+        padding: 1rem 2rem;
+        background: none;
+        border: none;
+        border-bottom: 3px solid transparent;
+        cursor: pointer;
+        font-weight: 500;
+        color: #6b7280;
+        transition: all 0.2s;
+        font-size: 0.95rem;
+      }
+      .tab-button:hover {
+        color: #009cb6;
+        background: #f9fafb;
+      }
+      .tab-button.active {
+        color: #009cb6;
+        border-bottom-color: #009cb6;
+        background: white;
+      }
+      .tab-content {
+        display: none;
+        padding: 1.5rem;
+      }
+      .tab-content.active {
+        display: block;
+      }
+      
+      /* Dashboard styles */
+      .dashboard-grid {
+        display: grid;
+        grid-template-columns: repeat(2, 1fr);
+        gap: 1.5rem;
+        margin-bottom: 2rem;
+      }
+      
+      @media (max-width: 1024px) {
+        .dashboard-grid {
+          grid-template-columns: 1fr;
+        }
+      }
+      
+      /* Desktop: Botões de ações alinhados à direita com borda uniforme */
+      .mb-4.flex.gap-2 {
+        justify-content: flex-end;
+      }
+      
+      .mb-4.flex.gap-2 button {
+        width: 50px !important;
+        height: 50px !important;
+        min-width: 50px !important;
+        max-width: 50px !important;
+        padding: 0.5rem !important;
+        background: transparent !important;
+        border: 1px solid #d1d5db !important;
+        border-radius: 0.375rem !important;
+        display: flex !important;
+        align-items: center !important;
+        justify-content: center !important;
+      }
+      
+      .mb-4.flex.gap-2 button svg {
+        width: 24px !important;
+        height: 24px !important;
+      }
+      
+      /* Desktop: Mostrar ícones, ocultar textos (já não há textos) */
+      .btn-icon-mobile {
+        display: inline-flex !important;
+        align-items: center !important;
+        justify-content: center !important;
+      }
+      
+      /* Mobile Responsive Styles */
+      @media (max-width: 768px) {
+        .filters-section {
+          padding: 0.75rem;
+        }
+        
+        .filter-group {
+          margin-bottom: 0.75rem;
+          width: 100% !important;
+          min-width: 0 !important;
+          flex-shrink: 0 !important;
+        }
+        
+        .filter-group label {
+          font-size: 12px;
+          margin-bottom: 4px;
+        }
+        
+        .filter-group select {
+          font-size: 13px;
+          padding: 8px;
+          width: 100% !important;
+          min-width: 0 !important;
+          box-sizing: border-box !important;
+        }
+        
+        /* Corrigir layout da secção de filtros - MOBILE OTIMIZADO */
+        .filters-section {
+          padding: 0.5rem;
+          overflow-x: hidden !important;
+          width: 100% !important;
+          display: flex !important;
+          flex-direction: column !important;
+          gap: 0.5rem !important;
+        }
+        
+        .filters-section > div {
+          display: flex !important;
+          flex-direction: row !important;
+          gap: 0.5rem !important;
+          width: 100% !important;
+          flex-wrap: wrap !important;
+        }
+        
+        .filter-group {
+          flex: 1 !important;
+          min-width: 120px !important;
+          margin-bottom: 0 !important;
+        }
+        
+        .filter-group select {
+          font-size: 12px !important;
+          padding: 6px !important;
+          width: 100% !important;
+          min-width: 0 !important;
+          box-sizing: border-box !important;
+        }
+        
+        .filters-section button:not(.btn-primary) {
+          width: 50px !important;
+          min-width: 50px !important;
+          max-width: 50px !important;
+          height: 40px !important;
+          flex-shrink: 0 !important;
+          align-self: flex-end !important;
+        }
+        
+        .action-buttons {
+          flex-direction: column;
+          gap: 8px;
+        }
+        
+        .action-buttons button {
+          width: 100%;
+          padding: 10px;
+          font-size: 13px;
+        }
+        
+        /* Corrigir layout dos botões de ação no mobile - LINHA HORIZONTAL */
+        .mb-4.flex.gap-2 {
+          flex-direction: row !important;
+          gap: 8px !important;
+          width: 100% !important;
+          overflow-x: auto !important;
+          align-items: center !important;
+          justify-content: flex-start !important;
+        }
+        
+        /* Ícones vs Textos nos botões */
+        .btn-text-desktop {
+          display: inline !important;
+        }
+        
+        .btn-icon-mobile {
+          display: none !important;
+        }
+        
+        .mb-4.flex.gap-2 button,
+        .filters-section button:not(.btn-primary) {
+          padding: 10px !important;
+          font-size: 13px !important;
+          text-align: center !important;
+          width: 50px !important;
+          height: 50px !important;
+          min-width: 50px !important;
+          max-width: 50px !important;
+          flex-shrink: 0 !important;
+          display: flex !important;
+          align-items: center !important;
+          justify-content: center !important;
+          gap: 5px !important;
+          background: transparent !important;
+          border: 1px solid #d1d5db !important;
+          border-radius: 0.375rem !important;
+        }
+        
+        .mb-4.flex.gap-2 button svg,
+        .filters-section button:not(.btn-primary) svg {
+          width: 24px !important;
+          height: 24px !important;
+          min-width: 24px !important;
+          max-width: 24px !important;
+        }
+        
+        .mb-4.flex.gap-2 button[style*="margin-left"] {
+          margin-left: 0 !important;
+        }
+        
+        .mb-4.flex.gap-2 input[type="file"] {
+          display: none !important;
+        }
+        
+        /* Remover cores de fundo dos botões no mobile - exceto btn-primary */
+        .mb-4.flex.gap-2 button:not(.btn-primary),
+        .filters-section button:not(.btn-primary) {
+          background-color: transparent !important;
+          border-color: #d1d5db !important;
+        }
+        
+        .mb-4.flex.gap-2 button:not(.btn-primary):hover,
+        .filters-section button:not(.btn-primary):hover {
+          background-color: #f9fafb !important;
+        }
+        
+        /* Reduzir tamanho dos separadores */
+        .tab-button {
+          font-size: 12px !important;
+          padding: 8px 12px !important;
+          min-height: auto !important;
+        }
+        
+        .tab-button h3 {
+          font-size: 12px !important;
+          margin: 0 !important;
+        }
+        
+        /* No mobile: mostrar ícones, ocultar textos */
+        .btn-text-desktop {
+          display: none !important;
+        }
+        
+        .btn-icon-mobile {
+          display: inline-flex !important;
+          align-items: center !important;
+          justify-content: center !important;
+        }
+        
+        .commissions-table {
+          overflow-x: hidden;
+        }
+        
+        /* Only hide commissions table, show commissioners table */
+        .commissions-table:not(.commissioners-table) table {
+          min-width: auto;
+          width: 100%;
+          display: none;
+        }
+        
+        /* Ensure commissioners table is visible */
+        #commissioners-tab .commissions-table table {
+          display: table !important;
+        }
+        
+        /* Show commissioners cards and hide table in mobile */
+        @media (max-width: 768px) {
+          #commissioners-tab .commissioners-cards {
+            display: flex !important;
+          }
+          
+          #commissioners-tab .commissions-table {
+            display: none !important;
+          }
+        }
+        
+        #commissioners-tab .commissions-table {
+          display: none !important;
+        }
+        
+        /* Cards para mobile */
+        .commissions-cards {
+          display: flex;
+          flex-direction: column;
+          gap: 12px;
+          padding: 10px;
+        }
+        
+        .commission-card {
+          background: white;
+          border-radius: 10px;
+          padding: 14px;
+          box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+          border-left: 4px solid #009cb6;
+        }
+        
+        /* Cards específicos para comissionistas em mobile */
+        .commissioners-cards {
+          display: none;
+          flex-direction: column;
+          gap: 12px;
+          padding: 10px;
+        }
+        
+        /* Desktop: esconder cards explicitamente - regra mais forte */
+        @media (min-width: 769px) {
+          .commissioners-cards {
+            display: none !important;
+            visibility: hidden !important;
+            height: 0 !important;
+            overflow: hidden !important;
+          }
+          
+          #commissioners-tab .commissioners-cards {
+            display: none !important;
+            visibility: hidden !important;
+            height: 0 !important;
+            overflow: hidden !important;
+          }
+          
+          #commissioners-tab .commissions-table {
+            display: block !important;
+            visibility: visible !important;
+          }
+        }
+        
+        .commissioner-card {
+          background: white;
+          border-radius: 10px;
+          padding: 16px;
+          box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+          border-left: 4px solid #009cb6;
+        }
+        
+        .commissioner-card-header {
+          display: flex;
+          justify-content: space-between;
+          align-items: flex-start;
+          margin-bottom: 12px;
+          padding-bottom: 10px;
+          border-bottom: 1px solid #f0f0f0;
+        }
+        
+        .commissioner-card-title {
+          font-size: 16px;
+          font-weight: 600;
+          color: #1f2937;
+          line-height: 1.3;
+        }
+        
+        .commissioner-card-status {
+          padding: 4px 8px;
+          border-radius: 12px;
+          font-size: 12px;
+          font-weight: 500;
+        }
+        
+        .commissioner-card-status.active {
+          background: #d1fae5;
+          color: #065f46;
+        }
+        
+        .commissioner-card-status.inactive {
+          background: #fee2e2;
+          color: #991b1b;
+        }
+        
+        .commissioner-card-info {
+          display: grid;
+          grid-template-columns: 1fr 1fr;
+          gap: 8px;
+          margin-bottom: 12px;
+        }
+        
+        .commissioner-card-info-item {
+          display: flex;
+          flex-direction: column;
+        }
+        
+        .commissioner-card-info-label {
+          font-size: 11px;
+          color: #6b7280;
+          margin-bottom: 2px;
+        }
+        
+        .commissioner-card-info-value {
+          font-size: 14px;
+          font-weight: 500;
+          color: #1f2937;
+        }
+        
+        .commissioner-card-actions {
+          display: flex;
+          gap: 8px;
+          justify-content: flex-end;
+        }
+        
+        .commissioner-card-actions button {
+          padding: 8px 12px;
+          border-radius: 6px;
+          border: none;
+          cursor: pointer;
+          font-size: 12px;
+          font-weight: 500;
+          transition: all 0.2s;
+          display: flex;
+          align-items: center;
+          gap: 4px;
+        }
+        
+        .commissioner-card-actions button.email {
+          background: #f3f4f6;
+          color: #374151;
+        }
+        
+        .commissioner-card-actions button.email:hover {
+          background: #e5e7eb;
+        }
+        
+        .commissioner-card-actions button.edit {
+          background: #009cb6;
+          color: white;
+        }
+        
+        .commissioner-card-actions button.edit:hover {
+          background: #0077a3;
+        }
+        
+        .commissioner-card-actions button svg {
+          width: 14px;
+          height: 14px;
+        }
+        
+        .commission-card-header {
+          display: flex;
+          justify-content: space-between;
+          align-items: flex-start;
+          margin-bottom: 12px;
+          padding-bottom: 10px;
+          border-bottom: 1px solid #f0f0f0;
+        }
+        
+        .commission-card-title {
+          font-size: 15px;
+          font-weight: 600;
+          color: #1f2937;
+          line-height: 1.3;
+        }
+        
+        .commission-card-amount {
+          font-size: 18px;
+          font-weight: 700;
+          color: #009cb6;
+          white-space: nowrap;
+          margin-left: 8px;
+        }
+        
+        .commission-card-details {
+          display: flex;
+          flex-direction: column;
+          gap: 8px;
+          margin-bottom: 12px;
+        }
+        
+        .commission-card-row {
+          display: flex;
+          justify-content: space-between;
+          align-items: center;
+          padding: 4px 0;
+        }
+        
+        .commission-card-label {
+          color: #6b7280;
+          font-size: 12px;
+          font-weight: 500;
+        }
+        
+        .commission-card-value {
+          color: #1f2937;
+          font-size: 13px;
+          font-weight: 600;
+          text-align: right;
+        }
+        
+        .commission-card-status {
+          margin-top: 10px;
+          padding-top: 10px;
+          border-top: 1px solid #f0f0f0;
+          display: flex;
+          justify-content: space-between;
+          align-items: center;
+        }
+        
+        .status-badge {
+          padding: 6px 12px;
+          border-radius: 14px;
+          font-size: 11px;
+          font-weight: 600;
+          text-transform: uppercase;
+          letter-spacing: 0.3px;
+        }
+        
+        .status-paid {
+          background: #d1f4e0;
+          color: #0d7a3f;
+        }
+        
+        .status-pending {
+          background: #fff3cd;
+          color: #856404;
+        }
+        
+        .commission-card-actions {
+          display: flex;
+          gap: 8px;
+          align-items: center;
+        }
+        
+        .commission-card-actions input[type="checkbox"] {
+          width: 20px;
+          height: 20px;
+          cursor: pointer;
+        }
+        
+        .commissions-table th,
+        .commissions-table td {
+          padding: 0.5rem;
+          font-size: 11px;
+        }
+        
+        .commissions-table th {
+          font-size: 10px;
+        }
+        
+        .stats-grid {
+          grid-template-columns: 1fr;
+          gap: 1rem;
+        }
+        
+        .stat-card {
+          padding: 1rem;
+        }
+        
+        .stat-card h3 {
+          font-size: 12px;
+        }
+        
+        .stat-card .stat-value {
+          font-size: 20px;
+        }
+        
+        .chart-card {
+          padding: 1rem;
+        }
+        
+        .chart-card h3 {
+          font-size: 14px;
+        }
+        
+        .top-list-item {
+          padding: 0.5rem;
+          font-size: 12px;
+        }
+        
+        .top-list-name {
+          font-size: 12px;
+        }
+        
+        .top-list-value {
+          font-size: 12px;
+        }
+        
+        /* Mobile layout para gráficos do terceiro separador */
+        .dashboard-grid {
+          grid-template-columns: 1fr !important;
+          gap: 1rem !important;
+          width: 100% !important;
+          overflow-x: hidden !important;
+        }
+        
+        .dashboard-grid .chart-card {
+          width: 100% !important;
+          max-width: 100% !important;
+          overflow-x: hidden !important;
+          aspect-ratio: auto !important;
+        }
+        
+        .dashboard-grid .chart-card canvas {
+          max-width: 100% !important;
+          height: 250px !important;
+          aspect-ratio: auto !important;
+          object-fit: contain !important;
+        }
+        
+        /* Grid especial para Payment Type Charts */
+        .dashboard-grid .chart-card div[style*="grid-template-columns"] {
+          grid-template-columns: 1fr !important;
+          gap: 1rem !important;
+        }
+        
+        .dashboard-grid .chart-card h3 {
+          font-size: 0.9rem !important;
+          margin-bottom: 0.5rem !important;
+          white-space: normal !important;
+        }
+        
+        .dashboard-grid .chart-card select {
+          font-size: 0.8rem !important;
+          padding: 0.3rem 0.5rem !important;
+        }
+        
+        .dashboard-grid .chart-card button {
+          font-size: 0.8rem !important;
+          padding: 0.3rem 0.5rem !important;
+        }
+        
+        /* Corrigir gráficos do primeiro separador também */
+        .dashboard-grid canvas {
+          max-width: 100% !important;
+          height: 250px !important;
+          aspect-ratio: auto !important;
+          object-fit: contain !important;
+        }
+      }
+      
+      @media (max-width: 480px) {
+        .container {
+          padding: 0 0.5rem;
+        }
+        
+        .filters-section {
+          padding: 0.5rem;
+        }
+        
+        .commissions-table th,
+        .commissions-table td {
+          padding: 0.4rem;
+          font-size: 10px;
+        }
+        
+        /* Mobile improvements for Commissioners Tab */
+        #commissioners-tab .commissions-table {
+          overflow-x: auto;
+          -webkit-overflow-scrolling: touch;
+        }
+        
+        #commissioners-tab .commissions-table table {
+          min-width: 600px;
+          width: 100%;
+        }
+        
+        #commissioners-tab .commissions-table th:nth-child(1),
+        #commissioners-tab .commissions-table td:nth-child(1) {
+          min-width: 150px;
+          text-align: left;
+        }
+        
+        #commissioners-tab .commissions-table th:nth-child(2),
+        #commissioners-tab .commissions-table td:nth-child(2) {
+          min-width: 80px;
+          text-align: center;
+        }
+        
+        #commissioners-tab .commissions-table th:nth-child(3),
+        #commissioners-tab .commissions-table td:nth-child(3) {
+          min-width: 80px;
+          text-align: center;
+        }
+        
+        #commissioners-tab .commissions-table th:nth-child(4),
+        #commissioners-tab .commissions-table td:nth-child(4) {
+          min-width: 120px;
+          text-align: center;
+        }
+        
+        /* Search and button layout mobile */
+        #commissioners-tab .search-container {
+          display: flex !important;
+          flex-direction: column !important;
+          gap: 10px !important;
+          margin-bottom: 20px !important;
+        }
+        
+        #commissioners-tab #searchCommissioners {
+          width: 100% !important;
+          margin-bottom: 0 !important;
+          font-size: 16px !important; /* Better for mobile */
+          padding: 14px !important; /* Larger touch target */
+        }
+        
+        #commissioners-tab .btn-primary {
+          width: 100% !important;
+          padding: 14px !important;
+          font-size: 16px !important; /* Better for mobile */
+          min-height: 48px !important; /* Minimum touch target */
+        }
+        
+        /* Better touch targets for action buttons */
+        #commissioners-tab .commissions-table button {
+          padding: 8px !important;
+          min-width: 40px !important;
+          min-height: 40px !important;
+          margin: 0 2px !important;
+        }
+        
+        #commissioners-tab .commissions-table button svg {
+          width: 18px !important;
+          height: 18px !important;
+        }
+        
+        /* Modal improvements for mobile */
+        #commissionerModal .modal-content {
+          width: 95% !important;
+          max-width: 400px !important;
+          padding: 20px !important;
+          margin: 10px !important;
+          max-height: 85vh !important;
+          overflow-y: auto !important;
+        }
+        
+        #commissionerModal .modal-header {
+          margin-bottom: 15px !important;
+          padding-bottom: 10px !important;
+          border-bottom: 1px solid #eee !important;
+        }
+        
+        #commissionerModal .modal-header h2 {
+          font-size: 18px !important;
+          font-weight: 600 !important;
+          color: #333 !important;
+          margin: 0 !important;
+        }
+        
+        #commissionerModal .form-group {
+          margin-bottom: 18px !important;
+        }
+        
+        #commissionerModal .form-group label {
+          font-size: 14px !important;
+          font-weight: 500 !important;
+          margin-bottom: 6px !important;
+          color: #555 !important;
+          display: block !important;
+        }
+        
+        #commissionerModal .form-group input,
+        #commissionerModal .form-group select {
+          width: 100% !important;
+          padding: 12px !important;
+          font-size: 16px !important; /* Prevent zoom on iOS */
+          border-radius: 8px !important;
+          border: 1px solid #ddd !important;
+          box-sizing: border-box !important;
+          transition: border-color 0.2s !important;
+        }
+        
+        #commissionerModal .form-group input:focus,
+        #commissionerModal .form-group select:focus {
+          border-color: #009cb6 !important;
+          outline: none !important;
+        }
+        
+        #commissionerModal .form-group input[type="checkbox"] {
+          width: auto !important;
+          margin-right: 8px !important;
+        }
+        
+        #commissionerModal .form-group label[for="is_hotel"] {
+          display: flex !important;
+          align-items: center !important;
+          font-weight: 400 !important;
+          cursor: pointer !important;
+        }
+        
+        #commissionerModal .form-actions {
+          display: flex !important;
+          flex-direction: column !important;
+          gap: 12px !important;
+          margin-top: 25px !important;
+          padding-top: 15px !important;
+          border-top: 1px solid #eee !important;
+        }
+        
+        #commissionerModal .btn-cancel,
+        #commissionerModal .btn-submit {
+          width: 100% !important;
+          padding: 14px !important;
+          font-size: 16px !important;
+          font-weight: 500 !important;
+          min-height: 48px !important;
+          border-radius: 8px !important;
+          border: none !important;
+          cursor: pointer !important;
+          transition: all 0.2s !important;
+        }
+        
+        #commissionerModal .btn-cancel {
+          background: #f5f5f5 !important;
+          color: #666 !important;
+        }
+        
+        #commissionerModal .btn-cancel:hover {
+          background: #e9e9e9 !important;
+        }
+        
+        #commissionerModal .btn-submit {
+          background: #009cb6 !important;
+          color: white !important;
+        }
+        
+        #commissionerModal .btn-submit:hover {
+          background: #0077a3 !important;
+        }
+        
+        #commissionerModal .btn-close {
+          font-size: 20px !important;
+          padding: 5px !important;
+          min-width: 40px !important;
+          min-height: 40px !important;
+          background: none !important;
+          border: none !important;
+          cursor: pointer !important;
+          color: #999 !important;
+          border-radius: 50% !important;
+          transition: all 0.2s !important;
+        }
+        
+        #commissionerModal .btn-close:hover {
+          background: #f5f5f5 !important;
+          color: #666 !important;
+        }
+        
+        /* Better organization for form fields */
+        #commissionerModal .form-group:has(input[type="checkbox"]) {
+          margin-bottom: 20px !important;
+        }
+        
+        /* Add visual separation for important fields */
+        #commissionerModal .form-group:has(input[required]) label::after {
+          content: " *" !important;
+          color: #e74c3c !important;
+        }
+      }
+      
+      /* Tablet improvements for Commissioners Tab */
+      @media (max-width: 1024px) and (min-width: 769px) {
+        #commissioners-tab .commissions-table {
+          overflow-x: auto;
+          -webkit-overflow-scrolling: touch;
+        }
+        
+        #commissioners-tab .commissions-table table {
+          min-width: 550px;
+          width: 100%;
+        }
+        
+        #commissioners-tab .commissions-table th:nth-child(1),
+        #commissioners-tab .commissions-table td:nth-child(1) {
+          min-width: 140px;
+        }
+        
+        #commissioners-tab .commissions-table th:nth-child(2),
+        #commissioners-tab .commissions-table td:nth-child(2) {
+          min-width: 70px;
+        }
+        
+        #commissioners-tab .commissions-table th:nth-child(3),
+        #commissioners-tab .commissions-table td:nth-child(3) {
+          min-width: 70px;
+        }
+        
+        #commissioners-tab .commissions-table th:nth-child(4),
+        #commissioners-tab .commissions-table td:nth-child(4) {
+          min-width: 110px;
+        }
+        
+        /* Search layout for tablets */
+        #commissioners-tab .search-container {
+          flex-direction: row !important;
+          gap: 10px !important;
+        }
+        
+        #commissioners-tab #searchCommissioners {
+          flex: 1 !important;
+          font-size: 14px !important;
+          padding: 12px !important;
+        }
+        
+        #commissioners-tab .btn-primary {
+          width: auto !important;
+          min-width: 180px !important;
+          padding: 12px 16px !important;
+          font-size: 14px !important;
+        }
+        
+        /* Touch targets for tablets */
+        #commissioners-tab .commissions-table button {
+          padding: 6px !important;
+          min-width: 36px !important;
+          min-height: 36px !important;
+        }
+        
+        #commissioners-tab .commissions-table button svg {
+          width: 16px !important;
+          height: 16px !important;
+        }
+      }
+        
+        .stat-card .stat-value {
+          font-size: 18px;
+        }
+        
+        .action-buttons button {
+          padding: 8px;
+          font-size: 12px;
+        }
+      
+      .chart-card {
+        background: white;
+        padding: 1.5rem;
+        border-radius: 0.5rem;
+        box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+      }
+      .chart-card h3 {
+        font-size: 1rem;
+        font-weight: 600;
+        color: #374151;
+        margin-bottom: 1rem;
+      }
+      .top-list {
+        list-style: none;
+        padding: 0;
+        margin: 0;
+      }
+      .top-list-item {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 0.75rem;
+        border-bottom: 1px solid #f3f4f6;
+      }
+      .top-list-item:last-child {
+        border-bottom: none;
+      }
+      .top-list-rank {
+        font-weight: 600;
+        color: #009cb6;
+        margin-right: 0.75rem;
+      }
+      .top-list-name {
+        flex: 1;
+        font-size: 0.9rem;
+      }
+      .top-list-value {
+        font-weight: 600;
+        color: #374151;
+      }
+      
+      /* Modal styles for commissioners */
+      .modal {
+          display: none;
+          position: fixed;
+          top: 0;
+          left: 0;
+          width: 100%;
+          height: 100%;
+          background: rgba(0, 0, 0, 0.5);
+          z-index: 1000;
+          align-items: center;
+          justify-content: center;
+      }
+
+      .modal-content {
+          background: white;
+          border-radius: 20px;
+          padding: 30px;
+          width: 90%;
+          max-width: 500px;
+          max-height: 90vh;
+          overflow-y: auto;
+      }
+
+      .modal-header {
+          display: flex;
+          justify-content: space-between;
+          align-items: center;
+          margin-bottom: 20px;
+      }
+
+      .modal-header h2 {
+          font-size: 22px;
+          color: #333;
+      }
+
+      .btn-close {
+          background: none;
+          border: none;
+          font-size: 24px;
+          cursor: pointer;
+          color: #999;
+      }
+
+      .form-group {
+          margin-bottom: 20px;
+      }
+
+      .form-group label {
+          display: block;
+          margin-bottom: 8px;
+          color: #333;
+          font-weight: 500;
+          font-size: 14px;
+      }
+
+      .form-group input, .form-group select {
+          width: 100%;
+          padding: 12px 15px;
+          border: 2px solid #e0e0e0;
+          border-radius: 10px;
+          font-size: 15px;
+          transition: all 0.3s;
+      }
+
+      .form-group input:focus, .form-group select:focus {
+          outline: none;
+          border-color: #009cb6;
+          box-shadow: 0 0 0 3px rgba(0, 156, 182, 0.1);
+      }
+
+      .form-actions {
+          display: flex;
+          gap: 10px;
+          margin-top: 25px;
+      }
+
+      .btn-cancel {
+          flex: 1;
+          padding: 12px;
+          background: #f0f0f0;
+          color: #666;
+          border: none;
+          border-radius: 10px;
+          cursor: pointer;
+          font-size: 15px;
+          font-weight: 600;
+      }
+
+      .btn-submit {
+          flex: 2;
+          padding: 12px;
+          background: #009cb6;
+          color: white;
+          border: none;
+          border-radius: 10px;
+          cursor: pointer;
+          font-size: 15px;
+          font-weight: 600;
+      }
+
+      .btn-submit:hover {
+          background: #0077a3;
+      }
+    </style>
+    <script>
+      if (window.location.search.includes("iframe=1")) {
+        document.addEventListener("DOMContentLoaded", function() {
+          const header = document.querySelector("header");
+          if (header) header.style.display = "none";
+        });
+      }
+    </script>
+  </head>
+  <body class="min-h-screen bg-gray-50">
+    {% if user_role == 'support' %}
+    <!-- Header estilo inspeções para users support -->
+    <header class="bg-[#009cb6] shadow-md">
+        <div class="max-w-7xl mx-auto px-4 py-3">
+            <div class="flex items-center justify-between">
+                <div class="flex items-center">
+                    <img src="/static/ap-heather.png" alt="Auto Prudente" class="h-12 w-auto" />
+                </div>
+                
+                <div class="flex items-center gap-1 ml-4 sm:ml-auto">
+                    <a href="/vehicle-checkout" class="p-2 hover:bg-[#0088a0] rounded-lg transition-all group" title="Check-out">
+                        <svg class="w-5 h-5 text-white group-hover:text-[#f6b511] transition-colors" viewBox="0 0 24 24" fill="currentColor">
+                            <path d="M18.92 6.01C18.72 5.42 18.16 5 17.5 5h-11c-.66 0-1.21.42-1.42 1.01L3 12v8c0 .55.45 1 1 1h1c.55 0 1-.45 1-1v-1h12v1c0 .55.45 1 1 1h1c.55 0 1-.45 1-1v-8l-2.08-5.99zM6.5 16c-.83 0-1.5-.67-1.5-1.5S5.67 13 6.5 13s1.5.67 1.5 1.5S7.33 16 6.5 16zm11 0c-.83 0-1.5-.67-1.5-1.5s.67-1.5 1.5-1.5 1.5.67 1.5 1.5-.67 1.5-1.5 1.5zM5 11l1.5-4.5h11L19 11H5z"/>
+                        </svg>
+                    </a>
+                    
+                    {% if current_user and current_user.has_commissioner_access %}
+                    <a href="/admin/commissioner-bookings" class="p-2 hover:bg-[#0088a0] rounded-lg transition-all group" title="Reservas de Comissionistas">
+                        <svg class="w-5 h-5 text-white group-hover:text-[#f6b511] transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01"/>
+                        </svg>
+                    </a>
+                    {% endif %}
+                    
+                    {% if current_user and current_user.can_manage_commissions %}
+                    <a href="/admin/commissions" class="p-2 hover:bg-[#0088a0] rounded-lg transition-all group" title="Gestão de Comissões">
+                        <svg class="w-5 h-5 text-white group-hover:text-[#f6b511] transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                        </svg>
+                    </a>
+                    {% endif %}
+                    
+                    <a href="/inspection-history" class="p-2 hover:bg-[#0088a0] rounded-lg transition-all group" title="Histórico">
+                        <svg class="w-5 h-5 text-white group-hover:text-[#f6b511] transition-colors" fill="currentColor" viewBox="0 0 24 24">
+                            <circle cx="12" cy="12" r="10" fill="none" stroke="currentColor" stroke-width="1.5"/>
+                            <path d="M12 6v6l4 2" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+                        </svg>
+                    </a>
+                    
+                    {% if current_user %}
+                    <div class="relative group">
+                        <button class="flex items-center hover:scale-105 transition-transform">
+                            {% if current_user.profile_picture_path %}
+                            <img src="{{ current_user.profile_picture_path }}" alt="Profile" class="w-10 h-10 rounded-full object-cover border-2 border-white shadow-lg" />
+                            {% else %}
+                            <div class="w-10 h-10 rounded-full bg-gradient-to-br from-[#009cb6] to-[#0077a3] flex items-center justify-center text-white font-bold text-sm border-2 border-white shadow-lg">
+                                {{ (current_user.first_name[:1] or current_user.username[:1] or 'U') | upper }}
+                            </div>
+                            {% endif %}
+                        </button>
+                        
+                        <div class="absolute right-0 top-12 w-48 bg-white rounded-lg shadow-xl border border-gray-200 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all z-50">
+                            <div class="p-3 border-b border-gray-100">
+                                <p class="text-sm font-semibold text-gray-900">{{ (current_user.first_name + ' ' + current_user.last_name).strip() or current_user.username }}</p>
+                                <p class="text-xs text-gray-500">{{ current_user.email or current_user.username }}</p>
+                            </div>
+                            <a href="/logout" onclick="return confirm('Tem a certeza que deseja terminar a sessão?');" class="w-full text-left px-4 py-2 text-sm text-red-600 hover:bg-red-50 transition-colors flex items-center gap-2">
+                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"/>
+                                </svg>
+                                Terminar Sessão
+                            </a>
+                        </div>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </header>
+    {% else %}
+    <!-- Header completo para users admin -->
+    <header class="bg-[#009cb6] border-b">
+      <div class="mx-auto max-w-6xl px-4 py-3 flex items-center justify-between">
+        <div class="flex items-center gap-3">
+          <a href="/" class="inline-flex items-center" title="Homepage">
+            <img src="/static/ap-heather.png" alt="Auto Prudente" class="h-12 w-auto" />
+          </a>
+        </div>
+        
+        <button class="mobile-menu-btn" onclick="document.getElementById('mobileMenu').classList.add('active')" aria-label="Menu">
+          <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"/>
+          </svg>
+        </button>
+        
+        <div class="flex items-center gap-3 desktop-nav">
+          <a href="/" class="p-2 text-white/90 hover:text-white hover:bg-white/10 transition-all rounded" title="Home">
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"/>
+            </svg>
+          </a>
+          
+          <a href="/vehicle-inspection" class="p-2 text-white/90 hover:text-white hover:bg-white/10 transition-all" title="Inspeção">
+            <svg class="w-5 h-5" viewBox="0 0 24 24" fill="currentColor">
+              <path d="M18.92 6.01C18.72 5.42 18.16 5 17.5 5h-11c-.66 0-1.21.42-1.42 1.01L3 12v8c0 .55.45 1 1 1h1c.55 0 1-.45 1-1v-1h12v1c0 .55.45 1 1 1h1c.55 0 1-.45 1-1v-8l-2.08-5.99zM6.5 16c-.83 0-1.5-.67-1.5-1.5S5.67 13 6.5 13s1.5.67 1.5 1.5S7.33 16 6.5 16zm11 0c-.83 0-1.5-.67-1.5-1.5s.67-1.5 1.5-1.5 1.5.67 1.5 1.5-.67 1.5-1.5 1.5zM5 11l1.5-4.5h11L19 11H5z"/>
+            </svg>
+          </a>
+          
+          <a href="/price-automation" class="p-2 text-white/90 hover:text-white hover:bg-white/10 transition-all" title="Automação de Preços">
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+            </svg>
+          </a>
+          
+          {% if current_user and current_user.has_commissioner_access %}
+          <a href="/admin/commissioner-bookings" class="p-2 text-white/90 hover:text-white hover:bg-white/10 transition-all" title="Reservas de Comissionistas">
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01"/>
+            </svg>
+          </a>
+          {% endif %}
+          
+          {% if current_user and current_user.can_manage_commissions %}
+          <a href="/admin/commissions" class="p-2 text-white/90 hover:text-white hover:bg-white/10 transition-all" title="Gestão de Comissões">
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/>
+            </svg>
+          </a>
+          {% endif %}
+          
+          <a href="/damage-report" class="p-2 text-white/90 hover:text-white hover:bg-white/10 transition-all" title="Damage Report">
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+            </svg>
+          </a>
+          
+          {% if is_admin %}
+          <a href="/admin" class="p-2 text-white/90 hover:text-white hover:bg-white/10 transition-all" title="Admin">
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"/>
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/>
+            </svg>
+          </a>
+          {% endif %}
+          
+          <div class="relative">
+            <button onclick="alert('Trocar idioma')" class="px-3 py-2 text-white/90 hover:text-white hover:bg-white/10 transition-all" title="Idioma">
+              <span class="text-sm font-semibold">PT</span>
+            </button>
+          </div>
+          
+          <form method="post" action="/logout">
+            <button type="submit" class="p-2 text-white/90 hover:text-white hover:bg-white/10 transition-all" title="Logout">
+              <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"/>
+              </svg>
+            </button>
+          </form>
+        </div>
+      </div>
+    </header>
+    {% endif %}
+
+    <!-- Mobile Menu -->
+    <div class="mobile-menu" id="mobileMenu">
+        <button class="mobile-menu-close" onclick="closeMobileMenu()">×</button>
+        <a href="/" onclick="closeMobileMenu()" class="flex items-center justify-center gap-3">
+            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"/></svg>
+            <span>Home</span>
+        </a>
+        <a href="/price-automation" onclick="closeMobileMenu()" class="flex items-center justify-center gap-3">
+            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+            <span>Automação</span>
+        </a>
+        <a href="/vehicle-inspection" onclick="closeMobileMenu()" class="flex items-center justify-center gap-3">
+            <svg class="w-6 h-6" viewBox="0 0 24 24" fill="currentColor"><path d="M18.92 6.01C18.72 5.42 18.16 5 17.5 5h-11c-.66 0-1.21.42-1.42 1.01L3 12v8c0 .55.45 1 1 1h1c.55 0 1-.45 1-1v-1h12v1c0 .55.45 1 1 1h1c.55 0 1-.45 1-1v-8l-2.08-5.99zM6.5 16c-.83 0-1.5-.67-1.5-1.5S5.67 13 6.5 13s1.5.67 1.5 1.5S7.33 16 6.5 16zm11 0c-.83 0-1.5-.67-1.5-1.5s.67-1.5 1.5-1.5 1.5.67 1.5 1.5-.67 1.5-1.5 1.5zM5 11l1.5-4.5h11L19 11H5z"/></svg>
+            <span>Inspeção</span>
+        </a>
+        <a href="/admin/commissioner-bookings" onclick="closeMobileMenu()" class="flex items-center justify-center gap-3">
+            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01"/></svg>
+            <span>Reservas</span>
+        </a>
+        <a href="/admin/commissions" onclick="closeMobileMenu()" class="flex items-center justify-center gap-3">
+            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/></svg>
+            <span>Comissões</span>
+        </a>
+        <a href="/damage-report" onclick="closeMobileMenu()" class="flex items-center justify-center gap-3">
+            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
+            <span>Damage Report</span>
+        </a>
+        <a href="/admin" onclick="closeMobileMenu()" class="flex items-center justify-center gap-3">
+            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
+            <span>Admin</span>
+        </a>
+    </div>
+
+    <script>
+        function closeMobileMenu() {
+            document.getElementById('mobileMenu').classList.remove('active');
+        }
+    </script>
+
+    <main class="mx-auto max-w-7xl px-4 py-6">
+      <div class="flex items-center justify-between mb-4">
+        <div class="flex items-center gap-3">
+          <h2 class="text-lg font-semibold">Gestão de Comissões</h2>
+        </div>
+      </div>
+      
+      <!-- Tabs Container -->
+      <div class="tabs-container">
+        <div class="tabs-header">
+          <button class="tab-button active" onclick="switchTab('dashboard')">Dashboard</button>
+          <button class="tab-button" onclick="switchTab('commissions')">Gestão de Comissões</button>
+          <button class="tab-button" onclick="switchTab('brokers')">Gestão de Brokers</button>
+          {% if current_user and current_user.role == 'support' and current_user.can_manage_commissioners %}
+          <button class="tab-button" onclick="switchTab('commissioners')">Gestão de Comissionistas</button>
+          {% endif %}
+        </div>
+        
+        <!-- Tab 1: Dashboard -->
+        <div id="dashboard-tab" class="tab-content active">
+          <h3 style="font-size: 1.1rem; font-weight: 600; margin-bottom: 1.5rem; color: #374151;">Estatísticas e Análises</h3>
+          
+          <!-- Summary Cards -->
+          <div class="summary-cards">
+            <div class="summary-card">
+              <h3>Total de Comissões Pagas (<span id="dashMonthLabel">Mês Anterior</span>)</h3>
+              <p class="summary-value" id="dashTotalPaid">€0.00</p>
+            </div>
+            <div class="summary-card">
+              <h3>Total de Comissões Por Pagar (<span id="dashMonthLabel2">Mês Anterior</span>)</h3>
+              <p class="summary-value" id="dashTotalUnpaid">€0.00</p>
+            </div>
+            <div class="summary-card">
+              <h3>Total de Comissões (Ano)</h3>
+              <p class="summary-value" id="dashTotalYear">€0.00</p>
+            </div>
+          </div>
+          
+          <!-- Charts Grid -->
+          <div class="dashboard-grid">
+            <!-- Comparativo de Valores Base por Origem -->
+            <div class="chart-card">
+              <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
+                <h3 style="margin: 0;">Comparativo de Valores Base por Origem (Mês vs Ano Anterior)</h3>
+                <select id="baseValuesMonthSelect" onchange="loadBaseValuesComparison()" style="padding: 0.4rem 0.8rem; border: 1px solid #d1d5db; border-radius: 0.375rem; font-size: 0.875rem; background: white;">
+                  <!-- Months will be populated by JS -->
+                </select>
+              </div>
+              <canvas id="baseValuesComparisonChart" style="max-height: 300px;"></canvas>
+            </div>
+            
+            <!-- Distribuição de Faturação por Origem (Ano) -->
+            <div class="chart-card">
+              <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
+                <h3 style="margin: 0;">Distribuição de Faturação por Origem (Ano)</h3>
+                <select id="distributionYearSelect" onchange="loadDistributionChart()" style="padding: 0.4rem 0.8rem; border: 1px solid #d1d5db; border-radius: 0.375rem; font-size: 0.875rem; background: white;">
+                  <!-- Years will be populated by JS -->
+                </select>
+              </div>
+              <canvas id="distributionChart" style="max-height: 300px;"></canvas>
+            </div>
+            
+            <!-- Top 10 Comissionistas Mês Anterior -->
+            <div class="chart-card">
+              <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
+                <h3 style="margin: 0;">Top 10 Comissionistas (<span id="topCommissionersMonthLabel">Mês Anterior</span>)</h3>
+                <div style="display: flex; gap: 0.5rem; align-items: center;">
+                  <button id="topCommissionersToggle" onclick="toggleTopCommissionersView()" style="padding: 0.4rem 0.8rem; border: 1px solid #d1d5db; border-radius: 0.375rem; font-size: 0.875rem; background: white; cursor: pointer;" title="Alternar entre valor e contagem">
+                    <svg id="topCommissionersToggleIcon" width="16" height="16" viewBox="0 0 24 24" fill="currentColor" style="color: #ff9800;">
+                      <path d="M11 2v20c-5.07-.5-9-4.79-9-10s3.93-9.5 9-10zm2.03 0v8.99H22c-.47-4.74-4.24-8.52-8.97-8.99zm0 11.01V22c4.74-.47 8.5-4.25 8.97-8.99h-8.97z"/>
+                    </svg>
+                  </button>
+                  <select id="topCommissionersMonthSelect" onchange="loadTopCommissioners()" style="padding: 0.4rem 0.8rem; border: 1px solid #d1d5db; border-radius: 0.375rem; font-size: 0.875rem; background: white;">
+                    <!-- Months will be populated by JS -->
+                  </select>
+                </div>
+              </div>
+              <canvas id="topCommissionersChart" style="max-height: 300px;"></canvas>
+            </div>
+            
+            <!-- Top 10 Comissionistas Anual -->
+            <div class="chart-card">
+              <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
+                <h3 style="margin: 0;">Top 10 Comissionistas (Ano)</h3>
+                <div style="display: flex; gap: 0.5rem; align-items: center;">
+                  <button id="topCommissionersYearlyToggle" onclick="toggleTopCommissionersYearlyView()" style="padding: 0.4rem 0.8rem; border: 1px solid #d1d5db; border-radius: 0.375rem; font-size: 0.875rem; background: white; cursor: pointer;" title="Alternar entre valor e contagem">
+                    <svg id="topCommissionersYearlyToggleIcon" width="16" height="16" viewBox="0 0 24 24" fill="currentColor" style="color: #ff9800;">
+                      <path d="M11 2v20c-5.07-.5-9-4.79-9-10s3.93-9.5 9-10zm2.03 0v8.99H22c-.47-4.74-4.24-8.52-8.97-8.99zm0 11.01V22c4.74-.47 8.5-4.25 8.97-8.99h-8.97z"/>
+                    </svg>
+                  </button>
+                  <select id="yearlyTopSelect" onchange="loadYearlyTop()" style="padding: 0.4rem 0.8rem; border: 1px solid #d1d5db; border-radius: 0.375rem; font-size: 0.875rem; background: white;">
+                    <!-- Years will be populated by JS -->
+                  </select>
+                </div>
+              </div>
+              <canvas id="topCommissionersYearlyChart" style="max-height: 300px;"></canvas>
+            </div>
+            
+            <!-- Comparativo Mensal -->
+            <div class="chart-card">
+              <h3>Comparativo Mensal (Ano Atual vs Ano Anterior)</h3>
+              <canvas id="monthlyChart" style="max-height: 300px;"></canvas>
+            </div>
+            
+            <!-- Comparativo Anual -->
+            <div class="chart-card">
+              <h3>Comparativo Anual</h3>
+              <canvas id="yearlyChart" style="max-height: 300px;"></canvas>
+            </div>
+          </div>
+        </div>
+        
+        <!-- Tab 2: Gestão de Comissões -->
+        <div id="commissions-tab" class="tab-content">
+    
+      <!-- Summary Cards -->
+      <div class="summary-cards">
+          <div class="summary-card">
+              <h3>Total de Comissões Pagas (Mês Atual)</h3>
+              <p class="summary-value" id="totalPaid">€0.00</p>
+          </div>
+          <div class="summary-card">
+              <h3>Total de Comissões Por Pagar (Mês Atual)</h3>
+              <p class="summary-value" id="totalUnpaid">€0.00</p>
+          </div>
+          <div class="summary-card">
+              <h3>Total de Comissões (Ano)</h3>
+              <p class="summary-value" id="totalYear">€0.00</p>
+          </div>
+      </div>
+      
+      <!-- Filters -->
+      <div class="filters-section">
+          <div class="filter-group">
+              <label>Status:</label>
+              <select id="statusFilter">
+                  <option value="all">Todas</option>
+                  <option value="paid">Pagas</option>
+                  <option value="unpaid">Por Pagar</option>
+              </select>
+          </div>
+          <div class="filter-group">
+              <label>Ano:</label>
+              <select id="yearFilter">
+                  <option value="">Todos os Anos</option>
+              </select>
+          </div>
+          <div class="filter-group">
+              <label>Mês:</label>
+              <select id="monthFilter">
+                  <option value="">Todos os Meses</option>
+              </select>
+          </div>
+          <div class="filter-group">
+              <label>Comissionista:</label>
+              <select id="commissionerFilter">
+                  <option value="">Todos</option>
+              </select>
+          </div>
+          <button class="btn-primary" onclick="loadCommissions()">Atualizar</button>
+      </div>
+      
+      <!-- Actions -->
+      <div class="mb-4 flex gap-2">
+          <button onclick="markSelectedAsPaid(true)" disabled id="markPaidBtn">
+              <span class="btn-icon-mobile">
+                  <svg style="width: 1.5rem; height: 1.5rem;" fill="none" stroke="#009cb6" viewBox="0 0 24 24">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
+                  </svg>
+              </span>
+          </button>
+          <button onclick="markSelectedAsPaid(false)" disabled id="markUnpaidBtn">
+              <span class="btn-icon-mobile">
+                  <svg style="width: 1.5rem; height: 1.5rem;" fill="none" stroke="#eab308" viewBox="0 0 24 24">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M18 6L6 18M6 6l12 12"></path>
+                  </svg>
+              </span>
+          </button>
+          <input type="file" id="uploadExcelInput" accept=".xlsx,.xls" style="display: none;" onchange="uploadExcelFile(event)">
+          <button onclick="document.getElementById('uploadExcelInput').click()" title="Importar Excel">
+              <svg style="width: 1.5rem; height: 1.5rem;" fill="none" stroke="#009cb6" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"></path>
+              </svg>
+          </button>
+          <button onclick="exportToExcel()" title="Exportar Excel">
+              <svg style="width: 1.5rem; height: 1.5rem;" fill="none" stroke="#009cb6" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
+              </svg>
+          </button>
+          <button onclick="printCommissionsPDF()" title="Imprimir PDF">
+              <svg style="width: 1.5rem; height: 1.5rem;" fill="none" stroke="#009cb6" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z"></path>
+              </svg>
+          </button>
+      </div>
+      
+      <!-- Commissions Table -->
+      <div class="commissions-table">
+          <table>
+              <thead>
+                  <tr>
+                      <th><input type="checkbox" id="selectAllCheckbox" onchange="toggleSelectAll()"></th>
+                      <th class="sortable ${commissionsSortField === 'commissioner_name' ? commissionsSortDirection : ''}" onclick="sortCommissions('commissioner_name')">Comissionista</th>
+                      <th class="sortable ${commissionsSortField === 'voucher_number' ? commissionsSortDirection : ''}" onclick="sortCommissions('voucher_number')">Voucher</th>
+                      <th class="sortable ${commissionsSortField === 'pickup_date' ? commissionsSortDirection : ''}" onclick="sortCommissions('pickup_date')">Data Levant.</th>
+                      <th class="sortable ${commissionsSortField === 'deposit' ? commissionsSortDirection : ''}" onclick="sortCommissions('deposit')">Depósito</th>
+                      <th class="sortable ${commissionsSortField === 'base_price' ? commissionsSortDirection : ''}" onclick="sortCommissions('base_price')">Valor Base</th>
+                      <th class="sortable ${commissionsSortField === 'commission_amount' ? commissionsSortDirection : ''}" onclick="sortCommissions('commission_amount')">Comissão</th>
+                      <th class="sortable ${commissionsSortField === 'commission_paid' ? commissionsSortDirection : ''}" onclick="sortCommissions('commission_paid')">Status Pagamento</th>
+                      <th class="sortable ${commissionsSortField === 'commission_paid_date' ? commissionsSortDirection : ''}" onclick="sortCommissions('commission_paid_date')">Data Pagamento</th>
+                  </tr>
+              </thead>
+              <tbody id="commissionsTableBody">
+                  <tr>
+                      <td colspan="10" class="text-center py-4">Carregando...</td>
+                  </tr>
+              </tbody>
+          </table>
+      </div>
+        </div>
+        
+        <!-- Tab 3: Gestão de Brokers -->
+        <div id="brokers-tab" class="tab-content">
+    
+      <!-- Summary Cards -->
+      <div class="summary-cards">
+          <div class="summary-card">
+              <h3 id="brokerReservationsTitle">Total de Reservas Brokers</h3>
+              <p class="summary-value" id="brokerTotalReservations">0</p>
+          </div>
+          <div class="summary-card">
+              <h3 id="brokerValueTitle">Valor Total Brokers</h3>
+              <p class="summary-value" id="brokerTotalValue">€0.00</p>
+          </div>
+          <div class="summary-card">
+              <h3>Total de Reservas Brokers (Ano)</h3>
+              <p class="summary-value" id="brokerTotalYear">0</p>
+          </div>
+      </div>
+      
+      <!-- Broker Charts Grid -->
+      <div class="dashboard-grid">
+        <!-- Comparativo de Brokers por Mês -->
+        <div class="chart-card">
+          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
+            <h3 style="margin: 0;">Comparativo de Brokers (Mês vs Ano Anterior)</h3>
+            <select id="brokerMonthSelect" onchange="loadBrokerMonthlyComparison()" style="padding: 0.4rem 0.8rem; border: 1px solid #d1d5db; border-radius: 0.375rem; font-size: 0.875rem; background: white;">
+              <!-- Months will be populated by JS -->
+            </select>
+          </div>
+          <canvas id="brokerMonthlyChart" style="max-height: 300px;"></canvas>
+        </div>
+        
+        <!-- Distribuição de Reservas por Broker (Ano) -->
+        <div class="chart-card">
+          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
+            <h3 style="margin: 0;">Distribuição de Reservas por Broker (Ano)</h3>
+            <div style="display: flex; gap: 0.5rem; align-items: center;">
+              <button id="brokerYearlyToggle" onclick="toggleBrokerYearlyView()" style="padding: 0.4rem 0.8rem; border: 1px solid #d1d5db; border-radius: 0.375rem; font-size: 0.875rem; background: white; cursor: pointer;" title="Alternar entre valor e contagem">
+                <svg id="brokerYearlyToggleIcon" width="16" height="16" viewBox="0 0 24 24" fill="currentColor" style="color: #009cb6;">
+                  <path d="M3 13h2v8H3zm4-8h2v16H7zm4-2h2v18h-2zm4 4h2v14h-2zm4-2h2v18h-2z"/>
+                </svg>
+              </button>
+              <select id="brokerYearSelect" onchange="loadBrokerYearlyDistribution()" style="padding: 0.4rem 0.8rem; border: 1px solid #d1d5db; border-radius: 0.375rem; font-size: 0.875rem; background: white;">
+                <!-- Years will be populated by JS -->
+              </select>
+            </div>
+          </div>
+          <canvas id="brokerYearlyChart" style="max-height: 300px;"></canvas>
+        </div>
+        
+        <!-- Top Brokers por Valor (Ano) -->
+        <div class="chart-card">
+          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
+            <h3 style="margin: 0;">Top Brokers por Valor (Ano)</h3>
+            <select id="brokerTopYearSelect" onchange="loadBrokerTopByValue()" style="padding: 0.4rem 0.8rem; border: 1px solid #d1d5db; border-radius: 0.375rem; font-size: 0.875rem; background: white;">
+              <!-- Years will be populated by JS -->
+            </select>
+          </div>
+          <canvas id="brokerTopChart" style="max-height: 300px;"></canvas>
+        </div>
+        
+        <!-- Distribuição Prepaid vs POA -->
+        <div class="chart-card">
+          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
+            <h3 style="margin: 0;">Distribuição Prepaid vs POA</h3>
+            <div style="display: flex; gap: 0.5rem; align-items: center;">
+              <select id="paymentTypeMonthSelect" onchange="loadPaymentTypeMonthly()" style="padding: 0.4rem 0.8rem; border: 1px solid #d1d5db; border-radius: 0.375rem; font-size: 0.875rem; background: white;">
+                <!-- Months will be populated by JS -->
+              </select>
+              <select id="paymentTypeYearSelect" onchange="loadPaymentTypeYearly()" style="padding: 0.4rem 0.8rem; border: 1px solid #d1d5db; border-radius: 0.375rem; font-size: 0.875rem; background: white;">
+                <!-- Years will be populated by JS -->
+              </select>
+            </div>
+          </div>
+          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
+            <div>
+              <h4 style="margin: 0 0 0.5rem 0; font-size: 0.9rem; color: #6b7280;">Mensal</h4>
+              <canvas id="paymentTypeMonthlyChart" style="max-height: 300px;"></canvas>
+            </div>
+            <div>
+              <h4 style="margin: 0 0 0.5rem 0; font-size: 0.9rem; color: #6b7280;">Anual</h4>
+              <canvas id="paymentTypeYearlyChart" style="max-height: 300px;"></canvas>
+            </div>
+          </div>
+        </div>
+      </div>
+      
+      <!-- Filters -->
+      <div class="filters-section">
+          <div class="filter-group">
+              <label>Ano:</label>
+              <select id="brokerYearFilter">
+                  <option value="">Todos os Anos</option>
+              </select>
+          </div>
+          <div class="filter-group">
+              <label>Mês:</label>
+              <select id="brokerMonthFilter">
+                  <option value="">Todos os Meses</option>
+              </select>
+          </div>
+          <div class="filter-group">
+              <label>Broker:</label>
+              <select id="brokerFilter">
+                  <option value="">Todos</option>
+              </select>
+          </div>
+          <button class="btn-primary" onclick="loadBrokers()">Atualizar</button>
+          
+          <!-- Upload Excel Button -->
+          <input type="file" id="uploadBrokerExcelInput" accept=".xlsx,.xls" style="display: none;" onchange="uploadBrokerExcelFile(event)">
+          <button onclick="document.getElementById('uploadBrokerExcelInput').click()" style="margin-left: auto; padding: 0.5rem; background: transparent; border: 1px solid #d1d5db; border-radius: 0.375rem; cursor: pointer;" title="Importar Excel">
+              <svg style="width: 1.5rem; height: 1.5rem;" fill="none" stroke="#009cb6" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"/>
+              </svg>
+          </button>
+      </div>
+      
+      <!-- Actions -->
+      <div class="mb-4 flex gap-2 justify-between items-center">
+          <div class="flex gap-2">
+              <button class="btn-primary" onclick="toggleSelectAll()">
+                  <span id="selectAllBrokersText">Selecionar Todas</span>
+              </button>
+              <button class="btn-primary" onclick="exportSelectedBrokers()" disabled id="exportBrokersBtn">
+                  Exportar Selecionadas
+              </button>
+              <button class="btn-primary" onclick="deleteSelectedBrokers()" disabled id="deleteBrokersBtn">
+                  Eliminar Selecionadas
+              </button>
+          </div>
+          <div class="text-sm text-gray-600">
+              <span id="brokerResultsCount">0</span> reservas encontradas
+          </div>
+      </div>
+      
+      <!-- Brokers Table -->
+      <div class="commissions-table">
+          <table>
+              <thead>
+                  <tr>
+                      <th><input type="checkbox" id="selectAllBrokers" onchange="toggleAllBrokersSelection()"></th>
+                      <th class="sortable ${brokersSortField === 'broker_name' ? brokersSortDirection : ''}" onclick="sortBrokers('broker_name')">Broker</th>
+                      <th class="sortable ${brokersSortField === 'voucher_number' ? brokersSortDirection : ''}" onclick="sortBrokers('voucher_number')">Voucher</th>
+                      <th class="sortable ${brokersSortField === 'pickup_date' ? brokersSortDirection : ''}" onclick="sortBrokers('pickup_date')">Data Levant.</th>
+                      <th class="sortable ${brokersSortField === 'days' ? brokersSortDirection : ''}" onclick="sortBrokers('days')">Dias</th>
+                      <th class="sortable ${brokersSortField === 'total_price' ? brokersSortDirection : ''}" onclick="sortBrokers('total_price')">Valor Base</th>
+                  </tr>
+              </thead>
+              <tbody id="brokersTableBody">
+                  <tr>
+                      <td colspan="6" class="text-center py-4">Carregando...</td>
+                  </tr>
+              </tbody>
+          </table>
+      </div>
+        </div>
+        
+        <!-- Tab 4: Gestão de Comissionistas -->
+        {% if current_user and current_user.role == 'support' and current_user.can_manage_commissioners %}
+        <div id="commissioners-tab" class="tab-content">
+          <h3 style="font-size: 1.1rem; font-weight: 600; margin-bottom: 1.5rem; color: #374151;">Gestão de Comissionistas</h3>
+          
+          <!-- Search and New Button -->
+          <div class="search-container" style="display: flex; gap: 10px; margin-bottom: 20px; align-items: center;">
+              <input type="text" id="searchCommissioners" placeholder="Pesquisar por nome, email ou série..." 
+                     style="flex: 1; padding: 12px; border: 1px solid #ddd; border-radius: 8px; font-size: 14px;"
+                     oninput="filterCommissioners()">
+              <button class="btn-primary" onclick="openCreateModal()">+ Novo Comissionista</button>
+          </div>
+          
+          <!-- Commissioners Table -->
+          <div class="commissions-table">
+            <table>
+              <thead>
+                <tr>
+                  <th>Nome</th>
+                  <th>Reservas</th>
+                  <th>Status</th>
+                  <th>Ações</th>
+                </tr>
+              </thead>
+              <tbody id="commissionersTableBody">
+                <tr>
+                  <td colspan="4" class="text-center py-4">Carregando...</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+          
+          <!-- Cards for Mobile -->
+          <div class="commissioners-cards" id="commissionersCardsContainer">
+            <!-- Cards will be rendered here by JavaScript -->
+          </div>
+        </div>
+        {% endif %}
+      </div>
+      </main>
+      
+      <script>
+          // Global variables
+          let allCommissions = [];
+          let selectedCommissions = new Set();
+          let allBrokers = [];
+          let selectedBrokers = new Set();
+          let allCommissioners = [];
+          let selectedCommissioners = new Set();
+          
+          // Sorting variables
+          let commissionsSortField = 'pickup_date';
+          let commissionsSortDirection = 'desc';
+          let brokersSortField = 'pickup_date';
+          let brokersSortDirection = 'desc';
+          let commissionersSortField = 'name';
+          let commissionersSortDirection = 'asc';
+          
+          // Toggle states for Top Commissioners charts
+          let topCommissionersShowValues = true; // true = valores, false = reservas
+          let topCommissionersYearlyShowValues = true; // true = valores, false = reservas
+          
+          // Load commissions on page load
+          document.addEventListener('DOMContentLoaded', function() {
+              loadCommissions();
+              loadFilters();
+              
+              // Load dashboard data if Dashboard tab is active by default
+              const dashboardTab = document.getElementById('dashboard-tab');
+              if (dashboardTab && dashboardTab.classList.contains('active')) {
+                  loadDashboardData();
+              }
+              
+              // Load broker data if Brokers tab is active by default
+              const brokersTab = document.getElementById('brokers-tab');
+              if (brokersTab && brokersTab.classList.contains('active')) {
+                  loadBrokers();
+                  populateBrokerChartSelectors();
+                  loadBrokerMonthlyComparison();
+                  loadBrokerYearlyDistribution();
+                  loadBrokerTopByValue();
+              }
+              
+              // Load commissioner data if Commissioners tab is active by default
+              const commissionersTab = document.getElementById('commissioners-tab');
+              if (commissionersTab && commissionersTab.classList.contains('active')) {
+                  loadCommissioners();
+              }
+              
+              // Add event listeners to filters to auto-update
+              document.getElementById('statusFilter').addEventListener('change', renderCommissions);
+              document.getElementById('yearFilter').addEventListener('change', renderCommissions);
+              document.getElementById('monthFilter').addEventListener('change', renderCommissions);
+              document.getElementById('commissionerFilter').addEventListener('change', renderCommissions);
+              
+              // Add event listeners for broker filters
+              document.getElementById('brokerFilter').addEventListener('change', renderBrokers);
+              document.getElementById('brokerYearFilter').addEventListener('change', renderBrokers);
+              document.getElementById('brokerMonthFilter').addEventListener('change', renderBrokers);
+          });
+          
+          // Load commissions data
+          async function loadCommissions() {
+              try {
+                  // Sempre carregar TODAS as comissões - filtro é feito no frontend
+                  const response = await fetch('/api/admin/commissions/list');
+                  const data = await response.json();
+                  
+                  if (data.ok) {
+                      allCommissions = data.commissions;
+                      renderCommissions();
+                      if (data.summary) {
+                          updateSummaryCards(data.summary);
+                      }
+                  } else {
+                      console.error('Error loading commissions:', data.error);
+                  }
+              } catch (error) {
+                  console.error('Error loading commissions:', error);
+              }
+          }
+          
+          // Load filter options
+          async function loadFilters() {
+              try {
+                  // Load years (from 2024 to current year)
+                  const yearSelect = document.getElementById('yearFilter');
+                  const currentYear = new Date().getFullYear();
+                  for (let year = 2024; year <= currentYear; year++) {
+                      const option = document.createElement('option');
+                      option.value = year;
+                      option.textContent = year;
+                      yearSelect.appendChild(option);
+                  }
+                  
+                  // Load months
+                  const monthSelect = document.getElementById('monthFilter');
+                  for (let i = 1; i <= 12; i++) {
+                      const option = document.createElement('option');
+                      option.value = i;
+                      option.textContent = new Date(2026, i - 1, 1).toLocaleDateString('pt-PT', { month: 'long' });
+                      monthSelect.appendChild(option);
+                  }
+                  
+                  // Load commissioners from API
+                  const response = await fetch('/api/admin/commissions/list');
+                  const data = await response.json();
+                  if (data.ok) {
+                      const commissioners = new Set();
+                      data.commissions.forEach(c => {
+                          if (c.commissioner_name) commissioners.add(c.commissioner_name);
+                      });
+                      
+                      const commissionerSelect = document.getElementById('commissionerFilter');
+                      commissioners.forEach(name => {
+                          const option = document.createElement('option');
+                          option.value = name;
+                          option.textContent = name;
+                          commissionerSelect.appendChild(option);
+                      });
+                  }
+              } catch (error) {
+                  console.error('Error loading filters:', error);
+              }
+          }
+          
+          // Sort commissions
+          function sortCommissions(field) {
+              if (commissionsSortField === field) {
+                  commissionsSortDirection = commissionsSortDirection === 'asc' ? 'desc' : 'asc';
+              } else {
+                  commissionsSortField = field;
+                  commissionsSortDirection = 'asc';
+              }
+              renderCommissions();
+          }
+          
+          // Render commissions table/cards
+          function renderCommissions() {
+              const tbody = document.getElementById('commissionsTableBody');
+              const tableContainer = tbody.closest('.commissions-table');
+              let filteredCommissions = filterCommissions();
+              
+              // Apply sorting
+              filteredCommissions.sort((a, b) => {
+                  let aVal = a[commissionsSortField];
+                  let bVal = b[commissionsSortField];
+                  
+                  // Handle null/undefined values
+                  if (aVal === null || aVal === undefined) aVal = '';
+                  if (bVal === null || bVal === undefined) bVal = '';
+                  
+                  // Handle dates
+                  if (commissionsSortField.includes('date')) {
+                      aVal = aVal ? new Date(aVal) : new Date(0);
+                      bVal = bVal ? new Date(bVal) : new Date(0);
+                  }
+                  
+                  // Handle numbers
+                  if (typeof aVal === 'string' && !isNaN(aVal)) aVal = parseFloat(aVal);
+                  if (typeof bVal === 'string' && !isNaN(bVal)) bVal = parseFloat(bVal);
+                  
+                  if (aVal < bVal) return commissionsSortDirection === 'asc' ? -1 : 1;
+                  if (aVal > bVal) return commissionsSortDirection === 'asc' ? 1 : -1;
+                  return 0;
+              });
+              
+              // Check if mobile
+              const isMobile = window.innerWidth <= 768;
+              
+              // Remove existing mobile cards if any
+              const existingCards = tableContainer.querySelector('.commissions-cards');
+              if (existingCards) {
+                  existingCards.remove();
+              }
+              
+              if (isMobile) {
+                  // Render cards for mobile
+                  let cardsHTML = '<div class="commissions-cards">';
+                  
+                  filteredCommissions.forEach(commission => {
+                      const isChecked = selectedCommissions.has(commission.id) ? 'checked' : '';
+                      cardsHTML += `
+                          <div class="commission-card">
+                              <div class="commission-card-header">
+                                  <div class="commission-card-title">${commission.commissioner_name || '-'}</div>
+                                  <div class="commission-card-amount">€${(commission.commission_amount || 0).toFixed(2)}</div>
+                              </div>
+                              <div class="commission-card-details">
+                                  <div class="commission-card-row">
+                                      <span class="commission-card-label">Voucher:</span>
+                                      <span class="commission-card-value">${commission.voucher_number || '-'}</span>
+                                  </div>
+                                  <div class="commission-card-row">
+                                      <span class="commission-card-label">Data Levant.:</span>
+                                      <span class="commission-card-value">${commission.pickup_date ? new Date(commission.pickup_date).toLocaleDateString('pt-PT') : '-'}</span>
+                                  </div>
+                                  <div class="commission-card-row">
+                                      <span class="commission-card-label">Depósito:</span>
+                                      <span class="commission-card-value">€${(commission.deposit || 0).toFixed(2)}</span>
+                                  </div>
+                                  <div class="commission-card-row">
+                                      <span class="commission-card-label">Valor Base:</span>
+                                      <span class="commission-card-value">€${(commission.base_price || 0).toFixed(2)}</span>
+                                  </div>
+                                  ${commission.commission_paid_date ? `
+                                  <div class="commission-card-row">
+                                      <span class="commission-card-label">Data Pagamento:</span>
+                                      <span class="commission-card-value">${new Date(commission.commission_paid_date).toLocaleDateString('pt-PT')}</span>
+                                  </div>
+                                  ` : ''}
+                              </div>
+                              <div class="commission-card-status">
+                                  <span class="status-badge ${commission.commission_paid ? 'status-paid' : 'status-pending'}">
+                                      ${commission.commission_paid ? 'Pago' : 'Por Pagar'}
+                                  </span>
+                                  <div class="commission-card-actions">
+                                      <input type="checkbox" ${isChecked} data-id="${commission.id}" onchange="toggleCommissionSelection(${commission.id})">
+                                  </div>
+                              </div>
+                          </div>
+                      `;
+                  });
+                  
+                  cardsHTML += '</div>';
+                  
+                  // Insert cards after the table
+                  tableContainer.insertAdjacentHTML('beforeend', cardsHTML);
+                  
+                  // Clear tbody
+                  tbody.innerHTML = '';
+              } else {
+                  // Render table for desktop
+                  tbody.innerHTML = '';
+                  
+                  filteredCommissions.forEach(commission => {
+                      const row = document.createElement('tr');
+                      row.innerHTML = `
+                          <td><input type="checkbox" data-id="${commission.id}" onchange="toggleCommissionSelection(${commission.id})"></td>
+                          <td>${commission.commissioner_name || '-'}</td>
+                          <td style="font-size: 0.85em; white-space: nowrap;">${commission.voucher_number || '-'}</td>
+                          <td>${commission.pickup_date ? new Date(commission.pickup_date).toLocaleDateString('pt-PT') : '-'}</td>
+                          <td>€${(commission.deposit || 0).toFixed(2)}</td>
+                          <td>€${(commission.base_price || 0).toFixed(2)}</td>
+                          <td>€${(commission.commission_amount || 0).toFixed(2)}</td>
+                          <td>
+                              <span class="status-badge ${commission.commission_paid ? 'status-paid' : 'status-unpaid'}">
+                                  ${commission.commission_paid ? 'Pago' : 'Por Pagar'}
+                              </span>
+                          </td>
+                          <td>${commission.commission_paid_date ? new Date(commission.commission_paid_date).toLocaleDateString('pt-PT') : '-'}</td>
+                      `;
+                      tbody.appendChild(row);
+                  });
+              }
+              
+              // Recalcular totais baseado nas comissões filtradas
+              updateSummaryCardsFromFiltered(filteredCommissions);
+              
+              updateActionButtons();
+          }
+          
+          // Filter commissions
+          function filterCommissions() {
+              const statusFilter = document.getElementById('statusFilter').value;
+              const yearFilter = document.getElementById('yearFilter').value;
+              const monthFilter = document.getElementById('monthFilter').value;
+              const commissionerFilter = document.getElementById('commissionerFilter').value;
+              
+              return allCommissions.filter(commission => {
+                  if (statusFilter !== 'all') {
+                      if (statusFilter === 'paid' && !commission.commission_paid) return false;
+                      if (statusFilter === 'unpaid' && commission.commission_paid) return false;
+                  }
+                  
+                  if (yearFilter) {
+                      const bookingYear = new Date(commission.pickup_date).getFullYear();
+                      if (bookingYear != yearFilter) return false;
+                  }
+                  
+                  if (monthFilter) {
+                      const bookingMonth = new Date(commission.pickup_date).getMonth() + 1;
+                      if (bookingMonth != monthFilter) return false;
+                  }
+                  
+                  if (commissionerFilter && commission.commissioner_name !== commissionerFilter) {
+                      return false;
+                  }
+                  
+                  return true;
+              });
+          }
+          
+          // Update summary cards
+          function updateSummaryCards(summary) {
+              document.getElementById('totalPaid').textContent = `€${(summary.paid_commissions_amount || 0).toFixed(2)}`;
+              document.getElementById('totalUnpaid').textContent = `€${(summary.unpaid_commissions_amount || 0).toFixed(2)}`;
+              document.getElementById('totalYear').textContent = `€${(summary.total_year_commissions || 0).toFixed(2)}`;
+          }
+          
+          // Update summary cards from filtered commissions
+          function updateSummaryCardsFromFiltered(filteredCommissions) {
+              const currentMonth = new Date().getMonth() + 1;
+              const currentYear = new Date().getFullYear();
+              
+              let paidCurrentMonth = 0;
+              let unpaidCurrentMonth = 0;
+              let totalYear = 0;
+              
+              filteredCommissions.forEach(commission => {
+                  const commissionDate = new Date(commission.pickup_date);
+                  const commissionMonth = commissionDate.getMonth() + 1;
+                  const commissionYear = commissionDate.getFullYear();
+                  const amount = commission.commission_amount || 0;
+                  
+                  // Total do ano
+                  if (commissionYear === currentYear) {
+                      totalYear += amount;
+                  }
+                  
+                  // Totais do mês atual
+                  if (commissionMonth === currentMonth && commissionYear === currentYear) {
+                      if (commission.commission_paid) {
+                          paidCurrentMonth += amount;
+                      } else {
+                          unpaidCurrentMonth += amount;
+                      }
+                  }
+              });
+              
+              document.getElementById('totalPaid').textContent = `€${paidCurrentMonth.toFixed(2)}`;
+              document.getElementById('totalUnpaid').textContent = `€${unpaidCurrentMonth.toFixed(2)}`;
+              document.getElementById('totalYear').textContent = `€${totalYear.toFixed(2)}`;
+          }
+          
+          // Toggle commission selection
+          function toggleCommissionSelection(commissionId) {
+              if (selectedCommissions.has(commissionId)) {
+                  selectedCommissions.delete(commissionId);
+              } else {
+                  selectedCommissions.add(commissionId);
+              }
+              updateActionButtons();
+          }
+          
+          // Toggle select all
+          function toggleSelectAll() {
+              const selectAllCheckbox = document.getElementById('selectAllCheckbox');
+              const checkboxes = document.querySelectorAll('input[data-id]');
+              
+              checkboxes.forEach(checkbox => {
+                  checkbox.checked = selectAllCheckbox.checked;
+                  const commissionId = parseInt(checkbox.dataset.id);
+                  if (selectAllCheckbox.checked) {
+                      selectedCommissions.add(commissionId);
+                  } else {
+                      selectedCommissions.delete(commissionId);
+                  }
+              });
+              
+              updateActionButtons();
+          }
+          
+          // Update action buttons
+          function updateActionButtons() {
+              const markPaidBtn = document.getElementById('markPaidBtn');
+              const markUnpaidBtn = document.getElementById('markUnpaidBtn');
+              const selectAllText = document.getElementById('selectAllText');
+              
+              const hasSelection = selectedCommissions.size > 0;
+              markPaidBtn.disabled = !hasSelection;
+              markUnpaidBtn.disabled = !hasSelection;
+              
+              if (selectAllText) {
+                  selectAllText.textContent = selectedCommissions.size === allCommissions.length ? 'Deselecionar Todas' : 'Selecionar Todas';
+              }
+          }
+          
+          // Export to Excel
+          function exportToExcel() {
+              const month = document.getElementById('monthFilter').value;
+              const year = document.getElementById('yearFilter').value;
+              
+              let url = '/api/admin/commissions/export-excel';
+              const params = new URLSearchParams();
+              
+              if (month) {
+                  params.append('month', month);
+              }
+              if (year) {
+                  params.append('year', year);
+              }
+              
+              if (params.toString()) {
+                  url += '?' + params.toString();
+              }
+              
+              window.location.href = url;
+          }
+          
+          // Upload Excel file
+          async function uploadExcelFile(event) {
+              const file = event.target.files[0];
+              if (!file) return;
+              
+              const formData = new FormData();
+              formData.append('file', file);
+              
+              try {
+                  const response = await fetch('/api/admin/commissions/upload', {
+                      method: 'POST',
+                      body: formData
+                  });
+                  
+                  const data = await response.json();
+                  if (data.ok) {
+                      alert(`Importação concluída!\n${data.imported} registos importados\n${data.skipped} registos ignorados`);
+                      loadCommissions();
+                  } else {
+                      alert('Erro ao importar: ' + data.error);
+                  }
+              } catch (error) {
+                  console.error('Error uploading file:', error);
+                  alert('Erro ao fazer upload do ficheiro');
+              }
+              
+              event.target.value = '';
+          }
+          
+          // Upload Broker Excel file
+          async function uploadBrokerExcelFile(event) {
+              const file = event.target.files[0];
+              if (!file) return;
+              
+              const formData = new FormData();
+              formData.append('file', file);
+              
+              try {
+                  const response = await fetch('/api/admin/brokers/import', {
+                      method: 'POST',
+                      body: formData
+                  });
+                  
+                  const data = await response.json();
+                  if (data.ok) {
+                      alert(`Importação concluída!\n${data.imported} registos importados`);
+                      loadBrokers();
+                  } else {
+                      alert('Erro ao importar: ' + data.error);
+                  }
+              } catch (error) {
+                  console.error('Error uploading broker file:', error);
+                  alert('Erro ao fazer upload do ficheiro');
+              }
+              
+              event.target.value = '';
+          }
+          
+          // Print commissions PDF
+          function printCommissionsPDF() {
+              const month = document.getElementById('monthFilter').value;
+              const year = document.getElementById('yearFilter').value;
+              const commissioner = document.getElementById('commissionerFilter').value;
+              
+              let url = '/api/admin/commissions/print-pdf';
+              const params = new URLSearchParams();
+              
+              if (month) {
+                  params.append('month', month);
+              }
+              if (year) {
+                  params.append('year', year);
+              }
+              if (commissioner) {
+                  params.append('commissioner', commissioner);
+              }
+              
+              if (params.toString()) {
+                  url += '?' + params.toString();
+              }
+              
+              window.open(url, '_blank');
+          }
+          
+          // Signature canvas variables
+          let signatureCanvas = null;
+          let signatureCtx = null;
+          let isDrawing = false;
+          let pendingPaidStatus = false;
+          
+          // Mark selected as paid/unpaid
+          async function markSelectedAsPaid(paid) {
+              if (selectedCommissions.size === 0) return;
+              
+              if (paid) {
+                  pendingPaidStatus = true;
+                  openSignatureModal();
+              } else {
+                  if (!confirm(`Tem certeza que deseja marcar ${selectedCommissions.size} comissões como não pagas?`)) {
+                      return;
+                  }
+                  await submitPaymentStatus(false, null, null);
+              }
+          }
+          
+          // Open signature modal
+          function openSignatureModal() {
+              const modal = document.getElementById('signatureModal');
+              modal.style.display = 'flex';
+              
+              // Calculate total of selected commissions
+              let totalAmount = 0;
+              selectedCommissions.forEach(commissionId => {
+                  const commission = allCommissions.find(c => c.id === commissionId);
+                  if (commission) {
+                      totalAmount += commission.commission_amount || 0;
+                  }
+              });
+              
+              // Update total amount in modal
