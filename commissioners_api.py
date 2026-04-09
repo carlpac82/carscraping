@@ -7,7 +7,7 @@ from fastapi import APIRouter, HTTPException, Depends, Request
 from fastapi.responses import JSONResponse
 from pydantic import BaseModel, EmailStr
 from typing import Optional, List
-from datetime import datetime, date, time
+from datetime import datetime, date, time, timedelta
 import hashlib
 import json
 import psycopg2
@@ -313,10 +313,23 @@ async def create_booking(booking: BookingCreate, request: Request):
     # Generate voucher number
     voucher_number = generate_voucher_number(commissioner_id, commissioner_data['voucher_prefix'])
     
-    # Calculate commission: base_price * commission_rate (20%)
-    # Formula: base_price * 0.20
+    # Calculate commission based on pickup_date
+    # Before April 1, 2026: (base_price / 1.23) * commission_rate (with VAT deduction)
+    # After April 1, 2026: base_price * commission_rate (no VAT deduction)
     commission_rate = float(commissioner_data.get('commission_rate', 20.0))
-    commission_amount = booking.base_price * (commission_rate / 100.0)
+    
+    cutoff_date = date(2026, 4, 1)
+    pickup_date = booking.pickup_date
+    
+    if isinstance(pickup_date, str):
+        pickup_date = datetime.strptime(pickup_date, '%Y-%m-%d').date()
+    
+    if pickup_date > cutoff_date:
+        # After April 1, 2026: no VAT deduction
+        commission_amount = booking.base_price * (commission_rate / 100.0)
+    else:
+        # Before April 1, 2026: with VAT deduction
+        commission_amount = (booking.base_price / 1.23) * (commission_rate / 100.0)
     
     # Insert booking
     cursor.execute("""
