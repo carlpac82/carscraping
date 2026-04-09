@@ -1872,7 +1872,7 @@ async def get_admin_commissioner_locations():
         print(traceback.format_exc())
         return JSONResponse({"ok": False, "error": str(e)}, status_code=500)
 
-@router.post("/api/admin/commissioners/update-all-to-20-percent")
+@router.get("/api/admin/commissioners/update-all-to-20-percent")
 async def update_all_commissioners_to_20_percent():
     """Update all commissioners to 20% commission rate (admin only)"""
     try:
