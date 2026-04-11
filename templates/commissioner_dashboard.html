@@ -6156,11 +6156,9 @@
                 }
             }
 
-            // Road Tax: 2.23â¬ por dia, mÃ¡ximo 22.30â¬
-            const roadTax = Math.min(2.23 * diffDays, 22.30);
-
-            // Atualizar preço no resumo do veículo (base + extras + road tax)
-            const totalPrice = basePrice + extrasTotal + roadTax;
+            // Road Tax já está incluída no extrasTotal quando o checkbox está marcado
+            // Atualizar preço no resumo do veículo (base + extras)
+            const totalPrice = basePrice + extrasTotal;
             const summaryPrice = document.getElementById('summaryTotalPrice');
             if (summaryPrice) {
                 summaryPrice.textContent = `${totalPrice.toFixed(2)}€`;
