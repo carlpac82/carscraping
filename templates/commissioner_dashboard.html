@@ -6547,11 +6547,23 @@
 
             // Calcular valores discriminados
             const pickupDate = document.getElementById('pickupDate').value;
+            const pickupTime = document.getElementById('pickupTime').value;
             const dropoffDate = document.getElementById('dropoffDate').value;
-            const pickup = new Date(pickupDate);
-            const dropoff = new Date(dropoffDate);
-            const diffTime = Math.abs(dropoff - pickup);
-            const rentalDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+            const dropoffTime = document.getElementById('dropoffTime').value;
+            
+            // Usar a mesma lógica de cálculo de dias que a função calculateDays()
+            const pickup = new Date(pickupDate + 'T' + (pickupTime || '00:00'));
+            const dropoff = new Date(dropoffDate + 'T' + (dropoffTime || '00:00'));
+            const diffMs = dropoff - pickup;
+            
+            let rentalDays = 0;
+            if (diffMs > 0) {
+                const msPerDay = 24 * 60 * 60 * 1000;
+                rentalDays = Math.floor(diffMs / msPerDay);
+                if (diffMs % msPerDay > 0) {
+                    rentalDays += 1;
+                }
+            }
             
             // Calcular preço base
             let basePrice = 0;
