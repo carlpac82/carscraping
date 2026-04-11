@@ -5972,9 +5972,11 @@
                 return;
             }
 
-            // Calcular número de dias
-            const pickup = new Date(pickupDate);
-            const dropoff = new Date(dropoffDate);
+            // Calcular número de dias (considerando horas)
+            const pickupTime = document.getElementById('pickupTime').value || '00:00';
+            const dropoffTime = document.getElementById('dropoffTime').value || '00:00';
+            const pickup = new Date(pickupDate + 'T' + pickupTime);
+            const dropoff = new Date(dropoffDate + 'T' + dropoffTime);
             const diffTime = Math.abs(dropoff - pickup);
             const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
 
