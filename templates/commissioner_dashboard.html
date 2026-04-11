@@ -6156,9 +6156,11 @@
                 }
             }
 
-            // Road Tax já está incluída no extrasTotal quando o checkbox está marcado
-            // Atualizar preço no resumo do veículo (base + extras)
-            const totalPrice = basePrice + extrasTotal;
+            // Road Tax: 2.23â¬ por dia, mÃ¡ximo 22.30â¬
+            const roadTax = Math.min(2.23 * diffDays, 22.30);
+
+            // Atualizar preço no resumo do veículo (base + extras + road tax)
+            const totalPrice = basePrice + extrasTotal + roadTax;
             const summaryPrice = document.getElementById('summaryTotalPrice');
             if (summaryPrice) {
                 summaryPrice.textContent = `${totalPrice.toFixed(2)}€`;
@@ -6737,8 +6739,8 @@
                 });
             }
 
-            // Calcular valor total (road tax já está incluída em extrasTotal)
-            const totalAmount = basePrice + premiumInsurance + extrasTotal;
+            // Calcular valor total
+            const totalAmount = basePrice + premiumInsurance + roadTax + extrasTotal;
             return totalAmount;
         }
 
@@ -7023,8 +7025,8 @@
                 });
             }
 
-            // Calcular valor final e ajustar premium_insurance se necessário (road tax já está incluída em extrasTotal)
-            const originalTotal = basePrice + premiumInsurance + extrasTotal;
+            // Calcular valor final e ajustar premium_insurance se necessário
+            const originalTotal = basePrice + premiumInsurance + roadTax + extrasTotal;
             let finalTotal = originalTotal;
             let adjustedPremiumInsurance = premiumInsurance;
             let priceAdjustment = 0;
