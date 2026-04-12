@@ -58087,6 +58087,64 @@ async def get_inspection_details(inspection_number: str, request: Request):
             damage_photos = {}
             signature = None
             import base64
+            from PIL import Image
+            import io
+            
+            def compress_image_intelligently(image_bytes, photo_type):
+                """
+                Comprime imagem inteligentemente para reduzir tamanho mantendo qualidade visual
+                - damage_croqui: Mantém alta qualidade (PNG)
+                - Fotos normais: Comprime para JPEG 85%
+                - Redimensiona se for muito grande
+                """
+                try:
+                    # Verificar tamanho original
+                    original_size = len(image_bytes)
+                    
+                    # Se for pequeno (<100KB), não comprime
+                    if original_size < 100 * 1024:
+                        return image_bytes, original_size, original_size
+                    
+                    # Abrir imagem com PIL
+                    img = Image.open(io.BytesIO(image_bytes))
+                    
+                    # Para damage_croqui, manter como PNG mas com compressão
+                    if photo_type == 'damage_croqui':
+                        # Redimensionar se for muito grande (max 1200x800)
+                        if img.width > 1200 or img.height > 800:
+                            img.thumbnail((1200, 800), Image.Resampling.LANCZOS)
+                        
+                        # Salvar como PNG com compressão máxima
+                        output = io.BytesIO()
+                        img.save(output, format='PNG', optimize=True, compress_level=9)
+                        compressed_bytes = output.getvalue()
+                        compressed_size = len(compressed_bytes)
+                        
+                        logging.info(f"Compressed {photo_type}: {original_size/1024:.1f}KB -> {compressed_size/1024:.1f}KB")
+                        return compressed_bytes, original_size, compressed_size
+                    
+                    # Para fotos normais, converter para JPEG com qualidade 85%
+                    # Converter para RGB se necessário (para JPEG)
+                    if img.mode in ('RGBA', 'LA', 'P'):
+                        img = img.convert('RGB')
+                    
+                    # Redimensionar se for muito grande (max 1600x1200)
+                    if img.width > 1600 or img.height > 1200:
+                        img.thumbnail((1600, 1200), Image.Resampling.LANCZOS)
+                    
+                    # Salvar como JPEG com qualidade 85%
+                    output = io.BytesIO()
+                    img.save(output, format='JPEG', quality=85, optimize=True)
+                    compressed_bytes = output.getvalue()
+                    compressed_size = len(compressed_bytes)
+                    
+                    logging.info(f"Compressed {photo_type}: {original_size/1024:.1f}KB -> {compressed_size/1024:.1f}KB")
+                    return compressed_bytes, original_size, compressed_size
+                    
+                except Exception as e:
+                    logging.warning(f"Error compressing image {photo_type}: {e}")
+                    # Se falhar, retorna original
+                    return image_bytes, len(image_bytes), len(image_bytes)
             
             # If this is a checkin, also get photos from the related checkout
             if inspection_type == 'checkin':
@@ -58152,8 +58210,9 @@ async def get_inspection_details(inspection_number: str, request: Request):
                             logging.info(f"📷 Converted hex string to bytes for {photo_type}")
                         
                         if isinstance(image_data, bytes):
-                            # Binary data - encode to base64 and remove any whitespace
-                            photo_base64 = base64.b64encode(image_data).decode('utf-8').replace('\n', '').replace('\r', '').replace(' ', '')
+                            # Binary data - compress intelligently before encoding
+                            compressed_data, original_size, compressed_size = compress_image_intelligently(image_data, photo_type)
+                            photo_base64 = base64.b64encode(compressed_data).decode('utf-8').replace('\n', '').replace('\r', '').replace(' ', '')
                         elif isinstance(image_data, str):
                             # Already a string - check if it has data URL prefix
                             if image_data.startswith('data:image'):
