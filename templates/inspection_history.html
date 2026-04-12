@@ -4287,7 +4287,7 @@
             const originY = ((buttonCenterY - modalRect.top) / modalRect.height) * 100;
             modal.style.transformOrigin = `${originX}% ${originY}%`;
             
-            // 1. Background blur overlay (fixo, sem movimento)
+            // 1. Background blur overlay (fixo, sem movimento) - inverso do minimize
             modal.style.backdropFilter = 'blur(0px)';
             modal.style.opacity = '0';
             modal.style.transition = 'backdrop-filter 0.25s ease-out, opacity 0.25s ease-out';
@@ -4295,25 +4295,25 @@
             // Forçar reflow para garantir estado inicial
             modal.offsetHeight;
             
-            // Iniciar animação do background
+            // Iniciar animação do background (inverso do minimize)
             requestAnimationFrame(() => {
-                modal.style.backdropFilter = 'blur(10px)';
+                modal.style.backdropFilter = 'blur(3px)'; // Mesmo blur do minimize
                 modal.style.opacity = '1';
             });
             
-            // 2. Janela (foreground) com efeito "genie" reverso
+            // 2. Janela (foreground) - inverso exato do minimize
             setTimeout(() => {
                 const windowElement = modal.querySelector('.bg-white');
                 if (windowElement) {
                     // GPU acceleration
                     windowElement.style.willChange = 'transform, opacity';
                     
-                    // Estado inicial: minimizado no botão
+                    // Estado inicial: minimizado no botão (inverso do estado final do minimize)
                     windowElement.style.transform = `
                         translate(${deltaX * 0.8}px, ${deltaY * 0.8}px) 
                         scale(${initialScale}) 
                         skewY(${deltaX > 0 ? -2 : 2}deg)
-                        scaleY(${initialScale * 0.85}) // Stretch inicial
+                        scaleY(${initialScale * 0.85})
                     `;
                     windowElement.style.opacity = '0';
                     windowElement.style.transformOrigin = `${originX}% ${originY}%`;
@@ -4321,7 +4321,7 @@
                     // Forçar reflow
                     windowElement.offsetHeight;
                     
-                    // Animar para estado final com easing suave
+                    // Animar para estado final com easing inverso do minimize
                     windowElement.style.transition = 'transform 0.45s cubic-bezier(0.2, 0.8, 0.2, 1), opacity 0.45s cubic-bezier(0.2, 0.8, 0.2, 1)';
                     
                     requestAnimationFrame(() => {
@@ -4334,7 +4334,7 @@
                         }, 450);
                     });
                 }
-            }, 50); // Pequeno delay para iniciar após background
+            }, 50); // Mesmo delay do minimize
         }
 
         // Preview Recolha - se há self-checkout validado, usa dados do self-checkout + croqui do CHECK-IN
