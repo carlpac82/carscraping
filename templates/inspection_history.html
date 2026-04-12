@@ -196,7 +196,7 @@
                     <label class="block text-xs md:text-sm font-medium text-gray-700 mb-1">Matrícula</label>
                     <input type="text" id="searchPlate" placeholder="Ex: AS-46-EO" 
                            class="w-full h-[36px] md:h-[42px] px-2 md:px-4 py-1 md:py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#009cb6]" 
-                           oninput="filterInspections()">
+                           onkeypress="if(event.key === 'Enter') searchInspections()">
                 </div>
                 
                 <!-- Search by RA -->
@@ -204,7 +204,7 @@
                     <label class="block text-xs md:text-sm font-medium text-gray-700 mb-1">RA</label>
                     <input type="text" id="searchRA" placeholder="Ex: 06716-09" 
                            class="w-full h-[36px] md:h-[42px] px-2 md:px-4 py-1 md:py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#009cb6]" 
-                           oninput="filterInspections()">
+                           onkeypress="if(event.key === 'Enter') searchInspections()">
                 </div>
                 
                 <!-- Search by Date -->
@@ -243,8 +243,11 @@
                 </div>
             </div>
             
-            <!-- Clear Filters Button -->
-            <div class="mt-3 md:mt-4">
+            <!-- Search and Clear Filters Buttons -->
+            <div class="mt-3 md:mt-4 flex gap-2">
+                <button onclick="searchInspections()" class="px-4 md:px-6 py-1.5 md:py-2 text-sm bg-[#009cb6] text-white rounded-lg hover:bg-[#0077a3] transition-colors">
+                    Pesquisar
+                </button>
                 <button onclick="clearFilters()" class="px-4 md:px-6 py-1.5 md:py-2 text-sm bg-gray-500 text-white rounded-lg hover:bg-gray-600 transition-colors">
                     Limpar Filtros
                 </button>
@@ -708,6 +711,32 @@
 
         // Debounce timer for search
         let searchDebounceTimer = null;
+        
+        // Function to trigger search when button is clicked or Enter is pressed
+        async function searchInspections() {
+            const searchPlate = document.getElementById('searchPlate')?.value?.trim().toUpperCase() || '';
+            const searchRA = document.getElementById('searchRA')?.value?.trim().toUpperCase() || '';
+            const searchDate = document.getElementById('searchDate')?.value || '';
+            const filterInspectionType = document.getElementById('filterInspectionType')?.value || 'all';
+            const filterStatus = document.getElementById('filterStatus')?.value || 'all';
+
+            console.log('SEARCH TRIGGERED - Searching with:', {
+                searchPlate,
+                searchRA,
+                searchDate,
+                filterInspectionType,
+                filterStatus
+            });
+
+            // If searching by plate or RA, call backend API
+            const searchTerm = searchPlate || searchRA;
+            if (searchTerm) {
+                await loadHistory(false, searchTerm, searchDate);
+            } else {
+                // If no search term, apply filters locally
+                await filterInspections();
+            }
+        }
         
         async function filterInspections() {
             const searchPlate = document.getElementById('searchPlate')?.value?.trim().toUpperCase() || '';
