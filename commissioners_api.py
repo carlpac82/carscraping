@@ -329,6 +329,15 @@ async def create_booking(booking: BookingCreate, request: Request):
     # base_price = daily rental price * days (excludes insurance, road tax, and extras)
     correct_base_price = booking.base_price
     
+    # DEBUG: Log values to verify what's being sent
+    print(f"[BOOKING DEBUG] Values received:")
+    print(f"  base_price: {booking.base_price}")
+    print(f"  total_amount: {booking.total_amount}")
+    print(f"  premium_insurance: {booking.premium_insurance}")
+    print(f"  road_tax: {booking.road_tax}")
+    print(f"  extras_total: {booking.extras_total}")
+    print(f"  correct_base_price being saved: {correct_base_price}")
+    
     if pickup_date > cutoff_date:
         # After April 1, 2026: no VAT deduction with current commission rate
         commission_amount = correct_base_price * (commission_rate / 100.0)
