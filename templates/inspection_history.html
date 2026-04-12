@@ -4297,32 +4297,32 @@
             // Forçar reflow para garantir estado inicial
             modal.offsetHeight;
             
-            // Iniciar animação do background (apenas opacity)
-            requestAnimationFrame(() => {
-                modal.style.opacity = '1';
-            });
-            
-            // 2. Janela (foreground) - inverso exato do minimize
-            setTimeout(() => {
-                const windowElement = modal.querySelector('.bg-white');
-                if (windowElement) {
-                    // GPU acceleration
-                    windowElement.style.willChange = 'transform, opacity';
-                    
-                    // Estado inicial: minimizado no botão (inverso do estado final do minimize)
-                    windowElement.style.transform = `
-                        translate(${deltaX * 0.8}px, ${deltaY * 0.8}px) 
-                        scale(${initialScale}) 
-                        skewY(${deltaX > 0 ? -2 : 2}deg)
-                        scaleY(${initialScale * 0.85})
-                    `;
-                    windowElement.style.opacity = '0';
-                    windowElement.style.transformOrigin = `${originX}% ${originY}%`;
-                    
-                    // Forçar reflow
-                    windowElement.offsetHeight;
-                    
-                    // Animar para estado final com easing mais suave
+            // 2. Janela (foreground) - estado inicial imediatamente (sem flash)
+            const windowElement = modal.querySelector('.bg-white');
+            if (windowElement) {
+                // GPU acceleration
+                windowElement.style.willChange = 'transform, opacity';
+                
+                // Estado inicial: minimizado no botão (inverso do estado final do minimize)
+                windowElement.style.transform = `
+                    translate(${deltaX * 0.8}px, ${deltaY * 0.8}px) 
+                    scale(${initialScale}) 
+                    skewY(${deltaX > 0 ? -2 : 2}deg)
+                    scaleY(${initialScale * 0.85})
+                `;
+                windowElement.style.opacity = '0';
+                windowElement.style.transformOrigin = `${originX}% ${originY}%`;
+                
+                // Forçar reflow para garantir estado inicial
+                windowElement.offsetHeight;
+                
+                // Iniciar animação do background (apenas opacity)
+                requestAnimationFrame(() => {
+                    modal.style.opacity = '1';
+                });
+                
+                // Animar janela para estado final com easing mais suave
+                requestAnimationFrame(() => {
                     windowElement.style.transition = 'transform 0.5s cubic-bezier(0.25, 0.46, 0.45, 0.94), opacity 0.5s cubic-bezier(0.25, 0.46, 0.45, 0.94)';
                     
                     requestAnimationFrame(() => {
@@ -4334,8 +4334,8 @@
                             windowElement.style.willChange = 'auto';
                         }, 500);
                     });
-                }
-            }, 50); // Mesmo delay do minimize
+                });
+            }
         }
 
         // Preview Recolha - se há self-checkout validado, usa dados do self-checkout + croqui do CHECK-IN
