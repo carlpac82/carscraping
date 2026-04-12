@@ -1194,7 +1194,7 @@
                 </div>
 
                 <div class="form-group">
-                    <label for="editTotalPrice">Preço Total (€)</label>
+                    <label for="editTotalPrice">Preço Base (€)</label>
                     <input type="number" id="editTotalPrice" step="0.01" required>
                 </div>
 
@@ -1366,7 +1366,7 @@
                                 </div>
                                 <div class="booking-card-row">
                                     <span class="booking-card-label">Preço Base:</span>
-                                    <span class="booking-card-value" style="font-weight: 600;">€${b.base_price ? b.base_price.toFixed(2) : b.total_price}</span>
+                                    <span class="booking-card-value" style="font-weight: 600;">€${b.price.toFixed(2)}</span>
                                 </div>
                                 <div class="booking-card-row">
                                     <span class="booking-card-label">Depósito:</span>
@@ -1437,7 +1437,7 @@
                                             <div>${formatDate(b.pickup_date)}</div>
                                             <div style="font-size: 12px; color: #999;">${b.pickup_location}</div>
                                         </td>
-                                        <td style="font-weight: 600;">€${b.base_price ? b.base_price.toFixed(2) : b.total_price}</td>
+                                        <td style="font-weight: 600;">€${b.price.toFixed(2)}</td>
                                         <td>${b.deposit > 0 ? '€' + b.deposit.toFixed(2) : '-'}</td>
                                         <td>
                                             <span class="status-badge status-${b.status}">
@@ -1572,7 +1572,7 @@
             document.getElementById('editReturnDate').value = booking.return_date;
             document.getElementById('editPickupLocation').value = booking.pickup_location;
             document.getElementById('editReturnLocation').value = booking.return_location;
-            document.getElementById('editTotalPrice').value = booking.total_price;
+            document.getElementById('editTotalPrice').value = booking.price;
 
             document.getElementById('editModal').classList.add('active');
         }
@@ -1604,7 +1604,7 @@
                 return_date: document.getElementById('editReturnDate').value,
                 pickup_location: document.getElementById('editPickupLocation').value,
                 return_location: document.getElementById('editReturnLocation').value,
-                total_price: parseFloat(document.getElementById('editTotalPrice').value)
+                base_price: parseFloat(document.getElementById('editTotalPrice').value)
             };
 
             try {
