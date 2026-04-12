@@ -5995,10 +5995,100 @@
                 }
             }
 
-            // Calcular extras
+            // Calcular preço base PRIMEIRO
+            let basePrice = 0;
+            
+            if (selectedVehicle && commissionerPricing) {
+                const group = selectedVehicle;
+                const season = getSeasonForDate(pickup);
+                
+                console.log('[PRICE DEBUG] Grupo:', group, 'Época:', season, 'Dias:', diffDays);
+                
+                // Obter preço base para o grupo e época
+                if (commissionerPricing.seasons && commissionerPricing.seasons[group] && commissionerPricing.seasons[group][season]) {
+                    const seasonPrices = commissionerPricing.seasons[group][season];
+                    
+                    console.log('[PRICE DEBUG] Preços da época:', seasonPrices);
+                    
+                    if (diffDays <= 7) {
+                        // Para 1-7 dias: usar preço fixo do período
+                        const dayKey = `day${diffDays}`;
+                        basePrice = seasonPrices[dayKey] || 0;
+                        
+                        console.log('[PRICE DEBUG] Buscando', dayKey, '= ', basePrice);
+                        
+                        // Se não encontrar preço exato, usar o preço mais próximo
+                        if (basePrice === 0) {
+                            for (let day = 1; day <= 7; day++) {
+                                const price = seasonPrices[`day${day}`] || 0;
+                                if (price > 0) {
+                                    basePrice = price;
+                                    console.log('[PRICE DEBUG] Usando preço do dia', day, '=', basePrice);
+                                    break;
+                                }
+                            }
+                        }
+                    } else {
+                        // Para 8+ dias: calcular com base no preço do dia 7
+                        const day7Price = seasonPrices.day7 || 0;
+                        if (day7Price > 0) {
+                            const dailyRate = day7Price / 7; // Preço diário do dia 7
+                            basePrice = dailyRate * diffDays;
+                            console.log('[PRICE DEBUG] 8+ dias: day7Price=', day7Price, 'dailyRate=', dailyRate, 'basePrice=', basePrice);
+                        }
+                    }
+                    
+                    console.log('[PRICE DEBUG] Preço base final:', basePrice);
+                } else {
+                    console.log('[PRICE DEBUG] Não encontrou preços para grupo/época');
+                }
+            }
+
+            // Calcular seguro premium (separado do base price)
+            let insurancePrice = 0;
+            
+            if (selectedInsurance === 'premium') {
+                const selectedGroup = selectedVehicle;
+                const season = getSeasonForDate(pickup);
+                
+                if (selectedGroup && commissionerPricing && commissionerPricing.extras && 
+                    commissionerPricing.extras.insurance && commissionerPricing.extras.insurance.seasons &&
+                    commissionerPricing.extras.insurance.seasons[selectedGroup] &&
+                    commissionerPricing.extras.insurance.seasons[selectedGroup][season]) {
+                    
+                    const seasonPrices = commissionerPricing.extras.insurance.seasons[selectedGroup][season];
+                    
+                    // Determinar faixa de dias
+                    let priceRange = null;
+                    if (diffDays >= 1 && diffDays <= 2) {
+                        priceRange = "1_2";
+                    } else if (diffDays >= 3 && diffDays <= 7) {
+                        priceRange = "3_7";
+                    } else if (diffDays >= 8 && diffDays <= 14) {
+                        priceRange = "8_14";
+                    } else if (diffDays >= 15 && diffDays <= 21) {
+                        priceRange = "15_21";
+                    } else if (diffDays >= 22 && diffDays <= 31) {
+                        priceRange = "22_31";
+                    }
+                    
+                    if (priceRange && seasonPrices[priceRange]) {
+                        insurancePrice = seasonPrices[priceRange] * diffDays;
+                    }
+                }
+            }
+
+            // Road Tax - 2,23€/dia (máximo 10 dias)
+            let roadTaxPrice = 0;
+            const roadTaxCheckbox = document.getElementById('extraRoadTax');
+            if (roadTaxCheckbox && roadTaxCheckbox.checked) {
+                const roadTaxDays = Math.min(diffDays, 10);
+                roadTaxPrice = 2.23 * roadTaxDays;
+            }
+
+            // Calcular outros extras (sem seguro e road tax)
             let extrasTotal = 0;
             
-            // Outros extras com checkbox (preço por dia) - usar preços do admin
             const gpsCheckbox = document.getElementById('extraGPS');
             if (gpsCheckbox && gpsCheckbox.checked) {
                 const gpsPrice = commissionerPricing?.extras?.gps?.per_day || 5;
@@ -6017,14 +6107,6 @@
                 extrasTotal += seniorDriverPrice * diffDays;
             }
             
-            // Road Tax - 2,23€/dia (máximo 10 dias)
-            const roadTaxCheckbox = document.getElementById('extraRoadTax');
-            if (roadTaxCheckbox && roadTaxCheckbox.checked) {
-                const roadTaxDays = Math.min(diffDays, 10);
-                extrasTotal += 2.23 * roadTaxDays;
-            }
-            
-            // Extras com quantidade (preço por dia × quantidade) - usar preços do admin
             const childSeatInput = document.getElementById('extraChildSeat');
             if (childSeatInput) {
                 const quantity = parseInt(childSeatInput.value) || 0;
@@ -6052,113 +6134,19 @@
                 }
             }
 
-            // Taxa aeroporto - taxa única (usar preço do admin)
             if (airportCheckbox && airportCheckbox.checked) {
                 const airportPrice = commissionerPricing?.extras?.airport_fee?.min || 20;
                 extrasTotal += airportPrice;
             }
 
-            // TRIP TO SPAIN - taxa única (usar preço do admin)
             const tripToSpainCheckbox = document.getElementById('extraTripToSpain');
             if (tripToSpainCheckbox && tripToSpainCheckbox.checked) {
                 const spainPrice = commissionerPricing?.extras?.trip_to_spain?.min || 100;
                 extrasTotal += spainPrice;
             }
 
-            // Calcular seguro (baseado na seleção)
-            let insurancePrice = 0;
-            
-            if (selectedInsurance === 'premium') {
-                // Seguro Premium - calcular preço
-                const selectedGroup = selectedVehicle;
-                const season = getSeasonForDate(pickup);
-                
-                if (selectedGroup && commissionerPricing && commissionerPricing.extras && 
-                    commissionerPricing.extras.insurance && commissionerPricing.extras.insurance.seasons &&
-                    commissionerPricing.extras.insurance.seasons[selectedGroup] &&
-                    commissionerPricing.extras.insurance.seasons[selectedGroup][season]) {
-                    
-                    const seasonPrices = commissionerPricing.extras.insurance.seasons[selectedGroup][season];
-                    
-                    // Determinar faixa de dias
-                    let priceRange = null;
-                    if (diffDays >= 1 && diffDays <= 2) {
-                        priceRange = "1_2";
-                    } else if (diffDays >= 3 && diffDays <= 7) {
-                        priceRange = "3_7";
-                    } else if (diffDays >= 8 && diffDays <= 14) {
-                        priceRange = "8_14";
-                    } else if (diffDays >= 15 && diffDays <= 21) {
-                        priceRange = "15_21";
-                    } else if (diffDays >= 22 && diffDays <= 31) {
-                        priceRange = "22_31";
-                    }
-                    
-                    if (priceRange && seasonPrices[priceRange]) {
-                        // O preço do seguro é POR DIA, então multiplicar pelo número de dias
-                        insurancePrice = seasonPrices[priceRange] * diffDays;
-                    }
-                }
-            }
-            // Se for base, insurancePrice fica 0 (já incluído no preço base)
-            
-            // Adicionar seguro aos extras
-            extrasTotal += insurancePrice;
-
-            // Calcular preço base
-            let basePrice = 0;
-            
-            if (selectedVehicle && commissionerPricing) {
-                const group = selectedVehicle;
-                const season = getSeasonForDate(pickup);
-                
-                console.log('[PRICE DEBUG] Grupo:', group, 'Época:', season, 'Dias:', diffDays);
-                
-                // Obter preço total para o grupo e época
-                if (commissionerPricing.seasons && commissionerPricing.seasons[group] && commissionerPricing.seasons[group][season]) {
-                    const seasonPrices = commissionerPricing.seasons[group][season];
-                    let totalPrice = 0;
-                    
-                    console.log('[PRICE DEBUG] Preços da época:', seasonPrices);
-                    
-                    if (diffDays <= 7) {
-                        // Para 1-7 dias: usar preço fixo do período
-                        const dayKey = `day${diffDays}`;
-                        totalPrice = seasonPrices[dayKey] || 0;
-                        
-                        console.log('[PRICE DEBUG] Buscando', dayKey, '= ', totalPrice);
-                        
-                        // Se não encontrar preço exato, usar o preço mais próximo
-                        if (totalPrice === 0) {
-                            for (let day = 1; day <= 7; day++) {
-                                const price = seasonPrices[`day${day}`] || 0;
-                                if (price > 0) {
-                                    totalPrice = price;
-                                    console.log('[PRICE DEBUG] Usando preço do dia', day, '=', totalPrice);
-                                    break;
-                                }
-                            }
-                        }
-                    } else {
-                        // Para 8+ dias: calcular com base no preço do dia 7
-                        const day7Price = seasonPrices.day7 || 0;
-                        if (day7Price > 0) {
-                            const dailyRate = day7Price / 7; // Preço diário do dia 7
-                            totalPrice = dailyRate * diffDays;
-                            console.log('[PRICE DEBUG] 8+ dias: day7Price=', day7Price, 'dailyRate=', dailyRate, 'total=', totalPrice);
-                        }
-                    }
-                    
-                    basePrice = totalPrice;
-                    console.log('[PRICE DEBUG] Preço base final:', basePrice);
-                } else {
-                    console.log('[PRICE DEBUG] Não encontrou preços para grupo/época');
-                }
-            }
-
-            // Road Tax já está incluída no extrasTotal quando o checkbox está marcado
-            // Atualizar preço no resumo do veículo (base + extras)
-            const totalPrice = basePrice + extrasTotal;
+            // Calcular total final (base + seguro + road tax + extras)
+            const totalPrice = basePrice + insurancePrice + roadTaxPrice + extrasTotal;
             const summaryPrice = document.getElementById('summaryTotalPrice');
             if (summaryPrice) {
                 summaryPrice.textContent = `${totalPrice.toFixed(2)}€`;
