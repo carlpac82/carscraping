@@ -2640,6 +2640,9 @@
                 document.body.appendChild(modal);
                 window.currentPreviewModal = modal;
                 
+                // Aplicar animação macOS-style
+                applyMacOSModalAnimation(modal);
+                
                 // Guardar dados do parking QR globalmente
                 window.currentParkingQRData = parkingQRData;
                 
@@ -4026,54 +4029,38 @@
             }
         }
 
-        // Função para mostrar loading moderno
+        // Função para mostrar loading clean e moderno
         function showModernLoading() {
-            // Criar overlay de loading
+            // Verificar se já existe um loading para evitar duplicação
+            if (document.getElementById('loadingOverlay')) {
+                return null;
+            }
+            
+            // Criar overlay de loading minimalista
             const loadingOverlay = document.createElement('div');
             loadingOverlay.id = 'loadingOverlay';
-            loadingOverlay.className = 'fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 backdrop-blur-sm';
+            loadingOverlay.className = 'fixed inset-0 bg-black bg-opacity-40 flex items-center justify-center z-50 backdrop-blur-sm';
             loadingOverlay.innerHTML = `
-                <div class="bg-white rounded-2xl p-8 shadow-2xl flex flex-col items-center space-y-4 max-w-sm mx-4">
-                    <!-- Spinner moderno -->
+                <div class="flex flex-col items-center space-y-4">
+                    <!-- Spinner clean com cor azul heather -->
                     <div class="relative">
-                        <div class="w-12 h-12 border-4 border-gray-200 border-t-blue-600 rounded-full animate-spin"></div>
-                        <div class="absolute inset-0 w-12 h-12 border-4 border-transparent border-r-orange-500 rounded-full animate-spin animation-delay-150"></div>
+                        <div class="w-10 h-10 border-3 border-gray-200 border-t-[#009cb6] rounded-full animate-spin"></div>
                     </div>
                     
-                    <!-- Texto de loading -->
-                    <div class="text-center space-y-2">
-                        <p class="text-gray-900 font-semibold text-lg">Carregando inspeção...</p>
-                        <p class="text-gray-600 text-sm">A buscar dados e fotos</p>
-                    </div>
-                    
-                    <!-- Barras de progresso animadas -->
-                    <div class="w-full space-y-2">
-                        <div class="h-1 bg-gray-200 rounded-full overflow-hidden">
-                            <div class="h-full bg-blue-600 rounded-full animate-pulse" style="width: 60%; animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;"></div>
-                        </div>
-                        <div class="h-1 bg-gray-200 rounded-full overflow-hidden">
-                            <div class="h-full bg-orange-500 rounded-full animate-pulse" style="width: 40%; animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite; animation-delay: 0.5s;"></div>
-                        </div>
+                    <!-- Texto minimalista -->
+                    <div class="text-center">
+                        <p class="text-white font-medium text-sm">A carregar...</p>
                     </div>
                 </div>
-                
-                <style>
-                    @keyframes pulse {
-                        0%, 100% { opacity: 1; }
-                        50% { opacity: 0.5; }
-                    }
-                    .animation-delay-150 {
-                        animation-delay: 150ms;
-                    }
-                </style>
             `;
             
             document.body.appendChild(loadingOverlay);
             
-            // Adicionar efeito de fade-in
+            // Fade-in suave
+            loadingOverlay.style.opacity = '0';
             setTimeout(() => {
                 loadingOverlay.style.opacity = '1';
-                loadingOverlay.style.transition = 'opacity 0.3s ease-in-out';
+                loadingOverlay.style.transition = 'opacity 0.2s ease-out';
             }, 10);
             
             return loadingOverlay;
@@ -4083,12 +4070,29 @@
         function hideModernLoading() {
             const loadingOverlay = document.getElementById('loadingOverlay');
             if (loadingOverlay) {
-                loadingOverlay.style.opacity = '0';
-                loadingOverlay.style.transition = 'opacity 0.3s ease-in-out';
-                setTimeout(() => {
-                    loadingOverlay.remove();
-                }, 300);
+                // Remover imediatamente para evitar reaparecimento
+                loadingOverlay.remove();
             }
+        }
+
+        // Função para aplicar animação macOS-style ao modal
+        function applyMacOSModalAnimation(modal) {
+            // Estado inicial: pequeno, baixa opacidade, com blur
+            modal.style.transform = 'scale(0.92)';
+            modal.style.opacity = '0';
+            modal.style.filter = 'blur(8px)';
+            modal.style.transition = 'transform 0.35s cubic-bezier(0.2, 0.8, 0.2, 1), opacity 0.35s cubic-bezier(0.2, 0.8, 0.2, 1), filter 0.35s cubic-bezier(0.2, 0.8, 0.2, 1)';
+            modal.style.transformOrigin = 'center';
+            
+            // Forçar reflow para garantir que o estado inicial seja aplicado
+            modal.offsetHeight;
+            
+            // Animar para estado final: normal, totalmente visível, sem blur
+            requestAnimationFrame(() => {
+                modal.style.transform = 'scale(1)';
+                modal.style.opacity = '1';
+                modal.style.filter = 'blur(0px)';
+            });
         }
 
         // Preview Recolha - se há self-checkout validado, usa dados do self-checkout + croqui do CHECK-IN
@@ -4354,6 +4358,9 @@
                     
                     document.body.appendChild(modal);
                     window.currentPreviewModal = modal;
+                    
+                    // Aplicar animação macOS-style
+                    applyMacOSModalAnimation(modal);
                     
                     // Add click handlers for photos
                     modal.querySelectorAll('.photo-clickable').forEach(img => {
@@ -4701,6 +4708,9 @@
                 
                 document.body.appendChild(modal);
                 window.currentPreviewModal = modal;
+                
+                // Aplicar animação macOS-style
+                applyMacOSModalAnimation(modal);
                 
                 // Add click handlers for photos
                 modal.querySelectorAll('.photo-clickable').forEach(img => {
