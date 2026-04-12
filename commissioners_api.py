@@ -325,9 +325,9 @@ async def create_booking(booking: BookingCreate, request: Request):
     if isinstance(pickup_date, str):
         pickup_date = datetime.strptime(pickup_date, '%Y-%m-%d').date()
     
-    # Calculate the correct base_price: total - premium_insurance - road_tax
-    # This ensures base_price is always correct regardless of what frontend sends
-    correct_base_price = booking.total_amount - booking.premium_insurance - booking.road_tax
+    # Use the base_price sent from frontend (already correctly calculated there)
+    # base_price = daily rental price * days (excludes insurance, road tax, and extras)
+    correct_base_price = booking.base_price
     
     if pickup_date > cutoff_date:
         # After April 1, 2026: no VAT deduction with current commission rate
