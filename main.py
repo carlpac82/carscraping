@@ -57465,48 +57465,9 @@ async def get_inspections_history(request: Request):
                 
                 logging.info(f"  - {inspection_type}: {plate} / RA: {ra} (base: {ra_base}) / Date: {row[5]} / Client: {client_name} / Email: {client_email}")
                 
-                # Get damage croqui for this inspection
+                # NOTA: damage_croqui não é carregado na listagem para otimizar performance
+                # Será carregado apenas quando o usuário abre a inspeção específica
                 damage_croqui = None
-                if is_postgres:
-                    cursor2 = conn.cursor()
-                    cursor2.execute("""
-                        SELECT image_data FROM inspection_photos 
-                        WHERE inspection_id = %s AND photo_type = 'damage_croqui'
-                        LIMIT 1
-                    """, (inspection_id,))
-                    croqui_row = cursor2.fetchone()
-                    cursor2.close()
-                else:
-                    cursor2 = conn.cursor()
-                    cursor2.execute("""
-                        SELECT image_data FROM inspection_photos 
-                        WHERE inspection_id = ? AND photo_type = 'damage_croqui'
-                        LIMIT 1
-                    """, (inspection_id,))
-                    croqui_row = cursor2.fetchone()
-                    cursor2.close()
-                
-                if croqui_row and croqui_row[0]:
-                    damage_croqui = croqui_row[0]
-                    # Convert memoryview to bytes if needed (PostgreSQL returns memoryview)
-                    if isinstance(damage_croqui, memoryview):
-                        damage_croqui = damage_croqui.tobytes()
-                    
-                    # Check if it's binary PNG data (starts with PNG signature)
-                    if isinstance(damage_croqui, bytes):
-                        if damage_croqui.startswith(b'\x89PNG'):
-                            # It's binary PNG, convert to base64
-                            import base64
-                            damage_croqui = f'data:image/png;base64,{base64.b64encode(damage_croqui).decode("utf-8")}'
-                        else:
-                            # It's base64 string in bytes, decode to string
-                            damage_croqui = damage_croqui.decode('utf-8')
-                            if not damage_croqui.startswith('data:'):
-                                damage_croqui = f'data:image/png;base64,{damage_croqui}'
-                    elif isinstance(damage_croqui, str):
-                        # It's already a string, ensure it has the data:image prefix
-                        if not damage_croqui.startswith('data:'):
-                            damage_croqui = f'data:image/png;base64,{damage_croqui}'
                 
                 # For self_checkout, use client_name instead of inspector_name
                 inspector_name_for_display = row[4]
