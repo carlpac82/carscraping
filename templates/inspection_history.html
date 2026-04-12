@@ -4287,17 +4287,16 @@
             const originY = ((buttonCenterY - modalRect.top) / modalRect.height) * 100;
             modal.style.transformOrigin = `${originX}% ${originY}%`;
             
-            // 1. Background blur overlay (fixo, sem movimento) - inverso do minimize
-            modal.style.backdropFilter = 'blur(0px)';
+            // 1. Background overlay (fixo, sem movimento) - blur sempre consistente
+            modal.style.backdropFilter = 'blur(3px)'; // Mesmo blur de tudo
             modal.style.opacity = '0';
-            modal.style.transition = 'backdrop-filter 0.25s ease-out, opacity 0.25s ease-out';
+            modal.style.transition = 'opacity 0.25s ease-out'; // Apenas opacity
             
             // Forçar reflow para garantir estado inicial
             modal.offsetHeight;
             
-            // Iniciar animação do background (inverso do minimize)
+            // Iniciar animação do background (apenas opacity)
             requestAnimationFrame(() => {
-                modal.style.backdropFilter = 'blur(3px)'; // Mesmo blur do minimize
                 modal.style.opacity = '1';
             });
             
