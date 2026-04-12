@@ -2647,8 +2647,8 @@
                 document.body.appendChild(modal);
                 window.currentPreviewModal = modal;
                 
-                // Aplicar animação macOS-style
-                applyMacOSModalAnimation(modal);
+                // Aplicar animação macOS-style de maximização
+                applyMacOSMaximizeAnimation(modal, currentTriggerButton);
                 
                 // Guardar dados do parking QR globalmente
                 window.currentParkingQRData = parkingQRData;
@@ -4231,21 +4231,64 @@
             }
         }
 
-        // Função para aplicar animação macOS-style ao modal (apenas janela, não fundo)
-        function applyMacOSModalAnimation(modal) {
-            // Estado inicial: pequeno, baixa opacidade (sem blur no fundo)
-            modal.style.transform = 'scale(0.92)';
+        // Função para aplicar animação macOS-style de maximização ao abrir modal
+        function applyMacOSMaximizeAnimation(modal, triggerButton) {
+            if (!triggerButton) {
+                // Se não há botão target, usar animação padrão
+                modal.style.transform = 'scale(0.92)';
+                modal.style.opacity = '0';
+                modal.style.transition = 'transform 0.35s cubic-bezier(0.2, 0.8, 0.2, 1), opacity 0.35s cubic-bezier(0.2, 0.8, 0.2, 1)';
+                modal.style.transformOrigin = 'center';
+                
+                modal.offsetHeight;
+                
+                requestAnimationFrame(() => {
+                    modal.style.transform = 'scale(1)';
+                    modal.style.opacity = '1';
+                });
+                return;
+            }
+            
+            // Obter posições do modal e do botão target
+            const modalRect = modal.getBoundingClientRect();
+            const buttonRect = triggerButton.getBoundingClientRect();
+            
+            // Calcular centro do modal e do botão
+            const modalCenterX = modalRect.left + modalRect.width / 2;
+            const modalCenterY = modalRect.top + modalRect.height / 2;
+            const buttonCenterX = buttonRect.left + buttonRect.width / 2;
+            const buttonCenterY = buttonRect.top + buttonRect.height / 2;
+            
+            // Calcular distância e direção (inverso do minimize)
+            const deltaX = buttonCenterX - modalCenterX;
+            const deltaY = buttonCenterY - modalCenterY;
+            
+            // Calcular escala inicial baseada no tamanho do botão
+            const initialScale = Math.min(buttonRect.width / modalRect.width, buttonRect.height / modalRect.height) * 0.8;
+            
+            // Aplicar transform origin em direção ao botão
+            const originX = ((buttonCenterX - modalRect.left) / modalRect.width) * 100;
+            const originY = ((buttonCenterY - modalRect.top) / modalRect.height) * 100;
+            modal.style.transformOrigin = `${originX}% ${originY}%`;
+            
+            // Estado inicial: minimizado no botão, transparente
+            modal.style.transform = `
+                translate(${deltaX * 0.8}px, ${deltaY * 0.8}px) 
+                scale(${initialScale}) 
+                skewY(${deltaX > 0 ? -2 : 2}deg)
+            `;
             modal.style.opacity = '0';
-            modal.style.transition = 'transform 0.35s cubic-bezier(0.2, 0.8, 0.2, 1), opacity 0.35s cubic-bezier(0.2, 0.8, 0.2, 1)';
-            modal.style.transformOrigin = 'center';
+            modal.style.filter = 'blur(2px)';
+            modal.style.transition = 'transform 0.5s cubic-bezier(0.0, 0.0, 0.2, 1), opacity 0.5s cubic-bezier(0.0, 0.0, 0.2, 1), filter 0.5s cubic-bezier(0.0, 0.0, 0.2, 1)';
             
             // Forçar reflow para garantir que o estado inicial seja aplicado
             modal.offsetHeight;
             
-            // Animar para estado final: normal, totalmente visível
+            // Animar para estado final: maximizado, totalmente visível
             requestAnimationFrame(() => {
-                modal.style.transform = 'scale(1)';
+                modal.style.transform = 'translate(0, 0) scale(1) skewY(0deg)';
                 modal.style.opacity = '1';
+                modal.style.filter = 'blur(0px)';
             });
         }
 
@@ -4513,8 +4556,8 @@
                     document.body.appendChild(modal);
                     window.currentPreviewModal = modal;
                     
-                    // Aplicar animação macOS-style
-                    applyMacOSModalAnimation(modal);
+                    // Aplicar animação macOS-style de maximização
+                    applyMacOSMaximizeAnimation(modal, currentTriggerButton);
                     
                     // Add click handlers for photos
                     modal.querySelectorAll('.photo-clickable').forEach(img => {
@@ -4866,8 +4909,8 @@
                 document.body.appendChild(modal);
                 window.currentPreviewModal = modal;
                 
-                // Aplicar animação macOS-style
-                applyMacOSModalAnimation(modal);
+                // Aplicar animação macOS-style de maximização
+                applyMacOSMaximizeAnimation(modal, currentTriggerButton);
                 
                 // Add click handlers for photos
                 modal.querySelectorAll('.photo-clickable').forEach(img => {
