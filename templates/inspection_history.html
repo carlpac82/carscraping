@@ -4320,8 +4320,8 @@
                     // Forçar reflow
                     windowElement.offsetHeight;
                     
-                    // Animar para estado final com easing inverso do minimize
-                    windowElement.style.transition = 'transform 0.45s cubic-bezier(0.2, 0.8, 0.2, 1), opacity 0.45s cubic-bezier(0.2, 0.8, 0.2, 1)';
+                    // Animar para estado final com easing mais suave
+                    windowElement.style.transition = 'transform 0.5s cubic-bezier(0.25, 0.46, 0.45, 0.94), opacity 0.5s cubic-bezier(0.25, 0.46, 0.45, 0.94)';
                     
                     requestAnimationFrame(() => {
                         windowElement.style.transform = 'translate(0, 0) scale(1) skewY(0deg) scaleY(1)';
@@ -4330,7 +4330,7 @@
                         // Limpar will-change após animação
                         setTimeout(() => {
                             windowElement.style.willChange = 'auto';
-                        }, 450);
+                        }, 500);
                     });
                 }
             }, 50); // Mesmo delay do minimize
