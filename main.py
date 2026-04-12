@@ -57226,8 +57226,27 @@ async def get_inspections_history(request: Request):
                         LIMIT 200
                     """, (filter_date, filter_date))
                 else:
-                    # No search or date: load ONLY today's inspections (checkins, checkouts, self-checkouts)
+                    # No search or date: load today's inspections + check-ins for contracts with check-outs today + active check-ins
                     cursor.execute("""
+                        WITH todays_checkouts AS (
+                            SELECT DISTINCT SPLIT_PART(contract_number, '-', 1) as ra_base
+                            FROM vehicle_inspections
+                            WHERE COALESCE(status, '') != 'replaced'
+                            AND inspection_type IN ('checkout', 'self_checkout')
+                            AND DATE(created_at) = CURRENT_DATE
+                        ),
+                        active_checkins AS (
+                            SELECT DISTINCT SPLIT_PART(contract_number, '-', 1) as ra_base
+                            FROM vehicle_inspections
+                            WHERE COALESCE(status, '') != 'replaced'
+                            AND inspection_type = 'checkin'
+                            AND NOT EXISTS (
+                                SELECT 1 FROM vehicle_inspections vi2
+                                WHERE SPLIT_PART(vi2.contract_number, '-', 1) = SPLIT_PART(vehicle_inspections.contract_number, '-', 1)
+                                AND vi2.inspection_type IN ('checkout', 'self_checkout')
+                                AND COALESCE(vi2.status, '') != 'replaced'
+                            )
+                        )
                         SELECT vi.inspection_number, vi.vehicle_plate, vi.contract_number, 
                                vi.inspection_type, vi.inspector_name, vi.created_at, 
                                vi.fuel_level, vi.odometer_reading, vi.damage_count, vi.status, vi.id,
@@ -57242,9 +57261,19 @@ async def get_inspections_history(request: Request):
                             OR ra.rental_agreement_number = SPLIT_PART(vi.contract_number, '-', 1)
                         )
                         WHERE COALESCE(vi.status, '') != 'replaced'
-                        AND DATE(vi.created_at) = CURRENT_DATE
+                        AND (
+                            DATE(vi.created_at) = CURRENT_DATE
+                            OR (
+                                vi.inspection_type = 'checkin'
+                                AND SPLIT_PART(vi.contract_number, '-', 1) IN (SELECT ra_base FROM todays_checkouts)
+                            )
+                            OR (
+                                vi.inspection_type = 'checkin'
+                                AND SPLIT_PART(vi.contract_number, '-', 1) IN (SELECT ra_base FROM active_checkins)
+                            )
+                        )
                         ORDER BY vi.created_at DESC
-                        LIMIT 200
+                        LIMIT 500
                     """)
             else:
                 # SQLite: Match RA by removing suffix from contract_number
