@@ -2134,7 +2134,8 @@
                       });
                       
                       const commissionerSelect = document.getElementById('commissionerFilter');
-                      commissioners.forEach(name => {
+                      const sortedCommissioners = Array.from(commissioners).sort((a, b) => a.localeCompare(b));
+                      sortedCommissioners.forEach(name => {
                           const option = document.createElement('option');
                           option.value = name;
                           option.textContent = name;
