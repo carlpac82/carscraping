@@ -65922,6 +65922,7 @@ async def api_get_commissioner_bookings(request: Request):
                             b.dropoff_location,
                             b.vehicle_group,
                             b.price,
+                            b.base_price,
                             b.status,
                             b.created_at,
                             c.name as commissioner_name,
@@ -65970,13 +65971,14 @@ async def api_get_commissioner_bookings(request: Request):
                         "pickup_location": row[6],
                         "return_location": row[7],
                         "car_name": row[8],
-                        "total_price": float(row[9]),
-                        "status": row[10],
-                        "created_at": str(row[11]),
-                        "commissioner_name": row[12],
-                        "commissioner_id": row[13],
-                        "voucher_number": row[14],
-                        "deposit": float(row[15]) if row[15] else 0
+                        "price": float(row[9]),
+                        "base_price": float(row[10]) if row[10] else float(row[9]),  # Fallback para price se base_price for null
+                        "status": row[11],
+                        "created_at": str(row[12]),
+                        "commissioner_name": row[13],
+                        "commissioner_id": row[14],
+                        "voucher_number": row[15],
+                        "deposit": float(row[16]) if row[16] else 0
                     })
                 
                 return JSONResponse({"ok": True, "bookings": bookings})
@@ -66178,7 +66180,7 @@ async def update_commission_booking(booking_id: int, request: Request):
         data = await request.json()
         
         # Validate required fields
-        if 'pickup_date' not in data or 'return_date' not in data or 'total_price' not in data:
+        if 'pickup_date' not in data or 'return_date' not in data or 'base_price' not in data:
             return JSONResponse({"ok": False, "error": "Required fields missing"}, status_code=400)
         
         with _db_lock:
