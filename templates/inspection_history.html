@@ -4029,39 +4029,79 @@
             }
         }
 
-        // Função para mostrar loading clean e moderno
+        // Variável para controlar o intervalo da percentagem
+        let inspectionLoadingInterval;
+        
+        // Função para mostrar loading igual ao da homepage
         function showModernLoading() {
             // Verificar se já existe um loading para evitar duplicação
             if (document.getElementById('loadingOverlay')) {
                 return null;
             }
             
-            // Criar overlay de loading minimalista
+            // Criar overlay de loading igual ao da homepage
             const loadingOverlay = document.createElement('div');
             loadingOverlay.id = 'loadingOverlay';
-            loadingOverlay.className = 'fixed inset-0 bg-black bg-opacity-40 flex items-center justify-center z-50 backdrop-blur-sm';
+            loadingOverlay.className = 'fixed inset-0 bg-black bg-opacity-60 flex items-center justify-center z-50';
+            loadingOverlay.style.cssText = `
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                -webkit-backdrop-filter: blur(3px);
+                backdrop-filter: blur(3px);
+            `;
             loadingOverlay.innerHTML = `
-                <div class="flex flex-col items-center space-y-4">
-                    <!-- Spinner clean com cor azul heather -->
-                    <div class="relative">
-                        <div class="w-10 h-10 border-3 border-gray-200 border-t-[#009cb6] rounded-full animate-spin"></div>
-                    </div>
-                    
-                    <!-- Texto minimalista -->
-                    <div class="text-center">
-                        <p class="text-white font-medium text-sm">A carregar...</p>
-                    </div>
+                <div class="loading-spinner" style="
+                    width: 100px;
+                    height: 100px;
+                    position: relative;
+                    display: flex;
+                    align-items: center;
+                    justify-content: center;
+                ">
+                    <span class="loading-percentage" id="inspectionLoadingPercentage" style="
+                        position: relative;
+                        z-index: 1;
+                        font-size: 24px;
+                        font-weight: bold;
+                        color: #009cb6;
+                        font-family: 'Outfit', sans-serif;
+                    ">0%</span>
                 </div>
+                <style>
+                    .loading-spinner:after {
+                        content: " ";
+                        display: block;
+                        width: 80px;
+                        height: 80px;
+                        margin: 8px;
+                        border-radius: 50%;
+                        border: 7px solid #009cb6;
+                        border-color: #009cb6 transparent #009cb6 transparent;
+                        animation: spinner-dual-ring 1.2s linear infinite;
+                        position: absolute;
+                    }
+                    @keyframes spinner-dual-ring {
+                        0% { transform: rotate(0deg); }
+                        100% { transform: rotate(360deg); }
+                    }
+                </style>
             `;
             
             document.body.appendChild(loadingOverlay);
             
-            // Fade-in suave
-            loadingOverlay.style.opacity = '0';
-            setTimeout(() => {
-                loadingOverlay.style.opacity = '1';
-                loadingOverlay.style.transition = 'opacity 0.2s ease-out';
-            }, 10);
+            // Animar percentagem como na homepage
+            let percentage = 0;
+            const percentageElement = document.getElementById('inspectionLoadingPercentage');
+            
+            inspectionLoadingInterval = setInterval(() => {
+                percentage += 5;
+                if (percentage <= 95) {
+                    percentageElement.textContent = `${percentage}%`;
+                } else {
+                    clearInterval(inspectionLoadingInterval);
+                }
+            }, 300);
             
             return loadingOverlay;
         }
@@ -4070,28 +4110,39 @@
         function hideModernLoading() {
             const loadingOverlay = document.getElementById('loadingOverlay');
             if (loadingOverlay) {
-                // Remover imediatamente para evitar reaparecimento
-                loadingOverlay.remove();
+                // Completar a 100% antes de esconder (como na homepage)
+                const percentageElement = document.getElementById('inspectionLoadingPercentage');
+                if (percentageElement) {
+                    percentageElement.textContent = '100%';
+                }
+                
+                // Limpar intervalo
+                clearInterval(inspectionLoadingInterval);
+                
+                // Remover após um breve delay
+                setTimeout(() => {
+                    if (loadingOverlay.parentNode) {
+                        loadingOverlay.remove();
+                    }
+                }, 300);
             }
         }
 
-        // Função para aplicar animação macOS-style ao modal
+        // Função para aplicar animação macOS-style ao modal (apenas janela, não fundo)
         function applyMacOSModalAnimation(modal) {
-            // Estado inicial: pequeno, baixa opacidade, com blur
+            // Estado inicial: pequeno, baixa opacidade (sem blur no fundo)
             modal.style.transform = 'scale(0.92)';
             modal.style.opacity = '0';
-            modal.style.filter = 'blur(8px)';
-            modal.style.transition = 'transform 0.35s cubic-bezier(0.2, 0.8, 0.2, 1), opacity 0.35s cubic-bezier(0.2, 0.8, 0.2, 1), filter 0.35s cubic-bezier(0.2, 0.8, 0.2, 1)';
+            modal.style.transition = 'transform 0.35s cubic-bezier(0.2, 0.8, 0.2, 1), opacity 0.35s cubic-bezier(0.2, 0.8, 0.2, 1)';
             modal.style.transformOrigin = 'center';
             
             // Forçar reflow para garantir que o estado inicial seja aplicado
             modal.offsetHeight;
             
-            // Animar para estado final: normal, totalmente visível, sem blur
+            // Animar para estado final: normal, totalmente visível
             requestAnimationFrame(() => {
                 modal.style.transform = 'scale(1)';
                 modal.style.opacity = '1';
-                modal.style.filter = 'blur(0px)';
             });
         }
 
