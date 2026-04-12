@@ -66200,7 +66200,7 @@ async def update_commission_booking(booking_id: int, request: Request):
                         return JSONResponse({"ok": False, "error": "Booking not found"}, status_code=404)
                     
                     commissioner_id, commission_rate, old_price = current_data
-                    new_price = float(data['total_price'])
+                    new_price = float(data['base_price'])
                     
                     # Recalculate commission values
                     base_price = new_price
@@ -66248,7 +66248,7 @@ async def update_commission_booking(booking_id: int, request: Request):
                         return JSONResponse({"ok": False, "error": "Booking not found"}, status_code=404)
                     
                     commissioner_id, commission_rate, old_price = current_data
-                    new_price = float(data['total_price'])
+                    new_price = float(data['base_price'])
                     
                     # Recalculate commission values
                     base_price = new_price
