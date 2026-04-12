@@ -1439,7 +1439,7 @@
         
         function closeEmailModal() {
             if (window.currentEmailModal) {
-                document.body.removeChild(window.currentEmailModal);
+                applyMacOSMinimizeAnimation(window.currentEmailModal, currentTriggerButton);
                 window.currentEmailModal = null;
             }
         }
@@ -2697,39 +2697,45 @@
             // Calcular distância e direção
             const deltaX = buttonCenterX - modalCenterX;
             const deltaY = buttonCenterY - modalCenterY;
-            const distance = Math.sqrt(deltaX * deltaX + deltaY * deltaY);
             
-            // Calcular escala final baseada no tamanho do botão
+            // Calcular escala final baseada no tamanho do botão (0.15 como especificado)
             const targetScale = Math.min(buttonRect.width / modalRect.width, buttonRect.height / modalRect.height) * 0.8;
+            const finalScale = Math.max(targetScale, 0.15); // Garantir mínimo de 0.15
             
             // Aplicar transform origin em direção ao botão
             const originX = ((buttonCenterX - modalRect.left) / modalRect.width) * 100;
             const originY = ((buttonCenterY - modalRect.top) / modalRect.height) * 100;
             modal.style.transformOrigin = `${originX}% ${originY}%`;
             
-            // Iniciar animação minimize
-            modal.style.transition = 'transform 0.5s cubic-bezier(0.4, 0.0, 1, 1), opacity 0.5s cubic-bezier(0.4, 0.0, 1, 1), filter 0.5s cubic-bezier(0.4, 0.0, 1, 1)';
-            
-            // Animação com efeito "genie"
+            // 1. Animar background blur overlay (fixo, sem movimento)
+            modal.style.transition = 'backdrop-filter 0.25s ease-out, opacity 0.25s ease-out';
             requestAnimationFrame(() => {
-                // Mover em direção ao botão com escala reduzida
-                modal.style.transform = `
-                    translate(${deltaX * 0.8}px, ${deltaY * 0.8}px) 
-                    scale(${targetScale}) 
-                    skewY(${deltaX > 0 ? -2 : 2}deg)
-                `;
-                modal.style.opacity = '0';
-                modal.style.filter = 'blur(2px)';
+                modal.style.backdropFilter = 'blur(0px)';
+                modal.style.opacity = '0.4'; // Manter alguma opacidade enquanto janela anima
             });
             
-            // Remover do DOM após animação
+            // 2. Animar janela (foreground) independentemente
+            setTimeout(() => {
+                const windowElement = modal.querySelector('.bg-white');
+                if (windowElement) {
+                    windowElement.style.transition = 'transform 0.45s cubic-bezier(0.4, 0.0, 1, 1), opacity 0.45s cubic-bezier(0.4, 0.0, 1, 1)';
+                    windowElement.style.transformOrigin = `${originX}% ${originY}%`;
+                    
+                    requestAnimationFrame(() => {
+                        windowElement.style.transform = `translate(${deltaX * 0.8}px, ${deltaY * 0.8}px) scale(${finalScale}) skewY(${deltaX > 0 ? -2 : 2}deg)`;
+                        windowElement.style.opacity = '0';
+                    });
+                }
+            }, 50); // Pequeno delay para iniciar animação da janela após o background
+            
+            // Remover modal após animação completar
             setTimeout(() => {
                 if (modal.parentNode) {
                     document.body.removeChild(modal);
                 }
                 window.currentPreviewModal = null;
                 currentTriggerButton = null;
-            }, 500);
+            }, 450); // Baseado na duração da animação da janela
         }
 
         // Close preview modal com animação minimize
@@ -2885,7 +2891,7 @@
         
         function closeSwappedVehicleModal() {
             if (window.currentSwappedVehicleModal) {
-                document.body.removeChild(window.currentSwappedVehicleModal);
+                applyMacOSMinimizeAnimation(window.currentSwappedVehicleModal, currentTriggerButton);
                 window.currentSwappedVehicleModal = null;
             }
         }
@@ -2980,7 +2986,7 @@
         
         function closeParkingPDFModal() {
             if (window.currentParkingPDFModal) {
-                document.body.removeChild(window.currentParkingPDFModal);
+                applyMacOSMinimizeAnimation(window.currentParkingPDFModal, currentTriggerButton);
                 window.currentParkingPDFModal = null;
             }
         }
@@ -3697,7 +3703,7 @@
         // Close edit modal
         function closeEditModal() {
             if (window.currentEditModal) {
-                document.body.removeChild(window.currentEditModal);
+                applyMacOSMinimizeAnimation(window.currentEditModal, currentTriggerButton);
                 window.currentEditModal = null;
             }
         }
@@ -5739,7 +5745,7 @@
         
         function closeInvalidateModal() {
             if (invalidateModal) {
-                document.body.removeChild(invalidateModal);
+                applyMacOSMinimizeAnimation(invalidateModal, currentTriggerButton);
                 invalidateModal = null;
             }
         }
