@@ -1726,6 +1726,9 @@
             const isSelfCheckout = type === 'self_checkout';
             const title = isSelfCheckout ? 'Self-Checkout' : (type === 'checkout' ? 'Relatório de Recolha' : 'Relatório de Entrega');
             
+            // Mostrar loading moderno
+            const loadingOverlay = showModernLoading();
+            
             // Check if contract is closed (has both checkout and checkin)
             const contract = contracts.find(c => 
                 (c.checkout && c.checkout.inspection_number === inspectionNumber) ||
@@ -2650,6 +2653,9 @@
                 
             } catch (error) {
                 showNotification('Erro ao abrir pré-visualização: ' + error.message, 'error');
+            } finally {
+                // Esconder loading
+                hideModernLoading();
             }
         }
         
@@ -4020,9 +4026,77 @@
             }
         }
 
+        // Função para mostrar loading moderno
+        function showModernLoading() {
+            // Criar overlay de loading
+            const loadingOverlay = document.createElement('div');
+            loadingOverlay.id = 'loadingOverlay';
+            loadingOverlay.className = 'fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 backdrop-blur-sm';
+            loadingOverlay.innerHTML = `
+                <div class="bg-white rounded-2xl p-8 shadow-2xl flex flex-col items-center space-y-4 max-w-sm mx-4">
+                    <!-- Spinner moderno -->
+                    <div class="relative">
+                        <div class="w-12 h-12 border-4 border-gray-200 border-t-blue-600 rounded-full animate-spin"></div>
+                        <div class="absolute inset-0 w-12 h-12 border-4 border-transparent border-r-orange-500 rounded-full animate-spin animation-delay-150"></div>
+                    </div>
+                    
+                    <!-- Texto de loading -->
+                    <div class="text-center space-y-2">
+                        <p class="text-gray-900 font-semibold text-lg">Carregando inspeção...</p>
+                        <p class="text-gray-600 text-sm">A buscar dados e fotos</p>
+                    </div>
+                    
+                    <!-- Barras de progresso animadas -->
+                    <div class="w-full space-y-2">
+                        <div class="h-1 bg-gray-200 rounded-full overflow-hidden">
+                            <div class="h-full bg-blue-600 rounded-full animate-pulse" style="width: 60%; animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;"></div>
+                        </div>
+                        <div class="h-1 bg-gray-200 rounded-full overflow-hidden">
+                            <div class="h-full bg-orange-500 rounded-full animate-pulse" style="width: 40%; animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite; animation-delay: 0.5s;"></div>
+                        </div>
+                    </div>
+                </div>
+                
+                <style>
+                    @keyframes pulse {
+                        0%, 100% { opacity: 1; }
+                        50% { opacity: 0.5; }
+                    }
+                    .animation-delay-150 {
+                        animation-delay: 150ms;
+                    }
+                </style>
+            `;
+            
+            document.body.appendChild(loadingOverlay);
+            
+            // Adicionar efeito de fade-in
+            setTimeout(() => {
+                loadingOverlay.style.opacity = '1';
+                loadingOverlay.style.transition = 'opacity 0.3s ease-in-out';
+            }, 10);
+            
+            return loadingOverlay;
+        }
+        
+        // Função para esconder loading
+        function hideModernLoading() {
+            const loadingOverlay = document.getElementById('loadingOverlay');
+            if (loadingOverlay) {
+                loadingOverlay.style.opacity = '0';
+                loadingOverlay.style.transition = 'opacity 0.3s ease-in-out';
+                setTimeout(() => {
+                    loadingOverlay.remove();
+                }, 300);
+            }
+        }
+
         // Preview Recolha - se há self-checkout validado, usa dados do self-checkout + croqui do CHECK-IN
         async function previewRecolha(checkoutNumber, selfCheckoutNumber, checkinNumber, vehicleBrand, vehicleModel) {
-            console.log('🚗 previewRecolha called with:', { checkoutNumber, selfCheckoutNumber, checkinNumber, vehicleBrand, vehicleModel });
+            console.log(' previewRecolha called with:', { checkoutNumber, selfCheckoutNumber, checkinNumber, vehicleBrand, vehicleModel });
+            
+            // Mostrar loading moderno
+            const loadingOverlay = showModernLoading();
             
             // Se há self-checkout validado, usar dados do self-checkout
             if (selfCheckoutNumber) {
@@ -4294,18 +4368,25 @@
                     });
                     
                 } catch (error) {
-                    console.error('❌ Error in previewRecolha:', error);
+                    console.error('?? Error in previewRecolha:', error);
                     alert('Erro ao abrir preview: ' + error.message);
+                } finally {
+                    // Esconder loading
+                    hideModernLoading();
                 }
             } else {
                 // Sem self-checkout validado, usar preview normal do checkout
                 await previewInspection(checkoutNumber, 'checkout');
+                hideModernLoading();
             }
         }
 
         // Preview Recolha Invalidated - mostra dados do self-checkout invalidado com fotos de danos
         async function previewRecolhaInvalidated(selfCheckoutNumber, checkinNumber, vehicleBrand, vehicleModel) {
-            console.log('🚗 previewRecolhaInvalidated called with:', { selfCheckoutNumber, checkinNumber, vehicleBrand, vehicleModel });
+            console.log('?? previewRecolhaInvalidated called with:', { selfCheckoutNumber, checkinNumber, vehicleBrand, vehicleModel });
+            
+            // Mostrar loading moderno
+            const loadingOverlay = showModernLoading();
             
             try {
                 // Buscar dados do self-checkout invalidado (RECOLHA)
@@ -4633,8 +4714,11 @@
                 });
                 
             } catch (error) {
-                console.error('❌ Error in previewRecolhaInvalidated:', error);
+                console.error('?? Error in previewRecolhaInvalidated:', error);
                 alert('Erro ao abrir preview: ' + error.message);
+            } finally {
+                // Esconder loading
+                hideModernLoading();
             }
         }
 
