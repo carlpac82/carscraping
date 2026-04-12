@@ -4134,11 +4134,12 @@
 
         // Preview self-checkout (ver detalhes do self-checkout do cliente)
         async function previewSelfCheckout(inspectionNumber) {
-            console.log('🔍 previewSelfCheckout called with:', inspectionNumber);
+            console.log('previewSelfCheckout called with:', inspectionNumber);
             try {
-                await previewInspection(inspectionNumber, 'self_checkout');
+                // Usar currentTriggerButton se existir, senão null
+                await previewInspection(inspectionNumber, 'self_checkout', currentTriggerButton);
             } catch (error) {
-                console.error('❌ Error in previewSelfCheckout:', error);
+                console.error('Error in previewSelfCheckout:', error);
                 alert('Erro ao abrir preview: ' + error.message);
             }
         }
@@ -4626,7 +4627,7 @@
                 }
             } else {
                 // Sem self-checkout validado, usar preview normal do checkout
-                await previewInspection(checkoutNumber, 'checkout');
+                await previewInspection(checkoutNumber, 'checkout', currentTriggerButton);
             }
         }
 
