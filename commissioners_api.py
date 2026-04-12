@@ -325,12 +325,16 @@ async def create_booking(booking: BookingCreate, request: Request):
     if isinstance(pickup_date, str):
         pickup_date = datetime.strptime(pickup_date, '%Y-%m-%d').date()
     
+    # Calculate the correct base_price: total - premium_insurance - road_tax
+    # This ensures base_price is always correct regardless of what frontend sends
+    correct_base_price = booking.total_amount - booking.premium_insurance - booking.road_tax
+    
     if pickup_date > cutoff_date:
         # After April 1, 2026: no VAT deduction with current commission rate
-        commission_amount = booking.base_price * (commission_rate / 100.0)
+        commission_amount = correct_base_price * (commission_rate / 100.0)
     else:
         # Before April 1, 2026: with VAT deduction using 15% rate
-        commission_amount = (booking.base_price / 1.23) * 0.15
+        commission_amount = (correct_base_price / 1.23) * 0.15
     
     # Insert booking
     cursor.execute("""
@@ -353,7 +357,7 @@ async def create_booking(booking: BookingCreate, request: Request):
         booking.pickup_location, booking.dropoff_location,
         booking.vehicle_group, booking.insurance_type, json.dumps(booking.extras),
         booking.flight_number, booking.language, booking.observations, booking.deposit, booking.price,
-        booking.base_price, booking.premium_insurance, booking.road_tax, booking.extras_total, booking.rental_days,
+        correct_base_price, booking.premium_insurance, booking.road_tax, booking.extras_total, booking.rental_days,
         booking.total_amount, booking.value_adjustment, commission_rate, commission_amount, 'pending'
     ))
     
