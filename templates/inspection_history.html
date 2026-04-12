@@ -4287,10 +4287,10 @@
             const originY = ((buttonCenterY - modalRect.top) / modalRect.height) * 100;
             modal.style.transformOrigin = `${originX}% ${originY}%`;
             
-            // 1. Animar background blur overlay (fixo, sem movimento)
-            modal.style.transition = 'backdrop-filter 0.25s ease-out, opacity 0.25s ease-out';
+            // 1. Background blur overlay (fixo, sem movimento)
             modal.style.backdropFilter = 'blur(0px)';
             modal.style.opacity = '0';
+            modal.style.transition = 'backdrop-filter 0.25s ease-out, opacity 0.25s ease-out';
             
             // Forçar reflow para garantir estado inicial
             modal.offsetHeight;
@@ -4298,17 +4298,17 @@
             // Iniciar animação do background
             requestAnimationFrame(() => {
                 modal.style.backdropFilter = 'blur(10px)';
-                modal.style.opacity = '1'; // Modal container totalmente visível
+                modal.style.opacity = '1';
             });
             
-            // 2. Animar janela (foreground) com efeito "genie" reverso
+            // 2. Janela (foreground) com efeito "genie" reverso
             setTimeout(() => {
                 const windowElement = modal.querySelector('.bg-white');
                 if (windowElement) {
                     // GPU acceleration
-                    windowElement.style.willChange = 'transform, opacity, filter';
+                    windowElement.style.willChange = 'transform, opacity';
                     
-                    // Estado inicial: minimizado no botão, com blur
+                    // Estado inicial: minimizado no botão
                     windowElement.style.transform = `
                         translate(${deltaX * 0.8}px, ${deltaY * 0.8}px) 
                         scale(${initialScale}) 
@@ -4316,19 +4316,17 @@
                         scaleY(${initialScale * 0.85}) // Stretch inicial
                     `;
                     windowElement.style.opacity = '0';
-                    windowElement.style.filter = 'blur(8px)';
                     windowElement.style.transformOrigin = `${originX}% ${originY}%`;
                     
                     // Forçar reflow
                     windowElement.offsetHeight;
                     
                     // Animar para estado final com easing suave
-                    windowElement.style.transition = 'transform 0.45s cubic-bezier(0.2, 0.8, 0.2, 1), opacity 0.45s cubic-bezier(0.2, 0.8, 0.2, 1), filter 0.45s cubic-bezier(0.2, 0.8, 0.2, 1)';
+                    windowElement.style.transition = 'transform 0.45s cubic-bezier(0.2, 0.8, 0.2, 1), opacity 0.45s cubic-bezier(0.2, 0.8, 0.2, 1)';
                     
                     requestAnimationFrame(() => {
                         windowElement.style.transform = 'translate(0, 0) scale(1) skewY(0deg) scaleY(1)';
                         windowElement.style.opacity = '1';
-                        windowElement.style.filter = 'blur(0px)';
                         
                         // Limpar will-change após animação
                         setTimeout(() => {
