@@ -2718,12 +2718,20 @@
             setTimeout(() => {
                 const windowElement = modal.querySelector('.bg-white');
                 if (windowElement) {
+                    // GPU acceleration
+                    windowElement.style.willChange = 'transform, opacity';
+                    
                     windowElement.style.transition = 'transform 0.45s cubic-bezier(0.4, 0.0, 1, 1), opacity 0.45s cubic-bezier(0.4, 0.0, 1, 1)';
                     windowElement.style.transformOrigin = `${originX}% ${originY}%`;
                     
                     requestAnimationFrame(() => {
-                        windowElement.style.transform = `translate(${deltaX * 0.8}px, ${deltaY * 0.8}px) scale(${finalScale}) skewY(${deltaX > 0 ? -2 : 2}deg)`;
+                        windowElement.style.transform = `translate(${deltaX * 0.8}px, ${deltaY * 0.8}px) scale(${finalScale}) skewY(${deltaX > 0 ? -2 : 2}deg) scaleY(${finalScale * 0.85})`;
                         windowElement.style.opacity = '0';
+                        
+                        // Limpar will-change após animação
+                        setTimeout(() => {
+                            windowElement.style.willChange = 'auto';
+                        }, 450);
                     });
                 }
             }, 50); // Pequeno delay para iniciar animação da janela após o background
