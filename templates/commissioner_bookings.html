@@ -1572,7 +1572,7 @@
             document.getElementById('editReturnDate').value = booking.return_date;
             document.getElementById('editPickupLocation').value = booking.pickup_location;
             document.getElementById('editReturnLocation').value = booking.return_location;
-            document.getElementById('editTotalPrice').value = booking.price || 0;
+            document.getElementById('editTotalPrice').value = booking.base_price || 0;
 
             document.getElementById('editModal').classList.add('active');
         }
