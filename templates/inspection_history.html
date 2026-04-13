@@ -7638,11 +7638,11 @@
                     uploadBtn.disabled = false;
                 }
                 
-                // Manter modo com reserva ativo para permitir reenvio com QR code existente
-                // Não marcar checkbox "Sem Reserva" - manter modo original com reserva
+                // Permitir escolha entre modo com reserva e sem reserva
+                // Por padrão, manter modo com reserva ativo
                 const noReservationCheckbox = document.getElementById('noReservationCheckbox');
                 if (noReservationCheckbox) {
-                    noReservationCheckbox.checked = false; // Manter modo com reserva
+                    noReservationCheckbox.checked = false; // Modo com reserva por padrão
                     toggleNoReservationMode(); // Ativar seção com reserva
                     
                     // Pré-preencher dados existentes para facilitar reenvio
@@ -7651,6 +7651,12 @@
                     window.detectedPickupDate = existingParkingData[0].extracted_date;
                     window.detectedPickupTime = existingParkingData[0].extracted_time;
                     window.detectedReservationNumber = existingParkingData[0].extracted_reference;
+                    
+                    // Pré-preencher dropdown do modo sem reserva com o parque existente
+                    const manualSelect = document.getElementById('manualParkingSelect');
+                    if (manualSelect && existingParkingData[0]) {
+                        manualSelect.value = existingParkingData[0].parking_number;
+                    }
                 }
             }
             
