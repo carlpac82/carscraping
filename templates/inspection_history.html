@@ -7666,13 +7666,10 @@
         function closeParkingQRModal() {
             const modal = document.getElementById('parkingQRModal');
             if (modal) {
-                modal.remove();
+                applyMacOSMinimizeAnimation(modal, currentTriggerButton);
             }
             window.currentParkingRA = null;
             window.currentParkingClient = null;
-            
-            // Restaurar scroll do body
-            restoreBodyScroll();
         }
         
         function viewExistingParkingPDF(parkingNumber) {
