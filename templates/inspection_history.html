@@ -6627,11 +6627,96 @@
             }
         }
         
+        // Animação minimize para modais estáticos (não remove do DOM)
+        function applyMacOSMinimizeAnimationStatic(modal, targetButton) {
+            if (!modal || !targetButton) {
+                // Fallback: esconder diretamente se não houver botão
+                modal.classList.add('hidden');
+                restoreBodyScroll();
+                return;
+            }
+            
+            const modalRect = modal.getBoundingClientRect();
+            const buttonRect = targetButton.getBoundingClientRect();
+            
+            // Calcular centro do botão
+            const buttonCenterX = buttonRect.left + buttonRect.width / 2;
+            const buttonCenterY = buttonRect.top + buttonRect.height / 2;
+            
+            // Calcular centro do modal
+            const modalCenterX = modalRect.left + modalRect.width / 2;
+            const modalCenterY = modalRect.top + modalRect.height / 2;
+            
+            // Calcular distância para movimento
+            const deltaX = buttonCenterX - modalCenterX;
+            const deltaY = buttonCenterY - modalCenterY;
+            
+            // Calcular escala final baseada no tamanho do botão (0.15 como especificado)
+            const targetScale = Math.min(buttonRect.width / modalRect.width, buttonRect.height / modalRect.height) * 0.8;
+            const finalScale = Math.max(targetScale, 0.15); // Garantir mínimo de 0.15
+            
+            // Aplicar transform origin em direção ao botão
+            const originX = ((buttonCenterX - modalRect.left) / modalRect.width) * 100;
+            const originY = ((buttonCenterY - modalRect.top) / modalRect.height) * 100;
+            modal.style.transformOrigin = `${originX}% ${originY}%`;
+            
+            // 1. Animar background blur overlay (fixo, sem movimento)
+            modal.style.transition = 'backdrop-filter 0.25s ease-out, opacity 0.25s ease-out';
+            requestAnimationFrame(() => {
+                modal.style.backdropFilter = 'blur(0px)';
+                modal.style.opacity = '0.4'; // Manter alguma opacidade enquanto janela anima
+            });
+            
+            // 2. Animar janela (foreground) independentemente
+            setTimeout(() => {
+                const windowElement = modal.querySelector('.bg-white');
+                if (windowElement) {
+                    // GPU acceleration
+                    windowElement.style.willChange = 'transform, opacity';
+                    
+                    windowElement.style.transition = 'transform 0.45s cubic-bezier(0.4, 0.0, 1, 1), opacity 0.45s cubic-bezier(0.4, 0.0, 1, 1)';
+                    windowElement.style.transformOrigin = `${originX}% ${originY}%`;
+                    
+                    requestAnimationFrame(() => {
+                        windowElement.style.transform = `translate(${deltaX * 0.8}px, ${deltaY * 0.8}px) scale(${finalScale}) skewY(${deltaX > 0 ? -2 : 2}deg) scaleY(${finalScale * 0.85})`;
+                        windowElement.style.opacity = '0';
+                        
+                        // Limpar will-change após animação
+                        setTimeout(() => {
+                            windowElement.style.willChange = 'auto';
+                        }, 450);
+                    });
+                }
+            }, 50); // Pequeno delay para iniciar animação da janela após o background
+            
+            // Esconder modal após animação completar (sem remover do DOM)
+            setTimeout(() => {
+                modal.classList.add('hidden');
+                currentTriggerButton = null;
+                // Restaurar scroll do body
+                restoreBodyScroll();
+                
+                // Reset styles para próxima abertura
+                modal.style.transition = '';
+                modal.style.backdropFilter = '';
+                modal.style.opacity = '';
+                modal.style.transformOrigin = '';
+                
+                const windowElement = modal.querySelector('.bg-white');
+                if (windowElement) {
+                    windowElement.style.transition = '';
+                    windowElement.style.transform = '';
+                    windowElement.style.opacity = '';
+                    windowElement.style.transformOrigin = '';
+                }
+            }, 450); // Baseado na duração da animação da janela
+        }
+        
         // Close vehicle swap modal
         function closeVehicleSwapModal() {
             const modal = document.getElementById('vehicleSwapModal');
             if (modal) {
-                applyMacOSMinimizeAnimation(modal, currentTriggerButton);
+                applyMacOSMinimizeAnimationStatic(modal, currentTriggerButton);
             }
         }
         
