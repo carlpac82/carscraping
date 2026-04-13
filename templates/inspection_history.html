@@ -8038,9 +8038,18 @@
                 pickupTime = window.detectedPickupTime;
                 reservationNumber = window.detectedReservationNumber;
                 
-                if (!parkingNumber || !qrImageBase64) {
-                    showNotification('Erro: Dados incompletos', 'error');
-                    return;
+                // Se há dados existentes, permitir envio mesmo sem QR code
+                if (window.existingParkingData && window.existingParkingData.length > 0) {
+                    if (!parkingNumber) {
+                        showNotification('Erro: Número do parque não encontrado', 'error');
+                        return;
+                    }
+                } else {
+                    // Novo upload: exige QR code
+                    if (!parkingNumber || !qrImageBase64) {
+                        showNotification('Erro: Dados incompletos', 'error');
+                        return;
+                    }
                 }
             }
             
