@@ -8031,21 +8031,29 @@
                     return;
                 }
             } else {
-                // Modo com reserva - usar dados detectados do PDF
-                parkingNumber = window.detectedParkingNumber;
-                qrImageBase64 = window.qrCodeImageBase64;
-                pickupDate = window.detectedPickupDate;
-                pickupTime = window.detectedPickupTime;
-                reservationNumber = window.detectedReservationNumber;
-                
-                // Se há dados existentes, permitir envio mesmo sem QR code
+                // Modo com reserva - usar dados existentes ou detectados do PDF
                 if (window.existingParkingData && window.existingParkingData.length > 0) {
+                    // Usar dados existentes para reenvio
+                    const existingData = window.existingParkingData[0];
+                    parkingNumber = existingData.parking_number;
+                    qrImageBase64 = existingData.qr_image_path; // Pode ser null se não foi processado
+                    pickupDate = existingData.extracted_date;
+                    pickupTime = existingData.extracted_time;
+                    reservationNumber = existingData.extracted_reference;
+                    
+                    // Para reenvio com dados existentes, não exige QR code
                     if (!parkingNumber) {
                         showNotification('Erro: Número do parque não encontrado', 'error');
                         return;
                     }
                 } else {
-                    // Novo upload: exige QR code
+                    // Novo upload: usar dados detectados do PDF e exige QR code
+                    parkingNumber = window.detectedParkingNumber;
+                    qrImageBase64 = window.qrCodeImageBase64;
+                    pickupDate = window.detectedPickupDate;
+                    pickupTime = window.detectedPickupTime;
+                    reservationNumber = window.detectedReservationNumber;
+                    
                     if (!parkingNumber || !qrImageBase64) {
                         showNotification('Erro: Dados incompletos', 'error');
                         return;
