@@ -7619,6 +7619,14 @@
             // Add file change listener
             document.getElementById('parkingQRFile').addEventListener('change', handleParkingQRFileSelect);
             
+            // Se já existem dados do parque, ativar botão para permitir reenvio
+            if (existingParkingData && existingParkingData.length > 0) {
+                const uploadBtn = document.getElementById('uploadParkingBtn');
+                if (uploadBtn) {
+                    uploadBtn.disabled = false;
+                }
+            }
+            
             // Tornar o nome do ficheiro clicável para preview inline
             makeFileNameClickable();
         }
