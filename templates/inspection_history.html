@@ -1460,6 +1460,11 @@
             if (window.currentEmailModal) {
                 applyMacOSMinimizeAnimation(window.currentEmailModal, currentTriggerButton);
                 window.currentEmailModal = null;
+                currentTriggerButton = null;
+                // Restaurar scroll do body após animação
+                setTimeout(() => {
+                    restoreBodyScroll();
+                }, 450); // Baseado na duração da animação minimize
             }
         }
         
@@ -5454,6 +5459,8 @@
         function closeEditSelfCheckoutModal() {
             const modal = document.getElementById('editSelfCheckoutModal');
             if (modal) modal.remove();
+            // Restaurar scroll do body
+            restoreBodyScroll();
         }
         
         async function saveSelfCheckoutEdit(inspectionNumber, contractNumber, checkinFuel) {
@@ -7278,6 +7285,8 @@
         function closeSwapSummaryModal() {
             const modal = document.getElementById('swapSummaryModal');
             if (modal) modal.remove();
+            // Restaurar scroll do body
+            restoreBodyScroll();
         }
         
         // Save vehicle swap (with or without email)
