@@ -8025,12 +8025,21 @@
                     // Usar dados existentes para reenvio
                     const existingData = window.existingParkingData[0];
                     parkingNumber = existingData.parking_number;
-                    qrImageBase64 = existingData.qr_image_path; // Pode ser null se não foi processado
                     pickupDate = existingData.extracted_date;
                     pickupTime = existingData.extracted_time;
                     reservationNumber = existingData.extracted_reference;
                     
-                    // Para reenvio com dados existentes, não exige QR code
+                    // IMPORTANTE: Extrair QR code do modal se existir, não usar do backend
+                    const qrImageElement = document.getElementById('qrImagePreview');
+                    if (qrImageElement && qrImageElement.src && qrImageElement.src.startsWith('data:')) {
+                        // QR code está visível no modal - extrair base64 puro
+                        qrImageBase64 = qrImageElement.src.split(',')[1];
+                        console.log('QR code extraído do modal para reenvio');
+                    } else {
+                        qrImageBase64 = null;
+                        console.log('QR code não encontrado no modal');
+                    }
+                    
                     if (!parkingNumber) {
                         showNotification('Erro: Número do parque não encontrado', 'error');
                         return;
