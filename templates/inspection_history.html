@@ -7638,11 +7638,19 @@
                     uploadBtn.disabled = false;
                 }
                 
-                // Marcar automaticamente checkbox "Sem Reserva" para permitir reenvio
+                // Manter modo com reserva ativo para permitir reenvio com QR code existente
+                // Não marcar checkbox "Sem Reserva" - manter modo original com reserva
                 const noReservationCheckbox = document.getElementById('noReservationCheckbox');
                 if (noReservationCheckbox) {
-                    noReservationCheckbox.checked = true;
-                    toggleNoReservationMode();
+                    noReservationCheckbox.checked = false; // Manter modo com reserva
+                    toggleNoReservationMode(); // Ativar seção com reserva
+                    
+                    // Pré-preencher dados existentes para facilitar reenvio
+                    window.detectedParkingNumber = existingParkingData[0].parking_number;
+                    window.qrCodeImageBase64 = existingParkingData[0].qr_image_path ? existingParkingData[0].qr_image_path : null;
+                    window.detectedPickupDate = existingParkingData[0].extracted_date;
+                    window.detectedPickupTime = existingParkingData[0].extracted_time;
+                    window.detectedReservationNumber = existingParkingData[0].extracted_reference;
                 }
             }
             
@@ -7657,6 +7665,9 @@
             }
             window.currentParkingRA = null;
             window.currentParkingClient = null;
+            
+            // Restaurar scroll do body
+            restoreBodyScroll();
         }
         
         function viewExistingParkingPDF(parkingNumber) {
