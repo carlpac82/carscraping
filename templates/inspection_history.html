@@ -5315,7 +5315,8 @@
             `;
             
             document.body.appendChild(countdownOverlay);
-            document.body.style.overflow = 'hidden';
+            // Scroll desativado temporariamente
+            // document.body.style.overflow = 'hidden';
             
             // Countdown animation
             let count = 3;
@@ -6110,7 +6111,8 @@
             `;
             
             document.body.appendChild(countdownOverlay);
-            document.body.style.overflow = 'hidden';
+            // Scroll desativado temporariamente
+            // document.body.style.overflow = 'hidden';
             
             // Countdown animation
             let count = 3;
@@ -6168,7 +6170,8 @@
                 `;
                 
                 document.body.appendChild(cameraModal);
-                document.body.style.overflow = 'hidden';
+                // Scroll desativado temporariamente
+                // document.body.style.overflow = 'hidden';
                 
                 // Set video stream
                 const video = document.getElementById('invCameraPreview');
@@ -6986,7 +6989,8 @@
             `;
             
             document.body.appendChild(modal);
-            document.body.style.overflow = 'hidden';
+            // Scroll desativado temporariamente
+            // document.body.style.overflow = 'hidden';
             
             console.log('✅ Inspection iframe modal opened');
         }
@@ -6995,8 +6999,9 @@
             const modal = document.getElementById('inspectionIframeModal');
             if (modal) {
                 modal.remove();
-                document.body.style.overflow = '';
-                console.log('✅ Inspection iframe modal closed');
+                // Scroll desativado temporariamente
+                // document.body.style.overflow = '';
+                console.log(' Modal closed');
                 
                 // Reload inspections to show the new one
                 loadInspections();
