@@ -296,7 +296,7 @@
     </div>
 
     <!-- Modal: Trocar Matrícula -->
-    <div id="vehicleSwapModal" class="hidden fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+    <div id="vehicleSwapModal" class="hidden fixed inset-0 flex items-center justify-center z-50 p-4">
         <div class="bg-white rounded-lg shadow-xl max-w-4xl w-full mx-4 max-h-[90vh] overflow-y-auto">
             <div class="bg-[#009cb6] text-white px-6 py-4 rounded-t-lg sticky top-0">
                 <h3 class="text-xl font-bold">🔄 Trocar Matrícula - RA <span id="swapModalTitle"></span></h3>
@@ -1234,7 +1234,7 @@
                                     </button>
                                     ` : ''}
                                     ${isOpen ? `
-                                    <button onclick="showVehicleSwapModal('${contract.contract_number}', '${contract.vehicle_plate}')" class="flex items-center gap-2 px-3 py-2 bg-orange-50 hover:bg-orange-100 rounded-lg transition-colors" title="Trocar Matrícula">
+                                    <button onclick="showVehicleSwapModalWithButton('${contract.contract_number}', '${contract.vehicle_plate}', event)" class="flex items-center gap-2 px-3 py-2 bg-orange-50 hover:bg-orange-100 rounded-lg transition-colors" title="Trocar Matrícula">
                                         <svg class="w-6 h-6 text-[#f97316]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4"/>
                                         </svg>
@@ -6527,13 +6527,28 @@
             console.log(`🔍 Filtered ${filtered.length} vehicles for group ${group}`);
         }
         
+        // Função wrapper para capturar botão clicado
+        function showVehicleSwapModalWithButton(raNumber, currentPlate, event) {
+            const button = event.currentTarget;
+            showVehicleSwapModal(raNumber, currentPlate, event);
+        }
+        
         // Show vehicle swap modal
-        async function showVehicleSwapModal(raNumber, currentPlate) {
-            console.log('🔄 Opening vehicle swap modal for RA:', raNumber, 'Plate:', currentPlate);
+        async function showVehicleSwapModal(raNumber, currentPlate, event) {
+            console.log('?? Opening vehicle swap modal for RA:', raNumber, 'Plate:', currentPlate);
             
-            // Load groups and available vehicles
-            await loadVehicleGroups();
-            await loadAvailableVehicles();
+            // Capturar botão que acionou para animação
+            if (event && event.currentTarget) {
+                currentTriggerButton = event.currentTarget;
+            }
+            
+            // Mostrar loading
+            const loadingOverlay = showModernLoading();
+            
+            try {
+                // Load groups and available vehicles
+                await loadVehicleGroups();
+                await loadAvailableVehicles();
             
             // Set RA and current plate
             document.getElementById('swapModalTitle').textContent = raNumber;
@@ -6576,11 +6591,29 @@
             
             // Show modal
             document.getElementById('vehicleSwapModal').classList.remove('hidden');
+            
+            // Esconder loading e aplicar animação maximize
+            hideModernLoading();
+            
+            // Aplicar animação maximize ao modal
+            const modal = document.getElementById('vehicleSwapModal');
+            if (modal && currentTriggerButton) {
+                applyMacOSMaximizeAnimation(modal, currentTriggerButton);
+            }
+            
+            } catch (error) {
+                console.error('Erro ao abrir modal de troca de viatura:', error);
+                hideModernLoading();
+                showNotification('Erro ao carregar dados da troca de viatura', 'error');
+            }
         }
         
         // Close vehicle swap modal
         function closeVehicleSwapModal() {
-            document.getElementById('vehicleSwapModal').classList.add('hidden');
+            const modal = document.getElementById('vehicleSwapModal');
+            if (modal) {
+                applyMacOSMinimizeAnimation(modal, currentTriggerButton);
+            }
         }
         
         // Update old fuel display when slider changes
