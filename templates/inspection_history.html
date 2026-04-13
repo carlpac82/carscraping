@@ -3963,6 +3963,15 @@
             showLightboxPhoto();
         }
         
+        function showLightboxPhoto() {
+            if (lightboxCurrentIndex >= 0 && lightboxCurrentIndex < lightboxPhotos.length) {
+                const photo = lightboxPhotos[lightboxCurrentIndex];
+                document.getElementById('lightboxImage').src = photo.url;
+                document.getElementById('lightboxCaption').textContent = photo.label;
+                document.getElementById('lightboxCounter').textContent = `${lightboxCurrentIndex + 1} / ${lightboxPhotos.length}`;
+            }
+        }
+        
         function navigateLightbox(direction) {
             lightboxCurrentIndex += direction;
             if (lightboxCurrentIndex < 0) lightboxCurrentIndex = lightboxPhotos.length - 1;
