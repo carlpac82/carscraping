@@ -7633,6 +7633,9 @@
             
             // Se já existem dados do parque, ativar botão para permitir reenvio
             if (existingParkingData && existingParkingData.length > 0) {
+                // Disponibilizar dados globalmente para toggleNoReservationMode
+                window.existingParkingData = existingParkingData;
+                
                 const uploadBtn = document.getElementById('uploadParkingBtn');
                 if (uploadBtn) {
                     uploadBtn.disabled = false;
@@ -7727,7 +7730,13 @@
                 withReservationSection.classList.remove('hidden');
                 noReservationSection.classList.add('hidden');
                 window.noReservationMode = false;
-                uploadBtn.disabled = true;
+                
+                // Se há dados existentes, manter botão ativo
+                if (window.existingParkingData && window.existingParkingData.length > 0) {
+                    uploadBtn.disabled = false;
+                } else {
+                    uploadBtn.disabled = true;
+                }
             }
         }
         
