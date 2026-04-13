@@ -2908,7 +2908,7 @@
                                             <h5 class="text-sm font-semibold text-gray-700 mb-2">${label}</h5>
                                             <img src="${photo.image_data}" alt="${label}" 
                                                  class="w-full h-48 object-cover rounded-lg border border-gray-200 cursor-pointer"
-                                                 onclick="window.open('${photo.image_data}', '_blank')"
+                                                 onclick="openPhotoFullscreen('${photo.image_data}', '${label}')"
                                                  onerror="this.style.display='none'; this.parentElement.innerHTML='<p class=text-gray-400 text-sm>Foto indisponível</p>'">
                                         </div>
                                         `;
@@ -8206,6 +8206,53 @@
                 if (qrImageElement) {
                     qrImageElement.style.display = 'none';
                 }
+            }
+        }
+
+        // Abrir foto em fullscreen
+        function openPhotoFullscreen(imageSrc, label) {
+            const modal = document.createElement('div');
+            modal.id = 'photoFullscreenModal';
+            modal.className = 'fixed inset-0 bg-black bg-opacity-95 z-50 flex items-center justify-center p-4';
+            modal.style.touchAction = 'none';
+            modal.innerHTML = `
+                <div class="relative max-w-6xl max-h-full">
+                    <button onclick="closePhotoFullscreen()" class="absolute top-4 right-4 text-white bg-black bg-opacity-50 rounded-full p-2 hover:bg-opacity-70 z-10">
+                        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+                        </svg>
+                    </button>
+                    <img src="${imageSrc}" alt="${label}" class="max-w-full max-h-full object-contain">
+                    <div class="absolute bottom-4 left-4 text-white bg-black bg-opacity-50 px-3 py-1 rounded">
+                        <p class="text-sm font-medium">${label}</p>
+                    </div>
+                </div>
+            `;
+            
+            document.body.appendChild(modal);
+            
+            // Fechar com ESC
+            const handleEsc = (e) => {
+                if (e.key === 'Escape') {
+                    closePhotoFullscreen();
+                    document.removeEventListener('keydown', handleEsc);
+                }
+            };
+            document.addEventListener('keydown', handleEsc);
+            
+            // Fechar ao clicar no fundo
+            modal.addEventListener('click', (e) => {
+                if (e.target === modal) {
+                    closePhotoFullscreen();
+                }
+            });
+        }
+        
+        // Fechar modal fullscreen
+        function closePhotoFullscreen() {
+            const modal = document.getElementById('photoFullscreenModal');
+            if (modal) {
+                modal.remove();
             }
         }
 
