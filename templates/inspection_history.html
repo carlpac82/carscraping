@@ -7521,7 +7521,7 @@
                     ${existingParkingData && existingParkingData.length > 0 ? `
                     <div class="mb-4">
                         <div class="bg-green-50 border border-green-200 rounded-lg p-3">
-                            <p class="text-sm text-green-700 font-semibold mb-2">✅ PDF(s) de Parque Existente(s):</p>
+                            <p class="text-sm text-green-700 font-semibold mb-2">PDF(s) de Parque Existente(s):</p>
                             ${existingParkingData.map(qr => `
                                 <div class="flex items-center justify-between mb-2 p-2 bg-white rounded">
                                     <div class="text-left flex-1">
@@ -7536,6 +7536,14 @@
                                 </div>
                             `).join('')}
                             <p class="text-xs text-gray-600 mt-2">Pode fazer novo upload para substituir</p>
+                        </div>
+                    </div>
+                    
+                    <div class="mb-4">
+                        <div class="bg-blue-50 border border-blue-200 rounded-lg p-3">
+                            <p class="text-sm text-blue-700 font-semibold mb-2">QR Code para Reenvio:</p>
+                            <img id="qrImagePreview" src="" alt="QR Code do Parque" class="max-w-full h-auto mx-auto border border-gray-300 rounded" style="max-height: 200px;">
+                            <p class="text-xs text-gray-600 mt-2 text-center">QR code carregado para reenvio</p>
                         </div>
                     </div>
                     ` : ''}
@@ -7654,6 +7662,9 @@
                     window.qrCodeImageBase64 = existingParkingData[0].qr_image_path ? existingParkingData[0].qr_image_path : null;
                     window.detectedPickupDate = existingParkingData[0].extracted_date;
                     window.detectedPickupTime = existingParkingData[0].extracted_time;
+                    
+                    // Carregar QR code existente no modal para reenvio
+                    loadExistingQRCodeForResend(existingParkingData[0].parking_number);
                     window.detectedReservationNumber = existingParkingData[0].extracted_reference;
                     
                     // Pré-preencher dropdown do modo sem reserva com o parque existente
@@ -8162,6 +8173,39 @@
             } catch (error) {
                 console.error('Error sending parking QR email:', error);
                 showNotification('Erro ao enviar email: ' + error.message, 'error');
+            }
+        }
+
+        // Carregar QR code existente para reenvio
+        async function loadExistingQRCodeForResend(parkingNumber) {
+            try {
+                console.log('Carregando QR code existente para reenvio do parque', parkingNumber);
+                
+                // Buscar QR code existente do backend
+                const response = await fetch(`/api/parking-qr-image/${window.currentParkingRA}/${parkingNumber}`);
+                const result = await response.json();
+                
+                if (result.success && result.qr_image_base64) {
+                    // Exibir QR code no modal
+                    const qrImageElement = document.getElementById('qrImagePreview');
+                    if (qrImageElement) {
+                        qrImageElement.src = `data:image/png;base64,${result.qr_image_base64}`;
+                        window.qrCodeImageBase64 = result.qr_image_base64;
+                        console.log('QR code existente carregado com sucesso');
+                    }
+                } else {
+                    console.log('QR code existente não encontrado no backend');
+                    const qrImageElement = document.getElementById('qrImagePreview');
+                    if (qrImageElement) {
+                        qrImageElement.style.display = 'none';
+                    }
+                }
+            } catch (error) {
+                console.error('Erro ao carregar QR code existente:', error);
+                const qrImageElement = document.getElementById('qrImagePreview');
+                if (qrImageElement) {
+                    qrImageElement.style.display = 'none';
+                }
             }
         }
 
