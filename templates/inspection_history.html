@@ -2908,7 +2908,7 @@
                                             <h5 class="text-sm font-semibold text-gray-700 mb-2">${label}</h5>
                                             <img src="${photo.image_data}" alt="${label}" 
                                                  class="w-full h-48 object-cover rounded-lg border border-gray-200 cursor-pointer"
-                                                 onclick="openPhotoFullscreen('${photo.image_data}', '${label}')"
+                                                 onclick="openPhotoFullscreen('${photo.image_data}', '${label}', ${JSON.stringify(oldInspection.photos)}, ${oldInspection.photos.indexOf(photo)})"
                                                  onerror="this.style.display='none'; this.parentElement.innerHTML='<p class=text-gray-400 text-sm>Foto indisponível</p>'">
                                         </div>
                                         `;
@@ -8209,27 +8209,50 @@
             }
         }
 
-        // Abrir foto em fullscreen
-        function openPhotoFullscreen(imageSrc, label) {
+        // Abrir foto em fullscreen com navegação
+        function openPhotoFullscreen(imageSrc, label, allPhotos = [], currentIndex = 0) {
             const modal = document.createElement('div');
             modal.id = 'photoFullscreenModal';
             modal.className = 'fixed inset-0 bg-black bg-opacity-95 z-50 flex items-center justify-center p-4';
             modal.style.touchAction = 'none';
+            
+            const hasMultiple = allPhotos.length > 1;
+            
             modal.innerHTML = `
-                <div class="relative max-w-6xl max-h-full">
+                <div class="relative max-w-6xl max-h-full w-full h-full flex items-center justify-center">
                     <button onclick="closePhotoFullscreen()" class="absolute top-4 right-4 text-white bg-black bg-opacity-50 rounded-full p-2 hover:bg-opacity-70 z-10">
                         <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
                         </svg>
                     </button>
-                    <img src="${imageSrc}" alt="${label}" class="max-w-full max-h-full object-contain">
+                    
+                    ${hasMultiple ? `
+                    <button onclick="navigatePhoto(-1)" class="absolute left-4 text-white bg-black bg-opacity-50 rounded-full p-3 hover:bg-opacity-70 z-10">
+                        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/>
+                        </svg>
+                    </button>
+                    <button onclick="navigatePhoto(1)" class="absolute right-4 text-white bg-black bg-opacity-50 rounded-full p-3 hover:bg-opacity-70 z-10">
+                        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/>
+                        </svg>
+                    </button>
+                    ` : ''}
+                    
+                    <img id="fullscreenImage" src="${imageSrc}" alt="${label}" class="max-w-full max-h-full object-contain">
+                    
                     <div class="absolute bottom-4 left-4 text-white bg-black bg-opacity-50 px-3 py-1 rounded">
                         <p class="text-sm font-medium">${label}</p>
+                        ${hasMultiple ? `<p class="text-xs text-gray-300">${currentIndex + 1} / ${allPhotos.length}</p>` : ''}
                     </div>
                 </div>
             `;
             
             document.body.appendChild(modal);
+            
+            // Guardar dados globais para navegação
+            window.currentFullscreenPhotos = allPhotos;
+            window.currentPhotoIndex = currentIndex;
             
             // Fechar com ESC
             const handleEsc = (e) => {
@@ -8240,12 +8263,57 @@
             };
             document.addEventListener('keydown', handleEsc);
             
+            // Navegação com setas do teclado
+            const handleArrows = (e) => {
+                if (hasMultiple) {
+                    if (e.key === 'ArrowLeft') {
+                        navigatePhoto(-1);
+                    } else if (e.key === 'ArrowRight') {
+                        navigatePhoto(1);
+                    }
+                }
+            };
+            document.addEventListener('keydown', handleArrows);
+            
             // Fechar ao clicar no fundo
             modal.addEventListener('click', (e) => {
                 if (e.target === modal) {
                     closePhotoFullscreen();
                 }
             });
+        }
+        
+        // Navegar entre fotos
+        function navigatePhoto(direction) {
+            if (!window.currentFullscreenPhotos || window.currentFullscreenPhotos.length <= 1) return;
+            
+            const newIndex = window.currentPhotoIndex + direction;
+            if (newIndex < 0 || newIndex >= window.currentFullscreenPhotos.length) return;
+            
+            window.currentPhotoIndex = newIndex;
+            const photo = window.currentFullscreenPhotos[newIndex];
+            
+            const img = document.getElementById('fullscreenImage');
+            const labelElement = document.querySelector('#photoFullscreenModal .absolute.bottom-4.left-4 p:first-child');
+            const indexElement = document.querySelector('#photoFullscreenModal .absolute.bottom-4.left-4 p:last-child');
+            
+            if (img && photo) {
+                img.src = photo.image_data;
+                if (labelElement) {
+                    const photoLabels = {
+                        'left': 'Lado Esquerdo',
+                        'right': 'Lado Direito',
+                        'front_left': 'Frente Esquerda',
+                        'front_right': 'Frente Direita',
+                        'odometer': 'Conta-Quilómetros'
+                    };
+                    const label = photoLabels[photo.photo_type] || photo.photo_type;
+                    labelElement.textContent = label;
+                }
+                if (indexElement) {
+                    indexElement.textContent = `${newIndex + 1} / ${window.currentFullscreenPhotos.length}`;
+                }
+            }
         }
         
         // Fechar modal fullscreen
