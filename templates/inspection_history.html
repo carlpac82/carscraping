@@ -2770,9 +2770,10 @@
                     document.body.removeChild(modal);
                 }
                 window.currentPreviewModal = null;
-                currentTriggerButton = null;
                 // Restaurar scroll do body
                 restoreBodyScroll();
+                // Limpar botão APÓS restaurar scroll
+                currentTriggerButton = null;
             }, 450); // Baseado na duração da animação da janela
         }
 
@@ -3947,22 +3948,6 @@
                     lightboxPhotos.push({ key: key, url: damagePhotos[key], label: `Dano ${damageNum}` });
                 });
             }
-            
-            // Signature is not included in lightbox (not clickable)
-            
-            // Find index of clicked photo
-            lightboxCurrentIndex = lightboxPhotos.findIndex(p => p.key === photoKey || p.url === photoUrl);
-            if (lightboxCurrentIndex === -1) lightboxCurrentIndex = 0;
-            
-            showLightboxPhoto();
-            document.getElementById('photoLightbox').classList.remove('hidden');
-            document.getElementById('photoLightbox').classList.add('flex');
-            document.body.style.overflow = 'hidden';
-        }
-        
-        function showLightboxPhoto() {
-            if (lightboxPhotos.length === 0) return;
-            const photo = lightboxPhotos[lightboxCurrentIndex];
             document.getElementById('lightboxImage').src = photo.url;
             document.getElementById('lightboxCaption').textContent = photo.label;
             document.getElementById('lightboxCounter').textContent = `${lightboxCurrentIndex + 1} / ${lightboxPhotos.length}`;
@@ -3978,7 +3963,8 @@
         function closeLightbox() {
             document.getElementById('photoLightbox').classList.add('hidden');
             document.getElementById('photoLightbox').classList.remove('flex');
-            document.body.style.overflow = '';
+            // Restaurar scroll do body
+            restoreBodyScroll();
         }
         
         // Keyboard navigation for lightbox
@@ -6711,9 +6697,10 @@
             // Esconder modal após animação completar (sem remover do DOM)
             setTimeout(() => {
                 modal.classList.add('hidden');
-                currentTriggerButton = null;
                 // Restaurar scroll do body
                 restoreBodyScroll();
+                // Limpar botão APÓS restaurar scroll
+                currentTriggerButton = null;
                 
                 // Reset styles para próxima abertura
                 modal.style.transition = '';
