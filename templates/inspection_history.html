@@ -3948,9 +3948,19 @@
                     lightboxPhotos.push({ key: key, url: damagePhotos[key], label: `Dano ${damageNum}` });
                 });
             }
-            document.getElementById('lightboxImage').src = photo.url;
-            document.getElementById('lightboxCaption').textContent = photo.label;
-            document.getElementById('lightboxCounter').textContent = `${lightboxCurrentIndex + 1} / ${lightboxPhotos.length}`;
+            
+            // Find the current photo index
+            lightboxCurrentIndex = lightboxPhotos.findIndex(p => p.url === photoUrl);
+            if (lightboxCurrentIndex === -1) {
+                lightboxCurrentIndex = 0;
+            }
+            
+            // Show the lightbox
+            document.getElementById('photoLightbox').classList.remove('hidden');
+            document.getElementById('photoLightbox').classList.add('flex');
+            
+            // Show current photo
+            showLightboxPhoto();
         }
         
         function navigateLightbox(direction) {
