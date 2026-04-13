@@ -1334,8 +1334,8 @@
                 currentTriggerButton = event.currentTarget;
             }
             
-            // Bloquear scroll do body
-            blockBodyScroll();
+            // Scroll desativado temporariamente
+            // blockBodyScroll();
             
             // Get client email from contract data (already loaded in frontend)
             let clientEmail = '';
@@ -1461,10 +1461,10 @@
                 applyMacOSMinimizeAnimation(window.currentEmailModal, currentTriggerButton);
                 window.currentEmailModal = null;
                 currentTriggerButton = null;
-                // Restaurar scroll do body após animação
-                setTimeout(() => {
-                    restoreBodyScroll();
-                }, 450); // Baseado na duração da animação minimize
+                // Scroll desativado temporariamente
+                // setTimeout(() => {
+                //     restoreBodyScroll();
+                // }, 450); // Baseado na duração da animação minimize
             }
         }
         
@@ -2770,8 +2770,8 @@
                     document.body.removeChild(modal);
                 }
                 window.currentPreviewModal = null;
-                // Restaurar scroll do body
-                restoreBodyScroll();
+                // Scroll desativado temporariamente
+                // restoreBodyScroll();
                 // Limpar botão APÓS restaurar scroll
                 currentTriggerButton = null;
             }, 450); // Baseado na duração da animação da janela
@@ -4240,8 +4240,8 @@
             
             document.body.appendChild(loadingOverlay);
             
-            // Bloquear scroll do body
-            blockBodyScroll();
+            // Scroll desativado temporariamente
+            // blockBodyScroll();
             
             // Animar percentagem como na homepage
             let percentage = 0;
@@ -4276,8 +4276,8 @@
                 setTimeout(() => {
                     if (loadingOverlay.parentNode) {
                         loadingOverlay.remove();
-                        // Restaurar scroll do body
-                        restoreBodyScroll();
+                        // Scroll desativado temporariamente
+                        // restoreBodyScroll();
                     }
                 }, 300);
             }
@@ -6613,8 +6613,8 @@
             // Show modal
             document.getElementById('vehicleSwapModal').classList.remove('hidden');
             
-            // Bloquear scroll do body
-            blockBodyScroll();
+            // Scroll desativado temporariamente
+            // blockBodyScroll();
             
             // Esconder loading e aplicar animação maximize
             hideModernLoading();
@@ -6697,8 +6697,8 @@
             // Esconder modal após animação completar (sem remover do DOM)
             setTimeout(() => {
                 modal.classList.add('hidden');
-                // Restaurar scroll do body
-                restoreBodyScroll();
+                // Scroll desativado temporariamente
+                // restoreBodyScroll();
                 // Limpar botão APÓS restaurar scroll
                 currentTriggerButton = null;
                 
@@ -7484,8 +7484,8 @@
                 currentTriggerButton = event.currentTarget;
             }
             
-            // Bloquear scroll do body
-            blockBodyScroll();
+            // Scroll desativado temporariamente
+            // blockBodyScroll();
             
             // Buscar dados existentes do parque
             let existingParkingData = null;
