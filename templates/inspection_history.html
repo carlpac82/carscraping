@@ -8047,8 +8047,8 @@
                         // Se há QR code no modal, usar ele em vez do existente
                         const qrImageElement = document.getElementById('qrImagePreview');
                         if (qrImageElement && qrImageElement.src && qrImageElement.src.startsWith('data:')) {
-                            // QR code já está em base64 no modal
-                            qrImageBase64 = qrImageElement.src;
+                            // QR code já está em base64 no modal - extrair apenas o base64
+                            qrImageBase64 = qrImageElement.src.split(',')[1];
                         }
                         
                         // Para reenvio, não exige QR code
