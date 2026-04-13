@@ -2744,6 +2744,8 @@
                 }
                 window.currentPreviewModal = null;
                 currentTriggerButton = null;
+                // Restaurar scroll do body
+                restoreBodyScroll();
             }, 450); // Baseado na duração da animação da janela
         }
 
@@ -4152,6 +4154,20 @@
         // Variável para armazenar o botão que acionou o modal atual
         let currentTriggerButton = null;
         
+        // Variável para controlar estado do scroll
+        let originalBodyOverflow = '';
+        
+        // Função para bloquear scroll do body
+        function blockBodyScroll() {
+            originalBodyOverflow = document.body.style.overflow;
+            document.body.style.overflow = 'hidden';
+        }
+        
+        // Função para restaurar scroll do body
+        function restoreBodyScroll() {
+            document.body.style.overflow = originalBodyOverflow || '';
+        }
+        
         // Função para mostrar loading igual ao da homepage
         function showModernLoading() {
             // Verificar se já existe um loading para evitar duplicação
@@ -4211,6 +4227,9 @@
             
             document.body.appendChild(loadingOverlay);
             
+            // Bloquear scroll do body
+            blockBodyScroll();
+            
             // Animar percentagem como na homepage
             let percentage = 0;
             const percentageElement = document.getElementById('inspectionLoadingPercentage');
@@ -4244,6 +4263,8 @@
                 setTimeout(() => {
                     if (loadingOverlay.parentNode) {
                         loadingOverlay.remove();
+                        // Restaurar scroll do body
+                        restoreBodyScroll();
                     }
                 }, 300);
             }
