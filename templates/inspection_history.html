@@ -2667,6 +2667,9 @@
                 document.body.appendChild(modal);
                 window.currentPreviewModal = modal;
                 
+                // Bloquear scroll do body
+                blockBodyScroll();
+                
                 // Aplicar animação macOS-style de maximização
                 applyMacOSMaximizeAnimation(modal, currentTriggerButton);
                 
@@ -4648,6 +4651,9 @@
                     document.body.appendChild(modal);
                     window.currentPreviewModal = modal;
                     
+                    // Bloquear scroll do body
+                    blockBodyScroll();
+                    
                     // Aplicar animação macOS-style de maximização
                     applyMacOSMaximizeAnimation(modal, currentTriggerButton);
                     
@@ -5001,6 +5007,9 @@
                 
                 document.body.appendChild(modal);
                 window.currentPreviewModal = modal;
+                
+                // Bloquear scroll do body
+                blockBodyScroll();
                 
                 // Aplicar animação macOS-style de maximização
                 applyMacOSMaximizeAnimation(modal, currentTriggerButton);
