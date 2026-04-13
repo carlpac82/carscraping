@@ -6620,6 +6620,9 @@
             // Show modal
             document.getElementById('vehicleSwapModal').classList.remove('hidden');
             
+            // Bloquear scroll do body
+            blockBodyScroll();
+            
             // Esconder loading e aplicar animação maximize
             hideModernLoading();
             
@@ -7633,6 +7636,13 @@
                 const uploadBtn = document.getElementById('uploadParkingBtn');
                 if (uploadBtn) {
                     uploadBtn.disabled = false;
+                }
+                
+                // Marcar automaticamente checkbox "Sem Reserva" para permitir reenvio
+                const noReservationCheckbox = document.getElementById('noReservationCheckbox');
+                if (noReservationCheckbox) {
+                    noReservationCheckbox.checked = true;
+                    toggleNoReservationMode();
                 }
             }
             
