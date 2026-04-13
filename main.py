@@ -46123,6 +46123,7 @@ async def export_abbycar_excel(request: Request):
                         
                         for day, key in dias_map.items():
                             net_price = precos.get(str(day), 0)
+                            use_fixed_price = False  # Initialize as False by default
                             
                             # Use default price if no price in database for days 1-4 and location is Aeroporto de Faro
                             if (not net_price or float(net_price) <= 0) and location == 'Aeroporto de Faro':
