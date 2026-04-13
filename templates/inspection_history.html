@@ -8209,41 +8209,43 @@
             }
         }
 
-        // Abrir foto em fullscreen com navegação
+        // Abrir foto em popup modal com navegação
         function openPhotoFullscreen(imageSrc, label, allPhotos = [], currentIndex = 0) {
             const modal = document.createElement('div');
             modal.id = 'photoFullscreenModal';
-            modal.className = 'fixed inset-0 bg-black bg-opacity-95 z-50 flex items-center justify-center p-4';
+            modal.className = 'fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4 backdrop-blur-sm';
             modal.style.touchAction = 'none';
             
             const hasMultiple = allPhotos.length > 1;
             
             modal.innerHTML = `
-                <div class="relative max-w-6xl max-h-full w-full h-full flex items-center justify-center">
-                    <button onclick="closePhotoFullscreen()" class="absolute top-4 right-4 text-white bg-black bg-opacity-50 rounded-full p-2 hover:bg-opacity-70 z-10">
+                <div class="relative bg-white rounded-lg shadow-2xl max-w-4xl max-h-[90vh] w-full overflow-hidden">
+                    <button onclick="closePhotoFullscreen()" class="absolute top-4 right-4 text-gray-600 bg-white rounded-full p-2 hover:bg-gray-100 z-10 shadow-md">
                         <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
                         </svg>
                     </button>
                     
                     ${hasMultiple ? `
-                    <button onclick="navigatePhoto(-1)" class="absolute left-4 text-white bg-black bg-opacity-50 rounded-full p-3 hover:bg-opacity-70 z-10">
+                    <button onclick="navigatePhoto(-1)" class="absolute left-4 top-1/2 -translate-y-1/2 text-gray-600 bg-white rounded-full p-3 hover:bg-gray-100 z-10 shadow-md">
                         <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/>
                         </svg>
                     </button>
-                    <button onclick="navigatePhoto(1)" class="absolute right-4 text-white bg-black bg-opacity-50 rounded-full p-3 hover:bg-opacity-70 z-10">
+                    <button onclick="navigatePhoto(1)" class="absolute right-4 top-1/2 -translate-y-1/2 text-gray-600 bg-white rounded-full p-3 hover:bg-gray-100 z-10 shadow-md">
                         <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/>
                         </svg>
                     </button>
                     ` : ''}
                     
-                    <img id="fullscreenImage" src="${imageSrc}" alt="${label}" class="max-w-full max-h-full object-contain">
-                    
-                    <div class="absolute bottom-4 left-4 text-white bg-black bg-opacity-50 px-3 py-1 rounded">
-                        <p class="text-sm font-medium">${label}</p>
-                        ${hasMultiple ? `<p class="text-xs text-gray-300">${currentIndex + 1} / ${allPhotos.length}</p>` : ''}
+                    <div class="p-6">
+                        <img id="fullscreenImage" src="${imageSrc}" alt="${label}" class="max-w-full max-h-[60vh] object-contain mx-auto">
+                        
+                        <div class="mt-4 text-center">
+                            <p class="text-lg font-semibold text-gray-900">${label}</p>
+                            ${hasMultiple ? `<p class="text-sm text-gray-500">${currentIndex + 1} / ${allPhotos.length}</p>` : ''}
+                        </div>
                     </div>
                 </div>
             `;
