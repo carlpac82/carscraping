@@ -627,11 +627,11 @@ async def update_commissioner(commissioner_id: int, update: CommissionerUpdate):
         # Update commission amounts for bookings with pickup_date > 2026-04-01
         cursor.execute("""
             UPDATE commission_bookings 
-            SET commission_amount = loyalty_card * %s,
+            SET commission_amount = base_price * %s,
                 updated_at = CURRENT_TIMESTAMP
             WHERE commissioner_id = %s
             AND pickup_date > %s
-            AND loyalty_card > 0
+            AND base_price > 0
         """, (new_rate / 100.0, commissioner_id, cutoff_date))
         
         updated_bookings = cursor.rowcount
