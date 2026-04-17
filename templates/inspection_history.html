@@ -600,7 +600,7 @@
                 if (shouldCountCheckout) checkoutCount++;
                 
                 // Count overdues: contratos abertos que passaram 8h da hora prevista de checkout
-                if (contract.checkin && !contract.checkout && contract.expected_return_date && contract.expected_return_time) {
+                if (contract.checkin && !contract.checkout && contract.expected_return_date) {
                     let expectedDate;
                     if (contract.expected_return_date.includes('/')) {
                         const parts = contract.expected_return_date.split('/');
@@ -612,9 +612,13 @@
                         expectedDate = new Date(contract.expected_return_date);
                     }
                     
-                    // Parse expected time (formato: "HH:MM")
-                    const timeParts = contract.expected_return_time.split(':');
-                    expectedDate.setHours(parseInt(timeParts[0]), parseInt(timeParts[1]), 0, 0);
+                    // Parse expected time (formato: "HH:MM") - se não existir, assume 12:00
+                    if (contract.expected_return_time) {
+                        const timeParts = contract.expected_return_time.split(':');
+                        expectedDate.setHours(parseInt(timeParts[0]), parseInt(timeParts[1]), 0, 0);
+                    } else {
+                        expectedDate.setHours(12, 0, 0, 0); // Assume meio-dia se não houver hora
+                    }
                     
                     // Adicionar 8 horas à hora prevista
                     const overdueThreshold = new Date(expectedDate.getTime() + (8 * 60 * 60 * 1000));
@@ -669,7 +673,7 @@
                 document.getElementById('searchDate').value = '';
                 filtered = filtered.filter(c => {
                     // Overdues: contratos abertos que passaram 8h da hora prevista
-                    if (!c.checkin || c.checkout || !c.expected_return_date || !c.expected_return_time) return false;
+                    if (!c.checkin || c.checkout || !c.expected_return_date) return false;
                     
                     let expectedDate;
                     if (c.expected_return_date.includes('/')) {
@@ -682,9 +686,13 @@
                         expectedDate = new Date(c.expected_return_date);
                     }
                     
-                    // Parse expected time
-                    const timeParts = c.expected_return_time.split(':');
-                    expectedDate.setHours(parseInt(timeParts[0]), parseInt(timeParts[1]), 0, 0);
+                    // Parse expected time - se não existir, assume 12:00
+                    if (c.expected_return_time) {
+                        const timeParts = c.expected_return_time.split(':');
+                        expectedDate.setHours(parseInt(timeParts[0]), parseInt(timeParts[1]), 0, 0);
+                    } else {
+                        expectedDate.setHours(12, 0, 0, 0);
+                    }
                     
                     // Adicionar 8 horas
                     const overdueThreshold = new Date(expectedDate.getTime() + (8 * 60 * 60 * 1000));
@@ -1102,7 +1110,7 @@
                     
                     // Badge de checkout overdue (atrasado - mais de 8h da hora prevista)
                     let checkoutOverdueBadge = '';
-                    if (isOpen && contract.expected_return_date && contract.expected_return_time) {
+                    if (isOpen && contract.expected_return_date) {
                         // Parse expected return date (formato: DD/MM/YYYY ou YYYY-MM-DD)
                         let expectedDate;
                         if (contract.expected_return_date.includes('/')) {
@@ -1115,9 +1123,13 @@
                             expectedDate = new Date(contract.expected_return_date);
                         }
                         
-                        // Parse expected time (formato: HH:MM)
-                        const timeParts = contract.expected_return_time.split(':');
-                        expectedDate.setHours(parseInt(timeParts[0]), parseInt(timeParts[1]), 0, 0);
+                        // Parse expected time (formato: HH:MM) - se não existir, assume 12:00
+                        if (contract.expected_return_time) {
+                            const timeParts = contract.expected_return_time.split(':');
+                            expectedDate.setHours(parseInt(timeParts[0]), parseInt(timeParts[1]), 0, 0);
+                        } else {
+                            expectedDate.setHours(12, 0, 0, 0); // Assume meio-dia se não houver hora
+                        }
                         
                         // Adicionar 8 horas à hora prevista
                         const overdueThreshold = new Date(expectedDate.getTime() + (8 * 60 * 60 * 1000));
