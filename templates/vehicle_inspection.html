@@ -3302,6 +3302,23 @@
                 console.error('❌ stepDiagram not found');
             }
             
+            // CHECK-IN (ENTREGA): Esconder botão toggle e mostrar ferramentas - edição sempre ativa
+            const toggleBtn = document.getElementById('toggleCroquiEdit');
+            const toolsDiv = document.getElementById('croquiTools');
+            const sizeDiv = document.getElementById('sizeControls');
+            if (toggleBtn) {
+                toggleBtn.style.display = 'none';
+                console.log('✅ Toggle button hidden - check-in mode always editable');
+            }
+            if (toolsDiv) {
+                toolsDiv.style.display = 'flex';
+                console.log('✅ Croqui tools visible - check-in mode');
+            }
+            if (sizeDiv) {
+                sizeDiv.style.display = 'flex';
+                console.log('✅ Size controls visible - check-in mode');
+            }
+            
             // Hide KMs and fuel section if coming from swap (already filled in swap modal)
             if (window.AUTO_START_DELIVERY) {
                 const kmsFuelSection = document.getElementById('diagramKmsFuelSection');
