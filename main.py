@@ -70,7 +70,6 @@ load_dotenv()
 
 # DEBUG: Verificar se DATABASE_URL está disponível
 DATABASE_URL = os.getenv("DATABASE_URL")
-print(f"🔍 [MAIN.PY] DATABASE_URL after load_dotenv: {DATABASE_URL}")
 
 # Commissioners System (importado após load_dotenv)
 from commissioners_api import router as commissioners_router
@@ -115,7 +114,6 @@ load_dotenv()
 
 # DEBUG: Verificar se DATABASE_URL foi carregado
 import os
-print(f"🔍 [MAIN.PY] DATABASE_URL after load_dotenv: {os.getenv('DATABASE_URL', 'NOT_FOUND')[:50] if os.getenv('DATABASE_URL') else 'NOT_FOUND'}...", flush=True)
 
 import requests
 import asyncio
@@ -48660,11 +48658,7 @@ try:
     lisbon_tz = pytz.timezone('Europe/Lisbon')
     scheduler = BackgroundScheduler(timezone=lisbon_tz)
     
-    print("=" * 80)
-    print("🚀 INITIALIZING APSCHEDULER")
-    print(f"📍 Timezone: Europe/Lisbon (UTC+0/+1)")
-    print(f"⏰ Current Lisbon time: {datetime.now(lisbon_tz).strftime('%Y-%m-%d %H:%M:%S')}")
-    print("=" * 80)
+    # Scheduler initialization
     
     # === BACKUP JOB ===
     # Daily backup at 3 AM
@@ -48732,18 +48726,8 @@ try:
     scheduler.start()
     log_to_db("INFO", "🚀 Scheduler started successfully with official jobs (backup + daily + weekly)", "main", "scheduler")
     
-    # Print all configured jobs with next run times
-    print("\n" + "=" * 80)
-    print("✅ SCHEDULER STARTED SUCCESSFULLY")
-    print("=" * 80)
-    print(f"Total jobs: {len(scheduler.get_jobs())}")
-    print("\nScheduled jobs:")
-    for job in scheduler.get_jobs():
-        next_run = job.next_run_time.astimezone(lisbon_tz).strftime('%Y-%m-%d %H:%M:%S') if job.next_run_time else 'N/A'
-        print(f"  • {job.name} ({job.id})")
-        print(f"    ⏰ Next run: {next_run}")
-        print(f"    🔄 Trigger: {job.trigger}")
-    print("=" * 80 + "\n")
+    # Scheduler started - jobs configured
+    print(f"✅ Scheduler: {len(scheduler.get_jobs())} jobs configured")
     
 except ImportError:
     print("⚠️  WARNING: APScheduler not installed - automatic backups and reports disabled")
