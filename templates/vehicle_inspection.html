@@ -1052,7 +1052,7 @@
                 <div class="flex justify-center mb-4">
                     <button type="button" id="toggleCroquiEdit" 
                             class="px-6 py-3 rounded-lg font-semibold text-white transition-all duration-200 flex items-center gap-2 shadow-lg"
-                            style="background-color: #6b7280;"
+                            style="background-color: #009cb6;"
                             onclick="toggleCroquiEditMode()" 
                             title="Ativar/Desativar edição do croqui">
                         <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
@@ -2794,8 +2794,8 @@
             const diagram = document.getElementById('carDiagram');
             
             if (croquiEditEnabled) {
-                // ATIVAR edição - Azul Heather
-                toggleBtn.style.backgroundColor = '#009cb6';
+                // ATIVAR edição - Amarelo website (fechar)
+                toggleBtn.style.backgroundColor = '#f6b511';
                 toggleText.textContent = 'Fechar Edição';
                 
                 // Mostrar ferramentas
@@ -2813,8 +2813,8 @@
                 
                 console.log('✅ Croqui edit mode ENABLED - canvas accepts clicks');
             } else {
-                // DESATIVAR edição - Cinzento
-                toggleBtn.style.backgroundColor = '#6b7280';
+                // DESATIVAR edição - Azul website (editar)
+                toggleBtn.style.backgroundColor = '#009cb6';
                 toggleText.textContent = 'Editar Croqui';
                 
                 // Esconder ferramentas
