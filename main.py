@@ -1403,13 +1403,21 @@ async def lifespan(app: FastAPI):
     except Exception as e:
         logging.error(f"❌ Background Jobs Manager initialization failed: {e}")
     
-    # Automated scheduler
-    try:
-        from automated_scheduler import setup_scheduled_tasks
-        setup_scheduled_tasks()
-        logging.info("✅ Automated scheduler initialized")
-    except Exception as e:
-        logging.error(f"❌ Failed to initialize automated scheduler: {str(e)}")
+    # Automated scheduler - APENAS NO WORKER PRINCIPAL
+    # Evita emails duplicados (cada worker executaria o scheduler)
+    import multiprocessing
+    current_process = multiprocessing.current_process()
+    is_main_worker = current_process.name == 'MainProcess' or 'SpawnProcess-1' in current_process.name
+    
+    if is_main_worker:
+        try:
+            from automated_scheduler import setup_scheduled_tasks
+            setup_scheduled_tasks()
+            logging.info("✅ Automated scheduler initialized (main worker only)")
+        except Exception as e:
+            logging.error(f"❌ Failed to initialize automated scheduler: {str(e)}")
+    else:
+        logging.info(f"⏭️ Skipping scheduler setup (worker: {current_process.name})")
     
     # Load AI models
     try:
