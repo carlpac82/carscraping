@@ -600,7 +600,9 @@
                 if (shouldCountCheckout) checkoutCount++;
                 
                 // Count overdues: contratos abertos que passaram 8h da hora prevista de checkout
-                if (contract.checkin && !contract.checkout && contract.expected_return_date) {
+                // Não contar se já tiver checkout OU self-checkout validado
+                const hasSelfCheckoutValidated = contract.self_checkout && contract.self_checkout.status === 'validated';
+                if (contract.checkin && !contract.checkout && !hasSelfCheckoutValidated && contract.expected_return_date) {
                     let expectedDate;
                     let dateStr = contract.expected_return_date;
                     
@@ -692,7 +694,9 @@
                 document.getElementById('searchDate').value = '';
                 filtered = filtered.filter(c => {
                     // Overdues: contratos abertos que passaram 8h da hora prevista
-                    if (!c.checkin || c.checkout || !c.expected_return_date) return false;
+                    // Não mostrar se já tiver checkout OU self-checkout validado
+                    const hasSelfCheckoutValidated = c.self_checkout && c.self_checkout.status === 'validated';
+                    if (!c.checkin || c.checkout || hasSelfCheckoutValidated || !c.expected_return_date) return false;
                     
                     let expectedDate;
                     let dateStr = c.expected_return_date;
@@ -1146,8 +1150,10 @@
                     }
                     
                     // Badge de checkout overdue (atrasado - mais de 8h da hora prevista)
+                    // Não mostrar se tiver self-checkout validado
+                    const hasSelfCheckoutValidated = contract.self_checkout && contract.self_checkout.status === 'validated';
                     let checkoutOverdueBadge = '';
-                    if (isOpen && contract.expected_return_date) {
+                    if (isOpen && !hasSelfCheckoutValidated && contract.expected_return_date) {
                         let expectedDate;
                         let dateStr = contract.expected_return_date;
                         
