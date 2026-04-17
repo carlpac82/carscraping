@@ -602,22 +602,41 @@
                 // Count overdues: contratos abertos que passaram 8h da hora prevista de checkout
                 if (contract.checkin && !contract.checkout && contract.expected_return_date) {
                     let expectedDate;
-                    if (contract.expected_return_date.includes('/')) {
-                        const parts = contract.expected_return_date.split('/');
-                        expectedDate = new Date(parts[2], parts[1] - 1, parts[0]);
-                    } else if (contract.expected_return_date.includes(' - ')) {
-                        const parts = contract.expected_return_date.split(' - ');
-                        expectedDate = new Date(parts[2], parts[1] - 1, parts[0]);
-                    } else {
-                        expectedDate = new Date(contract.expected_return_date);
-                    }
+                    let dateStr = contract.expected_return_date;
                     
-                    // Parse expected time (formato: "HH:MM") - se não existir, assume 12:00
-                    if (contract.expected_return_time) {
-                        const timeParts = contract.expected_return_time.split(':');
-                        expectedDate.setHours(parseInt(timeParts[0]), parseInt(timeParts[1]), 0, 0);
+                    // Verificar se tem hora junto (formato: "DD/MM/YYYY HH:MM")
+                    if (dateStr.includes(' ') && dateStr.includes(':')) {
+                        const [datePart, timePart] = dateStr.split(' ');
+                        const dateParts = datePart.split('/');
+                        const timeParts = timePart.split(':');
+                        expectedDate = new Date(dateParts[2], dateParts[1] - 1, dateParts[0], parseInt(timeParts[0]), parseInt(timeParts[1]), 0, 0);
+                    } else if (dateStr.includes('/')) {
+                        const parts = dateStr.split('/');
+                        expectedDate = new Date(parts[2], parts[1] - 1, parts[0]);
+                        // Se tiver expected_return_time separado, usar
+                        if (contract.expected_return_time) {
+                            const timeParts = contract.expected_return_time.split(':');
+                            expectedDate.setHours(parseInt(timeParts[0]), parseInt(timeParts[1]), 0, 0);
+                        } else {
+                            expectedDate.setHours(12, 0, 0, 0);
+                        }
+                    } else if (dateStr.includes(' - ')) {
+                        const parts = dateStr.split(' - ');
+                        expectedDate = new Date(parts[2], parts[1] - 1, parts[0]);
+                        if (contract.expected_return_time) {
+                            const timeParts = contract.expected_return_time.split(':');
+                            expectedDate.setHours(parseInt(timeParts[0]), parseInt(timeParts[1]), 0, 0);
+                        } else {
+                            expectedDate.setHours(12, 0, 0, 0);
+                        }
                     } else {
-                        expectedDate.setHours(12, 0, 0, 0); // Assume meio-dia se não houver hora
+                        expectedDate = new Date(dateStr);
+                        if (contract.expected_return_time) {
+                            const timeParts = contract.expected_return_time.split(':');
+                            expectedDate.setHours(parseInt(timeParts[0]), parseInt(timeParts[1]), 0, 0);
+                        } else {
+                            expectedDate.setHours(12, 0, 0, 0);
+                        }
                     }
                     
                     // Adicionar 8 horas à hora prevista
@@ -676,22 +695,40 @@
                     if (!c.checkin || c.checkout || !c.expected_return_date) return false;
                     
                     let expectedDate;
-                    if (c.expected_return_date.includes('/')) {
-                        const parts = c.expected_return_date.split('/');
-                        expectedDate = new Date(parts[2], parts[1] - 1, parts[0]);
-                    } else if (c.expected_return_date.includes(' - ')) {
-                        const parts = c.expected_return_date.split(' - ');
-                        expectedDate = new Date(parts[2], parts[1] - 1, parts[0]);
-                    } else {
-                        expectedDate = new Date(c.expected_return_date);
-                    }
+                    let dateStr = c.expected_return_date;
                     
-                    // Parse expected time - se não existir, assume 12:00
-                    if (c.expected_return_time) {
-                        const timeParts = c.expected_return_time.split(':');
-                        expectedDate.setHours(parseInt(timeParts[0]), parseInt(timeParts[1]), 0, 0);
+                    // Verificar se tem hora junto (formato: "DD/MM/YYYY HH:MM")
+                    if (dateStr.includes(' ') && dateStr.includes(':')) {
+                        const [datePart, timePart] = dateStr.split(' ');
+                        const dateParts = datePart.split('/');
+                        const timeParts = timePart.split(':');
+                        expectedDate = new Date(dateParts[2], dateParts[1] - 1, dateParts[0], parseInt(timeParts[0]), parseInt(timeParts[1]), 0, 0);
+                    } else if (dateStr.includes('/')) {
+                        const parts = dateStr.split('/');
+                        expectedDate = new Date(parts[2], parts[1] - 1, parts[0]);
+                        if (c.expected_return_time) {
+                            const timeParts = c.expected_return_time.split(':');
+                            expectedDate.setHours(parseInt(timeParts[0]), parseInt(timeParts[1]), 0, 0);
+                        } else {
+                            expectedDate.setHours(12, 0, 0, 0);
+                        }
+                    } else if (dateStr.includes(' - ')) {
+                        const parts = dateStr.split(' - ');
+                        expectedDate = new Date(parts[2], parts[1] - 1, parts[0]);
+                        if (c.expected_return_time) {
+                            const timeParts = c.expected_return_time.split(':');
+                            expectedDate.setHours(parseInt(timeParts[0]), parseInt(timeParts[1]), 0, 0);
+                        } else {
+                            expectedDate.setHours(12, 0, 0, 0);
+                        }
                     } else {
-                        expectedDate.setHours(12, 0, 0, 0);
+                        expectedDate = new Date(dateStr);
+                        if (c.expected_return_time) {
+                            const timeParts = c.expected_return_time.split(':');
+                            expectedDate.setHours(parseInt(timeParts[0]), parseInt(timeParts[1]), 0, 0);
+                        } else {
+                            expectedDate.setHours(12, 0, 0, 0);
+                        }
                     }
                     
                     // Adicionar 8 horas
@@ -1111,24 +1148,41 @@
                     // Badge de checkout overdue (atrasado - mais de 8h da hora prevista)
                     let checkoutOverdueBadge = '';
                     if (isOpen && contract.expected_return_date) {
-                        // Parse expected return date (formato: DD/MM/YYYY ou YYYY-MM-DD)
                         let expectedDate;
-                        if (contract.expected_return_date.includes('/')) {
-                            const parts = contract.expected_return_date.split('/');
-                            expectedDate = new Date(parts[2], parts[1] - 1, parts[0]);
-                        } else if (contract.expected_return_date.includes(' - ')) {
-                            const parts = contract.expected_return_date.split(' - ');
-                            expectedDate = new Date(parts[2], parts[1] - 1, parts[0]);
-                        } else {
-                            expectedDate = new Date(contract.expected_return_date);
-                        }
+                        let dateStr = contract.expected_return_date;
                         
-                        // Parse expected time (formato: HH:MM) - se não existir, assume 12:00
-                        if (contract.expected_return_time) {
-                            const timeParts = contract.expected_return_time.split(':');
-                            expectedDate.setHours(parseInt(timeParts[0]), parseInt(timeParts[1]), 0, 0);
+                        // Verificar se tem hora junto (formato: "DD/MM/YYYY HH:MM")
+                        if (dateStr.includes(' ') && dateStr.includes(':')) {
+                            const [datePart, timePart] = dateStr.split(' ');
+                            const dateParts = datePart.split('/');
+                            const timeParts = timePart.split(':');
+                            expectedDate = new Date(dateParts[2], dateParts[1] - 1, dateParts[0], parseInt(timeParts[0]), parseInt(timeParts[1]), 0, 0);
+                        } else if (dateStr.includes('/')) {
+                            const parts = dateStr.split('/');
+                            expectedDate = new Date(parts[2], parts[1] - 1, parts[0]);
+                            if (contract.expected_return_time) {
+                                const timeParts = contract.expected_return_time.split(':');
+                                expectedDate.setHours(parseInt(timeParts[0]), parseInt(timeParts[1]), 0, 0);
+                            } else {
+                                expectedDate.setHours(12, 0, 0, 0);
+                            }
+                        } else if (dateStr.includes(' - ')) {
+                            const parts = dateStr.split(' - ');
+                            expectedDate = new Date(parts[2], parts[1] - 1, parts[0]);
+                            if (contract.expected_return_time) {
+                                const timeParts = contract.expected_return_time.split(':');
+                                expectedDate.setHours(parseInt(timeParts[0]), parseInt(timeParts[1]), 0, 0);
+                            } else {
+                                expectedDate.setHours(12, 0, 0, 0);
+                            }
                         } else {
-                            expectedDate.setHours(12, 0, 0, 0); // Assume meio-dia se não houver hora
+                            expectedDate = new Date(dateStr);
+                            if (contract.expected_return_time) {
+                                const timeParts = contract.expected_return_time.split(':');
+                                expectedDate.setHours(parseInt(timeParts[0]), parseInt(timeParts[1]), 0, 0);
+                            } else {
+                                expectedDate.setHours(12, 0, 0, 0);
+                            }
                         }
                         
                         // Adicionar 8 horas à hora prevista
