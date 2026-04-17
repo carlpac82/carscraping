@@ -15,23 +15,19 @@ logging.basicConfig(level=logging.INFO, format='%(levelname)s: %(message)s')
 def apply_indexes():
     """Aplica índices de performance no PostgreSQL"""
     
-    # Ler variáveis de ambiente
-    db_config = {
-        'host': os.getenv('PGHOST'),
-        'database': os.getenv('PGDATABASE'),
-        'user': os.getenv('PGUSER'),
-        'password': os.getenv('PGPASSWORD'),
-        'port': os.getenv('PGPORT', '5432')
-    }
+    # Ler DATABASE_URL (usado pela aplicação principal)
+    database_url = os.getenv('DATABASE_URL')
     
-    # Verificar se todas as variáveis estão definidas
-    if not all(db_config.values()):
-        logging.warning("⚠️ Database config incomplete - skipping index creation")
+    # Verificar se DATABASE_URL está definido e é PostgreSQL
+    if not database_url:
+        return
+    
+    if not (database_url.startswith('postgresql://') or database_url.startswith('postgres://')):
         return
     
     try:
-        # Conectar ao banco
-        conn = psycopg2.connect(**db_config)
+        # Conectar ao banco usando DATABASE_URL
+        conn = psycopg2.connect(database_url)
         cursor = conn.cursor()
         
         logging.info("=" * 80)

@@ -2544,11 +2544,9 @@ def _get_user_by_username(username: str) -> Optional[Dict[str, Any]]:
         with _db_lock:
             con = _db_connect()
             try:
-                logging.info(f"🔍 DEBUG _get_user_by_username: Buscando user '{username}'")
                 cur = con.execute("SELECT id, username, first_name, last_name, email, mobile, profile_picture_path, is_admin, enabled, role, has_commissioner_access, can_manage_commissions, can_manage_commissioners FROM users WHERE username=?", (username,))
                 r = cur.fetchone()
                 if not r:
-                    logging.info(f"🔍 DEBUG _get_user_by_username: User '{username}' não encontrado")
                     return None
                 
                 user_data = {
@@ -2566,14 +2564,6 @@ def _get_user_by_username(username: str) -> Optional[Dict[str, Any]]:
                     "can_manage_commissions": bool(r[11]) if r[11] is not None else False,
                     "can_manage_commissioners": bool(r[12]) if r[12] is not None else False,
                 }
-                
-                logging.info(f"🔍 DEBUG _get_user_by_username: User '{username}' encontrado:")
-                logging.info(f"  - id: {user_data['id']}")
-                logging.info(f"  - is_admin: {user_data['is_admin']}")
-                logging.info(f"  - enabled: {user_data['enabled']}")
-                logging.info(f"  - role: {user_data['role']}")
-                logging.info(f"  - has_commissioner_access: {user_data['has_commissioner_access']}")
-                logging.info(f"  - can_manage_commissions: {user_data['can_manage_commissions']}")
                 
                 return user_data
             finally:
@@ -3796,9 +3786,7 @@ def _map_category_fallback(category: str, car_name: str = "", transmission: str 
         pass
         return grupo  # Economy
     
-    # Se chegou aqui, não conseguiu mapear - LOG CRÍTICO
-    trans_tipo = "AUTOMÁTICO" if is_auto else "MANUAL"
-    logging.warning(f"🔴 [CARRO PERDIDO] '{car_name}' [{trans_tipo}] - categoria '{category}' não mapeada → 'Others'")
+    # Se chegou aqui, não conseguiu mapear (log reduzido para performance)
     return "Others"
 
 def _send_creds_email(to_email: str, username: str, password: str):
@@ -6123,10 +6111,7 @@ def require_commissions_management(request: Request):
     is_admin = request.session.get("is_admin", False)
     username = request.session.get("username")
     
-    logging.info(f"🔍 DEBUG require_commissions_management:")
-    logging.info(f"  - is_admin: {is_admin}")
-    logging.info(f"  - username: {username}")
-    logging.info(f"  - session keys: {list(request.session.keys())}")
+    # Auth check (logs reduzidos)
     
     if is_admin:
         logging.info("  - Admin access granted")
@@ -6465,12 +6450,9 @@ async def home(request: Request):
     user_ctx = None
     try:
         uname = request.session.get("username")
-        print(f"🔍 DEBUG Homepage - username da sessão: {uname}")
         if uname:
             user_ctx = _get_user_by_username(uname)
-            print(f"🔍 DEBUG Homepage - user_ctx: {user_ctx}")
-    except Exception as e:
-        print(f"❌ DEBUG Homepage - Erro ao carregar user: {e}")
+    except Exception:
         user_ctx = None
     
     response = templates.TemplateResponse("index.html", {
@@ -8093,7 +8075,6 @@ def _get_whatsapp_config_row():
 async def refresh_whatsapp_access_token(force: bool = False):
     row = _get_whatsapp_config_row()
     if not row or not row[0]:
-        print("[WHATSAPP] Access token not configured")
         return False
 
     access_token, phone_number_id, business_account_id, verify_token, expires_at = row
@@ -8104,7 +8085,6 @@ async def refresh_whatsapp_access_token(force: bool = False):
     app_id = os.getenv('WHATSAPP_APP_ID')
     app_secret = os.getenv('WHATSAPP_APP_SECRET')
     if not app_id or not app_secret:
-        print("[WHATSAPP] Missing WHATSAPP_APP_ID/WHATSAPP_APP_SECRET for token refresh")
         return False
 
     refresh_url = "https://graph.facebook.com/oauth/access_token"
@@ -8118,14 +8098,12 @@ async def refresh_whatsapp_access_token(force: bool = False):
     async with httpx.AsyncClient(timeout=30.0) as client:
         response = await client.get(refresh_url, params=params)
         if response.status_code != 200:
-            print(f"[WHATSAPP] ❌ Token refresh failed: {response.text}")
             return False
 
         data = response.json()
         new_token = data.get('access_token')
         expires_in = data.get('expires_in', 60 * 24 * 60 * 60)
         if not new_token:
-            print("[WHATSAPP] ❌ No new access token returned")
             return False
 
         new_expires_at = datetime.utcnow() + timedelta(seconds=expires_in)
@@ -8159,7 +8137,6 @@ async def refresh_whatsapp_access_token(force: bool = False):
             finally:
                 conn.close()
 
-    print(f"[WHATSAPP] refreshed token, expires at {new_expires_at}")
     return True
 
 async def _whatsapp_token_refresh_worker():
@@ -8432,17 +8409,13 @@ async def force_create_whatsapp_tables(request: Request):
     """Force create WhatsApp tables - Emergency endpoint"""
     require_auth(request)
     try:
-        print("[WHATSAPP] 🔧 Force creating WhatsApp tables...")
-        
         with _db_lock:
             con = _db_connect()
             try:
                 is_postgres = str(con.__class__).find('psycopg') >= 0
-                print(f"[WHATSAPP] Database type: {'PostgreSQL' if is_postgres else 'SQLite'}")
                 
                 if is_postgres:
                     with con.cursor() as cur:
-                        print("[WHATSAPP] Creating whatsapp_config table...")
                         cur.execute("""
                             CREATE TABLE IF NOT EXISTS whatsapp_config (
                                 id INTEGER PRIMARY KEY,
@@ -8454,7 +8427,6 @@ async def force_create_whatsapp_tables(request: Request):
                             )
                         """)
                         
-                        print("[WHATSAPP] Creating google_oauth_tokens table...")
                         cur.execute("""
                             CREATE TABLE IF NOT EXISTS google_oauth_tokens (
                                 service VARCHAR(50) PRIMARY KEY,
@@ -8464,7 +8436,6 @@ async def force_create_whatsapp_tables(request: Request):
                             )
                         """)
                         
-                        print("[WHATSAPP] Creating whatsapp_contacts table...")
                         cur.execute("""
                             CREATE TABLE IF NOT EXISTS whatsapp_contacts (
                                 id SERIAL PRIMARY KEY,
@@ -8476,7 +8447,6 @@ async def force_create_whatsapp_tables(request: Request):
                             )
                         """)
                         
-                        print("[WHATSAPP] Creating whatsapp_conversations table...")
                         cur.execute("""
                             CREATE TABLE IF NOT EXISTS whatsapp_conversations (
                                 id SERIAL PRIMARY KEY,
@@ -8491,7 +8461,6 @@ async def force_create_whatsapp_tables(request: Request):
                             )
                         """)
                         
-                        print("[WHATSAPP] Creating whatsapp_messages table...")
                         cur.execute("""
                             CREATE TABLE IF NOT EXISTS whatsapp_messages (
                                 id TEXT PRIMARY KEY,
@@ -8504,7 +8473,6 @@ async def force_create_whatsapp_tables(request: Request):
                             )
                         """)
                         
-                        print("[WHATSAPP] Creating whatsapp_templates table...")
                         cur.execute("""
                             CREATE TABLE IF NOT EXISTS whatsapp_templates (
                                 id SERIAL PRIMARY KEY,
@@ -8523,7 +8491,6 @@ async def force_create_whatsapp_tables(request: Request):
                             )
                         """)
                         
-                        print("[WHATSAPP] Creating whatsapp_quick_replies table...")
                         cur.execute("""
                             CREATE TABLE IF NOT EXISTS whatsapp_quick_replies (
                                 id SERIAL PRIMARY KEY,
@@ -8541,7 +8508,6 @@ async def force_create_whatsapp_tables(request: Request):
                         print("[WHATSAPP] ✅ All PostgreSQL tables created successfully!")
                 else:
                     # SQLite
-                    print("[WHATSAPP] Creating tables for SQLite...")
                     con.execute("""
                         CREATE TABLE IF NOT EXISTS whatsapp_config (
                             id INTEGER PRIMARY KEY,
@@ -8561,7 +8527,6 @@ async def force_create_whatsapp_tables(request: Request):
                         )
                     """)
                     
-                    print("[WHATSAPP] Creating whatsapp_contacts table...")
                     con.execute("""
                         CREATE TABLE IF NOT EXISTS whatsapp_contacts (
                             id SERIAL PRIMARY KEY,
@@ -8629,7 +8594,6 @@ async def force_create_whatsapp_tables(request: Request):
                         )
                     """)
                     con.commit()
-                    print("[WHATSAPP] ✅ All SQLite tables created successfully!")
                 
                 return JSONResponse({
                     "ok": True,
@@ -8639,7 +8603,6 @@ async def force_create_whatsapp_tables(request: Request):
                 })
                 
             except Exception as db_error:
-                print(f"[WHATSAPP] ❌ Error creating tables: {str(db_error)}")
                 import traceback
                 traceback.print_exc()
                 return JSONResponse({
@@ -8651,7 +8614,6 @@ async def force_create_whatsapp_tables(request: Request):
                 con.close()
                 
     except Exception as e:
-        print(f"[WHATSAPP] ❌ Error: {str(e)}")
         import traceback
         traceback.print_exc()
         return JSONResponse({"ok": False, "success": False, "error": str(e)}, status_code=500)
@@ -9282,8 +9244,6 @@ async def get_whatsapp_conversations(request: Request):
                         "messages": []  # Messages loaded separately
                     })
                 
-                print(f"[WHATSAPP] Returning {len(conversations)} conversations (with contact data) from database")
-                
                 return JSONResponse({
                     "ok": True,
                     "success": True,
@@ -9293,7 +9253,6 @@ async def get_whatsapp_conversations(request: Request):
                 conn.close()
                 
     except Exception as e:
-        print(f"[WHATSAPP] ❌ Error loading conversations: {str(e)}")
         import traceback
         traceback.print_exc()
         return JSONResponse({"ok": False, "success": False, "error": str(e)}, status_code=500)
@@ -9364,7 +9323,6 @@ async def verify_whatsapp_contact(request: Request):
         })
         
     except Exception as e:
-        print(f"[WHATSAPP] ❌ Error verifying contact: {str(e)}")
         return JSONResponse({"ok": False, "error": str(e)}, status_code=500)
 
 @app.get("/api/whatsapp/contacts")
@@ -9405,8 +9363,6 @@ async def get_whatsapp_contacts(request: Request):
                         "created_at": row[5].isoformat() if hasattr(row[5], 'isoformat') else str(row[5]),
                         "conversation_count": row[6]
                     })
-                
-                print(f"[WHATSAPP] Returning {len(contacts)} contacts from database")
                 
                 return JSONResponse({
                     "ok": True,
@@ -12247,16 +12203,10 @@ async def admin_users_new(request: Request):
 
 @app.get("/admin/commissions", response_class=HTMLResponse)
 async def admin_commissions(request: Request):
-    logging.info(f"🔍 DEBUG: admin_commissions called - URL: {request.url}")
-    logging.info(f"🔍 DEBUG: Session data: {dict(request.session)}")
     try:
         require_commissions_management(request)
-        logging.info(f"🔍 DEBUG: require_commissions_management PASSED")
-    except HTTPException as e:
-        logging.info(f"🔍 DEBUG: require_commissions_management FAILED: {e}")
-        logging.info(f"🔍 DEBUG: Redirecting to /login")
+    except HTTPException:
         return RedirectResponse(url="/login", status_code=HTTP_303_SEE_OTHER)
-    logging.info(f"🔍 DEBUG: Rendering admin_commissions.html")
     user_role = request.session.get("role", "user")
     is_admin = request.session.get("is_admin", False)
     
@@ -13257,10 +13207,6 @@ async def admin_commissions_print_pdf(request: Request):
         
         # Check if there are any commissions
         if not rows:
-            logging.info(f"🔍 DEBUG: Month filter: {month}")
-            logging.info(f"🔍 DEBUG: Query: {query}")
-            logging.info(f"🔍 DEBUG: Params: {params}")
-            logging.info(f"🔍 DEBUG: Found 0 commissions")
             
             return JSONResponse({
                 "ok": False, 
@@ -14406,8 +14352,6 @@ async def get_profile_picture(user_id: int):
                 if isinstance(blob, memoryview):
                     blob = bytes(blob)
                 
-                print(f"[PROFILE_PIC] ✅ Serving BLOB for user {user_id} ({len(blob)} bytes)", file=sys.stderr, flush=True)
-                
                 # Detectar tipo de imagem pelos magic bytes
                 if blob[:2] == b'\xff\xd8':
                     media_type = "image/jpeg"
@@ -14420,7 +14364,6 @@ async def get_profile_picture(user_id: int):
                 return Response(content=blob, media_type=media_type)
             else:
                 # Retornar imagem default se não tiver foto
-                print(f"[PROFILE_PIC] ⚠️ No BLOB for user {user_id}, using default", file=sys.stderr, flush=True)
                 from pathlib import Path
                 default_pic = Path(__file__).parent / "static" / "profiles" / "default-avatar.png"
                 if default_pic.exists():
@@ -15553,15 +15496,7 @@ async def track_by_params(request: Request):
     except Exception:
         async_mode = 0
     
-    # DEBUG: Log completo do body recebido
-    print(f"\n🔍 ASYNC DEBUG START {'='*60}", flush=True)
-    print(f"🔍 Location: {location}", flush=True)
-    print(f"🔍 Start Date: {start_date}", flush=True)
-    print(f"🔍 Days: {days}", flush=True)
-    print(f"🔍 ASYNC PARAM: {body.get('async')} (type: {type(body.get('async'))})", flush=True)
-    print(f"🔍 ASYNC MODE PARSED: {async_mode}", flush=True)
-    print(f"🔍 All keys: {list(body.keys())}", flush=True)
-    print(f"🔍 ASYNC DEBUG END {'='*60}\n", flush=True)
+    # Async mode parsing (logs reduzidos)
     
     if not location or not start_date:
         return _no_store_json({"ok": False, "error": "Missing location or start_date"}, status_code=400)
@@ -16125,7 +16060,6 @@ async def track_by_params(request: Request):
         
         # MODO DE TESTE LOCAL: Usar URL s/b pré-configurada
         test_url = None
-        print(f"[DEBUG] TEST_MODE_LOCAL={TEST_MODE_LOCAL}, location={location.lower()}, days={days}")
         
         # Tentar carregar URLs dinâmicas do .env (FARO_XD, ALBUFEIRA_XD)
         if TEST_MODE_LOCAL == 0:
@@ -16137,19 +16071,14 @@ async def track_by_params(request: Request):
             if loc_prefix:
                 env_key = f"{loc_prefix}_{days}D"
                 test_url = os.getenv(env_key, "").strip()
-                if test_url and test_url.startswith('http'):
-                    print(f"[DEBUG] Found dynamic URL in .env: {env_key}={test_url[:80]}...", file=sys.stderr, flush=True)
-                else:
+                if not (test_url and test_url.startswith('http')):
                     test_url = None
         
         if TEST_MODE_LOCAL == 1:
-            print(f"[DEBUG] Checking location: faro={'faro' in location.lower()}, albufeira={'albufeira' in location.lower()}")
             if 'faro' in location.lower() and TEST_FARO_URL:
                 test_url = TEST_FARO_URL
-                print(f"[DEBUG] Using Faro test URL")
             elif 'albufeira' in location.lower() and TEST_ALBUFEIRA_URL:
                 test_url = TEST_ALBUFEIRA_URL
-                print(f"[DEBUG] Using Albufeira test URL")
         
         if test_url:
             try:
@@ -16226,8 +16155,7 @@ async def track_by_params(request: Request):
         # ═══════════════════════════════════════════════════════════════════════════
         # MÉTODO 1 (PRINCIPAL): try_direct_carjet (requests com sessão persistente)
         # ═══════════════════════════════════════════════════════════════════════════
-        print(f"[DEBUG] TEST_MODE_LOCAL={TEST_MODE_LOCAL}, location={location.lower()}, days={days}", file=sys.stderr, flush=True)
-        print(f"[DEBUG] _DISABLE_REQUESTS={_DISABLE_REQUESTS}, _HAS_CARJET_REQUESTS={_HAS_CARJET_REQUESTS}", file=sys.stderr, flush=True)
+        # Test mode (logs reduzidos)
         
         # Tentar método direto primeiro (requests ou urllib) - APENAS se não estiver desabilitado
         if _DISABLE_REQUESTS:
@@ -17652,9 +17580,7 @@ async def track_by_params(request: Request):
                         pass
                     html_pw = await page.content()
                     final_url = page.url
-                    print(f"[DEBUG] Fechando browser, URL final: {final_url}", file=sys.stderr, flush=True)
                     await context.close(); await browser.close()
-                    print(f"[DEBUG] Browser fechado, HTML size: {len(html_pw)} bytes", file=sys.stderr, flush=True)
                 if html_pw:
                     items_pw = parse_prices(html_pw, final_url or base)
                     items_pw = convert_items_gbp_to_eur(items_pw)
