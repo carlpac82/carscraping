@@ -986,14 +986,6 @@ async function loadDeliveryDataAndShowCroqui() {
 // Show pickup-specific UI in diagram step
 function showPickupDiagramUI() {
     console.log('🎨 Setting up pickup diagram UI...');
-    console.log('🔍 DEBUG - croquiEditEnabled at start:', typeof croquiEditEnabled !== 'undefined' ? croquiEditEnabled : 'UNDEFINED');
-    
-    // DEBUG VISUAL para mobile Safari
-    const debugDiv = document.createElement('div');
-    debugDiv.id = 'mobileDebug';
-    debugDiv.style.cssText = 'position: fixed; top: 80px; left: 10px; background: red; color: white; padding: 10px; z-index: 9999; font-size: 12px; border-radius: 5px;';
-    debugDiv.innerHTML = `🔍 croquiEditEnabled: ${typeof croquiEditEnabled !== 'undefined' ? croquiEditEnabled : 'UNDEFINED'}`;
-    document.body.appendChild(debugDiv);
     
     // 1. Load delivery damages on croqui FIRST
     loadDeliveryDamagesOnCroqui();

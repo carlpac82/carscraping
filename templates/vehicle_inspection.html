@@ -2755,19 +2755,6 @@
             // VERIFICAR se edição está ativa antes de ativar canvas
             // Se croquiEditEnabled existe e está false, NÃO ativar canvas
             if (typeof croquiEditEnabled !== 'undefined' && !croquiEditEnabled) {
-                console.log('🔒 Canvas NOT activated - croquiEditEnabled is false');
-                
-                // DEBUG VISUAL para mobile Safari
-                let debugDiv = document.getElementById('mobileDebug');
-                if (!debugDiv) {
-                    debugDiv = document.createElement('div');
-                    debugDiv.id = 'mobileDebug';
-                    debugDiv.style.cssText = 'position: fixed; top: 80px; left: 10px; background: red; color: white; padding: 10px; z-index: 9999; font-size: 12px; border-radius: 5px;';
-                    document.body.appendChild(debugDiv);
-                }
-                debugDiv.style.background = 'red';
-                debugDiv.innerHTML = `🔒 BLOCKED!<br>croquiEditEnabled: ${croquiEditEnabled}<br>Tool: ${tool}<br>Canvas: none`;
-                
                 if (canvas) {
                     canvas.style.pointerEvents = 'none';
                     canvas.style.zIndex = '5';
@@ -2808,21 +2795,7 @@
         let croquiEditEnabled = false;
         
         function toggleCroquiEditMode() {
-            console.log('🔵 toggleCroquiEditMode CALLED - current state:', croquiEditEnabled, '→ will become:', !croquiEditEnabled);
-            console.trace('🔍 Call stack:');
-            
             croquiEditEnabled = !croquiEditEnabled;
-            
-            // DEBUG VISUAL para mobile Safari
-            let debugDiv = document.getElementById('mobileDebug');
-            if (!debugDiv) {
-                debugDiv = document.createElement('div');
-                debugDiv.id = 'mobileDebug';
-                debugDiv.style.cssText = 'position: fixed; top: 80px; left: 10px; background: orange; color: white; padding: 10px; z-index: 9999; font-size: 12px; border-radius: 5px;';
-                document.body.appendChild(debugDiv);
-            }
-            debugDiv.style.background = croquiEditEnabled ? 'green' : 'red';
-            debugDiv.innerHTML = `🔵 TOGGLE CALLED!<br>croquiEditEnabled: ${croquiEditEnabled}<br>Canvas: ${canvas ? canvas.style.pointerEvents : 'N/A'}`;
             
             const toggleBtn = document.getElementById('toggleCroquiEdit');
             const toolsDiv = document.getElementById('croquiTools');
