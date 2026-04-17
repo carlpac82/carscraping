@@ -26,14 +26,8 @@ CREATE INDEX IF NOT EXISTS idx_commission_bookings_created_at
 CREATE INDEX IF NOT EXISTS idx_rental_agreements_vehicle_id 
   ON rental_agreements(vehicle_id);
 
-CREATE INDEX IF NOT EXISTS idx_rental_agreements_pickup_date 
-  ON rental_agreements(pickup_date);
-
-CREATE INDEX IF NOT EXISTS idx_rental_agreements_return_date 
-  ON rental_agreements(return_date);
-
-CREATE INDEX IF NOT EXISTS idx_rental_agreements_status 
-  ON rental_agreements(status);
+CREATE INDEX IF NOT EXISTS idx_rental_agreements_created_at 
+  ON rental_agreements(created_at);
 
 -- Vehicle Inspections
 CREATE INDEX IF NOT EXISTS idx_vehicle_inspections_rental_agreement 
@@ -55,23 +49,6 @@ CREATE INDEX IF NOT EXISTS idx_damage_reports_rental_agreement
 CREATE INDEX IF NOT EXISTS idx_damage_reports_created_at 
   ON damage_reports(created_at);
 
--- WhatsApp Conversations
-CREATE INDEX IF NOT EXISTS idx_whatsapp_conversations_contact_id 
-  ON whatsapp_conversations(contact_id);
-
-CREATE INDEX IF NOT EXISTS idx_whatsapp_conversations_created_at 
-  ON whatsapp_conversations(created_at);
-
-CREATE INDEX IF NOT EXISTS idx_whatsapp_conversations_updated_at 
-  ON whatsapp_conversations(updated_at);
-
--- WhatsApp Messages
-CREATE INDEX IF NOT EXISTS idx_whatsapp_messages_conversation_id 
-  ON whatsapp_messages(conversation_id);
-
-CREATE INDEX IF NOT EXISTS idx_whatsapp_messages_timestamp 
-  ON whatsapp_messages(timestamp);
-
 -- 2. ÍNDICES COMPOSTOS (para queries com múltiplos filtros)
 -- ============================================================================
 
@@ -82,10 +59,6 @@ CREATE INDEX IF NOT EXISTS idx_commission_bookings_commissioner_pickup
 -- Commission Bookings: filtro por paid status + data
 CREATE INDEX IF NOT EXISTS idx_commission_bookings_paid_pickup 
   ON commission_bookings(commission_paid, pickup_date DESC);
-
--- Rental Agreements: filtro por veículo + status
-CREATE INDEX IF NOT EXISTS idx_rental_agreements_vehicle_status 
-  ON rental_agreements(vehicle_id, status);
 
 -- Vehicle Inspections: filtro por RA + tipo
 CREATE INDEX IF NOT EXISTS idx_vehicle_inspections_ra_type 
@@ -104,7 +77,7 @@ CREATE INDEX IF NOT EXISTS idx_vehicles_license_plate_lower
 
 -- Rental Agreements: pesquisa por RA number
 CREATE INDEX IF NOT EXISTS idx_rental_agreements_ra_number_lower 
-  ON rental_agreements(LOWER(ra_number));
+  ON rental_agreements(LOWER(rental_agreement_number));
 
 -- ============================================================================
 -- ANÁLISE DE PERFORMANCE (opcional - para verificar ganhos)
