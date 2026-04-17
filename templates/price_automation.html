@@ -1500,6 +1500,7 @@
         let stopGenerateFlag = false;
         let isGenerating = false;
         let isSearching = false;
+        let currentBatchId = null;
         
         function toggleSearch() {
             if (isSearching) {
@@ -1517,9 +1518,22 @@
             }
         }
         
-        function stopSearch() {
+        async function stopSearch() {
             stopSearchFlag = true;
             isSearching = false;
+            
+            // Cancel backend batch if running
+            if (currentBatchId) {
+                try {
+                    console.log(`🛑 Cancelling batch: ${currentBatchId}`);
+                    await fetch(`/api/track-by-params-batch/cancel/${currentBatchId}`, {
+                        method: 'POST'
+                    });
+                    currentBatchId = null;
+                } catch (err) {
+                    console.error('Error cancelling batch:', err);
+                }
+            }
             
             // Immediately reset UI
             const btn = document.getElementById('btnSearchAll');
@@ -5097,6 +5111,7 @@
                         const batchData = await batchResponse.json();
                         if (batchData.ok && batchData.batch_id) {
                             batchId = batchData.batch_id;
+                            currentBatchId = batchId; // Store globally for cancellation
                             console.log(`🚀 [BATCH] Async iniciado: batch_id=${batchId}`);
                         }
                     }
@@ -5151,8 +5166,9 @@
                             }
                             
                             // Batch terminado?
-                            if (status === 'done' || status === 'error') {
+                            if (status === 'done' || status === 'error' || status === 'cancelled') {
                                 console.log(`\ud83d\ude80 [BATCH] Terminado: status=${status}, ${completed}/${total} dias com resultados`);
+                                currentBatchId = null; // Clear global batch ID
                                 break;
                             }
                         } catch (pollErr) {

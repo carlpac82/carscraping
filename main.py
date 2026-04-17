@@ -15473,6 +15473,31 @@ async def track_by_params_batch_progress(batch_id: str):
     })
 
 
+@app.post("/api/track-by-params-batch/cancel/{batch_id}")
+async def track_by_params_batch_cancel(batch_id: str, request: Request):
+    """Cancelar um batch scraping em execução"""
+    try:
+        if not bool(str(os.getenv("DEV_NO_AUTH", "")).strip().lower() in ("1","true","yes","on")):
+            require_auth(request)
+    except HTTPException:
+        return JSONResponse({"ok": False, "error": "Unauthorized"}, status_code=401)
+    
+    from carjet_batch import cancel_batch
+    
+    success = cancel_batch(batch_id)
+    if success:
+        return _no_store_json({
+            "ok": True,
+            "message": "Batch cancelled successfully",
+            "batch_id": batch_id
+        })
+    else:
+        return JSONResponse({
+            "ok": False,
+            "error": "Batch not found or already completed"
+        }, status_code=404)
+
+
 @app.post("/api/track-by-params")
 async def track_by_params(request: Request):
     # LOG DETALHADO: Identificar origem do pedido

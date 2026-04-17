@@ -28,7 +28,7 @@ from typing import List, Dict, Any, Optional, Tuple
 CATEGORIES = ['MINI', 'COMP', 'FAMI', 'ESTA', 'SUVS', 'VANS', 'LUXU', 'AUTO']
 
 # Progresso global do batch (partilhado com endpoint de progresso)
-# Estrutura: { batch_id: { 'total': N, 'completed': M, 'status': 'running'|'done', 'results': {days: items} } }
+# Estrutura: { batch_id: { 'total': N, 'completed': M, 'status': 'running'|'done', 'results': {days: items}, 'cancelled': bool } }
 import threading
 _batch_progress = {}
 _batch_progress_lock = threading.Lock()
@@ -42,6 +42,16 @@ def clear_batch_progress(batch_id: str):
     """Limpar progresso de um batch terminado"""
     with _batch_progress_lock:
         _batch_progress.pop(batch_id, None)
+
+def cancel_batch(batch_id: str) -> bool:
+    """Cancelar um batch em execução"""
+    with _batch_progress_lock:
+        prog = _batch_progress.get(batch_id)
+        if prog and prog.get('status') == 'running':
+            prog['cancelled'] = True
+            prog['status'] = 'cancelled'
+            return True
+        return False
 
 
 def _setup_chrome_driver():
@@ -658,6 +668,14 @@ def scrape_carjet_batch(
         _update_progress(status='running')
 
         for idx, search in enumerate(searches):
+            # Verificar se foi cancelado
+            if batch_id:
+                with _batch_progress_lock:
+                    prog = _batch_progress.get(batch_id)
+                    if prog and prog.get('cancelled'):
+                        print(f"[BATCH] 🛑 Batch cancelado pelo utilizador", file=sys.stderr, flush=True)
+                        break
+            
             days = search['days']
             start_dt = search['start_dt']
             end_dt = search['end_dt']
