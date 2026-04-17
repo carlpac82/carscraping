@@ -1438,6 +1438,13 @@ async def lifespan(app: FastAPI):
     except Exception as e:
         logging.debug(f"⚠️ Could not load AI models: {e}")
     
+    # Apply performance indexes
+    try:
+        import apply_indexes
+        apply_indexes.apply_indexes()
+    except Exception as e:
+        logging.warning(f"⚠️ Could not apply performance indexes: {e}")
+    
     yield
     
     # SHUTDOWN EVENTS
