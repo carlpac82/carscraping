@@ -53,6 +53,14 @@ def cancel_batch(batch_id: str) -> bool:
             return True
         return False
 
+def is_batch_cancelled(batch_id: str) -> bool:
+    """Verificar se batch foi cancelado (thread-safe)"""
+    if not batch_id:
+        return False
+    with _batch_progress_lock:
+        prog = _batch_progress.get(batch_id)
+        return prog and prog.get('cancelled', False)
+
 
 def _setup_chrome_driver():
     """Configurar e iniciar Chrome driver com anti-deteção (igual ao main.py)"""
@@ -214,7 +222,7 @@ def _click_search(driver):
     """)
 
 
-def _wait_for_results(driver, max_wait=30):
+def _wait_for_results(driver, max_wait=30, batch_id=None):
     """Aguardar até URL ter s= e b= (resultados prontos).
     Se war=28, clicar pesquisar outra vez (até 4 retries com pausa)."""
     max_war_retries = 4
@@ -223,6 +231,11 @@ def _wait_for_results(driver, max_wait=30):
     while war_count <= max_war_retries:
         waited = 0
         while waited < max_wait:
+            # Verificar cancelamento
+            if is_batch_cancelled(batch_id):
+                print(f"[BATCH] 🛑 Cancelado durante wait_for_results", file=sys.stderr, flush=True)
+                return False
+            
             url = driver.current_url
             if 'war=' in url:
                 war_count += 1
@@ -311,7 +324,7 @@ def _fill_dates(driver, start_dt, end_dt):
     """, hour)
 
 
-def _do_first_search(driver, carjet_location, start_dt, end_dt):
+def _do_first_search(driver, carjet_location, start_dt, end_dt, batch_id=None):
     """Primeira pesquisa: homepage completa com comportamento humano"""
     from selenium.webdriver.common.by import By
     from selenium.webdriver.support.ui import WebDriverWait
@@ -391,10 +404,10 @@ def _do_first_search(driver, carjet_location, start_dt, end_dt):
     _click_search(driver)
     time.sleep(2)
 
-    return _wait_for_results(driver)
+    return _wait_for_results(driver, batch_id=batch_id)
 
 
-def _update_search(driver, start_dt, end_dt):
+def _update_search(driver, start_dt, end_dt, batch_id=None):
     """Atualizar pesquisa na página de resultados (sem voltar à homepage)"""
     print(f"[BATCH] Modificando datas: {start_dt.strftime('%d/%m/%Y')} → {end_dt.strftime('%d/%m/%Y')}", file=sys.stderr, flush=True)
 
@@ -466,15 +479,20 @@ def _update_search(driver, start_dt, end_dt):
     print(f"[BATCH] Submit: {submit_result}", file=sys.stderr, flush=True)
     time.sleep(2)
 
-    return _wait_for_results(driver)
+    return _wait_for_results(driver, batch_id=batch_id)
 
 
-def _navigate_categories(driver):
+def _navigate_categories(driver, batch_id=None):
     """Navegar por todas as categorias e recolher HTML de cada uma"""
     print(f"[BATCH] Navegando categorias...", file=sys.stderr, flush=True)
 
     # Esperar artigos iniciais
     for _ in range(10):
+        # Verificar cancelamento
+        if is_batch_cancelled(batch_id):
+            print(f"[BATCH] 🛑 Cancelado durante navigate_categories", file=sys.stderr, flush=True)
+            return []
+        
         count = driver.execute_script("return document.querySelectorAll('article').length") or 0
         if count >= 3:
             break
@@ -688,23 +706,23 @@ def scrape_carjet_batch(
             try:
                 if idx == 0:
                     # Primeira pesquisa: homepage completa
-                    ok = _do_first_search(driver, carjet_location, start_dt, end_dt)
+                    ok = _do_first_search(driver, carjet_location, start_dt, end_dt, batch_id=batch_id)
                 else:
                     # Pesquisas seguintes: reutilizar sessão
-                    ok = _update_search(driver, start_dt, end_dt)
+                    ok = _update_search(driver, start_dt, end_dt, batch_id=batch_id)
 
                 if not ok:
                     # Recovery: tentar homepage apenas como último recurso
                     print(f"[BATCH] 🔄 Recovery: tentando homepage...", file=sys.stderr, flush=True)
                     time.sleep(random.uniform(5, 10))
-                    ok = _do_first_search(driver, carjet_location, start_dt, end_dt)
+                    ok = _do_first_search(driver, carjet_location, start_dt, end_dt, batch_id=batch_id)
 
                 if ok:
                     time.sleep(3)  # Esperar conteúdo carregar
                     final_url = driver.current_url
 
                     # Navegar categorias
-                    all_html_parts = _navigate_categories(driver)
+                    all_html_parts = _navigate_categories(driver, batch_id=batch_id)
 
                     if all_html_parts:
                         items = _parse_and_process_categories(
