@@ -511,6 +511,11 @@ def _navigate_categories(driver, batch_id=None):
 
     all_html_parts = []
     for i, cat in enumerate(CATEGORIES):
+        # Verificar cancelamento antes de cada categoria
+        if is_batch_cancelled(batch_id):
+            print(f"[BATCH] 🛑 Cancelado durante navegação de categorias (categoria {cat})", file=sys.stderr, flush=True)
+            return all_html_parts
+        
         try:
             if i > 0:
                 delay = random.uniform(1.5, 3.0)
@@ -560,10 +565,14 @@ def _navigate_categories(driver, batch_id=None):
     return all_html_parts
 
 
-def _parse_and_process_categories(all_html_parts, final_url, parse_prices_fn, convert_fn, adjust_fn, normalize_fn, filter_fn):
+def _parse_and_process_categories(all_html_parts, final_url, parse_prices_fn, convert_fn, adjust_fn, normalize_fn, filter_fn, batch_id=None):
     """Parse HTML de todas as categorias, deduplicar, e processar"""
     all_items_raw = []
     for i, cat_html in enumerate(all_html_parts):
+        # Verificar cancelamento durante parsing
+        if is_batch_cancelled(batch_id):
+            print(f"[BATCH] 🛑 Cancelado durante parsing de categorias", file=sys.stderr, flush=True)
+            return []
         cat_items = parse_prices_fn(cat_html, final_url)
         if cat_items:
             all_items_raw.extend(cat_items)
@@ -728,7 +737,7 @@ def scrape_carjet_batch(
                         items = _parse_and_process_categories(
                             all_html_parts, final_url,
                             parse_prices_fn, convert_fn, adjust_fn,
-                            normalize_fn, filter_fn
+                            normalize_fn, filter_fn, batch_id=batch_id
                         )
                         results[days] = items
                         _update_progress(day_key=days, items=items)
@@ -753,7 +762,13 @@ def scrape_carjet_batch(
             if idx < len(searches) - 1:
                 pause = random.uniform(3, 6)
                 print(f"[BATCH] ⏸️  Pausa de {pause:.1f}s...", file=sys.stderr, flush=True)
-                time.sleep(pause)
+                
+                # Verificar cancelamento durante pausa (em chunks de 0.5s)
+                for _ in range(int(pause * 2)):
+                    if is_batch_cancelled(batch_id):
+                        print(f"[BATCH] 🛑 Cancelado durante pausa entre pesquisas", file=sys.stderr, flush=True)
+                        break
+                    time.sleep(0.5)
 
     except TimeoutError as e:
         print(f"[BATCH] ⏰ {e}", file=sys.stderr, flush=True)
