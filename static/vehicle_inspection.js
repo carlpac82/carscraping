@@ -986,6 +986,7 @@ async function loadDeliveryDataAndShowCroqui() {
 // Show pickup-specific UI in diagram step
 function showPickupDiagramUI() {
     console.log('🎨 Setting up pickup diagram UI...');
+    console.log('🔍 DEBUG - croquiEditEnabled at start:', typeof croquiEditEnabled !== 'undefined' ? croquiEditEnabled : 'UNDEFINED');
     
     // 1. Load delivery damages on croqui FIRST
     loadDeliveryDamagesOnCroqui();

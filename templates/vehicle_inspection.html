@@ -2796,6 +2796,9 @@
         let croquiEditEnabled = false;
         
         function toggleCroquiEditMode() {
+            console.log('🔵 toggleCroquiEditMode CALLED - current state:', croquiEditEnabled, '→ will become:', !croquiEditEnabled);
+            console.trace('🔍 Call stack:');
+            
             croquiEditEnabled = !croquiEditEnabled;
             
             const toggleBtn = document.getElementById('toggleCroquiEdit');
