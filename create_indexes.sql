@@ -30,8 +30,8 @@ CREATE INDEX IF NOT EXISTS idx_rental_agreements_created_at
   ON rental_agreements(created_at);
 
 -- Vehicle Inspections
-CREATE INDEX IF NOT EXISTS idx_vehicle_inspections_rental_agreement 
-  ON vehicle_inspections(rental_agreement);
+CREATE INDEX IF NOT EXISTS idx_vehicle_inspections_contract_number 
+  ON vehicle_inspections(contract_number);
 
 CREATE INDEX IF NOT EXISTS idx_vehicle_inspections_inspection_type 
   ON vehicle_inspections(inspection_type);
@@ -43,8 +43,8 @@ CREATE INDEX IF NOT EXISTS idx_vehicle_inspections_created_at
 CREATE INDEX IF NOT EXISTS idx_damage_reports_dr_number 
   ON damage_reports(dr_number);
 
-CREATE INDEX IF NOT EXISTS idx_damage_reports_rental_agreement 
-  ON damage_reports(rental_agreement);
+CREATE INDEX IF NOT EXISTS idx_damage_reports_ra_number 
+  ON damage_reports(ra_number);
 
 CREATE INDEX IF NOT EXISTS idx_damage_reports_created_at 
   ON damage_reports(created_at);
@@ -62,7 +62,7 @@ CREATE INDEX IF NOT EXISTS idx_commission_bookings_paid_pickup
 
 -- Vehicle Inspections: filtro por RA + tipo
 CREATE INDEX IF NOT EXISTS idx_vehicle_inspections_ra_type 
-  ON vehicle_inspections(rental_agreement, inspection_type);
+  ON vehicle_inspections(contract_number, inspection_type);
 
 -- 3. ÍNDICES PARA PESQUISAS DE TEXTO (ILIKE queries)
 -- ============================================================================
