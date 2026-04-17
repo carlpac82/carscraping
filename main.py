@@ -67408,8 +67408,8 @@ if __name__ == "__main__":
     import uvicorn
     import os
     
-    # Get number of workers from environment or default to 8
-    workers = int(os.getenv("UVICORN_WORKERS", "8"))
+    # Get number of workers from environment or default to 12
+    workers = int(os.getenv("UVICORN_WORKERS", "12"))
     
     uvicorn.run(
         app, 
