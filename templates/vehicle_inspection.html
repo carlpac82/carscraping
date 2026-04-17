@@ -3319,6 +3319,13 @@
             const toggleBtn = document.getElementById('toggleCroquiEdit');
             const toolsDiv = document.getElementById('croquiTools');
             const sizeDiv = document.getElementById('sizeControls');
+            
+            // ATIVAR edição permanentemente no check-in
+            if (typeof croquiEditEnabled !== 'undefined') {
+                croquiEditEnabled = true;
+                console.log('✅ croquiEditEnabled set to TRUE - check-in mode');
+            }
+            
             if (toggleBtn) {
                 toggleBtn.style.display = 'none';
                 console.log('✅ Toggle button hidden - check-in mode always editable');
