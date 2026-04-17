@@ -1048,21 +1048,10 @@
             <div class="car-diagram-container max-w-4xl mx-auto">
                 <h2 class="text-xl md:text-2xl font-bold text-[#009cb6] mb-4 text-center">Marcar Danos no Croqui</h2>
                 
-                <!-- Botão Toggle Editar Croqui (para tablets/telemóveis) -->
-                <div class="flex justify-end mb-4">
-                    <button type="button" id="toggleCroquiEdit" 
-                            class="w-12 h-12 rounded-lg font-semibold text-white transition-all duration-200 flex items-center justify-center shadow-lg"
-                            style="background-color: #009cb6;"
-                            onclick="toggleCroquiEditMode()" 
-                            title="Ativar/Desativar edição do croqui">
-                        <svg class="w-6 h-6" fill="currentColor" viewBox="0 0 24 24">
-                            <path d="M3 17.25V21h3.75L17.81 9.94l-3.75-3.75L3 17.25zM20.71 7.04c.39-.39.39-1.02 0-1.41l-2.34-2.34c-.39-.39-1.02-.39-1.41 0l-1.83 1.83 3.75 3.75 1.83-1.83z"/>
-                        </svg>
-                    </button>
-                </div>
-                
-                <!-- Ferramentas Clean (escondidas por defeito) -->
-                <div class="flex justify-center gap-4 mb-6" id="croquiTools" style="display: none;">
+                <!-- Linha única: Toggle + Ferramentas alinhadas -->
+                <div class="flex items-center justify-between mb-6">
+                    <!-- Ferramentas Clean (escondidas por defeito) -->
+                    <div class="flex justify-center gap-4 flex-1" id="croquiTools" style="display: none;">
                     <button type="button" id="toolPin" class="w-12 h-12 rounded-full bg-[#009cb6] text-white hover:bg-[#007a94] transition-all duration-200 flex items-center justify-center" onclick="selectTool('pin')" title="Pins">
                         <svg class="w-6 h-6" fill="currentColor" viewBox="0 0 24 24">
                             <path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z"/>
@@ -1081,6 +1070,18 @@
                     <button type="button" class="w-12 h-12 rounded-full bg-gray-400 text-white hover:bg-red-500 transition-all duration-200 flex items-center justify-center" onclick="clearAll()" title="Limpar Tudo">
                         <svg class="w-6 h-6" fill="currentColor" viewBox="0 0 24 24">
                             <path d="M6 19c0 1.1.9 2 2 2h8c1.1 0 2-.9 2-2V7H6v12zM19 4h-3.5l-1-1h-5l-1 1H5v2h14V4z"/>
+                        </svg>
+                    </button>
+                    </div>
+                    
+                    <!-- Botão Toggle Editar Croqui (alinhado à direita) -->
+                    <button type="button" id="toggleCroquiEdit" 
+                            class="w-12 h-12 rounded-lg font-semibold text-white transition-all duration-200 flex items-center justify-center shadow-lg"
+                            style="background-color: #009cb6;"
+                            onclick="toggleCroquiEditMode()" 
+                            title="Ativar/Desativar edição do croqui">
+                        <svg class="w-6 h-6" fill="currentColor" viewBox="0 0 24 24">
+                            <path d="M3 17.25V21h3.75L17.81 9.94l-3.75-3.75L3 17.25zM20.71 7.04c.39-.39.39-1.02 0-1.41l-2.34-2.34c-.39-.39-1.02-.39-1.41 0l-1.83 1.83 3.75 3.75 1.83-1.83z"/>
                         </svg>
                     </button>
                 </div>
