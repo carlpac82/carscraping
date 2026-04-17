@@ -171,6 +171,20 @@
                     </div>
                 </div>
             </div>
+            <!-- Overdues (Atrasados) -->
+            <div class="bg-white rounded-lg shadow-md p-3 sm:p-4 cursor-pointer hover:shadow-lg transition-shadow" onclick="filterByType('overdue')">
+                <div class="flex items-center justify-between">
+                    <div>
+                        <p class="text-xs sm:text-sm text-gray-600">Overdues</p>
+                        <p class="text-xl sm:text-2xl font-bold text-orange-600" id="overdueCount">0</p>
+                    </div>
+                    <div class="w-10 h-10 sm:w-12 sm:h-12 bg-orange-100 rounded-full flex items-center justify-center">
+                        <svg class="w-5 h-5 sm:w-6 sm:h-6 text-orange-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/>
+                        </svg>
+                    </div>
+                </div>
+            </div>
             <!-- Self-Checkouts Pendentes -->
             <div class="bg-white rounded-lg shadow-md p-3 sm:p-4 cursor-pointer hover:shadow-lg transition-shadow" onclick="filterByType('self_checkout')">
                 <div class="flex items-center justify-between">
@@ -548,6 +562,7 @@
             
             let checkinCount = 0;
             let checkoutCount = 0;
+            let overdueCount = 0;
             let pendingCount = 0;
             
             contracts.forEach(contract => {
@@ -584,6 +599,33 @@
                 
                 if (shouldCountCheckout) checkoutCount++;
                 
+                // Count overdues: contratos abertos que passaram 8h da hora prevista de checkout
+                if (contract.checkin && !contract.checkout && contract.expected_return_date && contract.expected_return_time) {
+                    let expectedDate;
+                    if (contract.expected_return_date.includes('/')) {
+                        const parts = contract.expected_return_date.split('/');
+                        expectedDate = new Date(parts[2], parts[1] - 1, parts[0]);
+                    } else if (contract.expected_return_date.includes(' - ')) {
+                        const parts = contract.expected_return_date.split(' - ');
+                        expectedDate = new Date(parts[2], parts[1] - 1, parts[0]);
+                    } else {
+                        expectedDate = new Date(contract.expected_return_date);
+                    }
+                    
+                    // Parse expected time (formato: "HH:MM")
+                    const timeParts = contract.expected_return_time.split(':');
+                    expectedDate.setHours(parseInt(timeParts[0]), parseInt(timeParts[1]), 0, 0);
+                    
+                    // Adicionar 8 horas à hora prevista
+                    const overdueThreshold = new Date(expectedDate.getTime() + (8 * 60 * 60 * 1000));
+                    
+                    // Se passou 8h da hora prevista, é overdue
+                    const now = new Date();
+                    if (now >= overdueThreshold) {
+                        overdueCount++;
+                    }
+                }
+                
                 // Count self-checkouts pendentes de validação (tem self_checkout mas não tem checkout E não está invalidado)
                 if (contract.self_checkout && !contract.checkout) {
                     const status = contract.self_checkout.status || 'pending';
@@ -595,6 +637,7 @@
             
             document.getElementById('checkinCount').textContent = checkinCount;
             document.getElementById('checkoutCount').textContent = checkoutCount;
+            document.getElementById('overdueCount').textContent = overdueCount;
             document.getElementById('pendingCount').textContent = pendingCount;
         }
         
@@ -621,6 +664,34 @@
                     if (!c.checkout) return false;
                     const checkoutDate = new Date(c.checkout.created_at).toISOString().split('T')[0];
                     return checkoutDate === today;
+                });
+            } else if (type === 'overdue') {
+                document.getElementById('searchDate').value = '';
+                filtered = filtered.filter(c => {
+                    // Overdues: contratos abertos que passaram 8h da hora prevista
+                    if (!c.checkin || c.checkout || !c.expected_return_date || !c.expected_return_time) return false;
+                    
+                    let expectedDate;
+                    if (c.expected_return_date.includes('/')) {
+                        const parts = c.expected_return_date.split('/');
+                        expectedDate = new Date(parts[2], parts[1] - 1, parts[0]);
+                    } else if (c.expected_return_date.includes(' - ')) {
+                        const parts = c.expected_return_date.split(' - ');
+                        expectedDate = new Date(parts[2], parts[1] - 1, parts[0]);
+                    } else {
+                        expectedDate = new Date(c.expected_return_date);
+                    }
+                    
+                    // Parse expected time
+                    const timeParts = c.expected_return_time.split(':');
+                    expectedDate.setHours(parseInt(timeParts[0]), parseInt(timeParts[1]), 0, 0);
+                    
+                    // Adicionar 8 horas
+                    const overdueThreshold = new Date(expectedDate.getTime() + (8 * 60 * 60 * 1000));
+                    
+                    // Verificar se passou 8h
+                    const now = new Date();
+                    return now >= overdueThreshold;
                 });
             } else if (type === 'self_checkout') {
                 document.getElementById('searchDate').value = '';
@@ -1029,29 +1100,35 @@
                         }
                     }
                     
-                    // Badge de checkout overdue (atrasado)
+                    // Badge de checkout overdue (atrasado - mais de 8h da hora prevista)
                     let checkoutOverdueBadge = '';
-                    if (isOpen && contract.expected_return_date) {
-                        // Contrato aberto com data de recolha esperada
-                        const today = new Date();
-                        today.setHours(0, 0, 0, 0);
-                        
+                    if (isOpen && contract.expected_return_date && contract.expected_return_time) {
                         // Parse expected return date (formato: DD/MM/YYYY ou YYYY-MM-DD)
                         let expectedDate;
                         if (contract.expected_return_date.includes('/')) {
                             const parts = contract.expected_return_date.split('/');
                             expectedDate = new Date(parts[2], parts[1] - 1, parts[0]);
+                        } else if (contract.expected_return_date.includes(' - ')) {
+                            const parts = contract.expected_return_date.split(' - ');
+                            expectedDate = new Date(parts[2], parts[1] - 1, parts[0]);
                         } else {
                             expectedDate = new Date(contract.expected_return_date);
                         }
-                        expectedDate.setHours(0, 0, 0, 0);
                         
-                        // Se a data esperada já passou, marcar como overdue
-                        if (expectedDate < today) {
-                            const daysOverdue = Math.floor((today - expectedDate) / (1000 * 60 * 60 * 24));
+                        // Parse expected time (formato: HH:MM)
+                        const timeParts = contract.expected_return_time.split(':');
+                        expectedDate.setHours(parseInt(timeParts[0]), parseInt(timeParts[1]), 0, 0);
+                        
+                        // Adicionar 8 horas à hora prevista
+                        const overdueThreshold = new Date(expectedDate.getTime() + (8 * 60 * 60 * 1000));
+                        
+                        // Se passou 8h da hora prevista, marcar como overdue
+                        const now = new Date();
+                        if (now >= overdueThreshold) {
+                            const hoursOverdue = Math.floor((now - overdueThreshold) / (1000 * 60 * 60));
                             checkoutOverdueBadge = `<span class="px-2 py-1 rounded-full text-xs font-semibold bg-orange-500 text-white flex items-center gap-1">
-                                <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
-                                CHECKOUT OVERDUE (${daysOverdue}d)
+                                <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/></svg>
+                                OVERDUE ${hoursOverdue > 0 ? `(+${hoursOverdue}h)` : ''}
                             </span>`;
                         }
                     }
