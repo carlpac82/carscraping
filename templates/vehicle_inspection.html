@@ -2752,8 +2752,19 @@
                 activeButton.className = 'w-12 h-12 rounded-full bg-[#009cb6] text-white hover:bg-[#007a94] transition-all duration-200 flex items-center justify-center';
             }
             
+            // VERIFICAR se edição está ativa antes de ativar canvas
+            // Se croquiEditEnabled existe e está false, NÃO ativar canvas
+            if (typeof croquiEditEnabled !== 'undefined' && !croquiEditEnabled) {
+                console.log('🔒 Canvas NOT activated - croquiEditEnabled is false');
+                if (canvas) {
+                    canvas.style.pointerEvents = 'none';
+                    canvas.style.zIndex = '5';
+                }
+                return;
+            }
+            
             // Update canvas pointer events and ensure it's ready
-            // Canvas ALWAYS active (pins are drawn on canvas now, same as self-checkout)
+            // Canvas ONLY active if croquiEditEnabled is true OR undefined (check-in mode)
             if (canvas) {
                 canvas.style.pointerEvents = 'auto';
                 canvas.style.zIndex = '15';
