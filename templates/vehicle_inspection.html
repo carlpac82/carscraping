@@ -2878,6 +2878,13 @@
         function handleClick(e) {
             console.log('🔍 handleClick called, currentTool:', currentTool);
             console.log('🔍 Click event details:', e.type, 'target:', e.target.tagName, 'clientX:', e.clientX, 'clientY:', e.clientY);
+            
+            // VERIFICAR se edição está ativa (toggle button)
+            if (typeof croquiEditEnabled !== 'undefined' && !croquiEditEnabled) {
+                console.log('🔒 BLOCKED - Croqui edit mode is disabled. Click the edit button first!');
+                return;
+            }
+            
             if (currentTool === 'pin') {
                 console.log('📍 Adding pin at click position');
                 addPin(e);
@@ -3096,6 +3103,12 @@
         function startDrawing(e) {
             console.log('🔍 startDrawing called, currentTool:', currentTool, 'canvas:', !!canvas, 'ctx:', !!ctx);
             console.log('🔍 Event details:', e.type, 'target:', e.target.id, 'clientX:', e.clientX, 'clientY:', e.clientY);
+            
+            // VERIFICAR se edição está ativa (toggle button)
+            if (typeof croquiEditEnabled !== 'undefined' && !croquiEditEnabled) {
+                console.log('🔒 BLOCKED - Croqui edit mode is disabled. Click the edit button first!');
+                return;
+            }
             
             if (currentTool !== 'draw' && currentTool !== 'eraser') {
                 console.log('Not in draw/eraser mode, ignoring');
