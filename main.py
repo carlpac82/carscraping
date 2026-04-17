@@ -1434,6 +1434,16 @@ async def lifespan(app: FastAPI):
     except Exception as e:
         logging.warning(f"⚠️ Could not apply performance indexes: {e}")
     
+    # Backup scheduler - APENAS NO WORKER PRINCIPAL
+    # Evita backups duplicados (cada worker executaria o scheduler)
+    if is_main_worker:
+        try:
+            if scheduler:
+                scheduler.start()
+                logging.info(f"✅ Backup scheduler started (main worker only) - {len(scheduler.get_jobs())} jobs")
+        except Exception as e:
+            logging.error(f"❌ Failed to start backup scheduler: {e}")
+    
     yield
     
     # SHUTDOWN EVENTS
@@ -48730,12 +48740,12 @@ try:
     # log_to_db("INFO", "✅ Weekly report scheduler configured (Monday at 9 AM)", "main", "scheduler")
     log_to_db("INFO", "⚠️ Weekly report DESATIVADO - usar automated_scheduler.py (respeita Admin Settings)", "main", "scheduler")
     
-    # Start scheduler
-    scheduler.start()
-    log_to_db("INFO", "🚀 Scheduler started successfully with official jobs (backup + daily + weekly)", "main", "scheduler")
+    # Scheduler NÃO inicia aqui - será iniciado no lifespan() apenas no worker principal
+    # Isto evita 6 schedulers a executar backups simultâneos
+    log_to_db("INFO", "ℹ️ Backup scheduler será iniciado no lifespan (apenas worker principal)", "main", "scheduler")
     
-    # Scheduler started - jobs configured
-    print(f"✅ Scheduler: {len(scheduler.get_jobs())} jobs configured")
+    # Scheduler configured - jobs ready
+    print(f"✅ Scheduler: {len(scheduler.get_jobs())} jobs configured (will start in main worker only)")
     
 except ImportError:
     print("⚠️  WARNING: APScheduler not installed - automatic backups and reports disabled")
