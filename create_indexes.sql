@@ -72,8 +72,8 @@ CREATE INDEX IF NOT EXISTS idx_commissioners_name_lower
   ON commissioners(LOWER(name));
 
 -- Vehicles: pesquisa por matrícula
-CREATE INDEX IF NOT EXISTS idx_vehicles_license_plate_lower 
-  ON vehicles(LOWER(license_plate));
+CREATE INDEX IF NOT EXISTS idx_vehicles_matricula_lower 
+  ON vehicles(LOWER(matricula));
 
 -- Rental Agreements: pesquisa por RA number
 CREATE INDEX IF NOT EXISTS idx_rental_agreements_ra_number_lower 
