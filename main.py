@@ -67406,4 +67406,15 @@ async def admin_brokers_delete(request: Request):
 
 if __name__ == "__main__":
     import uvicorn
-    uvicorn.run(app, host="0.0.0.0", port=8000)
+    import os
+    
+    # Get number of workers from environment or default to 8
+    workers = int(os.getenv("UVICORN_WORKERS", "8"))
+    
+    uvicorn.run(
+        app, 
+        host="0.0.0.0", 
+        port=8000,
+        workers=workers,
+        log_level="info"
+    )
