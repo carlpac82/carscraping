@@ -1049,9 +1049,9 @@
                 <h2 class="text-xl md:text-2xl font-bold text-[#009cb6] mb-4 text-center">Marcar Danos no Croqui</h2>
                 
                 <!-- Linha única: Toggle + Ferramentas alinhadas -->
-                <div class="flex items-center justify-center md:justify-between gap-4 mb-6">
-                    <!-- Ferramentas Clean (escondidas por defeito) -->
-                    <div class="flex justify-center gap-4 md:flex-1" id="croquiTools" style="display: none;">
+                <div class="relative flex items-center justify-center mb-6">
+                    <!-- Ferramentas Clean (escondidas por defeito) - CENTRADAS -->
+                    <div class="flex justify-center gap-4" id="croquiTools" style="display: none;">
                     <button type="button" id="toolPin" class="w-12 h-12 rounded-full bg-[#009cb6] text-white hover:bg-[#007a94] transition-all duration-200 flex items-center justify-center" onclick="selectTool('pin')" title="Pins">
                         <svg class="w-6 h-6" fill="currentColor" viewBox="0 0 24 24">
                             <path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z"/>
@@ -1074,9 +1074,9 @@
                     </button>
                     </div>
                     
-                    <!-- Botão Toggle Editar Croqui (alinhado à direita) -->
+                    <!-- Botão Toggle Editar Croqui (position absolute à direita) -->
                     <button type="button" id="toggleCroquiEdit" 
-                            class="w-12 h-12 rounded-lg font-semibold text-white transition-all duration-200 flex items-center justify-center shadow-lg ml-auto"
+                            class="absolute right-0 w-12 h-12 rounded-lg font-semibold text-white transition-all duration-200 flex items-center justify-center shadow-lg"
                             style="background-color: #009cb6;"
                             onclick="toggleCroquiEditMode()" 
                             title="Ativar/Desativar edição do croqui">
