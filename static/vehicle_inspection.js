@@ -1011,16 +1011,30 @@ function showPickupDiagramUI() {
         console.log('✅ Pin tool selected by default');
     }
     
-    // 6. Prefill kms and fuel from delivery
+    // 6. ESCONDER botão toggle - no pickup edição está sempre ativa
+    const toggleBtn = document.getElementById('toggleCroquiEdit');
+    if (toggleBtn) {
+        toggleBtn.style.display = 'none';
+        console.log('✅ Toggle button hidden - pickup mode always editable');
+    }
+    
+    // 7. MOSTRAR ferramentas - no pickup estão sempre visíveis
+    const toolsDiv = document.getElementById('croquiTools');
+    const sizeDiv = document.getElementById('sizeControls');
+    if (toolsDiv) toolsDiv.style.display = 'flex';
+    if (sizeDiv) sizeDiv.style.display = 'flex';
+    console.log('✅ Croqui tools visible - pickup mode');
+    
+    // 8. Prefill kms and fuel from delivery
     prefillPickupFieldsFromDelivery();
     
-    // 7. Hide "Continuar para Análise" button (only show "Terminar Recolha")
+    // 9. Hide "Continuar para Análise" button (only show "Terminar Recolha")
     hideAnalysisButtonInPickupMode();
     
-    // 8. Add pickup action buttons
+    // 10. Add pickup action buttons
     addPickupActionButtons();
     
-    // 9. Create and show delivery photos grid AFTER croqui
+    // 11. Create and show delivery photos grid AFTER croqui
     showDeliveryPhotosGrid();
 }
 
