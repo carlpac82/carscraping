@@ -484,7 +484,7 @@ def _update_search(driver, start_dt, end_dt, batch_id=None):
 
 def _navigate_categories(driver, batch_id=None):
     """Navegar por todas as categorias e recolher HTML de cada uma"""
-    print(f"[BATCH] Navegando categorias...", file=sys.stderr, flush=True)
+    # Log reduzido para performance
 
     # Esperar artigos iniciais
     for _ in range(10):
@@ -554,13 +554,11 @@ def _navigate_categories(driver, batch_id=None):
 
             # Verificar war=
             if 'war=' in driver.current_url:
-                print(f"[BATCH] ❌ {cat}: war= detectado!", file=sys.stderr, flush=True)
+                print(f"[BATCH] ❌ war= detectado!", file=sys.stderr, flush=True)
                 return all_html_parts
 
-            print(f"[BATCH]    {cat}: {cat_articles} artigos", file=sys.stderr, flush=True)
-
         except Exception as e:
-            print(f"[BATCH]    {cat}: erro - {e}", file=sys.stderr, flush=True)
+            print(f"[BATCH] ❌ Erro categoria {cat}: {e}", file=sys.stderr, flush=True)
 
     return all_html_parts
 
@@ -571,13 +569,11 @@ def _parse_and_process_categories(all_html_parts, final_url, parse_prices_fn, co
     for i, cat_html in enumerate(all_html_parts):
         # Verificar cancelamento durante parsing
         if is_batch_cancelled(batch_id):
-            print(f"[BATCH] 🛑 Cancelado durante parsing de categorias", file=sys.stderr, flush=True)
+            print(f"[BATCH] 🛑 Cancelado durante parsing", file=sys.stderr, flush=True)
             return []
         cat_items = parse_prices_fn(cat_html, final_url)
         if cat_items:
             all_items_raw.extend(cat_items)
-            cat_name = CATEGORIES[i] if i < len(CATEGORIES) else f"CAT{i}"
-            print(f"[BATCH]    {cat_name}: +{len(cat_items)} carros", file=sys.stderr, flush=True)
 
     # Deduplicar por (car_name, supplier, price)
     seen = set()
@@ -592,9 +588,7 @@ def _parse_and_process_categories(all_html_parts, final_url, parse_prices_fn, co
             seen.add(key)
             unique_items.append(item)
 
-    print(f"[BATCH] Dedup: {len(all_items_raw)} → {len(unique_items)} únicos", file=sys.stderr, flush=True)
-
-    # Processar
+    # Processar (log reduzido)
     items = convert_fn(unique_items)
     items = adjust_fn(items, final_url)
 
@@ -761,12 +755,10 @@ def scrape_carjet_batch(
             # Pausa entre pesquisas (simular comportamento humano)
             if idx < len(searches) - 1:
                 pause = random.uniform(3, 6)
-                print(f"[BATCH] ⏸️  Pausa de {pause:.1f}s...", file=sys.stderr, flush=True)
-                
                 # Verificar cancelamento durante pausa (em chunks de 0.5s)
                 for _ in range(int(pause * 2)):
                     if is_batch_cancelled(batch_id):
-                        print(f"[BATCH] 🛑 Cancelado durante pausa entre pesquisas", file=sys.stderr, flush=True)
+                        print(f"[BATCH] 🛑 Cancelado durante pausa", file=sys.stderr, flush=True)
                         break
                     time.sleep(0.5)
 

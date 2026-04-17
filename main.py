@@ -20331,9 +20331,7 @@ def filter_automatic_only(items: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
     Returns:
         Lista completa sem filtrar
     """
-    import sys
-    print(f"[FILTER] ✅ Retornando TODOS os {len(items) if items else 0} carros (categorização em grupos separa manuais de automáticos)", 
-          file=sys.stderr, flush=True)
+    # Log reduzido para performance
     return items if items else []
 
 
@@ -21218,7 +21216,7 @@ def normalize_and_sort(items: List[Dict[str, Any]], supplier_priority: Optional[
                 conn.close()
     except Exception:
         pass
-    print(f"[NORMALIZE] Pre-loaded {len(_all_vehicle_photos)} vehicle photos, {len(_all_name_overrides)} name overrides", file=sys.stderr, flush=True)
+    # Log reduzido para performance
     
     # Helper: Buscar foto de veículo por nome (usa dict pre-loaded)
     def _get_vehicle_photo_by_name(car_name: str) -> str:
@@ -21256,8 +21254,7 @@ def normalize_and_sort(items: List[Dict[str, Any]], supplier_priority: Optional[
     
     # Carregar características do Admin Vehicles
     vehicle_groups = _get_vehicle_groups()
-    import sys
-    print(f"[VEHICLES] Loaded {len(vehicle_groups)} vehicle groups from Admin", file=sys.stderr, flush=True)
+    # Log reduzido para performance
     
     # Create group_photos dict from vehicle_groups (iterate over .values() not keys)
     group_photos = {g['code']: g.get('photo_url', '') for g in vehicle_groups.values() if g.get('photo_url')}
@@ -21309,10 +21306,7 @@ def normalize_and_sort(items: List[Dict[str, Any]], supplier_priority: Optional[
                 map_category_to_group
             )
         
-        # DEBUG: Log primeiro item
-        if len(detailed) == 0 and len(summary) == 0:
-            import sys
-            print(f"[DEBUG] Primeiro item: cat={it.get('category')}, car_final={car_name_final}, group={group_code}", file=sys.stderr, flush=True)
+        # DEBUG silenciado para performance
         
         # NOVA PRIORIDADE DE FOTOS:
         # 1. vehicle_photos (por nome de carro) - CONTROLADO PELO USER
@@ -21322,17 +21316,10 @@ def normalize_and_sort(items: List[Dict[str, Any]], supplier_priority: Optional[
         
         # 1º: Tentar buscar foto por nome de carro (vehicle_photos)
         photo_url = _get_vehicle_photo_by_name(car_name_final)
-        if photo_url:
-            if len(detailed) == 0 and len(summary) == 0:
-                import sys
-                print(f"[PHOTOS] ✅ Using vehicle_photos for '{car_name_final}': {photo_url[:80]}", file=sys.stderr, flush=True)
-        else:
+        if not photo_url:
             # 2º: Tentar buscar foto por código de grupo (car_groups)
             if group_code and group_code in group_photos:
                 photo_url = group_photos[group_code]
-                if len(detailed) == 0 and len(summary) == 0:
-                    import sys
-                    print(f"[PHOTOS] ⚙️ Using car_groups photo for group {group_code}: {photo_url[:80]}", file=sys.stderr, flush=True)
             else:
                 # 3º: Fallback para foto do scraping (APENAS se válida)
                 scraped_photo = it.get("photo", "")
@@ -21347,14 +21334,6 @@ def normalize_and_sort(items: List[Dict[str, Any]], supplier_priority: Optional[
                 
                 if is_valid_photo:
                     photo_url = scraped_photo
-                    if len(detailed) == 0 and len(summary) == 0:
-                        import sys
-                        print(f"[PHOTOS] 🔄 Using scraped photo: {photo_url[:80]}", file=sys.stderr, flush=True)
-                else:
-                    # Sem foto válida disponível
-                    if len(detailed) == 0 and len(summary) == 0:
-                        import sys
-                        print(f"[PHOTOS] ❌ No valid photo for '{car_name_final}' (group: {group_code})", file=sys.stderr, flush=True)
         
         # Use car_groups category if group is known, otherwise use scraped category
         category_display = it.get("category", "")
