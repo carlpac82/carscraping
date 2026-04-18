@@ -2133,7 +2133,8 @@
                     }
                     
                     photosHtml = '<div class="grid grid-cols-2 md:grid-cols-3 gap-3 mb-6">';
-                    Object.keys(photoLabels).forEach(photoType => {
+                    const photoOrder = ['front_left', 'front', 'front_right', 'right', 'back_left', 'back', 'back_right', 'left', 'odometer'];
+                    photoOrder.forEach(photoType => {
                         if (inspection.photos[photoType]) {
                             const photoUrl = inspection.photos[photoType];
                             photosHtml += `
@@ -4607,7 +4608,8 @@
                         };
                         
                         entregaPhotosHtml = '<div class="grid grid-cols-2 md:grid-cols-3 gap-3 mb-6">';
-                        Object.keys(photoLabels).forEach(photoType => {
+                        const photoOrder = ['front_left', 'front', 'front_right', 'right', 'back_left', 'back', 'back_right', 'left', 'odometer'];
+                        photoOrder.forEach(photoType => {
                             if (checkinPhotos[photoType]) {
                                 entregaPhotosHtml += `
                                     <div>
@@ -4905,7 +4907,8 @@
                     };
                     
                     entregaPhotosHtml = '<div class="grid grid-cols-2 md:grid-cols-3 gap-3 mb-6">';
-                    Object.keys(photoLabels).forEach(photoType => {
+                    const photoOrder = ['front_left', 'front', 'front_right', 'right', 'back_left', 'back', 'back_right', 'left', 'odometer'];
+                    photoOrder.forEach(photoType => {
                         if (checkinPhotos[photoType]) {
                             entregaPhotosHtml += `
                                 <div>
