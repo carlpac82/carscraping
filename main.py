@@ -53942,13 +53942,14 @@ async def get_inspection_details(inspection_number: str, request: Request):
             
             # If this is a checkin, also get photos from the related checkout
             if inspection_type == 'checkin':
-                # Find the checkout inspection for the same vehicle and contract
+                # Find the checkout inspection for the same vehicle and contract (exclude self_checkout)
                 cursor.execute("""
                     SELECT id
                     FROM vehicle_inspections
                     WHERE vehicle_plate = %s
                       AND contract_number = %s
                       AND inspection_type = 'checkout'
+                      AND inspection_type != 'self_checkout'
                     ORDER BY created_at DESC
                     LIMIT 1
                 """ if is_postgres else """
@@ -53957,6 +53958,7 @@ async def get_inspection_details(inspection_number: str, request: Request):
                     WHERE vehicle_plate = ?
                       AND contract_number = ?
                       AND inspection_type = 'checkout'
+                      AND inspection_type != 'self_checkout'
                     ORDER BY created_at DESC
                     LIMIT 1
                 """, (vehicle_plate, contract_number))
