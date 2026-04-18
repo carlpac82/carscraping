@@ -1886,7 +1886,6 @@ async def get_admin_commissioner_locations():
         """)
         
         locations = [row[0] for row in cursor.fetchall() if row[0]]
-        print(f"DEBUG: Found {len(locations)} locations: {locations}")
         
         conn.close()
         
