@@ -23777,10 +23777,7 @@ async def _extract_ra_fields_internal(request: Request, file: UploadFile):
             import fitz  # PyMuPDF
             
             # Carregar coordenadas mapeadas do RA
-            print("\n" + "="*80)
-            print("🚨 EXTRAÇÃO POR COORDENADAS - INÍCIO")
-            print("="*80)
-            logging.info("📍 Procurando coordenadas mapeadas...")
+            logging.info("Procurando coordenadas mapeadas...")
             with _db_lock:
                 conn = _db_connect()
                 is_postgres = conn.__class__.__module__ == 'psycopg2.extensions'
@@ -23793,8 +23790,8 @@ async def _extract_ra_fields_internal(request: Request, file: UploadFile):
                     cursor = conn.execute("SELECT field_id, x, y, width, height, page FROM rental_agreement_coordinates")
                     coords_rows = cursor.fetchall()
             
-            if coords_rows:  # ✅ ATIVADO
-                logging.info(f"📍 Extracting {len(coords_rows)} fields using mapped coordinates...")
+            if coords_rows:
+                logging.info(f"Extracting {len(coords_rows)} fields using mapped coordinates")
                 
                 # Abrir PDF com PyMuPDF
                 pdf_doc = fitz.open(stream=contents, filetype="pdf")
@@ -23874,7 +23871,7 @@ async def _extract_ra_fields_internal(request: Request, file: UploadFile):
                                     text_extracted = pytesseract.image_to_string(img, lang='por+eng', config='--psm 6').strip()
                                     
                                     if text_extracted:
-                                        logging.info(f"   🔍 OCR extraiu {field_id}: {text_extracted[:50]}")
+                                        logging.debug(f"OCR extracted {field_id}: {text_extracted[:50]}")
                                 except Exception as ocr_error:
                                     logging.debug(f"   ⚠️  OCR falhou para {field_id}: {ocr_error}")
                             
@@ -23888,7 +23885,7 @@ async def _extract_ra_fields_internal(request: Request, file: UploadFile):
                 
                 # Se extraiu campos usando coordenadas, processar e retornar
                 if fields_from_mapping:
-                    logging.info(f"✅ EXTRAÇÃO CONCLUÍDA: {len(fields_from_mapping)} campos extraídos")
+                    logging.info(f"Extraction completed: {len(fields_from_mapping)} fields extracted")
                     
                     # Combinar campos para Damage Report
                     if fields_from_mapping.get('postalCode') or fields_from_mapping.get('city'):
@@ -23970,7 +23967,7 @@ async def _extract_ra_fields_internal(request: Request, file: UploadFile):
                         
                         if country_detected:
                             fields_from_mapping['country'] = country_detected
-                            logging.info(f"   🌍 País detectado automaticamente: {country_detected} (de código postal: {postal_code})")
+                            logging.debug(f"Country detected: {country_detected} from postal code: {postal_code}")
                     
                     # ✅ SEMPRE retornar se extraiu QUALQUER campo das coordenadas
                     # NãO usar fallback de padrões se coordenadas estão configuradas
@@ -24008,16 +24005,12 @@ async def _extract_ra_fields_internal(request: Request, file: UploadFile):
                     for ra_field, dr_field in field_mapping.items():
                         if ra_field in fields_from_mapping and fields_from_mapping[ra_field]:
                             dr_fields[dr_field] = fields_from_mapping[ra_field]
-                            logging.info(f"   ✅ Mapeado: {ra_field} → {dr_field} = {fields_from_mapping[ra_field][:50]}")
                     
                     # Limpar matrícula: remover espaços entre números e letras
-                    # "3 0 - X Q - 9 7" → "30-XQ-97"
                     if 'vehiclePlate' in dr_fields:
                         plate = dr_fields['vehiclePlate']
-                        # Remover espaços mas manter hífens
                         plate_clean = plate.replace(' ', '')
                         dr_fields['vehiclePlate'] = plate_clean
-                        logging.info(f"   🚗 Matrícula limpa: '{plate}' → '{plate_clean}'")
                     
                     # Se tiver postalCodeCity combinado, dividir
                     if 'postalCodeCity' in dr_fields and ' / ' in dr_fields['postalCodeCity']:
@@ -24035,36 +24028,22 @@ async def _extract_ra_fields_internal(request: Request, file: UploadFile):
                         if not dr_fields.get('vehicleModel') and len(parts) > 1:
                             dr_fields['vehicleModel'] = parts[1].strip()
                     
-                    # ✅ COPIAR CONTRACT NUMBER PARA RA NUMBER (são o mesmo campo!)
-                    # Contract Number = Rental Agreement Number = ex: 06424-09
+                    # COPIAR CONTRACT NUMBER PARA RA NUMBER (são o mesmo campo!)
                     if 'contractNumber' in dr_fields and dr_fields['contractNumber']:
                         dr_fields['raNumber'] = dr_fields['contractNumber']
-                        logging.info(f"   ✅ RA Number = Contract Number: {dr_fields['raNumber']}")
-                    
-                    logging.info("   ⚡ Retornando campos prontos para inserir no DR")
                     return {"ok": True, "fields": dr_fields, "method": "mapped_coordinates"}
         
             else:
-                # Não tinha coordenadas mapeadas
-                print("\n⚠️  NENHUMA COORDENADA MAPEADA ENCONTRADA!")
-                print("   👉 Acesse /rental-agreement-mapper para configurar\n")
-                logging.info("⚠️  Nenhuma coordenada mapeada encontrada no banco")
-                logging.info("   👉 Acesse /rental-agreement-mapper para configurar")
+                logging.debug("No mapped coordinates found in database")
         
         except Exception as e:
-            print("\n" + "="*80)
-            print(f"❌ ERRO NA EXTRAÇÃO POR COORDENADAS: {e}")
-            print("="*80)
-            logging.error(f"❌ Erro ao extrair usando coordenadas: {e}")
+            logging.error(f"Error extracting using coordinates: {e}")
             import traceback
-            logging.error(traceback.format_exc())
+            logging.debug(traceback.format_exc())
             # Continuar para método fallback (padrões)
         
         # MÉTODO 2: Extração INTELIGENTE por PADRÕES (robusta para tamanhos variáveis)
-        print("\n" + "="*80)
-        print("⚠️  USANDO FALLBACK: EXTRAÇÃO POR PADRÕES")
-        print("="*80)
-        logging.info("📄 Using PATTERN-BASED intelligent extraction")
+        logging.info("Using pattern-based extraction")
         reader = PyPDF2.PdfReader(pdf_file)
         
         # Extrair todo o texto
@@ -38263,9 +38242,7 @@ async def email_preview(request: Request, ra: str = "06716-09"):
             else:
                 logging.warning(f"⚠️ No extracted_data in ra_row[2]")
             
-            logging.info(f"✅ RA data found: {ra_row[0]}")
-            logging.info(f"📋 Extracted data keys: {list(extracted_data.keys())}")
-            logging.info(f"📋 Extracted data: {extracted_data}")
+            logging.info("RA data found")
         
         # Get CHECKOUT inspection for this RA (entrega, not recolha) - skip if mock data
         inspection_data = None
@@ -39541,9 +39518,7 @@ async def get_inspection(request: Request, plate: str, ra: str, type: str = 'che
             if ra_row and ra_row[0]:
                 import json
                 extracted_data = json.loads(ra_row[0])
-                logging.info(f"🔍 Extracted data keys: {list(extracted_data.keys())}")
                 inspection["client_email"] = extracted_data.get('clientEmail', '')
-                logging.info(f"📧 Found client email from RA: {inspection['client_email']}")
             else:
                 logging.warning(f"⚠️ No RA found or empty extracted_data for RA: {ra}")
         except Exception as e:
@@ -55624,15 +55599,13 @@ async def get_latest_ra_by_plate(request: Request, plate: str):
                 import json
                 extracted_data = json.loads(ra_row[10])
                 client_email = extracted_data.get("clientEmail") or extracted_data.get("email")
-                logging.info(f"📧 Extracted data keys: {list(extracted_data.keys())}")
-                logging.info(f"📧 Client email found: {client_email}")
+                logging.debug(f"Client email found: {client_email}")
             except Exception as e:
                 logging.error(f"📧 Error parsing extracted_data: {e}")
         else:
             logging.warning(f"📧 No extracted_data found for RA {ra_row[1]}")
         ra_data["client_email"] = client_email
         ra_data["extracted_data"] = extracted_data
-        logging.info(f"📧 Final ra_data client_email: {ra_data.get('client_email')}")
         
         # Get vehicle info if vehicle_id exists
         vehicle_info = None
