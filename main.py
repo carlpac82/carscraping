@@ -31343,7 +31343,7 @@ async def create_vehicle_inspection(request: Request):
                     inspection_id = cursor.fetchone()[0]
                     
                     # Save photos
-                    photo_types = ['front', 'front_left', 'left', 'back_left', 'back', 'back_right', 'right', 'front_right', 'odometer']
+                    photo_types = ['front_left', 'front', 'front_right', 'right', 'back_left', 'back', 'back_right', 'left', 'odometer']
                     for idx, photo_type in enumerate(photo_types):
                         photo_file = form.get(f'photo_{photo_type}')
                         if photo_file:
@@ -31472,7 +31472,7 @@ async def create_vehicle_inspection(request: Request):
                     inspection_id = cursor.lastrowid
                     
                     # Save photos
-                    photo_types = ['front', 'front_left', 'left', 'back_left', 'back', 'back_right', 'right', 'front_right', 'odometer']
+                    photo_types = ['front_left', 'front', 'front_right', 'right', 'back_left', 'back', 'back_right', 'left', 'odometer']
                     for idx, photo_type in enumerate(photo_types):
                         photo_file = form.get(f'photo_{photo_type}')
                         if photo_file:
@@ -32125,8 +32125,8 @@ async def save_inspection(request: Request):
                     logging.info(f"✅ Inspection inserted with ID: {inspection_id}")
                 
                 # Save photos with base64 data
-                photo_types = ['front', 'front_left', 'left', 'back_left', 'back', 'back_right', 'right', 'front_right', 'odometer']
-                logging.info(f"💾 Saving photos to database...")
+                photo_types = ['front_left', 'front', 'front_right', 'right', 'back_left', 'back', 'back_right', 'left', 'odometer']
+                logging.info(f"Saving photos to database...")
                 photos_saved = 0
                 for idx, photo_type in enumerate(photo_types):
                     if photo_type in photos and photos[photo_type]:
