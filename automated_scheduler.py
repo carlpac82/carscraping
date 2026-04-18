@@ -44,15 +44,13 @@ def _get_db_connection():
 
 def load_advanced_settings():
     """Load advanced automated reports settings from database"""
-    print("🔌 Connecting to database...", flush=True)
     conn = _get_db_connection()
     if not conn:
-        print("❌ Database connection failed", flush=True)
+        logging.error("❌ Database connection failed")
         return None
     
     try:
         cursor = conn.cursor()
-        print("🔍 Querying automatedReportsAdvanced...", flush=True)
         cursor.execute(
             "SELECT setting_value FROM price_automation_settings WHERE setting_key = 'automatedReportsAdvanced'"
         )
@@ -60,12 +58,9 @@ def load_advanced_settings():
         
         if row and row[0]:
             settings = json.loads(row[0])
-            print(f"✅ Loaded advanced settings from database", flush=True)
-            print(f"   Settings: {json.dumps(settings, indent=2)}", flush=True)
             logging.info(f"✅ Loaded advanced settings from database")
             return settings
         else:
-            print(f"📭 No advanced settings found in database", flush=True)
             logging.info(f"📭 No advanced settings found")
             return None
     except Exception as e:
@@ -81,26 +76,17 @@ def save_automated_search_placeholder(location, days_list):
     Save automated search placeholder in recent_searches
     This marks that an automated search should have occurred
     """
-    print(f"\n{'='*80}", flush=True)
-    print(f"💾 SAVING AUTOMATED SEARCH TO HISTORY", flush=True)
-    print(f"{'='*80}", flush=True)
-    print(f"📍 Location: {location}", flush=True)
-    print(f"📅 Days: {days_list}", flush=True)
-    
-    logging.info(f"💾 SAVING AUTOMATED SEARCH PLACEHOLDER: {location}, days: {days_list}")
+    logging.info(f"💾 Saving automated search: {location}, days: {days_list}")
     
     try:
         from datetime import datetime, timedelta
         import json
         
-        print("🔌 Connecting to database for saving...", flush=True)
         conn = _get_db_connection()
         if not conn:
-            print("❌ Database connection FAILED!", flush=True)
             logging.error("❌ Cannot connect to database")
             return False
         
-        print("✅ Database connected", flush=True)
         cursor = conn.cursor()
         
         saved_count = 0
@@ -108,8 +94,6 @@ def save_automated_search_placeholder(location, days_list):
         for day in days_list:
             pickup_date = (datetime.now() + timedelta(days=day)).strftime('%Y-%m-%d')
             timestamp = datetime.now().strftime('%Y-%m-%dT%H:%M:%S.%f')
-            
-            print(f"\n   📝 Saving: {location} | {day}d | {pickup_date}", flush=True)
             
             # Create placeholder results
             placeholder_results = json.dumps([{
@@ -127,48 +111,18 @@ def save_automated_search_placeholder(location, days_list):
                 """, (location, pickup_date, day, placeholder_results, timestamp, 'automated'))
                 
                 saved_count += 1
-                print(f"   ✅ SAVED TO DATABASE: {location}, {day}d, {pickup_date}", flush=True)
-                logging.info(f"   ✅ Saved placeholder: {location}, {day}d, {pickup_date}")
             except Exception as insert_error:
-                print(f"   ❌ INSERT FAILED: {str(insert_error)}", flush=True)
-                logging.error(f"   ❌ Insert failed: {str(insert_error)}")
+                logging.error(f"❌ Insert failed: {str(insert_error)}")
         
         conn.commit()
-        print(f"\n✅ COMMIT SUCCESSFUL - {saved_count} searches saved", flush=True)
-        
-        # VERIFICAR SE FOI SALVO
-        print(f"\n🔍 VERIFYING: Checking if searches were saved...", flush=True)
-        cursor.execute("""
-            SELECT location, start_date, days, timestamp, source
-            FROM recent_searches
-            WHERE source = 'automated'
-            ORDER BY timestamp DESC
-            LIMIT 10
-        """)
-        rows = cursor.fetchall()
-        
-        print(f"📊 Found {len(rows)} automated searches in database:", flush=True)
-        for row in rows:
-            loc, start, days, ts, src = row
-            print(f"   • {loc} | {days}d | {start} | {ts} | source={src}", flush=True)
-        
         cursor.close()
         conn.close()
         
-        print(f"\n{'='*80}", flush=True)
-        print(f"✅ AUTOMATED SEARCH SAVED TO HISTORY: {location} ({saved_count} records)", flush=True)
-        print(f"{'='*80}\n", flush=True)
-        
-        logging.info(f"✅ Search placeholders saved for {location}")
+        logging.info(f"✅ Saved {saved_count} search placeholders for {location}")
         return True
         
     except Exception as e:
-        print(f"\n❌ FAILED TO SAVE SEARCH: {str(e)}", flush=True)
         logging.error(f"❌ Failed to save search placeholders: {str(e)}")
-        import traceback
-        traceback_str = traceback.format_exc()
-        print(traceback_str, flush=True)
-        logging.error(traceback_str)
         return False
 
 def send_daily_report_for_schedule(schedule, schedule_index):
@@ -179,25 +133,12 @@ def send_daily_report_for_schedule(schedule, schedule_index):
         schedule: dict with searchTime, sendTime, days, locations
         schedule_index: int, index of schedule (for logging)
     """
-    print(f"\n{'='*80}", flush=True)
-    print(f"📧 SENDING EMAIL - SCHEDULE #{schedule_index + 1}", flush=True)
-    print(f"{'='*80}", flush=True)
-    print(f"   Send Time: {schedule.get('sendTime')}", flush=True)
-    print(f"   Days: {schedule.get('days')}", flush=True)
-    print(f"   Locations: {schedule.get('locations')}", flush=True)
-    
-    logging.info(f"\n{'='*80}")
-    logging.info(f"📧 SENDING EMAIL - SCHEDULE #{schedule_index + 1}")
-    logging.info(f"{'='*80}")
-    logging.info(f"   Send Time: {schedule.get('sendTime')}")
-    logging.info(f"   Days: {schedule.get('days')}")
-    logging.info(f"   Locations: {schedule.get('locations')}")
+    logging.info(f"📧 Sending email - Schedule #{schedule_index + 1}")
     
     # PROTEÇÃO: Verificar se daily reports ainda estão enabled
     settings = load_advanced_settings()
     if not settings or not settings.get('daily', {}).get('enabled'):
-        print(f"⚠️  ABORTED: Daily reports are DISABLED in database", flush=True)
-        logging.warning(f"⚠️  ABORTED: Daily reports are DISABLED in database")
+        logging.warning(f"⚠️  Aborted: Daily reports disabled")
         return
     
     try:
@@ -264,7 +205,6 @@ def send_daily_report_for_schedule(schedule, schedule_index):
                 if recipients_text:
                     # Split by newlines and clean up
                     recipients = [email.strip() for email in recipients_text.split('\n') if email.strip()]
-                    print(f"   📧 Loaded {len(recipients)} recipient(s): {', '.join(recipients)}", flush=True)
             except:
                 pass
         
@@ -276,7 +216,6 @@ def send_daily_report_for_schedule(schedule, schedule_index):
             row = cursor.fetchone()
             default_email = row[0] if row else 'carlpac82@hotmail.com'
             recipients = [default_email]
-            print(f"   📧 Using fallback email: {default_email}", flush=True)
         
         cursor.close()
         conn.close()
@@ -1178,27 +1117,10 @@ def setup_scheduled_tasks():
         replace_existing=True
     )
     job_count += 1
-    print(f"\n📧 CHECKOUT EMAIL CHECKER: Daily at 20:00", flush=True)
-    logging.info(f"\n📧 CHECKOUT EMAIL CHECKER: Daily at 20:00")
-    
-    print(f"\n{'='*80}", flush=True)
-    print(f"✅ SCHEDULER CONFIGURED: {job_count} jobs scheduled", flush=True)
-    print(f"{'='*80}\n", flush=True)
-    
-    logging.info(f"\n{'='*80}")
     logging.info(f"✅ SCHEDULER CONFIGURED: {job_count} jobs scheduled")
-    logging.info(f"{'='*80}\n")
     
-    # Print next run times
-    if job_count > 0:
-        print("📋 NEXT SCHEDULED RUNS:", flush=True)
-        logging.info("📋 NEXT SCHEDULED RUNS:")
-        for job in scheduler.get_jobs():
-            next_run = job.next_run_time
-            print(f"   • {job.name}: {next_run}", flush=True)
-            logging.info(f"   • {job.name}: {next_run}")
-    else:
-        print("⚠️ No jobs scheduled - check your configuration", flush=True)
+    if job_count == 0:
+        logging.warning("⚠️ No jobs scheduled - check your configuration")
 
 def shutdown_scheduler():
     """Shutdown the scheduler gracefully"""
