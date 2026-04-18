@@ -1406,18 +1406,28 @@ async def lifespan(app: FastAPI):
     # Automated scheduler - APENAS NO WORKER PRINCIPAL
     # Evita emails duplicados (cada worker executaria o scheduler)
     import multiprocessing
+    import os
     current_process = multiprocessing.current_process()
-    is_main_worker = current_process.name == 'MainProcess' or 'SpawnProcess-1' in current_process.name
+    worker_id = os.getpid()
+    
+    # Melhor detecção: usar variável de ambiente para marcar o worker principal
+    is_main_worker = os.environ.get('SCHEDULER_WORKER_ID') == str(worker_id)
+    
+    # Se não há variável definida, este é o primeiro worker - marcar como principal
+    if not os.environ.get('SCHEDULER_WORKER_ID'):
+        os.environ['SCHEDULER_WORKER_ID'] = str(worker_id)
+        is_main_worker = True
+        logging.info(f"🎯 Worker {worker_id} ({current_process.name}) marked as MAIN SCHEDULER WORKER")
     
     if is_main_worker:
         try:
             from automated_scheduler import setup_scheduled_tasks
             setup_scheduled_tasks()
-            logging.info("✅ Automated scheduler initialized (main worker only)")
+            logging.info(f"✅ Automated scheduler initialized (worker {worker_id} - MAIN ONLY)")
         except Exception as e:
             logging.error(f"❌ Failed to initialize automated scheduler: {str(e)}")
     else:
-        logging.info(f"⏭️ Skipping scheduler setup (worker: {current_process.name})")
+        logging.info(f"⏭️ Skipping scheduler (worker {worker_id}/{current_process.name} - main is {os.environ.get('SCHEDULER_WORKER_ID')})")
     
     # Load AI models
     try:
@@ -1440,9 +1450,11 @@ async def lifespan(app: FastAPI):
         try:
             if scheduler:
                 scheduler.start()
-                logging.info(f"✅ Backup scheduler started (main worker only) - {len(scheduler.get_jobs())} jobs")
+                logging.info(f"✅ Backup scheduler started (worker {worker_id} - MAIN ONLY) - {len(scheduler.get_jobs())} jobs")
         except Exception as e:
             logging.error(f"❌ Failed to start backup scheduler: {e}")
+    else:
+        logging.info(f"⏭️ Skipping backup scheduler (worker {worker_id} - not main)")
     
     yield
     
