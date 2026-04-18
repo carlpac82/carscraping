@@ -39144,8 +39144,7 @@ def _cache_inspection(cache_key: str, data: dict):
 @app.get("/api/get_inspection")
 async def get_inspection(request: Request, plate: str, ra: str, type: str = 'checkout'):
     """Get inspection data (photos and damages) for pickup process"""
-    print(f"Ø GET /api/get_inspection called with plate={plate}, ra={ra}, type={type}", flush=True)
-    logging.info(f"Ø GET /api/get_inspection called with plate={plate}, ra={ra}, type={type}")
+    logging.info(f"GET /api/get_inspection called with plate={plate}, ra={ra}, type={type}")
     
     try:
         require_auth(request)
@@ -39232,16 +39231,12 @@ async def get_inspection(request: Request, plate: str, ra: str, type: str = 'che
                 "diagram_data": inspection_row[16] if len(inspection_row) > 16 else None
             }
             
-            print(f"🔍 DEBUG - inspection_row length: {len(inspection_row)}", flush=True)
-            print(f"🔍 DEBUG - diagram_data value: {inspection_row[16] if len(inspection_row) > 16 else 'NOT FOUND'}", flush=True)
-            logging.info(f"🔍 DEBUG - diagram_data: {inspection['diagram_data']}")
             
             # Get client email from Rental Agreement extracted_data
             try:
                 # Remove suffix -XX from RA (e.g., 06716-09 -> 06716)
                 ra_base = ra.split('-')[0] if '-' in ra else ra
-                print(f"🔍 Looking for RA: {ra} (base: {ra_base})", flush=True)
-                logging.info(f"🔍 Looking for RA: {ra} (base: {ra_base})")
+                logging.info(f"Looking for RA: {ra}")
                 
                 # Try exact match with full RA first
                 cursor.execute("""
@@ -39252,7 +39247,6 @@ async def get_inspection(request: Request, plate: str, ra: str, type: str = 'che
                 
                 # If not found, try with base RA (without suffix)
                 if not ra_row:
-                    print(f"🔍 Full RA not found, trying base RA: {ra_base}", flush=True)
                     cursor.execute("""
                         SELECT rental_agreement_number, extracted_data FROM rental_agreements 
                         WHERE rental_agreement_number = %s
@@ -39261,7 +39255,6 @@ async def get_inspection(request: Request, plate: str, ra: str, type: str = 'che
                 
                 # If still not found, try LIKE
                 if not ra_row:
-                    print(f"🔍 Base RA not found, trying LIKE pattern", flush=True)
                     cursor.execute("""
                         SELECT rental_agreement_number, extracted_data FROM rental_agreements 
                         WHERE rental_agreement_number LIKE %s
@@ -39269,49 +39262,21 @@ async def get_inspection(request: Request, plate: str, ra: str, type: str = 'che
                     """, (f"%{ra_base}%",))
                     ra_row = cursor.fetchone()
                 
-                print(f"🔍 RA row found: {ra_row is not None}", flush=True)
-                if ra_row:
-                    print(f"🔍 RA number in DB: {ra_row[0]}", flush=True)
-                logging.info(f"🔍 RA row found: {ra_row is not None}")
+                logging.info(f"RA row found: {ra_row is not None}")
                 
                 if ra_row and ra_row[1]:
                     import json
                     extracted_data = json.loads(ra_row[1])
-                    print(f"🔍 Extracted data keys: {list(extracted_data.keys())}", flush=True)
-                    logging.info(f"🔍 Extracted data keys: {list(extracted_data.keys())}")
                     
                     # Try both camelCase and snake_case for all fields
                     inspection["client_email"] = (extracted_data.get('clientEmail', '') or 
                                                  extracted_data.get('client_email', '') or 
                                                  extracted_data.get('email', ''))
                     
-                    # Debug logs for important fields
-                    client_email_snake = extracted_data.get('client_email', 'NOT FOUND')
-                    client_email_camel = extracted_data.get('clientEmail', 'NOT FOUND')
-                    print(f"📧 client_email: '{client_email_snake}'", flush=True)
-                    print(f"📧 clientEmail: '{client_email_camel}'", flush=True)
-                    print(f"📧 client_email LENGTH: {len(client_email_snake) if client_email_snake != 'NOT FOUND' else 0}", flush=True)
-                    print(f"📧 clientEmail LENGTH: {len(client_email_camel) if client_email_camel != 'NOT FOUND' else 0}", flush=True)
-                    print(f"📧 client_email FULL (first 100 chars): '{str(client_email_snake)[:100]}'", flush=True)
-                    print(f"📧 clientEmail FULL (first 100 chars): '{str(client_email_camel)[:100]}'", flush=True)
-                    print(f"👤 client_name: '{extracted_data.get('client_name', 'NOT FOUND')}'", flush=True)
-                    print(f"👤 clientName: '{extracted_data.get('clientName', 'NOT FOUND')}'", flush=True)
-                    print(f"📍 pickup_location: '{extracted_data.get('pickup_location', 'NOT FOUND')}'", flush=True)
-                    print(f"📍 pickupLocation: '{extracted_data.get('pickupLocation', 'NOT FOUND')}'", flush=True)
-                    print(f"📍 return_location: '{extracted_data.get('return_location', 'NOT FOUND')}'", flush=True)
-                    print(f"📍 returnLocation: '{extracted_data.get('returnLocation', 'NOT FOUND')}'", flush=True)
-                    
-                    print(f"📧 FINAL client email from RA (LENGTH {len(inspection['client_email'])}): '{inspection['client_email']}'", flush=True)
                     logging.info(f"📧 Found client email from RA: {inspection['client_email']}")
                 else:
-                    print(f"⚠️ No RA found or empty extracted_data for RA: {ra}", flush=True)
-                    logging.warning(f"⚠️ No RA found or empty extracted_data for RA: {ra}")
-                    # Try to list all RAs to debug
-                    cursor.execute("SELECT rental_agreement_number FROM rental_agreements LIMIT 10")
-                    all_ras = cursor.fetchall()
-                    print(f"🔍 Sample RAs in DB: {[r[0] for r in all_ras]}", flush=True)
+                    logging.warning(f"No RA found or empty extracted_data for RA: {ra}")
             except Exception as e:
-                print(f"⚠️ Could not fetch client email from RA: {e}", flush=True)
                 logging.warning(f"⚠️ Could not fetch client email from RA: {e}")
                 import traceback
                 traceback.print_exc()
@@ -39497,21 +39462,11 @@ async def get_inspection(request: Request, plate: str, ra: str, type: str = 'che
                         swap_history['old_inspection']['photos'] = old_photos
                         swap_history['old_inspection']['damage_croqui'] = old_damage_croqui
                     
-                    logging.info(f"🔄 Found vehicle swap history for RA {ra}: {swap_row[2]} -> {swap_row[5]}")
+                    logging.info(f"ð Found vehicle swap history for RA {ra}: {swap_row[2]} -> {swap_row[5]}")
             except Exception as e:
-                logging.warning(f"⚠️ Could not fetch vehicle swap history: {e}")
+                logging.error(f"Error fetching vehicle swap history: {e}")
+                swap_history = None
             
-            conn.close()
-            
-            print(f"📧 [PostgreSQL] Returning inspection with client_email: {inspection.get('client_email', 'NOT SET')}", flush=True)
-            print(f"🖼️ [PostgreSQL] Has damage_croqui: {damage_croqui is not None}", flush=True)
-            print(f"🔄 [PostgreSQL] Has swap_history: {swap_history is not None}", flush=True)
-            print(f"📧 Inspection object keys: {list(inspection.keys())}", flush=True)
-            logging.info(f"📧 [PostgreSQL] Returning inspection with client_email: {inspection.get('client_email', 'NOT SET')}")
-            logging.info(f"🖼️ [PostgreSQL] Has damage_croqui: {damage_croqui is not None}")
-            logging.info(f"🔄 [PostgreSQL] Has swap_history: {swap_history is not None}")
-            
-            # Cache do resultado antes de retornar
             result_data = {
                 "success": True,
                 "inspection": inspection,
@@ -39526,8 +39481,8 @@ async def get_inspection(request: Request, plate: str, ra: str, type: str = 'che
         else:
             # SQLite
             cursor = conn.cursor()
-            
-            # Extract base RA (remove suffix like -09)
+        
+        # Extract base RA (remove suffix like -09)
             ra_base = ra.split('-')[0] if '-' in ra else ra
             logging.info(f"🔍 Searching inspection with RA base: {ra_base} (from: {ra})")
             
@@ -39572,171 +39527,171 @@ async def get_inspection(request: Request, plate: str, ra: str, type: str = 'che
                 "created_at": str(inspection_row[15]),
                 "client_email": '',
                 "diagram_data": inspection_row[16] if len(inspection_row) > 16 else None
-            }
-            
-            # Get client email from Rental Agreement extracted_data
-            try:
-                logging.info(f"🔍 Looking for RA: {ra}")
-                cursor.execute("""
+        }
+        
+        # Get client email from Rental Agreement extracted_data
+        try:
+            logging.info(f"🔍 Looking for RA: {ra}")
+            cursor.execute("""
                     SELECT extracted_data FROM rental_agreements 
                     WHERE rental_agreement_number LIKE ?
-                """, (f"%{ra}%",))
-                ra_row = cursor.fetchone()
-                logging.info(f"🔍 RA row found: {ra_row is not None}")
-                if ra_row and ra_row[0]:
-                    import json
-                    extracted_data = json.loads(ra_row[0])
-                    logging.info(f"🔍 Extracted data keys: {list(extracted_data.keys())}")
-                    inspection["client_email"] = extracted_data.get('clientEmail', '')
-                    logging.info(f"📧 Found client email from RA: {inspection['client_email']}")
-                else:
-                    logging.warning(f"⚠️ No RA found or empty extracted_data for RA: {ra}")
-            except Exception as e:
-                logging.warning(f"⚠️ Could not fetch client email from RA: {e}")
-                import traceback
-                traceback.print_exc()
-            
-            inspection_id = inspection_row[0]
-            
-            # Get photos
-            cursor.execute("""
+            """, (f"%{ra}%",))
+            ra_row = cursor.fetchone()
+            logging.info(f"🔍 RA row found: {ra_row is not None}")
+            if ra_row and ra_row[0]:
+                import json
+                extracted_data = json.loads(ra_row[0])
+                logging.info(f"🔍 Extracted data keys: {list(extracted_data.keys())}")
+                inspection["client_email"] = extracted_data.get('clientEmail', '')
+                logging.info(f"📧 Found client email from RA: {inspection['client_email']}")
+            else:
+                logging.warning(f"⚠️ No RA found or empty extracted_data for RA: {ra}")
+        except Exception as e:
+            logging.warning(f"⚠️ Could not fetch client email from RA: {e}")
+            import traceback
+            traceback.print_exc()
+        
+        inspection_id = inspection_row[0]
+        
+        # Get photos
+        cursor.execute("""
                 SELECT id, photo_type, photo_order, image_data, image_filename,
                        ai_analyzed, ai_has_damage, created_at
                 FROM inspection_photos
                 WHERE inspection_id = ?
                 ORDER BY photo_order
-            """, (inspection_id,))
-            
-            photos = []
-            for photo_row in cursor.fetchall():
-                image_data = photo_row[3]
-                if image_data:
-                    # Usar codificação eficiente com cache
-                    image_data_url = _efficient_base64_encode(image_data, 'jpeg')
-                    if not image_data_url:
-                        image_data_url = image_data
-                    
-                    photos.append({
-                        "id": photo_row[0],
-                        "photo_type": photo_row[1],
-                        "photo_order": photo_row[2],
-                        "image_data": image_data_url,
-                        "image_filename": photo_row[4],
-                        "ai_analyzed": photo_row[5],
-                        "ai_has_damage": photo_row[6],
-                        "created_at": str(photo_row[7])
-                    })
-            
-            # Get damages
-            damages = []
-            
-            # Check for vehicle swap history (SQLite)
-            swap_history = None
-            try:
-                ra_base = ra.split('-')[0] if '-' in ra else ra
-                cursor.execute("""
-                    SELECT id, swap_datetime, old_plate, old_kms, old_fuel, 
-                           new_plate, new_kms, new_fuel, employee_name
-                    FROM vehicle_swaps
-                    WHERE rental_agreement_number LIKE ?
-                    ORDER BY swap_datetime DESC
-                    LIMIT 1
-                """, (f"{ra_base}%",))
+        """, (inspection_id,))
+        
+        photos = []
+        for photo_row in cursor.fetchall():
+            image_data = photo_row[3]
+            if image_data:
+                # Usar codificação eficiente com cache
+                image_data_url = _efficient_base64_encode(image_data, 'jpeg')
+                if not image_data_url:
+                    image_data_url = image_data
                 
-                swap_row = cursor.fetchone()
-                if swap_row:
-                    swap_history = {
-                        "id": swap_row[0],
-                        "swap_datetime": str(swap_row[1]),
-                        "old_plate": swap_row[2],
-                        "old_kms": swap_row[3],
-                        "old_fuel": swap_row[4],
-                        "new_plate": swap_row[5],
-                        "new_kms": swap_row[6],
-                        "new_fuel": swap_row[7],
-                        "employee_name": swap_row[8],
-                        "old_inspection_number": None  # Will be set below if found
+                photos.append({
+                    "id": photo_row[0],
+                    "photo_type": photo_row[1],
+                    "photo_order": photo_row[2],
+                    "image_data": image_data_url,
+                    "image_filename": photo_row[4],
+                    "ai_analyzed": photo_row[5],
+                    "ai_has_damage": photo_row[6],
+                    "created_at": str(photo_row[7])
+                })
+        
+        # Get damages
+        damages = []
+            
+        # Check for vehicle swap history (SQLite)
+        swap_history = None
+        try:
+            ra_base = ra.split('-')[0] if '-' in ra else ra
+            cursor.execute("""
+                SELECT id, swap_datetime, old_plate, old_kms, old_fuel, 
+                       new_plate, new_kms, new_fuel, employee_name
+                FROM vehicle_swaps
+                WHERE rental_agreement_number LIKE ?
+                ORDER BY swap_datetime DESC
+                LIMIT 1
+            """, (f"{ra_base}%",))
+            
+            swap_row = cursor.fetchone()
+            if swap_row:
+                swap_history = {
+                    "id": swap_row[0],
+                    "swap_datetime": str(swap_row[1]),
+                    "old_plate": swap_row[2],
+                    "old_kms": swap_row[3],
+                    "old_fuel": swap_row[4],
+                    "new_plate": swap_row[5],
+                    "new_kms": swap_row[6],
+                    "new_fuel": swap_row[7],
+                    "employee_name": swap_row[8],
+                    "old_inspection_number": None  # Will be set below if found
+                }
+                
+                # Get old vehicle inspection (delivery inspection of swapped vehicle)
+                cursor.execute("""
+                    SELECT id, inspection_number, odometer_reading, fuel_level, 
+                           damage_count, created_at, diagram_data
+                    FROM vehicle_inspections
+                    WHERE UPPER(vehicle_plate) = UPPER(?)
+                      AND contract_number LIKE ?
+                      AND inspection_type = 'checkin'
+                    ORDER BY created_at DESC
+                    LIMIT 1
+                """, (swap_row[2], f"{ra_base}%"))
+                
+                old_inspection_row = cursor.fetchone()
+                if old_inspection_row:
+                    # Set old_inspection_number at top level for easy access
+                    swap_history['old_inspection_number'] = old_inspection_row[1]
+                    
+                    swap_history['old_inspection'] = {
+                        "id": old_inspection_row[0],
+                        "inspection_number": old_inspection_row[1],
+                        "odometer_reading": old_inspection_row[2],
+                        "fuel_level": old_inspection_row[3],
+                        "damage_count": old_inspection_row[4],
+                        "created_at": str(old_inspection_row[5]),
+                        "diagram_data": old_inspection_row[6]
                     }
                     
-                    # Get old vehicle inspection (delivery inspection of swapped vehicle)
+                    # Get old vehicle photos
                     cursor.execute("""
-                        SELECT id, inspection_number, odometer_reading, fuel_level, 
-                               damage_count, created_at, diagram_data
-                        FROM vehicle_inspections
-                        WHERE UPPER(vehicle_plate) = UPPER(?)
-                          AND contract_number LIKE ?
-                          AND inspection_type = 'checkin'
-                        ORDER BY created_at DESC
-                        LIMIT 1
-                    """, (swap_row[2], f"{ra_base}%"))
+                        SELECT id, photo_type, photo_order, image_data, image_filename
+                        FROM inspection_photos
+                        WHERE inspection_id = ?
+                        ORDER BY photo_order
+                    """, (old_inspection_row[0],))
                     
-                    old_inspection_row = cursor.fetchone()
-                    if old_inspection_row:
-                        # Set old_inspection_number at top level for easy access
-                        swap_history['old_inspection_number'] = old_inspection_row[1]
-                        
-                        swap_history['old_inspection'] = {
-                            "id": old_inspection_row[0],
-                            "inspection_number": old_inspection_row[1],
-                            "odometer_reading": old_inspection_row[2],
-                            "fuel_level": old_inspection_row[3],
-                            "damage_count": old_inspection_row[4],
-                            "created_at": str(old_inspection_row[5]),
-                            "diagram_data": old_inspection_row[6]
-                        }
-                        
-                        # Get old vehicle photos
-                        cursor.execute("""
-                            SELECT id, photo_type, photo_order, image_data, image_filename
-                            FROM inspection_photos
-                            WHERE inspection_id = ?
-                            ORDER BY photo_order
-                        """, (old_inspection_row[0],))
-                        
-                        old_photos = []
-                        old_damage_croqui = None
-                        for old_photo_row in cursor.fetchall():
-                            photo_type = old_photo_row[1]
-                            image_data = old_photo_row[3]
-                            if image_data:
-                                if isinstance(image_data, (bytes, memoryview)):
-                                    if isinstance(image_data, memoryview):
-                                        image_data = image_data.tobytes()
-                                    image_base64 = base64.b64encode(image_data).decode('utf-8')
-                                    if photo_type == 'damage_croqui':
-                                        image_data_url = f"data:image/png;base64,{image_base64}"
-                                    else:
-                                        image_data_url = f"data:image/jpeg;base64,{image_base64}"
-                                else:
-                                    image_data_url = image_data
-                                
+                    old_photos = []
+                    old_damage_croqui = None
+                    for old_photo_row in cursor.fetchall():
+                        photo_type = old_photo_row[1]
+                        image_data = old_photo_row[3]
+                        if image_data:
+                            if isinstance(image_data, (bytes, memoryview)):
+                                if isinstance(image_data, memoryview):
+                                    image_data = image_data.tobytes()
+                                image_base64 = base64.b64encode(image_data).decode('utf-8')
                                 if photo_type == 'damage_croqui':
-                                    old_damage_croqui = image_data_url
+                                    image_data_url = f"data:image/png;base64,{image_base64}"
                                 else:
-                                    old_photos.append({
-                                        "id": old_photo_row[0],
-                                        "photo_type": photo_type,
-                                        "photo_order": old_photo_row[2],
-                                        "image_data": image_data_url,
-                                        "image_filename": old_photo_row[4]
-                                    })
-                        
-                        swap_history['old_inspection']['photos'] = old_photos
-                        swap_history['old_inspection']['damage_croqui'] = old_damage_croqui
+                                    image_data_url = f"data:image/jpeg;base64,{image_base64}"
+                            else:
+                                image_data_url = image_data
+                            
+                            if photo_type == 'damage_croqui':
+                                old_damage_croqui = image_data_url
+                            else:
+                                old_photos.append({
+                                    "id": old_photo_row[0],
+                                    "photo_type": photo_type,
+                                    "photo_order": old_photo_row[2],
+                                    "image_data": image_data_url,
+                                    "image_filename": old_photo_row[4]
+                                })
                     
-                    logging.info(f"🔄 [SQLite] Found vehicle swap history for RA {ra}: {swap_row[2]} -> {swap_row[5]}")
-            except Exception as e:
-                logging.warning(f"⚠️ [SQLite] Could not fetch vehicle swap history: {e}")
-            
-            conn.close()
-            
-            return JSONResponse({
-                "success": True,
-                "inspection": inspection,
-                "photos": photos,
-                "damages": damages,
-                "swap_history": swap_history
-            })
+                    swap_history['old_inspection']['photos'] = old_photos
+                    swap_history['old_inspection']['damage_croqui'] = old_damage_croqui
+                
+                logging.info(f"🔄 [SQLite] Found vehicle swap history for RA {ra}: {swap_row[2]} -> {swap_row[5]}")
+        except Exception as e:
+            logging.warning(f"⚠️ [SQLite] Could not fetch vehicle swap history: {e}")
+        
+        conn.close()
+        
+        return JSONResponse({
+            "success": True,
+            "inspection": inspection,
+            "photos": photos,
+            "damages": damages,
+            "swap_history": swap_history
+        })
     
     except Exception as e:
         logging.error(f"Error getting inspection: {e}")
