@@ -2250,7 +2250,8 @@
             const photos = {};
             if (window.inspectionData?.photos) {
                 console.log('📸 Processing photos from window.inspectionData.photos');
-                Object.keys(window.inspectionData.photos).forEach(photoType => {
+                const photoOrder = ['front_left', 'front', 'front_right', 'right', 'back_left', 'back', 'back_right', 'left', 'odometer'];
+                photoOrder.forEach(photoType => {
                     const photoObj = window.inspectionData.photos[photoType];
                     if (photoObj) {
                         if (typeof photoObj === 'string') {
@@ -2414,7 +2415,8 @@
                     }
                     
                     const photosForStorage = {};
-                    Object.keys(window.inspectionData.photos).forEach(key => {
+                    const photoOrder = ['front_left', 'front', 'front_right', 'right', 'back_left', 'back', 'back_right', 'left', 'odometer'];
+                    photoOrder.forEach(key => {
                         photosForStorage[key] = {
                             dataURL: window.inspectionData.photos[key].dataURL,
                             timestamp: window.inspectionData.photos[key].timestamp,
@@ -2431,7 +2433,8 @@
                             localStorage.clear();
                             console.log('🧹 Cleared all localStorage due to quota');
                             const photosForStorage = {};
-                            Object.keys(window.inspectionData.photos).forEach(key => {
+                            const photoOrder = ['front_left', 'front', 'front_right', 'right', 'back_left', 'back', 'back_right', 'left', 'odometer'];
+                            photoOrder.forEach(key => {
                                 photosForStorage[key] = {
                                     dataURL: window.inspectionData.photos[key].dataURL,
                                     timestamp: window.inspectionData.photos[key].timestamp,
@@ -4285,7 +4288,8 @@
             const photos = {};
             if (window.inspectionData?.photos) {
                 console.log('📸 Raw inspectionData.photos:', window.inspectionData.photos);
-                Object.keys(window.inspectionData.photos).forEach(photoType => {
+                const photoOrder = ['front_left', 'front', 'front_right', 'right', 'back_left', 'back', 'back_right', 'left', 'odometer'];
+                photoOrder.forEach(photoType => {
                     const photoObj = window.inspectionData.photos[photoType];
                     if (photoObj) {
                         // Extract dataURL string from photo object
