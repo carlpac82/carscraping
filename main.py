@@ -31178,14 +31178,9 @@ async def vehicle_inspection_page(request: Request):
     current_user = None
     try:
         username = request.session.get('username')
-        print(f"🔍 DEBUG Inspection - username da sessão: {username}")
         if username:
             current_user = _get_user_by_username(username)
-            print(f"🔍 DEBUG Inspection - current_user: {current_user}")
-            if current_user:
-                print(f"🔍 DEBUG Inspection - current_user.profile_picture: {current_user.profile_picture if hasattr(current_user, 'profile_picture') else 'N/A'}")
     except Exception as e:
-        print(f"❌ DEBUG Inspection - Erro ao carregar user: {e}")
         current_user = None
     
     response = templates.TemplateResponse("vehicle_inspection.html", {
@@ -48741,9 +48736,6 @@ try:
     # Scheduler NÃO inicia aqui - será iniciado no lifespan() apenas no worker principal
     # Isto evita 6 schedulers a executar backups simultâneos
     log_to_db("INFO", "ℹ️ Backup scheduler será iniciado no lifespan (apenas worker principal)", "main", "scheduler")
-    
-    # Scheduler configured - jobs ready
-    print(f"✅ Scheduler: {len(scheduler.get_jobs())} jobs configured (will start in main worker only)")
     
 except ImportError:
     print("⚠️  WARNING: APScheduler not installed - automatic backups and reports disabled")
