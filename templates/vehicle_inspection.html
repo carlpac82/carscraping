@@ -1600,7 +1600,16 @@
                 stepPhotos.classList.remove('hidden');
             }
             
-            console.log('✅ Starting delivery (check-in) process');
+            console.log('Starting delivery (check-in) process');
+            
+            // Start photo sequence with first photo
+            if (typeof capturePhotoSequence === 'function') {
+                setTimeout(() => {
+                    capturePhotoSequence(0);
+                }, 1000);
+            } else {
+                console.error('capturePhotoSequence function not found');
+            }
         }
         
         // Start Pickup (Check-out) with validation
