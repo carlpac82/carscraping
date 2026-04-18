@@ -1749,7 +1749,7 @@
             const t = translations[currentLang];
             
             // Validate 9 photos
-            const requiredPhotos = ['front', 'front_left', 'left', 'back_left', 'back', 'back_right', 'right', 'front_right', 'odometer'];
+            const requiredPhotos = ['front_left', 'front', 'front_right', 'right', 'back_left', 'back', 'back_right', 'left', 'odometer'];
             const missingPhotos = requiredPhotos.filter(p => !photos[p]);
             
             if (missingPhotos.length > 0) {

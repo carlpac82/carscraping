@@ -4944,7 +4944,7 @@
         // Make ALL photos clickable after they are loaded
         function makeAllPhotosClickable() {
             console.log('🖱️ Making all photos clickable...');
-            const photoTypes = ['front', 'front_left', 'left', 'back_left', 'back', 'back_right', 'right', 'front_right', 'odometer'];
+            const photoTypes = ['front_left', 'front', 'front_right', 'right', 'back_left', 'back', 'back_right', 'left', 'odometer'];
             
             photoTypes.forEach((type, index) => {
                 const photoData = window.inspectionData?.photos?.[type];
@@ -4980,7 +4980,7 @@
         function openLightbox(photoIndex) {
             // Get all captured photos
             lightboxPhotos = [];
-            const photoTypes = ['front', 'front_left', 'left', 'back_left', 'back', 'back_right', 'right', 'front_right', 'odometer'];
+            const photoTypes = ['front_left', 'front', 'front_right', 'right', 'back_left', 'back', 'back_right', 'left', 'odometer'];
             const photoLabels = {
                 'front': 'Frente',
                 'front_left': 'Frente Dir.',
