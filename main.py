@@ -53940,50 +53940,8 @@ async def get_inspection_details(inspection_number: str, request: Request):
                     # Se falhar, retorna original
                     return image_bytes, len(image_bytes), len(image_bytes)
             
-            # If this is a checkin, also get photos from the related checkout
-            if inspection_type == 'checkin':
-                # Find the checkout inspection for the same vehicle and contract (exclude self_checkout)
-                cursor.execute("""
-                    SELECT id
-                    FROM vehicle_inspections
-                    WHERE vehicle_plate = %s
-                      AND contract_number = %s
-                      AND inspection_type = 'checkout'
-                      AND (is_self_checkin IS NULL OR is_self_checkin = FALSE)
-                    ORDER BY created_at DESC
-                    LIMIT 1
-                """ if is_postgres else """
-                    SELECT id
-                    FROM vehicle_inspections
-                    WHERE vehicle_plate = ?
-                      AND contract_number = ?
-                      AND inspection_type = 'checkout'
-                      AND (is_self_checkin IS NULL OR is_self_checkin = 0)
-                    ORDER BY created_at DESC
-                    LIMIT 1
-                """, (vehicle_plate, contract_number))
-                
-                checkout_row = cursor.fetchone()
-                if checkout_row:
-                    checkout_id = checkout_row[0]
-                    # Get checkout photos (excluding damage_croqui)
-                    cursor.execute("""
-                        SELECT photo_type, image_data
-                        FROM inspection_photos
-                        WHERE inspection_id = %s
-                          AND photo_type != 'damage_croqui'
-                        ORDER BY photo_order
-                    """ if is_postgres else """
-                        SELECT photo_type, image_data
-                        FROM inspection_photos
-                        WHERE inspection_id = ?
-                          AND photo_type != 'damage_croqui'
-                        ORDER BY photo_order
-                    """, (checkout_id,))
-                    
-                    checkout_photos = cursor.fetchall()
-                    # Add checkout photos to photos_rows
-                    photos_rows.extend(checkout_photos)
+            # For checkin, only return checkin photos - do not add checkout photos
+            # This prevents self-checkout photos from appearing in delivery photos
             
             logging.info(f"📷 Found {len(photos_rows)} photos for inspection {inspection_number}")
             for photo_row in photos_rows:
