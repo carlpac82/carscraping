@@ -32181,14 +32181,12 @@ async def save_inspection(request: Request):
                                 photos_saved += 1
                                 logging.info(f"✅ Photo '{photo_type}' saved to database as BYTEA")
                             except Exception as decode_error:
-                                logging.error(f"❌ Failed to decode photo '{photo_type}': {decode_error}")
+                                logging.error(f"Failed to decode photo '{photo_type}': {decode_error}")
                     else:
-                        logging.warning(f"⚠️ Photo '{photo_type}' not found in photos dict")
+                        # Photo not found - this is normal, not all photos are required
+                        pass
                 
-                logging.info(f"✅ Total photos saved to database: {photos_saved}/{len(photo_types)}")
-                
-                # Save damage croqui if present
-                logging.info(f"🔍 DEBUG SAVE CROQUI - Received: {bool(damage_croqui)}, Length: {len(damage_croqui) if damage_croqui else 0}")
+                logging.info(f"Total photos saved to database: {photos_saved}/{len(photo_types)}")
                 
                 # For CHECKOUT (recolha), combine with checkin (entrega) croqui
                 final_croqui_to_save = damage_croqui
