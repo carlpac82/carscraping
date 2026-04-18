@@ -1029,82 +1029,39 @@ def setup_scheduled_tasks():
     """
     global scheduler
     
-    print("\n" + "="*80, flush=True)
-    print("🤖 SETTING UP AUTOMATED SCHEDULER", flush=True)
-    print("="*80, flush=True)
-    logging.info("\n" + "="*80)
-    logging.info("🤖 SETTING UP AUTOMATED SCHEDULER")
-    logging.info("="*80)
+    logging.info("🤖 Setting up automated scheduler")
     
     # Load settings
-    print("📥 Loading settings from database...", flush=True)
     settings = load_advanced_settings()
     
     if not settings:
-        print("⚠️ No advanced settings found, scheduler not configured", flush=True)
         logging.warning("⚠️ No advanced settings found, scheduler not configured")
         return
-    
-    print(f"✅ Settings loaded successfully", flush=True)
     
     # PROTEÇÃO CRÍTICA: Verificar se TUDO está disabled
     daily_enabled = settings.get('daily', {}).get('enabled', False)
     weekly_enabled = settings.get('weekly', {}).get('enabled', False)
     monthly_enabled = settings.get('monthly', {}).get('enabled', False)
     
-    print(f"\n🔍 VERIFICAÇÃO DE ESTADO:", flush=True)
-    print(f"   Daily enabled: {daily_enabled}", flush=True)
-    print(f"   Weekly enabled: {weekly_enabled}", flush=True)
-    print(f"   Monthly enabled: {monthly_enabled}", flush=True)
-    
     if not daily_enabled and not weekly_enabled and not monthly_enabled:
-        print("\n⚠️  TODOS OS RELATÓRIOS ESTÃO DESATIVADOS", flush=True)
-        print("   Scheduler NÃO vai agendar pesquisas ao CarJet", flush=True)
-        print("   Apenas checkout emails continuam ativos\n", flush=True)
-        logging.warning("⚠️ All automated reports DISABLED - no CarJet searches will be scheduled")
+        logging.warning("⚠️ All automated reports DISABLED - only checkout emails active")
     
     # Initialize scheduler with Lisbon timezone
     if scheduler is None:
-        print("🆕 Creating new BackgroundScheduler...", flush=True)
         import pytz
         lisbon_tz = pytz.timezone('Europe/Lisbon')
         scheduler = BackgroundScheduler(timezone=lisbon_tz)
         scheduler.start()
-        print("✅ Scheduler started with Europe/Lisbon timezone", flush=True)
-        logging.info("✅ Scheduler started with Europe/Lisbon timezone")
+        logging.info("✅ Scheduler started")
     else:
         # Clear existing jobs
-        print("🔄 Clearing existing jobs...", flush=True)
         scheduler.remove_all_jobs()
-        print("✅ Jobs cleared", flush=True)
         logging.info("🔄 Cleared existing jobs")
     
     job_count = 0
     
-    # Setup DAILY schedules - DESATIVADO para evitar bloqueios
-    print(f"\n📅 Checking DAILY schedules...", flush=True)
-    daily_settings = settings.get('daily', {})
-    schedules = daily_settings.get('schedules', [])
-    
-    print(f"   ⏭️  DAILY DISABLED - Skipping all daily schedules (to prevent blocking)", flush=True)
-    schedules = []
-    
-    # NÃO agendar jobs diários de pesquisa e email
-    # Apenas checkout emails permanecem ativos
-    
-    # Setup WEEKLY schedule - DESATIVADO para evitar bloqueios
-    print(f"\n📆 Checking WEEKLY schedule...", flush=True)
-    print(f"   weekly.enabled = {settings.get('weekly', {}).get('enabled')}", flush=True)
-    print(f"   ⏭️  WEEKLY DISABLED - Skipping (to prevent blocking)", flush=True)
-
-    # NÃO agendar jobs semanais
-
-    # Setup MONTHLY schedule - DESATIVADO para evitar bloqueios
-    print(f"\n📊 Checking MONTHLY schedule...", flush=True)
-    print(f"   monthly.enabled = {settings.get('monthly', {}).get('enabled')}", flush=True)
-    print(f"   ⏭️  MONTHLY DISABLED - Skipping (to prevent blocking)", flush=True)
-
-    # NÃO agendar jobs mensais
+    # Daily/Weekly/Monthly schedules are currently disabled
+    # Only checkout email checker is active
 
     # Setup CHECKOUT EMAIL checker (todos os dias às 20 horas)
     scheduler.add_job(
