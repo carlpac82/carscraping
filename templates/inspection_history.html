@@ -4074,7 +4074,7 @@
             
             if (isCheckinPhoto) {
                 // Show checkin photos only
-                const photoOrder = ['front', 'front_left', 'left', 'back_left', 'back', 'back_right', 'right', 'front_right', 'odometer'];
+                const photoOrder = ['front_left', 'front', 'front_right', 'right', 'back_left', 'back', 'back_right', 'left', 'odometer'];
                 photoOrder.forEach(key => {
                     if (checkinPhotos[key]) {
                         lightboxPhotos.push({ key: 'checkin_' + key, url: checkinPhotos[key], label: photoLabelsMap[key] || key });
@@ -4082,7 +4082,7 @@
                 });
             } else {
                 // Show inspection photos (checkout)
-                const photoOrder = ['front', 'front_left', 'left', 'back_left', 'back', 'back_right', 'right', 'front_right', 'odometer'];
+                const photoOrder = ['front_left', 'front', 'front_right', 'right', 'back_left', 'back', 'back_right', 'left', 'odometer'];
                 photoOrder.forEach(key => {
                     if (photos[key]) {
                         lightboxPhotos.push({ key: key, url: photos[key], label: photoLabelsMap[key] || key });
