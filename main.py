@@ -63064,15 +63064,20 @@ async def admin_brokers_delete(request: Request):
 @app.post("/webhook/github")
 async def github_webhook(request: Request):
     """Webhook para receber eventos do GitHub (Issues)"""
+    logging.info("🔔 GitHub webhook endpoint chamado!")
     try:
         import json
         import hmac
         import hashlib
         
+        # Log headers para debug
+        event_type = request.headers.get('X-GitHub-Event', 'unknown')
+        logging.info(f"📨 GitHub Event Type: {event_type}")
+        
         # Verificar assinatura do webhook
         signature = request.headers.get('X-Hub-Signature-256')
         if not signature:
-            logging.warning("Webhook sem assinatura")
+            logging.warning("⚠️ Webhook sem assinatura X-Hub-Signature-256")
             return JSONResponse({"ok": False, "error": "No signature"}, status_code=401)
         
         body = await request.body()
@@ -63084,11 +63089,15 @@ async def github_webhook(request: Request):
         ).hexdigest()
         
         if not hmac.compare_digest(signature, expected_signature):
-            logging.warning("Assinatura do webhook inválida")
+            logging.warning(f"⚠️ Assinatura do webhook inválida! Recebido: {signature[:20]}... Esperado: {expected_signature[:20]}...")
             return JSONResponse({"ok": False, "error": "Invalid signature"}, status_code=401)
+        
+        logging.info("✅ Assinatura do webhook validada com sucesso")
         
         # Parse do payload
         payload = json.loads(body.decode('utf-8'))
+        action = payload.get('action', 'unknown')
+        logging.info(f"📋 Payload action: {action}")
         
         # Verificar se é um issue
         if payload.get('action') == 'opened' and 'issue' in payload:
@@ -63097,7 +63106,7 @@ async def github_webhook(request: Request):
             issue_title = issue['title']
             issue_body = issue.get('body', '')
             
-            logging.info(f"GitHub Issue recebido: #{issue_number} - {issue_title}")
+            logging.info(f"🎯 GitHub Issue recebido: #{issue_number} - {issue_title}")
             
             # Processar o issue automaticamente
             from github_issue_monitor import GitHubIssueMonitor
