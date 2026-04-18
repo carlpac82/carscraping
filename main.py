@@ -23793,18 +23793,11 @@ async def _extract_ra_fields_internal(request: Request, file: UploadFile):
                     cursor = conn.execute("SELECT field_id, x, y, width, height, page FROM rental_agreement_coordinates")
                     coords_rows = cursor.fetchall()
             
-            print(f"🔍 Coordenadas encontradas: {len(coords_rows)}")
-            
             if coords_rows:  # ✅ ATIVADO
-                print(f"✅ USANDO {len(coords_rows)} COORDENADAS MAPEADAS!")
-                logging.info(f"📍 Found {len(coords_rows)} mapped RA coordinates, extracting...")
+                logging.info(f"📍 Extracting {len(coords_rows)} fields using mapped coordinates...")
                 
                 # Abrir PDF com PyMuPDF
                 pdf_doc = fitz.open(stream=contents, filetype="pdf")
-                
-                logging.info(f"\n{'='*60}")
-                logging.info(f"🔍 DIAGNÓSTICO DE COORDENADAS")
-                logging.info(f"{'='*60}")
                 
                 for row in coords_rows:
                     field_id, x, y, width, height, page = row[0], row[1], row[2], row[3], row[4], row[5]
@@ -23821,9 +23814,6 @@ async def _extract_ra_fields_internal(request: Request, file: UploadFile):
                         
                         if page_num < len(pdf_doc):
                             pdf_page = pdf_doc[page_num]
-                            
-                            print(f"\n📍 Campo: {field_id}")
-                            print(f"   Coords: x={x:.1f}, y={y:.1f}, w={width:.1f}, h={height:.1f}")
                             
                             # TESTAR 4 VARIAÇÕES COMUNS DE COORDENADAS
                             page_height = pdf_page.rect.height
@@ -23844,9 +23834,6 @@ async def _extract_ra_fields_internal(request: Request, file: UploadFile):
                                 text_test = pdf_page.get_text("text", clip=rect_test).strip()
                                 text_clean = ' '.join(text_test.split()) if text_test else ""
                                 
-                                if text_clean:
-                                    print(f"   {method_name}: '{text_clean[:40]}'")
-                                
                                 # Se DIRETO tiver texto, usar! Só tentar outros se DIRETO estiver vazio
                                 if method_name == "DIRETO" and text_clean:
                                     best_text = text_clean
@@ -23865,8 +23852,6 @@ async def _extract_ra_fields_internal(request: Request, file: UploadFile):
                                         best_method = method_name
                             
                             text_extracted = best_text
-                            print(f"   ✅ Escolhido: {best_method} → '{text_extracted}'")
-                            logging.info(f"📍 {field_id}: '{text_extracted}' ({best_method})")
                             
                             # Se não extraiu texto, tentar OCR
                             if not text_extracted:
@@ -23895,7 +23880,6 @@ async def _extract_ra_fields_internal(request: Request, file: UploadFile):
                             
                             if text_extracted:
                                 fields_from_mapping[field_id] = text_extracted
-                                logging.info(f"   ✅ {field_id}: {text_extracted[:50]}")
                     except Exception as e:
                         logging.warning(f"   ⚠️  Error extracting {field_id}: {e}")
                         continue
@@ -23904,8 +23888,7 @@ async def _extract_ra_fields_internal(request: Request, file: UploadFile):
                 
                 # Se extraiu campos usando coordenadas, processar e retornar
                 if fields_from_mapping:
-                    logging.info(f"✅ Extraídos {len(fields_from_mapping)} campos usando coordenadas mapeadas")
-                    logging.info(f"   Campos: {list(fields_from_mapping.keys())}")
+                    logging.info(f"✅ EXTRAÇÃO CONCLUÍDA: {len(fields_from_mapping)} campos extraídos")
                     
                     # Combinar campos para Damage Report
                     if fields_from_mapping.get('postalCode') or fields_from_mapping.get('city'):
@@ -23991,12 +23974,6 @@ async def _extract_ra_fields_internal(request: Request, file: UploadFile):
                     
                     # ✅ SEMPRE retornar se extraiu QUALQUER campo das coordenadas
                     # NãO usar fallback de padrões se coordenadas estão configuradas
-                    print("\n" + "="*80)
-                    print(f"✅ EXTRAÇÃO CONCLUÍDA: {len(fields_from_mapping)} campos extraídos")
-                    print("="*80)
-                    for field_id, value in fields_from_mapping.items():
-                        print(f"   • {field_id}: {value[:50] if len(value) > 50 else value}")
-                    print("="*80)
                     
                     # MAPEAR CAMPOS DO RA PARA DAMAGE REPORT (nomes corretos)
                     # O frontend espera estes nomes exatos de campos
