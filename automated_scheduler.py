@@ -1043,8 +1043,7 @@ def setup_scheduled_tasks():
     weekly_enabled = settings.get('weekly', {}).get('enabled', False)
     monthly_enabled = settings.get('monthly', {}).get('enabled', False)
     
-    if not daily_enabled and not weekly_enabled and not monthly_enabled:
-        logging.warning("⚠️ All automated reports DISABLED - only checkout emails active")
+    # All reports disabled - only checkout emails active (no warning needed)
     
     # Initialize scheduler with Lisbon timezone
     if scheduler is None:
