@@ -63106,6 +63106,78 @@ async def admin_brokers_delete(request: Request):
         traceback.print_exc()
         return JSONResponse({"ok": False, "error": str(e)}, status_code=500)
 
+@app.post("/webhook/github")
+async def github_webhook(request: Request):
+    """Webhook para receber eventos do GitHub (Issues)"""
+    try:
+        import json
+        import hmac
+        import hashlib
+        
+        # Verificar assinatura do webhook
+        signature = request.headers.get('X-Hub-Signature-256')
+        if not signature:
+            logging.warning("Webhook sem assinatura")
+            return JSONResponse({"ok": False, "error": "No signature"}, status_code=401)
+        
+        body = await request.body()
+        secret = os.getenv('GITHUB_WEBHOOK_SECRET', 'carscraping-webhook-secret')
+        expected_signature = 'sha256=' + hmac.new(
+            secret.encode('utf-8'), 
+            body, 
+            hashlib.sha256
+        ).hexdigest()
+        
+        if not hmac.compare_digest(signature, expected_signature):
+            logging.warning("Assinatura do webhook inválida")
+            return JSONResponse({"ok": False, "error": "Invalid signature"}, status_code=401)
+        
+        # Parse do payload
+        payload = json.loads(body.decode('utf-8'))
+        
+        # Verificar se é um issue
+        if payload.get('action') == 'opened' and 'issue' in payload:
+            issue = payload['issue']
+            issue_number = issue['number']
+            issue_title = issue['title']
+            issue_body = issue.get('body', '')
+            
+            logging.info(f"GitHub Issue recebido: #{issue_number} - {issue_title}")
+            
+            # Processar o issue automaticamente
+            from github_issue_monitor import GitHubIssueMonitor
+            monitor = GitHubIssueMonitor()
+            
+            command = monitor.parse_command_from_issue(issue)
+            if command:
+                logging.info(f"Comando extraído: {command}")
+                # Executar em background para não bloquear
+                import threading
+                def execute_async():
+                    success = monitor.execute_command(command, issue)
+                    logging.info(f"Execução automática {'sucesso' if success else 'falhou'}")
+                
+                thread = threading.Thread(target=execute_async)
+                thread.daemon = True
+                thread.start()
+                
+                return JSONResponse({
+                    "ok": True, 
+                    "message": f"Issue #{issue_number} recebido e processando: {command}"
+                })
+            else:
+                logging.info("Issue não contém comando executável")
+                return JSONResponse({
+                    "ok": True, 
+                    "message": f"Issue #{issue_number} recebido (sem comando executável)"
+                })
+        
+        return JSONResponse({"ok": True, "message": "Webhook recebido"})
+        
+    except Exception as e:
+        logging.error(f"Erro no webhook GitHub: {e}")
+        return JSONResponse({"ok": False, "error": str(e)}, status_code=500)
+
 
 if __name__ == "__main__":
     import uvicorn
