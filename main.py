@@ -60159,8 +60159,8 @@ async def check_ra_data_size(request: Request):
         cursor.execute("""
             SELECT 
                 rental_agreement_number,
-                pg_size_pretty(length(pdf_data::bytea)) as pdf_size,
-                pg_size_pretty(length(extracted_data::text)) as extracted_size,
+                pg_size_pretty(length(pdf_data::bytea)::bigint) as pdf_size,
+                pg_size_pretty(length(extracted_data::text)::bigint) as extracted_size,
                 length(pdf_data::bytea) as pdf_bytes,
                 length(extracted_data::text) as extracted_bytes
             FROM rental_agreements
