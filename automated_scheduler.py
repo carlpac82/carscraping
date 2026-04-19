@@ -837,18 +837,43 @@ def check_and_send_scheduled_checkout_emails():
     """
     Verifica e envia emails de self-checkout agendados.
     Executado diariamente às 20:00 (apenas no worker principal).
+    USA LOCK DE BASE DE DADOS para garantir que apenas 1 worker executa de cada vez.
     """
+    import os
+    worker_id = os.getpid()
+    
     print("\n" + "="*80, flush=True)
-    print("📧 CHECKING SCHEDULED CHECKOUT EMAILS", flush=True)
+    print(f"📧 CHECKING SCHEDULED CHECKOUT EMAILS (Worker {worker_id})", flush=True)
     print("="*80, flush=True)
     logging.info(f"\n{'='*80}")
-    logging.info(f"📧 CHECKING SCHEDULED CHECKOUT EMAILS")
+    logging.info(f"📧 CHECKING SCHEDULED CHECKOUT EMAILS (Worker {worker_id})")
     logging.info(f"{'='*80}")
     
+    # 🔒 LOCK DE BASE DE DADOS - Apenas 1 worker pode executar de cada vez
+    lock_conn = _get_db_connection()
+    if not lock_conn:
+        logging.error(f"❌ Worker {worker_id}: Cannot get DB connection for lock")
+        return
+    
     try:
+        lock_cursor = lock_conn.cursor()
+        
+        # Tentar adquirir lock (advisory lock do PostgreSQL)
+        # Lock ID: 123456789 (número único para este job)
+        lock_cursor.execute("SELECT pg_try_advisory_lock(123456789)")
+        got_lock = lock_cursor.fetchone()[0]
+        
+        if not got_lock:
+            print(f"⏭️ Worker {worker_id}: Another worker is already processing emails, skipping", flush=True)
+            logging.info(f"⏭️ Worker {worker_id}: Lock already held by another worker, skipping")
+            lock_conn.close()
+            return
+        
+        print(f"🔒 Worker {worker_id}: Lock acquired, processing emails...", flush=True)
+        logging.info(f"🔒 Worker {worker_id}: Lock acquired successfully")
+        
         from schedule_checkout_emails import get_pending_emails, mark_email_sent
         import requests
-        import os
         
         print("🔍 Getting pending emails...", flush=True)
         # Obter emails pendentes
@@ -1042,11 +1067,28 @@ def check_and_send_scheduled_checkout_emails():
             except Exception as email_error:
                 logging.error(f"❌ Error sending email for {inspection_number}: {email_error}")
                 mark_email_sent(inspection_number, success=False, error_message=str(email_error))
+        
+        # 🔓 Liberar lock após processar todos os emails
+        print(f"🔓 Worker {worker_id}: Releasing lock...", flush=True)
+        logging.info(f"🔓 Worker {worker_id}: Releasing lock")
+        lock_cursor.execute("SELECT pg_advisory_unlock(123456789)")
+        lock_conn.close()
+        print(f"✅ Worker {worker_id}: Lock released successfully", flush=True)
     
     except Exception as e:
-        logging.error(f"❌ Error in check_and_send_scheduled_checkout_emails: {str(e)}")
+        logging.error(f"❌ Worker {worker_id}: Error in check_and_send_scheduled_checkout_emails: {str(e)}")
         import traceback
         logging.error(traceback.format_exc())
+        
+        # 🔓 Liberar lock mesmo em caso de erro
+        try:
+            if lock_conn and not lock_conn.closed:
+                lock_cursor = lock_conn.cursor()
+                lock_cursor.execute("SELECT pg_advisory_unlock(123456789)")
+                lock_conn.close()
+                logging.info(f"🔓 Worker {worker_id}: Lock released (after error)")
+        except:
+            pass
 
 def setup_scheduled_tasks():
     """
