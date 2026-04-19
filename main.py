@@ -60292,6 +60292,56 @@ async def fix_corrupted_photos(request: Request):
             "error": str(e)
         }, status_code=500)
 
+@app.get("/api/photo-status")
+async def photo_status():
+    """Check current state of photos in database"""
+    try:
+        database_url = os.environ.get('DATABASE_URL')
+        conn = psycopg2.connect(database_url)
+        cursor = conn.cursor()
+        
+        # Count photos in rental_agreements
+        cursor.execute('SELECT COUNT(*) FROM rental_agreements WHERE image_data IS NOT NULL')
+        rental_count = cursor.fetchone()[0]
+        
+        # Count photos in inspection_photos  
+        cursor.execute('SELECT COUNT(*) FROM inspection_photos WHERE image_data IS NOT NULL')
+        inspection_count = cursor.fetchone()[0]
+        
+        # Check sample photo formats
+        cursor.execute('SELECT image_data FROM rental_agreements WHERE image_data IS NOT NULL LIMIT 3')
+        samples = cursor.fetchall()
+        
+        sample_info = []
+        for i, (data,) in enumerate(samples):
+            if data:
+                if isinstance(data, bytes):
+                    if data.startswith(b'\\x'):
+                        sample_info.append(f"Sample {i+1}: BYTEA hex format")
+                    else:
+                        sample_info.append(f"Sample {i+1}: Raw bytes")
+                elif isinstance(data, str):
+                    if data.startswith('data:image'):
+                        sample_info.append(f"Sample {i+1}: Base64 data URI")
+                    else:
+                        sample_info.append(f"Sample {i+1}: Base64 string")
+        
+        cursor.close()
+        conn.close()
+        
+        return JSONResponse({
+            "ok": True,
+            "rental_photos": rental_count,
+            "inspection_photos": inspection_count,
+            "samples": sample_info
+        })
+        
+    except Exception as e:
+        return JSONResponse({
+            "ok": False,
+            "error": str(e)
+        }, status_code=500)
+
 @app.get("/api/admin/restart-app")
 async def restart_app(request: Request):
     """
