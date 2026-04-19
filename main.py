@@ -32127,7 +32127,20 @@ async def save_inspection(request: Request):
                                 photo_base64 = photo_data
                             
                             try:
-                                photo_bytes = base64.b64decode(photo_base64)
+                                # Handle both hex string and base64 formats
+                                try:
+                                    photo_bytes = base64.b64decode(photo_base64)
+                                except (binascii.Error, ValueError):
+                                    # Try hex string format
+                                    if photo_base64.startswith('\\x'):
+                                        hex_data = photo_base64[2:]  # Remove \x prefix
+                                        photo_bytes = binascii.unhexlify(hex_data)
+                                    else:
+                                        # Try raw hex without prefix
+                                        try:
+                                            photo_bytes = binascii.unhexlify(photo_base64)
+                                        except:
+                                            raise ValueError(f"Cannot decode photo data from format: {type(photo_base64)}")
                                 cursor.execute("""
                                     INSERT INTO inspection_photos
                                     (inspection_id, photo_type, photo_order, image_data, image_filename,
@@ -32229,7 +32242,21 @@ async def save_inspection(request: Request):
                                                 checkin_base64 = checkin_croqui_base64.split(',')[1]
                                             else:
                                                 checkin_base64 = checkin_croqui_base64
-                                            checkin_data = base64.b64decode(checkin_base64)
+                                            # Handle both hex string and base64 formats
+                                            try:
+                                                checkin_data = base64.b64decode(checkin_base64)
+                                            except (binascii.Error, ValueError):
+                                                # Try hex string format
+                                                if checkin_base64.startswith('\\x'):
+                                                    import binascii
+                                                    hex_data = checkin_base64[2:]  # Remove \x prefix
+                                                    checkin_data = binascii.unhexlify(hex_data)
+                                                else:
+                                                    # Try raw hex without prefix
+                                                    try:
+                                                        checkin_data = binascii.unhexlify(checkin_base64)
+                                                    except:
+                                                        raise ValueError(f"Cannot decode image data from format: {type(checkin_base64)}")
                                             checkin_img = Image.open(io.BytesIO(checkin_data))
                                             
                                             # Decode checkout croqui
@@ -32237,7 +32264,20 @@ async def save_inspection(request: Request):
                                                 checkout_base64 = damage_croqui.split(',')[1]
                                             else:
                                                 checkout_base64 = damage_croqui
-                                            checkout_data = base64.b64decode(checkout_base64)
+                                            # Handle both hex string and base64 formats for checkout
+                                            try:
+                                                checkout_data = base64.b64decode(checkout_base64)
+                                            except (binascii.Error, ValueError):
+                                                # Try hex string format
+                                                if checkout_base64.startswith('\\x'):
+                                                    hex_data = checkout_base64[2:]  # Remove \x prefix
+                                                    checkout_data = binascii.unhexlify(hex_data)
+                                                else:
+                                                    # Try raw hex without prefix
+                                                    try:
+                                                        checkout_data = binascii.unhexlify(checkout_base64)
+                                                    except:
+                                                        raise ValueError(f"Cannot decode checkout image data from format: {type(checkout_base64)}")
                                             checkout_img = Image.open(io.BytesIO(checkout_data))
                                             
                                             logging.info(f"📐 Checkin croqui size: {checkin_img.size}")
