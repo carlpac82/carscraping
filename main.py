@@ -60065,10 +60065,12 @@ async def get_database_stats(request: Request):
         return JSONResponse({"ok": False, "error": "Unauthorized"}, status_code=403)
     
     try:
-        conn = _get_db_connection()
-        if not conn:
-            return JSONResponse({"ok": False, "error": "Database connection failed"}, status_code=500)
+        database_url = os.environ.get('DATABASE_URL')
+        if not database_url:
+            return JSONResponse({"ok": False, "error": "DATABASE_URL not configured"}, status_code=500)
         
+        import psycopg2
+        conn = psycopg2.connect(database_url)
         cursor = conn.cursor()
         
         # Get database size
