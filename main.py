@@ -60136,6 +60136,84 @@ async def get_database_stats(request: Request):
             "error": str(e)
         }, status_code=500)
 
+@app.get("/api/admin/check-ra-data-size")
+async def check_ra_data_size(request: Request):
+    """
+    Check what's causing rental_agreements table to be so large
+    """
+    try:
+        require_inspection_access(request)
+    except HTTPException:
+        return JSONResponse({"ok": False, "error": "Unauthorized"}, status_code=403)
+    
+    try:
+        database_url = os.environ.get('DATABASE_URL')
+        if not database_url:
+            return JSONResponse({"ok": False, "error": "DATABASE_URL not configured"}, status_code=500)
+        
+        import psycopg2
+        conn = psycopg2.connect(database_url)
+        cursor = conn.cursor()
+        
+        # Check column sizes
+        cursor.execute("""
+            SELECT 
+                rental_agreement_number,
+                pg_size_pretty(length(pdf_data::bytea)) as pdf_size,
+                pg_size_pretty(length(extracted_data::text)) as extracted_size,
+                length(pdf_data::bytea) as pdf_bytes,
+                length(extracted_data::text) as extracted_bytes
+            FROM rental_agreements
+            WHERE pdf_data IS NOT NULL OR extracted_data IS NOT NULL
+            ORDER BY length(COALESCE(pdf_data::bytea, ''::bytea)) + length(COALESCE(extracted_data::text, '')) DESC
+            LIMIT 10
+        """)
+        
+        samples = cursor.fetchall()
+        
+        # Get totals
+        cursor.execute("""
+            SELECT 
+                COUNT(*) as total_ras,
+                COUNT(CASE WHEN pdf_data IS NOT NULL THEN 1 END) as ras_with_pdf,
+                COUNT(CASE WHEN extracted_data IS NOT NULL THEN 1 END) as ras_with_extracted,
+                pg_size_pretty(SUM(length(COALESCE(pdf_data::bytea, ''::bytea)))) as total_pdf_size,
+                pg_size_pretty(SUM(length(COALESCE(extracted_data::text, '')))) as total_extracted_size
+            FROM rental_agreements
+        """)
+        
+        totals = cursor.fetchone()
+        conn.close()
+        
+        return JSONResponse({
+            "ok": True,
+            "totals": {
+                "total_ras": totals[0],
+                "ras_with_pdf": totals[1],
+                "ras_with_extracted": totals[2],
+                "total_pdf_size": totals[3],
+                "total_extracted_size": totals[4]
+            },
+            "largest_samples": [
+                {
+                    "ra_number": s[0],
+                    "pdf_size": s[1],
+                    "extracted_size": s[2],
+                    "pdf_bytes": s[3],
+                    "extracted_bytes": s[4]
+                } for s in samples
+            ]
+        })
+        
+    except Exception as e:
+        logging.error(f"Error checking RA data: {e}")
+        import traceback
+        logging.error(traceback.format_exc())
+        return JSONResponse({
+            "ok": False,
+            "error": str(e)
+        }, status_code=500)
+
 @app.post("/api/admin/force-send-checkout-emails")
 async def force_send_checkout_emails(request: Request):
     """
