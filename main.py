@@ -21554,6 +21554,45 @@ async def get_scheduler_status(request: Request):
             "error": str(e)
         }, status_code=500)
 
+@app.post("/api/scheduler/trigger-checkout-emails")
+async def trigger_checkout_emails(request: Request):
+    """🧪 Forçar execução imediata do envio de emails de checkout (para testes)"""
+    require_auth(request)
+    
+    import os
+    worker_id = os.getpid()
+    
+    try:
+        print("="*80, flush=True)
+        print(f"🧪 MANUAL TRIGGER: Checkout emails (Worker {worker_id})", flush=True)
+        print("="*80, flush=True)
+        
+        from automated_scheduler import check_and_send_scheduled_checkout_emails
+        
+        # Executar a função de envio de emails
+        check_and_send_scheduled_checkout_emails()
+        
+        print(f"✅ MANUAL TRIGGER COMPLETED (Worker {worker_id})", flush=True)
+        print("="*80, flush=True)
+        
+        return JSONResponse({
+            "ok": True,
+            "message": "✅ Envio de emails executado com sucesso! Verifica os logs para detalhes.",
+            "worker_id": worker_id
+        })
+    except Exception as e:
+        print(f"❌ MANUAL TRIGGER ERROR: {str(e)}", flush=True)
+        logging.error(f"❌ Error triggering checkout emails: {str(e)}")
+        import traceback
+        traceback_str = traceback.format_exc()
+        print(traceback_str, flush=True)
+        print("="*80, flush=True)
+        return JSONResponse({
+            "ok": False,
+            "error": str(e),
+            "worker_id": worker_id
+        }, status_code=500)
+
 @app.post("/api/scheduler/test-automated-search")
 async def test_automated_search(request: Request):
     """🧪 Testar pesquisa automática - salva placeholders na BD"""
