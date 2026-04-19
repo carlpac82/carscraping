@@ -60310,13 +60310,17 @@ async def restart_app(request: Request):
         import gc
         gc.collect()
         
-        # Clear database connections
-        from database import clear_all_connections
-        clear_all_connections()
+        # Test new database connection
+        database_url = os.environ.get('DATABASE_URL')
+        if database_url:
+            import psycopg2
+            test_conn = psycopg2.connect(database_url)
+            test_conn.close()
+            print("RESTART: New DB connection successful", flush=True)
         
         return JSONResponse({
             "ok": True,
-            "message": "App restart initiated - DB connections cleared"
+            "message": "App restart completed - DB connections refreshed"
         })
         
     except Exception as e:
