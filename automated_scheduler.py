@@ -873,6 +873,28 @@ def check_and_send_scheduled_checkout_emails():
             client_name = email_data['client_name']
             vehicle_plate = email_data['vehicle_plate']
             
+            # PROTEÇÃO CRÍTICA: Verificar se email já foi enviado recentemente (últimos 5 min)
+            # Previne duplicados em caso de múltiplas execuções simultâneas
+            try:
+                check_conn = _get_db_connection()
+                if check_conn:
+                    check_cursor = check_conn.cursor()
+                    check_cursor.execute("""
+                        SELECT sent_at, status 
+                        FROM scheduled_checkout_emails 
+                        WHERE inspection_number = %s 
+                          AND (status = 'sent' OR sent_at > NOW() - INTERVAL '5 minutes')
+                    """, (inspection_number,))
+                    recent_send = check_cursor.fetchone()
+                    check_conn.close()
+                    
+                    if recent_send:
+                        logging.warning(f"⏭️ SKIP: Email for {inspection_number} already sent recently (status: {recent_send[1]}, sent_at: {recent_send[0]})")
+                        continue
+            except Exception as check_error:
+                logging.error(f"⚠️ Error checking recent sends: {check_error}")
+                # Continue anyway - better to risk duplicate than skip
+            
             logging.info(f"📧 Sending self-checkout email for {inspection_number} to {client_email}")
             
             conn = None
@@ -993,6 +1015,10 @@ def check_and_send_scheduled_checkout_emails():
                 try:
                     from main import _send_self_checkin_invitation_email
                     
+                    # Log detalhado ANTES de enviar
+                    worker_id = os.getpid()
+                    logging.info(f"🚀 [WORKER {worker_id}] SENDING EMAIL: {inspection_number} → {client_email}")
+                    
                     _send_self_checkin_invitation_email(
                         to_email=client_email,
                         client_name=client_name,
@@ -1004,7 +1030,7 @@ def check_and_send_scheduled_checkout_emails():
                     )
                     
                     mark_email_sent(inspection_number, success=True)
-                    logging.info(f"✅ Email sent successfully for {inspection_number}")
+                    logging.info(f"✅ [WORKER {worker_id}] EMAIL SENT SUCCESSFULLY: {inspection_number} → {client_email}")
                         
                 except Exception as send_error:
                     error_msg = f"Failed to send email: {str(send_error)}"
