@@ -60214,6 +60214,84 @@ async def check_ra_data_size(request: Request):
             "error": str(e)
         }, status_code=500)
 
+@app.post("/api/admin/fix-corrupted-photos")
+async def fix_corrupted_photos(request: Request):
+    """
+    Fix corrupted photos by adding correct base64 padding
+    """
+    try:
+        require_inspection_access(request)
+    except HTTPException:
+        return JSONResponse({"ok": False, "error": "Unauthorized"}, status_code=403)
+    
+    try:
+        database_url = os.environ.get('DATABASE_URL')
+        if not database_url:
+            return JSONResponse({"ok": False, "error": "DATABASE_URL not configured"}, status_code=500)
+        
+        import psycopg2
+        conn = psycopg2.connect(database_url)
+        cursor = conn.cursor()
+        
+        # Get all photos
+        cursor.execute("SELECT id, image_data FROM inspection_photos WHERE image_data IS NOT NULL")
+        
+        fixed = 0
+        errors = 0
+        
+        for photo_id, image_data in cursor.fetchall():
+            try:
+                # Skip if not base64 string
+                if not isinstance(image_data, str) or image_data.startswith('\\x'):
+                    continue
+                
+                # Extract base64 part
+                if image_data.startswith('data:'):
+                    prefix, b64_data = image_data.split(',', 1)
+                else:
+                    prefix = None
+                    b64_data = image_data
+                
+                # Clean and check padding
+                b64_data = b64_data.strip().replace('\n', '').replace('\r', '').replace(' ', '')
+                missing_padding = len(b64_data) % 4
+                
+                if missing_padding > 0:
+                    # Add correct padding
+                    b64_data += '=' * (4 - missing_padding)
+                    
+                    # Rebuild with prefix if exists
+                    if prefix:
+                        fixed_data = f"{prefix},{b64_data}"
+                    else:
+                        fixed_data = b64_data
+                    
+                    # Update in database
+                    cursor.execute("UPDATE inspection_photos SET image_data = %s WHERE id = %s", (fixed_data, photo_id))
+                    fixed += 1
+                    
+            except Exception as e:
+                errors += 1
+                continue
+        
+        conn.commit()
+        conn.close()
+        
+        return JSONResponse({
+            "ok": True,
+            "fixed": fixed,
+            "errors": errors
+        })
+        
+    except Exception as e:
+        logging.error(f"Error fixing photos: {e}")
+        import traceback
+        logging.error(traceback.format_exc())
+        return JSONResponse({
+            "ok": False,
+            "error": str(e)
+        }, status_code=500)
+
 @app.post("/api/admin/force-send-checkout-emails")
 async def force_send_checkout_emails(request: Request):
     """
