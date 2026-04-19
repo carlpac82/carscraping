@@ -1410,14 +1410,15 @@ async def lifespan(app: FastAPI):
     current_process = multiprocessing.current_process()
     worker_id = os.getpid()
     
-    # Melhor detecção: usar variável de ambiente para marcar o worker principal
-    is_main_worker = os.environ.get('SCHEDULER_WORKER_ID') == str(worker_id)
+    # No Railway, usar RAILWAY_REPLICA_ID para identificar o worker principal
+    # Apenas a réplica 0 (ou se não existir a variável) executa o scheduler
+    replica_id = os.environ.get('RAILWAY_REPLICA_ID', '0')
+    is_main_worker = (replica_id == '0')
     
-    # Se não há variável definida, este é o primeiro worker - marcar como principal
-    if not os.environ.get('SCHEDULER_WORKER_ID'):
-        os.environ['SCHEDULER_WORKER_ID'] = str(worker_id)
-        is_main_worker = True
-        logging.info(f"🎯 Worker {worker_id} ({current_process.name}) marked as MAIN SCHEDULER WORKER")
+    if is_main_worker:
+        logging.info(f"🎯 Worker {worker_id} (replica {replica_id}) marked as MAIN SCHEDULER WORKER")
+    else:
+        logging.info(f"⏭️ Worker {worker_id} (replica {replica_id}) - scheduler disabled")
     
     if is_main_worker:
         try:

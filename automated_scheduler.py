@@ -836,41 +836,19 @@ def send_monthly_report():
 def check_and_send_scheduled_checkout_emails():
     """
     Verifica e envia emails de self-checkout agendados.
-    Executado a cada 5 minutos.
+    Executado diariamente às 20:00 (apenas no worker principal).
     """
-    import fcntl
-    import os
-    
-    # Usar lock de ficheiro para evitar execução simultânea em múltiplos workers
-    lock_file_path = "/tmp/checkout_emails.lock"
-    lock_file = None
-    
-    try:
-        lock_file = open(lock_file_path, 'w')
-        # Tentar obter lock não-bloqueante
-        fcntl.flock(lock_file.fileno(), fcntl.LOCK_EX | fcntl.LOCK_NB)
-    except IOError:
-        # Outro worker já está a executar esta tarefa
-        logging.debug("⏭️ Skipping checkout email check - another worker is already processing")
-        if lock_file:
-            lock_file.close()
-        return
-    except Exception as e:
-        logging.error(f"❌ Error acquiring lock: {e}")
-        if lock_file:
-            lock_file.close()
-        return
+    print("\n" + "="*80, flush=True)
+    print("📧 CHECKING SCHEDULED CHECKOUT EMAILS", flush=True)
+    print("="*80, flush=True)
+    logging.info(f"\n{'='*80}")
+    logging.info(f"📧 CHECKING SCHEDULED CHECKOUT EMAILS")
+    logging.info(f"{'='*80}")
     
     try:
-        print("\n" + "="*80, flush=True)
-        print("📧 CHECKING SCHEDULED CHECKOUT EMAILS", flush=True)
-        print("="*80, flush=True)
-        logging.info(f"\n{'='*80}")
-        logging.info(f"📧 CHECKING SCHEDULED CHECKOUT EMAILS")
-        logging.info(f"{'='*80}")
-        
         from schedule_checkout_emails import get_pending_emails, mark_email_sent
         import requests
+        import os
         
         print("🔍 Getting pending emails...", flush=True)
         # Obter emails pendentes
@@ -1043,14 +1021,6 @@ def check_and_send_scheduled_checkout_emails():
         logging.error(f"❌ Error in check_and_send_scheduled_checkout_emails: {str(e)}")
         import traceback
         logging.error(traceback.format_exc())
-    finally:
-        # Libertar o lock
-        if lock_file:
-            try:
-                fcntl.flock(lock_file.fileno(), fcntl.LOCK_UN)
-                lock_file.close()
-            except:
-                pass
 
 def setup_scheduled_tasks():
     """
