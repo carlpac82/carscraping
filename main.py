@@ -60292,7 +60292,7 @@ async def fix_corrupted_photos(request: Request):
             "error": str(e)
         }, status_code=500)
 
-@app.post("/api/admin/restart-app")
+@app.get("/api/admin/restart-app")
 async def restart_app(request: Request):
     """
     Force restart of the app to clear database connections
