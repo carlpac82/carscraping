@@ -60214,7 +60214,7 @@ async def check_ra_data_size(request: Request):
             "error": str(e)
         }, status_code=500)
 
-@app.post("/api/admin/fix-corrupted-photos")
+@app.get("/api/admin/fix-corrupted-photos")
 async def fix_corrupted_photos(request: Request):
     """
     Fix corrupted photos by adding correct base64 padding
