@@ -1414,33 +1414,15 @@ async def lifespan(app: FastAPI):
     # Se DISABLE_SCHEDULER=true, não executa o scheduler
     # Caso contrário, SEMPRE executa (Railway usa UUID, não números sequenciais)
     disable_scheduler = os.environ.get('DISABLE_SCHEDULER', 'false').lower() == 'true'
-    replica_id = os.environ.get('RAILWAY_REPLICA_ID', 'local')
     is_main_worker = not disable_scheduler
-    
-    print(f"\n{'='*80}", flush=True)
-    print(f"🔍 SCHEDULER WORKER CHECK", flush=True)
-    print(f"Worker ID: {worker_id}", flush=True)
-    print(f"Replica ID: {replica_id}", flush=True)
-    print(f"Is Main Worker: {is_main_worker}", flush=True)
-    print(f"{'='*80}\n", flush=True)
-    
-    if is_main_worker:
-        logging.info(f"🎯 Worker {worker_id} (replica {replica_id}) marked as MAIN SCHEDULER WORKER")
-    else:
-        logging.info(f"⏭️ Worker {worker_id} (replica {replica_id}) - scheduler disabled")
     
     if is_main_worker:
         try:
-            print(f"🤖 Initializing automated scheduler...", flush=True)
             from automated_scheduler import setup_scheduled_tasks
             setup_scheduled_tasks()
-            print(f"✅ Automated scheduler initialized successfully!", flush=True)
-            logging.info(f"✅ Automated scheduler initialized (worker {worker_id} - MAIN ONLY)")
+            logging.info(f"✅ Automated scheduler initialized (worker {worker_id})")
         except Exception as e:
-            print(f"❌ SCHEDULER INIT FAILED: {str(e)}", flush=True)
             logging.error(f"❌ Failed to initialize automated scheduler: {str(e)}")
-    else:
-        logging.info(f"⏭️ Skipping scheduler (worker {worker_id}/{current_process.name} - main is {os.environ.get('SCHEDULER_WORKER_ID')})")
     
     # Load AI models
     try:
