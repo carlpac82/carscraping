@@ -60054,6 +60054,86 @@ async def test_direct_email(request: Request):
             "traceback": traceback.format_exc()
         }, status_code=500)
 
+@app.get("/api/admin/database-stats")
+async def get_database_stats(request: Request):
+    """
+    Get database size and memory usage statistics
+    """
+    try:
+        require_inspection_access(request)
+    except HTTPException:
+        return JSONResponse({"ok": False, "error": "Unauthorized"}, status_code=403)
+    
+    try:
+        conn = _get_db_connection()
+        if not conn:
+            return JSONResponse({"ok": False, "error": "Database connection failed"}, status_code=500)
+        
+        cursor = conn.cursor()
+        
+        # Get database size
+        cursor.execute("""
+            SELECT pg_size_pretty(pg_database_size(current_database())) as db_size,
+                   pg_database_size(current_database()) as db_size_bytes
+        """)
+        db_size = cursor.fetchone()
+        
+        # Get table sizes
+        cursor.execute("""
+            SELECT 
+                schemaname,
+                tablename,
+                pg_size_pretty(pg_total_relation_size(schemaname||'.'||tablename)) AS size,
+                pg_total_relation_size(schemaname||'.'||tablename) AS size_bytes
+            FROM pg_tables
+            WHERE schemaname = 'public'
+            ORDER BY pg_total_relation_size(schemaname||'.'||tablename) DESC
+            LIMIT 20
+        """)
+        tables = cursor.fetchall()
+        
+        # Get row counts for main tables
+        cursor.execute("SELECT COUNT(*) FROM vehicle_inspections")
+        inspections_count = cursor.fetchone()[0]
+        
+        cursor.execute("SELECT COUNT(*) FROM rental_agreements")
+        ras_count = cursor.fetchone()[0]
+        
+        cursor.execute("SELECT COUNT(*) FROM inspection_photos")
+        photos_count = cursor.fetchone()[0]
+        
+        conn.close()
+        
+        return JSONResponse({
+            "ok": True,
+            "database": {
+                "size": db_size[0],
+                "size_bytes": db_size[1]
+            },
+            "tables": [
+                {
+                    "schema": t[0],
+                    "name": t[1],
+                    "size": t[2],
+                    "size_bytes": t[3]
+                } for t in tables
+            ],
+            "row_counts": {
+                "inspections": inspections_count,
+                "rental_agreements": ras_count,
+                "photos": photos_count
+            }
+        })
+        
+    except Exception as e:
+        logging.error(f"Error getting database stats: {e}")
+        import traceback
+        logging.error(traceback.format_exc())
+        return JSONResponse({
+            "ok": False,
+            "error": str(e)
+        }, status_code=500)
+
 @app.post("/api/admin/force-send-checkout-emails")
 async def force_send_checkout_emails(request: Request):
     """
