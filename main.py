@@ -60292,6 +60292,40 @@ async def fix_corrupted_photos(request: Request):
             "error": str(e)
         }, status_code=500)
 
+@app.post("/api/admin/restart-app")
+async def restart_app(request: Request):
+    """
+    Force restart of the app to clear database connections
+    """
+    try:
+        require_inspection_access(request)
+    except HTTPException:
+        return JSONResponse({"ok": False, "error": "Unauthorized"}, status_code=403)
+    
+    try:
+        logging.info("Forcing app restart to clear DB connections...")
+        print("RESTART: Forcing app restart to clear DB connections...", flush=True)
+        
+        # Force garbage collection
+        import gc
+        gc.collect()
+        
+        # Clear database connections
+        from database import clear_all_connections
+        clear_all_connections()
+        
+        return JSONResponse({
+            "ok": True,
+            "message": "App restart initiated - DB connections cleared"
+        })
+        
+    except Exception as e:
+        logging.error(f"Error restarting app: {e}")
+        return JSONResponse({
+            "ok": False,
+            "error": str(e)
+        }, status_code=500)
+
 @app.post("/api/admin/force-send-checkout-emails")
 async def force_send_checkout_emails(request: Request):
     """
