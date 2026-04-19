@@ -39092,6 +39092,16 @@ def _efficient_base64_encode(image_data, image_type='jpeg'):
         # Já é string - validar e limpar se necessário
         if image_data.startswith('data:image'):
             return image_data  # Já está no formato correto
+        elif image_data.startswith('\\x'):
+            # Formato HEX do PostgreSQL - converter para bytes primeiro
+            try:
+                import binascii
+                import base64
+                hex_data = image_data[2:]  # Remove \x prefix
+                decoded = binascii.unhexlify(hex_data)
+                image_base64 = base64.b64encode(decoded).decode('utf-8')
+            except Exception:
+                return None  # HEX inválido
         else:
             # Assumir que é base64 puro - validar
             try:
