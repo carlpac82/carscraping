@@ -618,8 +618,12 @@ def generate_inspection_pdf(inspection_data, extracted_data_json):
                 elif croqui_data.startswith('data:image'):
                     # Data URL format - extract base64
                     croqui_data = croqui_data.split(',')[1]
-                    # Fix base64 padding if needed
-                    croqui_data = croqui_data.strip().replace('\n', '').replace('\r', '').replace(' ', '')
+                    # Clean base64: remove ALL invalid characters (keep only A-Z, a-z, 0-9, +, /, =)
+                    import re
+                    croqui_data = re.sub(r'[^A-Za-z0-9+/=]', '', croqui_data)
+                    # Remove existing padding to recalculate
+                    croqui_data = croqui_data.rstrip('=')
+                    # Fix base64 padding
                     padding_needed = (4 - len(croqui_data) % 4) % 4
                     if padding_needed:
                         croqui_data += '=' * padding_needed
@@ -946,8 +950,12 @@ def generate_inspection_pdf(inspection_data, extracted_data_json):
                         elif photo_data.startswith('data:image'):
                             # Data URL format - extract base64
                             photo_data = photo_data.split(',')[1]
-                            # Fix base64 padding if needed
-                            photo_data = photo_data.strip().replace('\n', '').replace('\r', '').replace(' ', '')
+                            # Clean base64: remove ALL invalid characters (keep only A-Z, a-z, 0-9, +, /, =)
+                            import re
+                            photo_data = re.sub(r'[^A-Za-z0-9+/=]', '', photo_data)
+                            # Remove existing padding to recalculate
+                            photo_data = photo_data.rstrip('=')
+                            # Fix base64 padding
                             padding_needed = (4 - len(photo_data) % 4) % 4
                             if padding_needed:
                                 photo_data += '=' * padding_needed
