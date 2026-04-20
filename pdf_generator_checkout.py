@@ -911,6 +911,8 @@ def generate_inspection_pdf(inspection_data, extracted_data_json):
             x_start = 40
             y_start = y_pos
             
+            logging.info(f"🚨 PDF GENERATOR VERSION: 2026-04-20 09:58 - HEX FORMAT SUPPORT ACTIVE")
+            
             for idx, photo in enumerate(photos[:9]):
                 if idx > 0 and idx % cols == 0:
                     y_start -= photo_height + spacing_vertical + 8
@@ -921,6 +923,9 @@ def generate_inspection_pdf(inspection_data, extracted_data_json):
                 
                 try:
                     photo_data = photo['image_data']
+                    
+                    # Log data type for debugging
+                    logging.info(f"📸 Processing photo {idx} ({photo.get('photo_type', 'unknown')}): type={type(photo_data).__name__}, len={len(photo_data) if hasattr(photo_data, '__len__') else 'N/A'}")
                     
                     # Handle PostgreSQL HEX format (\x...)
                     if isinstance(photo_data, (bytes, memoryview)):
