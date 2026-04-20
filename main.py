@@ -31579,9 +31579,8 @@ async def save_inspection(request: Request):
         # ============================================================
         # VALIDAÇÃO CRÍTICA 1: Verificar se RA corresponde à matrícula
         # Skip this validation if it's a vehicle swap
-        # TEMPORARIAMENTE DESATIVADA PARA PERMITIR TROCA URGENTE
         # ============================================================
-        if False and ra and plate and not is_vehicle_swap:
+        if ra and plate and not is_vehicle_swap:
             try:
                 conn_verify = _db_connect()
                 is_postgres_verify = _is_postgresql_connection(conn_verify)
