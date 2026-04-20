@@ -413,6 +413,13 @@ def generate_inspection_pdf(inspection_data, extracted_data_json):
                 print(f"⚠️ Croqui is BYTES, converting to base64...", flush=True)
                 croqui_data = base64.b64encode(croqui_data).decode('utf-8')
                 print(f"✅ Converted to base64, length: {len(croqui_data)}", flush=True)
+            elif isinstance(croqui_data, str) and croqui_data.startswith('\\x'):
+                # PostgreSQL bytea hex format as string literal - convert to bytes then base64
+                print(f"⚠️ Croqui is HEX STRING, converting to bytes then base64...", flush=True)
+                # Decode the escape sequences to get actual bytes
+                croqui_bytes = croqui_data.encode('utf-8').decode('unicode_escape').encode('latin1')
+                croqui_data = base64.b64encode(croqui_bytes).decode('utf-8')
+                print(f"✅ Converted hex string to base64, length: {len(croqui_data)}", flush=True)
             elif croqui_data.startswith('data:image'):
                 croqui_data = croqui_data.split(',')[1]
             
@@ -599,6 +606,12 @@ def generate_inspection_pdf(inspection_data, extracted_data_json):
                     print(f"⚠️ Photo {idx} is BYTES, converting to base64...", flush=True)
                     photo_data = base64.b64encode(photo_data).decode('utf-8')
                     print(f"✅ Converted photo {idx} to base64, length: {len(photo_data)}", flush=True)
+                elif isinstance(photo_data, str) and photo_data.startswith('\\x'):
+                    # PostgreSQL bytea hex format as string literal - convert to bytes then base64
+                    print(f"⚠️ Photo {idx} is HEX STRING, converting to bytes then base64...", flush=True)
+                    photo_bytes = photo_data.encode('utf-8').decode('unicode_escape').encode('latin1')
+                    photo_data = base64.b64encode(photo_bytes).decode('utf-8')
+                    print(f"✅ Converted photo {idx} hex string to base64, length: {len(photo_data)}", flush=True)
                 elif photo_data.startswith('data:image'):
                     photo_data = photo_data.split(',')[1]
                 
