@@ -1,4 +1,4 @@
-"""Modern PDF generator for vehicle inspections"""
+"""Modern PDF generator for vehicle inspections - v2026.04.20.10:02"""
 from reportlab.lib.pagesizes import A4
 from reportlab.lib.colors import HexColor
 from reportlab.pdfgen import canvas as pdf_canvas
