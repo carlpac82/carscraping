@@ -1,4 +1,4 @@
-"""Modern PDF generator for vehicle inspections - v2026.04.20.10:30 - BASE64 FIX"""
+"""Modern PDF generator for vehicle inspections - v2026.04.20.11:05 - BASE64 AGGRESSIVE CLEAN"""
 from reportlab.lib.pagesizes import A4
 from reportlab.lib.colors import HexColor
 from reportlab.pdfgen import canvas as pdf_canvas

@@ -1,5 +1,5 @@
-"""Modern PDF generator for vehicle inspections"""
-# VERSION: 2026-01-25-20:32 - FORCE RECOMPILE WITH BASE64 PADDING FIX
+"""Modern PDF generator for SELF-CHECKOUT inspections - v2026.04.20.11:05 - BASE64 FIX"""
+# VERSION: 2026-04-20-11:05 - FORCE RECOMPILE WITH BASE64 PADDING FIX
 import base64
 import io
 import json
