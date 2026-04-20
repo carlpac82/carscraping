@@ -32161,6 +32161,7 @@ async def save_inspection(request: Request):
                             
                             try:
                                 # Handle both hex string and base64 formats
+                                import binascii
                                 try:
                                     photo_bytes = base64.b64decode(photo_base64)
                                 except (binascii.Error, ValueError):
@@ -32276,12 +32277,12 @@ async def save_inspection(request: Request):
                                             else:
                                                 checkin_base64 = checkin_croqui_base64
                                             # Handle both hex string and base64 formats
+                                            import binascii
                                             try:
                                                 checkin_data = base64.b64decode(checkin_base64)
                                             except (binascii.Error, ValueError):
                                                 # Try hex string format
                                                 if checkin_base64.startswith('\\x'):
-                                                    import binascii
                                                     hex_data = checkin_base64[2:]  # Remove \x prefix
                                                     checkin_data = binascii.unhexlify(hex_data)
                                                 else:
@@ -32298,6 +32299,7 @@ async def save_inspection(request: Request):
                                             else:
                                                 checkout_base64 = damage_croqui
                                             # Handle both hex string and base64 formats for checkout
+                                            import binascii
                                             try:
                                                 checkout_data = base64.b64decode(checkout_base64)
                                             except (binascii.Error, ValueError):
