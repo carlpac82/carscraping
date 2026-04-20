@@ -54410,10 +54410,21 @@ async def get_inspection_pdf(inspection_number: str, request: Request):
                     photo_type = photo_row[1]
                     image_data = photo_row[0]
                     
+                    # DEBUG: Log exact data type and format
+                    data_type = type(image_data).__name__
+                    if isinstance(image_data, str):
+                        data_preview = image_data[:100] if len(image_data) > 100 else image_data
+                        data_len = len(image_data)
+                        logging.info(f"🔍 Photo {photo_type}: type={data_type}, len={data_len}, preview={data_preview}")
+                    else:
+                        data_len = len(image_data) if hasattr(image_data, '__len__') else 'N/A'
+                        logging.info(f"🔍 Photo {photo_type}: type={data_type}, len={data_len}")
+                    
                     # Convert bytes to base64 string if needed (PostgreSQL stores as TEXT, SQLite as BLOB)
                     if isinstance(image_data, bytes):
                         import base64
                         image_data = f"data:image/jpeg;base64,{base64.b64encode(image_data).decode('utf-8')}"
+                        logging.info(f"✅ Converted bytes to data URL for {photo_type}")
                     elif isinstance(image_data, str) and image_data.startswith('data:image'):
                         # Fix padding if needed for data URI
                         import base64
