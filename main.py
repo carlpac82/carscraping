@@ -31568,9 +31568,12 @@ async def save_inspection(request: Request):
         
         print(f"📧 [BACKEND] RAW send_email from JSON: {repr(send_email_raw)} (type: {type(send_email_raw).__name__})", flush=True)
         print(f"📧 [BACKEND] Email config - email: '{email}', send_email: {send_email}, type: {inspection_type}", flush=True)
+        print(f"🔄 [BACKEND] is_vehicle_swap from JSON: {repr(is_vehicle_swap)} (type: {type(is_vehicle_swap).__name__})", flush=True)
         logging.info(f"📧 Email config - email: '{email}', send_email: {send_email} (type: {type(send_email).__name__})")
+        logging.info(f"🔄 is_vehicle_swap flag: {is_vehicle_swap}")
         
         if is_vehicle_swap:
+            print(f"✅ [VEHICLE SWAP] Skipping RA/plate validation - this is a vehicle swap", flush=True)
             logging.info(f"🔄 [VEHICLE SWAP] Skipping RA/plate validation - this is a vehicle swap")
         
         # ============================================================
