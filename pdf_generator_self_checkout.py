@@ -652,7 +652,15 @@ def generate_inspection_pdf(inspection_data, extracted_data_json):
     if inspection_data.get('damage_croqui'):
         try:
             croqui_data = inspection_data['damage_croqui']
-            if croqui_data.startswith('data:image'):
+            
+            # Check if it's PostgreSQL hex format
+            if isinstance(croqui_data, str) and croqui_data.startswith('\\x'):
+                # PostgreSQL bytea hex format - remove \x prefix and convert from hex
+                hex_string = croqui_data[2:]  # Remove '\x'
+                croqui_bytes = bytes.fromhex(hex_string)
+                croqui_data = base64.b64encode(croqui_bytes).decode('utf-8')
+                logging.info(f"✅ Converted postgres hex to base64 for croqui")
+            elif croqui_data.startswith('data:image'):
                 croqui_data = croqui_data.split(',')[1]
             
             # Aggressive base64 cleaning
@@ -945,8 +953,15 @@ def generate_inspection_pdf(inspection_data, extracted_data_json):
                         logging.error(f"❌ Photo {idx} ({photo_type}): No data")
                         continue
                     
+                    # Check if it's PostgreSQL hex format
+                    if isinstance(photo_data, str) and photo_data.startswith('\\x'):
+                        # PostgreSQL bytea hex format - remove \x prefix and convert from hex
+                        hex_string = photo_data[2:]  # Remove '\x'
+                        photo_bytes = bytes.fromhex(hex_string)
+                        encoded = base64.b64encode(photo_bytes).decode('utf-8')
+                        logging.info(f"✅ Converted postgres hex to base64 for photo {idx}")
                     # Extract base64 part from data URI
-                    if photo_data.startswith('data:image'):
+                    elif photo_data.startswith('data:image'):
                         parts = photo_data.split(',', 1)
                         if len(parts) != 2:
                             logging.error(f"❌ Photo {idx} ({photo_type}): Invalid data URI")
