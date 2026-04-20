@@ -404,7 +404,13 @@ def generate_inspection_pdf(inspection_data, extracted_data_json):
         logging.info("✅ Croqui data exists, starting decode...")
         try:
             croqui_data = inspection_data['damage_croqui']
-            if croqui_data.startswith('data:image'):
+            
+            # Check if it's bytes instead of base64 string
+            if isinstance(croqui_data, bytes):
+                print(f"⚠️ Croqui is BYTES, converting to base64...", flush=True)
+                croqui_data = base64.b64encode(croqui_data).decode('utf-8')
+                print(f"✅ Converted to base64, length: {len(croqui_data)}", flush=True)
+            elif croqui_data.startswith('data:image'):
                 croqui_data = croqui_data.split(',')[1]
             
             # Aggressive base64 cleaning
@@ -584,7 +590,13 @@ def generate_inspection_pdf(inspection_data, extracted_data_json):
             logging.info(f"📷 Processing photo {idx}...")
             try:
                 photo_data = photo['image_data']
-                if photo_data.startswith('data:image'):
+                
+                # Check if it's bytes instead of base64 string
+                if isinstance(photo_data, bytes):
+                    print(f"⚠️ Photo {idx} is BYTES, converting to base64...", flush=True)
+                    photo_data = base64.b64encode(photo_data).decode('utf-8')
+                    print(f"✅ Converted photo {idx} to base64, length: {len(photo_data)}", flush=True)
+                elif photo_data.startswith('data:image'):
                     photo_data = photo_data.split(',')[1]
                 
                 # Aggressive base64 cleaning
