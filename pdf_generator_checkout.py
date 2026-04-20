@@ -598,16 +598,35 @@ def generate_inspection_pdf(inspection_data, extracted_data_json):
     if inspection_data.get('damage_croqui'):
         try:
             croqui_data = inspection_data['damage_croqui']
-            if croqui_data.startswith('data:image'):
-                croqui_data = croqui_data.split(',')[1]
             
-            # Fix base64 padding if needed
-            croqui_data = croqui_data.strip().replace('\n', '').replace('\r', '').replace(' ', '')
-            padding_needed = (4 - len(croqui_data) % 4) % 4
-            if padding_needed:
-                croqui_data += '=' * padding_needed
-            
-            img_data = base64.b64decode(croqui_data)
+            # Handle PostgreSQL HEX format (\x...)
+            if isinstance(croqui_data, (bytes, memoryview)):
+                # Already bytes - use directly
+                img_data = bytes(croqui_data)
+            elif isinstance(croqui_data, str):
+                if croqui_data.startswith('\\x'):
+                    # PostgreSQL HEX format - convert to bytes
+                    import binascii
+                    hex_data = croqui_data[2:]  # Remove \x prefix
+                    img_data = binascii.unhexlify(hex_data)
+                elif croqui_data.startswith('data:image'):
+                    # Data URL format - extract base64
+                    croqui_data = croqui_data.split(',')[1]
+                    # Fix base64 padding if needed
+                    croqui_data = croqui_data.strip().replace('\n', '').replace('\r', '').replace(' ', '')
+                    padding_needed = (4 - len(croqui_data) % 4) % 4
+                    if padding_needed:
+                        croqui_data += '=' * padding_needed
+                    img_data = base64.b64decode(croqui_data)
+                else:
+                    # Raw base64 - fix padding and decode
+                    croqui_data = croqui_data.strip().replace('\n', '').replace('\r', '').replace(' ', '')
+                    padding_needed = (4 - len(croqui_data) % 4) % 4
+                    if padding_needed:
+                        croqui_data += '=' * padding_needed
+                    img_data = base64.b64decode(croqui_data)
+            else:
+                raise ValueError(f"Unsupported croqui_data type: {type(croqui_data)}")
             img = Image.open(io.BytesIO(img_data))
             
             # Convert to RGB if needed
@@ -902,16 +921,35 @@ def generate_inspection_pdf(inspection_data, extracted_data_json):
                 
                 try:
                     photo_data = photo['image_data']
-                    if photo_data.startswith('data:image'):
-                        photo_data = photo_data.split(',')[1]
                     
-                    # Fix base64 padding if needed
-                    photo_data = photo_data.strip().replace('\n', '').replace('\r', '').replace(' ', '')
-                    padding_needed = (4 - len(photo_data) % 4) % 4
-                    if padding_needed:
-                        photo_data += '=' * padding_needed
-                    
-                    img_data = base64.b64decode(photo_data)
+                    # Handle PostgreSQL HEX format (\x...)
+                    if isinstance(photo_data, (bytes, memoryview)):
+                        # Already bytes - use directly
+                        img_data = bytes(photo_data)
+                    elif isinstance(photo_data, str):
+                        if photo_data.startswith('\\x'):
+                            # PostgreSQL HEX format - convert to bytes
+                            import binascii
+                            hex_data = photo_data[2:]  # Remove \x prefix
+                            img_data = binascii.unhexlify(hex_data)
+                        elif photo_data.startswith('data:image'):
+                            # Data URL format - extract base64
+                            photo_data = photo_data.split(',')[1]
+                            # Fix base64 padding if needed
+                            photo_data = photo_data.strip().replace('\n', '').replace('\r', '').replace(' ', '')
+                            padding_needed = (4 - len(photo_data) % 4) % 4
+                            if padding_needed:
+                                photo_data += '=' * padding_needed
+                            img_data = base64.b64decode(photo_data)
+                        else:
+                            # Raw base64 - fix padding and decode
+                            photo_data = photo_data.strip().replace('\n', '').replace('\r', '').replace(' ', '')
+                            padding_needed = (4 - len(photo_data) % 4) % 4
+                            if padding_needed:
+                                photo_data += '=' * padding_needed
+                            img_data = base64.b64decode(photo_data)
+                    else:
+                        raise ValueError(f"Unsupported image_data type: {type(photo_data)}")
                     img = Image.open(io.BytesIO(img_data))
                     
                     # Convert to RGB if needed
