@@ -407,6 +407,7 @@ def generate_inspection_pdf(inspection_data, extracted_data_json):
             
             print(f"🔍 CROQUI TYPE: {type(croqui_data)}, isinstance bytes: {isinstance(croqui_data, bytes)}", flush=True)
             print(f"🔍 CROQUI REPR: {repr(croqui_data[:100])}", flush=True)
+            print(f"🔍 CROQUI first 4 bytes as ord: {[ord(c) for c in croqui_data[:4]]}", flush=True)
             
             # Check if it's bytes instead of base64 string
             if isinstance(croqui_data, bytes):
