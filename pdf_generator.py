@@ -1,4 +1,4 @@
-"""Modern PDF generator for vehicle inspections - v2026.04.20.11:05 - BASE64 AGGRESSIVE CLEAN"""
+"""Modern PDF generator for vehicle inspections - v2026.04.20.12:06 - BASE64 STRICT VALIDATION"""
 from reportlab.lib.pagesizes import A4
 from reportlab.lib.colors import HexColor
 from reportlab.pdfgen import canvas as pdf_canvas
@@ -394,7 +394,9 @@ def generate_inspection_pdf(inspection_data, extracted_data_json):
     y_pos -= box_height + 15
     
     # Croqui de Danos e Informações da Entrega (side by side)
+    logging.info("🎨 [v2026.04.20.12:06] Starting croqui processing with AGGRESSIVE CLEAN")
     if inspection_data.get('damage_croqui'):
+        logging.info("✅ Croqui data exists, starting decode...")
         try:
             croqui_data = inspection_data['damage_croqui']
             if croqui_data.startswith('data:image'):
@@ -560,6 +562,7 @@ def generate_inspection_pdf(inspection_data, extracted_data_json):
         x_start = 40
         y_start = y_pos
         
+        logging.info(f"📸 [v2026.04.20.12:06] Processing {len(photos[:9])} photos with AGGRESSIVE CLEAN")
         for idx, photo in enumerate(photos[:9]):
             if idx > 0 and idx % cols == 0:
                 y_start -= photo_height + spacing_vertical + 8
@@ -568,6 +571,7 @@ def generate_inspection_pdf(inspection_data, extracted_data_json):
             x = x_start + col * (photo_width + spacing_horizontal)
             y = y_start - photo_height
             
+            logging.info(f"📷 Processing photo {idx}...")
             try:
                 photo_data = photo['image_data']
                 if photo_data.startswith('data:image'):
