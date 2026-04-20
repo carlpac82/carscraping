@@ -31564,15 +31564,20 @@ async def save_inspection(request: Request):
         send_email = bool(send_email_raw)  # True only if frontend explicitly requests email
         vehicle_id = data.get('vehicle_id', None)
         damage_croqui = data.get('damage_croqui', data.get('damageCroqui', ''))  # Base64 image of damage croqui
+        is_vehicle_swap = data.get('is_vehicle_swap', False)  # Flag for vehicle swap - skip RA/plate validation
         
         print(f"📧 [BACKEND] RAW send_email from JSON: {repr(send_email_raw)} (type: {type(send_email_raw).__name__})", flush=True)
         print(f"📧 [BACKEND] Email config - email: '{email}', send_email: {send_email}, type: {inspection_type}", flush=True)
         logging.info(f"📧 Email config - email: '{email}', send_email: {send_email} (type: {type(send_email).__name__})")
         
+        if is_vehicle_swap:
+            logging.info(f"🔄 [VEHICLE SWAP] Skipping RA/plate validation - this is a vehicle swap")
+        
         # ============================================================
         # VALIDAÇÃO CRÍTICA 1: Verificar se RA corresponde à matrícula
+        # Skip this validation if it's a vehicle swap
         # ============================================================
-        if ra and plate:
+        if ra and plate and not is_vehicle_swap:
             try:
                 conn_verify = _db_connect()
                 is_postgres_verify = _is_postgresql_connection(conn_verify)
