@@ -2284,6 +2284,10 @@
             const processType = localStorage.getItem('processType') || 'delivery';
             const inspectionType = processType === 'delivery' ? 'checkin' : 'checkout';
             
+            // Check if this is a vehicle swap (from URL parameter)
+            const urlParams = new URLSearchParams(window.location.search);
+            const isVehicleSwap = urlParams.get('from_swap') === 'true';
+            
             const inspectionData = {
                 type: inspectionType,
                 photos: photos,
@@ -2299,8 +2303,13 @@
                 client_email: email,
                 send_email: true,  // ALWAYS true when this function is called (only called from saveAndSendInspection)
                 vehicle_id: window.currentVehicleId || null,
-                damageCroqui: damageCroquiBase64
+                damageCroqui: damageCroquiBase64,
+                is_vehicle_swap: isVehicleSwap  // Flag to skip RA/plate validation during vehicle swap
             };
+            
+            if (isVehicleSwap) {
+                console.log('🔄 [VEHICLE SWAP] This is a vehicle swap inspection - will skip RA/plate validation');
+            }
             
             console.log('📦 Sending inspection data:', {
                 photos: Object.keys(inspectionData.photos),
