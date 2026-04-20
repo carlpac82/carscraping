@@ -409,7 +409,11 @@ def generate_inspection_pdf(inspection_data, extracted_data_json):
                 if padding_needed:
                     croqui_data += '=' * padding_needed
             
-            img_data = base64.b64decode(croqui_data)
+            # Try to decode with validation, if fails try without validation
+            try:
+                img_data = base64.b64decode(croqui_data, validate=True)
+            except Exception:
+                img_data = base64.b64decode(croqui_data, validate=False)
             img = Image.open(io.BytesIO(img_data))
             
             # Convert to RGB if needed
@@ -573,7 +577,12 @@ def generate_inspection_pdf(inspection_data, extracted_data_json):
                     if padding_needed:
                         photo_data += '=' * padding_needed
                 
-                img_data = base64.b64decode(photo_data)
+                # Try to decode with validation, if fails try without validation
+                try:
+                    img_data = base64.b64decode(photo_data, validate=True)
+                except Exception:
+                    # If strict validation fails, try lenient decoding
+                    img_data = base64.b64decode(photo_data, validate=False)
                 img = Image.open(io.BytesIO(img_data))
                 
                 # Convert to RGB if needed
