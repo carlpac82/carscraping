@@ -397,8 +397,10 @@ def generate_inspection_pdf(inspection_data, extracted_data_json):
     y_pos -= box_height + 15
     
     # Croqui de Danos e Informações da Entrega (side by side)
-    logging.info("🎨 [v2026.04.20.12:06] Starting croqui processing with AGGRESSIVE CLEAN")
-    if inspection_data.get('damage_croqui'):
+    croqui_exists = inspection_data.get('damage_croqui')
+    print(f"🎨 [v2026.04.20.12:06] Croqui exists: {bool(croqui_exists)}, length: {len(str(croqui_exists)) if croqui_exists else 0}", flush=True)
+    logging.info(f"🎨 [v2026.04.20.12:06] Croqui exists: {bool(croqui_exists)}, length: {len(str(croqui_exists)) if croqui_exists else 0}")
+    if croqui_exists:
         logging.info("✅ Croqui data exists, starting decode...")
         try:
             croqui_data = inspection_data['damage_croqui']
