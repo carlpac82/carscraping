@@ -54388,6 +54388,29 @@ async def get_inspection_pdf(inspection_number: str, request: Request):
             # Fetch inspection photos for grid
             logging.info(f"🚨🚨🚨 NOVO CÓDIGO EXECUTANDO - VERSION 8b1cb0a 🚨🚨🚨")
             logging.info(f"📸 Querying photos for inspection {inspection_number}, type: {row[1]}")
+            
+            # First, get the inspection ID to debug
+            cursor.execute("""
+                SELECT id FROM vehicle_inspections WHERE inspection_number = %s
+            """ if is_postgres else """
+                SELECT id FROM vehicle_inspections WHERE inspection_number = ?
+            """, (inspection_number,))
+            inspection_id_row = cursor.fetchone()
+            if inspection_id_row:
+                inspection_id = inspection_id_row[0]
+                logging.info(f"🔍 Found inspection_id: {inspection_id}")
+                
+                # Count total photos for this inspection
+                cursor.execute("""
+                    SELECT COUNT(*) FROM inspection_photos WHERE inspection_id = %s
+                """ if is_postgres else """
+                    SELECT COUNT(*) FROM inspection_photos WHERE inspection_id = ?
+                """, (inspection_id,))
+                total_photos = cursor.fetchone()[0]
+                logging.info(f"🔍 Total photos in DB for inspection_id {inspection_id}: {total_photos}")
+            else:
+                logging.error(f"❌ No inspection found with number: {inspection_number}")
+            
             cursor.execute("""
                 SELECT image_data, photo_type 
                 FROM inspection_photos 
@@ -54404,7 +54427,7 @@ async def get_inspection_pdf(inspection_number: str, request: Request):
             
             inspection_photos = []
             photo_rows = cursor.fetchall()
-            logging.info(f"🔄 BACKEND: Processing {len(photo_rows)} photos - CODE VERSION: 2026-01-25 21:07 UTC")
+            logging.info(f"🔄 BACKEND: Processing {len(photo_rows)} photos (excluding damage_croqui) - CODE VERSION: 2026-01-25 21:07 UTC")
             for photo_row in photo_rows:
                 if photo_row[0]:
                     photo_type = photo_row[1]
