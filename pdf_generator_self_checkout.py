@@ -655,6 +655,18 @@ def generate_inspection_pdf(inspection_data, extracted_data_json):
             if croqui_data.startswith('data:image'):
                 croqui_data = croqui_data.split(',')[1]
             
+            # Aggressive base64 cleaning
+            import re
+            croqui_data = croqui_data.strip()
+            # Remove ALL invalid characters (whitespace, newlines, etc.)
+            croqui_data = re.sub(r'[^A-Za-z0-9+/=]', '', croqui_data)
+            # Fix padding if needed
+            padding_needed = (4 - len(croqui_data) % 4) % 4
+            if padding_needed:
+                croqui_data += '=' * padding_needed
+            
+            logging.info(f"🧹 Cleaned croqui base64: cleaned length: {len(croqui_data)}, padding added: {padding_needed}")
+            
             img_data = base64.b64decode(croqui_data)
             img = Image.open(io.BytesIO(img_data))
             
@@ -844,7 +856,9 @@ def generate_inspection_pdf(inspection_data, extracted_data_json):
             
             y_pos -= box_height_croqui + 15
         except Exception as e:
+            import traceback
             logging.error(f"Error adding croqui to PDF: {e}")
+            logging.error(f"Traceback: {traceback.format_exc()}")
     
     # Photos grid - SELF-CHECKOUT: Show only photos taken by client
     photos_raw = inspection_data.get('photos', [])
@@ -941,20 +955,17 @@ def generate_inspection_pdf(inspection_data, extracted_data_json):
                     else:
                         encoded = photo_data
                     
-                    # Fix padding: remove whitespace and add padding if needed
-                    encoded = encoded.strip().replace('\n', '').replace('\r', '').replace(' ', '')
-                    
-                    # Remove any existing padding first
-                    encoded = encoded.rstrip('=')
-                    
-                    original_len = len(encoded)
+                    # Aggressive base64 cleaning
+                    import re
+                    encoded = encoded.strip()
+                    # Remove ALL invalid characters (whitespace, newlines, etc.)
+                    encoded = re.sub(r'[^A-Za-z0-9+/=]', '', encoded)
+                    # Fix padding if needed
                     padding_needed = (4 - len(encoded) % 4) % 4
-                    
-                    logging.info(f"🔍 Photo {idx} ({photo_type}): len={original_len}, mod4={original_len % 4}, padding_needed={padding_needed}")
-                    
-                    if padding_needed > 0:
+                    if padding_needed:
                         encoded += '=' * padding_needed
-                        logging.info(f"🔧 PDF: Fixed padding for photo {idx}: {original_len} -> {len(encoded)} (+{padding_needed})")
+                    
+                    logging.info(f"🧹 Cleaned photo {idx} ({photo_type}): cleaned length: {len(encoded)}, padding added: {padding_needed}")
                     
                     # Decode base64
                     img_data = base64.b64decode(encoded)
