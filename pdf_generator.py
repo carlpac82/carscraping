@@ -399,15 +399,18 @@ def generate_inspection_pdf(inspection_data, extracted_data_json):
             croqui_data = inspection_data['damage_croqui']
             if croqui_data.startswith('data:image'):
                 croqui_data = croqui_data.split(',')[1]
-                # Clean base64: remove ALL invalid characters
-                import re
-                croqui_data = re.sub(r'[^A-Za-z0-9+/=]', '', croqui_data)
-                # Remove existing padding to recalculate
-                croqui_data = croqui_data.rstrip('=')
-                # Fix base64 padding
-                padding_needed = (4 - len(croqui_data) % 4) % 4
-                if padding_needed:
-                    croqui_data += '=' * padding_needed
+            
+            # Aggressive base64 cleaning
+            import re
+            croqui_data = croqui_data.strip()
+            # Remove ALL invalid characters (whitespace, newlines, etc.)
+            croqui_data = re.sub(r'[^A-Za-z0-9+/=]', '', croqui_data)
+            # Fix padding if needed
+            padding_needed = (4 - len(croqui_data) % 4) % 4
+            if padding_needed:
+                croqui_data += '=' * padding_needed
+            
+            logging.info(f"🧹 Cleaned croqui base64: original length unknown, cleaned length: {len(croqui_data)}, padding added: {padding_needed}")
             
             # Try to decode with validation, if fails try without validation
             try:
@@ -527,7 +530,9 @@ def generate_inspection_pdf(inspection_data, extracted_data_json):
             
             y_pos -= box_height_croqui + 15
         except Exception as e:
+            import traceback
             logging.error(f"Error adding croqui to PDF: {e}")
+            logging.error(f"Traceback: {traceback.format_exc()}")
     
     # Photos grid (3x3 - fill rectangles)
     photos = inspection_data.get('photos', [])
@@ -567,15 +572,18 @@ def generate_inspection_pdf(inspection_data, extracted_data_json):
                 photo_data = photo['image_data']
                 if photo_data.startswith('data:image'):
                     photo_data = photo_data.split(',')[1]
-                    # Clean base64: remove ALL invalid characters
-                    import re
-                    photo_data = re.sub(r'[^A-Za-z0-9+/=]', '', photo_data)
-                    # Remove existing padding to recalculate
-                    photo_data = photo_data.rstrip('=')
-                    # Fix base64 padding
-                    padding_needed = (4 - len(photo_data) % 4) % 4
-                    if padding_needed:
-                        photo_data += '=' * padding_needed
+                
+                # Aggressive base64 cleaning
+                import re
+                photo_data = photo_data.strip()
+                # Remove ALL invalid characters (whitespace, newlines, etc.)
+                photo_data = re.sub(r'[^A-Za-z0-9+/=]', '', photo_data)
+                # Fix padding if needed
+                padding_needed = (4 - len(photo_data) % 4) % 4
+                if padding_needed:
+                    photo_data += '=' * padding_needed
+                
+                logging.info(f"🧹 Cleaned photo {idx} base64: cleaned length: {len(photo_data)}, padding added: {padding_needed}")
                 
                 # Try to decode with validation, if fails try without validation
                 try:
@@ -641,7 +649,9 @@ def generate_inspection_pdf(inspection_data, extracted_data_json):
                 label = photo_labels[idx] if idx < len(photo_labels) else f"Foto {idx + 1}"
                 c.drawCentredString(x + photo_width / 2, y - 6, label)
             except Exception as e:
+                import traceback
                 logging.error(f"Error adding photo {idx} to PDF: {e}")
+                logging.error(f"Traceback: {traceback.format_exc()}")
         
         y_pos = y_start - (photo_height + spacing_vertical + 8) * 3 - 15
     
