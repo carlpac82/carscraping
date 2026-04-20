@@ -53962,9 +53962,14 @@ async def get_inspection_details(inspection_number: str, request: Request):
                         
                         # Handle psycopg2 bytea format (comes as string like "\\x...")
                         if isinstance(image_data, str) and image_data.startswith('\\x'):
-                            # PostgreSQL bytea hex format - convert to bytes
-                            image_data = bytes.fromhex(image_data[2:])
-                            logging.info(f"📷 Converted hex string to bytes for {photo_type}")
+                            # PostgreSQL bytea hex format - convert escape sequences to actual bytes
+                            import ast
+                            try:
+                                image_data = ast.literal_eval(f"b'{image_data}'")
+                                logging.info(f"📷 Converted hex escape string to bytes for {photo_type}")
+                            except Exception as e:
+                                logging.error(f"❌ Failed to convert hex string for {photo_type}: {e}")
+                                continue
                         
                         if isinstance(image_data, bytes):
                             # Binary data - encode to base64 and remove any whitespace
