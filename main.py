@@ -53968,24 +53968,12 @@ async def get_inspection_details(inspection_number: str, request: Request):
                                 parts = image_data.split(',', 1)
                                 if len(parts) == 2:
                                     photo_base64 = parts[1]
-                                    # Clean and fix padding for corrupted base64
-                                    import re
-                                    photo_base64 = re.sub(r'[^A-Za-z0-9+/=]', '', photo_base64)
-                                    photo_base64 = photo_base64.rstrip('=')
-                                    padding_needed = (4 - len(photo_base64) % 4) % 4
-                                    if padding_needed:
-                                        photo_base64 += '=' * padding_needed
+                                    # Pass as-is (PDF generator will clean it)
                                 else:
                                     continue
                             else:
                                 photo_base64 = image_data
-                                # Clean and fix padding
-                                import re
-                                photo_base64 = re.sub(r'[^A-Za-z0-9+/=]', '', photo_base64)
-                                photo_base64 = photo_base64.rstrip('=')
-                                padding_needed = (4 - len(photo_base64) % 4) % 4
-                                if padding_needed:
-                                    photo_base64 += '=' * padding_needed
+                                # Pass as-is (PDF generator will clean it)
                         else:
                             logging.warning(f"⚠️ Unknown data type for photo {photo_type}: {type(image_data)}")
                             continue
@@ -54257,18 +54245,8 @@ async def get_inspection_pdf(inspection_number: str, request: Request):
             logging.info(f"  [14] pickup_location: {row[14]}")
             
             # Clean damage_croqui if present
+            # Pass damage_croqui as-is to PDF generator (it will clean it)
             damage_croqui_cleaned = row[10] or ''
-            if damage_croqui_cleaned and isinstance(damage_croqui_cleaned, str) and damage_croqui_cleaned.startswith('data:image'):
-                import re
-                parts = damage_croqui_cleaned.split(',', 1)
-                if len(parts) == 2:
-                    header, b64_data = parts
-                    b64_data = re.sub(r'[^A-Za-z0-9+/=]', '', b64_data)
-                    b64_data = b64_data.rstrip('=')
-                    padding_needed = (4 - len(b64_data) % 4) % 4
-                    if padding_needed:
-                        b64_data += '=' * padding_needed
-                    damage_croqui_cleaned = f"{header},{b64_data}"
             
             inspection_data = {
                 'inspection_number': row[0] or '',
@@ -54288,20 +54266,8 @@ async def get_inspection_pdf(inspection_number: str, request: Request):
                 'signature': '',
             }
             
-            # Fix signature padding if present
-            signature_data = row[15] or ''
-            if signature_data and signature_data.startswith('data:image'):
-                import re
-                parts = signature_data.split(',', 1)
-                if len(parts) == 2:
-                    header, encoded = parts
-                    encoded = re.sub(r'[^A-Za-z0-9+/=]', '', encoded)
-                    encoded = encoded.rstrip('=')
-                    padding_needed = (4 - len(encoded) % 4) % 4
-                    if padding_needed:
-                        encoded += '=' * padding_needed
-                    signature_data = f"{header},{encoded}"
-            inspection_data['signature'] = signature_data
+            # Pass signature as-is to PDF generator (it will clean it)
+            inspection_data['signature'] = row[15] or ''
             
             extracted_data_json = row[11]
             
@@ -54477,18 +54443,7 @@ async def get_inspection_pdf(inspection_number: str, request: Request):
                         import base64
                         image_data = f"data:image/jpeg;base64,{base64.b64encode(image_data).decode('utf-8')}"
                         logging.info(f"✅ Converted bytes to data URL for {photo_type}")
-                    elif isinstance(image_data, str) and image_data.startswith('data:image'):
-                        # Clean and fix corrupted base64
-                        import re
-                        parts = image_data.split(',', 1)
-                        if len(parts) == 2:
-                            header, b64_data = parts
-                            b64_data = re.sub(r'[^A-Za-z0-9+/=]', '', b64_data)
-                            b64_data = b64_data.rstrip('=')
-                            padding_needed = (4 - len(b64_data) % 4) % 4
-                            if padding_needed:
-                                b64_data += '=' * padding_needed
-                            image_data = f"{header},{b64_data}"
+                    # Pass as-is to PDF generator (it will clean it)
                     
                     inspection_photos.append({
                         'image_data': image_data,
@@ -54559,18 +54514,7 @@ async def get_inspection_pdf(inspection_number: str, request: Request):
                                 if isinstance(image_data, bytes):
                                     import base64
                                     image_data = f"data:image/jpeg;base64,{base64.b64encode(image_data).decode('utf-8')}"
-                                elif isinstance(image_data, str) and image_data.startswith('data:image'):
-                                    # Clean and fix corrupted base64
-                                    import re
-                                    parts = image_data.split(',', 1)
-                                    if len(parts) == 2:
-                                        header, b64_data = parts
-                                        b64_data = re.sub(r'[^A-Za-z0-9+/=]', '', b64_data)
-                                        b64_data = b64_data.rstrip('=')
-                                        padding_needed = (4 - len(b64_data) % 4) % 4
-                                        if padding_needed:
-                                            b64_data += '=' * padding_needed
-                                        image_data = f"{header},{b64_data}"
+                                # Pass as-is to PDF generator (it will clean it)
                                 checkin_photos.append({
                                     'image_data': image_data,
                                     'photo_type': photo_type
