@@ -4345,6 +4345,10 @@
             const processType = localStorage.getItem('processType') || 'delivery';
             const inspectionType = processType === 'delivery' ? 'checkin' : 'checkout';
             
+            // Check if this is a vehicle swap (from URL parameter)
+            const urlParams = new URLSearchParams(window.location.search);
+            const isVehicleSwap = urlParams.get('from_swap') === 'true';
+            
             const inspectionData = {
                 type: inspectionType,
                 photos: photos,
@@ -4360,8 +4364,13 @@
                 client_email: email,
                 send_email: email ? true : false, // Only send email if email is provided
                 vehicle_id: window.currentVehicleId || null, // Add vehicle_id from fleet
-                damageCroqui: damageCroquiBase64 // Add damage croqui image
+                damageCroqui: damageCroquiBase64, // Add damage croqui image
+                is_vehicle_swap: isVehicleSwap  // Flag to skip RA/plate validation during vehicle swap
             };
+            
+            if (isVehicleSwap) {
+                console.log('🔄 [VEHICLE SWAP] This is a vehicle swap inspection - will skip RA/plate validation');
+            }
             
             console.log('📦 Saving inspection with photos:', Object.keys(inspectionData.photos));
             console.log('🖼️ [DEBUG] Damage croqui length:', damageCroquiBase64.length);
