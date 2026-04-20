@@ -416,11 +416,14 @@ def generate_inspection_pdf(inspection_data, extracted_data_json):
             elif isinstance(croqui_data, str) and croqui_data.startswith('\\x'):
                 # PostgreSQL bytea hex format as string literal - convert to bytes then base64
                 print(f"⚠️ Croqui is HEX STRING, converting to bytes then base64...", flush=True)
-                # Use ast.literal_eval to safely convert string representation to bytes
-                import ast
+                # Use codecs to decode escape sequences
+                import codecs
                 try:
-                    # Wrap in quotes and use literal_eval
-                    croqui_bytes = ast.literal_eval(f"b'{croqui_data}'")
+                    # Decode the escape sequences to get actual bytes
+                    croqui_bytes = codecs.decode(croqui_data, 'unicode_escape')
+                    # If result is string, encode to bytes
+                    if isinstance(croqui_bytes, str):
+                        croqui_bytes = croqui_bytes.encode('latin1')
                     croqui_data = base64.b64encode(croqui_bytes).decode('utf-8')
                     print(f"✅ Converted hex string to base64, length: {len(croqui_data)}", flush=True)
                 except Exception as e:
@@ -615,10 +618,13 @@ def generate_inspection_pdf(inspection_data, extracted_data_json):
                 elif isinstance(photo_data, str) and photo_data.startswith('\\x'):
                     # PostgreSQL bytea hex format as string literal - convert to bytes then base64
                     print(f"⚠️ Photo {idx} is HEX STRING, converting to bytes then base64...", flush=True)
-                    import ast
+                    import codecs
                     try:
-                        # Wrap in quotes and use literal_eval
-                        photo_bytes = ast.literal_eval(f"b'{photo_data}'")
+                        # Decode the escape sequences to get actual bytes
+                        photo_bytes = codecs.decode(photo_data, 'unicode_escape')
+                        # If result is string, encode to bytes
+                        if isinstance(photo_bytes, str):
+                            photo_bytes = photo_bytes.encode('latin1')
                         photo_data = base64.b64encode(photo_bytes).decode('utf-8')
                         print(f"✅ Converted photo {idx} hex string to base64, length: {len(photo_data)}", flush=True)
                     except Exception as e:
