@@ -54256,6 +54256,20 @@ async def get_inspection_pdf(inspection_number: str, request: Request):
             logging.info(f"  [13] vehicle_model: {row[13]}")
             logging.info(f"  [14] pickup_location: {row[14]}")
             
+            # Clean damage_croqui if present
+            damage_croqui_cleaned = row[10] or ''
+            if damage_croqui_cleaned and isinstance(damage_croqui_cleaned, str) and damage_croqui_cleaned.startswith('data:image'):
+                import re
+                parts = damage_croqui_cleaned.split(',', 1)
+                if len(parts) == 2:
+                    header, b64_data = parts
+                    b64_data = re.sub(r'[^A-Za-z0-9+/=]', '', b64_data)
+                    b64_data = b64_data.rstrip('=')
+                    padding_needed = (4 - len(b64_data) % 4) % 4
+                    if padding_needed:
+                        b64_data += '=' * padding_needed
+                    damage_croqui_cleaned = f"{header},{b64_data}"
+            
             inspection_data = {
                 'inspection_number': row[0] or '',
                 'inspection_type': row[1] or '',
@@ -54267,7 +54281,7 @@ async def get_inspection_pdf(inspection_number: str, request: Request):
                 'fuel_level': row[7] or '',
                 'created_at': row[8],
                 'client_name': row[9] or '',
-                'damage_croqui': row[10] or '',
+                'damage_croqui': damage_croqui_cleaned,
                 'vehicle_brand': row[12] or '',
                 'vehicle_model': row[13] or '',
                 'pickup_location': row[14] or '',
@@ -54277,11 +54291,12 @@ async def get_inspection_pdf(inspection_number: str, request: Request):
             # Fix signature padding if present
             signature_data = row[15] or ''
             if signature_data and signature_data.startswith('data:image'):
-                import base64
+                import re
                 parts = signature_data.split(',', 1)
                 if len(parts) == 2:
                     header, encoded = parts
-                    encoded = encoded.strip().replace('\n', '').replace('\r', '').replace(' ', '')
+                    encoded = re.sub(r'[^A-Za-z0-9+/=]', '', encoded)
+                    encoded = encoded.rstrip('=')
                     padding_needed = (4 - len(encoded) % 4) % 4
                     if padding_needed:
                         encoded += '=' * padding_needed
@@ -54463,8 +54478,17 @@ async def get_inspection_pdf(inspection_number: str, request: Request):
                         image_data = f"data:image/jpeg;base64,{base64.b64encode(image_data).decode('utf-8')}"
                         logging.info(f"✅ Converted bytes to data URL for {photo_type}")
                     elif isinstance(image_data, str) and image_data.startswith('data:image'):
-                        # Keep data as-is from database - don't modify padding
-                        pass
+                        # Clean and fix corrupted base64
+                        import re
+                        parts = image_data.split(',', 1)
+                        if len(parts) == 2:
+                            header, b64_data = parts
+                            b64_data = re.sub(r'[^A-Za-z0-9+/=]', '', b64_data)
+                            b64_data = b64_data.rstrip('=')
+                            padding_needed = (4 - len(b64_data) % 4) % 4
+                            if padding_needed:
+                                b64_data += '=' * padding_needed
+                            image_data = f"{header},{b64_data}"
                     
                     inspection_photos.append({
                         'image_data': image_data,
@@ -54535,6 +54559,18 @@ async def get_inspection_pdf(inspection_number: str, request: Request):
                                 if isinstance(image_data, bytes):
                                     import base64
                                     image_data = f"data:image/jpeg;base64,{base64.b64encode(image_data).decode('utf-8')}"
+                                elif isinstance(image_data, str) and image_data.startswith('data:image'):
+                                    # Clean and fix corrupted base64
+                                    import re
+                                    parts = image_data.split(',', 1)
+                                    if len(parts) == 2:
+                                        header, b64_data = parts
+                                        b64_data = re.sub(r'[^A-Za-z0-9+/=]', '', b64_data)
+                                        b64_data = b64_data.rstrip('=')
+                                        padding_needed = (4 - len(b64_data) % 4) % 4
+                                        if padding_needed:
+                                            b64_data += '=' * padding_needed
+                                        image_data = f"{header},{b64_data}"
                                 checkin_photos.append({
                                     'image_data': image_data,
                                     'photo_type': photo_type
