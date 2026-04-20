@@ -410,6 +410,9 @@ def generate_inspection_pdf(inspection_data, extracted_data_json):
             # Aggressive base64 cleaning
             import re
             original_len = len(croqui_data)
+            print(f"📏 BEFORE cleaning croqui: length={original_len}, mod4={original_len % 4}", flush=True)
+            print(f"📏 First 50 chars: {croqui_data[:50]}", flush=True)
+            print(f"📏 Last 50 chars: {croqui_data[-50:]}", flush=True)
             logging.info(f"📏 BEFORE cleaning croqui: length={original_len}, mod4={original_len % 4}")
             
             croqui_data = croqui_data.strip()
@@ -420,6 +423,8 @@ def generate_inspection_pdf(inspection_data, extracted_data_json):
             if padding_needed:
                 croqui_data += '=' * padding_needed
             
+            print(f"🧹 AFTER cleaning croqui: original={original_len}, cleaned={len(croqui_data)}, padding_added={padding_needed}", flush=True)
+            print(f"🧹 Last 50 chars after: {croqui_data[-50:]}", flush=True)
             logging.info(f"🧹 AFTER cleaning croqui: original={original_len}, cleaned={len(croqui_data)}, padding_added={padding_needed}")
             
             # Decode base64 with strict validation
