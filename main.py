@@ -53968,10 +53968,24 @@ async def get_inspection_details(inspection_number: str, request: Request):
                                 parts = image_data.split(',', 1)
                                 if len(parts) == 2:
                                     photo_base64 = parts[1]
+                                    # Clean and fix padding for corrupted base64
+                                    import re
+                                    photo_base64 = re.sub(r'[^A-Za-z0-9+/=]', '', photo_base64)
+                                    photo_base64 = photo_base64.rstrip('=')
+                                    padding_needed = (4 - len(photo_base64) % 4) % 4
+                                    if padding_needed:
+                                        photo_base64 += '=' * padding_needed
                                 else:
                                     continue
                             else:
                                 photo_base64 = image_data
+                                # Clean and fix padding
+                                import re
+                                photo_base64 = re.sub(r'[^A-Za-z0-9+/=]', '', photo_base64)
+                                photo_base64 = photo_base64.rstrip('=')
+                                padding_needed = (4 - len(photo_base64) % 4) % 4
+                                if padding_needed:
+                                    photo_base64 += '=' * padding_needed
                         else:
                             logging.warning(f"⚠️ Unknown data type for photo {photo_type}: {type(image_data)}")
                             continue
