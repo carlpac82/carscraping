@@ -28,19 +28,61 @@ logging.basicConfig(
 scheduler = None
 
 def _get_db_connection():
-    """Get database connection"""
+    """
+    Get database connection with retry logic and timeout.
+    Retries up to 3 times with exponential backoff to handle transient SSL errors.
+    """
     database_url = os.environ.get('DATABASE_URL')
     if not database_url:
         logging.error("❌ DATABASE_URL not set")
         return None
     
-    try:
-        import psycopg2
-        conn = psycopg2.connect(database_url)
-        return conn
-    except Exception as e:
-        logging.error(f"❌ Database connection error: {str(e)}")
-        return None
+    import psycopg2
+    import time
+    
+    max_retries = 3
+    retry_delay = 0.5  # Start with 0.5 seconds
+    
+    for attempt in range(max_retries):
+        try:
+            # Connect with timeout settings to prevent hanging connections
+            conn = psycopg2.connect(
+                database_url,
+                connect_timeout=10,  # 10 seconds timeout for connection
+                options='-c statement_timeout=30000'  # 30 seconds for queries
+            )
+            
+            # Test connection is alive
+            cursor = conn.cursor()
+            cursor.execute("SELECT 1")
+            cursor.close()
+            
+            if attempt > 0:
+                logging.info(f"✅ Database connection successful after {attempt + 1} attempts")
+            
+            return conn
+            
+        except (psycopg2.OperationalError, psycopg2.InterfaceError) as e:
+            error_msg = str(e)
+            
+            if attempt < max_retries - 1:
+                # Transient errors that we should retry
+                if "SSL SYSCALL error" in error_msg or "EOF detected" in error_msg or "connection" in error_msg.lower():
+                    logging.warning(f"⚠️ DB connection attempt {attempt + 1}/{max_retries} failed: {error_msg}. Retrying in {retry_delay}s...")
+                    time.sleep(retry_delay)
+                    retry_delay *= 2  # Exponential backoff
+                    continue
+            
+            # Final attempt failed or non-retryable error
+            logging.error(f"❌ Database connection error after {attempt + 1} attempts: {error_msg}")
+            return None
+            
+        except Exception as e:
+            logging.error(f"❌ Unexpected database connection error: {str(e)}")
+            return None
+    
+    logging.error(f"❌ Database connection failed after {max_retries} attempts")
+    return None
 
 def load_advanced_settings():
     """Load advanced automated reports settings from database"""
