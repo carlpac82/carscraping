@@ -579,8 +579,18 @@ def generate_inspection_pdf(inspection_data, extracted_data_json):
         c.setFillColor(HexColor('#6b7280'))
         c.drawString(label_x, content_y, "Estado:")
         c.setFont("Helvetica-Bold", 8)
-        c.setFillColor(HexColor('#f59e0b'))
-        c.drawRightString(value_x, content_y, "Pendente")
+        
+        # Determine status based on inspection type
+        inspection_type = inspection_data.get('inspection_type', '')
+        if inspection_type in ['checkout', 'self_checkout']:
+            status_text = "Concluído"
+            status_color = HexColor('#10b981')  # Green
+        else:
+            status_text = "Pendente"
+            status_color = HexColor('#f59e0b')  # Orange
+        
+        c.setFillColor(status_color)
+        c.drawRightString(value_x, content_y, status_text)
     
     y_pos -= box_height + 15
     
@@ -590,6 +600,12 @@ def generate_inspection_pdf(inspection_data, extracted_data_json):
             croqui_data = inspection_data['damage_croqui']
             if croqui_data.startswith('data:image'):
                 croqui_data = croqui_data.split(',')[1]
+            
+            # Fix base64 padding if needed
+            croqui_data = croqui_data.strip().replace('\n', '').replace('\r', '').replace(' ', '')
+            padding_needed = (4 - len(croqui_data) % 4) % 4
+            if padding_needed:
+                croqui_data += '=' * padding_needed
             
             img_data = base64.b64decode(croqui_data)
             img = Image.open(io.BytesIO(img_data))
@@ -888,6 +904,12 @@ def generate_inspection_pdf(inspection_data, extracted_data_json):
                     photo_data = photo['image_data']
                     if photo_data.startswith('data:image'):
                         photo_data = photo_data.split(',')[1]
+                    
+                    # Fix base64 padding if needed
+                    photo_data = photo_data.strip().replace('\n', '').replace('\r', '').replace(' ', '')
+                    padding_needed = (4 - len(photo_data) % 4) % 4
+                    if padding_needed:
+                        photo_data += '=' * padding_needed
                     
                     img_data = base64.b64decode(photo_data)
                     img = Image.open(io.BytesIO(img_data))
