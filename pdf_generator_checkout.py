@@ -949,16 +949,22 @@ def generate_inspection_pdf(inspection_data, extracted_data_json):
                             img_data = binascii.unhexlify(hex_data)
                         elif photo_data.startswith('data:image'):
                             # Data URL format - extract base64
+                            original_full = photo_data
                             photo_data = photo_data.split(',')[1]
+                            len_before = len(photo_data)
                             # Clean base64: remove ALL invalid characters (keep only A-Z, a-z, 0-9, +, /, =)
                             import re
                             photo_data = re.sub(r'[^A-Za-z0-9+/=]', '', photo_data)
+                            len_after_clean = len(photo_data)
                             # Remove existing padding to recalculate
                             photo_data = photo_data.rstrip('=')
+                            len_no_padding = len(photo_data)
                             # Fix base64 padding
                             padding_needed = (4 - len(photo_data) % 4) % 4
                             if padding_needed:
                                 photo_data += '=' * padding_needed
+                            len_final = len(photo_data)
+                            logging.info(f"🧹 CLEANED base64 for photo {idx}: {len_before} -> {len_after_clean} -> {len_no_padding} -> {len_final} (mod4={len_final%4})")
                             img_data = base64.b64decode(photo_data)
                         else:
                             # Raw base64 - fix padding and decode
@@ -1027,7 +1033,9 @@ def generate_inspection_pdf(inspection_data, extracted_data_json):
                     label = photo_labels[idx] if idx < len(photo_labels) else f"Foto {idx + 1}"
                     c.drawCentredString(x + photo_width / 2, y - 6, label)
                 except Exception as e:
+                    import traceback
                     logging.error(f"Error adding photo {idx} to PDF: {e}")
+                    logging.error(f"Full traceback:\n{traceback.format_exc()}")
             
             y_pos = y_start - (photo_height + spacing_vertical + 8) * 3 - 15
     
