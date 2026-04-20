@@ -402,6 +402,9 @@ def generate_inspection_pdf(inspection_data, extracted_data_json):
             
             # Aggressive base64 cleaning
             import re
+            original_len = len(croqui_data)
+            logging.info(f"📏 BEFORE cleaning croqui: length={original_len}, mod4={original_len % 4}")
+            
             croqui_data = croqui_data.strip()
             # Remove ALL invalid characters (whitespace, newlines, etc.)
             croqui_data = re.sub(r'[^A-Za-z0-9+/=]', '', croqui_data)
@@ -410,13 +413,10 @@ def generate_inspection_pdf(inspection_data, extracted_data_json):
             if padding_needed:
                 croqui_data += '=' * padding_needed
             
-            logging.info(f"🧹 Cleaned croqui base64: original length unknown, cleaned length: {len(croqui_data)}, padding added: {padding_needed}")
+            logging.info(f"🧹 AFTER cleaning croqui: original={original_len}, cleaned={len(croqui_data)}, padding_added={padding_needed}")
             
-            # Try to decode with validation, if fails try without validation
-            try:
-                img_data = base64.b64decode(croqui_data, validate=True)
-            except Exception:
-                img_data = base64.b64decode(croqui_data, validate=False)
+            # Decode base64 with strict validation
+            img_data = base64.b64decode(croqui_data, validate=True)
             img = Image.open(io.BytesIO(img_data))
             
             # Convert to RGB if needed
@@ -575,6 +575,9 @@ def generate_inspection_pdf(inspection_data, extracted_data_json):
                 
                 # Aggressive base64 cleaning
                 import re
+                original_len = len(photo_data)
+                logging.info(f"📏 BEFORE cleaning photo {idx}: length={original_len}, mod4={original_len % 4}")
+                
                 photo_data = photo_data.strip()
                 # Remove ALL invalid characters (whitespace, newlines, etc.)
                 photo_data = re.sub(r'[^A-Za-z0-9+/=]', '', photo_data)
@@ -583,14 +586,10 @@ def generate_inspection_pdf(inspection_data, extracted_data_json):
                 if padding_needed:
                     photo_data += '=' * padding_needed
                 
-                logging.info(f"🧹 Cleaned photo {idx} base64: cleaned length: {len(photo_data)}, padding added: {padding_needed}")
+                logging.info(f"🧹 AFTER cleaning photo {idx}: original={original_len}, cleaned={len(photo_data)}, padding_added={padding_needed}")
                 
-                # Try to decode with validation, if fails try without validation
-                try:
-                    img_data = base64.b64decode(photo_data, validate=True)
-                except Exception:
-                    # If strict validation fails, try lenient decoding
-                    img_data = base64.b64decode(photo_data, validate=False)
+                # Decode base64 with strict validation
+                img_data = base64.b64decode(photo_data, validate=True)
                 img = Image.open(io.BytesIO(img_data))
                 
                 # Convert to RGB if needed
