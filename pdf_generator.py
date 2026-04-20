@@ -1,4 +1,4 @@
-"""Modern PDF generator for vehicle inspections - v2026.04.20.12:06 - BASE64 STRICT VALIDATION"""
+"""Modern PDF generator for vehicle inspections - v2026.04.20.12:28 - BYTES TO BASE64 CONVERSION"""
 from reportlab.lib.pagesizes import A4
 from reportlab.lib.colors import HexColor
 from reportlab.pdfgen import canvas as pdf_canvas
@@ -13,8 +13,8 @@ from reportlab.lib.utils import ImageReader
 def generate_inspection_pdf(inspection_data, extracted_data_json):
     """Generate a modern, clean PDF for check-in, check-out, or self-checkout inspection"""
     
-    print(f"🎨 [PDF GENERATOR v2026.04.20.12:06] Function called!", flush=True)
-    logging.info("🎨 [PDF GENERATOR v2026.04.20.12:06] Function called!")
+    print(f"🎨 [PDF GENERATOR v2026.04.20.12:28 - BYTES FIX] Function called!", flush=True)
+    logging.info("🎨 [PDF GENERATOR v2026.04.20.12:28 - BYTES FIX] Function called!")
     
     # Parse extracted_data
     extracted = {}
