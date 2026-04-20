@@ -54575,11 +54575,17 @@ async def get_inspection_pdf(inspection_number: str, request: Request):
         logging.info(f"📸 FINAL CHECK before PDF generation: photos={len(inspection_data.get('photos', []))}, checkin_photos={len(inspection_data.get('checkin_photos', []))}")
         logging.info(f"🔍 Inspection type: {row[1]}")
         
+        print("\n" + "=" * 80, flush=True)
+        print(f"🚨 ABOUT TO IMPORT PDF GENERATOR FOR TYPE: {row[1]}", flush=True)
+        print("=" * 80 + "\n", flush=True)
+        
         if row[1] == 'self_checkout':
+            print("→ Importing pdf_generator_self_checkout", flush=True)
             from pdf_generator_self_checkout import generate_inspection_pdf as generate_self_checkout_pdf
             logging.info("📄 Using pdf_generator_self_checkout")
             pdf_content = generate_self_checkout_pdf(inspection_data, extracted_data_json)
         elif row[1] == 'checkout':
+            print("→ Importing pdf_generator_checkout", flush=True)
             from pdf_generator_checkout import generate_inspection_pdf as generate_checkout_pdf
             logging.info("📄 Using pdf_generator_checkout")
             pdf_content = generate_checkout_pdf(inspection_data, extracted_data_json)
