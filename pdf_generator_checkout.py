@@ -13,6 +13,12 @@ from reportlab.lib.utils import ImageReader
 def generate_inspection_pdf(inspection_data, extracted_data_json):
     """Generate a modern, clean PDF for check-in, check-out, or self-checkout inspection"""
     
+    # CRITICAL: Version check - if you don't see this, Railway is using cached version
+    print("=" * 80, flush=True)
+    print("🚨🚨🚨 PDF GENERATOR v2026.04.20.10:05 LOADED 🚨🚨🚨", flush=True)
+    print("=" * 80, flush=True)
+    logging.info("🚨🚨🚨 PDF GENERATOR v2026.04.20.10:05 LOADED 🚨🚨🚨")
+    
     # Parse extracted_data
     extracted = {}
     if extracted_data_json:
