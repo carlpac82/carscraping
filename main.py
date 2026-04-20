@@ -41870,8 +41870,14 @@ async def export_abbycar_excel(request: Request):
                     import json
                     prices_data = json.loads(result[0]) if isinstance(result[0], str) else result[0]
                     
-                    # Process each grupo
-                    for grupo, precos in prices_data.items():
+                    # Define correct order for grupos (MDMV first, LVMD last)
+                    grupo_order = ['B1', 'B2', 'D', 'E1', 'E2', 'F', 'G', 'J1', 'J2', 'L1', 'M1', 'M2', 'N']
+                    
+                    # Process each grupo in the correct order
+                    for grupo in grupo_order:
+                        if grupo not in prices_data:
+                            continue
+                        precos = prices_data[grupo]
                         sipp_models = grupo_sipp_map.get(grupo, [])
                         if not sipp_models:
                             continue
