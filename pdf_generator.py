@@ -415,20 +415,16 @@ def generate_inspection_pdf(inspection_data, extracted_data_json):
                 croqui_data = base64.b64encode(croqui_data).decode('utf-8')
                 print(f"✅ Converted to base64, length: {len(croqui_data)}", flush=True)
             elif isinstance(croqui_data, str) and croqui_data.startswith('\\x'):
-                # PostgreSQL bytea hex format as string literal - convert to bytes then base64
-                print(f"⚠️ Croqui is HEX STRING, converting to bytes then base64...", flush=True)
-                # Use codecs to decode escape sequences
-                import codecs
+                # PostgreSQL bytea hex format - remove \x prefix and convert from hex
+                print(f"⚠️ Croqui is POSTGRES HEX, converting to bytes then base64...", flush=True)
                 try:
-                    # Decode the escape sequences to get actual bytes
-                    croqui_bytes = codecs.decode(croqui_data, 'unicode_escape')
-                    # If result is string, encode to bytes
-                    if isinstance(croqui_bytes, str):
-                        croqui_bytes = croqui_bytes.encode('latin1')
+                    # Remove \x prefix and convert hex string to bytes
+                    hex_string = croqui_data[2:]  # Remove '\x'
+                    croqui_bytes = bytes.fromhex(hex_string)
                     croqui_data = base64.b64encode(croqui_bytes).decode('utf-8')
-                    print(f"✅ Converted hex string to base64, length: {len(croqui_data)}", flush=True)
+                    print(f"✅ Converted postgres hex to base64, length: {len(croqui_data)}", flush=True)
                 except Exception as e:
-                    print(f"❌ Failed to convert hex string: {e}", flush=True)
+                    print(f"❌ Failed to convert hex: {e}", flush=True)
                     raise
             elif croqui_data.startswith('data:image'):
                 croqui_data = croqui_data.split(',')[1]
@@ -617,19 +613,16 @@ def generate_inspection_pdf(inspection_data, extracted_data_json):
                     photo_data = base64.b64encode(photo_data).decode('utf-8')
                     print(f"✅ Converted photo {idx} to base64, length: {len(photo_data)}", flush=True)
                 elif isinstance(photo_data, str) and photo_data.startswith('\\x'):
-                    # PostgreSQL bytea hex format as string literal - convert to bytes then base64
-                    print(f"⚠️ Photo {idx} is HEX STRING, converting to bytes then base64...", flush=True)
-                    import codecs
+                    # PostgreSQL bytea hex format - remove \x prefix and convert from hex
+                    print(f"⚠️ Photo {idx} is POSTGRES HEX, converting to bytes then base64...", flush=True)
                     try:
-                        # Decode the escape sequences to get actual bytes
-                        photo_bytes = codecs.decode(photo_data, 'unicode_escape')
-                        # If result is string, encode to bytes
-                        if isinstance(photo_bytes, str):
-                            photo_bytes = photo_bytes.encode('latin1')
+                        # Remove \x prefix and convert hex string to bytes
+                        hex_string = photo_data[2:]  # Remove '\x'
+                        photo_bytes = bytes.fromhex(hex_string)
                         photo_data = base64.b64encode(photo_bytes).decode('utf-8')
-                        print(f"✅ Converted photo {idx} hex string to base64, length: {len(photo_data)}", flush=True)
+                        print(f"✅ Converted photo {idx} postgres hex to base64, length: {len(photo_data)}", flush=True)
                     except Exception as e:
-                        print(f"❌ Failed to convert photo {idx} hex string: {e}", flush=True)
+                        print(f"❌ Failed to convert photo {idx} hex: {e}", flush=True)
                         raise
                 elif photo_data.startswith('data:image'):
                     photo_data = photo_data.split(',')[1]
