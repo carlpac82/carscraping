@@ -399,6 +399,15 @@ def generate_inspection_pdf(inspection_data, extracted_data_json):
             croqui_data = inspection_data['damage_croqui']
             if croqui_data.startswith('data:image'):
                 croqui_data = croqui_data.split(',')[1]
+                # Clean base64: remove ALL invalid characters
+                import re
+                croqui_data = re.sub(r'[^A-Za-z0-9+/=]', '', croqui_data)
+                # Remove existing padding to recalculate
+                croqui_data = croqui_data.rstrip('=')
+                # Fix base64 padding
+                padding_needed = (4 - len(croqui_data) % 4) % 4
+                if padding_needed:
+                    croqui_data += '=' * padding_needed
             
             img_data = base64.b64decode(croqui_data)
             img = Image.open(io.BytesIO(img_data))
@@ -554,6 +563,15 @@ def generate_inspection_pdf(inspection_data, extracted_data_json):
                 photo_data = photo['image_data']
                 if photo_data.startswith('data:image'):
                     photo_data = photo_data.split(',')[1]
+                    # Clean base64: remove ALL invalid characters
+                    import re
+                    photo_data = re.sub(r'[^A-Za-z0-9+/=]', '', photo_data)
+                    # Remove existing padding to recalculate
+                    photo_data = photo_data.rstrip('=')
+                    # Fix base64 padding
+                    padding_needed = (4 - len(photo_data) % 4) % 4
+                    if padding_needed:
+                        photo_data += '=' * padding_needed
                 
                 img_data = base64.b64decode(photo_data)
                 img = Image.open(io.BytesIO(img_data))
