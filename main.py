@@ -54426,20 +54426,8 @@ async def get_inspection_pdf(inspection_number: str, request: Request):
                         image_data = f"data:image/jpeg;base64,{base64.b64encode(image_data).decode('utf-8')}"
                         logging.info(f"✅ Converted bytes to data URL for {photo_type}")
                     elif isinstance(image_data, str) and image_data.startswith('data:image'):
-                        # Fix padding if needed for data URI
-                        import base64
-                        parts = image_data.split(',', 1)
-                        if len(parts) == 2:
-                            header, encoded = parts
-                            # Remove whitespace and existing padding
-                            encoded = encoded.strip().replace('\n', '').replace('\r', '').replace(' ', '').rstrip('=')
-                            original_len = len(encoded)
-                            padding_needed = (4 - len(encoded) % 4) % 4
-                            if padding_needed > 0:
-                                encoded += '=' * padding_needed
-                                logging.info(f"🔧 BACKEND: Fixed padding for {photo_type}: {original_len} -> {len(encoded)} (+{padding_needed})")
-                            # Reconstruct data URI with fixed padding
-                            image_data = f"{header},{encoded}"
+                        # Keep data as-is from database - don't modify padding
+                        pass
                     
                     inspection_photos.append({
                         'image_data': image_data,
