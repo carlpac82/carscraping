@@ -5096,6 +5096,14 @@ def _extract_base64_images_from_html(html_content):
         counter += 1
         
         try:
+            # Check if it's PostgreSQL hex format (from old inspections)
+            if isinstance(image_data, str) and image_data.startswith('\\x'):
+                # PostgreSQL bytea hex format - remove \x prefix and convert from hex
+                hex_string = image_data[2:]  # Remove '\x'
+                image_bytes = bytes.fromhex(hex_string)
+                image_data = base64.b64encode(image_bytes).decode('utf-8')
+                logging.info(f"✅ Converted postgres hex to base64 for email image {counter}")
+            
             # Remove any whitespace from base64 string
             image_data = ''.join(image_data.split())
             
