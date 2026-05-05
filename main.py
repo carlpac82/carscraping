@@ -63320,43 +63320,38 @@ async def admin_brokers_import(request: Request):
             os.unlink(temp_path)
             return JSONResponse({"ok": False, "error": f"Erro ao ler ficheiro Excel: {str(e)}"}, status_code=400)
         
-        # Normalize column names (remove extra spaces, convert to uppercase for comparison)
+        # Normalize column names
         df.columns = df.columns.str.strip()
         
-        # Map possible column name variations
-        column_mapping = {
-            'BROKER': 'Broker',
-            'Broker': 'Broker',
-            'VOUCHER': 'Voucher',
-            'Voucher': 'Voucher',
-            'DATA LEVANT.': 'Data Levantamento',
-            'Data Levantamento': 'Data Levantamento',
-            'DATA LEVANTAMENTO': 'Data Levantamento',
-            'DIAS': 'Dias',
-            'Dias': 'Dias',
-            'VALOR BASE': 'Valor Base',
-            'Valor Base': 'Valor Base'
-        }
-        
-        # Rename columns based on mapping
-        df.rename(columns=column_mapping, inplace=True)
-        
-        # Required columns (Status is optional)
-        required_columns = ['Broker', 'Data Levantamento', 'Dias', 'Valor Base']
-        
-        # Check if required columns exist
+        # Check if required columns exist (format: Voucher, Data Entrega, Dias, Loyalty Card)
+        required_columns = ['Voucher', 'Data Entrega', 'Dias', 'Loyalty Card']
         missing_columns = [col for col in required_columns if col not in df.columns]
         if missing_columns:
             os.unlink(temp_path)
             return JSONResponse({"ok": False, "error": f"Colunas em falta: {', '.join(missing_columns)}"}, status_code=400)
         
-        # Add Status column if not present (default to 'confirmed')
-        if 'Status' not in df.columns:
-            df['Status'] = 'confirmed'
+        # Process data: broker names are in rows where other columns are NaN
+        # Extract broker sections
+        broker_data = []
+        current_broker = None
         
-        # Add Voucher column if not present (will be NULL)
-        if 'Voucher' not in df.columns:
-            df['Voucher'] = None
+        for index, row in df.iterrows():
+            voucher = row['Voucher']
+            
+            # Check if this is a broker name row (has voucher text but other fields are NaN)
+            if pd.notna(voucher) and pd.isna(row['Data Entrega']) and pd.isna(row['Dias']):
+                # This is a broker separator line
+                current_broker = str(voucher).strip()
+            elif pd.notna(voucher) and pd.notna(row['Data Entrega']):
+                # This is a booking row
+                if current_broker:
+                    broker_data.append({
+                        'broker': current_broker,
+                        'voucher': str(voucher).strip() if pd.notna(voucher) else None,
+                        'pickup_date': row['Data Entrega'],
+                        'days': int(row['Dias']) if pd.notna(row['Dias']) else 0,
+                        'total_price': float(row['Loyalty Card']) if pd.notna(row['Loyalty Card']) else 0.0
+                    })
         
         # Process data
         imported_count = 0
@@ -63401,65 +63396,49 @@ async def admin_brokers_import(request: Request):
                 cur.execute(create_table_query)
                 
                 # Insert data
-                for index, row in df.iterrows():
+                for booking in broker_data:
                     try:
                         # Parse dates
                         pickup_date = None
-                        
-                        if pd.notna(row['Data Levantamento']):
-                            if isinstance(row['Data Levantamento'], str):
-                                pickup_date = pd.to_datetime(row['Data Levantamento']).date()
+                        if booking['pickup_date']:
+                            if isinstance(booking['pickup_date'], str):
+                                pickup_date = pd.to_datetime(booking['pickup_date']).date()
                             else:
-                                pickup_date = row['Data Levantamento']
-                        
-                        # Parse numeric values
-                        days = int(row['Dias']) if pd.notna(row['Dias']) else 0
-                        total_price = float(row['Valor Base']) if pd.notna(row['Valor Base']) else 0
-                        
-                        # Default status if not provided
-                        status = 'confirmed'
-                        if pd.notna(row['Status']):
-                            status_str = str(row['Status']).strip().lower()
-                            if status_str in ['confirmada', 'confirmed']:
-                                status = 'confirmed'
-                            elif status_str in ['pendente', 'pending']:
-                                status = 'pending'
-                            elif status_str in ['cancelada', 'cancelled']:
-                                status = 'cancelled'
+                                pickup_date = booking['pickup_date']
                         
                         if USE_POSTGRES:
                             insert_query = """
                                 INSERT INTO broker_bookings 
-                                (broker_name, voucher_number, client_name, pickup_date, 
-                                 vehicle_group, days, total_price, status)
-                                VALUES (%s, %s, %s, %s, %s, %s, %s, %s)
+                                (broker_name, voucher_number, pickup_date, days, total_price, status)
+                                VALUES (%s, %s, %s, %s, %s, %s)
                             """
                             cur.execute(insert_query, (
-                                str(row['Broker']), str(row['Voucher']) if pd.notna(row['Voucher']) else None,
-                                str(row['Cliente']) if pd.notna(row['Cliente']) else None,
+                                booking['broker'],
+                                booking['voucher'],
                                 pickup_date,
-                                str(row['Veículo']) if pd.notna(row['Veículo']) else None,
-                                days, total_price, status
+                                booking['days'],
+                                booking['total_price'],
+                                'confirmed'
                             ))
                         else:
                             insert_query = """
                                 INSERT INTO broker_bookings 
-                                (broker_name, voucher_number, client_name, pickup_date, 
-                                 vehicle_group, days, total_price, status)
-                                VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+                                (broker_name, voucher_number, pickup_date, days, total_price, status)
+                                VALUES (?, ?, ?, ?, ?, ?)
                             """
                             cur.execute(insert_query, (
-                                str(row['Broker']), str(row['Voucher']) if pd.notna(row['Voucher']) else None,
-                                str(row['Cliente']) if pd.notna(row['Cliente']) else None,
+                                booking['broker'],
+                                booking['voucher'],
                                 pickup_date.isoformat() if pickup_date else None,
-                                str(row['Veículo']) if pd.notna(row['Veículo']) else None,
-                                days, total_price, status
+                                booking['days'],
+                                booking['total_price'],
+                                'confirmed'
                             ))
                         
                         imported_count += 1
                         
                     except Exception as e:
-                        print(f"Error importing row {index}: {e}")
+                        print(f"Error importing booking: {e}")
                         continue
                 
                 con.commit()
