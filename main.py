@@ -63320,14 +63320,43 @@ async def admin_brokers_import(request: Request):
             os.unlink(temp_path)
             return JSONResponse({"ok": False, "error": f"Erro ao ler ficheiro Excel: {str(e)}"}, status_code=400)
         
-        # Expected columns: Broker, Voucher, Data Levantamento, Dias, Valor Base, Status
-        expected_columns = ['Broker', 'Voucher', 'Data Levantamento', 'Dias', 'Valor Base', 'Status']
+        # Normalize column names (remove extra spaces, convert to uppercase for comparison)
+        df.columns = df.columns.str.strip()
+        
+        # Map possible column name variations
+        column_mapping = {
+            'BROKER': 'Broker',
+            'Broker': 'Broker',
+            'VOUCHER': 'Voucher',
+            'Voucher': 'Voucher',
+            'DATA LEVANT.': 'Data Levantamento',
+            'Data Levantamento': 'Data Levantamento',
+            'DATA LEVANTAMENTO': 'Data Levantamento',
+            'DIAS': 'Dias',
+            'Dias': 'Dias',
+            'VALOR BASE': 'Valor Base',
+            'Valor Base': 'Valor Base'
+        }
+        
+        # Rename columns based on mapping
+        df.rename(columns=column_mapping, inplace=True)
+        
+        # Required columns (Status is optional)
+        required_columns = ['Broker', 'Data Levantamento', 'Dias', 'Valor Base']
         
         # Check if required columns exist
-        missing_columns = [col for col in expected_columns if col not in df.columns]
+        missing_columns = [col for col in required_columns if col not in df.columns]
         if missing_columns:
             os.unlink(temp_path)
             return JSONResponse({"ok": False, "error": f"Colunas em falta: {', '.join(missing_columns)}"}, status_code=400)
+        
+        # Add Status column if not present (default to 'confirmed')
+        if 'Status' not in df.columns:
+            df['Status'] = 'confirmed'
+        
+        # Add Voucher column if not present (will be NULL)
+        if 'Voucher' not in df.columns:
+            df['Voucher'] = None
         
         # Process data
         imported_count = 0
