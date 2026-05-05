@@ -19,8 +19,9 @@ selenium==4.36.0
 webdriver-manager==4.0.2
 selenium-stealth==1.0.6
 
-# Excel export
+# Excel export and import
 openpyxl==3.1.2
+pandas==2.2.0
 
 # PDF processing
 PyPDF2==3.0.1
