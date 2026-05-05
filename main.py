@@ -63297,11 +63297,14 @@ async def admin_brokers_import(request: Request):
         from datetime import datetime, timedelta
         import os
         
+        # Get form data
+        form = await request.form()
+        
         # Check if file was uploaded
-        if "file" not in request._form:
+        if "file" not in form:
             return JSONResponse({"ok": False, "error": "Nenhum ficheiro enviado"}, status_code=400)
         
-        file = request._form["file"]
+        file = form["file"]
         if not file.filename.endswith(('.xlsx', '.xls')):
             return JSONResponse({"ok": False, "error": "Ficheiro deve ser Excel (.xlsx ou .xls)"}, status_code=400)
         
