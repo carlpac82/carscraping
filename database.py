@@ -46,11 +46,11 @@ if USE_POSTGRES:
         'sslmode': 'prefer'  # Changed from 'require' to 'prefer' for local development
     }
     
-    # Connection Pool (10-50 connections) - increased to handle high load
+    # Connection Pool (3-15 per worker, 6 workers = max 90 total)
     try:
         connection_pool = pool.ThreadedConnectionPool(
-            minconn=10,
-            maxconn=50,
+            minconn=3,
+            maxconn=15,
             **DB_CONFIG
         )
         logging.info(f"🐘 PostgreSQL connection pool created: {result.hostname}/{result.path[1:]}")
