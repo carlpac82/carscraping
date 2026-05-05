@@ -63339,7 +63339,7 @@ async def admin_brokers_import(request: Request):
             if name.startswith('ABBYCAR'):
                 return 'ABBYCAR'
             elif name.startswith('API'):
-                return 'API'
+                return 'API-WEB'  # Dashboard expects API-WEB format
             elif name.startswith('CARALLIANCE'):
                 return 'CARALLIANCE'
             elif name.startswith('DISCOVERCARS'):
