@@ -63330,6 +63330,23 @@ async def admin_brokers_import(request: Request):
             os.unlink(temp_path)
             return JSONResponse({"ok": False, "error": f"Colunas em falta: {', '.join(missing_columns)}"}, status_code=400)
         
+        # Normalize broker names to consolidate variations
+        def normalize_broker_name(name):
+            """Consolidate broker variations (POA, PREPAID, WEB) into main broker name"""
+            name = str(name).strip().upper()
+            
+            # Remove suffixes
+            if name.startswith('ABBYCAR'):
+                return 'ABBYCAR'
+            elif name.startswith('API'):
+                return 'API'
+            elif name.startswith('CARALLIANCE'):
+                return 'CARALLIANCE'
+            elif name.startswith('DISCOVERCARS'):
+                return 'DISCOVERCARS'
+            
+            return name
+        
         # Process data: broker names are in rows where other columns are NaN
         # Extract broker sections
         broker_data = []
@@ -63341,7 +63358,7 @@ async def admin_brokers_import(request: Request):
             # Check if this is a broker name row (has voucher text but other fields are NaN)
             if pd.notna(voucher) and pd.isna(row['Data Entrega']) and pd.isna(row['Dias']):
                 # This is a broker separator line
-                current_broker = str(voucher).strip()
+                current_broker = normalize_broker_name(voucher)
             elif pd.notna(row['Data Entrega']):
                 # This is a booking row (may or may not have voucher)
                 if current_broker:
