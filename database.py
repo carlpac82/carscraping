@@ -46,11 +46,11 @@ if USE_POSTGRES:
         'sslmode': 'prefer'  # Changed from 'require' to 'prefer' for local development
     }
     
-    # Connection Pool (5-20 connections)
+    # Connection Pool (10-50 connections) - increased to handle high load
     try:
         connection_pool = pool.ThreadedConnectionPool(
-            minconn=5,
-            maxconn=20,
+            minconn=10,
+            maxconn=50,
             **DB_CONFIG
         )
         logging.info(f"🐘 PostgreSQL connection pool created: {result.hostname}/{result.path[1:]}")
@@ -294,11 +294,10 @@ def get_db():
     """Get a database connection (for backward compatibility)"""
     if USE_POSTGRES:
         if connection_pool:
-            try:
-                conn = connection_pool.getconn()
-            except:
-                conn = psycopg2.connect(**DB_CONFIG)
+            # Always use pool - never create direct connections
+            conn = connection_pool.getconn()
         else:
+            # Fallback only if pool creation failed at startup
             conn = psycopg2.connect(**DB_CONFIG)
         # Wrap to add execute() method
         return PostgreSQLConnectionWrapper(conn)
