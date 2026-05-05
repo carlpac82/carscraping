@@ -63518,6 +63518,54 @@ async def admin_brokers_delete(request: Request):
         traceback.print_exc()
         return JSONResponse({"ok": False, "error": str(e)}, status_code=500)
 
+@app.post("/api/admin/brokers/delete-period")
+async def admin_brokers_delete_period(request: Request):
+    """Delete broker bookings from a specific month/year"""
+    try:
+        data = await request.json()
+        month = data.get("month")  # 1-12
+        year = data.get("year")    # e.g., 2026
+        
+        if not month or not year:
+            return JSONResponse({"ok": False, "error": "Mês e ano são obrigatórios"}, status_code=400)
+        
+        with _db_lock:
+            con = _db_connect()
+            try:
+                cur = con.cursor()
+                
+                if USE_POSTGRES:
+                    query = """
+                        DELETE FROM broker_bookings 
+                        WHERE EXTRACT(MONTH FROM pickup_date) = %s 
+                        AND EXTRACT(YEAR FROM pickup_date) = %s
+                    """
+                    cur.execute(query, (month, year))
+                else:
+                    query = """
+                        DELETE FROM broker_bookings 
+                        WHERE CAST(strftime('%m', pickup_date) AS INTEGER) = ? 
+                        AND CAST(strftime('%Y', pickup_date) AS INTEGER) = ?
+                    """
+                    cur.execute(query, (month, year))
+                
+                con.commit()
+                deleted_count = cur.rowcount
+                
+                return JSONResponse({
+                    "ok": True,
+                    "deleted": deleted_count,
+                    "message": f"Eliminados {deleted_count} registos de {month:02d}/{year}"
+                })
+                
+            finally:
+                con.close()
+                
+    except Exception as e:
+        logging.error(f"Error deleting broker bookings by period: {e}")
+        traceback.print_exc()
+        return JSONResponse({"ok": False, "error": str(e)}, status_code=500)
+
 @app.post("/webhook/github")
 async def github_webhook(request: Request):
     """Webhook para receber eventos do GitHub (Issues)"""
