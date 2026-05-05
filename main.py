@@ -63342,8 +63342,8 @@ async def admin_brokers_import(request: Request):
             if pd.notna(voucher) and pd.isna(row['Data Entrega']) and pd.isna(row['Dias']):
                 # This is a broker separator line
                 current_broker = str(voucher).strip()
-            elif pd.notna(voucher) and pd.notna(row['Data Entrega']):
-                # This is a booking row
+            elif pd.notna(row['Data Entrega']):
+                # This is a booking row (may or may not have voucher)
                 if current_broker:
                     broker_data.append({
                         'broker': current_broker,
