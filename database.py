@@ -49,7 +49,7 @@ if USE_POSTGRES:
         'keepalives_idle': 30,
         'keepalives_interval': 10,
         'keepalives_count': 5,
-        'options': '-c statement_timeout=30000 -c idle_in_transaction_session_timeout=60000',
+        'options': '-c statement_timeout=120000 -c idle_in_transaction_session_timeout=60000',
     }
     
     # Connection Pool (3-15 per worker, 6 workers = max 90 total)
@@ -247,25 +247,41 @@ class PostgreSQLConnectionWrapper:
                         on_conflict = f"\nON CONFLICT ({pk_column}) DO UPDATE SET\n    {', '.join(update_cols)}"
                         query = query[:values_end] + on_conflict + query[values_end:]
         
-        self._cursor = self._conn.cursor()
-        try:
-            if params:
-                self._cursor.execute(query, params)
-            else:
-                self._cursor.execute(query)
-        except Exception as e:
-            # Log the error with query and params for debugging
-            import logging
-            err_msg = str(e).lower()
-            # Migrations "already exists" / "does not exist" are expected on startup - don't spam ERROR
-            if 'already exists' in err_msg or 'duplicate column' in err_msg:
-                logging.debug(f"PostgreSQL migration (expected): {e}")
-            else:
+        # Retry for connection errors
+        import logging
+        for attempt in range(2):
+            try:
+                self._cursor = self._conn.cursor()
+                if params:
+                    self._cursor.execute(query, params)
+                else:
+                    self._cursor.execute(query)
+                return self._cursor
+            except (psycopg2.InterfaceError, psycopg2.OperationalError) as e:
+                err_msg = str(e).lower()
+                if 'connection already closed' in err_msg or 'ssl syscall' in err_msg:
+                    if attempt == 0:
+                        logging.warning(f"Connection error, retrying: {e}")
+                        try:
+                            if connection_pool:
+                                connection_pool.putconn(self._conn, close=True)
+                                self._conn = connection_pool.getconn()
+                        except:
+                            pass
+                        continue
                 logging.error(f"PostgreSQL execute error: {e}")
                 logging.error(f"Query: {query}")
                 logging.error(f"Params: {params}")
-            raise
-        return self._cursor
+                raise
+            except Exception as e:
+                err_msg = str(e).lower()
+                if 'already exists' in err_msg or 'duplicate column' in err_msg:
+                    logging.debug(f"PostgreSQL migration (expected): {e}")
+                else:
+                    logging.error(f"PostgreSQL execute error: {e}")
+                    logging.error(f"Query: {query}")
+                    logging.error(f"Params: {params}")
+                raise
     
     def cursor(self):
         """Retorna um cursor da conexão PostgreSQL"""
