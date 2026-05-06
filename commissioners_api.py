@@ -327,8 +327,13 @@ async def create_booking(booking: BookingCreate, request: Request):
     
     # CRITICAL: Recalculate rental_days from pickup/dropoff dates and times
     # Don't trust the frontend value - calculate it correctly on backend
-    pickup_dt = datetime.combine(booking.pickup_date, booking.pickup_time or time(0, 0))
-    dropoff_dt = datetime.combine(booking.dropoff_date, booking.dropoff_time or time(0, 0))
+    
+    # Convert string dates to date objects if needed
+    pickup_date_obj = booking.pickup_date if isinstance(booking.pickup_date, date) else datetime.strptime(str(booking.pickup_date), '%Y-%m-%d').date()
+    dropoff_date_obj = booking.dropoff_date if isinstance(booking.dropoff_date, date) else datetime.strptime(str(booking.dropoff_date), '%Y-%m-%d').date()
+    
+    pickup_dt = datetime.combine(pickup_date_obj, booking.pickup_time or time(0, 0))
+    dropoff_dt = datetime.combine(dropoff_date_obj, booking.dropoff_time or time(0, 0))
     
     # Calcular diferença em minutos
     time_diff = dropoff_dt - pickup_dt
