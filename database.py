@@ -44,6 +44,12 @@ if USE_POSTGRES:
         'user': result.username,
         'password': result.password,
         'sslmode': 'prefer'  # Changed from 'require' to 'prefer' for local development
+        'connect_timeout': 10,
+        'keepalives': 1,
+        'keepalives_idle': 30,
+        'keepalives_interval': 10,
+        'keepalives_count': 5,
+        'options': '-c statement_timeout=30000 -c idle_in_transaction_session_timeout=60000',
     }
     
     # Connection Pool (3-15 per worker, 6 workers = max 90 total)
