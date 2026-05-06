@@ -1310,6 +1310,15 @@ async def lifespan(app: FastAPI):
     import datetime
     logging.info(f"APPLICATION STARTED - VERSION 3.0 - {datetime.datetime.now().isoformat()}")
     
+    # Start connection auto-cleanup scheduler (PostgreSQL only)
+    try:
+        if _USE_NEW_DB and USE_POSTGRES:
+            from auto_cleanup_connections import start_connection_cleanup_scheduler
+            start_connection_cleanup_scheduler()
+            logging.info("✅ PostgreSQL connection auto-cleanup enabled (every 5 minutes)")
+    except Exception as e:
+        logging.warning(f"⚠️ Auto-cleanup scheduler error: {e}")
+    
     # Initialize database tables
     try:
         logging.info("Initializing database tables...")
