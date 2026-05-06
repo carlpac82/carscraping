@@ -52,11 +52,11 @@ if USE_POSTGRES:
         'options': '-c statement_timeout=120000 -c idle_in_transaction_session_timeout=60000',
     }
     
-    # Connection Pool (3-15 per worker, 6 workers = max 90 total)
+    # Connection Pool (1-5 per worker, 6 workers = max 30 total)
     try:
         connection_pool = pool.ThreadedConnectionPool(
-            minconn=3,
-            maxconn=15,
+            minconn=1,
+            maxconn=5,
             **DB_CONFIG
         )
         logging.info(f"🐘 PostgreSQL connection pool created: {result.hostname}/{result.path[1:]}")
@@ -125,7 +125,9 @@ class DatabaseConnection:
             self.conn = None
     
     def execute(self, query: str, params: tuple = None):
-        """Execute a query with automatic dialect conversion"""
+        """Execute a query with automatic dialect conversion and SSL error retry"""
+        import time
+        
         if not self.conn:
             self.connect()
         
@@ -133,12 +135,37 @@ class DatabaseConnection:
         if self.is_postgres:
             query = self._convert_to_postgres(query)
         
-        cursor = self.conn.cursor()
-        if params:
-            cursor.execute(query, params)
-        else:
-            cursor.execute(query)
-        return cursor
+        # PASSO 3: Retry logic para SSL errors durante queries
+        max_retries = 2
+        for attempt in range(max_retries):
+            try:
+                cursor = self.conn.cursor()
+                if params:
+                    cursor.execute(query, params)
+                else:
+                    cursor.execute(query)
+                return cursor
+            except Exception as e:
+                error_msg = str(e).lower()
+                is_ssl_error = any(x in error_msg for x in [
+                    'ssl connection has been closed',
+                    'connection already closed',
+                    'server closed the connection'
+                ])
+                
+                if is_ssl_error and attempt < max_retries - 1:
+                    logging.warning(f"⚠️ SSL error during query, reconnecting (attempt {attempt+1}/{max_retries})")
+                    # Fechar conexão morta e reconectar
+                    try:
+                        self.close()
+                    except:
+                        pass
+                    time.sleep(0.5)
+                    self.connect()
+                    continue
+                else:
+                    # Não é SSL error ou já esgotou retries
+                    raise
     
     def commit(self):
         """Commit transaction"""
