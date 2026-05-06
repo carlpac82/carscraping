@@ -1386,10 +1386,31 @@ async def lifespan(app: FastAPI):
             logging.info("Default users ready (admin/admin)")
         except Exception as e:
             logging.warning(f"Default users error: {e}")
+        
+        # Create additional tables (ONLY worker 0 to avoid connection spikes)
+        try:
+            logging.info("Creating additional tables...")
+            _ensure_damage_reports_tables()
+            _ensure_rental_agreement_tables()
+            _ensure_vehicle_photos_table()
+            _ensure_vehicle_name_overrides_table()
+            _ensure_vehicle_images_table()
+            _ensure_vehicle_inspections_table()
+            logging.info("✅ Additional tables created/verified")
+        except Exception as e:
+            logging.error(f"Error creating additional tables: {e}")
+        
+        # Apply performance indexes (ONLY worker 0)
+        try:
+            import apply_indexes
+            apply_indexes.apply_indexes()
+            logging.info("✅ Performance indexes applied")
+        except Exception as e:
+            logging.warning(f"⚠️ Could not apply performance indexes: {e}")
     else:
         # Other workers: wait for worker 0 to finish init
         logging.info(f"⏳ Worker {worker_id}: Waiting for database initialization...")
-        time.sleep(5)  # Wait 5 seconds for worker 0 to complete
+        time.sleep(10)  # Wait 10 seconds for worker 0 to complete all table creation
         logging.info(f"✅ Worker {worker_id}: Ready")
     
     # Pre-load promotional images cache
@@ -1399,17 +1420,6 @@ async def lifespan(app: FastAPI):
         logging.info("Promotional images cached")
     except Exception as e:
         logging.warning(f"Promotional images cache error: {e}")
-    
-    # Create tables
-    try:
-        _ensure_damage_reports_tables()
-        _ensure_rental_agreement_tables()
-        _ensure_vehicle_photos_table()
-        _ensure_vehicle_name_overrides_table()
-        _ensure_vehicle_images_table()
-        _ensure_vehicle_inspections_table()
-    except Exception as e:
-        logging.error(f"Error creating tables: {e}")
     
     # Background jobs
     try:
@@ -1445,13 +1455,6 @@ async def lifespan(app: FastAPI):
         logging.debug("✅ AI models loaded at startup")
     except Exception as e:
         logging.debug(f"⚠️ Could not load AI models: {e}")
-    
-    # Apply performance indexes
-    try:
-        import apply_indexes
-        apply_indexes.apply_indexes()
-    except Exception as e:
-        logging.warning(f"⚠️ Could not apply performance indexes: {e}")
     
     # Backup scheduler - APENAS NO WORKER PRINCIPAL
     # Evita backups duplicados (cada worker executaria o scheduler)
