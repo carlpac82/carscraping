@@ -375,16 +375,16 @@ async def create_booking(booking: BookingCreate, request: Request):
     else:
         season = 'high'
     
-    # Get price from settings table
+    # Get price from commissioner_settings table
     if correct_rental_days <= 7:
         price_key = f"commissioner_season_{booking.vehicle_group}_{season}_day{correct_rental_days}"
-        cursor.execute("SELECT value FROM settings WHERE key = %s", (price_key,))
+        cursor.execute("SELECT setting_value FROM commissioner_settings WHERE setting_key = %s", (price_key,))
         price_row = cursor.fetchone()
         correct_base_price = float(price_row[0]) if price_row and price_row[0] else booking.base_price
     else:
         # For 8+ days, use day7 price and calculate daily rate
         price_key = f"commissioner_season_{booking.vehicle_group}_{season}_day7"
-        cursor.execute("SELECT value FROM settings WHERE key = %s", (price_key,))
+        cursor.execute("SELECT setting_value FROM commissioner_settings WHERE setting_key = %s", (price_key,))
         price_row = cursor.fetchone()
         if price_row and price_row[0]:
             day7_price = float(price_row[0])
