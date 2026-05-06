@@ -43,7 +43,7 @@ if USE_POSTGRES:
         'database': result.path[1:],
         'user': result.username,
         'password': result.password,
-        'sslmode': 'prefer'  # Changed from 'require' to 'prefer' for local development
+        'sslmode': 'prefer',  # Changed from 'require' to 'prefer' for local development
         'connect_timeout': 10,
         'keepalives': 1,
         'keepalives_idle': 30,
