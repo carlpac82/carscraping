@@ -21313,14 +21313,26 @@ def _ensure_vehicle_inspections_table():
                 conn.execute("CREATE INDEX IF NOT EXISTS idx_inspection_photos_inspection_id ON inspection_photos(inspection_id)")
             except Exception as e:
                 logging.warning(f"Index idx_inspection_photos_inspection_id: {e}")
+                try:
+                    conn.rollback()
+                except:
+                    pass
             try:
                 conn.execute("CREATE INDEX IF NOT EXISTS idx_inspection_photos_photo_type ON inspection_photos(photo_type)")
             except Exception as e:
                 logging.warning(f"Index idx_inspection_photos_photo_type: {e}")
+                try:
+                    conn.rollback()
+                except:
+                    pass
             try:
                 conn.execute("CREATE INDEX IF NOT EXISTS idx_inspection_photos_composite ON inspection_photos(inspection_id, photo_type)")
             except Exception as e:
                 logging.warning(f"Index idx_inspection_photos_composite: {e}")
+                try:
+                    conn.rollback()
+                except:
+                    pass
             
         else:
             # SQLite
