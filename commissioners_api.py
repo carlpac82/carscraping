@@ -332,8 +332,12 @@ async def create_booking(booking: BookingCreate, request: Request):
     pickup_date_obj = booking.pickup_date if isinstance(booking.pickup_date, date) else datetime.strptime(str(booking.pickup_date), '%Y-%m-%d').date()
     dropoff_date_obj = booking.dropoff_date if isinstance(booking.dropoff_date, date) else datetime.strptime(str(booking.dropoff_date), '%Y-%m-%d').date()
     
-    pickup_dt = datetime.combine(pickup_date_obj, booking.pickup_time or time(0, 0))
-    dropoff_dt = datetime.combine(dropoff_date_obj, booking.dropoff_time or time(0, 0))
+    # Convert string times to time objects if needed
+    pickup_time_obj = booking.pickup_time if isinstance(booking.pickup_time, time) else datetime.strptime(str(booking.pickup_time or '00:00'), '%H:%M').time() if booking.pickup_time else time(0, 0)
+    dropoff_time_obj = booking.dropoff_time if isinstance(booking.dropoff_time, time) else datetime.strptime(str(booking.dropoff_time or '00:00'), '%H:%M').time() if booking.dropoff_time else time(0, 0)
+    
+    pickup_dt = datetime.combine(pickup_date_obj, pickup_time_obj)
+    dropoff_dt = datetime.combine(dropoff_date_obj, dropoff_time_obj)
     
     # Calcular diferença em minutos
     time_diff = dropoff_dt - pickup_dt
