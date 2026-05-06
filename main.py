@@ -1308,6 +1308,7 @@ async def lifespan(app: FastAPI):
     """Manage application startup and shutdown events"""
     # STARTUP EVENTS
     import datetime
+    import os
     logging.info(f"APPLICATION STARTED - VERSION 3.0 - {datetime.datetime.now().isoformat()}")
     
     # Start connection auto-cleanup scheduler (PostgreSQL only)
