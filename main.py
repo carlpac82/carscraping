@@ -1330,11 +1330,15 @@ async def lifespan(app: FastAPI):
             logging.info("users table created/exists")
             init_db()
             logging.info("All tables created/verified (19 tables total)")
-        
-        # Setup current_prices table with updated_by column
-        from current_prices_module import setup_db
-        setup_db()
-        logging.info("current_prices table setup completed")
+            
+            # Setup current_prices table with updated_by column
+            from current_prices_module import setup_db
+            setup_db()
+            logging.info("current_prices table setup completed")
+        except Exception as e:
+            logging.error(f"Database initialization error: {e}")
+            import traceback
+            traceback.print_exc()
         
         # Executar migration das colunas hotel, room_number e deposit
         try:
@@ -1384,11 +1388,6 @@ async def lifespan(app: FastAPI):
             logging.info("Default users ready (admin/admin)")
         except Exception as e:
             logging.warning(f"Default users error: {e}")
-            
-    except Exception as e:
-        logging.error(f"Database initialization error: {e}")
-        import traceback
-        traceback.print_exc()
     else:
         # Other workers: wait for worker 0 to finish init
         logging.info(f"⏳ Worker {worker_id}: Waiting for database initialization...")
