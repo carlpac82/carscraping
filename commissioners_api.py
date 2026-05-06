@@ -364,9 +364,40 @@ async def create_booking(booking: BookingCreate, request: Request):
     print(f"  Final rental_days: {correct_rental_days}")
     print(f"  Frontend sent rental_days: {booking.rental_days}")
     
-    # Use the base_price sent from frontend (already correctly calculated there)
-    # base_price = daily rental price * days (excludes insurance, road tax, and extras)
-    correct_base_price = booking.base_price
+    # CRITICAL: Recalculate base_price based on correct_rental_days
+    # Don't trust the frontend value - recalculate it correctly on backend
+    # Determine season based on pickup date
+    month = pickup_date_obj.month
+    if month in [11, 12, 1, 2, 3]:
+        season = 'low'
+    elif month in [4, 5, 6, 9, 10]:
+        season = 'mid'
+    else:
+        season = 'high'
+    
+    # Get price from settings table
+    if correct_rental_days <= 7:
+        price_key = f"commissioner_season_{booking.vehicle_group}_{season}_day{correct_rental_days}"
+        cursor.execute("SELECT value FROM settings WHERE key = %s", (price_key,))
+        price_row = cursor.fetchone()
+        correct_base_price = float(price_row[0]) if price_row and price_row[0] else booking.base_price
+    else:
+        # For 8+ days, use day7 price and calculate daily rate
+        price_key = f"commissioner_season_{booking.vehicle_group}_{season}_day7"
+        cursor.execute("SELECT value FROM settings WHERE key = %s", (price_key,))
+        price_row = cursor.fetchone()
+        if price_row and price_row[0]:
+            day7_price = float(price_row[0])
+            daily_rate = day7_price / 7
+            correct_base_price = daily_rate * correct_rental_days
+        else:
+            correct_base_price = booking.base_price
+    
+    print(f"[BOOKING DEBUG] Base price recalculation:")
+    print(f"  Season: {season}")
+    print(f"  Days: {correct_rental_days}")
+    print(f"  Frontend sent base_price: {booking.base_price}")
+    print(f"  Recalculated base_price: {correct_base_price}")
     
     # DEBUG: Log values to verify what's being sent
     print(f"[BOOKING DEBUG] Values received:")
