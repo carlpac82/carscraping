@@ -1319,13 +1319,17 @@ async def lifespan(app: FastAPI):
     except Exception as e:
         logging.warning(f"⚠️ Auto-cleanup scheduler error: {e}")
     
-    # Initialize database tables
-    try:
-        logging.info("Initializing database tables...")
-        _ensure_users_table()
-        logging.info("users table created/exists")
-        init_db()
-        logging.info("All tables created/verified (19 tables total)")
+    # Initialize database tables (ONLY on first worker to avoid race conditions)
+    worker_id = os.getenv("UVICORN_WORKER_ID")
+    is_first_worker = worker_id is None or worker_id == "0"
+    
+    if is_first_worker:
+        try:
+            logging.info("🔧 Initializing database tables (worker 0)...")
+            _ensure_users_table()
+            logging.info("users table created/exists")
+            init_db()
+            logging.info("All tables created/verified (19 tables total)")
         
         # Setup current_prices table with updated_by column
         from current_prices_module import setup_db
@@ -1360,11 +1364,37 @@ async def lifespan(app: FastAPI):
                     migration_conn.close()
         except Exception as e:
             logging.warning(f"⚠️ Migration connection error: {str(e)}")
+        
+        # Fix PostgreSQL schema
+        if _USE_NEW_DB and USE_POSTGRES:
+            try:
+                logging.info("Fixing PostgreSQL schema...")
+                from fix_postgres_schema import fix_users_table, fix_system_logs_table
+                if fix_users_table():
+                    logging.info("users schema fixed")
+                if fix_system_logs_table():
+                    logging.info("system_logs schema fixed")
+            except Exception as e:
+                logging.warning(f"Schema fix error: {e}")
+        
+        # Create default users
+        try:
+            logging.info("Creating default users...")
+            _ensure_default_users()
+            logging.info("Default users ready (admin/admin)")
+        except Exception as e:
+            logging.warning(f"Default users error: {e}")
             
     except Exception as e:
         logging.error(f"Database initialization error: {e}")
         import traceback
         traceback.print_exc()
+    else:
+        # Other workers: wait for worker 0 to finish init
+        logging.info(f"⏳ Worker {worker_id}: Waiting for database initialization...")
+        import time
+        time.sleep(5)  # Wait 5 seconds for worker 0 to complete
+        logging.info(f"✅ Worker {worker_id}: Ready")
     
     # Pre-load promotional images cache
     try:
@@ -1373,26 +1403,6 @@ async def lifespan(app: FastAPI):
         logging.info("Promotional images cached")
     except Exception as e:
         logging.warning(f"Promotional images cache error: {e}")
-    
-    # Fix PostgreSQL schema
-    if _USE_NEW_DB and USE_POSTGRES:
-        try:
-            logging.info("Fixing PostgreSQL schema...")
-            from fix_postgres_schema import fix_users_table, fix_system_logs_table
-            if fix_users_table():
-                logging.info("users schema fixed")
-            if fix_system_logs_table():
-                logging.info("system_logs schema fixed")
-        except Exception as e:
-            logging.warning(f"Schema fix error: {e}")
-    
-    # Create default users
-    try:
-        logging.info("Creating default users...")
-        _ensure_default_users()
-        logging.info("Default users ready (admin/admin)")
-    except Exception as e:
-        logging.warning(f"Default users error: {e}")
     
     # Create tables
     try:
@@ -4788,7 +4798,8 @@ def init_db():
                 logging.warning(f"⚠️ Final transaction cleanup: {e}")
             conn.close()
 
-init_db()
+# init_db() é chamado apenas pelo primeiro worker no lifespan context manager
+# NÃO chamar aqui para evitar sobrecarga de conexões
 
 # ============================================================
 # HELPER FUNCTIONS - PERSISTÊNCIA EM DB (EVITAR DISCO EFÊMERO)
