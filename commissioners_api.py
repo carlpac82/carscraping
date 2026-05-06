@@ -325,6 +325,36 @@ async def create_booking(booking: BookingCreate, request: Request):
     if isinstance(pickup_date, str):
         pickup_date = datetime.strptime(pickup_date, '%Y-%m-%d').date()
     
+    # CRITICAL: Recalculate rental_days from pickup/dropoff dates and times
+    # Don't trust the frontend value - calculate it correctly on backend
+    pickup_dt = datetime.combine(booking.pickup_date, booking.pickup_time or time(0, 0))
+    dropoff_dt = datetime.combine(booking.dropoff_date, booking.dropoff_time or time(0, 0))
+    
+    # Calcular diferença em minutos
+    time_diff = dropoff_dt - pickup_dt
+    total_minutes = time_diff.total_seconds() / 60
+    
+    if total_minutes <= 0:
+        conn.close()
+        raise HTTPException(status_code=400, detail="Dropoff date must be after pickup date")
+    
+    # Regra: 1 minuto extra = +1 dia
+    days_diff = int(total_minutes // 1440)  # Dias completos (1440 min = 1 dia)
+    extra_minutes = total_minutes % 1440     # Minutos extra
+    
+    # Se tiver qualquer minuto extra, cobra +1 dia
+    correct_rental_days = days_diff + 1 if extra_minutes > 0 else days_diff
+    correct_rental_days = max(correct_rental_days, 1)  # Mínimo 1 dia
+    
+    print(f"[BOOKING DEBUG] Rental days calculation:")
+    print(f"  Pickup: {booking.pickup_date} {booking.pickup_time}")
+    print(f"  Dropoff: {booking.dropoff_date} {booking.dropoff_time}")
+    print(f"  Total minutes: {total_minutes}")
+    print(f"  Full days: {days_diff}")
+    print(f"  Extra minutes: {extra_minutes}")
+    print(f"  Final rental_days: {correct_rental_days}")
+    print(f"  Frontend sent rental_days: {booking.rental_days}")
+    
     # Use the base_price sent from frontend (already correctly calculated there)
     # base_price = daily rental price * days (excludes insurance, road tax, and extras)
     correct_base_price = booking.base_price
@@ -366,7 +396,7 @@ async def create_booking(booking: BookingCreate, request: Request):
         booking.pickup_location, booking.dropoff_location,
         booking.vehicle_group, booking.insurance_type, json.dumps(booking.extras),
         booking.flight_number, booking.language, booking.observations, booking.deposit, booking.price,
-        correct_base_price, booking.premium_insurance, booking.road_tax, booking.extras_total, booking.rental_days,
+        correct_base_price, booking.premium_insurance, booking.road_tax, booking.extras_total, correct_rental_days,
         booking.total_amount, booking.value_adjustment, commission_rate, commission_amount, 'pending'
     ))
     
