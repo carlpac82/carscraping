@@ -46,14 +46,17 @@ if USE_POSTGRES:
         'sslmode': 'prefer'  # Changed from 'require' to 'prefer' for local development
     }
     
-    # Connection Pool (3-15 per worker, 6 workers = max 90 total)
+    # Connection Pool (1-5 per worker, 6 workers = max 30 total)
+    # CRITICAL: Railway PostgreSQL has ~50 connection limit
     try:
         connection_pool = pool.ThreadedConnectionPool(
-            minconn=3,
-            maxconn=15,
+            minconn=1,
+            maxconn=5,
             **DB_CONFIG
         )
         logging.info(f"🐘 PostgreSQL connection pool created: {result.hostname}/{result.path[1:]}")
+        logging.info(f"   ├─ Pool size: 1-5 connections per worker (max 30 total)")
+        logging.info(f"   └─ Railway limit: ~50 connections")
     except Exception as e:
         logging.error(f"❌ Failed to create connection pool: {e}")
         connection_pool = None
