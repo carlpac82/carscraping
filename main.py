@@ -1307,9 +1307,7 @@ def combine_croqui_with_damages(delivery_croqui_base64=None, pickup_damages=None
 async def lifespan(app: FastAPI):
     """Manage application startup and shutdown events"""
     # STARTUP EVENTS
-    import datetime
-    import os
-    logging.info(f"APPLICATION STARTED - VERSION 3.0 - {datetime.datetime.now().isoformat()}")
+    logging.info(f"APPLICATION STARTED - VERSION 3.0 - {datetime.now().isoformat()}")
     
     # Start connection auto-cleanup scheduler (PostgreSQL only)
     try:
@@ -1338,7 +1336,6 @@ async def lifespan(app: FastAPI):
             logging.info("current_prices table setup completed")
         except Exception as e:
             logging.error(f"Database initialization error: {e}")
-            import traceback
             traceback.print_exc()
         
         # Executar migration das colunas hotel, room_number e deposit
@@ -1392,7 +1389,6 @@ async def lifespan(app: FastAPI):
     else:
         # Other workers: wait for worker 0 to finish init
         logging.info(f"⏳ Worker {worker_id}: Waiting for database initialization...")
-        import time
         time.sleep(5)  # Wait 5 seconds for worker 0 to complete
         logging.info(f"✅ Worker {worker_id}: Ready")
     
@@ -1425,9 +1421,8 @@ async def lifespan(app: FastAPI):
     # Automated scheduler - APENAS NO WORKER PRINCIPAL
     # Evita emails duplicados (cada worker executaria o scheduler)
     import multiprocessing
-    import os
     current_process = multiprocessing.current_process()
-    worker_id = os.getpid()
+    worker_pid = os.getpid()
     
     # No Railway, usar variável de ambiente para identificar o worker principal
     # Se DISABLE_SCHEDULER=true, não executa o scheduler
@@ -1439,7 +1434,7 @@ async def lifespan(app: FastAPI):
         try:
             from automated_scheduler import setup_scheduled_tasks
             setup_scheduled_tasks()
-            logging.info(f"✅ Automated scheduler initialized (worker {worker_id})")
+            logging.info(f"✅ Automated scheduler initialized (worker {worker_pid})")
         except Exception as e:
             logging.error(f"❌ Failed to initialize automated scheduler: {str(e)}")
     
@@ -1464,11 +1459,11 @@ async def lifespan(app: FastAPI):
         try:
             if scheduler:
                 scheduler.start()
-                logging.info(f"✅ Backup scheduler started (worker {worker_id} - MAIN ONLY) - {len(scheduler.get_jobs())} jobs")
+                logging.info(f"✅ Backup scheduler started (worker {worker_pid} - MAIN ONLY) - {len(scheduler.get_jobs())} jobs")
         except Exception as e:
             logging.error(f"❌ Failed to start backup scheduler: {e}")
     else:
-        logging.info(f"⏭️ Skipping backup scheduler (worker {worker_id} - not main)")
+        logging.info(f"⏭️ Skipping backup scheduler (worker {worker_pid} - not main)")
     
     yield
     
