@@ -21309,15 +21309,18 @@ def _ensure_vehicle_inspections_table():
             
             # PASSO 2: Índices para acelerar queries de fotos (evita table scan em 7.9GB)
             logging.info("📊 Creating indexes on inspection_photos...")
-            safe_create_index(conn, 
-                "CREATE INDEX IF NOT EXISTS idx_inspection_photos_inspection_id ON inspection_photos(inspection_id)",
-                "idx_inspection_photos_inspection_id")
-            safe_create_index(conn, 
-                "CREATE INDEX IF NOT EXISTS idx_inspection_photos_photo_type ON inspection_photos(photo_type)",
-                "idx_inspection_photos_photo_type")
-            safe_create_index(conn, 
-                "CREATE INDEX IF NOT EXISTS idx_inspection_photos_composite ON inspection_photos(inspection_id, photo_type)",
-                "idx_inspection_photos_composite")
+            try:
+                conn.execute("CREATE INDEX IF NOT EXISTS idx_inspection_photos_inspection_id ON inspection_photos(inspection_id)")
+            except Exception as e:
+                logging.warning(f"Index idx_inspection_photos_inspection_id: {e}")
+            try:
+                conn.execute("CREATE INDEX IF NOT EXISTS idx_inspection_photos_photo_type ON inspection_photos(photo_type)")
+            except Exception as e:
+                logging.warning(f"Index idx_inspection_photos_photo_type: {e}")
+            try:
+                conn.execute("CREATE INDEX IF NOT EXISTS idx_inspection_photos_composite ON inspection_photos(inspection_id, photo_type)")
+            except Exception as e:
+                logging.warning(f"Index idx_inspection_photos_composite: {e}")
             
         else:
             # SQLite
