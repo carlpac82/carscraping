@@ -62713,6 +62713,163 @@ async def api_get_commissioner_bookings_by_session(request: Request):
         return JSONResponse({"ok": False, "error": "Erro ao carregar reservas"}, status_code=500)
 
 
+@app.post("/api/commissioners/bookings")
+async def api_create_commissioner_booking(request: Request):
+    """API endpoint to create a new booking from commissioner portal"""
+    try:
+        # Check if commissioner is logged in
+        commissioner_id = request.session.get("commissioner_id")
+        if not commissioner_id:
+            return JSONResponse({"ok": False, "error": "Não autenticado"}, status_code=401)
+        
+        data = await request.json()
+        
+        # Extract and validate data
+        vehicle_group = data.get("vehicle_group")
+        client_name = data.get("client_name")
+        client_email = data.get("client_email")
+        client_phone = data.get("client_phone")
+        pickup_date = data.get("pickup_date")
+        pickup_time = data.get("pickup_time")
+        dropoff_date = data.get("dropoff_date")
+        dropoff_time = data.get("dropoff_time")
+        
+        if not all([vehicle_group, client_name, pickup_date, dropoff_date]):
+            return JSONResponse({"ok": False, "error": "Campos obrigatórios em falta"}, status_code=400)
+        
+        # CRITICAL: Recalcular rental_days no backend (não confiar no frontend)
+        from datetime import datetime
+        try:
+            pickup_dt = datetime.strptime(f"{pickup_date} {pickup_time or '00:00'}", "%Y-%m-%d %H:%M")
+            dropoff_dt = datetime.strptime(f"{dropoff_date} {dropoff_time or '00:00'}", "%Y-%m-%d %H:%M")
+            
+            # Calcular diferença em minutos
+            time_diff = dropoff_dt - pickup_dt
+            total_minutes = time_diff.total_seconds() / 60
+            
+            if total_minutes <= 0:
+                return JSONResponse({"ok": False, "error": "Data de entrega deve ser posterior à recolha"}, status_code=400)
+            
+            # Regra: 1 minuto extra = +1 dia
+            days_diff = int(total_minutes // 1440)  # Dias completos
+            extra_minutes = total_minutes % 1440     # Minutos extra
+            
+            # Se tiver qualquer minuto extra, cobra +1 dia
+            rental_days = days_diff + 1 if extra_minutes > 0 else days_diff
+            rental_days = max(rental_days, 1)  # Mínimo 1 dia
+            
+            logging.info(f"📊 Rental days calculation: {pickup_date} {pickup_time} → {dropoff_date} {dropoff_time} = {rental_days} days ({days_diff}d + {extra_minutes:.0f}min)")
+            
+        except Exception as e:
+            logging.error(f"Error calculating rental days: {e}")
+            return JSONResponse({"ok": False, "error": "Erro ao calcular dias de aluguer"}, status_code=400)
+        
+        # Get commissioner info
+        with _db_lock:
+            con = _db_connect()
+            try:
+                if USE_POSTGRES:
+                    cur = con.cursor()
+                    cur.execute("SELECT name, voucher_prefix, commission_rate FROM commissioners WHERE id = %s", (commissioner_id,))
+                else:
+                    cur = con.execute("SELECT name, voucher_prefix, commission_rate FROM commissioners WHERE id = ?", (commissioner_id,))
+                
+                commissioner = cur.fetchone()
+                if not commissioner:
+                    return JSONResponse({"ok": False, "error": "Comissionista não encontrado"}, status_code=404)
+                
+                commissioner_name = commissioner[0]
+                voucher_prefix = commissioner[1]
+                commission_rate = float(commissioner[2]) if commissioner[2] else 15.0
+                
+                # Calculate commission
+                base_price = float(data.get("base_price", 0))
+                april_1st_2026 = datetime(2026, 4, 1)
+                
+                if pickup_dt > april_1st_2026:
+                    commission_amount = base_price * (commission_rate / 100.0)
+                else:
+                    commission_amount = (base_price / 1.23) * 0.15
+                
+                # Insert booking
+                if USE_POSTGRES:
+                    cur.execute("""
+                        INSERT INTO commission_bookings (
+                            commissioner_id, client_name, client_email, client_phone,
+                            pickup_date, pickup_time, dropoff_date, dropoff_time,
+                            pickup_location, dropoff_location, vehicle_group, 
+                            hotel, room_number, flight_number, language,
+                            base_price, premium_insurance, road_tax, extras_total, rental_days,
+                            extras, total_amount, price, insurance_type,
+                            deposit, status, commission_rate, commission_amount,
+                            created_at, updated_at
+                        ) VALUES (
+                            %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s,
+                            %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s,
+                            CURRENT_TIMESTAMP, CURRENT_TIMESTAMP
+                        ) RETURNING id
+                    """, (
+                        commissioner_id, client_name, client_email, client_phone,
+                        pickup_date, pickup_time, dropoff_date, dropoff_time,
+                        data.get("pickup_location"), data.get("dropoff_location"), vehicle_group,
+                        data.get("hotel"), data.get("room_number"), data.get("flight_number"), data.get("language", "pt"),
+                        base_price, data.get("premium_insurance", 0), data.get("road_tax", 0), 
+                        data.get("extras_total", 0), rental_days,
+                        json.dumps(data.get("extras", [])), data.get("total_amount", 0), 
+                        data.get("price", 0), data.get("insurance_type", "standard"),
+                        data.get("deposit", 0), "confirmed", commission_rate, commission_amount
+                    ))
+                    booking_id = cur.fetchone()[0]
+                    con.commit()
+                else:
+                    cur = con.execute("""
+                        INSERT INTO commission_bookings (
+                            commissioner_id, client_name, client_email, client_phone,
+                            pickup_date, pickup_time, dropoff_date, dropoff_time,
+                            pickup_location, dropoff_location, vehicle_group,
+                            hotel, room_number, flight_number, language,
+                            base_price, premium_insurance, road_tax, extras_total, rental_days,
+                            extras, total_amount, price, insurance_type,
+                            deposit, status, commission_rate, commission_amount,
+                            created_at, updated_at
+                        ) VALUES (
+                            ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?,
+                            ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?,
+                            datetime('now'), datetime('now')
+                        )
+                    """, (
+                        commissioner_id, client_name, client_email, client_phone,
+                        pickup_date, pickup_time, dropoff_date, dropoff_time,
+                        data.get("pickup_location"), data.get("dropoff_location"), vehicle_group,
+                        data.get("hotel"), data.get("room_number"), data.get("flight_number"), data.get("language", "pt"),
+                        base_price, data.get("premium_insurance", 0), data.get("road_tax", 0),
+                        data.get("extras_total", 0), rental_days,
+                        json.dumps(data.get("extras", [])), data.get("total_amount", 0),
+                        data.get("price", 0), data.get("insurance_type", "standard"),
+                        data.get("deposit", 0), "confirmed", commission_rate, commission_amount
+                    ))
+                    booking_id = cur.lastrowid
+                    con.commit()
+                
+                logging.info(f"✅ Booking created: ID={booking_id}, Commissioner={commissioner_name}, Vehicle={vehicle_group}, Days={rental_days}")
+                
+                return JSONResponse({
+                    "ok": True,
+                    "booking_id": booking_id,
+                    "rental_days": rental_days,
+                    "message": "Reserva criada com sucesso"
+                })
+                
+            finally:
+                con.close()
+                
+    except Exception as e:
+        logging.error(f"Error creating commissioner booking: {e}")
+        import traceback
+        traceback.print_exc()
+        return JSONResponse({"ok": False, "error": str(e)}, status_code=500)
+
+
 @app.post("/api/commissioners/update-email")
 async def api_commissioners_update_email(request: Request):
     """API endpoint to update commissioner email"""
