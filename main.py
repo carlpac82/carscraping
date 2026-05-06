@@ -30592,18 +30592,59 @@ async def generate_commissioner_booking_pdf(booking_id: int, request: Request):
             except:
                 pass
         
-        # Calcular número de dias
+        # Calcular número de dias (incluindo horas - 1 minuto extra = +1 dia)
         rental_days = ""
         if pickup_date_str and dropoff_date_str:
             try:
-                # Usar objetos date diretamente se disponíveis
+                # Criar datetime completo com horas
                 if isinstance(pickup_date_raw, (date, datetime)) and isinstance(dropoff_date_raw, (date, datetime)):
-                    days_diff = (dropoff_date_raw - pickup_date_raw).days
+                    # Se já temos datetime objects
+                    if isinstance(pickup_date_raw, datetime):
+                        pickup_full_dt = pickup_date_raw
+                    else:
+                        # É date, adicionar hora se disponível
+                        pickup_time = datetime.strptime(f"{pickup_hour}:{pickup_minute}", "%H:%M").time() if pickup_hour and pickup_minute else datetime.min.time()
+                        pickup_full_dt = datetime.combine(pickup_date_raw, pickup_time)
+                    
+                    if isinstance(dropoff_date_raw, datetime):
+                        dropoff_full_dt = dropoff_date_raw
+                    else:
+                        # É date, adicionar hora se disponível
+                        dropoff_time = datetime.strptime(f"{dropoff_hour}:{dropoff_minute}", "%H:%M").time() if dropoff_hour and dropoff_minute else datetime.min.time()
+                        dropoff_full_dt = datetime.combine(dropoff_date_raw, dropoff_time)
                 else:
+                    # Parse from strings
                     pickup_dt = datetime.strptime(pickup_date_str, "%Y-%m-%d")
                     dropoff_dt = datetime.strptime(dropoff_date_str, "%Y-%m-%d")
-                    days_diff = (dropoff_dt - pickup_dt).days
+                    
+                    # Adicionar horas se disponíveis
+                    if pickup_hour and pickup_minute:
+                        pickup_time = datetime.strptime(f"{pickup_hour}:{pickup_minute}", "%H:%M").time()
+                        pickup_full_dt = datetime.combine(pickup_dt.date(), pickup_time)
+                    else:
+                        pickup_full_dt = pickup_dt
+                    
+                    if dropoff_hour and dropoff_minute:
+                        dropoff_time = datetime.strptime(f"{dropoff_hour}:{dropoff_minute}", "%H:%M").time()
+                        dropoff_full_dt = datetime.combine(dropoff_dt.date(), dropoff_time)
+                    else:
+                        dropoff_full_dt = dropoff_dt
+                
+                # Calcular diferença em minutos
+                time_diff = dropoff_full_dt - pickup_full_dt
+                total_minutes = time_diff.total_seconds() / 60
+                
+                # Regra: 1 minuto extra = +1 dia
+                # Calcular dias completos (1440 minutos = 1 dia)
+                days_diff = int(total_minutes // 1440)  # Dias completos
+                extra_minutes = total_minutes % 1440     # Minutos extra
+                
+                # Se tiver qualquer minuto extra, cobra +1 dia
+                if extra_minutes > 0:
+                    days_diff += 1
+                
                 rental_days = str(days_diff) if days_diff > 0 else "1"
+                
             except Exception as e:
                 logging.error(f"Error calculating rental days: {e}")
                 rental_days = "1"
