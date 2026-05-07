@@ -20388,18 +20388,23 @@ async def load_pricing_strategies(request: Request):
                 )
                 rows = cursor.fetchall()
                 
-                strategies = {}
+                # Retornar array de strategies (formato esperado pelo frontend)
+                strategies = []
                 for row in rows:
                     location, grupo, month, day, priority, config_json = row
-                    key = f"{location}_{grupo}_{month}_{day}"
-                    
-                    if key not in strategies:
-                        strategies[key] = []
                     
                     try:
-                        strategies[key].append(json.loads(config_json))
-                    except:
-                        pass
+                        config = json.loads(config_json)
+                        strategies.append({
+                            "location": location,
+                            "grupo": grupo,
+                            "month": month,
+                            "day": day,
+                            "priority": priority,
+                            "config": config
+                        })
+                    except Exception as e:
+                        logging.error(f"Error parsing strategy config: {e}")
                 
                 return JSONResponse({"ok": True, "strategies": strategies})
             finally:

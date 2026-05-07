@@ -1433,7 +1433,7 @@
                 
                 const result = await response.json();
                 
-                if (result.ok && result.strategies) {
+                if (result.ok && result.strategies && Array.isArray(result.strategies)) {
                     // Convert database format back to automatedPriceRules format
                     const rules = {};
                     
