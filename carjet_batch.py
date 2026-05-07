@@ -39,13 +39,20 @@ def get_batch_progress(batch_id: str) -> dict:
         return _batch_progress.get(batch_id, {}).copy()
 
 def clear_batch_progress(batch_id: str):
-    """Limpar progresso de um batch terminado (apenas se done/error/cancelled)"""
+    """Limpar progresso de um batch terminado (apenas se done/error/cancelled E após 30s)"""
     with _batch_progress_lock:
         prog = _batch_progress.get(batch_id)
         if prog:
             status = prog.get('status')
-            # CRÍTICO: Só apagar se realmente terminou
+            # CRÍTICO: Só apagar se realmente terminou E passou tempo suficiente
             if status in ['done', 'error', 'cancelled']:
+                # Verificar se já passou 30s desde que foi marcado como done
+                completed_at = prog.get('completed_at', 0)
+                if completed_at > 0:
+                    elapsed = time.time() - completed_at
+                    if elapsed < 30:
+                        print(f"[BATCH] ⏳ Batch {batch_id} done há {elapsed:.0f}s - aguardando 30s antes de limpar", file=sys.stderr, flush=True)
+                        return
                 _batch_progress.pop(batch_id, None)
                 print(f"[BATCH] ✅ Batch {batch_id} cleared (status={status})", file=sys.stderr, flush=True)
             else:
@@ -809,6 +816,7 @@ def scrape_carjet_batch(
             # Se ainda está running/starting, marcar como done
             if current_status in ['running', 'starting', 'starting_chrome']:
                 _batch_progress[batch_id]['status'] = 'done'
+                _batch_progress[batch_id]['completed_at'] = time.time()  # Timestamp de conclusão
                 print(f"[BATCH] ✅ Batch {batch_id} marcado como DONE (era {current_status})", file=sys.stderr, flush=True)
             else:
                 print(f"[BATCH] ℹ️ Batch {batch_id} já tem status final: {current_status}", file=sys.stderr, flush=True)
