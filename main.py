@@ -20257,29 +20257,27 @@ async def load_automated_price_rules(request: Request):
                 
                 logging.info(f"📦 Found {len(rows)} rules in database")
                 
-                rules = {}
+                # Retornar array de strategies (formato esperado pelo frontend)
+                strategies = []
                 for row in rows:
                     location, grupo, month, day, config_json = row
                     
-                    if location not in rules:
-                        rules[location] = {}
-                    if grupo not in rules[location]:
-                        rules[location][grupo] = {"months": {}}
-                    if str(month) not in rules[location][grupo]["months"]:
-                        rules[location][grupo]["months"][str(month)] = {"days": {}}
-                    
                     try:
                         config = json.loads(config_json)
-                        rules[location][grupo]["months"][str(month)]["days"][str(day)] = config
+                        strategies.append({
+                            "location": location,
+                            "grupo": grupo,
+                            "month": month,
+                            "day": day,
+                            "priority": 1,  # Default priority
+                            "config": config
+                        })
                     except Exception as parse_err:
                         logging.error(f"  ❌ Error parsing config for {location}/{grupo}/M{month}/D{day}: {parse_err}")
-                        rules[location][grupo]["months"][str(month)]["days"][str(day)] = {}
                 
-                total_locations = len(rules)
-                total_groups = sum(len(g) for g in rules.values())
-                logging.info(f"✅ Loaded {len(rows)} rules for {total_locations} locations, {total_groups} groups")
+                logging.info(f"✅ Loaded {len(strategies)} strategies from database")
                 
-                return JSONResponse({"ok": True, "rules": rules})
+                return JSONResponse({"ok": True, "strategies": strategies})
             finally:
                 conn.close()
     except Exception as e:
