@@ -52,11 +52,11 @@ if USE_POSTGRES:
         'options': '-c statement_timeout=120000 -c idle_in_transaction_session_timeout=60000',
     }
     
-    # Connection Pool (1-5 per worker, 6 workers = max 30 total)
+    # Connection Pool (1-10 per worker, 6 workers = max 60 total)
     try:
         connection_pool = pool.ThreadedConnectionPool(
-            minconn=1,
-            maxconn=5,
+            minconn=2,
+            maxconn=10,
             **DB_CONFIG
         )
         logging.info(f"🐘 PostgreSQL connection pool created: {result.hostname}/{result.path[1:]}")
