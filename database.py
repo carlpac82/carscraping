@@ -87,7 +87,7 @@ class DatabaseConnection:
                     if connection_pool:
                         try:
                             self.conn = connection_pool.getconn()
-                            self.conn.autocommit = False
+                            self.conn.autocommit = True  # CRITICAL: Prevent idle-in-transaction timeouts
                             return self.conn
                         except Exception as e:
                             logging.error(f"Failed to get connection from pool (attempt {attempt+1}/{retry_count}): {e}")
@@ -96,7 +96,7 @@ class DatabaseConnection:
                                 continue
                     # Fallback to direct connection
                     self.conn = psycopg2.connect(**DB_CONFIG)
-                    self.conn.autocommit = False
+                    self.conn.autocommit = True  # CRITICAL: Prevent idle-in-transaction timeouts
                 else:
                     self.conn = sqlite3.connect("data.db", check_same_thread=False)
                     self.conn.row_factory = sqlite3.Row
