@@ -5119,15 +5119,15 @@
                     console.error(`🚀 [BATCH] Erro ao iniciar batch:`, err);
                 }
                 
-                // 2. Polling: verificar progresso a cada 3s e mostrar preços conforme chegam
+                // 2. Polling: verificar progresso a cada 1s e mostrar preços conforme chegam
                 if (batchId) {
                     const processedDays = new Set();
-                    const maxPolls = 300; // 300 * 3s = 15 min max
+                    const maxPolls = 900; // 900 * 1s = 15 min max
                     
                     for (let poll = 0; poll < maxPolls; poll++) {
                         if (stopGenerateFlag) break;
                         
-                        await new Promise(r => setTimeout(r, 3000)); // esperar 3s
+                        await new Promise(r => setTimeout(r, 1000)); // esperar 1s
                         
                         try {
                             const progressResponse = await fetch(`/api/track-by-params-batch/progress/${batchId}`);
