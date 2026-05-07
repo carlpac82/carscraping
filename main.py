@@ -19179,7 +19179,8 @@ async def save_automated_price_rules(request: Request):
                 # Limpar regras antigas
                 logging.info("🗑️ Deleting old rules...")
                 conn.execute("DELETE FROM automated_price_rules")
-                logging.info("✅ Old rules deleted")
+                conn.commit()
+                logging.info("✅ Old rules deleted and committed")
                 
                 # Salvar novas regras
                 rules_count = 0
