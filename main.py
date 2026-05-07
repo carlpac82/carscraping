@@ -19184,20 +19184,13 @@ async def save_automated_price_rules(request: Request):
                 # Salvar novas regras
                 rules_count = 0
                 for location, grupos in data.items():
-                    logging.info(f"  📍 Location: {location} ({len(grupos)} groups)")
                     for grupo, grupo_data in grupos.items():
                         if 'months' in grupo_data:
-                            months_count = len(grupo_data['months'])
-                            logging.info(f"    📊 Group: {grupo} ({months_count} months)")
                             for month, month_data in grupo_data['months'].items():
                                 if 'days' in month_data:
-                                    days_count = len(month_data['days'])
-                                    logging.info(f"      📅 Month {month}: {days_count} days")
                                     for day, day_config in month_data['days'].items():
                                         try:
                                             config_json = json.dumps(day_config)
-                                            strategies_count = len(day_config.get('strategies', []))
-                                            logging.info(f"        💾 Saving {location}/{grupo}/M{month}/D{day} ({strategies_count} strategies)")
                                             
                                             if is_postgres:
                                                 conn.execute(
@@ -20253,9 +20246,7 @@ async def load_automated_price_rules(request: Request):
                     
                     try:
                         config = json.loads(config_json)
-                        strategies_count = len(config.get('strategies', []))
                         rules[location][grupo]["months"][str(month)]["days"][str(day)] = config
-                        logging.info(f"  ✅ Loaded {location}/{grupo}/M{month}/D{day} ({strategies_count} strategies)")
                     except Exception as parse_err:
                         logging.error(f"  ❌ Error parsing config for {location}/{grupo}/M{month}/D{day}: {parse_err}")
                         rules[location][grupo]["months"][str(month)]["days"][str(day)] = {}
