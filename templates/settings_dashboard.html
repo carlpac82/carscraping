@@ -295,7 +295,7 @@
                                 <span data-i18n="common.users">Users</span>
                             </div>
                         </div>
-                        <div class="menu-item" onclick="window.location.href='/admin/commissioners'">
+                        <div class="menu-item" onclick="loadSection('commissioners')">
                             <div class="flex items-center gap-3 px-4 py-3">
                                 <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2zm7-5a2 2 0 11-4 0 2 2 0 014 0z"/>
@@ -530,6 +530,7 @@
             // Map sections to URLs
             const urls = {
                 'users': '/admin/users?iframe=1',
+                'commissioners': '/admin/commissioners?iframe=1',
                 'vehicles': '/admin/vehicles-editor?iframe=1',
                 'fleet-management': '/admin/fleet-management?iframe=1',
                 'price-adjustment': '/admin/settings?iframe=1',
