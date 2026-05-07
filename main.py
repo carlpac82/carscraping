@@ -19199,14 +19199,26 @@ async def save_automated_price_rules(request: Request):
                                             strategies_count = len(day_config.get('strategies', []))
                                             logging.info(f"        💾 Saving {location}/{grupo}/M{month}/D{day} ({strategies_count} strategies)")
                                             
-                                            conn.execute(
-                                                f"""
-                                                INSERT INTO automated_price_rules 
-                                                (location, grupo, month, day, config, updated_at)
-                                                VALUES ({placeholder}, {placeholder}, {placeholder}, {placeholder}, {placeholder}, CURRENT_TIMESTAMP)
-                                                """,
-                                                (location, grupo, int(month), int(day), config_json)
-                                            )
+                                            if is_postgres:
+                                                conn.execute(
+                                                    f"""
+                                                    INSERT INTO automated_price_rules 
+                                                    (location, grupo, month, day, config, updated_at, priority)
+                                                    VALUES ({placeholder}, {placeholder}, {placeholder}, {placeholder}, {placeholder}, CURRENT_TIMESTAMP, 1)
+                                                    ON CONFLICT (location, grupo, month, day, priority)
+                                                    DO UPDATE SET config = EXCLUDED.config, updated_at = CURRENT_TIMESTAMP
+                                                    """,
+                                                    (location, grupo, int(month), int(day), config_json)
+                                                )
+                                            else:
+                                                conn.execute(
+                                                    f"""
+                                                    INSERT OR REPLACE INTO automated_price_rules 
+                                                    (location, grupo, month, day, config, updated_at)
+                                                    VALUES ({placeholder}, {placeholder}, {placeholder}, {placeholder}, {placeholder}, CURRENT_TIMESTAMP)
+                                                    """,
+                                                    (location, grupo, int(month), int(day), config_json)
+                                                )
                                             rules_count += 1
                                         except Exception as rule_err:
                                             logging.error(f"❌ Error saving rule {location}/{grupo}/{month}/{day}: {str(rule_err)}")
