@@ -5131,7 +5131,14 @@
                         
                         try {
                             const progressResponse = await fetch(`/api/track-by-params-batch/progress/${batchId}`);
-                            if (!progressResponse.ok) continue;
+                            if (!progressResponse.ok) {
+                                if (progressResponse.status === 404) {
+                                    console.log(`🚀 [BATCH] Batch ${batchId} não encontrado (404) - a parar polling`);
+                                    currentBatchId = null;
+                                    break;
+                                }
+                                continue;
+                            }
                             
                             const progress = await progressResponse.json();
                             if (!progress.ok) continue;
