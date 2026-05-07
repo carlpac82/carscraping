@@ -322,21 +322,42 @@ class PostgreSQLConnectionWrapper:
     
     def close(self):
         if self._cursor:
-            self._cursor.close()
+            try:
+                self._cursor.close()
+            except:
+                pass
         if connection_pool and self._conn:
             try:
                 connection_pool.putconn(self._conn)
             except:
-                self._conn.close()
+                try:
+                    self._conn.close()
+                except:
+                    pass
         elif self._conn:
-            self._conn.close()
+            try:
+                self._conn.close()
+            except:
+                pass
+        self._conn = None
+        self._cursor = None
+    
+    def __del__(self):
+        """Auto-close connection when object is garbage collected"""
+        try:
+            self.close()
+        except:
+            pass  # Silently ignore all errors in destructor
     
     def __enter__(self):
         return self
     
     def __exit__(self, exc_type, exc_val, exc_tb):
         if exc_type:
-            self.rollback()
+            try:
+                self.rollback()
+            except:
+                pass
         self.close()
 
 def get_db():
