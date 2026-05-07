@@ -88,6 +88,22 @@ class DatabaseConnection:
                         try:
                             self.conn = connection_pool.getconn()
                             self.conn.autocommit = True  # CRITICAL: Prevent idle-in-transaction timeouts
+                            
+                            # Validate connection is alive
+                            try:
+                                cursor = self.conn.cursor()
+                                cursor.execute("SELECT 1")
+                                cursor.close()
+                            except Exception as health_err:
+                                logging.warning(f"Connection from pool is stale: {health_err}. Getting new connection...")
+                                # Return bad connection to pool and get a new one
+                                try:
+                                    connection_pool.putconn(self.conn, close=True)
+                                except:
+                                    pass
+                                self.conn = connection_pool.getconn()
+                                self.conn.autocommit = True
+                            
                             return self.conn
                         except Exception as e:
                             logging.error(f"Failed to get connection from pool (attempt {attempt+1}/{retry_count}): {e}")
