@@ -12345,6 +12345,18 @@ async def track_by_params(request: Request):
         
         # FALLBACK 2: Selenium como último recurso
         # Código Selenium ATIVO - com rotação multi-idioma e anti-deteção
+        
+        # DETECÇÃO RAILWAY: Pular Selenium se estiver no Railway (não tem Chrome)
+        is_railway = bool(os.getenv('RAILWAY_ENVIRONMENT') or os.getenv('RAILWAY_PROJECT_ID'))
+        if is_railway:
+            print(f"[SELENIUM] ⚠️ Railway detectado - Selenium não disponível em produção", file=sys.stderr, flush=True)
+            print(f"[SELENIUM] Use batch scraping (/api/track-by-params-batch) para pesquisas múltiplas", file=sys.stderr, flush=True)
+            return _no_store_json({
+                "ok": False,
+                "error": "Selenium não disponível em produção. Use batch scraping para pesquisas múltiplas.",
+                "items": []
+            })
+        
         print(f"[SELENIUM] Tentando Selenium como último fallback...", file=sys.stderr, flush=True)
         try:
             from selenium import webdriver
