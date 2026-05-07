@@ -133,7 +133,7 @@ warnings.filterwarnings('ignore', message='.*Failed to establish a new connectio
 
 # Import database module for PostgreSQL/SQLite hybrid support
 try:
-    from database import _db_connect as _db_connect_new, USE_POSTGRES, PostgreSQLConnectionWrapper as DBPostgreSQLWrapper, get_db
+    from database import _db_connect as _db_connect_new, USE_POSTGRES, PostgreSQLConnectionWrapper as DBPostgreSQLWrapper, get_db, get_db_connection
     _USE_NEW_DB = True
     # Usar a classe do database.py em vez da local
     PostgreSQLConnectionWrapper = DBPostgreSQLWrapper
@@ -202,14 +202,13 @@ def _is_carjet(u: str) -> bool:
 def _ensure_settings_table():
     try:
         with _db_lock:
-            con = _db_connect()
-            try:
+            with get_db_connection() as con:
+                if USE_POSTGRES:
+                    con = PostgreSQLConnectionWrapper(con)
                 con.execute(
                     "CREATE TABLE IF NOT EXISTS app_settings (key TEXT PRIMARY KEY, value TEXT)"
                 )
                 con.commit()
-            finally:
-                con.close()
     except Exception:
         pass
 
@@ -217,13 +216,12 @@ def _get_setting(key: str, default: str = "") -> str:
     try:
         _ensure_settings_table()
         with _db_lock:
-            con = _db_connect()
-            try:
+            with get_db_connection() as con:
+                if USE_POSTGRES:
+                    con = PostgreSQLConnectionWrapper(con)
                 cur = con.execute("SELECT value FROM app_settings WHERE key=?", (key,))
                 r = cur.fetchone()
                 return (r[0] if r and r[0] is not None else default)
-            finally:
-                con.close()
     except Exception:
         return default
 
@@ -232,8 +230,9 @@ def _get_settings_batch(keys: list, default: str = "") -> dict:
     try:
         _ensure_settings_table()
         with _db_lock:
-            con = _db_connect()
-            try:
+            with get_db_connection() as con:
+                if USE_POSTGRES:
+                    con = PostgreSQLConnectionWrapper(con)
                 # Create placeholders for all keys
                 placeholders = ','.join(['?' for _ in keys])
                 cur = con.execute(f"SELECT key, value FROM app_settings WHERE key IN ({placeholders})", tuple(keys))
@@ -241,8 +240,6 @@ def _get_settings_batch(keys: list, default: str = "") -> dict:
                 
                 # Return results with defaults for missing keys
                 return {key: (results.get(key) if results.get(key) is not None else default) for key in keys}
-            finally:
-                con.close()
     except Exception:
         # Return defaults for all keys if error occurs
         return {key: default for key in keys}
@@ -251,15 +248,14 @@ def _set_setting(key: str, value: str) -> None:
     try:
         _ensure_settings_table()
         with _db_lock:
-            con = _db_connect()
-            try:
+            with get_db_connection() as con:
+                if USE_POSTGRES:
+                    con = PostgreSQLConnectionWrapper(con)
                 con.execute(
                     "INSERT INTO app_settings (key, value) VALUES (?,?) ON CONFLICT(key) DO UPDATE SET value=excluded.value",
                     (key, value),
                 )
                 con.commit()
-            finally:
-                con.close()
     except Exception:
         pass
 
@@ -1323,6 +1319,18 @@ async def lifespan(app: FastAPI):
     is_first_worker = worker_id is None or worker_id == "0"
     
     if is_first_worker:
+        # Warmup: estabelecer conexão gradualmente antes de DDL pesado
+        try:
+            logging.info("🔥 Warming up database connection...")
+            with get_db_connection() as conn:
+                cursor = conn.cursor()
+                cursor.execute("SELECT 1")
+                cursor.close()
+            time.sleep(2)  # Pequeno delay para estabilizar
+            logging.info("✅ Connection warmup complete")
+        except Exception as e:
+            logging.warning(f"⚠️ Warmup error (non-critical): {e}")
+        
         try:
             logging.info("🔧 Initializing database tables (worker 0)...")
             _ensure_users_table()
@@ -1341,29 +1349,29 @@ async def lifespan(app: FastAPI):
         # Executar migration das colunas hotel, room_number e deposit
         try:
             with _db_lock:
-                migration_conn = _db_connect()
-                try:
-                    cursor = migration_conn.cursor()
-                    cursor.execute("""
-                        ALTER TABLE commission_bookings 
-                        ADD COLUMN IF NOT EXISTS hotel VARCHAR(255)
-                    """)
-                    cursor.execute("""
-                        ALTER TABLE commission_bookings 
-                        ADD COLUMN IF NOT EXISTS room_number VARCHAR(50)
-                    """)
-                    cursor.execute("""
-                        ALTER TABLE commission_bookings 
-                        ADD COLUMN IF NOT EXISTS deposit DECIMAL(10, 2) DEFAULT 0.00
-                    """)
-                    migration_conn.commit()
-                    cursor.close()
-                    logging.info("✅ Added hotel, room_number and deposit columns to commission_bookings")
-                except Exception as e:
-                    migration_conn.rollback()
-                    logging.warning(f"⚠️ Migration error: {str(e)}")
-                finally:
-                    migration_conn.close()
+                with get_db_connection() as migration_conn:
+                    if USE_POSTGRES:
+                        migration_conn = PostgreSQLConnectionWrapper(migration_conn)
+                    try:
+                        cursor = migration_conn.cursor()
+                        cursor.execute("""
+                            ALTER TABLE commission_bookings 
+                            ADD COLUMN IF NOT EXISTS hotel VARCHAR(255)
+                        """)
+                        cursor.execute("""
+                            ALTER TABLE commission_bookings 
+                            ADD COLUMN IF NOT EXISTS room_number VARCHAR(50)
+                        """)
+                        cursor.execute("""
+                            ALTER TABLE commission_bookings 
+                            ADD COLUMN IF NOT EXISTS deposit DECIMAL(10, 2) DEFAULT 0.00
+                        """)
+                        migration_conn.commit()
+                        cursor.close()
+                        logging.info("✅ Added hotel, room_number and deposit columns to commission_bookings")
+                    except Exception as e:
+                        migration_conn.rollback()
+                        logging.warning(f"⚠️ Migration error: {str(e)}")
         except Exception as e:
             logging.warning(f"⚠️ Migration connection error: {str(e)}")
         
@@ -1408,9 +1416,11 @@ async def lifespan(app: FastAPI):
         except Exception as e:
             logging.warning(f"⚠️ Could not apply performance indexes: {e}")
     else:
-        # Other workers: wait for worker 0 to finish init
-        logging.info(f"⏳ Worker {worker_id}: Waiting for database initialization...")
-        time.sleep(10)  # Wait 10 seconds for worker 0 to complete all table creation
+        # Other workers: progressive delay to avoid connection spike
+        # Worker 1: 15s, Worker 2: 20s, Worker 3: 25s
+        delay = 15 + (worker_id * 5)
+        logging.info(f"⏳ Worker {worker_id}: Waiting {delay}s for database initialization...")
+        time.sleep(delay)
         logging.info(f"✅ Worker {worker_id}: Ready")
     
     # Pre-load promotional images cache
@@ -1601,8 +1611,9 @@ def _ensure_damage_reports_tables():
     """Criar tabelas de Damage Reports no PostgreSQL"""
     try:
         with _db_lock:
-            conn = _db_connect()
-            try:
+            with get_db_connection() as conn:
+                if USE_POSTGRES:
+                    conn = PostgreSQLConnectionWrapper(conn)
                 is_postgres = conn.__class__.__module__ == 'psycopg2.extensions'
                 
                 if not is_postgres:
@@ -1766,10 +1777,7 @@ def _ensure_damage_reports_tables():
                     cur.execute("CREATE INDEX IF NOT EXISTS idx_dr_number ON damage_reports(dr_number)")
                     cur.execute("CREATE INDEX IF NOT EXISTS idx_dr_created_at ON damage_reports(created_at DESC)")
                     
-                    
-                conn.commit()
-            finally:
-                conn.close()
+                    conn.commit()
     except Exception as e:
         logging.error(f"Error creating DR tables: {e}")
 
@@ -1777,8 +1785,9 @@ def _ensure_rental_agreement_tables():
     """Criar tabelas de Rental Agreement no PostgreSQL"""
     try:
         with _db_lock:
-            conn = _db_connect()
-            try:
+            with get_db_connection() as conn:
+                if USE_POSTGRES:
+                    conn = PostgreSQLConnectionWrapper(conn)
                 is_postgres = conn.__class__.__module__ == 'psycopg2.extensions'
                 
                 if not is_postgres:
@@ -1835,10 +1844,7 @@ def _ensure_rental_agreement_tables():
                 cur.execute("CREATE INDEX IF NOT EXISTS idx_ra_field ON rental_agreement_coordinates(field_id)")
                 cur.close()
                 
-                
                 conn.commit()
-            finally:
-                conn.close()
     except Exception as e:
         logging.error(f"Error creating RA tables: {e}")
 
@@ -1885,8 +1891,9 @@ async def admin_export_vehicles_json(request: Request):
     try:
         vehicles = []
         with _db_lock:
-            con = _db_connect()
-            try:
+            with get_db_connection() as con:
+                if USE_POSTGRES:
+                    con = PostgreSQLConnectionWrapper(con)
                 cur = con.execute("SELECT id, brand, model, code, category, doors, seats, transmission, luggage, photo_url, enabled FROM car_groups")
                 for r in cur.fetchall():
                     vehicles.append({
@@ -1894,8 +1901,6 @@ async def admin_export_vehicles_json(request: Request):
                         "category": r[4], "doors": r[5], "seats": r[6],
                         "transmission": r[7], "luggage": r[8], "photo_url": r[9], "enabled": r[10]
                     })
-            finally:
-                con.close()
         return JSONResponse({"vehicles": vehicles, "count": len(vehicles)})
     except Exception as e:
         return JSONResponse({"error": str(e)}, status_code=500)
@@ -2482,8 +2487,9 @@ def _convert_query_for_db(query, conn, params=None):
 
 def _ensure_users_table():
     with _db_lock:
-        con = _db_connect()
-        try:
+        with get_db_connection() as con:
+            if USE_POSTGRES:
+                con = PostgreSQLConnectionWrapper(con)
             con.execute("""
                 CREATE TABLE IF NOT EXISTS users (
                   id SERIAL PRIMARY KEY,
@@ -2544,14 +2550,13 @@ def _ensure_users_table():
                 pass
             
             con.commit()
-        finally:
-            con.close()
 
 def _get_user_by_username(username: str) -> Optional[Dict[str, Any]]:
     try:
         with _db_lock:
-            con = _db_connect()
-            try:
+            with get_db_connection() as con:
+                if USE_POSTGRES:
+                    con = PostgreSQLConnectionWrapper(con)
                 cur = con.execute("SELECT id, username, first_name, last_name, email, mobile, profile_picture_path, is_admin, enabled, role, has_commissioner_access, can_manage_commissions, can_manage_commissioners FROM users WHERE username=?", (username,))
                 r = cur.fetchone()
                 if not r:
@@ -2574,8 +2579,6 @@ def _get_user_by_username(username: str) -> Optional[Dict[str, Any]]:
                 }
                 
                 return user_data
-            finally:
-                con.close()
     except Exception:
         return None
 
@@ -4998,8 +5001,9 @@ def send_notification(rule_id: int, notification_type: str, recipient: str, subj
         
         # Salvar no histórico
         with _db_lock:
-            conn = _db_connect()
-            try:
+            with get_db_connection() as conn:
+                if USE_POSTGRES:
+                    conn = PostgreSQLConnectionWrapper(conn)
                 conn.execute(
                     """
                     INSERT INTO notification_history 
@@ -5010,13 +5014,12 @@ def send_notification(rule_id: int, notification_type: str, recipient: str, subj
                 )
                 conn.commit()
                 log_to_db("INFO", f"Notification sent: {notification_type} to {recipient}", "main", "send_notification")
-            finally:
-                conn.close()
     except Exception as e:
         # Salvar erro no histórico
         with _db_lock:
-            conn = _db_connect()
-            try:
+            with get_db_connection() as conn:
+                if USE_POSTGRES:
+                    conn = PostgreSQLConnectionWrapper(conn)
                 conn.execute(
                     """
                     INSERT INTO notification_history 
@@ -5026,8 +5029,6 @@ def send_notification(rule_id: int, notification_type: str, recipient: str, subj
                     (rule_id, notification_type, recipient, subject, message, str(e))
                 )
                 conn.commit()
-            finally:
-                conn.close()
         log_to_db("ERROR", f"Failed to send notification: {str(e)}", "main", "send_notification")
 
 def _get_gmail_credentials():
@@ -5039,8 +5040,9 @@ def _get_gmail_credentials():
     refresh_token = None
     
     with _db_lock:
-        conn = _db_connect()
-        try:
+        with get_db_connection() as conn:
+            if USE_POSTGRES:
+                conn = PostgreSQLConnectionWrapper(conn)
             cursor = conn.execute(
                 "SELECT access_token, refresh_token FROM oauth_tokens WHERE provider = 'google' ORDER BY updated_at DESC LIMIT 1"
             )
@@ -5049,8 +5051,6 @@ def _get_gmail_credentials():
                 access_token = row[0]
                 refresh_token = row[1] if len(row) > 1 else None
                 logging.info("✅ OAuth tokens loaded from database")
-        finally:
-            conn.close()
     
     if not access_token:
         logging.error("❌ No OAuth access token found in database")
@@ -19136,28 +19136,24 @@ async def save_automated_price_rules(request: Request):
         
         # 🚨 PROTEÇÃO: Se tentando salvar 0 regras, verificar se já existem regras
         if total_rules == 0:
-            try:
-                with _db_lock:
-                    conn = _db_connect()
-                    try:
-                        cursor = conn.execute("SELECT COUNT(*) FROM automated_price_rules")
-                        existing_count = cursor.fetchone()[0]
-                        # Changed to DEBUG to reduce log noise (protection still active)
-                        logging.debug(f"⚠️ Attempting to save 0 rules, but {existing_count} rules exist in database!")
-                        
-                        if existing_count > 0:
-                            # Changed to DEBUG - protection still active, just silent
-                            logging.debug(f"🛡️ BLOCKED: Refusing to delete {existing_count} existing rules with empty save!")
-                            return JSONResponse({
-                                "ok": False, 
-                                "error": f"Cannot save empty rules when {existing_count} rules exist. Use Clear All button explicitly.",
-                                "blocked": True
-                            }, status_code=400)
-                    finally:
-                        conn.close()
-            except Exception as protection_err:
-                # Se proteção falhar (SSL error), permitir save continuar
-                logging.warning(f"⚠️ Protection check failed (DB error), allowing save: {protection_err}")
+            with _db_lock:
+                conn = _db_connect()
+                try:
+                    cursor = conn.execute("SELECT COUNT(*) FROM automated_price_rules")
+                    existing_count = cursor.fetchone()[0]
+                    # Changed to DEBUG to reduce log noise (protection still active)
+                    logging.debug(f"⚠️ Attempting to save 0 rules, but {existing_count} rules exist in database!")
+                    
+                    if existing_count > 0:
+                        # Changed to DEBUG - protection still active, just silent
+                        logging.debug(f"🛡️ BLOCKED: Refusing to delete {existing_count} existing rules with empty save!")
+                        return JSONResponse({
+                            "ok": False, 
+                            "error": f"Cannot save empty rules when {existing_count} rules exist. Use Clear All button explicitly.",
+                            "blocked": True
+                        }, status_code=400)
+                finally:
+                    conn.close()
         
         with _db_lock:
             conn = _db_connect()
@@ -19180,72 +19176,47 @@ async def save_automated_price_rules(request: Request):
                 placeholder = "%s" if is_postgres else "?"
                 logging.info(f"💾 Saving to {'PostgreSQL' if is_postgres else 'SQLite'} (conn type: {conn_type})")
                 
-                # Disable autocommit for transaction
-                if is_postgres:
-                    conn._conn.autocommit = False
-                
                 # Limpar regras antigas
                 logging.info("🗑️ Deleting old rules...")
                 conn.execute("DELETE FROM automated_price_rules")
-                logging.info("✅ Old rules deleted (will commit with new rules)")
+                logging.info("✅ Old rules deleted")
                 
                 # Salvar novas regras
                 rules_count = 0
                 for location, grupos in data.items():
+                    logging.info(f"  📍 Location: {location} ({len(grupos)} groups)")
                     for grupo, grupo_data in grupos.items():
                         if 'months' in grupo_data:
+                            months_count = len(grupo_data['months'])
+                            logging.info(f"    📊 Group: {grupo} ({months_count} months)")
                             for month, month_data in grupo_data['months'].items():
                                 if 'days' in month_data:
+                                    days_count = len(month_data['days'])
+                                    logging.info(f"      📅 Month {month}: {days_count} days")
                                     for day, day_config in month_data['days'].items():
                                         try:
                                             config_json = json.dumps(day_config)
+                                            strategies_count = len(day_config.get('strategies', []))
+                                            logging.info(f"        💾 Saving {location}/{grupo}/M{month}/D{day} ({strategies_count} strategies)")
                                             
-                                            if is_postgres:
-                                                conn.execute(
-                                                    f"""
-                                                    INSERT INTO automated_price_rules 
-                                                    (location, grupo, month, day, config, updated_at, priority)
-                                                    VALUES ({placeholder}, {placeholder}, {placeholder}, {placeholder}, {placeholder}, CURRENT_TIMESTAMP, 1)
-                                                    ON CONFLICT (location, grupo, month, day, priority)
-                                                    DO UPDATE SET config = EXCLUDED.config, updated_at = CURRENT_TIMESTAMP
-                                                    """,
-                                                    (location, grupo, int(month), int(day), config_json)
-                                                )
-                                            else:
-                                                conn.execute(
-                                                    f"""
-                                                    INSERT OR REPLACE INTO automated_price_rules 
-                                                    (location, grupo, month, day, config, updated_at)
-                                                    VALUES ({placeholder}, {placeholder}, {placeholder}, {placeholder}, {placeholder}, CURRENT_TIMESTAMP)
-                                                    """,
-                                                    (location, grupo, int(month), int(day), config_json)
-                                                )
+                                            conn.execute(
+                                                f"""
+                                                INSERT INTO automated_price_rules 
+                                                (location, grupo, month, day, config, updated_at)
+                                                VALUES ({placeholder}, {placeholder}, {placeholder}, {placeholder}, {placeholder}, CURRENT_TIMESTAMP)
+                                                """,
+                                                (location, grupo, int(month), int(day), config_json)
+                                            )
                                             rules_count += 1
                                         except Exception as rule_err:
                                             logging.error(f"❌ Error saving rule {location}/{grupo}/{month}/{day}: {str(rule_err)}")
-                                            conn.rollback()
                                             raise
                 
                 conn.commit()
-                
-                # Re-enable autocommit
-                if is_postgres:
-                    conn._conn.autocommit = True
-                
                 logging.info(f"✅ Saved {rules_count} automated price rules to database")
                 return JSONResponse({"ok": True, "message": "Rules saved successfully"})
             except Exception as db_err:
                 logging.error(f"❌ Database error saving rules: {str(db_err)}")
-                try:
-                    conn.rollback()
-                except:
-                    pass
-                # Re-enable autocommit even on error
-                try:
-                    if is_postgres:
-                        conn._conn.autocommit = True
-                except:
-                    pass
                 raise
             finally:
                 conn.close()
@@ -20270,7 +20241,9 @@ async def load_automated_price_rules(request: Request):
                     
                     try:
                         config = json.loads(config_json)
+                        strategies_count = len(config.get('strategies', []))
                         rules[location][grupo]["months"][str(month)]["days"][str(day)] = config
+                        logging.info(f"  ✅ Loaded {location}/{grupo}/M{month}/D{day} ({strategies_count} strategies)")
                     except Exception as parse_err:
                         logging.error(f"  ❌ Error parsing config for {location}/{grupo}/M{month}/D{day}: {parse_err}")
                         rules[location][grupo]["months"][str(month)]["days"][str(day)] = {}
@@ -20906,43 +20879,31 @@ async def save_user_settings(request: Request):
                     # Serializar valor como JSON
                     value_json = json.dumps(value) if not isinstance(value, str) else value
                     
-                    # Retry logic para SSL errors
-                    max_retries = 2
-                    for attempt in range(max_retries):
+                    if is_postgres:
+                        # PostgreSQL: usar ON CONFLICT ... DO UPDATE
+                        # PostgreSQL: usar NOW() e ON CONFLICT correto
+                        query = f"""
+                            INSERT INTO user_settings 
+                            (user_key, setting_key, setting_value, updated_at)
+                            VALUES ({placeholder}, {placeholder}, {placeholder}, NOW())
+                            ON CONFLICT (user_key, setting_key) DO UPDATE SET
+                                setting_value = EXCLUDED.setting_value,
+                                updated_at = NOW()
+                        """
                         try:
-                            if is_postgres:
-                                # PostgreSQL: usar ON CONFLICT ... DO UPDATE
-                                query = f"""
-                                    INSERT INTO user_settings 
-                                    (user_key, setting_key, setting_value, updated_at)
-                                    VALUES ({placeholder}, {placeholder}, {placeholder}, NOW())
-                                    ON CONFLICT (user_key, setting_key) DO UPDATE SET
-                                        setting_value = EXCLUDED.setting_value,
-                                        updated_at = NOW()
-                                """
-                                with conn.cursor() as cur:
-                                    cur.execute(query, (user_key, key, value_json))
-                            else:
-                                # SQLite: usar INSERT OR REPLACE
-                                query = f"""
-                                    INSERT OR REPLACE INTO user_settings 
-                                    (user_key, setting_key, setting_value, updated_at)
-                                    VALUES ({placeholder}, {placeholder}, {placeholder}, datetime('now'))
-                                """
-                                conn.execute(query, (user_key, key, value_json))
-                            break  # Success, exit retry loop
-                        except Exception as save_err:
-                            error_msg = str(save_err).lower()
-                            is_ssl_error = 'ssl connection has been closed' in error_msg or 'connection' in error_msg
-                            
-                            if is_ssl_error and attempt < max_retries - 1:
-                                logging.warning(f"⚠️ SSL error saving setting '{key}', retrying...")
-                                conn.close()
-                                conn = _db_connect()
-                                continue
-                            else:
-                                logging.error(f"❌ Failed to save setting '{key}': {save_err}")
-                                raise
+                            with conn.cursor() as cur:
+                                cur.execute(query, (user_key, key, value_json))
+                        except Exception as pg_err:
+                            logging.error(f"❌ PostgreSQL execute failed for key '{key}': {pg_err}")
+                            raise
+                    else:
+                        # SQLite: usar INSERT OR REPLACE
+                        query = f"""
+                            INSERT OR REPLACE INTO user_settings 
+                            (user_key, setting_key, setting_value, updated_at)
+                            VALUES ({placeholder}, {placeholder}, {placeholder}, datetime('now'))
+                        """
+                        conn.execute(query, (user_key, key, value_json))
                 
                 conn.commit()
                 return JSONResponse({"ok": True})
@@ -21345,33 +21306,6 @@ def _ensure_vehicle_inspections_table():
                     FOREIGN KEY (inspection_id) REFERENCES vehicle_inspections(id) ON DELETE CASCADE
                 )
             """)
-            
-            # PASSO 2: Índices para acelerar queries de fotos (evita table scan em 7.9GB)
-            logging.info("📊 Creating indexes on inspection_photos...")
-            try:
-                conn.execute("CREATE INDEX IF NOT EXISTS idx_inspection_photos_inspection_id ON inspection_photos(inspection_id)")
-            except Exception as e:
-                logging.warning(f"Index idx_inspection_photos_inspection_id: {e}")
-                try:
-                    conn.rollback()
-                except:
-                    pass
-            try:
-                conn.execute("CREATE INDEX IF NOT EXISTS idx_inspection_photos_photo_type ON inspection_photos(photo_type)")
-            except Exception as e:
-                logging.warning(f"Index idx_inspection_photos_photo_type: {e}")
-                try:
-                    conn.rollback()
-                except:
-                    pass
-            try:
-                conn.execute("CREATE INDEX IF NOT EXISTS idx_inspection_photos_composite ON inspection_photos(inspection_id, photo_type)")
-            except Exception as e:
-                logging.warning(f"Index idx_inspection_photos_composite: {e}")
-                try:
-                    conn.rollback()
-                except:
-                    pass
             
         else:
             # SQLite
@@ -30631,59 +30565,18 @@ async def generate_commissioner_booking_pdf(booking_id: int, request: Request):
             except:
                 pass
         
-        # Calcular número de dias (incluindo horas - 1 minuto extra = +1 dia)
+        # Calcular número de dias
         rental_days = ""
         if pickup_date_str and dropoff_date_str:
             try:
-                # Criar datetime completo com horas
+                # Usar objetos date diretamente se disponíveis
                 if isinstance(pickup_date_raw, (date, datetime)) and isinstance(dropoff_date_raw, (date, datetime)):
-                    # Se já temos datetime objects
-                    if isinstance(pickup_date_raw, datetime):
-                        pickup_full_dt = pickup_date_raw
-                    else:
-                        # É date, adicionar hora se disponível
-                        pickup_time = datetime.strptime(f"{pickup_hour}:{pickup_minute}", "%H:%M").time() if pickup_hour and pickup_minute else datetime.min.time()
-                        pickup_full_dt = datetime.combine(pickup_date_raw, pickup_time)
-                    
-                    if isinstance(dropoff_date_raw, datetime):
-                        dropoff_full_dt = dropoff_date_raw
-                    else:
-                        # É date, adicionar hora se disponível
-                        dropoff_time = datetime.strptime(f"{dropoff_hour}:{dropoff_minute}", "%H:%M").time() if dropoff_hour and dropoff_minute else datetime.min.time()
-                        dropoff_full_dt = datetime.combine(dropoff_date_raw, dropoff_time)
+                    days_diff = (dropoff_date_raw - pickup_date_raw).days
                 else:
-                    # Parse from strings
                     pickup_dt = datetime.strptime(pickup_date_str, "%Y-%m-%d")
                     dropoff_dt = datetime.strptime(dropoff_date_str, "%Y-%m-%d")
-                    
-                    # Adicionar horas se disponíveis
-                    if pickup_hour and pickup_minute:
-                        pickup_time = datetime.strptime(f"{pickup_hour}:{pickup_minute}", "%H:%M").time()
-                        pickup_full_dt = datetime.combine(pickup_dt.date(), pickup_time)
-                    else:
-                        pickup_full_dt = pickup_dt
-                    
-                    if dropoff_hour and dropoff_minute:
-                        dropoff_time = datetime.strptime(f"{dropoff_hour}:{dropoff_minute}", "%H:%M").time()
-                        dropoff_full_dt = datetime.combine(dropoff_dt.date(), dropoff_time)
-                    else:
-                        dropoff_full_dt = dropoff_dt
-                
-                # Calcular diferença em minutos
-                time_diff = dropoff_full_dt - pickup_full_dt
-                total_minutes = time_diff.total_seconds() / 60
-                
-                # Regra: 1 minuto extra = +1 dia
-                # Calcular dias completos (1440 minutos = 1 dia)
-                days_diff = int(total_minutes // 1440)  # Dias completos
-                extra_minutes = total_minutes % 1440     # Minutos extra
-                
-                # Se tiver qualquer minuto extra, cobra +1 dia
-                if extra_minutes > 0:
-                    days_diff += 1
-                
+                    days_diff = (dropoff_dt - pickup_dt).days
                 rental_days = str(days_diff) if days_diff > 0 else "1"
-                
             except Exception as e:
                 logging.error(f"Error calculating rental days: {e}")
                 rental_days = "1"
@@ -53055,8 +52948,12 @@ async def get_inspections_history(request: Request):
         search_term = request.query_params.get('search', '').strip()
         filter_date = request.query_params.get('date', '').strip()
         logging.info(f"📋 Loading inspections history... (search: '{search_term}', date: '{filter_date}')")
-        conn = _db_connect()
-        try:
+        
+        # Use context manager to ensure connection is always closed
+        with get_db_connection() as conn:
+            # Wrap PostgreSQL connection to add execute() method
+            if USE_POSTGRES:
+                conn = PostgreSQLConnectionWrapper(conn)
             # Detect database type
             is_postgres = False
             conn_type = type(conn).__name__
@@ -53631,9 +53528,6 @@ async def get_inspections_history(request: Request):
                 "ok": True,
                 "contracts": contracts
             })
-            
-        finally:
-            conn.close()
         
     except Exception as e:
         logging.error(f"❌ Error getting inspections history: {e}")
@@ -53972,8 +53866,9 @@ async def resend_last_inspection(request: Request):
 async def get_inspection_details(inspection_number: str, request: Request):
     """Get specific inspection details"""
     try:
-        conn = _db_connect()
-        try:
+        with get_db_connection() as conn:
+            if USE_POSTGRES:
+                conn = PostgreSQLConnectionWrapper(conn)
             is_postgres = 'psycopg' in type(conn).__name__.lower() or os.getenv('DATABASE_URL')
             cursor = conn.cursor()
             
@@ -54245,9 +54140,6 @@ async def get_inspection_details(inspection_number: str, request: Request):
                 "ok": True,
                 "inspection": inspection
             })
-            
-        finally:
-            conn.close()
         
     except Exception as e:
         logging.error(f"Error getting inspection details: {e}")
@@ -62750,163 +62642,6 @@ async def api_get_commissioner_bookings_by_session(request: Request):
         print(f"Error getting commissioner bookings: {e}")
         traceback.print_exc()
         return JSONResponse({"ok": False, "error": "Erro ao carregar reservas"}, status_code=500)
-
-
-@app.post("/api/commissioners/bookings")
-async def api_create_commissioner_booking(request: Request):
-    """API endpoint to create a new booking from commissioner portal"""
-    try:
-        # Check if commissioner is logged in
-        commissioner_id = request.session.get("commissioner_id")
-        if not commissioner_id:
-            return JSONResponse({"ok": False, "error": "Não autenticado"}, status_code=401)
-        
-        data = await request.json()
-        
-        # Extract and validate data
-        vehicle_group = data.get("vehicle_group")
-        client_name = data.get("client_name")
-        client_email = data.get("client_email")
-        client_phone = data.get("client_phone")
-        pickup_date = data.get("pickup_date")
-        pickup_time = data.get("pickup_time")
-        dropoff_date = data.get("dropoff_date")
-        dropoff_time = data.get("dropoff_time")
-        
-        if not all([vehicle_group, client_name, pickup_date, dropoff_date]):
-            return JSONResponse({"ok": False, "error": "Campos obrigatórios em falta"}, status_code=400)
-        
-        # CRITICAL: Recalcular rental_days no backend (não confiar no frontend)
-        from datetime import datetime
-        try:
-            pickup_dt = datetime.strptime(f"{pickup_date} {pickup_time or '00:00'}", "%Y-%m-%d %H:%M")
-            dropoff_dt = datetime.strptime(f"{dropoff_date} {dropoff_time or '00:00'}", "%Y-%m-%d %H:%M")
-            
-            # Calcular diferença em minutos
-            time_diff = dropoff_dt - pickup_dt
-            total_minutes = time_diff.total_seconds() / 60
-            
-            if total_minutes <= 0:
-                return JSONResponse({"ok": False, "error": "Data de entrega deve ser posterior à recolha"}, status_code=400)
-            
-            # Regra: 1 minuto extra = +1 dia
-            days_diff = int(total_minutes // 1440)  # Dias completos
-            extra_minutes = total_minutes % 1440     # Minutos extra
-            
-            # Se tiver qualquer minuto extra, cobra +1 dia
-            rental_days = days_diff + 1 if extra_minutes > 0 else days_diff
-            rental_days = max(rental_days, 1)  # Mínimo 1 dia
-            
-            logging.info(f"📊 Rental days calculation: {pickup_date} {pickup_time} → {dropoff_date} {dropoff_time} = {rental_days} days ({days_diff}d + {extra_minutes:.0f}min)")
-            
-        except Exception as e:
-            logging.error(f"Error calculating rental days: {e}")
-            return JSONResponse({"ok": False, "error": "Erro ao calcular dias de aluguer"}, status_code=400)
-        
-        # Get commissioner info
-        with _db_lock:
-            con = _db_connect()
-            try:
-                if USE_POSTGRES:
-                    cur = con.cursor()
-                    cur.execute("SELECT name, voucher_prefix, commission_rate FROM commissioners WHERE id = %s", (commissioner_id,))
-                else:
-                    cur = con.execute("SELECT name, voucher_prefix, commission_rate FROM commissioners WHERE id = ?", (commissioner_id,))
-                
-                commissioner = cur.fetchone()
-                if not commissioner:
-                    return JSONResponse({"ok": False, "error": "Comissionista não encontrado"}, status_code=404)
-                
-                commissioner_name = commissioner[0]
-                voucher_prefix = commissioner[1]
-                commission_rate = float(commissioner[2]) if commissioner[2] else 15.0
-                
-                # Calculate commission
-                base_price = float(data.get("base_price", 0))
-                april_1st_2026 = datetime(2026, 4, 1)
-                
-                if pickup_dt > april_1st_2026:
-                    commission_amount = base_price * (commission_rate / 100.0)
-                else:
-                    commission_amount = (base_price / 1.23) * 0.15
-                
-                # Insert booking
-                if USE_POSTGRES:
-                    cur.execute("""
-                        INSERT INTO commission_bookings (
-                            commissioner_id, client_name, client_email, client_phone,
-                            pickup_date, pickup_time, dropoff_date, dropoff_time,
-                            pickup_location, dropoff_location, vehicle_group, 
-                            hotel, room_number, flight_number, language,
-                            base_price, premium_insurance, road_tax, extras_total, rental_days,
-                            extras, total_amount, price, insurance_type,
-                            deposit, status, commission_rate, commission_amount,
-                            created_at, updated_at
-                        ) VALUES (
-                            %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s,
-                            %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s,
-                            CURRENT_TIMESTAMP, CURRENT_TIMESTAMP
-                        ) RETURNING id
-                    """, (
-                        commissioner_id, client_name, client_email, client_phone,
-                        pickup_date, pickup_time, dropoff_date, dropoff_time,
-                        data.get("pickup_location"), data.get("dropoff_location"), vehicle_group,
-                        data.get("hotel"), data.get("room_number"), data.get("flight_number"), data.get("language", "pt"),
-                        base_price, data.get("premium_insurance", 0), data.get("road_tax", 0), 
-                        data.get("extras_total", 0), rental_days,
-                        json.dumps(data.get("extras", [])), data.get("total_amount", 0), 
-                        data.get("price", 0), data.get("insurance_type", "standard"),
-                        data.get("deposit", 0), "confirmed", commission_rate, commission_amount
-                    ))
-                    booking_id = cur.fetchone()[0]
-                    con.commit()
-                else:
-                    cur = con.execute("""
-                        INSERT INTO commission_bookings (
-                            commissioner_id, client_name, client_email, client_phone,
-                            pickup_date, pickup_time, dropoff_date, dropoff_time,
-                            pickup_location, dropoff_location, vehicle_group,
-                            hotel, room_number, flight_number, language,
-                            base_price, premium_insurance, road_tax, extras_total, rental_days,
-                            extras, total_amount, price, insurance_type,
-                            deposit, status, commission_rate, commission_amount,
-                            created_at, updated_at
-                        ) VALUES (
-                            ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?,
-                            ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?,
-                            datetime('now'), datetime('now')
-                        )
-                    """, (
-                        commissioner_id, client_name, client_email, client_phone,
-                        pickup_date, pickup_time, dropoff_date, dropoff_time,
-                        data.get("pickup_location"), data.get("dropoff_location"), vehicle_group,
-                        data.get("hotel"), data.get("room_number"), data.get("flight_number"), data.get("language", "pt"),
-                        base_price, data.get("premium_insurance", 0), data.get("road_tax", 0),
-                        data.get("extras_total", 0), rental_days,
-                        json.dumps(data.get("extras", [])), data.get("total_amount", 0),
-                        data.get("price", 0), data.get("insurance_type", "standard"),
-                        data.get("deposit", 0), "confirmed", commission_rate, commission_amount
-                    ))
-                    booking_id = cur.lastrowid
-                    con.commit()
-                
-                logging.info(f"✅ Booking created: ID={booking_id}, Commissioner={commissioner_name}, Vehicle={vehicle_group}, Days={rental_days}")
-                
-                return JSONResponse({
-                    "ok": True,
-                    "booking_id": booking_id,
-                    "rental_days": rental_days,
-                    "message": "Reserva criada com sucesso"
-                })
-                
-            finally:
-                con.close()
-                
-    except Exception as e:
-        logging.error(f"Error creating commissioner booking: {e}")
-        import traceback
-        traceback.print_exc()
-        return JSONResponse({"ok": False, "error": str(e)}, status_code=500)
 
 
 @app.post("/api/commissioners/update-email")

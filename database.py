@@ -152,7 +152,7 @@ class DatabaseConnection:
             query = self._convert_to_postgres(query)
         
         # PASSO 3: Retry logic para SSL errors durante queries
-        max_retries = 2
+        max_retries = 3
         for attempt in range(max_retries):
             try:
                 cursor = self.conn.cursor()
@@ -166,21 +166,26 @@ class DatabaseConnection:
                 is_ssl_error = any(x in error_msg for x in [
                     'ssl connection has been closed',
                     'connection already closed',
-                    'server closed the connection'
+                    'server closed the connection',
+                    'connection was killed',
+                    'connection reset'
                 ])
                 
                 if is_ssl_error and attempt < max_retries - 1:
-                    logging.warning(f"⚠️ SSL error during query, reconnecting (attempt {attempt+1}/{max_retries})")
+                    logging.warning(f"⚠️ SSL error during query (attempt {attempt+1}/{max_retries}): {e}")
+                    logging.warning(f"🔄 Reconnecting with fresh connection from pool...")
                     # Fechar conexão morta e reconectar
                     try:
                         self.close()
                     except:
                         pass
-                    time.sleep(0.5)
+                    time.sleep(1)  # Aumentado de 0.5s para 1s
                     self.connect()
                     continue
                 else:
                     # Não é SSL error ou já esgotou retries
+                    if is_ssl_error:
+                        logging.error(f"❌ SSL error persiste após {max_retries} tentativas: {e}")
                     raise
     
     def commit(self):
@@ -377,11 +382,25 @@ class PostgreSQLConnectionWrapper:
         self.close()
 
 def get_db():
-    """Get a database connection (for backward compatibility)"""
+    """Get a database connection (for backward compatibility) with health check"""
     if USE_POSTGRES:
         if connection_pool:
             # Always use pool - never create direct connections
             conn = connection_pool.getconn()
+            
+            # Health check: verify connection is alive
+            try:
+                cursor = conn.cursor()
+                cursor.execute("SELECT 1")
+                cursor.close()
+            except Exception as health_err:
+                logging.warning(f"⚠️ Connection from pool is stale: {health_err}. Getting fresh connection...")
+                # Return bad connection and get new one
+                try:
+                    connection_pool.putconn(conn, close=True)
+                except:
+                    pass
+                conn = connection_pool.getconn()
         else:
             # Fallback only if pool creation failed at startup
             conn = psycopg2.connect(**DB_CONFIG)

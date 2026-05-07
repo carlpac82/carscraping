@@ -39,9 +39,17 @@ def get_batch_progress(batch_id: str) -> dict:
         return _batch_progress.get(batch_id, {}).copy()
 
 def clear_batch_progress(batch_id: str):
-    """Limpar progresso de um batch terminado"""
+    """Limpar progresso de um batch terminado (apenas se done/error/cancelled)"""
     with _batch_progress_lock:
-        _batch_progress.pop(batch_id, None)
+        prog = _batch_progress.get(batch_id)
+        if prog:
+            status = prog.get('status')
+            # CRÍTICO: Só apagar se realmente terminou
+            if status in ['done', 'error', 'cancelled']:
+                _batch_progress.pop(batch_id, None)
+                print(f"[BATCH] ✅ Batch {batch_id} cleared (status={status})", file=sys.stderr, flush=True)
+            else:
+                print(f"[BATCH] ⚠️ Tentativa de apagar batch {batch_id} ainda {status} - IGNORADO", file=sys.stderr, flush=True)
 
 def cancel_batch(batch_id: str) -> bool:
     """Cancelar um batch em execução"""
@@ -764,10 +772,14 @@ def scrape_carjet_batch(
 
     except TimeoutError as e:
         print(f"[BATCH] ⏰ {e}", file=sys.stderr, flush=True)
+        # Marcar como error
+        _update_progress(status='error')
     except Exception as e:
         print(f"[BATCH] ❌ Erro geral: {e}", file=sys.stderr, flush=True)
         import traceback
         traceback.print_exc(file=sys.stderr)
+        # Marcar como error
+        _update_progress(status='error')
     finally:
         # Cancelar alarm
         try:
@@ -790,5 +802,15 @@ def scrape_carjet_batch(
         print(f"[BATCH]   {status} {days} dias: {len(items)} carros", file=sys.stderr, flush=True)
     print(f"{'='*70}", file=sys.stderr, flush=True)
 
-    _update_progress(status='done')
+    # CRÍTICO: SEMPRE marcar status final
+    with _batch_progress_lock:
+        if batch_id and batch_id in _batch_progress:
+            current_status = _batch_progress[batch_id].get('status')
+            # Se ainda está running/starting, marcar como done
+            if current_status in ['running', 'starting', 'starting_chrome']:
+                _batch_progress[batch_id]['status'] = 'done'
+                print(f"[BATCH] ✅ Batch {batch_id} marcado como DONE (era {current_status})", file=sys.stderr, flush=True)
+            else:
+                print(f"[BATCH] ℹ️ Batch {batch_id} já tem status final: {current_status}", file=sys.stderr, flush=True)
+    
     return results
