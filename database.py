@@ -314,6 +314,18 @@ class PostgreSQLConnectionWrapper:
                             if connection_pool:
                                 connection_pool.putconn(self._conn, close=True)
                                 self._conn = connection_pool.getconn()
+                                # Validate new connection is alive
+                                try:
+                                    cursor = self._conn.cursor()
+                                    cursor.execute("SELECT 1")
+                                    cursor.close()
+                                except Exception as health_err:
+                                    logging.warning(f"New connection from pool is also stale: {health_err}. Getting another one...")
+                                    try:
+                                        connection_pool.putconn(self._conn, close=True)
+                                    except:
+                                        pass
+                                    self._conn = connection_pool.getconn()
                         except:
                             pass
                         continue
