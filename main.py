@@ -4295,25 +4295,18 @@ def init_db():
             safe_create_index(conn, "CREATE INDEX IF NOT EXISTS idx_auto_prices_history ON automated_prices_history(location, grupo, pickup_date, created_at)", "idx_auto_prices_history")
             
             # Add source column to automated_prices_history if it doesn't exist (migration)
+            # NOTA: Esta migração só corre no worker principal (verificado em init_app com WORKER_INDEX)
             try:
-                # Use advisory lock to prevent deadlock from multiple workers
-                conn.execute("SELECT pg_advisory_lock(12345)")
                 conn.execute("ALTER TABLE automated_prices_history ADD COLUMN IF NOT EXISTS source TEXT DEFAULT 'manual'")
-                conn.execute("SELECT pg_advisory_unlock(12345)")
                 conn.commit()
                 logging.info("✅ Added 'source' column to automated_prices_history table")
             except Exception as e:
-                try:
-                    conn.execute("SELECT pg_advisory_unlock(12345)")
-                except:
-                    pass
-                conn.rollback()  # CRITICAL for PostgreSQL - must rollback on error
+                conn.rollback()
                 error_msg = str(e).lower()
                 if 'duplicate column' in error_msg or 'already exists' in error_msg:
                     logging.info("ℹ️ Column 'source' already exists in automated_prices_history")
                 else:
                     logging.error(f"❌ Failed to add 'source' column to automated_prices_history: {e}")
-                pass
             
             # Tabela para logs do sistema (evitar perda em disco efêmero)
             conn.execute(
