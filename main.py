@@ -1434,19 +1434,23 @@ async def lifespan(app: FastAPI):
     current_process = multiprocessing.current_process()
     worker_pid = os.getpid()
     
-    # No Railway, usar variável de ambiente para identificar o worker principal
-    # Se DISABLE_SCHEDULER=true, não executa o scheduler
-    # Caso contrário, SEMPRE executa (Railway usa UUID, não números sequenciais)
-    disable_scheduler = os.environ.get('DISABLE_SCHEDULER', 'false').lower() == 'true'
-    is_main_worker = not disable_scheduler
+    # No Railway, usar variável de ambiente WORKER_INDEX para identificar o worker principal
+    # WORKER_INDEX=0 é o worker principal
+    worker_index = os.environ.get('WORKER_INDEX', '0')
+    is_main_worker = worker_index == '0'
     
-    if is_main_worker:
+    # Se DISABLE_SCHEDULER=true, não executa o scheduler
+    disable_scheduler = os.environ.get('DISABLE_SCHEDULER', 'false').lower() == 'true'
+    
+    if is_main_worker and not disable_scheduler:
         try:
             from automated_scheduler import setup_scheduled_tasks
             setup_scheduled_tasks()
-            logging.info(f"✅ Automated scheduler initialized (worker {worker_pid})")
+            logging.info(f"✅ Automated scheduler initialized (worker {worker_pid}, WORKER_INDEX={worker_index})")
         except Exception as e:
             logging.error(f"❌ Failed to initialize automated scheduler: {str(e)}")
+    else:
+        logging.info(f"⏭️ Skipping scheduler initialization (worker {worker_pid}, WORKER_INDEX={worker_index}, is_main={is_main_worker}, disabled={disable_scheduler})")
     
     # Load AI models
     try:
