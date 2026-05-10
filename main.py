@@ -2504,42 +2504,77 @@ def _ensure_users_table():
             
             # Migration: Add google_id column if it doesn't exist
             try:
+                # Use advisory lock to prevent deadlock from multiple workers
+                con.execute("SELECT pg_advisory_lock(12346)")
                 con.execute("ALTER TABLE users ADD COLUMN IF NOT EXISTS google_id TEXT UNIQUE")
+                con.execute("SELECT pg_advisory_unlock(12346)")
                 con.commit()
             except Exception as e:
+                try:
+                    con.execute("SELECT pg_advisory_unlock(12346)")
+                except:
+                    pass
                 con.rollback()  # CRITICAL for PostgreSQL - must rollback on error
                 # Column already exists, ignore
                 pass
 
             # Migration: Add role and can_access_inspection columns
             try:
+                # Use advisory lock to prevent deadlock from multiple workers
+                con.execute("SELECT pg_advisory_lock(12347)")
                 con.execute("ALTER TABLE users ADD COLUMN IF NOT EXISTS role TEXT DEFAULT 'user'")
+                con.execute("SELECT pg_advisory_unlock(12347)")
                 con.commit()
             except Exception as e:
+                try:
+                    con.execute("SELECT pg_advisory_unlock(12347)")
+                except:
+                    pass
                 con.rollback()
                 pass
 
             try:
+                # Use advisory lock to prevent deadlock from multiple workers
+                con.execute("SELECT pg_advisory_lock(12348)")
                 con.execute("ALTER TABLE users ADD COLUMN IF NOT EXISTS can_access_inspection INTEGER DEFAULT 0")
+                con.execute("SELECT pg_advisory_unlock(12348)")
                 con.commit()
             except Exception as e:
+                try:
+                    con.execute("SELECT pg_advisory_unlock(12348)")
+                except:
+                    pass
                 con.rollback()
                 pass
 
             # Migration: Add profile_picture_data column if it doesn't exist
             try:
+                # Use advisory lock to prevent deadlock from multiple workers
+                con.execute("SELECT pg_advisory_lock(12349)")
                 con.execute("ALTER TABLE users ADD COLUMN IF NOT EXISTS profile_picture_data BYTEA")
+                con.execute("SELECT pg_advisory_unlock(12349)")
                 con.commit()
             except Exception as e:
+                try:
+                    con.execute("SELECT pg_advisory_unlock(12349)")
+                except:
+                    pass
                 con.rollback()  # CRITICAL for PostgreSQL - must rollback on error
                 # Column already exists, ignore
                 pass
 
             # Migration: Add has_commissioner_access column
             try:
+                # Use advisory lock to prevent deadlock from multiple workers
+                con.execute("SELECT pg_advisory_lock(12350)")
                 con.execute("ALTER TABLE users ADD COLUMN IF NOT EXISTS has_commissioner_access INTEGER DEFAULT 0")
+                con.execute("SELECT pg_advisory_unlock(12350)")
                 con.commit()
             except Exception as e:
+                try:
+                    con.execute("SELECT pg_advisory_unlock(12350)")
+                except:
+                    pass
                 con.rollback()
                 pass
             
@@ -4181,10 +4216,17 @@ def init_db():
             
             # Add source column to automated_prices_history if it doesn't exist (migration)
             try:
+                # Use advisory lock to prevent deadlock from multiple workers
+                conn.execute("SELECT pg_advisory_lock(12345)")
                 conn.execute("ALTER TABLE automated_prices_history ADD COLUMN IF NOT EXISTS source TEXT DEFAULT 'manual'")
+                conn.execute("SELECT pg_advisory_unlock(12345)")
                 conn.commit()
                 logging.info("✅ Added 'source' column to automated_prices_history table")
             except Exception as e:
+                try:
+                    conn.execute("SELECT pg_advisory_unlock(12345)")
+                except:
+                    pass
                 conn.rollback()  # CRITICAL for PostgreSQL - must rollback on error
                 error_msg = str(e).lower()
                 if 'duplicate column' in error_msg or 'already exists' in error_msg:
