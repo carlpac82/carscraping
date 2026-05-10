@@ -19267,10 +19267,7 @@ async def save_automated_price_rules(request: Request):
             return JSONResponse({"ok": False, "error": f"Invalid JSON: {str(json_err)}"}, status_code=400)
         
         # 🚨 PROTEÇÃO: Verificar se os dados são válidos
-        if not data or not isinstance(data, dict):
-            logging.error("❌ Invalid or empty JSON data received")
-            return JSONResponse({"ok": False, "error": "Invalid or empty JSON data"}, status_code=400)
-        
+        # REMOVIDO: Permitir objeto vazio {} para limpar regras
         logging.info(f"🔍 DATA KEYS COUNT: {len(data)}")
         
         # 🚨 PROTEÇÃO: Se objeto vazio, verificar flag de confirmação para limpar
