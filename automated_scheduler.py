@@ -45,11 +45,15 @@ def _get_db_connection():
     
     for attempt in range(max_retries):
         try:
-            # Connect with timeout settings to prevent hanging connections
+            # Connect with SSL and keepalive settings to prevent connection errors
             conn = psycopg2.connect(
                 database_url,
                 connect_timeout=10,  # 10 seconds timeout for connection
-                options='-c statement_timeout=30000'  # 30 seconds for queries
+                options='-c statement_timeout=30000',  # 30 seconds for queries
+                sslmode='require',  # Force SSL for stable connections
+                keepalives_idle=10,  # Send keepalive after 10 seconds of idle
+                keepalives_interval=5,  # Send keepalive every 5 seconds if no response
+                keepalives_count=3  # Give up after 3 failed keepalives
             )
             
             # Test connection is alive
