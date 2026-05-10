@@ -19272,6 +19272,8 @@ async def save_automated_price_rules(request: Request):
             logging.error("❌ Invalid or empty JSON data received")
             return JSONResponse({"ok": False, "error": "Invalid or empty JSON data"}, status_code=400)
         
+        logging.info(f"🔍 DATA KEYS COUNT: {len(data)}")
+        
         # 🚨 PROTEÇÃO: Se objeto vazio, verificar flag de confirmação para limpar
         if len(data) == 0:
             # Permitir objeto vazio apenas se flag clear=true estiver presente (não implementado ainda)
