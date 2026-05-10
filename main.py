@@ -1917,10 +1917,7 @@ async def admin_test_email_send(request: Request, to: str = Form("")):
 @app.post("/admin/send-past-checkout-emails")
 async def send_past_checkout_emails(request: Request):
     """Endpoint to send all pending checkout emails (for Safari console execution)"""
-    try:
-        require_commissions_management(request)
-    except HTTPException:
-        return JSONResponse({"error": "Unauthorized"}, status_code=401)
+    require_auth(request)
     
     try:
         import psycopg2
@@ -1946,13 +1943,15 @@ async def send_past_checkout_emails(request: Request):
             
             try:
                 from schedule_checkout_emails import mark_email_sent
-                success = _send_self_checkout_email(
-                    inspection_number=inspection_number,
-                    checkout_date=checkout_date,
-                    pickup_location=pickup_location,
-                    client_email=client_email,
+                # Usar a função correta de envio de email
+                success = _send_self_checkin_invitation_email(
+                    to_email=client_email,
                     client_name=client_name,
-                    vehicle_plate=vehicle_plate
+                    ra_number=inspection_number,
+                    plate=vehicle_plate,
+                    return_date=checkout_date,
+                    token="",  # Não temos token para emails antigos
+                    country=""
                 )
                 
                 if success:
@@ -19212,7 +19211,11 @@ async def load_price_automation_settings(request: Request):
                 settings = {}
                 for row in rows:
                     try:
-                        settings[row[0]] = json.loads(row[1])
+                        # Skip empty or invalid JSON values
+                        if not row[1] or row[1].strip() == '':
+                            settings[row[0]] = None
+                        else:
+                            settings[row[0]] = json.loads(row[1])
                     except:
                         settings[row[0]] = row[1]
                 
@@ -19228,7 +19231,17 @@ async def save_automated_price_rules(request: Request):
     require_auth(request)
     
     try:
-        data = await request.json()
+        # 🚨 PROTEÇÃO: Capturar erro de parsing JSON
+        try:
+            data = await request.json()
+        except Exception as json_err:
+            logging.error(f"❌ JSON parsing error: {json_err}")
+            return JSONResponse({"ok": False, "error": f"Invalid JSON: {str(json_err)}"}, status_code=400)
+        
+        # 🚨 PROTEÇÃO: Verificar se os dados são válidos
+        if not data or not isinstance(data, dict):
+            logging.error("❌ Invalid or empty JSON data received")
+            return JSONResponse({"ok": False, "error": "Invalid or empty JSON data"}, status_code=400)
         
         # 🚨 PROTEÇÃO: Contar quantas regras reais existem
         total_rules = 0
@@ -19303,7 +19316,17 @@ async def save_automated_price_rules(request: Request):
                                 if 'days' in month_data:
                                     for day, day_config in month_data['days'].items():
                                         try:
+                                            # 🚨 PROTEÇÃO: Verificar se day_config é válido antes de serializar
+                                            if day_config is None:
+                                                logging.warning(f"⚠️ Skipping None config for {location}/{grupo}/M{month}/D{day}")
+                                                continue
+                                            
                                             config_json = json.dumps(day_config)
+                                            
+                                            # 🚨 PROTEÇÃO: Verificar se config_json é válido
+                                            if not config_json or config_json == 'null':
+                                                logging.warning(f"⚠️ Skipping empty config for {location}/{grupo}/M{month}/D{day}")
+                                                continue
                                             
                                             if is_postgres:
                                                 conn.execute(
@@ -20368,6 +20391,10 @@ async def load_automated_price_rules(request: Request):
                     location, grupo, month, day, config_json = row
                     
                     try:
+                        # Skip empty or invalid JSON configs
+                        if not config_json or config_json.strip() == '':
+                            logging.warning(f"  ⚠️ Skipping empty config for {location}/{grupo}/M{month}/D{day}")
+                            continue
                         config = json.loads(config_json)
                         strategies.append({
                             "location": location,
@@ -20378,7 +20405,7 @@ async def load_automated_price_rules(request: Request):
                             "config": config
                         })
                     except Exception as parse_err:
-                        logging.error(f"  ❌ Error parsing config for {location}/{grupo}/M{month}/D{day}: {parse_err}")
+                        logging.error(f"  ❌ Error parsing config for {location}/{grupo}/M{month}/D{day}: {parse_err} (config: {config_json[:50] if config_json else 'empty'})")
                 
                 logging.info(f"✅ Loaded {len(strategies)} strategies from database")
                 
@@ -20499,6 +20526,10 @@ async def load_pricing_strategies(request: Request):
                     location, grupo, month, day, priority, config_json = row
                     
                     try:
+                        # Skip empty or invalid JSON configs
+                        if not config_json or config_json.strip() == '':
+                            logging.warning(f"  ⚠️ Skipping empty config for {location}/{grupo}/M{month}/D{day}")
+                            continue
                         config = json.loads(config_json)
                         strategies.append({
                             "location": location,
@@ -20886,7 +20917,14 @@ async def load_price_history(request: Request, history_id: int):
                 if not row:
                     return JSONResponse({"ok": False, "error": "History not found"}, status_code=404)
                 
-                prices_data = json.loads(row[4])
+                # Skip empty or invalid JSON
+                if not row[4] or row[4].strip() == '':
+                    prices_data = {}
+                else:
+                    try:
+                        prices_data = json.loads(row[4])
+                    except:
+                        prices_data = {}
                 
                 return JSONResponse({
                     "ok": True,
@@ -44884,9 +44922,18 @@ async def get_price_validation_rules(request: Request):
                 
                 if row:
                     import json
+                    # Skip empty or invalid JSON
+                    rules_json = row[0]
+                    if not rules_json or rules_json.strip() == '':
+                        rules = []
+                    else:
+                        try:
+                            rules = json.loads(rules_json)
+                        except:
+                            rules = []
                     return _no_store_json({
                         "ok": True,
-                        "rules": json.loads(row[0]),
+                        "rules": rules,
                         "updated_at": row[1]
                     })
                 else:
@@ -45016,7 +45063,16 @@ async def get_custom_days(request: Request):
                 
                 if row:
                     import json
-                    return _no_store_json({"ok": True, "days": json.loads(row[0])})
+                    # Skip empty or invalid JSON
+                    days_json = row[0]
+                    if not days_json or days_json.strip() == '':
+                        days = [1, 2, 3, 4, 5, 6, 7, 8, 9, 14, 22, 28, 31, 60]
+                    else:
+                        try:
+                            days = json.loads(days_json)
+                        except:
+                            days = [1, 2, 3, 4, 5, 6, 7, 8, 9, 14, 22, 28, 31, 60]
+                    return _no_store_json({"ok": True, "days": days})
                 else:
                     # Default days
                     return _no_store_json({"ok": True, "days": [1, 2, 3, 4, 5, 6, 7, 8, 9, 14, 22, 28, 31, 60]})
@@ -46074,7 +46130,15 @@ async def load_email_settings(request: Request):
                 
                 if row:
                     import json
-                    settings = json.loads(row[0])
+                    # Skip empty or invalid JSON
+                    settings_json = row[0]
+                    if not settings_json or settings_json.strip() == '':
+                        settings = {}
+                    else:
+                        try:
+                            settings = json.loads(settings_json)
+                        except:
+                            settings = {}
                     logging.info(f"✅ Email settings loaded from database for user {username}")
                     return JSONResponse({"ok": True, "settings": settings})
                 else:
