@@ -148,7 +148,7 @@
                     const response = await fetch('/api/price-automation/rules/save', {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json' },
-                        body: currentData.rules
+                        body: JSON.stringify(JSON.parse(currentData.rules || '{}'))
                     });
                     
                     if (response.ok) {
