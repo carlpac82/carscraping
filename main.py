@@ -1952,6 +1952,7 @@ async def send_past_checkout_emails(request: Request):
         
         sent_count = 0
         error_count = 0
+        error_details = []
         
         for row in rows:
             inspection_number, checkout_date, scheduled_send_date, pickup_location, client_email, client_name, vehicle_plate, status = row
@@ -1985,6 +1986,11 @@ async def send_past_checkout_emails(request: Request):
             except Exception as e:
                 mark_email_sent(inspection_number, success=False, error_message=str(e))
                 error_count += 1
+                error_details.append({
+                    'inspection_number': inspection_number,
+                    'email': client_email,
+                    'error': str(e)
+                })
                 logging.error(f"❌ Erro ao enviar email para {inspection_number}: {str(e)}")
         
         conn.commit()
@@ -1996,6 +2002,7 @@ async def send_past_checkout_emails(request: Request):
             "errors": error_count,
             "total": len(rows),
             "status_counts": status_counts,
+            "error_details": error_details,
             "emails": all_emails
         })
     except Exception as e:
@@ -5509,10 +5516,11 @@ def _send_self_checkin_invitation_email(to_email: str, client_name: str, ra_numb
         
         _send_notification_email(to_email, subject, html_content)
         logging.info(f"✅ Self check-in invitation email sent to {to_email} for RA {ra_number} (language: {language})")
+        return True
         
     except Exception as e:
         logging.error(f"❌ Failed to send self check-in invitation email: {str(e)}")
-        raise
+        return False
 
 
 def _send_self_checkin_confirmation_email(
