@@ -2504,40 +2504,40 @@ def _ensure_users_table():
             
             # Migration: Add google_id column if it doesn't exist
             try:
-                con.execute("ALTER TABLE users ADD COLUMN google_id TEXT UNIQUE")
+                con.execute("ALTER TABLE users ADD COLUMN IF NOT EXISTS google_id TEXT UNIQUE")
                 con.commit()
             except Exception as e:
                 con.rollback()  # CRITICAL for PostgreSQL - must rollback on error
                 # Column already exists, ignore
                 pass
-            
+
             # Migration: Add role and can_access_inspection columns
             try:
-                con.execute("ALTER TABLE users ADD COLUMN role TEXT DEFAULT 'user'")
+                con.execute("ALTER TABLE users ADD COLUMN IF NOT EXISTS role TEXT DEFAULT 'user'")
                 con.commit()
             except Exception as e:
                 con.rollback()
                 pass
-            
+
             try:
-                con.execute("ALTER TABLE users ADD COLUMN can_access_inspection INTEGER DEFAULT 0")
+                con.execute("ALTER TABLE users ADD COLUMN IF NOT EXISTS can_access_inspection INTEGER DEFAULT 0")
                 con.commit()
             except Exception as e:
                 con.rollback()
                 pass
-            
+
             # Migration: Add profile_picture_data column if it doesn't exist
             try:
-                con.execute("ALTER TABLE users ADD COLUMN profile_picture_data BYTEA")
+                con.execute("ALTER TABLE users ADD COLUMN IF NOT EXISTS profile_picture_data BYTEA")
                 con.commit()
             except Exception as e:
                 con.rollback()  # CRITICAL for PostgreSQL - must rollback on error
                 # Column already exists, ignore
                 pass
-            
+
             # Migration: Add has_commissioner_access column
             try:
-                con.execute("ALTER TABLE users ADD COLUMN has_commissioner_access INTEGER DEFAULT 0")
+                con.execute("ALTER TABLE users ADD COLUMN IF NOT EXISTS has_commissioner_access INTEGER DEFAULT 0")
                 con.commit()
             except Exception as e:
                 con.rollback()
@@ -4181,7 +4181,7 @@ def init_db():
             
             # Add source column to automated_prices_history if it doesn't exist (migration)
             try:
-                conn.execute("ALTER TABLE automated_prices_history ADD COLUMN source TEXT DEFAULT 'manual'")
+                conn.execute("ALTER TABLE automated_prices_history ADD COLUMN IF NOT EXISTS source TEXT DEFAULT 'manual'")
                 conn.commit()
                 logging.info("✅ Added 'source' column to automated_prices_history table")
             except Exception as e:
