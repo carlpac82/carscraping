@@ -1925,11 +1925,12 @@ async def send_past_checkout_emails(request: Request):
         conn = psycopg2.connect(database_url)
         cursor = conn.cursor()
         
-        # Get all emails (not just pending) to see current status
+        # Get emails from yesterday and before (not just pending)
         cursor.execute("""
             SELECT inspection_number, checkout_date, scheduled_send_date,
                    pickup_location, client_email, client_name, vehicle_plate, status
             FROM scheduled_checkout_emails
+            WHERE scheduled_send_date <= CURRENT_DATE - INTERVAL '1 day'
             ORDER BY scheduled_send_date ASC
         """)
         rows = cursor.fetchall()
