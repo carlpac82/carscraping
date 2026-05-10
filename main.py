@@ -20394,7 +20394,7 @@ async def load_automated_price_rules(request: Request):
                     
                     try:
                         # Skip empty or invalid JSON configs
-                        if not config_json or config_json.strip() == '':
+                        if not config_json or config_json.strip() == '' or config_json.strip() == 'null':
                             logging.warning(f"  ⚠️ Skipping empty config for {location}/{grupo}/M{month}/D{day}")
                             continue
                         config = json.loads(config_json)
@@ -20529,7 +20529,7 @@ async def load_pricing_strategies(request: Request):
                     
                     try:
                         # Skip empty or invalid JSON configs
-                        if not config_json or config_json.strip() == '':
+                        if not config_json or config_json.strip() == '' or config_json.strip() == 'null':
                             logging.warning(f"  ⚠️ Skipping empty config for {location}/{grupo}/M{month}/D{day}")
                             continue
                         config = json.loads(config_json)
@@ -20635,7 +20635,11 @@ async def load_automated_prices_history(request: Request):
                 history = []
                 for row in rows:
                     try:
-                        strategy_details = json.loads(row[8]) if row[8] else {}
+                        # 🚨 PROTEÇÃO: Verificar se não é null string antes de fazer parse
+                        if row[8] and row[8].strip() and row[8].strip() != 'null':
+                            strategy_details = json.loads(row[8])
+                        else:
+                            strategy_details = {}
                     except:
                         strategy_details = {}
                     
@@ -20920,7 +20924,7 @@ async def load_price_history(request: Request, history_id: int):
                     return JSONResponse({"ok": False, "error": "History not found"}, status_code=404)
                 
                 # Skip empty or invalid JSON
-                if not row[4] or row[4].strip() == '':
+                if not row[4] or row[4].strip() == '' or row[4].strip() == 'null':
                     prices_data = {}
                 else:
                     try:
@@ -21129,7 +21133,11 @@ async def load_user_settings(request: Request):
                     
                     # Tentar deserializar JSON
                     try:
-                        settings[key] = json.loads(value_str)
+                        # 🚨 PROTEÇÃO: Verificar se não é null string antes de fazer parse
+                        if value_str and value_str.strip() and value_str.strip() != 'null':
+                            settings[key] = json.loads(value_str)
+                        else:
+                            settings[key] = value_str
                     except:
                         settings[key] = value_str
                 
@@ -45000,7 +45008,11 @@ async def get_automation_settings(request: Request):
                     key, value, stype = row
                     if stype == 'json':
                         import json
-                        settings[key] = json.loads(value)
+                        # 🚨 PROTEÇÃO: Verificar se não é null string antes de fazer parse
+                        if value and value.strip() and value.strip() != 'null':
+                            settings[key] = json.loads(value)
+                        else:
+                            settings[key] = value
                     elif stype == 'number':
                         settings[key] = float(value)
                     else:
@@ -45067,7 +45079,7 @@ async def get_custom_days(request: Request):
                     import json
                     # Skip empty or invalid JSON
                     days_json = row[0]
-                    if not days_json or days_json.strip() == '':
+                    if not days_json or days_json.strip() == '' or days_json.strip() == 'null':
                         days = [1, 2, 3, 4, 5, 6, 7, 8, 9, 14, 22, 28, 31, 60]
                     else:
                         try:
@@ -45309,7 +45321,11 @@ async def load_all_settings(request: Request):
                     key, value = row[0], row[1]
                     # Try to parse as JSON, fallback to string
                     try:
-                        settings[key] = json.loads(value) if value else None
+                        # 🚨 PROTEÇÃO: Verificar se não é null string antes de fazer parse
+                        if value and value.strip() and value.strip() != 'null':
+                            settings[key] = json.loads(value)
+                        else:
+                            settings[key] = None
                     except:
                         settings[key] = value
                 
@@ -45413,7 +45429,12 @@ async def load_advanced_automated_reports(request: Request):
                 row = cursor.fetchone()
                 
                 if row and row[0]:
-                    settings = json.loads(row[0])
+                    # 🚨 PROTEÇÃO: Verificar se não é null string antes de fazer parse
+                    setting_value = row[0]
+                    if setting_value and setting_value.strip() and setting_value.strip() != 'null':
+                        settings = json.loads(setting_value)
+                    else:
+                        settings = {}
                     logging.info(f"📥 Loaded ADVANCED automated reports settings")
                     return JSONResponse({"ok": True, "settings": settings})
                 else:
@@ -45440,7 +45461,12 @@ async def load_automated_reports_settings(request: Request):
                 row = cursor.fetchone()
                 
                 if row and row[0]:
-                    settings = json.loads(row[0])
+                    # 🚨 PROTEÇÃO: Verificar se não é null string antes de fazer parse
+                    setting_value = row[0]
+                    if setting_value and setting_value.strip() and setting_value.strip() != 'null':
+                        settings = json.loads(setting_value)
+                    else:
+                        settings = {}
                     logging.info(f"📥 Loaded automated reports settings from database")
                     return JSONResponse({"ok": True, "settings": settings})
                 else:
@@ -46134,7 +46160,7 @@ async def load_email_settings(request: Request):
                     import json
                     # Skip empty or invalid JSON
                     settings_json = row[0]
-                    if not settings_json or settings_json.strip() == '':
+                    if not settings_json or settings_json.strip() == '' or settings_json.strip() == 'null':
                         settings = {}
                     else:
                         try:
@@ -48037,7 +48063,12 @@ def run_weekly_report_search():
                     logging.warning("⚠️ No automated reports settings - skipping weekly search")
                     return
                 
-                settings = json.loads(row[0])
+                # 🚨 PROTEÇÃO: Verificar se não é null string antes de fazer parse
+                setting_value = row[0]
+                if setting_value and setting_value.strip() and setting_value.strip() != 'null':
+                    settings = json.loads(setting_value)
+                else:
+                    settings = {}
                 if not settings.get('weeklyEnabled'):
                     logging.info("ℹ️ Weekly reports disabled - skipping search")
                     return
@@ -48492,7 +48523,13 @@ def send_automatic_daily_report():
                     logging.warning("⚠️ No automated reports settings found")
                     return
                 
-                automation_settings = json.loads(row[0])
+                # 🚨 PROTEÇÃO: Verificar se não é null string antes de fazer parse
+                setting_value = row[0]
+                if not setting_value or setting_value.strip() == '' or setting_value.strip() == 'null':
+                    logging.warning("⚠️ Invalid automated reports settings (empty/null)")
+                    return
+                
+                automation_settings = json.loads(setting_value)
                 logging.info(f"[EMAIL-DEBUG] Automation settings: dailyEnabled={automation_settings.get('dailyEnabled')}")
                 
                 if not automation_settings.get('dailyEnabled'):
