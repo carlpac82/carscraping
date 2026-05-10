@@ -1925,21 +1925,39 @@ async def send_past_checkout_emails(request: Request):
         conn = psycopg2.connect(database_url)
         cursor = conn.cursor()
         
-        # Get all pending emails
+        # Get all emails (not just pending) to see current status
         cursor.execute("""
             SELECT inspection_number, checkout_date, scheduled_send_date,
-                   pickup_location, client_email, client_name, vehicle_plate
+                   pickup_location, client_email, client_name, vehicle_plate, status
             FROM scheduled_checkout_emails
-            WHERE status = 'pending'
             ORDER BY scheduled_send_date ASC
         """)
         rows = cursor.fetchall()
+        
+        # Count by status
+        status_counts = {'pending': 0, 'sent': 0, 'failed': 0}
+        all_emails = []
+        
+        for row in rows:
+            inspection_number, checkout_date, scheduled_send_date, pickup_location, client_email, client_name, vehicle_plate, status = row
+            status_counts[status] = status_counts.get(status, 0) + 1
+            all_emails.append({
+                'inspection_number': inspection_number,
+                'checkout_date': str(checkout_date),
+                'scheduled_send_date': str(scheduled_send_date),
+                'status': status,
+                'client_email': client_email
+            })
         
         sent_count = 0
         error_count = 0
         
         for row in rows:
-            inspection_number, checkout_date, scheduled_send_date, pickup_location, client_email, client_name, vehicle_plate = row
+            inspection_number, checkout_date, scheduled_send_date, pickup_location, client_email, client_name, vehicle_plate, status = row
+            
+            # Only send pending emails
+            if status != 'pending':
+                continue
             
             try:
                 from schedule_checkout_emails import mark_email_sent
@@ -1975,7 +1993,9 @@ async def send_past_checkout_emails(request: Request):
             "success": True,
             "sent": sent_count,
             "errors": error_count,
-            "total": len(rows)
+            "total": len(rows),
+            "status_counts": status_counts,
+            "emails": all_emails
         })
     except Exception as e:
         return JSONResponse({"error": str(e)}, status_code=500)
