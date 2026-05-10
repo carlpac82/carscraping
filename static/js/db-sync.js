@@ -259,8 +259,12 @@
         
         // Send rules (non-blocking)
         if (rulesStr) {
-            const blob = new Blob([rulesStr], { type: 'application/json' });
-            navigator.sendBeacon('/api/price-automation/rules/save', blob);
+            fetch('/api/price-automation/rules/save', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: rulesStr,
+                keepalive: true
+            }).catch(err => console.error('[DB-SYNC] Failed to sync rules:', err));
         }
         
         // Send settings (non-blocking)
