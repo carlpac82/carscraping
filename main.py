@@ -1955,8 +1955,8 @@ async def send_past_checkout_emails(request: Request):
         for row in rows:
             inspection_number, checkout_date, scheduled_send_date, pickup_location, client_email, client_name, vehicle_plate, status = row
             
-            # Only send pending emails
-            if status != 'pending':
+            # Send pending and error emails
+            if status not in ('pending', 'error'):
                 continue
             
             try:
