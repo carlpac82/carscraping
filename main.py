@@ -1914,6 +1914,69 @@ async def admin_test_email_send(request: Request, to: str = Form("")):
     ok = err is None
     return templates.TemplateResponse("admin_test_email.html", {"request": request, "error": err, "ok": ok})
 
+@app.post("/admin/send-past-checkout-emails")
+async def send_past_checkout_emails(request: Request):
+    """Endpoint to send all pending checkout emails (for Safari console execution)"""
+    try:
+        require_commissions_management(request)
+    except HTTPException:
+        return JSONResponse({"error": "Unauthorized"}, status_code=401)
+    
+    try:
+        import psycopg2
+        database_url = os.environ.get('DATABASE_URL')
+        conn = psycopg2.connect(database_url)
+        cursor = conn.cursor()
+        
+        # Get all pending emails
+        cursor.execute("""
+            SELECT inspection_number, checkout_date, scheduled_send_date,
+                   pickup_location, client_email, client_name, vehicle_plate
+            FROM scheduled_checkout_emails
+            WHERE status = 'pending'
+            ORDER BY scheduled_send_date ASC
+        """)
+        rows = cursor.fetchall()
+        
+        sent_count = 0
+        error_count = 0
+        
+        for row in rows:
+            inspection_number, checkout_date, scheduled_send_date, pickup_location, client_email, client_name, vehicle_plate = row
+            
+            try:
+                from schedule_checkout_emails import mark_email_sent
+                success = _send_self_checkout_email(
+                    inspection_number=inspection_number,
+                    checkout_date=checkout_date,
+                    pickup_location=pickup_location,
+                    client_email=client_email,
+                    client_name=client_name,
+                    vehicle_plate=vehicle_plate
+                )
+                
+                if success:
+                    mark_email_sent(inspection_number, success=True)
+                    sent_count += 1
+                else:
+                    mark_email_sent(inspection_number, success=False, error_message="Failed")
+                    error_count += 1
+            except Exception as e:
+                mark_email_sent(inspection_number, success=False, error_message=str(e))
+                error_count += 1
+        
+        conn.commit()
+        conn.close()
+        
+        return JSONResponse({
+            "success": True,
+            "sent": sent_count,
+            "errors": error_count,
+            "total": len(rows)
+        })
+    except Exception as e:
+        return JSONResponse({"error": str(e)}, status_code=500)
+
 @app.exception_handler(Exception)
 async def unhandled_exception_handler(request: Request, exc: Exception):
     try:
