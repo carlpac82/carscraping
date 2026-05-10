@@ -1944,6 +1944,7 @@ async def send_past_checkout_emails(request: Request):
             try:
                 from schedule_checkout_emails import mark_email_sent
                 # Usar a função correta de envio de email
+                logging.info(f"📧 Enviando email para {inspection_number}: {client_email}")
                 success = _send_self_checkin_invitation_email(
                     to_email=client_email,
                     client_name=client_name,
@@ -1957,12 +1958,15 @@ async def send_past_checkout_emails(request: Request):
                 if success:
                     mark_email_sent(inspection_number, success=True)
                     sent_count += 1
+                    logging.info(f"✅ Email enviado para {inspection_number}")
                 else:
                     mark_email_sent(inspection_number, success=False, error_message="Failed")
                     error_count += 1
+                    logging.error(f"❌ Falha ao enviar email para {inspection_number}")
             except Exception as e:
                 mark_email_sent(inspection_number, success=False, error_message=str(e))
                 error_count += 1
+                logging.error(f"❌ Erro ao enviar email para {inspection_number}: {str(e)}")
         
         conn.commit()
         conn.close()
