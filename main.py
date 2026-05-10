@@ -19243,7 +19243,7 @@ async def load_price_automation_settings(request: Request):
 
 @app.post("/api/price-automation/rules/save")
 async def save_automated_price_rules(request: Request):
-    """Salvar regras automatizadas de preços na base de dados"""
+    """Salvar regras automatizadas de preços na base de dados - v2"""
     require_auth(request)
     
     try:
