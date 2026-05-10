@@ -43,11 +43,11 @@ if USE_POSTGRES:
         'database': result.path[1:],
         'user': result.username,
         'password': result.password,
-        'sslmode': 'prefer',  # Changed from 'require' to 'prefer' for local development
+        'sslmode': 'require',  # Force SSL for stable connections
         'connect_timeout': 10,
         'keepalives': 1,
-        'keepalives_idle': 30,
-        'keepalives_interval': 10,
+        'keepalives_idle': 10,
+        'keepalives_interval': 5,
         'keepalives_count': 5,
         'options': '-c statement_timeout=120000 -c idle_in_transaction_session_timeout=60000',
     }
@@ -103,6 +103,19 @@ class DatabaseConnection:
                                     pass
                                 self.conn = connection_pool.getconn()
                                 self.conn.autocommit = True
+                                # Validate new connection is alive
+                                try:
+                                    cursor = self.conn.cursor()
+                                    cursor.execute("SELECT 1")
+                                    cursor.close()
+                                except Exception as new_health_err:
+                                    logging.warning(f"New connection from pool is also stale: {new_health_err}. Getting another one...")
+                                    try:
+                                        connection_pool.putconn(self.conn, close=True)
+                                    except:
+                                        pass
+                                    self.conn = connection_pool.getconn()
+                                    self.conn.autocommit = True
                             
                             return self.conn
                         except Exception as e:
