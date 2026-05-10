@@ -19279,6 +19279,21 @@ async def save_automated_price_rules(request: Request):
             logging.error("❌ Invalid or empty JSON data received")
             return JSONResponse({"ok": False, "error": "Invalid or empty JSON data"}, status_code=400)
         
+        # 🚨 PROTEÇÃO: Se objeto vazio, verificar flag de confirmação para limpar
+        if len(data) == 0:
+            # Permitir objeto vazio apenas se flag clear=true estiver presente (não implementado ainda)
+            # Por agora, permitir objeto vazio para limpar regras
+            logging.info("🗑️ Clearing all automated price rules (empty object received)")
+            with _db_lock:
+                conn = _db_connect()
+                try:
+                    conn.execute("DELETE FROM automated_price_rules")
+                    conn.commit()
+                    logging.info("✅ All automated price rules deleted")
+                    return JSONResponse({"ok": True, "cleared": True})
+                finally:
+                    conn.close()
+        
         # 🚨 PROTEÇÃO: Contar quantas regras reais existem
         total_rules = 0
         for location, grupos in data.items():
