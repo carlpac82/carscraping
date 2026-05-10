@@ -70,9 +70,9 @@ def schedule_checkout_email(
             logging.error(f"❌ Error parsing checkout date '{checkout_date}': {e}")
             return False
         
-        # Calcular data de envio (2 dias antes, às 20:00)
+        # Calcular data de envio (2 dias antes, às 09:00)
         scheduled_send_dt = checkout_dt - timedelta(days=2)
-        scheduled_send_dt = scheduled_send_dt.replace(hour=20, minute=0, second=0, microsecond=0)
+        scheduled_send_dt = scheduled_send_dt.replace(hour=9, minute=0, second=0, microsecond=0)
         
         # Se a data de envio já passou ou é muito próxima, agendar para agora
         now = datetime.now()

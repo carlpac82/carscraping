@@ -60872,48 +60872,6 @@ async def force_send_checkout_emails(request: Request):
             "traceback": traceback.format_exc()
         }, status_code=500)
 
-@app.post("/api/admin/fix-scheduled-email-times")
-async def fix_scheduled_email_times(request: Request):
-    """Fix scheduled email times from 09:00 to 20:00"""
-    try:
-        require_auth(request)
-    except HTTPException:
-        return JSONResponse({"ok": False, "error": "Unauthorized"}, status_code=403)
-    
-    try:
-        with _db_lock:
-            conn = _db_connect()
-            is_postgres = _is_postgresql_connection(conn)
-            
-            try:
-                cursor = conn.cursor()
-                
-                # Atualizar emails agendados para 09:00 para 20:00
-                cursor.execute("""
-                    UPDATE scheduled_checkout_emails
-                    SET scheduled_send_date = DATE_TRUNC('day', scheduled_send_date) + INTERVAL '20 hours',
-                        updated_at = NOW()
-                    WHERE EXTRACT(HOUR FROM scheduled_send_date) = 9
-                      AND status = 'pending'
-                """)
-                
-                updated_count = cursor.rowcount
-                conn.commit()
-                conn.close()
-                
-                return JSONResponse({
-                    "ok": True,
-                    "message": f"Updated {updated_count} scheduled emails from 09:00 to 20:00"
-                })
-                
-            except Exception as e:
-                conn.rollback()
-                conn.close()
-                raise e
-    except Exception as e:
-        logging.error(f"Error fixing scheduled email times: {e}")
-        return JSONResponse({"ok": False, "error": str(e)}, status_code=500)
-
 @app.post("/api/fix-swapped-vehicles-status")
 async def fix_swapped_vehicles_status(request: Request):
     """Fix status of vehicles that were swapped - mark old plates as available"""
