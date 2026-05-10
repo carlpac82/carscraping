@@ -142,13 +142,28 @@
                 console.log(`[DB-SYNC] ✓ Saved ${Object.keys(currentData.settings).length} settings to database`);
             }
             
-            // Salvar Automated Price Rules (se modificados)
+            // Salvar Automated Price Rules (se modificados e não vazias)
             if (currentData.rules) {
                 try {
+                    let rules;
+                    try {
+                        rules = JSON.parse(currentData.rules || '{}');
+                    } catch (e) {
+                        console.error('[DB-SYNC] ❌ Failed to parse rules:', e);
+                        return;
+                    }
+                    
+                    // Verificar se o objeto não está vazio
+                    const hasContent = Object.keys(rules).length > 0;
+                    if (!hasContent) {
+                        console.log('[DB-SYNC] ⏭️ Skipping empty rules');
+                        return;
+                    }
+                    
                     const response = await fetch('/api/price-automation/rules/save', {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify(JSON.parse(currentData.rules || '{}'))
+                        body: JSON.stringify(rules)
                     });
                     
                     if (response.ok) {
