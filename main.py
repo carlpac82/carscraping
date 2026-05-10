@@ -1319,12 +1319,13 @@ async def lifespan(app: FastAPI):
         logging.warning(f"⚠️ Auto-cleanup scheduler error: {e}")
     
     # Initialize database tables (ONLY on first worker to avoid race conditions)
-    worker_id = os.getenv("UVICORN_WORKER_ID")
-    is_first_worker = worker_id is None or worker_id == "0"
+    # No Railway, usar WORKER_INDEX para identificar o worker principal
+    worker_index = os.environ.get('WORKER_INDEX', '0')
+    is_first_worker = worker_index == '0'
     
     if is_first_worker:
         try:
-            logging.info("🔧 Initializing database tables (worker 0)...")
+            logging.info("🔧 Initializing database tables (WORKER_INDEX=0)...")
             _ensure_users_table()
             logging.info("users table created/exists")
             init_db()
@@ -1337,6 +1338,8 @@ async def lifespan(app: FastAPI):
         except Exception as e:
             logging.error(f"Database initialization error: {e}")
             traceback.print_exc()
+    else:
+        logging.info(f"⏭️ Skipping database initialization (WORKER_INDEX={worker_index}, not main worker)")
         
         # Executar migration das colunas hotel, room_number e deposit
         try:
